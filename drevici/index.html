@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--navy:#10285E;--gold:#C6A24A;--bg:#F4F0EA;--white:#fff;--border:rgba(0,0,0,0.08);--text:#1a1a1a;--text2:#666;--text3:#aaa;--r:10px;--rs:6px}
+:root{--restoFont:'Cormorant Garamond';--navy:#10285E;--gold:#C6A24A;--bg:#F4F0EA;--white:#fff;--border:rgba(0,0,0,0.08);--text:#1a1a1a;--text2:#666;--text3:#aaa;--r:10px;--rs:6px}
 body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-size:14px}
 
 /* ── LIGHTBOX ── */
@@ -58,7 +58,7 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 .admin-btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .admin-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .logo-img{height:32px;max-width:160px;object-fit:contain;display:none;}
-.logo-text{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:#fff;letter-spacing:.08em;white-space:nowrap;text-align:center}
+.logo-text{font-family:var(--restoFont,'Cormorant Garamond'),serif;font-size:20px;font-weight:700;color:#fff;letter-spacing:.08em;white-space:nowrap;text-align:center}
 .header-top{position:relative}
 .logo-centered{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;display:flex;align-items:center;justify-content:center}
 @media(min-width:480px){.logo-img{height:42px;max-width:200px;display:block}.logo-text{display:none}}
@@ -69,7 +69,7 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 .nav-bar{background:var(--navy);overflow-x:auto;scrollbar-width:none;display:flex;border-bottom:none;margin-bottom:0;-webkit-overflow-scrolling:touch}
 .nav-bar::-webkit-scrollbar{display:none}
 .nav-bar-inner{display:flex;margin:0 auto;padding:0 16px 0 16px;min-width:max-content}
-.nav-tab{flex:none;padding:11px 14px 10px;font-size:11px;font-weight:500;font-family:'Jost',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,0.4);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all .2s}
+.nav-tab{flex:none;padding:11px 14px 10px;font-size:11px;font-weight:500;font-family:'Jost',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,0.4);cursor:pointer;border-bottom:4px solid transparent;white-space:nowrap;transition:all .2s}
 .nav-tab.active{color:#fff;border-bottom-color:var(--gold)}
 .view-bar{background:#fff;border-bottom:1px solid var(--border)}
 .view-bar-inner{max-width:680px;margin:0 auto;padding:9px 16px;display:flex;align-items:center;justify-content:space-between}
@@ -479,7 +479,8 @@ let DATA = {
   intro: { active:false, text:{fr:'Bienvenue chez Drevici Oyster, un bar à huîtres breton au cœur de Paris.',en:'Welcome to Drevici Oyster, a Breton oyster bar in the heart of Paris.'} },
   social: { instagram:'', tiktok:'', facebook:'' },
   brandColors: { primary: '#10285E', accent: '#C6A24A', bg: '#F7F5F0' },
-  corpoTemplates: [],  // up to 3 image URLs/base64
+  corpoTemplates: [],
+  icones: { main: '', secondary: '' },
   showHeaderLogo: true,
   homeTab: { active:false, photo:'', video:'' },
   schedule: [
@@ -559,7 +560,7 @@ let DATA = {
   ]
 };
 
-let lang='fr', view='grid', currentTabId='huitres';
+let lang='fr', view='grid', currentTabId=sessionStorage.getItem('lastTabId')||'huitres';
 let lbImages=[], lbIdx=0;
 let confirmCallback=null;
 
@@ -700,7 +701,7 @@ function renderNav(){
         window.open(DATA.homeTab.siteUrl,'_blank');
         return;
       }
-      currentTabId=tab.id; renderAll();
+      currentTabId=tab.id; sessionStorage.setItem('lastTabId',tab.id); renderAll();
     });
     nav.appendChild(el);
   });
@@ -1027,7 +1028,7 @@ function renderTabContent(tab,lbOffset){
           const sizes=item.sizes||[];
           // sizes display: "25cl / 50cl" in name area, "5€ / 17€" in price area
           const clStr=sizes.length>0?sizes.filter(s=>s.cl).map(s=>s.cl+'cl').join(' / '):'';
-          const priceStr=sizes.length>0?sizes.filter(s=>s.price).map(s=>s.price+'€').join(' / '):(item.price||'');
+          const rawPrice=(item.price||'').toString(); const priceStr=sizes.length>0?sizes.filter(s=>s.price).map(s=>s.price+'€').join(' / '):(rawPrice.includes('€')?rawPrice:rawPrice?rawPrice+'€':'');
           html+=`<div class="bev-row"><div><span class="bev-name">${t(item.name)}</span>${clStr?`<div class="bev-sizes">${clStr}</div>`:''}</div><span class="bev-price">${priceStr}</span></div>`;
         });
       } else if(card.type==='variants'){
@@ -1310,7 +1311,7 @@ function closeAdmin(){ document.getElementById('adminOverlay').classList.remove(
 function renderAdminTabDd(){
   const dd=document.getElementById('adminTabDd');
   const tabOpts=DATA.tabs.filter(tb=>tb.id!=='__home').map(tb=>`<option value="${tb.id}"${tb.id===adminCurrentTab?' selected':''}>${t(tb.label)}</option>`).join('');
-  dd.innerHTML='<option value="__global">Informations générales</option>'
+  dd.innerHTML='<option value="__global">🏠 Informations générales</option>'
     +'<option value="__home">Accueil</option>'
     +tabOpts
     +'<option value="__addtab_plats">+ Nouvelle tab (plats)</option>'
@@ -1540,7 +1541,7 @@ function renderAdminGlobal(){
       </div>
       `+biInput('Titre du menu', sp.title.fr||'', sp.title[adminLang]||'', `DATA.specials[${si}].title[adminLang]=this.value;renderAll()`)+`
       `+biInput('Description / plats', sp.desc.fr||'', sp.desc[adminLang]||'', `DATA.specials[${si}].desc[adminLang]=this.value;renderAll()`)+`
-      <div class="af"><label class="al">Prix (chiffre seul, € ajouté auto)</label><input class="ai ai-sm" type="text" inputmode="decimal" value="${sp.price||''}" oninput="const v=this.value.trim();DATA.specials[${si}].price=v&&/^[\d.,]+$/.test(v)?v+'€':v;renderAll()"></div>
+      <div class="af"><label class="al">Prix (€)</label><input class="ai ai-sm" type="text" inputmode="decimal" value="${sp.price||''}" oninput="const v=this.value.trim();DATA.specials[${si}].price=v&&/^[\d.,]+$/.test(v)?v+'€':v;renderAll()"></div>
     </div>`;
   });
   h+=`</div></div>`;
@@ -2447,7 +2448,9 @@ function pdfCfg(){
     titleColor: d.titleColor || '#10285E',
     accentColor: d.accentColor || '#C6A24A',
     showLogo: d.showLogo !== false,
-    logoData: d.logoData || '',   // base64 or URL uploaded specifically for PDF
+    showIcons: d.showIcons !== false,
+    bgColor: d.bgColor || '#FFFDF8',
+    logoData: d.logoData || '',
     footerAddress: d.footerAddress || (DATA.address ? [DATA.address.street,DATA.address.zip,DATA.address.city].filter(Boolean).join(', ') : '') || '',
     footerPhone: d.footerPhone || (DATA.address&&DATA.address.phone) || '',
     footerShowDate: d.footerShowDate !== false,
@@ -2468,11 +2471,15 @@ function buildPdfMenuHTML(cfg){
   let h = '';
 
   // Header
+  const icData = DATA.icones||{};
+  const showMainIc = cfg.showIcons!==false && icData.main && !cfg.showLogo;
+  const showSecIc  = cfg.showIcons!==false && !!icData.secondary;
   h += `<div class="pdf-header">`;
   if(cfg.showLogo && logoUrl) h += `<img src="${logoUrl}" class="pdf-logo" onerror="this.style.display='none'">`;
   else if(cfg.showLogo && !logoUrl) h += `<div class="pdf-logo-text">${getRestaurantName()||''}</div>`;
   h += `<h1 class="pdf-title">${restName}</h1>`;
   if(DATA.heroActive && DATA.hero) h += `<div class="pdf-sub">${t(DATA.hero)}</div>`;
+  if(showMainIc) h += `<img src="${icData.main}" style="width:48px;height:48px;object-fit:contain;margin:10px auto 0;display:block" onerror="this.style.display='none'">`;
   if(cfg.template === 'maritime') h += `<div class="pdf-deco-divider">${PDF_SVG.waves}</div>`;
   h += `</div>`;
 
@@ -2480,7 +2487,8 @@ function buildPdfMenuHTML(cfg){
   DATA.tabs.filter(tb=>tb.id!=='__home' && tb.visible!==false).forEach(tb=>{
     h += `<div class="pdf-section">`;
     h += `<h2 class="pdf-cat">`;
-    if(cfg.template === 'maritime') h += `<span class="pdf-cat-icon">${PDF_SVG.oyster}</span>`;
+    if(showSecIc) h += `<img src="${icData.secondary}" style="width:16px;height:16px;object-fit:contain;vertical-align:middle;margin-right:6px" onerror="this.remove()">`;
+    else if(cfg.template === 'maritime') h += `<span class="pdf-cat-icon">${PDF_SVG.oyster}</span>`;
     h += `${t(tb.label)}</h2>`;
     tb.cards.forEach(card=>{
       if(t(card.label) && tb.cards.length>1) h += `<h3 class="pdf-subcat">${t(card.label)}</h3>`;
@@ -2531,7 +2539,7 @@ function buildPdfCSS(cfg){
   return `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Open+Sans:wght@300;400;600&display=swap');
   *{box-sizing:border-box;margin:0;padding:0}
-  .pdf-page{font-family:'Open Sans',sans-serif;color:#1a1a1a;background:${maritime?'#fdfbf6':'#ffffff'};width:${pageW}px;padding:${pad}px;margin:0 auto;position:relative}
+  .pdf-page{font-family:'Open Sans',sans-serif;color:#1a1a1a;background:${cfg.bgColor||'#FFFDF8'};width:${pageW}px;padding:${pad}px;margin:0 auto;position:relative}
   ${maritime?`.pdf-page::before{content:'';position:absolute;inset:14px;border:1.5px solid ${cfg.accentColor};opacity:.4;pointer-events:none}`:''}
   .pdf-header{text-align:center;margin-bottom:${isGbiz?40:28}px;position:relative}
   .pdf-logo-text{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--navy,#10285E);margin:0 auto 12px;display:block;text-align:center}
@@ -2662,6 +2670,7 @@ function exportGbizImage(cfg){
 // Admin UI for the PDF style panel
 function renderPdfStyleSection(){
   const cfg = pdfCfg();
+  const ic = DATA.icones||{};
   const swatch = (label, key, val) => `
     <div class="af"><label class="al">${label}</label>
       <div style="display:flex;align-items:center;gap:8px">
@@ -2669,47 +2678,34 @@ function renderPdfStyleSection(){
         <input class="ai" value="${val}" oninput="setPdfCfg('${key}',this.value)" style="flex:1;font-family:monospace;font-size:12px">
       </div>
     </div>`;
+  const logoSrc = cfg.logoData || getRestaurantLogo();
   return `<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Exporter le menu en PDF</div><div class="admin-sect-body">
-    <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:12px;line-height:1.6">Personnalisez le menu imprimable, prévisualisez puis exportez en A4 (impression) ou en image Google Business.</div>
-
-    <div class="af"><label class="al">Modèle</label>
-      <div style="display:flex;gap:8px">
-        <button class="pdf-tpl-btn${cfg.template==='maritime'?' active':''}" onclick="setPdfCfg('template','maritime');renderAdminSection(adminCurrentTab)" style="flex:1">Customisé</button>
-        <button class="pdf-tpl-btn${cfg.template==='classic'?' active':''}" onclick="setPdfCfg('template','classic');renderAdminSection(adminCurrentTab)" style="flex:1">Épuré</button>
-      </div>
-    </div>
+    <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:12px;line-height:1.6">Personnalisez le menu imprimable, prévisualisez et exportez.</div>
 
     ${swatch('Couleur titre', 'titleColor', cfg.titleColor)}
     ${swatch('Couleur prix / accent', 'accentColor', cfg.accentColor)}
+    ${swatch('Couleur de fond', 'bgColor', cfg.bgColor||'#FFFDF8')}
 
     <div class="af"><label class="al">Logo du menu</label>
-      ${cfg.logoData || getRestaurantLogo() ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-        <img src="${cfg.logoData || getRestaurantLogo()}" style="max-height:50px;max-width:120px;object-fit:contain;border:1px solid var(--border);border-radius:6px;padding:4px;background:#fff" onerror="this.style.display='none'">
+      ${logoSrc ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <img src="${logoSrc}" style="max-height:50px;max-width:120px;object-fit:contain;border:1px solid var(--border);border-radius:6px;padding:4px;background:#fff" onerror="this.style.display='none'">
         <button class="adel" onclick="setPdfCfg('logoData','');renderAdminSection(adminCurrentTab)" title="Supprimer">✕</button>
       </div>` : `<div style="font-size:11px;color:var(--text3);margin-bottom:6px">Aucun logo — le nom de l'établissement sera affiché.</div>`}
       <label class="aadd" style="display:block;width:100%;text-align:center;padding:9px;cursor:pointer">
         📁 Uploader un logo (PNG, SVG, WEBP…)
         <input type="file" accept="image/*" style="display:none" onchange="(function(e){const r=new FileReader();r.onload=ev=>{setPdfCfg('logoData',ev.target.result);};r.readAsDataURL(e.target.files[0])})(event)">
       </label>
-      <label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showLogo?'checked':''} onchange="setPdfCfg('showLogo',this.checked)"><label>Afficher le logo</label></label>
+      <label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showLogo?'checked':''} onchange="setPdfCfg('showLogo',this.checked);renderAdminSection(adminCurrentTab)"><label>Afficher le logo</label></label>
     </div>
 
-    <label class="admin-toggle" style="margin-top:14px"><input type="checkbox" ${cfg.footerShowDate!==false?'checked':''} onchange="setPdfCfg('footerShowDate',this.checked)"><label>Afficher les coordonnées en pied de dernière page (adresse & téléphone)</label></label>
+    ${(ic.main||ic.secondary)?`<label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showIcons!==false?'checked':''} onchange="setPdfCfg('showIcons',this.checked)"><label>Afficher les icônes décoratives</label></label>
+    <div style="font-size:10px;color:var(--text3);margin-top:3px">Si le logo est affiché, l'icône principale est masquée automatiquement.</div>`:''}
 
-    <div class="admin-sect-title" style="margin-top:20px;font-size:12px">Format d'export</div>
-    <div class="af" style="margin-top:8px">
-      <div style="display:flex;gap:8px">
-        <button class="pdf-tpl-btn${cfg.format==='a4'?' active':''}" onclick="setPdfCfg('format','a4');renderAdminSection(adminCurrentTab)" style="flex:1">A4 (impression)</button>
-        <button class="pdf-tpl-btn${cfg.format==='gbiz'?' active':''}" onclick="setPdfCfg('format','gbiz');renderAdminSection(adminCurrentTab)" style="flex:1">Google Business</button>
-      </div>
-      <div style="font-size:10px;color:var(--text3);margin-top:4px">${cfg.format==='gbiz'?'Image PNG 3064×5447 px téléchargée.':"PDF A4 via la boîte d'impression."}</div>
-    </div>
-
-    <div class="af"><label class="al">Aperçu live</label>
+    <div class="af" style="margin-top:14px"><label class="al">Aperçu live</label>
       <iframe id="pdfPreviewFrame" style="width:100%;height:420px;border:1px solid var(--border);border-radius:8px;background:#e8e8e8"></iframe>
     </div>
 
-    <button class="aadd" style="width:100%;padding:11px;margin-top:6px" onclick="doPdfExport()">${cfg.format==='gbiz'?"⬇ Télécharger l'image":'🖨 Générer PDF / Imprimer'}</button>
+    <button class="aadd" style="width:100%;padding:11px;margin-top:6px" onclick="exportA4Print(pdfCfg())">🖨 Générer PDF / Imprimer</button>
   </div></div>`;
 }
 
@@ -2858,6 +2854,16 @@ function restaurantSettingHtml(){
     <div class="af"><label class="al">Nom de l'établissement</label>
       <input class="ai" value="${name}" placeholder="Nom du restaurant" oninput="setRestaurantName(this.value);document.getElementById('logoText').textContent=this.value||'Mon Restaurant'">
     </div>
+    <div class="af"><label class="al">Police du menu</label>
+      <select class="ai" id="restoFontSelect" style="font-size:13px" onchange="setRestoFont(this.value)">
+        ${(()=>{const fonts=["Roboto", "Open Sans", "Lato", "Montserrat", "Oswald", "Raleway", "Poppins", "Merriweather", "Playfair Display", "Ubuntu", "Source Sans Pro", "Nunito", "PT Sans", "Libre Baskerville", "Josefin Sans", "Crimson Text", "Fira Sans", "Noto Sans", "Work Sans", "Quicksand", "Mulish", "Barlow", "Inter", "DM Sans", "Space Grotesk", "Outfit", "Plus Jakarta Sans", "Sora", "Manrope", "Karla", "Cormorant Garamond", "EB Garamond", "Spectral", "Libre Franklin", "Source Serif Pro", "Arvo", "Crete Round", "Bitter", "Zilla Slab", "Rokkitt", "Dancing Script", "Pacifico", "Lobster", "Satisfy", "Abril Fatface", "Bebas Neue", "Anton", "Righteous", "Cinzel", "Teko"];const cur=DATA.restoFont||'';return fonts.map(f=>`<option value="${f}" style="font-family:'${f}',sans-serif" ${cur===f?'selected':''}>${f}</option>`).join('');})()}
+      </select>
+      <div style="margin-top:8px;padding:10px;border:1px solid var(--border);border-radius:6px;background:#fafaf7" id="fontPreviewBox">
+        <div style="font-size:22px;font-family:var(--restoFont,'Cormorant Garamond'),serif;font-weight:700;color:var(--navy)">${name||'Nom du restaurant'}</div>
+        <div style="font-size:13px;font-family:var(--restoFont,'Cormorant Garamond'),serif;color:var(--text3);margin-top:4px">Entrées · Plats · Desserts</div>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px">Aperçu de la police sur le nom et les catégories.</div>
+    </div>
     <div class="af"><label class="al">Sous-titre</label>
       <input class="ai" value="${DATA.hero?t(DATA.hero):''}" placeholder="Ex : Fruits de mer · Bretagne · Paris" oninput="if(!DATA.hero)DATA.hero={};DATA.hero[adminLang]=this.value;renderAll()">
     </div>
@@ -2867,7 +2873,7 @@ function restaurantSettingHtml(){
       <input class="ai" value="${logo}" placeholder="ou coller une URL https://..." oninput="setRestaurantLogo(this.value.trim());applyRestaurantBranding()">
       <div style="font-size:10px;color:var(--text3);font-family:Jost,sans-serif;margin-top:4px">Format recommandé : PNG transparent, hauteur 50–70px, largeur max 200px (ratio conseillé 3:1 à 5:1).</div>
     </div>
-    <label class="admin-toggle" style="margin-top:4px"><input type="checkbox" ${DATA.showHeaderLogo!==false?'checked':''} onchange="DATA.showHeaderLogo=this.checked;applyRestaurantBranding();renderAll()"><label>Afficher le logo dans le bandeau à la place du nom de votre établissement</label></label>
+    
     <div class="af"><label class="al" style="font-size:12px;font-weight:600;margin-top:12px;display:block;border-top:1px solid var(--border);padding-top:12px">Adresse & contact</label></div>
     <div class="af"><label class="al">Rue</label>
       <input class="ai" value="${DATA.address&&DATA.address.street||''}" placeholder="12 rue de la Mer" oninput="if(!DATA.address)DATA.address={};DATA.address.street=this.value;renderAll()">
@@ -2895,7 +2901,7 @@ function restaurantSettingHtml(){
 function renderBrandColorsSection(){
   const bc=DATA.brandColors||{primary:'#10285E',accent:'#C6A24A',bg:'#F7F5F0'};
   const labels={primary:'Couleur principale',accent:'Couleur accent',bg:'Couleur de fond'};
-  let h='<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Couleurs de la marque</div><div class="admin-sect-body">';
+  let h='<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Couleur principale</div><div class="admin-sect-body">';
   h+='<div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.5">Utilisées dans l\'app et les templates réseaux. Sauvegarder pour appliquer.</div>';
   ['primary','accent','bg'].forEach(key=>{
     const val=bc[key]||'#000000';
@@ -2911,7 +2917,7 @@ function renderBrandColorsSection(){
 }
 
 function renderCorpoTemplatesSection(){
-  let h='<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Templates corpo (post 3:4)</div><div class="admin-sect-body">';
+  let h='<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Templates post réseaux sociaux (format 3:4)</div><div class="admin-sect-body">';
   h+='<div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.5">Uploadez jusqu\'à 3 templates. Ils seront proposés dans Réseaux sociaux.</div>';
   for(let i=0;i<3;i++){
     const tpl=(DATA.corpoTemplates&&DATA.corpoTemplates[i])||'';
@@ -2927,6 +2933,24 @@ function renderCorpoTemplatesSection(){
   return h;
 }
 
+function renderIconesDecorativesSection(){
+  const ic = DATA.icones||{};
+  let h = '<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Icônes décoratives</div><div class="admin-sect-body">';
+  h += '<div style="font-size:11px;color:var(--text3);margin-bottom:12px;line-height:1.5">Optionnelles. L\'ic\u00f4ne principale : sous le logo dans le PDF. Ic\u00f4ne secondaire : \u00e0 c\u00f4t\u00e9 des titres.</div>';
+  // Principale
+  h += '<div class="af"><label class="al" style="font-weight:600">Icône principale (PNG HD ou SVG, format 1:1)</label>';
+  if(ic.main) h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><img src="'+ic.main+'" style="width:60px;height:60px;object-fit:contain;border:1px solid var(--border);border-radius:8px;padding:6px;background:#fff" onerror="this.remove()"><button class="adel" onclick="if(!DATA.icones)DATA.icones={};DATA.icones.main=\'\';renderAdminSection(adminCurrentTab)" title="Supprimer">✕</button></div>';
+  h += imgFieldHtml(ic.main||'','if(!DATA.icones)DATA.icones={};DATA.icones.main=this.value;renderAll()','URL ou upload PNG/SVG');
+  h += '</div>';
+  // Secondaire
+  h += '<div class="af"><label class="al" style="font-weight:600">Icône secondaire (optionnel)</label>';
+  if(ic.secondary) h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><img src="'+ic.secondary+'" style="width:40px;height:40px;object-fit:contain;border:1px solid var(--border);border-radius:6px;padding:4px;background:#fff" onerror="this.remove()"><button class="adel" onclick="if(!DATA.icones)DATA.icones={};DATA.icones.secondary=\'\';renderAdminSection(adminCurrentTab)" title="Supprimer">✕</button></div>';
+  h += imgFieldHtml(ic.secondary||'','if(!DATA.icones)DATA.icones={};DATA.icones.secondary=this.value;renderAll()','URL ou upload PNG/SVG');
+  h += '</div>';
+  h += '</div></div>';
+  return h;
+}
+
 function applyBrandColors(){
   const bc=DATA.brandColors||{};
   const root=document.documentElement;
@@ -2939,6 +2963,23 @@ function resetBrandColors(){
   DATA.brandColors={primary:'#10285E',accent:'#C6A24A',bg:'#F7F5F0'};
   applyBrandColors();
   renderAdminSection(adminCurrentTab);
+}
+
+function setRestoFont(font){
+  DATA.restoFont = font;
+  document.documentElement.style.setProperty('--restoFont', "'"+font+"'");
+  // Load font from Google if not already loaded
+  if(font && !document.querySelector('link[data-font="'+font+'"]')){
+    const l=document.createElement('link');
+    l.rel='stylesheet';
+    l.dataset.font=font;
+    l.href='https://fonts.googleapis.com/css2?family='+encodeURIComponent(font)+':wght@400;700&display=swap';
+    document.head.appendChild(l);
+  }
+  // Update preview
+  const box=document.getElementById('fontPreviewBox');
+  if(box) box.querySelectorAll('div').forEach(el=>el.style.fontFamily="'"+font+"',serif");
+  renderAll();
 }
 
 function fetchCityFromZip(zip){
@@ -3003,7 +3044,7 @@ function ghSectionHtml(){
 
 // Patch renderAdminGlobal to prepend GH section
 const _origGlobal=renderAdminGlobal;
-renderAdminGlobal=function(){ return ghSectionHtml()+restaurantSettingHtml()+renderScheduleAdmin()+renderSocialAdminSection()+_origGlobal(); };
+renderAdminGlobal=function(){ return ghSectionHtml()+restaurantSettingHtml()+renderIconesDecorativesSection()+renderScheduleAdmin()+renderSocialAdminSection()+_origGlobal(); };
 
 // ═══════════════════════════════════════════
 // ADMIN COLLAPSE
