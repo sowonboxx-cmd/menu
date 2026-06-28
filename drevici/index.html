@@ -166,8 +166,10 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 .soc-tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
 .soc-pos-btn{padding:6px 4px;font-size:10px;font-family:'Jost',sans-serif;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text2);cursor:pointer;font-weight:500;min-width:40px}
 .soc-pos-btn.active{background:var(--navy);color:#fff;border-color:var(--navy)}
-.soc-tab-btn{padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:#fff;font-size:12px;font-weight:500;cursor:pointer;color:var(--text2);transition:all .15s;font-family:Jost,sans-serif}
-.soc-tab-btn.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+.soc-layout{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+.soc-left{flex:1;min-width:260px;display:flex;flex-direction:column;gap:0}
+.soc-mini-section{margin-bottom:14px;padding:12px 14px;background:var(--bg);border-radius:8px;border:1px solid var(--border)}
+.soc-mini-title{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:10px}
 .soc-preview-wrap{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:16px}
 .soc-canvas-wrap{flex:1;min-width:260px}
 .soc-canvas-label{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:6px;font-family:Jost,sans-serif}
@@ -476,6 +478,8 @@ let DATA = {
   hero: { fr:'Fruits de mer · Bretagne · Paris', en:'Seafood · Brittany · Paris', es:'Mariscos · Bretaña · París', it:'Frutti di mare · Bretagna · Parigi', kr:'해산물 · 브르타뉴 · 파리', jp:'シーフード · ブルターニュ · パリ' },
   intro: { active:false, text:{fr:'Bienvenue chez Drevici Oyster, un bar à huîtres breton au cœur de Paris.',en:'Welcome to Drevici Oyster, a Breton oyster bar in the heart of Paris.'} },
   social: { instagram:'', tiktok:'', facebook:'' },
+  brandColors: { primary: '#10285E', accent: '#C6A24A', bg: '#F7F5F0' },
+  corpoTemplates: [],  // up to 3 image URLs/base64
   showHeaderLogo: true,
   homeTab: { active:false, photo:'', video:'' },
   schedule: [
@@ -1890,11 +1894,10 @@ async function loadFromGitHub(){
 // ═══════════════════════════════════════════
 
 const SOCIAL_TEMPLATES = [
-  { id:'arrivage', label:'🦪 Arrivage' },
-  { id:'plat',     label:'🍽 Plat / Menu' },
-  { id:'event',    label:'🎵 Événement' },
-  { id:'info',     label:'ℹ️ Info / Fermeture' },
-  { id:'libre',    label:'✏️ Post libre' },
+  { id:'libre',    label:'Post libre' },
+  { id:'plat',     label:'Plat / Boisson' },
+  { id:'event',    label:'Événement' },
+  { id:'info',     label:'Info / Fermeture' },
 ];
 
 const SOC_FONTS = [
@@ -1920,152 +1923,170 @@ let socState = {
   descSize: 18,
   titleBold: true,
   descBold: false,
-  showBadge: true,           // show "À LA CARTE" badge
+  showBadge: false,
   showLogo: true,
-  showHashtags: true,
+  showHashtags: false,
+  showDate: false,
+  date: '',
+  logoPos: 'top',  // top | bottom
 };
 
 function renderSocialSection(){
   const s = socState;
-  const tabBtns = SOCIAL_TEMPLATES.map(tp=>
-    `<button class="soc-tab-btn${s.tplId===tp.id?' active':''}" onclick="socPickTpl('${tp.id}')">${tp.label}</button>`
-  ).join('');
-
-  const extraField = s.tplId==='plat'
-    ? `<div class="af"><label class="al">Prix (optionnel)</label><input class="ai ai-sm" value="${s.extra}" placeholder="26€ / pers." oninput="socState.extra=this.value;renderSocPreview()"></div>`
-    : s.tplId==='event'
-    ? `<div class="af"><label class="al">Date & heure</label><input class="ai ai-sm" value="${s.extra}" placeholder="Samedi 28 juin · 19h" oninput="socState.extra=this.value;renderSocPreview()"></div>`
-    : '';
-
+  const bc = DATA.brandColors||{primary:'#10285E',accent:'#C6A24A',bg:'#F7F5F0'};
   const caption = buildCaption();
 
-  return `<div class="admin-section"><div class="admin-sect-title">Réseaux sociaux</div>
-    <div class="soc-tabs">${tabBtns}</div>
+  // ─ Template presets basés sur les couleurs corpo ─
+  const presets = [
+    {label:'Primaire', bg:bc.primary, text:'#ffffff'},
+    {label:'Accent',   bg:bc.accent,  text:'#ffffff'},
+    {label:'Fond',     bg:bc.bg,      text:bc.primary},
+  ];
 
-    <!-- DROPDOWN PLAT + GALERIE -->
-    <div class="admin-sect-body" style="padding:0">
-      <div class="af"><label class="al" style="font-weight:600">Sélectionner un plat ou une boisson</label>
-        <select class="ai" onchange="socPickDish(this.value)" style="font-family:Jost,sans-serif">
-          <option value="">— Saisie manuelle —</option>
-          ${(()=>{let opts='';DATA.tabs.filter(tb=>tb.visible!==false&&tb.id!=='__home').forEach(tb=>{(tb.cards||[]).forEach(card=>{(card.dishes||[]).filter(d=>!d.hidden&&t(d.name)).forEach(d=>{const payload=encodeURIComponent(JSON.stringify({name:t(d.name),desc:t(d.desc)||'',img:d.img||'',caption:d.caption||'',gallery:d.gallery||[]}));opts+=`<option value="${payload}">${t(tb.label)} — ${t(d.name)}</option>`;});(card.items||[]).filter(i=>!i.hidden&&t(i.name)).forEach(i=>{const payload=encodeURIComponent(JSON.stringify({name:t(i.name),desc:t(i.desc)||'',img:i.img||'',caption:i.caption||'',gallery:i.gallery||[]}));opts+=`<option value="${payload}">${t(tb.label)} — ${t(i.name)}</option>`;});});});return opts;})()}
-        </select>
-      </div>
+  const isLibre = s.tplId==='libre';
+  const isEvent = s.tplId==='event';
+  const isPlat  = s.tplId==='plat';
 
-      <!-- GALERIE D'IMAGES DU PLAT -->
-      ${(()=>{
-        const d=s.selectedDish;
-        const gallery=d?[d.img,...(d.gallery||[])].filter(Boolean):[s.photo].filter(Boolean);
-        if(!gallery.length) return '';
-        return '<div class="af"><label class="al" style="font-weight:600">Choisir la photo</label><div style="display:flex;gap:8px;flex-wrap:wrap">'+
-          gallery.map((img,gi)=>`<div onclick="socState.galleryIdx=${gi};socState.photo='${img}';renderAdminSection('__social')" style="width:72px;height:72px;border-radius:8px;overflow:hidden;cursor:pointer;border:${s.galleryIdx===gi?'2.5px solid var(--gold)':'2px solid var(--border)'}"><img src="${img}" style="width:100%;height:100%;object-fit:cover"></div>`).join('')+
-        '</div></div>';
-      })()}
+  const section = (title, content) =>
+    `<div class="soc-mini-section"><div class="soc-mini-title">${title}</div>${content}</div>`;
 
-      <!-- PREVIEW + CONTROLES -->
-      <div class="soc-preview-wrap">
-        <div class="soc-controls">
-          <div class="af"><label class="al">Titre</label>
-            <input class="ai" id="socTitreInput" value="${s.titre}" placeholder="${tplPlaceholder(s.tplId,'titre')}" oninput="socState.titre=this.value;renderSocPreview()">
-          </div>
-          <div class="af"><label class="al">Description</label>
-            <textarea class="ai" rows="3" style="-webkit-appearance:none;resize:vertical" placeholder="${tplPlaceholder(s.tplId,'desc')}" oninput="socState.desc=this.value;renderSocPreview()">${s.desc}</textarea>
-          </div>
-          ${extraField}
-          ${!s.selectedDish?`<div class="af"><label class="al">Photo (URL ou upload)</label>
-            <input class="ai" value="${s.photo}" placeholder="https://..." oninput="socState.photo=this.value;renderSocPreview()">
-            <input type="file" accept="image/*" style="margin-top:6px;font-size:12px;font-family:Jost,sans-serif" onchange="socLoadFile(this)">
-          </div>`:''}
+  // Dropdown type de post
+  const typeDropdown = `<div class="af">
+    <label class="al">Type de post</label>
+    <select class="ai" onchange="socPickTpl(this.value)">
+      ${SOCIAL_TEMPLATES.map(tp=>`<option value="${tp.id}"${s.tplId===tp.id?' selected':''}>${tp.label}</option>`).join('')}
+    </select>
+  </div>`;
 
-          <!-- POSITION DU TEXTE -->
-          <div class="af"><label class="al" style="font-weight:600">Position du texte</label>
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;max-width:200px">
-              ${['top-left','top-center','top-right','center','bottom-left','bottom-center','bottom-right'].map((pos,i)=>{
-                const icons={'top-left':'↖','top-center':'↑','top-right':'↗','center':'·','bottom-left':'↙','bottom-center':'↓','bottom-right':'↘'};
-                const labels={'top-left':'HG','top-center':'HC','top-right':'HD','center':'Ctr','bottom-left':'BG','bottom-center':'BC','bottom-right':'BD'};
-                if(pos==='center' && i===3) return `<div></div><button class="soc-pos-btn${s.textPos===pos?' active':''}" onclick="socState.textPos='${pos}';renderSocPreview()" title="${pos}">${labels[pos]}</button><div></div>`;
-                return `<button class="soc-pos-btn${s.textPos===pos?' active':''}" onclick="socState.textPos='${pos}';renderSocPreview()" title="${pos}">${labels[pos]}</button>`;
-              }).join('')}
-            </div>
-          </div>
+  // Dropdown plat/boisson (only when not libre)
+  const dishDropdown = isLibre ? '' : `<div class="af">
+    <label class="al">Plat ou boisson (optionnel)</label>
+    <select class="ai" onchange="socPickDish(this.value)">
+      <option value="">— Saisie libre —</option>
+      ${(()=>{let o='';DATA.tabs.filter(tb=>tb.visible!==false&&tb.id!=='__home').forEach(tb=>{(tb.cards||[]).forEach(card=>{(card.dishes||[]).filter(d=>!d.hidden&&t(d.name)).forEach(d=>{const p=encodeURIComponent(JSON.stringify({name:t(d.name),desc:t(d.desc)||'',img:d.img||'',caption:d.caption||'',gallery:d.gallery||[]}));o+=`<option value="${p}">${t(tb.label)} — ${t(d.name)}</option>`;});(card.items||[]).filter(i=>!i.hidden&&t(i.name)).forEach(i=>{const p=encodeURIComponent(JSON.stringify({name:t(i.name),desc:t(i.desc)||'',img:i.img||'',caption:i.caption||'',gallery:i.gallery||[]}));o+=`<option value="${p}">${t(tb.label)} — ${t(i.name)}</option>`;});});});return o;})()}
+    </select>
+  </div>`;
 
-          <!-- COULEUR DU TEXTE + OPACITE OVERLAY -->
-          <div class="af" style="display:flex;gap:12px;align-items:flex-end">
-            <div style="flex:1"><label class="al">Couleur texte</label>
-              <div style="display:flex;align-items:center;gap:6px">
-                <input type="color" value="${s.textColor}" oninput="socState.textColor=this.value;renderSocPreview()" style="width:38px;height:34px;border:1px solid var(--border);border-radius:6px;padding:2px;cursor:pointer">
-                <input class="ai" value="${s.textColor}" oninput="socState.textColor=this.value;renderSocPreview()" style="flex:1;font-family:monospace;font-size:12px">
-              </div>
-            </div>
-            <div style="flex:1"><label class="al">Opacité fond sombre</label>
-              <input type="range" min="0" max="80" value="${s.overlayOpacity}" oninput="socState.overlayOpacity=parseInt(this.value);renderSocPreview()" style="width:100%;margin-top:8px">
-              <div style="font-size:10px;color:var(--text3);text-align:center">${s.overlayOpacity}%</div>
-            </div>
-          </div>
+  // Gallery strip
+  const galleryStrip = (()=>{
+    const d=s.selectedDish;
+    const gallery=d?[d.img,...(d.gallery||[])].filter(Boolean):[s.photo].filter(Boolean);
+    if(!gallery.length) return '';
+    return `<div class="af"><label class="al">Choisir la photo</label><div style="display:flex;gap:8px;flex-wrap:wrap">
+      ${gallery.map((img,gi)=>`<div onclick="socState.galleryIdx=${gi};socState.photo='${img}';renderAdminSection('__social')" style="width:64px;height:64px;border-radius:8px;overflow:hidden;cursor:pointer;border:${s.galleryIdx===gi?'2.5px solid var(--gold)':'2px solid var(--border)'}"><img src="${img}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.display='none'"></div>`).join('')}
+    </div></div>`;
+  })();
 
-          <!-- TYPOGRAPHIE -->
-          <div class="af"><label class="al" style="font-weight:600">Typographie</label>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
-              ${SOC_FONTS.map(f=>`<button class="soc-pos-btn${s.fontId===f.id?' active':''}" onclick="socState.fontId='${f.id}';renderSocPreview()" style="min-width:auto;padding:6px 10px;font-size:11px;font-family:${f.css}">${f.label}</button>`).join('')}
-            </div>
-            <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:8px">
-              <div style="flex:1"><label class="al" style="font-size:10px">Taille titre</label>
-                <div style="display:flex;align-items:center;gap:6px">
-                  <input type="range" min="18" max="72" value="${s.titleSize}" oninput="socState.titleSize=parseInt(this.value);this.nextElementSibling.textContent=this.value+'px';renderSocPreview()" style="flex:1">
-                  <span style="font-size:11px;color:var(--text3);width:34px">${s.titleSize}px</span>
-                </div>
-              </div>
-              <label style="display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer;padding-bottom:2px"><input type="checkbox" ${s.titleBold?'checked':''} onchange="socState.titleBold=this.checked;renderSocPreview()"> Gras</label>
-            </div>
-            <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:8px">
-              <div style="flex:1"><label class="al" style="font-size:10px">Taille description</label>
-                <div style="display:flex;align-items:center;gap:6px">
-                  <input type="range" min="10" max="36" value="${s.descSize}" oninput="socState.descSize=parseInt(this.value);this.nextElementSibling.textContent=this.value+'px';renderSocPreview()" style="flex:1">
-                  <span style="font-size:11px;color:var(--text3);width:34px">${s.descSize}px</span>
-                </div>
-              </div>
-              <label style="display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer;padding-bottom:2px"><input type="checkbox" ${s.descBold?'checked':''} onchange="socState.descBold=this.checked;renderSocPreview()"> Gras</label>
-            </div>
-          </div>
+  // Photo upload (when no dish selected)
+  const photoField = !s.selectedDish ? `<div class="af"><label class="al">Photo (URL ou upload)</label>
+    <div class="ai-img-wrap"><input class="ai" value="${s.photo}" placeholder="https://..." oninput="socState.photo=this.value;renderSocPreview()">
+    <label class="ai-upload-btn"><input type="file" accept="image/*" style="display:none" onchange="socLoadFile(this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path></svg></label></div>
+  </div>` : '';
 
-          <!-- VISIBILITE ELEMENTS -->
-          <div class="af"><label class="al" style="font-weight:600">Éléments visibles</label>
-            <div style="display:flex;gap:14px;flex-wrap:wrap">
-              <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" ${s.showBadge?'checked':''} onchange="socState.showBadge=this.checked;renderSocPreview()"> Badge catégorie</label>
-              <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" ${s.showLogo!==false?'checked':''} onchange="socState.showLogo=this.checked;renderSocPreview()"> Logo</label>
-              <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" ${s.showHashtags!==false?'checked':''} onchange="socState.showHashtags=this.checked;renderSocPreview()"> Hashtags</label>
-            </div>
-          </div>
-
-          <!-- FORMAT -->
-          <div class="af"><label class="al">Format</label>
-            <div style="display:flex;gap:8px">
-              <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="radio" name="socfmt" value="post" ${s.format==='post'?'checked':''} onchange="socState.format='post';renderSocPreview()"> Post (3:4)</label>
-              <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="radio" name="socfmt" value="story" ${s.format==='story'?'checked':''} onchange="socState.format='story';renderSocPreview()"> Story (9:16)</label>
-            </div>
-          </div>
-        </div>
-
-        <div class="soc-canvas-wrap">
-          <div class="soc-canvas-label">Aperçu</div>
-          <div class="soc-frame ratio-${s.format==='story'?'916':'34'}" id="socFrame">
-            ${buildTplHTML(s.tplId, s.titre, s.desc, s.extra, s.photo, s.format, s.textPos, s.textColor, s.overlayOpacity)}
-          </div>
-          <div class="soc-dl-row">
-            <button class="soc-dl-btn post" onclick="downloadSocImg('post')">⬇ Post 3:4</button>
-            <button class="soc-dl-btn story" onclick="downloadSocImg('story')">⬇ Story 9:16</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- CAPTION -->
-      <div class="soc-caption-box">
-        <div class="soc-canvas-label" style="margin-bottom:8px">Caption</div>
-        <textarea class="soc-caption-text" id="socCaptionEdit" rows="5" style="width:100%;resize:vertical;font-size:12px;font-family:'Open Sans',sans-serif;border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);background:#fff">${s.caption||(caption||'')}</textarea>
-        <button class="soc-copy-btn" onclick="navigator.clipboard.writeText(document.getElementById('socCaptionEdit').value);showToast('Caption copiée !')">Copier</button>
-      </div>
+  // Corpo template presets
+  const presetBtns = `<div class="af"><label class="al">Preset couleurs</label>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      ${presets.map((p,i)=>`<button onclick="socState.textColor='${p.text}';renderAdminSection('__social')" style="padding:8px 14px;border-radius:6px;font-size:11px;font-family:Jost,sans-serif;font-weight:600;cursor:pointer;border:2px solid ${p.bg};background:${p.bg};color:${p.text}">${p.label}</button>`).join('')}
     </div>
   </div>`;
+
+  // SECTION 1: Contenu
+  const s1 = section('Contenu', typeDropdown + dishDropdown + galleryStrip + photoField
+    + `<div class="af"><label class="al">Titre</label><input class="ai" id="socTitreInput" value="${s.titre}" placeholder="Titre…" oninput="socState.titre=this.value;renderSocPreview()"></div>`
+    + `<div class="af"><label class="al">Description</label><textarea class="ai" rows="4" style="resize:vertical;min-height:80px" oninput="socState.desc=this.value;renderSocPreview()">${s.desc}</textarea></div>`
+    + (isEvent ? `<div class="af"><label class="al">Date & heure</label><input class="ai" value="${s.extra}" placeholder="Samedi 28 juin · 19h" oninput="socState.extra=this.value;renderSocPreview()"></div>` : '')
+    + (isPlat  ? `<div class="af"><label class="al">Prix (optionnel)</label><input class="ai" value="${s.extra}" placeholder="26€" oninput="socState.extra=this.value;renderSocPreview()"></div>` : '')
+    + (isLibre ? `<div class="af"><label class="al">Date (optionnel)</label>
+      <div style="display:flex;align-items:center;gap:8px">
+        <input class="ai" value="${s.date||''}" placeholder="Samedi 28 juin" oninput="socState.date=this.value;renderSocPreview()" style="flex:1">
+        <label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap;cursor:pointer"><input type="checkbox" ${s.showDate?'checked':''} onchange="socState.showDate=this.checked;renderSocPreview()"> Afficher</label>
+      </div></div>
+      <div class="af"><label class="al">Logo</label>
+      <div style="display:flex;gap:8px">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" ${s.showLogo?'checked':''} onchange="socState.showLogo=this.checked;renderSocPreview()"> Afficher</label>
+        <select class="ai" style="flex:1" onchange="socState.logoPos=this.value;renderSocPreview()">
+          <option value="top" ${s.logoPos==='top'?'selected':''}>En haut</option>
+          <option value="bottom" ${s.logoPos==='bottom'?'selected':''}>En bas</option>
+        </select>
+      </div></div>` : ''));
+
+  // SECTION 2: Caractéristiques du texte
+  const posGrid = ['top-left','top-center','top-right','center','bottom-left','bottom-center','bottom-right'];
+  const posLabels = {'top-left':'↖','top-center':'↑','top-right':'↗','center':'·','bottom-left':'↙','bottom-center':'↓','bottom-right':'↘'};
+  const s2 = section('Caractéristiques du texte',
+    `<div class="af"><label class="al">Position</label>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;max-width:150px">
+        ${posGrid.map((pos,i)=>{
+          if(pos==='center') return `<div></div><button class="soc-pos-btn${s.textPos===pos?' active':''}" onclick="socState.textPos='${pos}';this.closest('.soc-pos-grid')?.querySelectorAll('.soc-pos-btn').forEach(b=>b.classList.toggle('active',b.dataset.pos==='${pos}'));renderSocPreview()" data-pos="${pos}">${posLabels[pos]}</button><div></div>`;
+          return `<button class="soc-pos-btn${s.textPos===pos?' active':''}" onclick="socState.textPos='${pos}';renderAdminSection('__social')" data-pos="${pos}">${posLabels[pos]}</button>`;
+        }).join('')}
+      </div>
+    </div>`
+    + `<div class="af"><label class="al">Couleur du texte</label>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="color" value="${s.textColor}" oninput="socState.textColor=this.value;renderSocPreview()" style="width:38px;height:34px;border:1px solid var(--border);border-radius:6px;padding:2px;cursor:pointer">
+        <input class="ai" value="${s.textColor}" oninput="socState.textColor=this.value;renderSocPreview()" style="flex:1;font-family:monospace;font-size:12px">
+      </div>
+    </div>`
+    + `<div class="af"><label class="al">Opacité fond sombre (${s.overlayOpacity}%)</label>
+      <input type="range" min="0" max="80" value="${s.overlayOpacity}" oninput="socState.overlayOpacity=parseInt(this.value);this.previousElementSibling.textContent='Opacité fond sombre ('+this.value+'%)';renderSocPreview()" style="width:100%">
+    </div>`
+    + presetBtns);
+
+  // SECTION 3: Typographie
+  const s3 = section('Typographie',
+    `<div class="af"><label class="al">Police</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${SOC_FONTS.map(f=>`<button class="soc-pos-btn${s.fontId===f.id?' active':''}" onclick="socState.fontId='${f.id}';renderAdminSection('__social')" style="padding:6px 10px;font-size:11px;font-family:${f.css}">${f.label}</button>`).join('')}
+      </div>
+    </div>`
+    + `<div class="af"><label class="al">Taille titre</label>
+      <div style="display:flex;align-items:center;gap:8px">
+        <input type="range" min="18" max="80" value="${s.titleSize}" oninput="socState.titleSize=parseInt(this.value);document.getElementById('socTitleSzLbl').textContent=this.value+'px';renderSocPreview()" style="flex:1">
+        <span id="socTitleSzLbl" style="font-size:11px;color:var(--text3);width:34px">${s.titleSize}px</span>
+        <label style="display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer;white-space:nowrap"><input type="checkbox" ${s.titleBold?'checked':''} onchange="socState.titleBold=this.checked;renderSocPreview()"> Gras</label>
+      </div>
+    </div>`
+    + `<div class="af"><label class="al">Taille description</label>
+      <div style="display:flex;align-items:center;gap:8px">
+        <input type="range" min="10" max="40" value="${s.descSize}" oninput="socState.descSize=parseInt(this.value);document.getElementById('socDescSzLbl').textContent=this.value+'px';renderSocPreview()" style="flex:1">
+        <span id="socDescSzLbl" style="font-size:11px;color:var(--text3);width:34px">${s.descSize}px</span>
+        <label style="display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer;white-space:nowrap"><input type="checkbox" ${s.descBold?'checked':''} onchange="socState.descBold=this.checked;renderSocPreview()"> Gras</label>
+      </div>
+    </div>`);
+
+  // SECTION 4: Format + Export
+  const s4 = section('Format',
+    `<div style="display:flex;gap:8px">
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="radio" name="socfmt" value="post" ${s.format==='post'?'checked':''} onchange="socState.format='post';renderSocPreview()"> Post (3:4)</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="radio" name="socfmt" value="story" ${s.format==='story'?'checked':''} onchange="socState.format='story';renderSocPreview()"> Story (9:16)</label>
+    </div>`);
+
+  return `<div class="admin-section"><div class="admin-sect-title">Réseaux sociaux</div>
+  <div class="admin-sect-body">
+    <div class="soc-layout">
+      <div class="soc-left">
+        ${s1}${s2}${s3}${s4}
+        <div class="soc-caption-box" style="margin-top:12px">
+          <div class="soc-mini-title" style="margin-bottom:8px">Description Instagram</div>
+          <textarea id="socCaptionEdit" rows="6" style="width:100%;resize:vertical;font-size:12px;font-family:'Open Sans',sans-serif;border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);background:#fff;min-height:120px">${s.caption||(caption||'')}</textarea>
+          <button class="soc-copy-btn" onclick="navigator.clipboard.writeText(document.getElementById('socCaptionEdit').value);showToast('Caption copiée !')">Copier la description</button>
+        </div>
+      </div>
+      <div class="soc-canvas-wrap" style="flex:none">
+        <div class="soc-canvas-label">Aperçu</div>
+        <div class="soc-frame ratio-${s.format==='story'?'916':'34'}" id="socFrame">
+          ${buildTplHTML(s.tplId, s.titre, s.desc, s.extra, s.photo, s.format, s.textPos, s.textColor, s.overlayOpacity, s)}
+        </div>
+        <div class="soc-dl-row">
+          <button class="soc-dl-btn post" onclick="downloadSocImg('post')">⬇ Post 3:4</button>
+          <button class="soc-dl-btn story" onclick="downloadSocImg('story')">⬇ Story 9:16</button>
+        </div>
+      </div>
+    </div>
+  </div></div>`;
 }
+
 
 function tplPlaceholder(id, field){
   const map = {
@@ -2086,8 +2107,9 @@ function buildTplHTML(id, titre, desc, extra, photo, format, textPos, textColor,
   const fontId = opts.fontId || 'opensans';
   const fontDef = SOC_FONTS.find(f=>f.id===fontId)||SOC_FONTS[0];
   const fontCss = fontDef.css;
-  const titleSz = (opts.titleSize||36)/1080; // relative to 1080px render
-  const descSz  = (opts.descSize||18)/1080;
+  // Sizes in em relative to 16px base; frame is ~300px preview so scale down
+  const titleSz = ((opts.titleSize||36)/16).toFixed(2) + 'em';
+  const descSz  = ((opts.descSize||18)/16).toFixed(2) + 'em';
   const titleW  = opts.titleBold!==false ? '700' : '400';
   const descW   = opts.descBold ? '700' : '400';
   const showBadge    = opts.showBadge !== false;
@@ -2231,7 +2253,7 @@ Fraîches, iodées, directement de nos parcs en Morbihan. Élevées à la main, 
 🕐 ${hs||'Mar–Sam · 17h–2h'}
 📩 Réservation via le lien en bio
 
-${hashtags}\n\n—\nBy @TensaiAgency · @Willichiban`;
+${hashtags}`;
   }
   if(s.tplId === 'plat'){
     return `✨ ${s.titre||'À la carte'}${s.extra?' — '+s.extra:''}
@@ -2864,7 +2886,59 @@ function restaurantSettingHtml(){
     <div class="af"><label class="al">Lien Google Maps</label>
       <input class="ai" value="${DATA.address&&DATA.address.mapsUrl||''}" placeholder="https://maps.google.com/..." oninput="if(!DATA.address)DATA.address={};DATA.address.mapsUrl=this.value;renderAll()">
     </div>
-  </div></div>`;
+  </div></div>
+  ${renderBrandColorsSection()}
+  ${renderCorpoTemplatesSection()}
+`;
+}
+
+function renderBrandColorsSection(){
+  const bc=DATA.brandColors||{primary:'#10285E',accent:'#C6A24A',bg:'#F7F5F0'};
+  const labels={primary:'Couleur principale',accent:'Couleur accent',bg:'Couleur de fond'};
+  let h='<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Couleurs de la marque</div><div class="admin-sect-body">';
+  h+='<div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.5">Utilisées dans l\'app et les templates réseaux. Sauvegarder pour appliquer.</div>';
+  ['primary','accent','bg'].forEach(key=>{
+    const val=bc[key]||'#000000';
+    h+='<div class="af"><label class="al">'+labels[key]+'</label>'
+      +'<div style="display:flex;align-items:center;gap:8px">'
+      +'<input type="color" value="'+val+'" oninput="if(!DATA.brandColors)DATA.brandColors={};DATA.brandColors[&quot;'+key+'&quot;]=this.value;applyBrandColors()" style="width:38px;height:34px;border:1px solid var(--border);border-radius:6px;padding:2px;cursor:pointer">'
+      +'<input class="ai" value="'+val+'" oninput="if(!DATA.brandColors)DATA.brandColors={};DATA.brandColors[&quot;'+key+'&quot;]=this.value;applyBrandColors()" style="flex:1;font-family:monospace;font-size:12px">'
+      +'</div></div>';
+  });
+  h+='<button class="aadd" style="width:100%;padding:9px;margin-top:4px" onclick="resetBrandColors()">Réinitialiser les couleurs par défaut</button>';
+  h+='</div></div>';
+  return h;
+}
+
+function renderCorpoTemplatesSection(){
+  let h='<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Templates corpo (post 3:4)</div><div class="admin-sect-body">';
+  h+='<div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.5">Uploadez jusqu\'à 3 templates. Ils seront proposés dans Réseaux sociaux.</div>';
+  for(let i=0;i<3;i++){
+    const tpl=(DATA.corpoTemplates&&DATA.corpoTemplates[i])||'';
+    const cb='if(!DATA.corpoTemplates)DATA.corpoTemplates=[];DATA.corpoTemplates['+i+']=this.value;renderAll()';
+    h+='<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px">'
+      +'<span style="font-size:10px;color:var(--text3);padding-top:10px;flex:none">'+(i+1)+'</span>'
+      +'<div style="flex:1">'
+      +imgFieldHtml(tpl,cb,'URL ou upload')
+      +(tpl?'<img src="'+tpl+'" style="margin-top:6px;width:60px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--border)" onerror="this.remove()">':'')
+      +'</div></div>';
+  }
+  h+='</div></div>';
+  return h;
+}
+
+function applyBrandColors(){
+  const bc=DATA.brandColors||{};
+  const root=document.documentElement;
+  if(bc.primary) root.style.setProperty('--navy',bc.primary);
+  if(bc.accent)  root.style.setProperty('--gold',bc.accent);
+  if(bc.bg)      root.style.setProperty('--bg',bc.bg);
+}
+
+function resetBrandColors(){
+  DATA.brandColors={primary:'#10285E',accent:'#C6A24A',bg:'#F7F5F0'};
+  applyBrandColors();
+  renderAdminSection(adminCurrentTab);
 }
 
 function fetchCityFromZip(zip){
