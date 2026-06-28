@@ -898,6 +898,7 @@ function renderInfoBanner(ib){
         if(wrap){ wrap.style.transition='transform .2s ease'; wrap.style.transform=`translate3d(${-dir*W}px,0,0)`; }
         setTimeout(()=>{
           currentTabId=vis[newIdx].id;
+          sessionStorage.setItem('lastTabId',currentTabId);
           if(wrap){ wrap.style.transition='none'; wrap.style.transform=''; }
           renderAll();
         },200);
@@ -955,7 +956,7 @@ function renderTabContent(tab,lbOffset){
           <span style="color:var(--gold)">★</span> Nos incontournables <span style="color:var(--gold)">★</span>
         </div>
         <div class="featured-grid">`;
-        pinDishes2.forEach((d,idx)=>{ html+=`<div class="featured-item" style="cursor:pointer" onclick="openPinLb(${idx})">${d.img?`<img class="featured-item-img" src="${d.img}" alt="" loading="lazy">`:'<div class="featured-item-img"></div>'}<div class="featured-item-body"><div class="featured-item-name">${t(d.name)}</div><div class="featured-item-price">${d.price}</div></div></div>`; });
+        pinDishes2.forEach((d,idx)=>{ html+=`<div class="featured-item" style="cursor:pointer" onclick="openPinLb(${idx})">${d.img?`<img class="featured-item-img" src="${d.img}" alt="" loading="lazy">`:'<div class="featured-item-img"></div>'}<div class="featured-item-body"><div class="featured-item-name">${t(d.name)}</div><div class="featured-item-price">${(d.price||"").toString().includes("€")?(d.price||""):(d.price?(d.price+"€"):"")}</div></div></div>`; });
         html+=`</div></div>`;
       } else {
         // list view
@@ -965,7 +966,7 @@ function renderTabContent(tab,lbOffset){
           if(d.img) html+=`<img class="dish-img" src="${d.img}" alt="" loading="lazy">`;
           html+=`<div class="dish-text"><div class="dish-name-row"><span class="dish-name">${t(d.name)}</span></div>`;
           if(t(d.desc)) html+=`<div class="dish-desc">${t(d.desc)}</div>`;
-          if(d.price) html+=`<div class="dish-price">${d.price}</div>`;
+          if(d.price) html+=`<div class="dish-price">${(d.price||"").toString().includes("€")?(d.price||""):(d.price?(d.price+"€"):"")}</div>`;
           html+=`</div></div>`;
         });
         html+=`</div></div>`;
@@ -994,7 +995,7 @@ function renderTabContent(tab,lbOffset){
     const pinDishes=pins.map(p=>{ const tb=DATA.tabs.find(tb=>tb.id===p.tabId); if(!tb)return null; const card=tb.cards[p.cardIdx]; if(!card||!card.dishes)return null; const d=card.dishes[p.dishIdx]; return d?{...d,_tabId:p.tabId,_ci:p.cardIdx,_di:p.dishIdx}:null; }).filter(Boolean);
     if(pinDishes.length>0&&(DATA.pinnedShowFirst!==false)){
       html+=`<div class="featured-card"><div class="featured-label">⭐ Nos incontournables</div><div class="featured-grid">`;
-      pinDishes.slice(0,4).forEach((d,idx)=>{ const lbIdx=lbImages.findIndex(img=>img.src===d.img); html+=`<div class="featured-item" style="cursor:pointer" onclick="openLb(${lbIdx>=0?lbIdx:0})">${d.img?`<img class="featured-item-img" src="${d.img}" alt="" loading="lazy">`:'<div class="featured-item-img"></div>'}<div class="featured-item-body"><div class="featured-item-name">${t(d.name)}</div><div class="featured-item-price">${d.price}</div></div></div>`; });
+      pinDishes.slice(0,4).forEach((d,idx)=>{ const lbIdx=lbImages.findIndex(img=>img.src===d.img); html+=`<div class="featured-item" style="cursor:pointer" onclick="openLb(${lbIdx>=0?lbIdx:0})">${d.img?`<img class="featured-item-img" src="${d.img}" alt="" loading="lazy">`:'<div class="featured-item-img"></div>'}<div class="featured-item-body"><div class="featured-item-name">${t(d.name)}</div><div class="featured-item-price">${(d.price||"").toString().includes("€")?(d.price||""):(d.price?(d.price+"€"):"")}</div></div></div>`; });
       html+=`</div></div>`;
     }
   }
@@ -1014,7 +1015,7 @@ function renderTabContent(tab,lbOffset){
       (card.dishes||[]).filter(d=>!d.hidden).forEach(d=>{
         const idx=d.img?imgIdx++:null;
         const badges=(d.spicy?`<img src="https://drevicioyster.com/wp-content/uploads/2026/06/icon-spicy.png" class="badge-icon" title="Épicé">`:'')+(d.vegan?`<img src="https://drevicioyster.com/wp-content/uploads/2026/06/icon-vegan.png" class="badge-icon" title="Vegan">`:'');
-        gridItems.push(`<div class="gc"><div class="gc-wrap" ${d.img?`data-lbidx="${idx}"`:''}>${d.img?`<img class="gc-img" src="${d.img}" alt="" loading="lazy">`:'<div style="aspect-ratio:1;background:#ece8e1"></div>'}</div><div class="gc-body"><div class="gc-name">${t(d.name)}${badges?` <span class="dish-badges" style="display:inline-flex">${badges}</span>`:''}</div><div class="gc-desc">${t(d.desc)}</div><div class="gc-price">${d.price}</div></div></div>`);
+        gridItems.push(`<div class="gc"><div class="gc-wrap" ${d.img?`data-lbidx="${idx}"`:''}>${d.img?`<img class="gc-img" src="${d.img}" alt="" loading="lazy">`:'<div style="aspect-ratio:1;background:#ece8e1"></div>'}</div><div class="gc-body"><div class="gc-name">${t(d.name)}${badges?` <span class="dish-badges" style="display:inline-flex">${badges}</span>`:''}</div><div class="gc-desc">${t(d.desc)}</div><div class="gc-price">${(d.price||"").toString().includes("€")?(d.price||""):(d.price?(d.price+"€"):"")}</div></div></div>`);
       });
     });
     if(gridItems.length) html+=`<div class="dish-grid">${gridItems.join('')}</div>`;
@@ -1047,7 +1048,7 @@ function renderTabContent(tab,lbOffset){
         (card.dishes||[]).filter(d=>!d.hidden).forEach((d,di)=>{
           const idx=d.img?imgIdx++:null;
           const badges=(d.spicy?`<img src="https://drevicioyster.com/wp-content/uploads/2026/06/icon-spicy.png" class="badge-icon" title="Épicé">`:'')+(d.vegan?`<img src="https://drevicioyster.com/wp-content/uploads/2026/06/icon-vegan.png" class="badge-icon" title="Vegan">`:'');
-          html+=`<div class="dish-row${d.img?' dish-row-clickable':''}"${d.img?` data-lbidx="${idx}"`:''}${di===0?' style="padding-top:0"':''}><div class="dish-text"><div class="dish-name-row"><span class="dish-name">${t(d.name)}</span>${badges?`<span class="dish-badges">${badges}</span>`:''}</div><div class="dish-desc">${t(d.desc)}</div><div class="dish-price">${d.price}</div></div>${d.img?`<span class="img-wrap"><img class="dish-img" src="${d.img}" alt="" loading="lazy"></span>`:''}</div>`;
+          html+=`<div class="dish-row${d.img?' dish-row-clickable':''}"${d.img?` data-lbidx="${idx}"`:''}${di===0?' style="padding-top:0"':''}><div class="dish-text"><div class="dish-name-row"><span class="dish-name">${t(d.name)}</span>${badges?`<span class="dish-badges">${badges}</span>`:''}</div><div class="dish-desc">${t(d.desc)}</div><div class="dish-price">${(d.price||"").toString().includes("€")?(d.price||""):(d.price?(d.price+"€"):"")}</div></div>${d.img?`<span class="img-wrap"><img class="dish-img" src="${d.img}" alt="" loading="lazy"></span>`:''}</div>`;
         });
       }
       html+=`</div></div>`;
@@ -1311,7 +1312,7 @@ function closeAdmin(){ document.getElementById('adminOverlay').classList.remove(
 function renderAdminTabDd(){
   const dd=document.getElementById('adminTabDd');
   const tabOpts=DATA.tabs.filter(tb=>tb.id!=='__home').map(tb=>`<option value="${tb.id}"${tb.id===adminCurrentTab?' selected':''}>${t(tb.label)}</option>`).join('');
-  dd.innerHTML='<option value="__global">🏠 Informations générales</option>'
+  dd.innerHTML='<option value="__global">⌂ Informations générales</option>'
     +'<option value="__home">Accueil</option>'
     +tabOpts
     +'<option value="__addtab_plats">+ Nouvelle tab (plats)</option>'
@@ -2613,6 +2614,15 @@ function updatePdfPreview(){
 }
 
 // Export: A4 → print dialog; Google Business → PNG via html2canvas at 3064x5447
+function resetPdfColors(){
+  if(!DATA.pdfStyle) DATA.pdfStyle={};
+  DATA.pdfStyle.titleColor='#10285E';
+  DATA.pdfStyle.accentColor='#C6A24A';
+  DATA.pdfStyle.bgColor='#FFFDF8';
+  renderAdminSection(adminCurrentTab);
+  showToast('Couleurs PDF réinitialisées');
+}
+
 function doPdfExport(){
   const cfg = pdfCfg();
   if(cfg.format === 'gbiz'){
@@ -2685,6 +2695,7 @@ function renderPdfStyleSection(){
     ${swatch('Couleur titre', 'titleColor', cfg.titleColor)}
     ${swatch('Couleur prix / accent', 'accentColor', cfg.accentColor)}
     ${swatch('Couleur de fond', 'bgColor', cfg.bgColor||'#FFFDF8')}
+    <button class="aadd" style="width:100%;padding:8px;margin-top:2px;font-size:11px;background:#fff;color:var(--text2)" onclick="resetPdfColors()">↺ Réinitialiser les couleurs PDF</button>
 
     <div class="af"><label class="al">Logo du menu</label>
       ${logoSrc ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
@@ -2873,6 +2884,7 @@ function restaurantSettingHtml(){
       <input class="ai" value="${logo}" placeholder="ou coller une URL https://..." oninput="setRestaurantLogo(this.value.trim());applyRestaurantBranding()">
       <div style="font-size:10px;color:var(--text3);font-family:Jost,sans-serif;margin-top:4px">Format recommandé : PNG transparent, hauteur 50–70px, largeur max 200px (ratio conseillé 3:1 à 5:1).</div>
     </div>
+    <label class="admin-toggle" style="margin-top:6px"><input type="checkbox" ${DATA.showHeaderLogo!==false?'checked':''} onchange="DATA.showHeaderLogo=this.checked;applyRestaurantBranding();renderAll()"><label>Afficher le logo dans le bandeau</label></label>
     
     <div class="af"><label class="al" style="font-size:12px;font-weight:600;margin-top:12px;display:block;border-top:1px solid var(--border);padding-top:12px">Adresse & contact</label></div>
     <div class="af"><label class="al">Rue</label>
@@ -2900,8 +2912,8 @@ function restaurantSettingHtml(){
 
 function renderBrandColorsSection(){
   const bc=DATA.brandColors||{primary:'#10285E',accent:'#C6A24A',bg:'#F7F5F0'};
-  const labels={primary:'Couleur principale',accent:'Couleur accent',bg:'Couleur de fond'};
-  let h='<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Couleur principale</div><div class="admin-sect-body">';
+  const labels={primary:'Couleurs principales',accent:'Couleur accent',bg:'Couleur de fond'};
+  let h='<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Couleurs principales</div><div class="admin-sect-body">';
   h+='<div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.5">Utilisées dans l\'app et les templates réseaux. Sauvegarder pour appliquer.</div>';
   ['primary','accent','bg'].forEach(key=>{
     const val=bc[key]||'#000000';
@@ -2943,7 +2955,7 @@ function renderIconesDecorativesSection(){
   h += imgFieldHtml(ic.main||'','if(!DATA.icones)DATA.icones={};DATA.icones.main=this.value;renderAll()','URL ou upload PNG/SVG');
   h += '</div>';
   // Secondaire
-  h += '<div class="af"><label class="al" style="font-weight:600">Icône secondaire (optionnel)</label>';
+  h += '<div class="af"><label class="al" style="font-weight:600">Icône secondaire</label>';
   if(ic.secondary) h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><img src="'+ic.secondary+'" style="width:40px;height:40px;object-fit:contain;border:1px solid var(--border);border-radius:6px;padding:4px;background:#fff" onerror="this.remove()"><button class="adel" onclick="if(!DATA.icones)DATA.icones={};DATA.icones.secondary=\'\';renderAdminSection(adminCurrentTab)" title="Supprimer">✕</button></div>';
   h += imgFieldHtml(ic.secondary||'','if(!DATA.icones)DATA.icones={};DATA.icones.secondary=this.value;renderAll()','URL ou upload PNG/SVG');
   h += '</div>';
