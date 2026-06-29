@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tensai Agency — Configurateur</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#10285E;--gold:#C6A24A;--bg:#F7F5F0;--white:#fff;
+  --text:#1a1a1a;--text2:#555;--text3:#999;
+  --border:#e4dfd6;--red:#b91c1c;--green:#166534;
+  --card-r:12px;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
+
+/* ── HERO ── */
+.hero{background:var(--navy);padding:80px 24px 60px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 60% 0%,rgba(198,162,74,.18) 0%,transparent 60%)}
+.hero-eyebrow{font-size:10px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:18px}
+.hero-title{font-family:'Cormorant Garamond',serif;font-size:clamp(36px,5vw,62px);font-weight:700;color:#fff;line-height:1.05;margin-bottom:16px}
+.hero-title em{font-style:italic;color:var(--gold)}
+.hero-sub{font-size:15px;color:rgba(255,255,255,.6);max-width:500px;margin:0 auto 32px;line-height:1.7}
+.hero-cta{display:inline-flex;align-items:center;gap:8px;background:var(--gold);color:#fff;font-family:'Jost',sans-serif;font-weight:600;font-size:13px;padding:12px 28px;border-radius:40px;text-decoration:none;letter-spacing:.06em;cursor:pointer;border:none;transition:opacity .15s}
+.hero-cta:hover{opacity:.88}
+
+/* ── LAYOUT ── */
+.wrap{max-width:1100px;margin:0 auto;padding:0 20px}
+.section{padding:60px 0}
+.section-label{font-size:10px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+.section-title{font-family:'Cormorant Garamond',serif;font-size:clamp(24px,3.5vw,36px);font-weight:700;color:var(--navy);margin-bottom:8px}
+.section-sub{font-size:14px;color:var(--text2);max-width:560px;line-height:1.7}
+
+/* ── CARDS ── */
+.card{background:var(--white);border-radius:var(--card-r);border:1px solid var(--border);overflow:hidden}
+.card-hdr{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-hdr-title{font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--navy);text-transform:uppercase}
+
+/* ── COMPARISON TABLE ── */
+.compare-wrap{overflow-x:auto;border-radius:var(--card-r);border:1px solid var(--border);background:#fff}
+table.compare{width:100%;border-collapse:collapse;min-width:640px}
+table.compare th{padding:14px 18px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;text-align:left;background:var(--navy);color:#fff;border-right:1px solid rgba(255,255,255,.1)}
+table.compare th:first-child{background:#0d2050}
+table.compare td{padding:13px 18px;border-bottom:1px solid #f0ece6;font-size:13px;border-right:1px solid var(--border);vertical-align:top}
+table.compare tr:last-child td{border-bottom:none}
+table.compare tr:hover td{background:#fafaf6}
+.col-service{font-weight:600;color:var(--text);max-width:220px}
+.col-market{color:var(--text2)}
+.col-tensai{font-weight:700;color:var(--navy)}
+.col-saving{font-weight:700;color:var(--green);font-size:12px}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.04em}
+.badge-incl{background:#ecfdf5;color:var(--green);border:1px solid #a7f3d0}
+.badge-extra{background:#fff7ed;color:#92400e;border:1px solid #fcd34d}
+
+/* ── CONFIGURATOR ── */
+.config-grid{display:grid;grid-template-columns:1fr 340px;gap:24px;align-items:start}
+@media(max-width:800px){.config-grid{grid-template-columns:1fr}}
+
+.config-sections{display:flex;flex-direction:column;gap:16px}
+.config-section{background:#fff;border-radius:var(--card-r);border:1px solid var(--border);overflow:hidden}
+.config-section-hdr{padding:14px 18px;background:var(--bg);border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none}
+.config-section-title{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--navy)}
+.config-section-arrow{font-size:12px;color:var(--text3);transition:transform .2s}
+.config-section.open .config-section-arrow{transform:rotate(180deg)}
+.config-section-body{display:none;padding:12px 18px 16px}
+.config-section.open .config-section-body{display:block}
+
+.config-item{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #f0ece6}
+.config-item:last-child{border-bottom:none}
+.config-checkbox{width:18px;height:18px;accent-color:var(--navy);cursor:pointer;flex:none;margin-top:2px}
+.config-item-label{flex:1}
+.config-item-name{font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px}
+.config-item-desc{font-size:11px;color:var(--text3);margin-top:2px;line-height:1.5}
+.config-item-price{font-size:13px;font-weight:700;color:var(--navy);white-space:nowrap}
+.config-item-market{font-size:10px;color:var(--text3);text-decoration:line-through;white-space:nowrap}
+
+/* Quote panel */
+.quote-panel{background:var(--navy);border-radius:var(--card-r);padding:24px;position:sticky;top:24px;color:#fff}
+.quote-title{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:#fff;margin-bottom:4px}
+.quote-sub{font-size:11px;color:rgba(255,255,255,.5);letter-spacing:.06em;text-transform:uppercase;margin-bottom:20px}
+.quote-divider{border:none;border-top:1px solid rgba(255,255,255,.15);margin:16px 0}
+.quote-line{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;font-size:13px;gap:8px}
+.quote-line-name{color:rgba(255,255,255,.75);flex:1;line-height:1.3}
+.quote-line-price{color:#fff;font-weight:600;white-space:nowrap;flex:none}
+.quote-empty{text-align:center;color:rgba(255,255,255,.35);font-size:12px;padding:20px 0;font-style:italic}
+.quote-total-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.5)}
+.quote-total-amount{font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:700;color:#fff;line-height:1}
+.quote-total-monthly{font-size:11px;color:var(--gold);margin-top:4px}
+.quote-saving{background:rgba(198,162,74,.18);border-radius:8px;padding:10px 14px;margin-top:14px;border:1px solid rgba(198,162,74,.3)}
+.quote-saving-label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
+.quote-saving-amount{font-size:20px;font-weight:700;color:var(--gold)}
+.quote-saving-note{font-size:10px;color:rgba(255,255,255,.4);margin-top:4px}
+.quote-cta{display:block;width:100%;padding:14px;background:var(--gold);color:#fff;font-family:'Jost',sans-serif;font-weight:700;font-size:13px;letter-spacing:.06em;text-align:center;border:none;border-radius:8px;cursor:pointer;margin-top:18px;transition:opacity .15s}
+.quote-cta:hover{opacity:.88}
+
+/* Toggle rec/monthly */
+.billing-toggle{display:flex;gap:0;background:#f0ece6;border-radius:40px;padding:3px;width:fit-content;margin-bottom:24px}
+.billing-btn{padding:7px 18px;border-radius:40px;font-size:12px;font-weight:600;font-family:'Jost',sans-serif;border:none;cursor:pointer;background:transparent;color:var(--text3);transition:all .2s}
+.billing-btn.active{background:var(--navy);color:#fff}
+
+/* ── OFFRES ── */
+.offers-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+.offer-card{background:#fff;border-radius:var(--card-r);border:2px solid var(--border);padding:28px 24px;position:relative;transition:border-color .2s,transform .2s}
+.offer-card:hover{border-color:var(--navy);transform:translateY(-2px)}
+.offer-card.featured{border-color:var(--gold);background:linear-gradient(135deg,#fff 0%,#fdfbf6 100%)}
+.offer-card.featured::before{content:'Recommandé';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--gold);color:#fff;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:4px 12px;border-radius:20px;white-space:nowrap}
+.offer-name{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+.offer-title{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:var(--navy);margin-bottom:6px}
+.offer-price{font-size:32px;font-weight:700;color:var(--navy);line-height:1}
+.offer-price span{font-size:14px;font-weight:400;color:var(--text3)}
+.offer-setup{font-size:12px;color:var(--text3);margin-top:4px;margin-bottom:18px}
+.offer-divider{border:none;border-top:1px solid var(--border);margin:16px 0}
+.offer-feature{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--text2);margin-bottom:8px;line-height:1.4}
+.offer-check{color:var(--gold);flex:none;font-size:14px;line-height:1.4}
+.offer-minus{color:#ccc;flex:none;font-size:14px;line-height:1.4}
+.offer-cta{display:block;width:100%;padding:12px;background:var(--navy);color:#fff;font-family:'Jost',sans-serif;font-weight:600;font-size:12px;letter-spacing:.08em;text-align:center;border:none;border-radius:8px;cursor:pointer;margin-top:20px;transition:all .2s}
+.offer-card.featured .offer-cta{background:var(--gold)}
+
+/* ── FOOTER ── */
+.footer{background:var(--navy);padding:40px 24px;text-align:center}
+.footer-brand{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:#fff;margin-bottom:8px}
+.footer-note{font-size:11px;color:rgba(255,255,255,.4)}
+
+/* PRINT */
+@media print{
+  .config-sections,.billing-toggle,.quote-cta,.offer-cta,.hero-cta{display:none!important}
+  .config-grid{grid-template-columns:1fr}
+  .quote-panel{position:static;break-inside:avoid}
+}
+
+@media(max-width:600px){
+  .hero{padding:60px 20px 48px}
+  .section{padding:48px 0}
+  .offers-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div id="adminBtn" onclick="toggleAdmin()" style="position:fixed;top:14px;right:16px;z-index:9999;background:rgba(16,40,94,0.85);backdrop-filter:blur(8px);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:6px 14px;font-family:Jost,sans-serif;font-size:11px;font-weight:600;letter-spacing:.08em;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s">
+  <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="6" r="2.5"/><path d="M2 14c0-3 2.7-5.5 6-5.5s6 2.5 6 5.5"/></svg>
+  ADMIN
+</div>
+
+<!-- INLINE ADMIN PANEL -->
+<div id="inlineAdmin" style="position:fixed;top:0;right:-420px;width:400px;height:100vh;background:#fff;box-shadow:-4px 0 24px rgba(0,0,0,.15);z-index:9998;overflow-y:auto;transition:right .3s cubic-bezier(.4,0,.2,1);font-family:Jost,sans-serif">
+  <div style="background:var(--navy);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:2">
+    <span style="font-family:Cormorant Garamond,serif;font-size:16px;font-weight:700;color:#fff">Admin live</span>
+    <button onclick="toggleAdmin()" style="background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">✕</button>
+  </div>
+  <div id="adminPanelContent" style="padding:16px"></div>
+</div>
+<div id="adminOverlay" onclick="toggleAdmin()" style="position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:9997;display:none;backdrop-filter:blur(2px)"></div>
+
+<div class="hero">
+  <div class="hero-eyebrow">Tensai Agency — Agence Food Digitale</div>
+  <h1 class="hero-title">Votre restaurant,<br><em>une identité complète.</em></h1>
+  <p class="hero-sub">Menu digital, identité visuelle, réseaux sociaux, CRM — tout ce qu'une grande chaîne a en interne, pour les indépendants.</p>
+  <button class="hero-cta" onclick="document.getElementById('configurateur').scrollIntoView({behavior:'smooth'})">Configurer mon offre →</button>
+</div>
+
+<!-- OFFRES -->
+<div class="section" id="offres">
+  <div class="wrap">
+    <div class="section-label">Offres</div>
+    <h2 class="section-title">Trois niveaux, zéro commission</h2>
+    <p class="section-sub" style="margin-bottom:40px">Choisissez votre point d'entrée. Vous montez en gamme quand vous voulez, sans réengagement.</p>
+    <div class="offers-grid">
+
+      <div class="offer-card">
+        <div class="offer-name">Essentiel</div>
+        <div class="offer-title">Menu Digital</div>
+        <div class="offer-price">149 <span>€/mois</span></div>
+        <div class="offer-setup">+ Onboarding 800 €</div>
+        <hr class="offer-divider">
+        <div class="offer-feature"><span class="offer-check">★</span> Menu digital multi-langue (6 langues)</div>
+        <div class="offer-feature"><span class="offer-check">★</span> QR code dynamique</div>
+        <div class="offer-feature"><span class="offer-check">★</span> Mise à jour en 30 secondes</div>
+        <div class="offer-feature"><span class="offer-check">★</span> Export PDF imprimable</div>
+        <div class="offer-feature"><span class="offer-check">★</span> Google Business image</div>
+        <div class="offer-feature"><span class="offer-check">★</span> Horaires & informations</div>
+        <div class="offer-feature"><span class="offer-minus">–</span> <span style="color:#bbb">Templates réseaux sociaux</span></div>
+        <div class="offer-feature"><span class="offer-minus">–</span> <span style="color:#bbb">CRM & campagnes</span></div>
+        <div class="offer-feature"><span class="offer-minus">–</span> <span style="color:#bbb">Module réservation</span></div>
+        <button class="offer-cta">Choisir Essentiel</button>
+      </div>
+
+      <div class="offer-card featured">
+        <div class="offer-name">Pro</div>
+        <div class="offer-title">Digital + Réseaux</div>
+        <div class="offer-price">300 <span>€/mois</span></div>
+        <div class="offer-setup">+ Onboarding 1 500 €</div>
+        <hr class="offer-divider">
+        <div class="offer-feature"><span class="offer-check">★</span> Tout l'Essentiel</div>
+        <div class="offer-feature"><span class="offer-check">★</span> Module réservation intégré</div>
+        <div class="offer-feature"><span class="offer-check">★</span> Templates réseaux (post + story)</div>
+        <div class="offer-feature"><span class="offer-check">★</span> Générateur de posts en 2 min</div>
+        <div class="offer-feature"><span class="offer-check">★</span> Caption Instagram pré-remplie</div>
+        <div class="offer-feature"><span class="offer-check">★</span> Galerie photos par plat (4 imgs)</div>
+        <div class="offer-feature"><span class="offer-check">★</span> CRM clients + campagnes email</div>
+        <div class="offer-feature"><span class="offer-check">★</span> SMS marketing (via Brevo)</div>
+        <div class="offer-feature"><span class="offer-minus">–</span> <span style="color:#bbb">Brand kit & identité visuelle</span></div>
+        <button class="offer-cta">Choisir Pro</button>
+      </div>
+
+      <div class="offer-card">
+        <div class="offer-name">Premium</div>
+        <div class="offer-title">Agence Complète</div>
+        <div class="offer-price">500 <span>€/mois</span></div>
+        <div class="offer-setup">+ Onboarding 2 500–4 500 €</div>
+        <hr class="offer-divider">
+        <div class="offer-feature"><span class="offer-check">★</span> Tout le Pro</div>
+        <div class="offer-feature"><span class="offer-check">★</span> Shooting photo plats (pro)</div>
+        <div class="offer-feature"><span class="offer-check">★</span> Brand kit complet (logo, typo, couleurs)</div>
+        <div class="offer-feature"><span class="offer-check">★</span> Charte graphique & guide</div>
+        <div class="offer-feature"><span class="offer-check">★</span> Carte de visite avec QR code</div>
+        <div class="offer-feature"><span class="offer-check">★</span> Optimisation Google Business</div>
+        <div class="offer-feature"><span class="offer-check">★</span> Set-up Instagram professionnel</div>
+        <div class="offer-feature"><span class="offer-check">★</span> Set-up CRM complet</div>
+        <button class="offer-cta">Choisir Premium</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- COMPARATIF MARCHÉ -->
+<div class="section" style="background:#fff;border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+  <div class="wrap">
+    <div class="section-label">Comparatif</div>
+    <h2 class="section-title">Ce que ça coûte ailleurs</h2>
+    <p class="section-sub" style="margin-bottom:32px">Pour les mêmes prestations, un restaurateur paie entre 650 € et 1 800 €/mois à 4–5 prestataires différents. Sans cohérence, sans données, et avec des commissions par-dessus.</p>
+    <div class="compare-wrap">
+      <table class="compare">
+        <thead>
+          <tr>
+            <th>Prestation</th>
+            <th>Marché (fourchette)</th>
+            <th>Tensai Agency</th>
+            <th>Économie</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="col-service">Menu digital + QR code</td><td class="col-market">80–150 €/mois<br><small style="color:#bbb">Innovorder, Dishop…</small></td><td class="col-tensai">Inclus</td><td><span class="badge badge-incl">Inclus Pro</span></td></tr>
+          <tr><td class="col-service">Réservations en ligne<br><small style="color:#bbb">+ commissions par couvert</small></td><td class="col-market">150–400 €/mois<br><small style="color:#bbb">+ ~2–5% par couvert (TheFork)</small></td><td class="col-tensai">Inclus</td><td><span class="badge badge-incl">Économie ~300–600 €/mois</span></td></tr>
+          <tr><td class="col-service">Email & SMS marketing</td><td class="col-market">60–150 €/mois<br><small style="color:#bbb">Mailchimp + Brevo</small></td><td class="col-tensai">Inclus</td><td><span class="badge badge-incl">Inclus Pro</span></td></tr>
+          <tr><td class="col-service">Templates réseaux sociaux</td><td class="col-market">300–800 €/mois<br><small style="color:#bbb">Community manager ou agence</small></td><td class="col-tensai">Inclus</td><td><span class="badge badge-incl">Économie 300–800 €/mois</span></td></tr>
+          <tr><td class="col-service">Menu imprimable PDF</td><td class="col-market">50–200 €<br><small style="color:#bbb">+ imprimeur à chaque mise à jour</small></td><td class="col-tensai">Généré en 1 clic</td><td><span class="badge badge-incl">Inclus</span></td></tr>
+          <tr><td class="col-service">Shooting photo des plats</td><td class="col-market">800–1 500 €/jour<br><small style="color:#bbb">+ retouches séparées</small></td><td class="col-tensai">Dès 300 €<br><small style="color:#bbb">Pack 10 plats en onboarding</small></td><td><span class="badge badge-extra">Sur devis</span></td></tr>
+          <tr><td class="col-service">Brand kit (logo, charte, typo)</td><td class="col-market">1 500–4 000 €<br><small style="color:#bbb">Graphiste ou agence</small></td><td class="col-tensai">Inclus Premium<br><small style="color:#bbb">ou en option</small></td><td><span class="badge badge-extra">Option</span></td></tr>
+          <tr><td class="col-service">Google Business Optimisation</td><td class="col-market">200–500 €/an<br><small style="color:#bbb">Agence SEO local</small></td><td class="col-tensai">Inclus Premium</td><td><span class="badge badge-incl">Inclus</span></td></tr>
+          <tr><td class="col-service">Instagram setup professionnel</td><td class="col-market">300–800 € one shot<br><small style="color:#bbb">Bio, highlights, covers</small></td><td class="col-tensai">Inclus Premium</td><td><span class="badge badge-incl">Inclus</span></td></tr>
+          <tr><td class="col-service">Carte de visite + QR code</td><td class="col-market">150–400 € one shot</td><td class="col-tensai">Inclus Premium</td><td><span class="badge badge-incl">Inclus</span></td></tr>
+          <tr style="background:#fdfbf6;font-weight:700">
+            <td class="col-service" style="font-size:14px">Total marché estimé</td>
+            <td class="col-market" style="font-size:14px;color:var(--red)">650–1 800 €/mois</td>
+            <td class="col-tensai" style="font-size:14px">300–500 €/mois</td>
+            <td style="font-size:13px;color:var(--green);font-weight:700">Jusqu'à 1 300 €/mois économisés</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:11px;color:var(--text3);margin-top:12px">* Hors commissions TheFork (~2–5% par couvert). Un restaurant faisant 50 couverts/soir à 35€ moy. paie ~3 500 € de commissions/mois à TheFork seul.</p>
+  </div>
+</div>
+
+<!-- CONFIGURATEUR -->
+<div class="section" id="configurateur">
+  <div class="wrap">
+    <div class="section-label">Configurateur</div>
+    <h2 class="section-title">Construisez votre devis</h2>
+    <p class="section-sub" style="margin-bottom:24px">Sélectionnez les prestations qui vous correspondent. Le total se calcule en temps réel.</p>
+
+    <div class="billing-toggle">
+      <button class="billing-btn active" onclick="setBilling('one')">One shot</button>
+      <button class="billing-btn" onclick="setBilling('monthly')">Mensuel</button>
+      <button class="billing-btn" onclick="setBilling('both')">Complet</button>
+    </div>
+
+    <div class="config-grid">
+      <div class="config-sections" id="configSections"></div>
+      <div class="quote-panel" id="quotePanel">
+        <div class="quote-title">Votre devis</div>
+        <div class="quote-sub">Tensai Agency</div>
+        <div id="quoteLines"><div class="quote-empty">Sélectionnez des prestations</div></div>
+        <hr class="quote-divider">
+        <div class="quote-total-label">Total estimé</div>
+        <div class="quote-total-amount" id="quoteTotal">0 €</div>
+        <div class="quote-total-monthly" id="quoteSub"></div>
+        <div class="quote-saving" id="quoteSaving" style="display:none">
+          <div class="quote-saving-label">Économie vs marché</div>
+          <div class="quote-saving-amount" id="quoteSavingAmt"></div>
+          <div class="quote-saving-note">Estimation basée sur les tarifs moyens du marché</div>
+        </div>
+        <button class="quote-cta" onclick="printQuote()">🖨 Imprimer / Télécharger le devis</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GOOGLE BUSINESS & INSTAGRAM CHECKLIST -->
+<div class="section" style="background:#fff;border-top:1px solid var(--border)">
+  <div class="wrap">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px">
+
+      <div>
+        <div class="section-label">Google Business</div>
+        <h3 style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--navy);margin-bottom:20px">Optimisation complète</h3>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          ${[
+            ['Infos de base','Nom exact, catégorie principale + secondaires, adresse, téléphone, site'],
+            ['Horaires','Horaires complets + jours fériés / exceptions'],
+            ['Description','750 caractères optimisés (mots-clés, spécialité, zone géo)'],
+            ['Menu uploadé','Photos Google Business générées en 1 clic via l\'app'],
+            ['Photos','Extérieur, intérieur, plats (10–20 min, fond neutre), équipe, logo'],
+            ['Posts Google','Arrivages, promos, événements — générés depuis l\'app'],
+            ['Produits / Services','Liste avec prix pour apparaître dans les résultats'],
+            ['Q&A','5–10 questions/réponses pré-remplies'],
+            ['Attributs','WiFi, terrasse, PMR, paiement, parking…'],
+            ['QR code avis','Lien direct vers fiche Google pour générer des avis'],
+          ].map(([t,d])=>`<div style="display:flex;gap:10px;font-size:12px"><span style="color:var(--gold);font-size:14px;flex:none">✓</span><div><strong>${t}</strong><br><span style="color:var(--text3)">${d}</span></div></div>`).join('')}
+        </div>
+      </div>
+
+      <div>
+        <div class="section-label">Instagram</div>
+        <h3 style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--navy);margin-bottom:20px">Setup professionnel</h3>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          ${[
+            ['Bio optimisée','Nom avec mots-clés, spécialité, ville, emoji, lien unique'],
+            ['Lien en bio','Menu + réservation (page générée par l\'app)'],
+            ['Highlights covers','6–8 rubriques brandées : Menu, Réservation, Arrivages, Événements, Avis…'],
+            ['Posts épinglés','Menu carrousel, présentation du restaurant, signature'],
+            ['Compte Pro activé','Catégorie restaurant, bouton Réserver, statistiques'],
+            ['Templates post (3:4)','4 formats brandés générés depuis l\'app (plat, arrivage, event, info)'],
+            ['Templates story (9:16)','Même charte, format vertical'],
+            ['Captions pré-enregistrées','Par plat, copiables en 1 clic'],
+            ['Hashtags stratégiques','Mix notoriété + niche + local, définis à l\'onboarding'],
+            ['Signature agence','By @TensaiAgency visible en bas de chaque post'],
+          ].map(([t,d])=>`<div style="display:flex;gap:10px;font-size:12px"><span style="color:var(--gold);font-size:14px;flex:none">✓</span><div><strong>${t}</strong><br><span style="color:var(--text3)">${d}</span></div></div>`).join('')}
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <div class="footer-brand">Tensai Agency</div>
+  <div class="footer-note">Agence digitale dédiée à la restauration indépendante · contact@tensaiagency.com</div>
+</div>
+
+<script>
+// ── DATA ──
+// Load from admin if available
+(function(){
+  const saved = localStorage.getItem('tensai_pricing_data');
+  if(saved){
+    try {
+      const d = JSON.parse(saved);
+      window._ADMIN_DATA = d;
+    } catch(e){}
+  }
+})();
+
+const ITEMS = window._ADMIN_DATA?.items || [
+  {
+    section: '📱 Digital',
+    items: [
+      { id:'menu_digital', name:'Menu digital multi-langue', desc:'QR code, 6 langues, mise à jour en temps réel, horaires', price:149, market:130, monthly:true },
+      { id:'pdf_menu', name:'Export PDF & Google Business', desc:'Menu imprimable A4 + image Google Business en 1 clic', price:0, market:80, monthly:false, incl:'menu_digital' },
+      { id:'reservation', name:'Module réservation intégré', desc:'Page de réservation connectée à votre menu', price:0, market:200, monthly:true, incl:'pro' },
+    ]
+  },
+  {
+    section: '📋 Onboarding',
+    items: [
+      { id:'onboard_standard', name:'Onboarding Standard', desc:'Saisie menu, config, formation 1h, mise en ligne', price:800, market:1200, monthly:false },
+      { id:'onboard_premium', name:'Onboarding Premium', desc:'Standard + shooting plats (10 plats) + brand kit complet', price:4500, market:8000, monthly:false },
+    ]
+  },
+  {
+    section: '📸 Photographie',
+    items: [
+      { id:'shoot_10', name:'Shooting plats — 10 plats', desc:'Fond neutre, lumière studio, recadrés et optimisés', price:400, market:900, monthly:false },
+      { id:'shoot_20', name:'Shooting plats — 20 plats', desc:'Pack complet carte, livrés HD prêts pour menu et réseaux', price:700, market:1600, monthly:false },
+      { id:'shoot_ambiance', name:'Shooting ambiance restaurant', desc:'Salle, terrasse, équipe — pour Google Business et Instagram', price:350, market:700, monthly:false },
+    ]
+  },
+  {
+    section: '🎨 Identité visuelle',
+    items: [
+      { id:'logo', name:'Création logo', desc:'Logo vectoriel (SVG + PNG), déclinaisons fond clair/sombre/couleur', price:600, market:1500, monthly:false },
+      { id:'brand_kit', name:'Brand kit complet', desc:'Logo, charte couleurs (HEX/CMJN), typographies, guide utilisation', price:1200, market:3000, monthly:false },
+      { id:'carte_visite', name:'Carte de visite + QR code', desc:'Recto/verso brandé, QR code menu intégré, fichier print-ready', price:250, market:400, monthly:false },
+      { id:'devanture', name:'Habillage devanture / murale', desc:'Fichier prêt pour imprimeur, sticker vitrine ou impression murale', price:500, market:1200, monthly:false },
+      { id:'mascotte', name:'Mascotte / DA spécifique', desc:'Illustration personnalisée, direction artistique sur-mesure', price:900, market:2500, monthly:false },
+    ]
+  },
+  {
+    section: '📲 Réseaux sociaux',
+    items: [
+      { id:'templates_reseaux', name:'Templates réseaux sociaux', desc:'4 formats post (3:4) + story (9:16) aux couleurs du restaurant', price:300, market:600, monthly:false },
+      { id:'insta_setup', name:'Setup Instagram professionnel', desc:'Bio, lien, highlights covers, posts épinglés, compte Pro', price:350, market:700, monthly:false },
+      { id:'caption_setup', name:'Captions pré-enregistrées', desc:'Caption par plat, copiable en 1 clic depuis l\'app', price:150, market:300, monthly:false },
+    ]
+  },
+  {
+    section: '📧 CRM & Marketing',
+    items: [
+      { id:'crm_setup', name:'Set-up CRM complet', desc:'Brevo configuré, listes, templates email/SMS, intégration réservation', price:500, market:1000, monthly:false },
+      { id:'crm_monthly', name:'CRM — abonnement mensuel', desc:'Envoi email & SMS, gestion contacts, stats, support', price:150, market:250, monthly:true },
+    ]
+  },
+  {
+    section: '🔍 Référencement local',
+    items: [
+      { id:'google_opti', name:'Optimisation Google Business', desc:'Fiche complète, photos, posts, Q&A, attributs, QR avis', price:350, market:800, monthly:false },
+      { id:'google_monthly', name:'Google Business — suivi mensuel', desc:'Mise à jour posts, photos, stats, recommandations', price:80, market:200, monthly:true },
+    ]
+  },
+];
+
+let selected = new Set();
+let billingMode = 'one'; // one | monthly | both
+
+function setBilling(mode){
+  billingMode = mode;
+  document.querySelectorAll('.billing-btn').forEach((b,i)=>{
+    b.classList.toggle('active', ['one','monthly','both'][i]===mode);
+  });
+  renderConfig();
+  updateQuote();
+}
+
+function renderConfig(){
+  const container = document.getElementById('configSections');
+  container.innerHTML = ITEMS.map(section=>`
+    <div class="config-section open">
+      <div class="config-section-hdr" onclick="this.parentElement.classList.toggle('open')">
+        <div class="config-section-title">${section.section}</div>
+        <span class="config-section-arrow">▾</span>
+      </div>
+      <div class="config-section-body">
+        ${section.items.filter(item=>{
+          if(billingMode==='one') return !item.monthly;
+          if(billingMode==='monthly') return item.monthly;
+          return true;
+        }).map(item=>`
+        <div class="config-item">
+          <input type="checkbox" class="config-checkbox" id="chk_${item.id}" ${selected.has(item.id)?'checked':''} onchange="toggleItem('${item.id}',this.checked)">
+          <label class="config-item-label" for="chk_${item.id}">
+            <div class="config-item-name">${item.name} ${item.monthly?'<span style="font-size:10px;color:var(--text3);font-weight:400">/mois</span>':''}</div>
+            <div class="config-item-desc">${item.desc}</div>
+          </label>
+          <div style="text-align:right">
+            <div class="config-item-price">${item.price===0?'Inclus':item.price.toLocaleString('fr-FR')+' €'}</div>
+            <div class="config-item-market">${item.market.toLocaleString('fr-FR')} €</div>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleItem(id, checked){
+  if(checked) selected.add(id); else selected.delete(id);
+  updateQuote();
+}
+
+function updateQuote(){
+  const lines = document.getElementById('quoteLines');
+  const totalEl = document.getElementById('quoteTotal');
+  const subEl = document.getElementById('quoteSub');
+  const savingBox = document.getElementById('quoteSaving');
+  const savingAmt = document.getElementById('quoteSavingAmt');
+
+  const all = ITEMS.flatMap(s=>s.items);
+  const sel = all.filter(i=>selected.has(i.id));
+
+  if(!sel.length){
+    lines.innerHTML='<div class="quote-empty">Sélectionnez des prestations</div>';
+    totalEl.textContent='0 €';
+    subEl.textContent='';
+    savingBox.style.display='none';
+    return;
+  }
+
+  const oneShot = sel.filter(i=>!i.monthly).reduce((s,i)=>s+i.price,0);
+  const monthly = sel.filter(i=>i.monthly).reduce((s,i)=>s+i.price,0);
+  const marketOneShot = sel.filter(i=>!i.monthly).reduce((s,i)=>s+i.market,0);
+  const marketMonthly = sel.filter(i=>i.monthly).reduce((s,i)=>s+i.market,0);
+  const totalSaving = (marketOneShot - oneShot) + (marketMonthly - monthly) * 12;
+
+  lines.innerHTML = sel.map(i=>`
+    <div class="quote-line">
+      <span class="quote-line-name">${i.name}${i.monthly?' <span style="font-size:10px;opacity:.5">/mois</span>':''}</span>
+      <span class="quote-line-price">${i.price===0?'–':i.price.toLocaleString('fr-FR')+' €'}</span>
+    </div>`).join('');
+
+  if(oneShot && monthly){
+    totalEl.textContent = oneShot.toLocaleString('fr-FR')+' €';
+    subEl.textContent = '+ '+monthly.toLocaleString('fr-FR')+' €/mois en récurrent';
+  } else if(monthly){
+    totalEl.textContent = monthly.toLocaleString('fr-FR')+' €/mois';
+    subEl.textContent = '';
+  } else {
+    totalEl.textContent = oneShot.toLocaleString('fr-FR')+' €';
+    subEl.textContent = 'One shot';
+  }
+
+  if(totalSaving > 0){
+    savingBox.style.display='block';
+    savingAmt.textContent = '~'+totalSaving.toLocaleString('fr-FR')+' € économisés';
+  } else {
+    savingBox.style.display='none';
+  }
+}
+
+function printQuote(){
+  window.print();
+}
+
+// Apply admin data if available
+if(window._ADMIN_DATA){
+  const d = window._ADMIN_DATA;
+  // Hero
+  if(d.hero){
+    const eyebrow = document.querySelector('.hero-eyebrow');
+    if(eyebrow && d.hero.eyebrow) eyebrow.textContent = d.hero.eyebrow;
+    const title = document.querySelector('.hero-title');
+    if(title && d.hero.title) title.innerHTML = d.hero.title.replace(/\*\*(.*?)\*\*/g,'<em>$1</em>');
+    const sub = document.querySelector('.hero-sub');
+    if(sub && d.hero.sub) sub.textContent = d.hero.sub;
+  }
+  // Footer
+  if(d.agency){
+    const fb = document.querySelector('.footer-brand');
+    if(fb && d.agency.name) fb.textContent = d.agency.name;
+    const fn = document.querySelector('.footer-note');
+    if(fn && d.agency.footer) fn.textContent = d.agency.footer;
+  }
+}
+
+// Init
+renderConfig();
+updateQuote();
+</script>
+
+<style>
+.admin-field{margin-bottom:12px}
+.admin-field label{display:block;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#999;margin-bottom:5px}
+.admin-input{width:100%;padding:8px 10px;border:1px solid #e2ddd5;border-radius:6px;font-size:12px;font-family:Jost,sans-serif;color:#1a1a1a;outline:none;background:#fff}
+.admin-input:focus{border-color:var(--navy)}
+.admin-input[type=number]{-moz-appearance:textfield}
+.admin-section-hdr{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);padding:12px 0 8px;border-bottom:1px solid #f0ece6;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.admin-row{display:flex;gap:6px}
+.admin-row .admin-field{flex:1;margin-bottom:0}
+.admin-btn-add{padding:6px 10px;background:transparent;border:1px dashed var(--gold);color:var(--gold);border-radius:6px;font-size:11px;font-family:Jost,sans-serif;cursor:pointer;font-weight:600}
+.admin-item-card{background:#f7f5f0;border-radius:8px;padding:10px;margin-bottom:8px;position:relative}
+.admin-item-card .del{position:absolute;top:6px;right:6px;background:none;border:none;color:#ccc;cursor:pointer;font-size:13px}
+.admin-item-card .del:hover{color:#c62828}
+.admin-save-bar{position:sticky;bottom:0;background:#fff;padding:12px 16px;border-top:1px solid #e2ddd5;display:flex;gap:8px;margin:0 -16px}
+.admin-save-btn{flex:1;padding:10px;font-family:Jost,sans-serif;font-size:12px;font-weight:700;border:none;border-radius:8px;cursor:pointer}
+.admin-tabs{display:flex;gap:0;background:#f0ece6;border-radius:8px;padding:3px;margin-bottom:16px}
+.admin-tab{flex:1;padding:6px 8px;border-radius:6px;font-size:11px;font-weight:600;font-family:Jost,sans-serif;border:none;cursor:pointer;background:transparent;color:#999;transition:all .15s;text-align:center}
+.admin-tab.active{background:#fff;color:var(--navy);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+</style>
+
+<script>
+let adminOpen = false;
+let adminTab = 'content';
+
+function toggleAdmin(){
+  adminOpen = !adminOpen;
+  document.getElementById('inlineAdmin').style.right = adminOpen ? '0' : '-420px';
+  document.getElementById('adminOverlay').style.display = adminOpen ? 'block' : 'none';
+  document.getElementById('adminBtn').style.opacity = adminOpen ? '0' : '1';
+  if(adminOpen) renderAdminPanel();
+}
+
+function renderAdminPanel(){
+  const el = document.getElementById('adminPanelContent');
+  
+  el.innerHTML = `
+    <div class="admin-tabs">
+      <button class="admin-tab ${adminTab==='content'?'active':''}" onclick="switchAdminTab('content')">Contenu</button>
+      <button class="admin-tab ${adminTab==='offers'?'active':''}" onclick="switchAdminTab('offers')">Offres</button>
+      <button class="admin-tab ${adminTab==='items'?'active':''}" onclick="switchAdminTab('items')">Prestations</button>
+      <button class="admin-tab ${adminTab==='compare'?'active':''}" onclick="switchAdminTab('compare')">Marché</button>
+    </div>
+    <div id="adminTabContent"></div>
+    <div class="admin-save-bar">
+      <button class="admin-save-btn" style="background:#f0ece6;color:var(--navy)" onclick="toggleAdmin()">Fermer</button>
+      <button class="admin-save-btn" style="background:var(--navy);color:#fff" onclick="applyAndSave()">✓ Appliquer</button>
+    </div>
+  `;
+  renderAdminTab();
+}
+
+function switchAdminTab(tab){
+  adminTab = tab;
+  renderAdminPanel();
+}
+
+function renderAdminTab(){
+  const el = document.getElementById('adminTabContent');
+  if(adminTab==='content') el.innerHTML = renderAdminContent();
+  else if(adminTab==='offers') el.innerHTML = renderAdminOffers();
+  else if(adminTab==='items') el.innerHTML = renderAdminItems();
+  else if(adminTab==='compare') el.innerHTML = renderAdminCompare();
+}
+
+function renderAdminContent(){
+  const d = window._ADMIN_DATA || {};
+  const h = d.hero||{}, a = d.agency||{};
+  return `
+    <div class="admin-section-hdr">Hero</div>
+    <div class="admin-field"><label>Eyebrow</label><input class="admin-input" id="ae_eyebrow" value="${esc2(h.eyebrow||'Tensai Agency — Agence Food Digitale')}"></div>
+    <div class="admin-field"><label>Titre (** pour italique doré)</label><input class="admin-input" id="ae_title" value="${esc2(h.title||'Votre restaurant, **une identité complète.**')}"></div>
+    <div class="admin-field"><label>Sous-titre</label><textarea class="admin-input" id="ae_sub" rows="3" style="resize:vertical">${esc2(h.sub||'')}</textarea></div>
+    <div class="admin-section-hdr">Section Offres</div>
+    <div class="admin-field"><label>Titre</label><input class="admin-input" id="ae_offTitle" value="${esc2(h.offersSectionTitle||'Trois niveaux, zéro commission')}"></div>
+    <div class="admin-field"><label>Sous-titre</label><textarea class="admin-input" id="ae_offSub" rows="2" style="resize:vertical">${esc2(h.offersSectionSub||'')}</textarea></div>
+    <div class="admin-section-hdr">Footer</div>
+    <div class="admin-field"><label>Nom agence</label><input class="admin-input" id="ae_name" value="${esc2(a.name||'Tensai Agency')}"></div>
+    <div class="admin-field"><label>Note footer</label><input class="admin-input" id="ae_footer" value="${esc2(a.footer||'')}"></div>
+    <div class="admin-field"><label>Note bas comparatif</label><textarea class="admin-input" id="ae_cnote" rows="2" style="resize:vertical">${esc2(a.compareNote||'')}</textarea></div>
+  `;
+}
+
+function collectAdminContent(){
+  if(!window._ADMIN_DATA) window._ADMIN_DATA = {};
+  const d = window._ADMIN_DATA;
+  d.hero = d.hero||{};
+  d.hero.eyebrow = v('ae_eyebrow');
+  d.hero.title = v('ae_title');
+  d.hero.sub = v('ae_sub');
+  d.hero.offersSectionTitle = v('ae_offTitle');
+  d.hero.offersSectionSub = v('ae_offSub');
+  d.agency = d.agency||{};
+  d.agency.name = v('ae_name');
+  d.agency.footer = v('ae_footer');
+  d.agency.compareNote = v('ae_cnote');
+}
+
+function renderAdminOffers(){
+  const offers = (window._ADMIN_DATA||{}).offers || [];
+  return offers.map((o,oi)=>`
+    <div class="admin-item-card" style="border-left:3px solid var(--gold)">
+      <div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em">${o.name}</div>
+      <div class="admin-row">
+        <div class="admin-field"><label>Titre</label><input class="admin-input" value="${esc2(o.title)}" onchange="(_ADMIN_DATA.offers||[])[${oi}].title=this.value"></div>
+        <div class="admin-field"><label>Prix /mois</label><input class="admin-input" type="number" value="${o.price}" onchange="(_ADMIN_DATA.offers||[])[${oi}].price=parseInt(this.value)||0"></div>
+      </div>
+      <div class="admin-row">
+        <div class="admin-field"><label>Onboarding €</label><input class="admin-input" type="number" value="${o.setup}" onchange="(_ADMIN_DATA.offers||[])[${oi}].setup=parseInt(this.value)||0"></div>
+        <div class="admin-field"><label>Recommandé</label>
+          <select class="admin-input" onchange="(_ADMIN_DATA.offers||[])[${oi}].featured=(this.value==='oui')">
+            <option value="non" ${!o.featured?'selected':''}>Non</option>
+            <option value="oui" ${o.featured?'selected':''}>Oui ★</option>
+          </select>
+        </div>
+      </div>
+      <div class="admin-field"><label>Features incluses (une par ligne)</label>
+        <textarea class="admin-input" rows="5" style="resize:vertical;font-size:11px" onchange="(_ADMIN_DATA.offers||[])[${oi}].features=this.value.split('\n').filter(Boolean)">${(o.features||[]).join('\n')}</textarea>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderAdminItems(){
+  const items = (window._ADMIN_DATA||{}).items || [];
+  return items.map((section,si)=>`
+    <div style="margin-bottom:14px">
+      <div class="admin-section-hdr">
+        <input style="border:none;background:transparent;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);width:auto;font-family:Jost,sans-serif" value="${esc2(section.section)}" onchange="(_ADMIN_DATA.items||[])[${si}].section=this.value">
+        <button class="admin-btn-add" onclick="addAdminItem(${si})">+</button>
+      </div>
+      ${(section.items||[]).map((item,ii)=>`
+        <div class="admin-item-card">
+          <button class="del" onclick="delAdminItem(${si},${ii})">✕</button>
+          <div class="admin-field" style="margin-bottom:6px"><input class="admin-input" value="${esc2(item.name)}" placeholder="Nom" onchange="(_ADMIN_DATA.items||[])[${si}].items[${ii}].name=this.value" style="font-weight:600"></div>
+          <div class="admin-field" style="margin-bottom:6px"><input class="admin-input" value="${esc2(item.desc)}" placeholder="Description" onchange="(_ADMIN_DATA.items||[])[${si}].items[${ii}].desc=this.value" style="font-size:11px"></div>
+          <div class="admin-row">
+            <div class="admin-field" style="margin-bottom:0"><label>Prix Tensai €</label><input class="admin-input" type="number" value="${item.price}" onchange="(_ADMIN_DATA.items||[])[${si}].items[${ii}].price=parseInt(this.value)||0"></div>
+            <div class="admin-field" style="margin-bottom:0"><label>Prix marché €</label><input class="admin-input" type="number" value="${item.market}" onchange="(_ADMIN_DATA.items||[])[${si}].items[${ii}].market=parseInt(this.value)||0"></div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+function renderAdminCompare(){
+  const rows = (window._ADMIN_DATA||{}).compare || [];
+  return `
+    ${rows.map((r,ri)=>`
+      <div class="admin-item-card">
+        <button class="del" onclick="delCompareRow(${ri})">✕</button>
+        <div class="admin-field" style="margin-bottom:6px"><input class="admin-input" value="${esc2(r.service)}" placeholder="Prestation" onchange="(_ADMIN_DATA.compare||[])[${ri}].service=this.value" style="font-weight:600"></div>
+        <div class="admin-row">
+          <div class="admin-field" style="margin-bottom:0"><label>Marché</label><input class="admin-input" value="${esc2(r.market)}" onchange="(_ADMIN_DATA.compare||[])[${ri}].market=this.value"></div>
+          <div class="admin-field" style="margin-bottom:0"><label>Tensai</label><input class="admin-input" value="${esc2(r.tensai)}" onchange="(_ADMIN_DATA.compare||[])[${ri}].tensai=this.value"></div>
+        </div>
+      </div>
+    `).join('')}
+    <button class="admin-btn-add" onclick="addCompareRowInline()" style="width:100%;margin-top:4px">+ Ligne</button>
+  `;
+}
+
+function addAdminItem(si){
+  if(!window._ADMIN_DATA) return;
+  window._ADMIN_DATA.items[si].items.push({id:'i_'+Date.now(),name:'',desc:'',price:0,market:0,monthly:false});
+  renderAdminTab();
+}
+function delAdminItem(si,ii){ window._ADMIN_DATA?.items[si]?.items.splice(ii,1); renderAdminTab(); }
+function addCompareRowInline(){ window._ADMIN_DATA?.compare?.push({service:'',market:'',tensai:'',badge:'incl'}); renderAdminTab(); }
+function delCompareRow(ri){ window._ADMIN_DATA?.compare?.splice(ri,1); renderAdminTab(); }
+
+function applyAndSave(){
+  if(adminTab==='content') collectAdminContent();
+  // Apply DOM changes live
+  const d = window._ADMIN_DATA||{};
+  if(d.hero){
+    const ey=document.querySelector('.hero-eyebrow'); if(ey&&d.hero.eyebrow) ey.textContent=d.hero.eyebrow;
+    const ht=document.querySelector('.hero-title'); if(ht&&d.hero.title) ht.innerHTML=d.hero.title.replace(/\*\*(.*?)\*\*/g,'<em>$1</em>');
+    const hs=document.querySelector('.hero-sub'); if(hs&&d.hero.sub) hs.textContent=d.hero.sub;
+    // Offers section
+    const ost=document.querySelector('#offres .section-title'); if(ost&&d.hero.offersSectionTitle) ost.textContent=d.hero.offersSectionTitle;
+    const oss=document.querySelector('#offres .section-sub'); if(oss&&d.hero.offersSectionSub) oss.textContent=d.hero.offersSectionSub;
+  }
+  if(d.agency){
+    const fb=document.querySelector('.footer-brand'); if(fb&&d.agency.name) fb.textContent=d.agency.name;
+    const fn=document.querySelector('.footer-note'); if(fn&&d.agency.footer) fn.textContent=d.agency.footer;
+  }
+  // Rebuild configurator items
+  if(d.items){ ITEMS.length=0; d.items.forEach(s=>ITEMS.push(s)); renderConfig(); }
+  // Save to localStorage
+  localStorage.setItem('tensai_pricing_data', JSON.stringify(d));
+  localStorage.setItem('tensai_admin_data', JSON.stringify(d));
+  showAdminToast('✓ Appliqué en direct');
+}
+
+function showAdminToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+function v(id){ const el=document.getElementById(id); return el?el.value:''; }
+function esc2(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+</script>
+</body>
+</html>
