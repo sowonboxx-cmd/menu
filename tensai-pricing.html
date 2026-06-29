@@ -359,11 +359,10 @@ table.compare tr:hover td{background:#fafaf6}
 (function(){
   const saved = localStorage.getItem('tensai_pricing_data');
   if(saved){
-    try {
-      const d = JSON.parse(saved);
-      window._ADMIN_DATA = d;
-    } catch(e){}
+    try { window._ADMIN_DATA = JSON.parse(saved); return; } catch(e){}
   }
+  // Build _ADMIN_DATA from hardcoded data on first load
+  window._ADMIN_DATA = null; // will be set after ITEMS is defined
 })();
 
 const ITEMS = window._ADMIN_DATA?.items || [
@@ -522,6 +521,54 @@ function updateQuote(){
 
 function printQuote(){
   window.print();
+}
+
+// Build _ADMIN_DATA from page constants if not loaded from localStorage
+if(!window._ADMIN_DATA){
+  // Extract offers from the DOM
+  const offerCards = document.querySelectorAll('.offer-card');
+  const offersData = [];
+  offerCards.forEach(card=>{
+    const features = [...card.querySelectorAll('.offer-feature .offer-check + *')].map(el=>el.textContent.trim()).filter(Boolean);
+    const missing  = [...card.querySelectorAll('.offer-feature .offer-minus + span')].map(el=>el.textContent.trim()).filter(Boolean);
+    const name  = card.querySelector('.offer-name')?.textContent.trim()||'';
+    const title = card.querySelector('.offer-title')?.textContent.trim()||'';
+    const priceText = card.querySelector('.offer-price')?.childNodes[0]?.textContent?.trim()||'0';
+    const setupText = card.querySelector('.offer-setup')?.textContent||'';
+    const setupMatch = setupText.match(/([\d\s]+)/);
+    offersData.push({
+      id: name.toLowerCase().replace(/\s+/g,'_'),
+      name, title,
+      price: parseInt(priceText)||0,
+      setup: setupMatch ? parseInt(setupMatch[1].replace(/\s/g,''))||0 : 0,
+      monthly: true,
+      featured: card.classList.contains('featured'),
+      features, missing
+    });
+  });
+  window._ADMIN_DATA = {
+    hero: {
+      eyebrow: document.querySelector('.hero-eyebrow')?.textContent||'',
+      title: document.querySelector('.hero-title')?.innerText?.replace(/\n/g,' ')||'',
+      sub: document.querySelector('.hero-sub')?.textContent||'',
+      cta: document.querySelector('.hero-cta')?.textContent?.trim()||'',
+      offersSectionTitle: document.querySelector('#offres .section-title')?.textContent||'',
+      offersSectionSub: document.querySelector('#offres .section-sub')?.textContent||'',
+    },
+    agency: {
+      name: document.querySelector('.footer-brand')?.textContent||'Tensai Agency',
+      footer: document.querySelector('.footer-note')?.textContent||'',
+      compareNote: document.querySelector('#offres + div p[style*="font-size:11px"]')?.textContent||'',
+    },
+    settings: { navy:'#10285E', gold:'#C6A24A' },
+    offers: offersData,
+    items: typeof ITEMS !== 'undefined' ? ITEMS : [],
+    compare: [...document.querySelectorAll('table.compare tbody tr:not(:last-child)')].map(tr=>{
+      const tds = tr.querySelectorAll('td');
+      return { service:tds[0]?.querySelector('.col-service, td')?.textContent?.split('\n')[0]?.trim()||tds[0]?.textContent?.trim()||'', market:tds[1]?.textContent?.trim()||'', tensai:tds[2]?.textContent?.trim()||'', badge:'incl' };
+    }),
+    checklists: { google:[], insta:[] }
+  };
 }
 
 // Apply admin data if available
