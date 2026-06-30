@@ -18,7 +18,7 @@ html{scroll-behavior:smooth}
 body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);line-height:1.5;padding-bottom:60px}
 
 /* ── TOPBAR ── */
-.topbar{background:var(--navy);height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;position:sticky;top:0;z-index:200}
+.topbar{background:var(--navy);height:54px;display:flex;align-items:center;position:sticky;top:0;z-index:200}
 .topbar-brand{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;color:#fff}
 .topbar-actions{display:flex;gap:8px;align-items:center}
 .sync-status{font-size:10px;color:rgba(255,255,255,.5);display:flex;align-items:center;gap:5px}
@@ -76,13 +76,22 @@ body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);line-h
 .feature-price-input{width:70px;text-align:right;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:11px;font-family:'Jost',sans-serif;flex:none}
 .feature-del{background:none;border:none;color:#ccc;cursor:pointer;font-size:13px;flex:none;padding:2px 4px}
 .feature-del:hover{color:var(--red)}
+.feature-info{position:relative;flex:none;display:flex;align-items:center}
+.feature-info-btn{width:16px;height:16px;border-radius:50%;border:1.3px solid var(--text3);color:var(--text3);background:none;font-size:10px;font-weight:700;font-style:italic;font-family:Georgia,serif;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:all .15s}
+.feature-info-btn:hover,.feature-info-btn.has-content{border-color:var(--navy);color:var(--navy)}
+.feature-info-popover{display:none;position:absolute;top:22px;right:0;width:220px;max-width:80vw;background:#1a1a1a;color:#fff;font-size:11px;line-height:1.5;padding:10px 12px;border-radius:8px;z-index:50;box-shadow:0 4px 16px rgba(0,0,0,.25)}
+.feature-info-popover::before{content:'';position:absolute;top:-5px;right:6px;width:10px;height:10px;background:#1a1a1a;transform:rotate(45deg)}
+.feature-info:hover .feature-info-popover{display:block}
+.feature-info.tap-open .feature-info-popover{display:block}
+.feature-info-edit{width:100%;background:#fff;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:11px;font-family:'Jost',sans-serif;resize:vertical;min-height:50px;outline:none}
 .add-feature-row{display:flex;align-items:center;gap:8px;padding:10px 18px}
 .add-feature-row input{flex:1;border:1px dashed var(--border);border-radius:6px;padding:7px 10px;font-size:12px;font-family:'Jost',sans-serif;outline:none}
 .add-feature-row input:focus{border-color:var(--gold)}
 .add-cat-btn{display:flex;align-items:center;gap:6px;padding:10px 18px;font-size:11px;font-weight:600;color:var(--gold);cursor:pointer;border-top:1px dashed var(--border)}
 
 /* ── AUTO-GENERATED OFFERS TABLE ── */
-.offers-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}
+.offers-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.offers-grid .offer-card.agence{grid-column:1/-1}
 .offer-card{background:#fff;border-radius:var(--rs);border:2px solid var(--border);padding:22px 20px;position:relative}
 .offer-card.base{border-top:4px solid var(--base)}
 .offer-card.pro{border-top:4px solid var(--pro)}
@@ -143,17 +152,23 @@ table.matrix tr:hover td{background:#fafaf7}
 <body>
 
 <div class="topbar">
-  <div class="topbar-brand">Tensai — Guide d'offre</div>
-  <div class="topbar-actions">
-    <div class="sync-status" onclick="promptToken()" style="cursor:pointer" title="Cliquer pour configurer le token GitHub"><span class="sync-dot"></span> Local uniquement</div>
-    <button class="btn-icon-only" onclick="toggleSearch()" title="Rechercher une fonctionnalité">🔍</button>
-    <button class="btn-icon-only" onclick="toggleEditMode()" id="editToggleBtn" title="Mode édition">✎</button>
+  <div class="wrap" style="display:flex;align-items:center;justify-content:space-between;width:100%">
+    <div class="topbar-brand">Admin</div>
+    <div class="topbar-actions">
+      <div class="sync-status" onclick="promptToken()" style="cursor:pointer" title="Cliquer pour configurer le token GitHub"><span class="sync-dot"></span> Local uniquement</div>
+      <button class="btn-icon-only" onclick="toggleSearch()" title="Rechercher une fonctionnalité">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      </button>
+      <button class="btn-icon-only" onclick="toggleEditMode()" id="editToggleBtn" title="Mode édition">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+      </button>
+    </div>
   </div>
 </div>
 
-<div id="searchBar" style="display:none;background:#fff;border-bottom:1px solid var(--border);padding:10px 20px;position:sticky;top:54px;z-index:150">
-  <div class="wrap" style="padding:0 20px;display:flex;align-items:center;gap:8px">
-    <span style="font-size:14px;color:var(--text3)">🔍</span>
+<div id="searchBar" style="display:none;background:#fff;border-bottom:1px solid var(--border);padding:10px 0;position:sticky;top:54px;z-index:150">
+  <div class="wrap" style="display:flex;align-items:center;gap:8px">
+    <span style="color:var(--text3);display:flex"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>
     <input type="text" id="searchInput" placeholder="Rechercher une fonctionnalité…" oninput="runSearch(this.value)" style="flex:1;border:none;outline:none;font-size:13px;font-family:'Jost',sans-serif;padding:6px 0">
     <span id="searchCount" style="font-size:11px;color:var(--text3)"></span>
     <button onclick="toggleSearch()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px">✕</button>
@@ -399,6 +414,15 @@ function renderFeatures(){
               ? `<input class="feature-name-input" value="${esc(item.name)}" onchange="DATA.categories[${ci}].items[${ii}].name=this.value;save()">`
               : `<div class="feature-name-input" style="cursor:default">${esc(item.name)}</div>`
             }
+            <div class="feature-info" onclick="onInfoClick(event,this)">
+              <button class="feature-info-btn${item.desc?' has-content':''}" type="button">i</button>
+              <div class="feature-info-popover" onclick="event.stopPropagation()">
+                ${editMode
+                  ? `<textarea class="feature-info-edit" placeholder="Description détaillée…" onchange="DATA.categories[${ci}].items[${ii}].desc=this.value;save()">${esc(item.desc||'')}</textarea>`
+                  : (item.desc ? esc(item.desc) : 'Aucune description')
+                }
+              </div>
+            </div>
             <div class="feature-tags">
               ${['base','pro','premium','agence'].map(tag => `
                 <button class="feature-tag-btn ${tag}${item.tags.includes(tag)?' on':''}" onclick="${editMode?`toggleTag(${ci},${ii},'${tag}')`:''}" ${editMode?'':'disabled style="cursor:default"'}>${tagLabel(tag)}</button>
@@ -429,6 +453,18 @@ function tagLabel(tag){
   return {base:'Base',pro:'Pro',premium:'Premium',agence:'Agence'}[tag];
 }
 
+function onInfoClick(e, el){
+  // Only handle tap-to-toggle on touch devices; desktop relies on hover
+  if(!('ontouchstart' in window)) return;
+  e.stopPropagation();
+  const wasOpen = el.classList.contains('tap-open');
+  document.querySelectorAll('.feature-info.tap-open').forEach(o=>o.classList.remove('tap-open'));
+  if(!wasOpen) el.classList.add('tap-open');
+}
+document.addEventListener('click', ()=>{
+  document.querySelectorAll('.feature-info.tap-open').forEach(o=>o.classList.remove('tap-open'));
+});
+
 function toggleTag(ci, ii, tag){
   const tags = DATA.categories[ci].items[ii].tags;
   const idx = tags.indexOf(tag);
@@ -449,6 +485,7 @@ function addFeature(ci, name){
   showToast('✓ Fonctionnalité ajoutée');
 }
 function deleteFeature(ci, ii){
+  if(!confirm('Supprimer cette fonctionnalité ?')) return;
   DATA.categories[ci].items.splice(ii,1);
   save();
   renderAll();
@@ -502,10 +539,12 @@ function renderOffers(){
         ${meta.setup>0?`<div style="font-size:11px;color:var(--text3);margin-bottom:14px">+ Onboarding ${meta.setup.toLocaleString('fr-FR')} €</div>`:'<div style="margin-bottom:14px"></div>'}
       `}
       <div class="offer-card-count">${items.length} fonctionnalité${items.length>1?'s':''}</div>
-      ${prevLabel[tag] ? `<div class="offer-feature-line" style="font-weight:700;color:var(--navy);margin-bottom:9px"><span class="check">★</span><span>Tout de l'offre ${prevLabel[tag]}${inheritedCount?` (${inheritedCount})`:''}</span></div>` : ''}
-      ${newItems.map(i=>`<div class="offer-feature-line"><span class="check">✓</span><span>${esc(i.name)}${i.price?` <span style="color:var(--text3)">(+${i.price}€)</span>`:''}</span></div>`).join('')}
+      <div${tag==='agence'?' style="columns:2;column-gap:20px"':''}>
+      ${prevLabel[tag] ? `<div class="offer-feature-line" style="font-weight:700;color:var(--navy);margin-bottom:9px;break-inside:avoid"><span class="check">★</span><span>Tout de l'offre ${prevLabel[tag]}${inheritedCount?` (${inheritedCount})`:''}</span></div>` : ''}
+      ${newItems.map(i=>`<div class="offer-feature-line" style="break-inside:avoid"><span class="check">✓</span><span>${esc(i.name)}${i.price?` <span style="color:var(--text3)">(+${i.price}€)</span>`:''}</span></div>`).join('')}
       ${!items.length?'<div style="font-size:11px;color:var(--text3);font-style:italic">Aucune fonctionnalité assignée</div>':''}
       ${(prevLabel[tag] && !newItems.length && items.length)?'<div style="font-size:11px;color:var(--text3);font-style:italic">Aucune fonctionnalité supplémentaire</div>':''}
+      </div>
     </div>`;
   }).join('');
 }
@@ -571,6 +610,7 @@ function addStrategyItem(){
   },50);
 }
 function deleteStrategy(i){
+  if(!confirm('Supprimer cette action ?')) return;
   DATA.strategy.splice(i,1);
   save();
   renderStrategy();
