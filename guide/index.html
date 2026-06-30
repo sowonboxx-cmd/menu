@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Tensai Agency — Guide de construction d'offre</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -28,6 +28,12 @@ body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);line-h
 .btn-ghost:hover{background:rgba(255,255,255,.18)}
 .btn-gold{background:var(--gold);color:#fff}
 .btn-gold:hover{opacity:.88}
+.btn-icon-only{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:14px;cursor:pointer;transition:all .15s}
+.btn-icon-only:hover{background:rgba(255,255,255,.18)}
+.btn-icon-only.active{background:var(--gold);border-color:var(--gold)}
+.search-match{background:#fef08a;border-radius:3px;padding:0 1px}
+.feature-row.search-hidden{display:none}
+.feature-cat.search-hidden{display:none}
 
 /* ── LAYOUT ── */
 .wrap{max-width:1100px;margin:0 auto;padding:0 20px}
@@ -58,7 +64,7 @@ body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);line-h
 .feature-row{display:flex;align-items:center;gap:10px;padding:9px 18px;border-bottom:1px solid #f5f2ee;transition:background .12s}
 .feature-row:last-child{border-bottom:none}
 .feature-row:hover{background:#fafaf7}
-.feature-drag{color:var(--text3);cursor:grab;font-size:14px;flex:none}
+.feature-drag{color:var(--text3);cursor:grab;font-size:14px;flex:none;touch-action:none;padding:4px}
 .feature-name-input{flex:1;border:none;background:transparent;font-size:13px;font-weight:500;color:var(--text);outline:none;font-family:'Jost',sans-serif}
 .feature-name-input:focus{background:#f0f3fa;border-radius:4px;padding:2px 6px}
 .feature-tags{display:flex;gap:4px;flex:none}
@@ -140,10 +146,17 @@ table.matrix tr:hover td{background:#fafaf7}
   <div class="topbar-brand">Tensai — Guide d'offre</div>
   <div class="topbar-actions">
     <div class="sync-status" onclick="promptToken()" style="cursor:pointer" title="Cliquer pour configurer le token GitHub"><span class="sync-dot"></span> Local uniquement</div>
-    <button class="btn btn-ghost" onclick="exportJSON()">⬇ Exporter</button>
-    <button class="btn btn-ghost" onclick="document.getElementById('importFile').click()">⬆ Importer</button>
-    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(this)">
-    <button class="btn btn-gold" onclick="toggleEditMode()" id="editToggleBtn">✎ Mode édition</button>
+    <button class="btn-icon-only" onclick="toggleSearch()" title="Rechercher une fonctionnalité">🔍</button>
+    <button class="btn-icon-only" onclick="toggleEditMode()" id="editToggleBtn" title="Mode édition">✎</button>
+  </div>
+</div>
+
+<div id="searchBar" style="display:none;background:#fff;border-bottom:1px solid var(--border);padding:10px 20px;position:sticky;top:54px;z-index:150">
+  <div class="wrap" style="padding:0 20px;display:flex;align-items:center;gap:8px">
+    <span style="font-size:14px;color:var(--text3)">🔍</span>
+    <input type="text" id="searchInput" placeholder="Rechercher une fonctionnalité…" oninput="runSearch(this.value)" style="flex:1;border:none;outline:none;font-size:13px;font-family:'Jost',sans-serif;padding:6px 0">
+    <span id="searchCount" style="font-size:11px;color:var(--text3)"></span>
+    <button onclick="toggleSearch()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px">✕</button>
   </div>
 </div>
 
@@ -359,7 +372,10 @@ function promptToken(){
 function toggleEditMode(){
   editMode = !editMode;
   document.getElementById('editBanner').classList.toggle('show', editMode);
-  document.getElementById('editToggleBtn').textContent = editMode ? '✓ Terminer' : '✎ Mode édition';
+  const btn = document.getElementById('editToggleBtn');
+  btn.textContent = editMode ? '✓' : '✎';
+  btn.title = editMode ? 'Terminer l\'édition' : 'Mode édition';
+  btn.classList.toggle('active', editMode);
   renderAll();
 }
 
@@ -377,7 +393,7 @@ function renderFeatures(){
       </div>
       <div class="feature-cat-body">
         ${cat.items.map((item, ii) => `
-          <div class="feature-row">
+          <div class="feature-row" data-ci="${ci}" data-ii="${ii}" data-name="${esc(item.name).toLowerCase()}" ${editMode?'draggable="true"':''}>
             ${editMode ? '<span class="feature-drag">⠿</span>' : ''}
             ${editMode
               ? `<input class="feature-name-input" value="${esc(item.name)}" onchange="DATA.categories[${ci}].items[${ii}].name=this.value;save()">`
@@ -394,7 +410,8 @@ function renderFeatures(){
         `).join('')}
         ${editMode ? `
           <div class="add-feature-row">
-            <input type="text" placeholder="+ Nouvelle fonctionnalité…" onkeydown="if(event.key==='Enter'){addFeature(${ci},this.value);this.value=''}">
+            <input type="text" id="addFeatInput_${ci}" placeholder="+ Nouvelle fonctionnalité…" onkeydown="if(event.key==='Enter'){event.preventDefault();addFeature(${ci},this.value);this.value='';this.focus()}">
+            <button class="btn-icon-only" style="background:var(--navy);width:32px;height:32px" onclick="const inp=document.getElementById('addFeatInput_${ci}');addFeature(${ci},inp.value);inp.value='';inp.focus()" title="Ajouter">+</button>
           </div>
         ` : ''}
       </div>
@@ -404,6 +421,8 @@ function renderFeatures(){
   document.getElementById('addCatBtnWrap').innerHTML = editMode
     ? `<button class="btn btn-ghost" style="background:#fff;border:1px dashed var(--gold);color:var(--gold)" onclick="addCategory()">+ Nouvelle catégorie</button>`
     : '';
+
+  if(editMode) attachDragHandlers();
 }
 
 function tagLabel(tag){
@@ -421,10 +440,13 @@ function toggleTag(ci, ii, tag){
 }
 
 function addFeature(ci, name){
-  if(!name.trim()) return;
-  DATA.categories[ci].items.push({name:name.trim(), tags:[], price:0});
+  name = (name||'').trim();
+  if(!name) return;
+  if(!DATA.categories[ci]) return;
+  DATA.categories[ci].items.push({name:name, tags:[], price:0});
   save();
   renderAll();
+  showToast('✓ Fonctionnalité ajoutée');
 }
 function deleteFeature(ci, ii){
   DATA.categories[ci].items.splice(ii,1);
@@ -555,32 +577,131 @@ function deleteStrategy(i){
 }
 
 // ══════════════════════════════════════════
-// EXPORT / IMPORT (cloud sync via file)
+// SEARCH
 // ══════════════════════════════════════════
-function exportJSON(){
-  const blob = new Blob([JSON.stringify(DATA, null, 2)], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'tensai-guide-'+new Date().toISOString().slice(0,10)+'.json';
-  a.click();
-  showToast('✓ Exporté — synchronisez ce fichier entre vos appareils');
+function toggleSearch(){
+  const bar = document.getElementById('searchBar');
+  const showing = bar.style.display !== 'none';
+  bar.style.display = showing ? 'none' : 'block';
+  if(!showing){
+    document.getElementById('searchInput').value = '';
+    document.getElementById('searchInput').focus();
+  } else {
+    runSearch('');
+  }
 }
 
-function importJSON(input){
-  const file = input.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      DATA = JSON.parse(e.target.result);
-      save();
-      renderAll();
-      showToast('✓ Données importées');
-    } catch(err){
-      showToast('✗ Fichier invalide');
+function runSearch(query){
+  query = query.trim().toLowerCase();
+  const rows = document.querySelectorAll('.feature-row');
+  let count = 0;
+  rows.forEach(row=>{
+    const name = row.dataset.name || '';
+    const match = !query || name.includes(query);
+    row.classList.toggle('search-hidden', !match);
+    if(match && query) count++;
+  });
+  // Show/hide categories with no visible rows, and auto-open matching ones
+  document.querySelectorAll('.feature-cat').forEach(cat=>{
+    const visibleRows = cat.querySelectorAll('.feature-row:not(.search-hidden)');
+    if(query){
+      cat.classList.toggle('search-hidden', visibleRows.length===0);
+      if(visibleRows.length>0) cat.classList.add('open');
+    } else {
+      cat.classList.remove('search-hidden');
     }
-  };
-  reader.readAsText(file);
+  });
+  document.getElementById('searchCount').textContent = query ? `${count} résultat${count!==1?'s':''}` : '';
+}
+
+// ══════════════════════════════════════════
+// DRAG & DROP (mouse + touch) — reorder features within a category
+// ══════════════════════════════════════════
+let dragSrc = null;
+
+function attachDragHandlers(){
+  const rows = document.querySelectorAll('.feature-row[draggable="true"]');
+  rows.forEach(row=>{
+    row.addEventListener('dragstart', onRowDragStart);
+    row.addEventListener('dragover', onRowDragOver);
+    row.addEventListener('dragend', onRowDragEnd);
+    row.addEventListener('drop', onRowDrop);
+    // Touch support
+    row.addEventListener('touchstart', onRowTouchStart, {passive:true});
+  });
+}
+
+function onRowDragStart(e){
+  dragSrc = { ci: parseInt(this.dataset.ci), ii: parseInt(this.dataset.ii) };
+  this.style.opacity = '0.4';
+  e.dataTransfer.effectAllowed = 'move';
+}
+function onRowDragEnd(e){
+  this.style.opacity = '';
+  document.querySelectorAll('.feature-row').forEach(r=>r.style.borderTop='');
+}
+function onRowDragOver(e){
+  e.preventDefault();
+  const ci = parseInt(this.dataset.ci);
+  if(!dragSrc || dragSrc.ci !== ci) return;
+  this.style.borderTop = '2px solid var(--navy)';
+}
+function onRowDrop(e){
+  e.preventDefault();
+  this.style.borderTop = '';
+  const ci = parseInt(this.dataset.ci);
+  const ii = parseInt(this.dataset.ii);
+  if(!dragSrc || dragSrc.ci !== ci || dragSrc.ii === ii) return;
+  const items = DATA.categories[ci].items;
+  const [moved] = items.splice(dragSrc.ii, 1);
+  items.splice(ii, 0, moved);
+  dragSrc = null;
+  save();
+  renderFeatures();
+}
+
+// Touch drag and drop
+let touchDragEl = null, touchDragCi = null, touchStartY = 0;
+function onRowTouchStart(e){
+  const handle = e.target.closest('.feature-drag');
+  if(!handle) return; // only start drag from the handle
+  touchDragEl = this;
+  touchDragCi = parseInt(this.dataset.ci);
+  touchStartY = e.touches[0].clientY;
+  this.style.opacity = '0.5';
+  document.addEventListener('touchmove', onRowTouchMove, {passive:false});
+  document.addEventListener('touchend', onRowTouchEnd);
+}
+function onRowTouchMove(e){
+  if(!touchDragEl) return;
+  e.preventDefault();
+  const y = e.touches[0].clientY;
+  const rows = document.querySelectorAll(`.feature-row[data-ci="${touchDragCi}"]`);
+  rows.forEach(r=>r.style.borderTop='');
+  rows.forEach(r=>{
+    const rect = r.getBoundingClientRect();
+    if(y > rect.top && y < rect.bottom && r !== touchDragEl){
+      r.style.borderTop = '2px solid var(--navy)';
+    }
+  });
+}
+function onRowTouchEnd(e){
+  if(!touchDragEl) return;
+  const target = document.querySelector(`.feature-row[data-ci="${touchDragCi}"][style*="border-top"]`);
+  if(target && target !== touchDragEl){
+    const ci = touchDragCi;
+    const srcIi = parseInt(touchDragEl.dataset.ii);
+    const dstIi = parseInt(target.dataset.ii);
+    const items = DATA.categories[ci].items;
+    const [moved] = items.splice(srcIi, 1);
+    items.splice(dstIi, 0, moved);
+    save();
+    renderFeatures();
+  }
+  document.querySelectorAll('.feature-row').forEach(r=>{r.style.opacity='';r.style.borderTop='';});
+  touchDragEl = null;
+  document.removeEventListener('touchmove', onRowTouchMove);
+  document.removeEventListener('touchend', onRowTouchEnd);
 }
 
 // ══════════════════════════════════════════
