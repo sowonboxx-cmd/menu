@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tensai Agency — Guide de construction d'offre</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#10285E;--gold:#C6A24A;--bg:#F7F5F0;--white:#fff;
+  --text:#1a1a1a;--text2:#555;--text3:#999;
+  --border:#e4dfd6;--red:#b91c1c;--green:#166534;
+  --base:#6b7280;--pro:#2563eb;--premium:#C6A24A;--agence:#9333ea;
+  --rs:8px;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);line-height:1.5;padding-bottom:60px}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--navy);height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;position:sticky;top:0;z-index:200}
+.topbar-brand{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;color:#fff}
+.topbar-actions{display:flex;gap:8px;align-items:center}
+.sync-status{font-size:10px;color:rgba(255,255,255,.5);display:flex;align-items:center;gap:5px}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:#4ade80}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border:none;border-radius:6px;font-family:'Jost',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-ghost{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2)}
+.btn-ghost:hover{background:rgba(255,255,255,.18)}
+.btn-gold{background:var(--gold);color:#fff}
+.btn-gold:hover{opacity:.88}
+
+/* ── LAYOUT ── */
+.wrap{max-width:1100px;margin:0 auto;padding:0 20px}
+.section{padding:48px 0}
+.section-label{font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+.section-title{font-family:'Cormorant Garamond',serif;font-size:clamp(24px,3.2vw,32px);font-weight:700;color:var(--navy);margin-bottom:6px}
+.section-sub{font-size:13px;color:var(--text2);max-width:600px;line-height:1.7}
+.section-hdr-row{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:24px}
+
+/* ── TAG PILLS ── */
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;letter-spacing:.04em;padding:3px 10px;border-radius:20px;color:#fff;white-space:nowrap}
+.tag-base{background:var(--base)}
+.tag-pro{background:var(--pro)}
+.tag-premium{background:var(--premium)}
+.tag-agence{background:var(--agence)}
+.tag-editable{cursor:pointer;border:none}
+
+/* ── FEATURE LIST (master list with tag assignment) ── */
+.feature-table{background:#fff;border-radius:var(--rs);border:1px solid var(--border);overflow:hidden}
+.feature-cat{border-bottom:1px solid var(--border)}
+.feature-cat:last-child{border-bottom:none}
+.feature-cat-hdr{padding:12px 18px;background:var(--bg);display:flex;align-items:center;gap:10px;cursor:pointer}
+.feature-cat-name{flex:1;font-size:12px;font-weight:700;color:var(--navy);letter-spacing:.02em}
+.feature-cat-arrow{font-size:11px;color:var(--text3);transition:transform .2s}
+.feature-cat.open .feature-cat-arrow{transform:rotate(180deg)}
+.feature-cat-body{display:none;padding:6px 0}
+.feature-cat.open .feature-cat-body{display:block}
+.feature-row{display:flex;align-items:center;gap:10px;padding:9px 18px;border-bottom:1px solid #f5f2ee;transition:background .12s}
+.feature-row:last-child{border-bottom:none}
+.feature-row:hover{background:#fafaf7}
+.feature-drag{color:var(--text3);cursor:grab;font-size:14px;flex:none}
+.feature-name-input{flex:1;border:none;background:transparent;font-size:13px;font-weight:500;color:var(--text);outline:none;font-family:'Jost',sans-serif}
+.feature-name-input:focus{background:#f0f3fa;border-radius:4px;padding:2px 6px}
+.feature-tags{display:flex;gap:4px;flex:none}
+.feature-tag-btn{font-size:9px;font-weight:700;padding:3px 8px;border-radius:20px;border:1.5px solid var(--border);background:#fff;color:var(--text3);cursor:pointer;transition:all .12s}
+.feature-tag-btn.on.base{background:var(--base);border-color:var(--base);color:#fff}
+.feature-tag-btn.on.pro{background:var(--pro);border-color:var(--pro);color:#fff}
+.feature-tag-btn.on.premium{background:var(--premium);border-color:var(--premium);color:#fff}
+.feature-tag-btn.on.agence{background:var(--agence);border-color:var(--agence);color:#fff}
+.feature-price-input{width:70px;text-align:right;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:11px;font-family:'Jost',sans-serif;flex:none}
+.feature-del{background:none;border:none;color:#ccc;cursor:pointer;font-size:13px;flex:none;padding:2px 4px}
+.feature-del:hover{color:var(--red)}
+.add-feature-row{display:flex;align-items:center;gap:8px;padding:10px 18px}
+.add-feature-row input{flex:1;border:1px dashed var(--border);border-radius:6px;padding:7px 10px;font-size:12px;font-family:'Jost',sans-serif;outline:none}
+.add-feature-row input:focus{border-color:var(--gold)}
+.add-cat-btn{display:flex;align-items:center;gap:6px;padding:10px 18px;font-size:11px;font-weight:600;color:var(--gold);cursor:pointer;border-top:1px dashed var(--border)}
+
+/* ── AUTO-GENERATED OFFERS TABLE ── */
+.offers-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}
+.offer-card{background:#fff;border-radius:var(--rs);border:2px solid var(--border);padding:22px 20px;position:relative}
+.offer-card.base{border-top:4px solid var(--base)}
+.offer-card.pro{border-top:4px solid var(--pro)}
+.offer-card.premium{border-top:4px solid var(--premium);background:linear-gradient(135deg,#fff 0%,#fdfbf6 100%)}
+.offer-card.agence{border-top:4px solid var(--agence)}
+.offer-card-name{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px}
+.offer-card.base .offer-card-name{color:var(--base)}
+.offer-card.pro .offer-card-name{color:var(--pro)}
+.offer-card.premium .offer-card-name{color:var(--premium)}
+.offer-card.agence .offer-card-name{color:var(--agence)}
+.offer-card-count{font-size:11px;color:var(--text3);margin-bottom:14px}
+.offer-feature-line{display:flex;gap:7px;align-items:flex-start;font-size:11px;color:var(--text2);margin-bottom:7px;line-height:1.4}
+.offer-feature-line .check{color:inherit;flex:none;font-weight:700}
+
+/* ── CONFIG SUMMARY TABLE (compact) ── */
+.matrix-wrap{overflow-x:auto;border-radius:var(--rs);border:1px solid var(--border);background:#fff}
+table.matrix{width:100%;border-collapse:collapse;min-width:700px;font-size:12px}
+table.matrix th{padding:10px 14px;text-align:left;background:var(--bg);border-bottom:2px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3)}
+table.matrix th.center{text-align:center}
+table.matrix td{padding:9px 14px;border-bottom:1px solid #f0ece6}
+table.matrix td.center{text-align:center}
+table.matrix tr:last-child td{border-bottom:none}
+table.matrix tr:hover td{background:#fafaf7}
+.matrix-check{color:var(--green);font-weight:700}
+.matrix-dash{color:#ddd}
+
+/* ── STRATEGIE COMMERCIALE (accordion) ── */
+.strategy-list{display:flex;flex-direction:column;gap:10px}
+.strategy-item{background:#fff;border-radius:var(--rs);border:1px solid var(--border);overflow:hidden}
+.strategy-hdr{display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;user-select:none}
+.strategy-num{width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
+.strategy-title-input{flex:1;border:none;background:transparent;font-size:13px;font-weight:600;color:var(--text);outline:none;font-family:'Jost',sans-serif}
+.strategy-arrow{font-size:11px;color:var(--text3);transition:transform .2s;flex:none}
+.strategy-item.open .strategy-arrow{transform:rotate(180deg)}
+.strategy-body{display:none;padding:0 18px 16px 54px}
+.strategy-item.open .strategy-body{display:block}
+.strategy-textarea{width:100%;border:1px solid var(--border);border-radius:6px;padding:10px;font-size:12px;font-family:'Jost',sans-serif;color:var(--text2);resize:vertical;min-height:70px;outline:none}
+.strategy-textarea:focus{border-color:var(--navy)}
+.strategy-del{background:none;border:none;color:#ccc;cursor:pointer;font-size:13px;flex:none}
+.strategy-del:hover{color:var(--red)}
+.add-strategy-btn{display:flex;align-items:center;gap:6px;padding:12px 18px;font-size:12px;font-weight:600;color:var(--gold);cursor:pointer;border:1px dashed var(--gold);border-radius:var(--rs);background:#fff;justify-content:center}
+
+/* ── EDIT MODE TOGGLE ── */
+.edit-banner{background:#fef3c7;border:1px solid #fcd34d;border-radius:var(--rs);padding:10px 16px;font-size:12px;color:#92400e;margin-bottom:20px;display:none;align-items:center;gap:8px}
+.edit-banner.show{display:flex}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 20px;border-radius:20px;font-size:12px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9999;white-space:nowrap}
+#toast.show{opacity:1}
+
+@media(max-width:640px){
+  .feature-row{flex-wrap:wrap}
+  .feature-tags{order:3;width:100%;margin-top:4px}
+  .offers-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand">Tensai — Guide d'offre</div>
+  <div class="topbar-actions">
+    <div class="sync-status" onclick="promptToken()" style="cursor:pointer" title="Cliquer pour configurer le token GitHub"><span class="sync-dot"></span> Local uniquement</div>
+    <button class="btn btn-ghost" onclick="exportJSON()">⬇ Exporter</button>
+    <button class="btn btn-ghost" onclick="document.getElementById('importFile').click()">⬆ Importer</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(this)">
+    <button class="btn btn-gold" onclick="toggleEditMode()" id="editToggleBtn">✎ Mode édition</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="edit-banner" id="editBanner">
+    ✎ Mode édition activé — modifiez librement, tout se sauvegarde automatiquement dans ce navigateur. Pensez à exporter régulièrement pour synchroniser entre vos appareils.
+  </div>
+
+  <!-- ════════ OFFRES AUTO-GÉNÉRÉES ════════ -->
+  <div class="section">
+    <div class="section-label">Vos offres packagées</div>
+    <h2 class="section-title">Vos offres packagées</h2>
+    <p class="section-sub" style="margin-bottom:24px">Construites automatiquement à partir des tags assignés dans la liste des fonctionnalités ci-dessous.</p>
+    <div class="offers-grid" id="offersAuto"></div>
+  </div>
+
+  <!-- ════════ FONCTIONNALITÉS ════════ -->
+  <div class="section" id="features">
+    <div class="section-hdr-row">
+      <div>
+        <div class="section-label">Détail</div>
+        <h2 class="section-title">Fonctionnalités</h2>
+        <p class="section-sub">Listez chaque fonctionnalité et assignez-la à une ou plusieurs offres. Le tableau des offres ci-dessus se met à jour automatiquement.</p>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span class="tag tag-base">Base</span>
+        <span class="tag tag-pro">Pro</span>
+        <span class="tag tag-premium">Premium</span>
+        <span class="tag tag-agence">Agence</span>
+      </div>
+    </div>
+
+    <div class="feature-table" id="featureTable"></div>
+    <div style="margin-top:10px" id="addCatBtnWrap"></div>
+  </div>
+
+  <!-- ════════ TABLEAU MATRICE ════════ -->
+  <div class="section">
+    <div class="section-label">Vue d'ensemble</div>
+    <h2 class="section-title">Matrice complète</h2>
+    <p class="section-sub" style="margin-bottom:24px">Toutes les fonctionnalités, toutes les offres, en un coup d'œil.</p>
+    <div class="matrix-wrap">
+      <table class="matrix" id="matrixTable"></table>
+    </div>
+  </div>
+
+  <!-- ════════ STRATÉGIE COMMERCIALE ════════ -->
+  <div class="section" id="strategy">
+    <div class="section-label">Plan d'action</div>
+    <h2 class="section-title">Stratégie commerciale</h2>
+    <p class="section-sub" style="margin-bottom:24px">Les actions à mener, dans l'ordre. Cliquez pour développer les détails.</p>
+    <div class="strategy-list" id="strategyList"></div>
+    <div class="add-strategy-btn" onclick="addStrategyItem()" style="margin-top:10px">+ Ajouter une action</div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════
+// DEFAULT DATA
+// ══════════════════════════════════════════
+const DEFAULT_DATA = {
+  categories: [
+    { name: '📱 Menu digital', items: [
+      { name: 'Menu digital multi-langue (6 langues)', tags:['base','pro','premium'], price:0 },
+      { name: 'QR code dynamique', tags:['base','pro','premium'], price:0 },
+      { name: 'Mise à jour en temps réel', tags:['base','pro','premium'], price:0 },
+      { name: 'Export PDF imprimable', tags:['base','pro','premium'], price:0 },
+      { name: 'Image Google Business (1 clic)', tags:['base','pro','premium'], price:0 },
+      { name: 'Horaires & informations pratiques', tags:['base','pro','premium'], price:0 },
+      { name: 'Plats à la une / mis en avant', tags:['pro','premium'], price:0 },
+      { name: 'Module réservation intégré', tags:['pro','premium'], price:0 },
+    ]},
+    { name: '📲 Réseaux sociaux', items: [
+      { name: 'Templates post (3:4) + story (9:16)', tags:['pro','premium'], price:0 },
+      { name: 'Générateur de post en 2 minutes', tags:['pro','premium'], price:0 },
+      { name: 'Galerie photo par plat (4 images)', tags:['pro','premium'], price:0 },
+      { name: 'Caption Instagram pré-enregistrée', tags:['pro','premium'], price:0 },
+      { name: 'Setup Instagram professionnel', tags:['premium','agence'], price:350 },
+    ]},
+    { name: '📧 CRM & Marketing', items: [
+      { name: 'CRM clients (Brevo)', tags:['pro','premium'], price:0 },
+      { name: 'Campagnes email', tags:['pro','premium'], price:0 },
+      { name: 'SMS marketing', tags:['pro','premium'], price:0 },
+      { name: 'Set-up CRM complet (onboarding)', tags:['agence'], price:500 },
+    ]},
+    { name: '🔍 Référencement local', items: [
+      { name: 'Optimisation Google Business complète', tags:['premium','agence'], price:350 },
+      { name: 'Suivi mensuel Google Business', tags:['premium'], price:0 },
+    ]},
+    { name: '🎨 Identité visuelle', items: [
+      { name: 'Shooting photo des plats (pro)', tags:['premium','agence'], price:400 },
+      { name: 'Brand kit complet (logo, charte, typo)', tags:['premium','agence'], price:1200 },
+      { name: 'Carte de visite + QR code', tags:['premium','agence'], price:250 },
+      { name: 'Habillage devanture / murale', tags:['agence'], price:500 },
+      { name: 'Mascotte / DA spécifique', tags:['agence'], price:900 },
+    ]},
+    { name: '📋 Onboarding', items: [
+      { name: 'Saisie menu + config + formation 1h', tags:['base','pro'], price:800 },
+      { name: 'Onboarding Premium (shoot + brand kit)', tags:['premium'], price:4500 },
+    ]},
+  ],
+  offerMeta: {
+    base: { name:'Base', title:'Menu Digital', price:149, setup:800 },
+    pro: { name:'Pro', title:'Digital + Réseaux', price:300, setup:1500 },
+    premium: { name:'Premium', title:'Agence Complète', price:500, setup:2500 },
+    agence: { name:'Agence', title:'Hors catégorie / sur-mesure', price:0, setup:0 },
+  },
+  strategy: [
+    { title:'Identifier les prospects', detail:'Repérer les restaurants sans QR code, avec menu PDF périmé, ou très présents sur TheFork (signe de commissions élevées). Privilégier les indépendants avec 30+ couverts/soir.' },
+    { title:'Accroche sans rendez-vous', detail:'Entrer dans le restaurant ou contacter après avoir repéré 2-3 points faibles précis sur leur présence digitale actuelle. Proposer une démo gratuite de 15 minutes, sans vendre.' },
+    { title:'Démo live', detail:'Montrer le changement de prix en direct depuis le téléphone, générer un post Instagram, exporter le PDF. Ne pas parler de prix avant la fin de la démo.' },
+    { title:'Argument commissions TheFork', detail:'Faire calculer au prospect ses commissions mensuelles. Comparer au forfait fixe Tensai. Insister sur la propriété des données clients.' },
+    { title:'Proposer un essai', detail:"Un mois à 0€ avec onboarding inclus pour lever l'objection du risque. Coût réel : le temps d'onboarding (2-3h si process rodé)." },
+    { title:'Closing et signature', detail:"Contrat simple, premier prélèvement après la période d'essai. Formation incluse à la signature." },
+  ]
+};
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+// ── GITHUB SYNC (même repo que les menus) ──
+const GH_USER = 'sowonboxx-cmd';
+const GH_REPO = 'menu';
+const GH_FILE = 'guide/guide.json';
+const GH_BRANCH = 'main';
+function getToken(){ return localStorage.getItem('menu_gh_token')||''; }
+function getSha(){ return localStorage.getItem('gh_sha_guide')||null; }
+function saveSha(v){ if(v) localStorage.setItem('gh_sha_guide',v); else localStorage.removeItem('gh_sha_guide'); }
+
+let DATA = JSON.parse(localStorage.getItem('tensai_guide_data') || JSON.stringify(DEFAULT_DATA));
+let editMode = false;
+let saveTimer = null;
+
+function save(){
+  localStorage.setItem('tensai_guide_data', JSON.stringify(DATA));
+  setSyncStatus('local');
+  // Debounce GitHub push — wait 1.5s after last edit before syncing
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(pushToGitHub, 1500);
+}
+
+function setSyncStatus(state){
+  const dot = document.querySelector('.sync-dot');
+  const label = document.querySelector('.sync-status');
+  if(state==='local'){ dot.style.background='#fbbf24'; label.childNodes[1].textContent=' Sauvegarde…'; }
+  else if(state==='synced'){ dot.style.background='#4ade80'; label.childNodes[1].textContent=' Synchronisé'; }
+  else if(state==='error'){ dot.style.background='#f87171'; label.childNodes[1].textContent=' Erreur sync'; }
+  else if(state==='offline'){ dot.style.background='#9ca3af'; label.childNodes[1].textContent=' Local uniquement'; }
+}
+
+async function pushToGitHub(){
+  const token = getToken();
+  if(!token){ setSyncStatus('offline'); return; }
+  try {
+    const apiBase = `https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`;
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(DATA, null, 2))));
+    const body = { message: 'Guide update — '+new Date().toLocaleString('fr-FR'), content, branch: GH_BRANCH };
+    const sha = getSha();
+    if(sha) body.sha = sha;
+    const res = await fetch(apiBase, {
+      method: 'PUT',
+      headers: { 'Authorization': 'token '+token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if(!res.ok){
+      if(res.status===409){ await loadFromGitHub(true); return; } // sha conflict, refetch then retry silently
+      throw new Error('HTTP '+res.status);
+    }
+    const json = await res.json();
+    saveSha(json.content.sha);
+    setSyncStatus('synced');
+  } catch(e){
+    console.error('GitHub sync error:', e);
+    setSyncStatus('error');
+  }
+}
+
+async function loadFromGitHub(silent){
+  const token = getToken();
+  if(!token){ setSyncStatus('offline'); return; }
+  try {
+    const apiBase = `https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`;
+    const res = await fetch(apiBase, { headers: { 'Authorization': 'token '+token } });
+    if(res.status===404){ setSyncStatus('offline'); return; } // file doesn't exist yet, will be created on first save
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const json = await res.json();
+    saveSha(json.sha);
+    const content = decodeURIComponent(escape(atob(json.content)));
+    DATA = JSON.parse(content);
+    localStorage.setItem('tensai_guide_data', JSON.stringify(DATA));
+    setSyncStatus('synced');
+    if(!silent){ renderAll(); showToast('✓ Chargé depuis GitHub'); }
+  } catch(e){
+    console.error('GitHub load error:', e);
+    setSyncStatus('error');
+  }
+}
+
+function promptToken(){
+  const current = getToken();
+  const token = prompt('Token GitHub (avec accès au repo "menu") :', current||'');
+  if(token!==null){
+    localStorage.setItem('menu_gh_token', token.trim());
+    if(token.trim()) loadFromGitHub();
+    else setSyncStatus('offline');
+  }
+}
+
+function toggleEditMode(){
+  editMode = !editMode;
+  document.getElementById('editBanner').classList.toggle('show', editMode);
+  document.getElementById('editToggleBtn').textContent = editMode ? '✓ Terminer' : '✎ Mode édition';
+  renderAll();
+}
+
+// ══════════════════════════════════════════
+// FEATURES TABLE
+// ══════════════════════════════════════════
+function renderFeatures(){
+  const el = document.getElementById('featureTable');
+  el.innerHTML = DATA.categories.map((cat, ci) => `
+    <div class="feature-cat open" data-ci="${ci}">
+      <div class="feature-cat-hdr" onclick="this.parentElement.classList.toggle('open')">
+        ${editMode ? `<input class="feature-name-input" value="${esc(cat.name)}" onclick="event.stopPropagation()" onchange="DATA.categories[${ci}].name=this.value;save()" style="font-weight:700;color:var(--navy)">` : `<div class="feature-cat-name">${esc(cat.name)}</div>`}
+        ${editMode ? `<button class="feature-del" onclick="event.stopPropagation();deleteCategory(${ci})" title="Supprimer la catégorie">✕</button>` : ''}
+        <span class="feature-cat-arrow">▾</span>
+      </div>
+      <div class="feature-cat-body">
+        ${cat.items.map((item, ii) => `
+          <div class="feature-row">
+            ${editMode ? '<span class="feature-drag">⠿</span>' : ''}
+            ${editMode
+              ? `<input class="feature-name-input" value="${esc(item.name)}" onchange="DATA.categories[${ci}].items[${ii}].name=this.value;save()">`
+              : `<div class="feature-name-input" style="cursor:default">${esc(item.name)}</div>`
+            }
+            <div class="feature-tags">
+              ${['base','pro','premium','agence'].map(tag => `
+                <button class="feature-tag-btn ${tag}${item.tags.includes(tag)?' on':''}" onclick="${editMode?`toggleTag(${ci},${ii},'${tag}')`:''}" ${editMode?'':'disabled style="cursor:default"'}>${tagLabel(tag)}</button>
+              `).join('')}
+            </div>
+            ${editMode ? `<input class="feature-price-input" type="number" value="${item.price||0}" placeholder="€" onchange="DATA.categories[${ci}].items[${ii}].price=parseInt(this.value)||0;save();renderOffers();renderMatrix()" title="Prix si facturé en sus (Agence)">` : (item.price ? `<span style="font-size:11px;color:var(--text3);width:50px;text-align:right">${item.price}€</span>` : '<span style="width:50px"></span>')}
+            ${editMode ? `<button class="feature-del" onclick="deleteFeature(${ci},${ii})">✕</button>` : ''}
+          </div>
+        `).join('')}
+        ${editMode ? `
+          <div class="add-feature-row">
+            <input type="text" placeholder="+ Nouvelle fonctionnalité…" onkeydown="if(event.key==='Enter'){addFeature(${ci},this.value);this.value=''}">
+          </div>
+        ` : ''}
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('addCatBtnWrap').innerHTML = editMode
+    ? `<button class="btn btn-ghost" style="background:#fff;border:1px dashed var(--gold);color:var(--gold)" onclick="addCategory()">+ Nouvelle catégorie</button>`
+    : '';
+}
+
+function tagLabel(tag){
+  return {base:'Base',pro:'Pro',premium:'Premium',agence:'Agence'}[tag];
+}
+
+function toggleTag(ci, ii, tag){
+  const tags = DATA.categories[ci].items[ii].tags;
+  const idx = tags.indexOf(tag);
+  if(idx>=0) tags.splice(idx,1); else tags.push(tag);
+  save();
+  renderFeatures();
+  renderOffers();
+  renderMatrix();
+}
+
+function addFeature(ci, name){
+  if(!name.trim()) return;
+  DATA.categories[ci].items.push({name:name.trim(), tags:[], price:0});
+  save();
+  renderAll();
+}
+function deleteFeature(ci, ii){
+  DATA.categories[ci].items.splice(ii,1);
+  save();
+  renderAll();
+}
+function addCategory(){
+  const name = prompt('Nom de la catégorie ?');
+  if(name) { DATA.categories.push({name, items:[]}); save(); renderAll(); }
+}
+function deleteCategory(ci){
+  if(confirm('Supprimer cette catégorie et toutes ses fonctionnalités ?')){
+    DATA.categories.splice(ci,1);
+    save();
+    renderAll();
+  }
+}
+
+// ══════════════════════════════════════════
+// AUTO-GENERATED OFFERS
+// ══════════════════════════════════════════
+function renderOffers(){
+  const el = document.getElementById('offersAuto');
+  const allItems = DATA.categories.flatMap(c=>c.items);
+  const order = ['base','pro','premium','agence'];
+  const prevLabel = {base:null, pro:'Base', premium:'Pro', agence:'Premium'};
+
+  el.innerHTML = order.map((tag, idx)=>{
+    const meta = DATA.offerMeta[tag];
+    const items = allItems.filter(i=>i.tags.includes(tag));
+    const editable = editMode;
+
+    // Compute "new" items vs previous tier (items in this tier but not in the previous one)
+    const prevTag = idx>0 ? order[idx-1] : null;
+    const prevItems = prevTag ? allItems.filter(i=>i.tags.includes(prevTag)) : [];
+    const newItems = prevTag ? items.filter(i=>!prevItems.some(p=>p.name===i.name)) : items;
+    const inheritedCount = prevTag ? items.filter(i=>prevItems.some(p=>p.name===i.name)).length : 0;
+
+    return `
+    <div class="offer-card ${tag}">
+      <div class="offer-card-name">${meta.name}</div>
+      ${editable ? `
+        <input class="feature-name-input" style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:var(--navy);margin-bottom:4px;padding:0" value="${esc(meta.title)}" onchange="DATA.offerMeta['${tag}'].title=this.value;save()">
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+          <input class="feature-price-input" style="width:60px" type="number" value="${meta.price}" onchange="DATA.offerMeta['${tag}'].price=parseInt(this.value)||0;save();renderOffers()"> €/mois
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:10px;font-size:11px;color:var(--text3)">
+          Onboarding: <input class="feature-price-input" style="width:60px" type="number" value="${meta.setup}" onchange="DATA.offerMeta['${tag}'].setup=parseInt(this.value)||0;save();renderOffers()"> €
+        </div>
+      ` : `
+        <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:var(--navy);margin-bottom:4px">${esc(meta.title)}</div>
+        <div style="font-size:24px;font-weight:700;color:var(--navy);margin-bottom:2px">${meta.price>0?meta.price+' <span style="font-size:12px;font-weight:400;color:var(--text3)">€/mois</span>':'Sur devis'}</div>
+        ${meta.setup>0?`<div style="font-size:11px;color:var(--text3);margin-bottom:14px">+ Onboarding ${meta.setup.toLocaleString('fr-FR')} €</div>`:'<div style="margin-bottom:14px"></div>'}
+      `}
+      <div class="offer-card-count">${items.length} fonctionnalité${items.length>1?'s':''}</div>
+      ${prevLabel[tag] ? `<div class="offer-feature-line" style="font-weight:700;color:var(--navy);margin-bottom:9px"><span class="check">★</span><span>Tout de l'offre ${prevLabel[tag]}${inheritedCount?` (${inheritedCount})`:''}</span></div>` : ''}
+      ${newItems.map(i=>`<div class="offer-feature-line"><span class="check">✓</span><span>${esc(i.name)}${i.price?` <span style="color:var(--text3)">(+${i.price}€)</span>`:''}</span></div>`).join('')}
+      ${!items.length?'<div style="font-size:11px;color:var(--text3);font-style:italic">Aucune fonctionnalité assignée</div>':''}
+      ${(prevLabel[tag] && !newItems.length && items.length)?'<div style="font-size:11px;color:var(--text3);font-style:italic">Aucune fonctionnalité supplémentaire</div>':''}
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════
+// MATRIX TABLE
+// ══════════════════════════════════════════
+function renderMatrix(){
+  const el = document.getElementById('matrixTable');
+  const allItems = DATA.categories.flatMap(c=>c.items.map(i=>({...i, cat:c.name})));
+  let html = `<thead><tr><th>Fonctionnalité</th><th class="center">Base</th><th class="center">Pro</th><th class="center">Premium</th><th class="center">Agence</th></tr></thead><tbody>`;
+  let lastCat = null;
+  allItems.forEach(item=>{
+    if(item.cat !== lastCat){
+      html += `<tr><td colspan="5" style="background:var(--bg);font-weight:700;font-size:11px;color:var(--navy)">${esc(item.cat)}</td></tr>`;
+      lastCat = item.cat;
+    }
+    html += `<tr><td>${esc(item.name)}${item.price?` <span style="color:var(--text3);font-size:10px">(+${item.price}€)</span>`:''}</td>`;
+    ['base','pro','premium','agence'].forEach(tag=>{
+      html += `<td class="center">${item.tags.includes(tag)?'<span class="matrix-check">✓</span>':'<span class="matrix-dash">–</span>'}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  el.innerHTML = html;
+}
+
+// ══════════════════════════════════════════
+// STRATEGY ACCORDION
+// ══════════════════════════════════════════
+function renderStrategy(){
+  const el = document.getElementById('strategyList');
+  el.innerHTML = DATA.strategy.map((s, i) => `
+    <div class="strategy-item">
+      <div class="strategy-hdr" onclick="this.parentElement.classList.toggle('open')">
+        <div class="strategy-num">${i+1}</div>
+        ${editMode
+          ? `<input class="strategy-title-input" value="${esc(s.title)}" onclick="event.stopPropagation()" onchange="DATA.strategy[${i}].title=this.value;save()">`
+          : `<div class="strategy-title-input" style="cursor:default">${esc(s.title)}</div>`
+        }
+        ${editMode ? `<button class="strategy-del" onclick="event.stopPropagation();deleteStrategy(${i})">✕</button>` : ''}
+        <span class="strategy-arrow">▾</span>
+      </div>
+      <div class="strategy-body">
+        ${editMode
+          ? `<textarea class="strategy-textarea" onchange="DATA.strategy[${i}].detail=this.value;save()">${esc(s.detail)}</textarea>`
+          : `<div style="font-size:12px;color:var(--text2);line-height:1.7">${esc(s.detail)}</div>`
+        }
+      </div>
+    </div>
+  `).join('');
+}
+
+function addStrategyItem(){
+  DATA.strategy.push({title:'Nouvelle action', detail:''});
+  save();
+  renderStrategy();
+  // Auto-open and focus the new item
+  setTimeout(()=>{
+    const items = document.querySelectorAll('.strategy-item');
+    const last = items[items.length-1];
+    if(last){ last.classList.add('open'); last.scrollIntoView({behavior:'smooth',block:'center'}); }
+  },50);
+}
+function deleteStrategy(i){
+  DATA.strategy.splice(i,1);
+  save();
+  renderStrategy();
+}
+
+// ══════════════════════════════════════════
+// EXPORT / IMPORT (cloud sync via file)
+// ══════════════════════════════════════════
+function exportJSON(){
+  const blob = new Blob([JSON.stringify(DATA, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'tensai-guide-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  showToast('✓ Exporté — synchronisez ce fichier entre vos appareils');
+}
+
+function importJSON(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      DATA = JSON.parse(e.target.result);
+      save();
+      renderAll();
+      showToast('✓ Données importées');
+    } catch(err){
+      showToast('✗ Fichier invalide');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ══════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════
+function esc(s){ return (s||'').toString().replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+function renderAll(){
+  renderFeatures();
+  renderOffers();
+  renderMatrix();
+  renderStrategy();
+}
+
+// ── INIT ──
+renderAll();
+if(getToken()) loadFromGitHub();
+else setSyncStatus('offline');
+</script>
+</body>
+</html>
