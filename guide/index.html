@@ -83,6 +83,12 @@ body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);line-h
 /* ── SIMULATOR ── */
 .sim-wrap{display:grid;grid-template-columns:200px 1fr;gap:20px;align-items:start}
 @media(max-width:700px){.sim-wrap{grid-template-columns:1fr}}
+@media(max-width:700px){
+  .sim-offers-col{overflow:hidden}
+  .sim-offers-col .sim-block{display:none}
+  .sim-offers-col .sim-block.mobile-active{display:block}
+  #simMobileNav{display:flex!important}
+}
 /* Offer blocks stacked vertically */
 .sim-offers-col{display:flex;flex-direction:column;gap:10px}
 .sim-block{background:#fff;border-radius:var(--rs);border:1px solid var(--border);overflow:hidden}
@@ -155,8 +161,11 @@ body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);line-h
 
 /* ── CONFIG SUMMARY TABLE (compact) ── */
 .matrix-wrap{overflow-x:auto;border-radius:var(--rs);border:1px solid var(--border);background:#fff}
-.matrix-accordion{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:#fff;border:1px solid var(--border);border-radius:var(--rs);cursor:pointer;font-size:13px;font-weight:600;color:var(--navy);user-select:none;transition:background .12s}
-.matrix-accordion:hover{background:var(--bg)}
+.matrix-accordion,.feature-accordion{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:#fff;border:1px solid var(--border);border-radius:var(--rs);cursor:pointer;font-size:13px;font-weight:600;color:var(--navy);user-select:none;transition:background .12s}
+.matrix-accordion:hover,.feature-accordion:hover{background:var(--bg)}
+.feature-accordion{border-radius:var(--rs);margin-bottom:0;transition:border-radius .1s}
+.feature-accordion.open{border-radius:var(--rs) var(--rs) 0 0;border-bottom:none}
+#featureBody{border:1px solid var(--border);border-top:none;border-radius:0 0 var(--rs) var(--rs);overflow:hidden;margin-bottom:16px}
 .matrix-acc-arrow{transition:transform .2s;font-size:12px;color:var(--text3)}
 table.matrix{width:100%;border-collapse:collapse;min-width:700px;font-size:12px}
 table.matrix th{padding:10px 14px;text-align:left;background:var(--bg);border-bottom:2px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3)}
@@ -228,7 +237,7 @@ table.matrix tr:hover td{background:#fafaf7}
   </div>
 </div>
 
-<div id="searchBar" style="display:none;background:#fff;border-bottom:1px solid var(--border);padding:10px 0;position:sticky;top:54px;z-index:150">
+<div id="searchBar" style="display:none;background:#fff;border-bottom:1px solid var(--border);padding:10px 0;position:sticky;top:54px;z-index:10">
   <div class="wrap" style="display:flex;align-items:center;gap:8px">
     <span style="color:var(--text3);display:flex"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>
     <input type="text" id="searchInput" placeholder="Rechercher une fonctionnalité…" oninput="runSearch(this.value)" style="flex:1;border:none;outline:none;font-size:13px;font-family:'Jost',sans-serif;padding:6px 0">
@@ -267,8 +276,14 @@ table.matrix tr:hover td{background:#fafaf7}
       </div>
     </div>
 
-    <div class="feature-table" id="featureTable"></div>
-    <div style="margin-top:10px" id="addCatBtnWrap"></div>
+    <div class="feature-accordion" id="featureAccordion" onclick="toggleFeatures()">
+      <span>Liste des fonctionnalités</span>
+      <span class="matrix-acc-arrow" id="featureArrow" style="transform:rotate(-90deg)">▾</span>
+    </div>
+    <div id="featureBody" style="display:none">
+      <div class="feature-table" id="featureTable"></div>
+      <div style="margin-top:10px;padding:0 2px" id="addCatBtnWrap"></div>
+    </div>
   </div>
 
   <!-- ════════ TABLEAU MATRICE ════════ -->
@@ -291,8 +306,8 @@ table.matrix tr:hover td{background:#fafaf7}
       <span>Matrice complète — toutes les fonctionnalités × toutes les offres</span>
       <span class="matrix-acc-arrow" id="matrixArrow">▾</span>
     </div>
-    <div id="matrixBody" style="display:none">
-      <div class="matrix-wrap" style="margin-top:0;border-top:none;border-radius:0 0 var(--rs) var(--rs)">
+    <div id="matrixBody" style="display:none;border:1px solid var(--border);border-top:none;border-radius:0 0 var(--rs) var(--rs);overflow:hidden">
+      <div class="matrix-wrap" style="border:none;border-radius:0">
         <table class="matrix" id="matrixTable"></table>
       </div>
     </div>
@@ -735,7 +750,6 @@ function runSearch(query){
     row.classList.toggle('search-hidden', !match);
     if(match && query) count++;
   });
-  // Show/hide categories with no visible rows, and auto-open matching ones
   document.querySelectorAll('.feature-cat').forEach(cat=>{
     const visibleRows = cat.querySelectorAll('.feature-row:not(.search-hidden)');
     if(query){
@@ -745,7 +759,16 @@ function runSearch(query){
       cat.classList.remove('search-hidden');
     }
   });
-  document.getElementById('searchCount').textContent = query ? `${count} résultat${count!==1?'s':''}` : '';
+  document.getElementById('searchCount').textContent = query ? count+' résultat'+(count!==1?'s':'') : '';
+  // Scroll first result into view with offset for sticky bars
+  if(query){
+    const firstVisible = document.querySelector('.feature-row:not(.search-hidden)');
+    if(firstVisible){
+      const offset = 120; // topbar + searchbar height
+      const top = firstVisible.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({top: Math.max(0, top), behavior:'smooth'});
+    }
+  }
 }
 
 // ══════════════════════════════════════════
@@ -851,9 +874,23 @@ function showToast(msg){
 function toggleMatrix(){
   const body = document.getElementById('matrixBody');
   const arrow = document.getElementById('matrixArrow');
+  const acc = document.getElementById('matrixAccordion');
   const open = body.style.display !== 'none';
   body.style.display = open ? 'none' : 'block';
   arrow.style.transform = open ? '' : 'rotate(180deg)';
+  if(acc) acc.style.borderRadius = open ? '' : 'var(--rs) var(--rs) 0 0';
+  if(acc) acc.style.borderBottom = open ? '' : 'none';
+}
+
+function toggleFeatures(){
+  const body = document.getElementById('featureBody');
+  const arrow = document.getElementById('featureArrow');
+  const acc = document.getElementById('featureAccordion');
+  if(!body) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  arrow.style.transform = open ? 'rotate(-90deg)' : 'rotate(0deg)';
+  if(acc) acc.classList.toggle('open', !open);
 }
 
 function renderAll(){
@@ -1008,6 +1045,7 @@ function renderSimulator(){
   // LEFT: 3 offer blocks stacked
   const offersCol = document.createElement('div');
   offersCol.className = 'sim-offers-col';
+  offersCol.id = 'simOffersCol';
 
   SIM_BASE_OFFERS.forEach(function(o){
     const meta = simGetMeta(o.tagKey);
@@ -1035,7 +1073,34 @@ function renderSimulator(){
     body.appendChild(pl); block.appendChild(body);
     offersCol.appendChild(block);
   });
-  wrap.appendChild(offersCol);
+  // Mobile swipe indicator + dots
+  const mobileNav = document.createElement('div');
+  mobileNav.id = 'simMobileNav';
+  mobileNav.style.cssText = 'display:none;align-items:center;justify-content:space-between;margin-top:8px;padding:0 2px';
+  mobileNav.innerHTML = '<button id="simPrev" style="background:none;border:none;font-size:20px;color:var(--text3);cursor:pointer;padding:4px 8px">‹</button>'
+    + '<div id="simDots" style="display:flex;gap:6px;align-items:center"></div>'
+    + '<button id="simNext" style="background:none;border:none;font-size:20px;color:var(--text3);cursor:pointer;padding:4px 8px">›</button>';
+
+  const outerCol = document.createElement('div');
+  outerCol.appendChild(offersCol);
+  outerCol.appendChild(mobileNav);
+  // Reset button as last block in offers column
+  const resetRow = document.createElement('div');
+  resetRow.style.cssText = 'padding-top:4px';
+  const resetBtn = document.createElement('button');
+  resetBtn.style.cssText = 'width:100%;font-size:11px;padding:8px;border:1px solid var(--border);border-radius:var(--rs);background:#fff;color:var(--text3);cursor:pointer;font-family:Jost,sans-serif;font-weight:500;transition:all .12s';
+  resetBtn.textContent = '↺ Réinitialiser';
+  resetBtn.addEventListener('mouseover', function(){ this.style.borderColor='var(--navy)'; this.style.color='var(--navy)'; });
+  resetBtn.addEventListener('mouseout',  function(){ this.style.borderColor='var(--border)'; this.style.color='var(--text3)'; });
+  resetBtn.addEventListener('click', function(){
+    simQ = { entree:0, menu:0, signature:0 };
+    Object.keys(simOpts).forEach(k=>{ simOpts[k]=0; });
+    renderSimulator();
+  });
+  resetRow.appendChild(resetBtn);
+  offersCol.appendChild(resetRow);
+
+  wrap.appendChild(outerCol);
 
   // RIGHT: options block
   const optsBlock = document.createElement('div'); optsBlock.className='sim-block';
@@ -1075,6 +1140,49 @@ function renderSimulator(){
   el.appendChild(proj);
   el.appendChild(wrap);
   simRefresh();
+  initMobileOfferSwipe();
+}
+
+function initMobileOfferSwipe(){
+  let mobileIdx = 0;
+  const blocks = document.querySelectorAll('#simOffersCol .sim-block');
+  const dots = document.getElementById('simDots');
+  const prev = document.getElementById('simPrev');
+  const next = document.getElementById('simNext');
+  if(!blocks.length || !dots) return;
+
+  function showSlide(i){
+    mobileIdx = Math.max(0, Math.min(i, blocks.length-1));
+    blocks.forEach(function(b, idx){ b.classList.toggle('mobile-active', idx===mobileIdx); });
+    dots.innerHTML = '';
+    blocks.forEach(function(_, idx){
+      const d = document.createElement('div');
+      d.style.cssText = 'width:6px;height:6px;border-radius:50%;background:'+(idx===mobileIdx?'var(--navy)':'#ccc')+';transition:background .15s';
+      dots.appendChild(d);
+    });
+    // label
+    const lbl = document.createElement('span');
+    lbl.style.cssText = 'font-size:11px;color:var(--text3);margin:0 6px';
+    lbl.textContent = (mobileIdx+1)+'/'+blocks.length;
+    dots.appendChild(lbl);
+    if(prev) prev.style.opacity = mobileIdx===0?'0.3':'1';
+    if(next) next.style.opacity = mobileIdx===blocks.length-1?'0.3':'1';
+  }
+
+  if(prev) prev.addEventListener('click', function(){ showSlide(mobileIdx-1); });
+  if(next) next.addEventListener('click', function(){ showSlide(mobileIdx+1); });
+
+  // Touch swipe
+  let tx0 = 0;
+  const col = document.getElementById('simOffersCol');
+  if(col){
+    col.addEventListener('touchstart', function(e){ tx0=e.touches[0].clientX; }, {passive:true});
+    col.addEventListener('touchend', function(e){
+      const dx = e.changedTouches[0].clientX - tx0;
+      if(Math.abs(dx) > 40){ showSlide(mobileIdx + (dx<0?1:-1)); }
+    });
+  }
+  showSlide(0);
 }
 
 // Call simulator after all vars are defined
