@@ -83,12 +83,7 @@ body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);line-h
 /* ── SIMULATOR ── */
 .sim-wrap{display:grid;grid-template-columns:200px 1fr;gap:20px;align-items:start}
 @media(max-width:700px){.sim-wrap{grid-template-columns:1fr}}
-@media(max-width:700px){
-  .sim-offers-col{overflow:hidden}
-  .sim-offers-col .sim-block{display:none}
-  .sim-offers-col .sim-block.mobile-active{display:block}
-  #simMobileNav{display:flex!important}
-}
+
 /* Offer blocks stacked vertically */
 .sim-offers-col{display:flex;flex-direction:column;gap:10px}
 .sim-block{background:#fff;border-radius:var(--rs);border:1px solid var(--border);overflow:hidden}
@@ -1045,7 +1040,7 @@ function renderSimulator(){
   // LEFT: 3 offer blocks stacked
   const offersCol = document.createElement('div');
   offersCol.className = 'sim-offers-col';
-  offersCol.id = 'simOffersCol';
+  
 
   SIM_BASE_OFFERS.forEach(function(o){
     const meta = simGetMeta(o.tagKey);
@@ -1140,49 +1135,6 @@ function renderSimulator(){
   el.appendChild(proj);
   el.appendChild(wrap);
   simRefresh();
-  initMobileOfferSwipe();
-}
-
-function initMobileOfferSwipe(){
-  let mobileIdx = 0;
-  const blocks = document.querySelectorAll('#simOffersCol .sim-block');
-  const dots = document.getElementById('simDots');
-  const prev = document.getElementById('simPrev');
-  const next = document.getElementById('simNext');
-  if(!blocks.length || !dots) return;
-
-  function showSlide(i){
-    mobileIdx = Math.max(0, Math.min(i, blocks.length-1));
-    blocks.forEach(function(b, idx){ b.classList.toggle('mobile-active', idx===mobileIdx); });
-    dots.innerHTML = '';
-    blocks.forEach(function(_, idx){
-      const d = document.createElement('div');
-      d.style.cssText = 'width:6px;height:6px;border-radius:50%;background:'+(idx===mobileIdx?'var(--navy)':'#ccc')+';transition:background .15s';
-      dots.appendChild(d);
-    });
-    // label
-    const lbl = document.createElement('span');
-    lbl.style.cssText = 'font-size:11px;color:var(--text3);margin:0 6px';
-    lbl.textContent = (mobileIdx+1)+'/'+blocks.length;
-    dots.appendChild(lbl);
-    if(prev) prev.style.opacity = mobileIdx===0?'0.3':'1';
-    if(next) next.style.opacity = mobileIdx===blocks.length-1?'0.3':'1';
-  }
-
-  if(prev) prev.addEventListener('click', function(){ showSlide(mobileIdx-1); });
-  if(next) next.addEventListener('click', function(){ showSlide(mobileIdx+1); });
-
-  // Touch swipe
-  let tx0 = 0;
-  const col = document.getElementById('simOffersCol');
-  if(col){
-    col.addEventListener('touchstart', function(e){ tx0=e.touches[0].clientX; }, {passive:true});
-    col.addEventListener('touchend', function(e){
-      const dx = e.changedTouches[0].clientX - tx0;
-      if(Math.abs(dx) > 40){ showSlide(mobileIdx + (dx<0?1:-1)); }
-    });
-  }
-  showSlide(0);
 }
 
 // Call simulator after all vars are defined
