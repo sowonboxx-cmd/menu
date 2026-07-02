@@ -1761,9 +1761,22 @@ function renderScheduleAdmin(){
 // LANG
 // ═══════════════════════════════════════════
 const reserveMap={fr:'Réserver une table',en:'Book a table',es:'Reservar mesa',it:'Prenota un tavolo',kr:'테이블 예약',jp:'テーブルを予約'};
-function toggleDD(){ document.getElementById('langDD').classList.toggle('open'); }
-document.addEventListener('click',e=>{ if(!e.target.closest('.lang-wrap')) document.getElementById('langDD').classList.remove('open'); });
-function setLang(l){ lang=l; document.getElementById('langCur').textContent=l.toUpperCase(); document.querySelectorAll('.lang-opt').forEach(o=>o.classList.toggle('active',o.dataset.lang===l)); document.getElementById('langDD').classList.remove('open'); document.getElementById('reserveMain').textContent=reserveMap[l]||reserveMap.fr; renderAll(); }
+// The language chooser HTML has been removed from the banner. These functions
+// are kept for later reactivation and are now null-safe: no throws when the
+// DOM elements aren't present.
+function toggleDD(){ const dd=document.getElementById('langDD'); if(dd) dd.classList.toggle('open'); }
+document.addEventListener('click',e=>{
+  const dd=document.getElementById('langDD');
+  if(dd && !e.target.closest('.lang-wrap')) dd.classList.remove('open');
+});
+function setLang(l){
+  lang=l;
+  const cur=document.getElementById('langCur'); if(cur) cur.textContent=l.toUpperCase();
+  document.querySelectorAll('.lang-opt').forEach(o=>o.classList.toggle('active',o.dataset.lang===l));
+  const dd=document.getElementById('langDD'); if(dd) dd.classList.remove('open');
+  const rm=document.getElementById('reserveMain'); if(rm) rm.textContent=reserveMap[l]||reserveMap.fr;
+  renderAll();
+}
 
 // ═══════════════════════════════════════════
 // ADMIN
