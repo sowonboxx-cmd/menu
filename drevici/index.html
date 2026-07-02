@@ -79,7 +79,19 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .ei-check{display:flex;align-items:center;gap:9px;cursor:pointer;padding:4px 0}
 .ei-check input{width:17px;height:17px;accent-color:var(--navy);flex:none}
 .ei-check span{font-size:13px;font-family:'Jost',sans-serif;color:var(--text)}
-.ei-badges{display:flex;gap:16px;flex-wrap:wrap}
+.ei-badges{display:flex;gap:8px;flex-wrap:wrap}
+.badge-toggle{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border:1.5px solid var(--border);border-radius:20px;background:#fff;font-family:'Jost',sans-serif;font-size:12.5px;color:var(--text2);cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.badge-toggle .bt-emoji{font-size:15px;line-height:1}
+.badge-toggle.on{border-color:var(--navy);background:rgba(16,40,94,0.07);color:var(--navy);font-weight:500}
+.badge-toggle:active{transform:scale(0.97)}
+.ef-acc{border:1px solid var(--border);border-radius:10px;margin-bottom:14px;overflow:hidden;background:#fbfbfa}
+.ef-acc>summary{list-style:none;cursor:pointer;padding:12px 14px;font-family:'Jost',sans-serif;font-size:13px;font-weight:500;color:var(--text);display:flex;align-items:center;justify-content:space-between;user-select:none}
+.ef-acc>summary::-webkit-details-marker{display:none}
+.ef-acc>summary::after{content:'⌄';font-size:16px;color:var(--text3);transition:transform .2s;margin-left:8px}
+.ef-acc[open]>summary::after{transform:rotate(180deg)}
+.ef-acc .acc-body{padding:2px 14px 12px}
+.ef-acc .acc-body .ef:first-child{margin-top:0}
+.badge-emoji{font-size:15px;line-height:1;display:inline-block;vertical-align:middle;margin-right:2px}
 .efrow{display:flex;gap:10px}
 .efrow>.ef{flex:1}
 /* edit-mode clickable blocks */
@@ -327,7 +339,7 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .admin-toggle input[type=checkbox]{accent-color:var(--navy);cursor:pointer}
 .admin-toggle label{font-size:12px;font-family:'Jost',sans-serif;color:var(--text);cursor:pointer;flex:1}
 .admin-badge{display:inline-block;font-size:10px;font-weight:600;padding:0 12px;height:34px;line-height:34px;border-radius:6px;background:var(--navy);color:#fff;font-family:'Jost',sans-serif;letter-spacing:.08em;box-sizing:border-box;border:1px solid rgba(255,255,255,0.2)}
-.badge-group{display:flex;gap:6px;margin-top:6px}
+.badge-group{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:8px}
 .badge-check{display:flex;align-items:center;gap:4px;font-size:11px;font-family:'Jost',sans-serif;color:var(--text2);cursor:pointer}
 .badge-check img{width:16px;height:16px;object-fit:contain}
 .badge-check input{accent-color:var(--navy);cursor:pointer}
@@ -385,7 +397,7 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
       <button class="edit-pop-close" onclick="closeEditPop()">✕</button>
     </div>
     <div class="edit-pop-body" id="editPopBody"></div>
-    <div class="edit-pop-foot"><button class="edit-save" onclick="saveEditPop()">Sauvegarder</button></div>
+    <div class="edit-pop-foot"><button class="edit-save" onclick="saveAndPublishEditPop()">🚀 Publier</button></div>
   </div>
 </div>
 
@@ -652,6 +664,61 @@ function efBi(label,frVal,curVal,isText){
 }
 function readEf(idx){ const els=document.querySelectorAll('#editPopBody [data-ef]'); return els[idx]?els[idx].value:''; }
 
+// ---- Shared dietary/badge definitions (used in popups, admin panel, public menu, exports) ----
+const BADGE_DEFS=[
+  {key:'vegetarian', emoji:'🌱', label:'Végétarien'},
+  {key:'vegan',      emoji:'🌿', label:'Vegan'},
+  {key:'glutenfree', emoji:'🌾', label:'Sans gluten'},
+  {key:'lactosefree',emoji:'🥛', label:'Sans lactose'},
+  {key:'spicy',      emoji:'🌶️', label:'Piquant'},
+];
+// Public-menu icons for active badges
+function badgeIconsHtml(obj){
+  obj=obj||{};
+  return BADGE_DEFS.filter(b=>obj[b.key]).map(b=>`<span class="badge-emoji" title="${b.label}">${b.emoji}</span>`).join('');
+}
+// Human-readable labels of active badges (for CSV / exports)
+function badgeLabels(obj){
+  obj=obj||{};
+  return BADGE_DEFS.filter(b=>obj[b.key]).map(b=>b.label);
+}
+
+// ---- Popup "Informations alimentaires" toggle chips ----
+function efBadgesField(obj){
+  obj=obj||{};
+  let h='<div class="ef"><label class="el">Informations alimentaires</label><div class="ei-badges">';
+  BADGE_DEFS.forEach(b=>{
+    const on=!!obj[b.key];
+    h+=`<button type="button" class="badge-toggle${on?' on':''}" data-badge="${b.key}" aria-pressed="${on}" onclick="efToggleBadge(this)"><span class="bt-emoji">${b.emoji}</span> ${b.label}</button>`;
+  });
+  h+='</div></div>';
+  return h;
+}
+function efToggleBadge(btn){
+  const on=btn.classList.toggle('on');
+  btn.setAttribute('aria-pressed', on?'true':'false');
+}
+function readBadgeFields(obj){
+  document.querySelectorAll('#editPopBody [data-badge]').forEach(btn=>{
+    const key=btn.dataset.badge;
+    if(btn.classList.contains('on')) obj[key]=true; else delete obj[key];
+  });
+}
+
+// ---- Popup Instagram caption field ----
+function efCaptionField(caption, placeholder){
+  return `<div class="ef"><label class="el">Caption Instagram (pré-enregistrée)</label><textarea class="ei" id="ed-caption" rows="4" style="resize:vertical;min-height:72px;font-size:12px" placeholder="${escAttr(placeholder||'')}">${escHtml(caption||'')}</textarea>
+    <div style="font-size:10px;color:var(--text3);margin-top:3px">Pré-chargée automatiquement dans Réseaux sociaux quand vous sélectionnez cet élément.</div>
+  </div>`;
+}
+// ---- Collapsed accordion holding the social gallery + caption ----
+function efSocialAccordion(gallery, caption, placeholder){
+  return `<details class="ef-acc"><summary>Galerie réseaux sociaux</summary><div class="acc-body">`
+    + efGalleryField(gallery||[])
+    + efCaptionField(caption, placeholder)
+    + `</div></details>`;
+}
+
 // ---- Popup image field (URL + upload button + preview) — mirrors admin's imgFieldHtml ----
 function efImgField(id, val, label){
   const previewStyle = val ? '' : 'display:none';
@@ -806,14 +873,8 @@ function openEditDish(ti,ci,di){
     h+=`<div class="ef"><label class="ei-check"><input type="checkbox" id="ed-dual" ${d.priceType==='dual'?'checked':''}><span>Double tarif (ex : Les 6 / Les 12)</span></label></div>`;
   }
   h+=efImgField('ed-img', d.img||'', 'Image principale');
-  h+=efGalleryField(d.gallery||[]);
-  h+=`<div class="ef"><label class="el">Caption Instagram (pré-enregistrée)</label><textarea class="ei" id="ed-caption" rows="4" style="resize:vertical;min-height:72px;font-size:12px" placeholder="Ex: Nos huîtres Spéciales N°3 — iodées, fraîches, servies sur glace 🦪 Disponibles au bar ou à emporter.">${escHtml(d.caption||'')}</textarea>
-    <div style="font-size:10px;color:var(--text3);margin-top:3px">Pré-chargée automatiquement dans Réseaux sociaux quand vous sélectionnez ce plat.</div>
-  </div>`;
-  h+=`<div class="ef"><label class="el">Badges</label><div class="ei-badges">
-    <label class="ei-check"><input type="checkbox" id="ed-spicy" ${d.spicy?'checked':''}><span>Épicé</span></label>
-    <label class="ei-check"><input type="checkbox" id="ed-vegan" ${d.vegan?'checked':''}><span>Vegan</span></label>
-  </div></div>`;
+  h+=efBadgesField(d);
+  h+=efSocialAccordion(d.gallery||[], d.caption||'', 'Ex: Nos huîtres Spéciales N°3 — iodées, fraîches, servies sur glace 🦪 Disponibles au bar ou à emporter.');
   document.getElementById('editPopBody').innerHTML=h;
   showEditPop(t(d.name)||'Modifier le plat');
 }
@@ -849,14 +910,12 @@ function openEditBev(ti,ci,ii){
   h+=efVisRow(!!item.hidden);
   h+=`<div class="ef"><label class="el">Nom${isFr?'':' ('+lang.toUpperCase()+')'}</label><input class="ei" id="ed-bname" value="${escAttr(iname)}" placeholder="${escAttr(isFr?'':ifr)}"></div>`;
   h+=efImgField('ed-img', item.img||'', 'Image (optionnel)');
+  h+=efBadgesField(item);
   h+=`<div class="el" style="margin-bottom:8px">Tailles & prix</div><div id="ed-sizes">`;
   (item.sizes||[]).forEach((s,si)=>{ h+=efSizeRowHtml(si,s); });
   if(!(item.sizes||[]).length){ h+=efSizeRowHtml(0,{}); }
   h+=`</div><button type="button" class="aadd" onclick="efAddSizeRow()">+ Taille</button>`;
-  h+=efGalleryField(item.gallery||[]);
-  h+=`<div class="ef"><label class="el">Caption Instagram (pré-enregistrée)</label><textarea class="ei" id="ed-caption" rows="4" style="resize:vertical;min-height:72px;font-size:12px" placeholder="Ex: Notre sélection du moment 🍷">${escHtml(item.caption||'')}</textarea>
-    <div style="font-size:10px;color:var(--text3);margin-top:3px">Pré-chargée automatiquement dans Réseaux sociaux quand vous sélectionnez cette boisson.</div>
-  </div>`;
+  h+=efSocialAccordion(item.gallery||[], item.caption||'', 'Ex: Notre sélection du moment 🍷');
   document.getElementById('editPopBody').innerHTML=h;
   showEditPop(iname||'Modifier la boisson');
 }
@@ -885,15 +944,15 @@ function openEditSpecial(si){
 }
 
 // ---- SAVE ----
-function saveEditPop(){
-  if(!editCtx) return;
+function saveEditPop(silent){
+  if(!editCtx) return true;
   try{
     const {type,ti,ci,di,ii,si}=editCtx;
     if(type==='intro'){
       DATA.intro.active=document.getElementById('ed-intro-active').checked;
       if(typeof DATA.intro.text!=='object') DATA.intro.text={fr:''};
       DATA.intro.text[lang]=readEf(0);
-      renderAll(); closeEditPop(); showToast('Enregistré — Publiez pour mettre en ligne'); return;
+      renderAll(); closeEditPop(); if(!silent) showToast('Enregistré — Publiez pour mettre en ligne'); return true;
     }
     if(type==='special'){
       const sp=DATA.specials[si];
@@ -903,7 +962,7 @@ function saveEditPop(){
       sp.title[lang]=readEf(0);
       sp.desc[lang]=readEf(1);
       sp.price=v('ed-sp-price');
-      renderAll(); closeEditPop(); showToast('Enregistré — Publiez pour mettre en ligne'); return;
+      renderAll(); closeEditPop(); if(!silent) showToast('Enregistré — Publiez pour mettre en ligne'); return true;
     }
     if(type==='dish'){
       const d=DATA.tabs[ti].cards[ci].dishes[di];
@@ -928,8 +987,7 @@ function saveEditPop(){
       d.img=v('ed-img');
       d.gallery=readGalleryFields();
       d.caption=v('ed-caption');
-      d.spicy=!!document.getElementById('ed-spicy')?.checked;
-      d.vegan=!!document.getElementById('ed-vegan')?.checked;
+      readBadgeFields(d);
     } else if(type==='variants'){
       const card=DATA.tabs[ti].cards[ci];
       if(typeof card.label!=='object') card.label={fr:card.label||''};
@@ -960,15 +1018,23 @@ function saveEditPop(){
       item.sizes=sizes;
       item.gallery=readGalleryFields();
       item.caption=v('ed-caption');
+      readBadgeFields(item);
     }
     renderAll();
     closeEditPop();
-    showToast('Enregistré — Publiez pour mettre en ligne');
+    if(!silent) showToast('Enregistré — Publiez pour mettre en ligne');
     if(typeof adminCurrentTab!=='undefined' && adminCurrentTab && document.getElementById('adminBody')?.innerHTML) renderAdminSection(adminCurrentTab, true);
+    return true;
   }catch(e){
     console.error('saveEditPop error:', e);
     showToast('❌ Erreur lors de l\'enregistrement : '+e.message);
+    return false;
   }
+}
+// Popup footer action: save to DATA *and* publish to GitHub in one click.
+function saveAndPublishEditPop(){
+  const ok=saveEditPop(true); // silent — the publish toast reports the final status
+  if(ok!==false) publishToGitHub();
 }
 function v(id){ const e=document.getElementById(id); return e?e.value.trim():''; }
 
@@ -1420,7 +1486,7 @@ function renderTabContent(tab,lbOffset){
       (card.dishes||[]).filter(d=>!d.hidden).forEach(d=>{
         const ci=tab.cards.indexOf(card); const di=card.dishes.indexOf(d);
         const idx=d.img?imgIdx++:null;
-        const badges=(d.spicy?`<img src="https://drevicioyster.com/wp-content/uploads/2026/06/icon-spicy.png" class="badge-icon" title="Épicé">`:'')+(d.vegan?`<img src="https://drevicioyster.com/wp-content/uploads/2026/06/icon-vegan.png" class="badge-icon" title="Vegan">`:'');
+        const badges=badgeIconsHtml(d);
         gridItems.push(`<div class="gc" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${ci}" data-di="${di}"><div class="gc-wrap" ${d.img?`data-lbidx="${idx}"`:''}>${d.img?`<img class="gc-img" src="${d.img}" alt="" loading="lazy">`:'<div style="aspect-ratio:1;background:#ece8e1"></div>'}</div><div class="gc-body"><div class="gc-name">${t(d.name)}${badges?` <span class="dish-badges" style="display:inline-flex">${badges}</span>`:''}</div><div class="gc-desc">${t(d.desc)}</div><div class="gc-price">${(d.price||"").toString().includes("€")?(d.price||""):(d.price?(d.price+"€"):"")}</div></div></div>`);
       });
     });
@@ -1437,7 +1503,8 @@ function renderTabContent(tab,lbOffset){
           const clStr=sizes.length>0?sizes.filter(s=>s.cl).map(s=>s.cl+(s.unit==='l'?'L':'cl')).join(' / '):'';
           const rawPrice=(item.price||'').toString(); const priceStr=sizes.length>0?sizes.filter(s=>s.price).map(s=>s.price+'€').join(' / '):(rawPrice.includes('€')?rawPrice:rawPrice?rawPrice+'€':'');
           const _ci=tab.cards.indexOf(card); const _ii=(card.items||[]).indexOf(item);
-          html+=`<div class="bev-row" data-edit="bev" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${_ci}" data-ii="${_ii}"><div><span class="bev-name">${t(item.name)}</span>${clStr?`<div class="bev-sizes">${clStr}</div>`:''}</div><span class="bev-price">${priceStr}</span></div>`;
+          const bevBadges=badgeIconsHtml(item);
+          html+=`<div class="bev-row" data-edit="bev" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${_ci}" data-ii="${_ii}"><div><span class="bev-name">${t(item.name)}</span>${bevBadges?` <span class="dish-badges" style="display:inline-flex">${bevBadges}</span>`:''}${clStr?`<div class="bev-sizes">${clStr}</div>`:''}</div><span class="bev-price">${priceStr}</span></div>`;
         });
       } else if(card.type==='variants'){
         // Render as dish row: name in navy + all flavours as description
@@ -1455,7 +1522,7 @@ function renderTabContent(tab,lbOffset){
       } else {
         (card.dishes||[]).filter(d=>!d.hidden).forEach((d,di)=>{
           const idx=d.img?imgIdx++:null;
-          const badges=(d.spicy?`<img src="https://drevicioyster.com/wp-content/uploads/2026/06/icon-spicy.png" class="badge-icon" title="Épicé">`:'')+(d.vegan?`<img src="https://drevicioyster.com/wp-content/uploads/2026/06/icon-vegan.png" class="badge-icon" title="Vegan">`:'');
+          const badges=badgeIconsHtml(d);
           const _cid=tab.cards.indexOf(card); const _did=card.dishes.indexOf(d);
           html+=`<div class="dish-row${d.img?' dish-row-clickable':''}" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${_cid}" data-di="${_did}"${d.img?` data-lbidx="${idx}"`:''}${di===0?' style="padding-top:0"':''}><div class="dish-text"><div class="dish-name-row"><span class="dish-name">${t(d.name)}</span>${badges?`<span class="dish-badges">${badges}</span>`:''}</div><div class="dish-desc">${t(d.desc)}</div><div class="dish-price">${(d.price||"").toString().includes("€")?(d.price||""):(d.price?(d.price+"€"):"")}</div></div>${d.img?`<span class="img-wrap"><img class="dish-img" src="${d.img}" alt="" loading="lazy"></span>`:''}</div>`;
         });
@@ -2083,6 +2150,7 @@ function renderAdminTab(ti){
             <div style="font-size:10px;color:var(--text3);margin-top:3px">Pré-chargée automatiquement dans Réseaux sociaux quand vous sélectionnez cette boisson.</div>
           </div>
           ${entityGalleryHtml(ti,ci,ii,'items',item.gallery)}
+          `+adminBadgeGroup(item,`DATA.tabs[${ti}].cards[${ci}].items[${ii}]`)+`
         </div>`;
       });
       h+=`<button class="aadd" style="margin-top:4px" onclick="addBev(${ti},${ci})">+ Boisson</button>`;
@@ -2107,10 +2175,7 @@ function renderAdminTab(ti){
             <textarea class="ai" rows="4" style="resize:vertical;min-height:72px;font-size:12px" placeholder="Ex: Nos huîtres Spéciales N°3 — iodées, fraîches, servies sur glace 🦪 Disponibles au bar ou à emporter." oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].caption=this.value">${d.caption||''}</textarea>
             <div style="font-size:10px;color:var(--text3);margin-top:3px">Pré-chargée automatiquement dans Réseaux sociaux quand vous sélectionnez ce plat.</div>
           </div>
-          <div class="badge-group">
-            <label class="badge-check"><input type="checkbox" ${d.spicy?'checked':''} onchange="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].spicy=this.checked;renderAll()"><img src="https://drevicioyster.com/wp-content/uploads/2026/06/icon-spicy.png" class="badge-icon"> Épicé</label>
-            <label class="badge-check"><input type="checkbox" ${d.vegan?'checked':''} onchange="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].vegan=this.checked;renderAll()"><img src="https://drevicioyster.com/wp-content/uploads/2026/06/icon-vegan.png" class="badge-icon"> Vegan</label>
-          </div>
+          `+adminBadgeGroup(d,`DATA.tabs[${ti}].cards[${ci}].dishes[${di}]`)+`
         </div>`;
       });
       h+=`<button class="aadd" onclick="addDish(${ti},${ci})">+ Plat</button>`;
@@ -2830,7 +2895,7 @@ function exportTabCSV(tabId){
     ? null
     : DATA.tabs.find(tb => tb.id === tabId);
   const tabs = tab ? [tab] : DATA.tabs;
-  const rows = [['Onglet','Carte','Nom','Description','Prix','Épicé','Vegan']];
+  const rows = [['Onglet','Carte','Nom','Description','Prix','Informations alimentaires']];
   tabs.forEach(tb => {
     tb.cards.forEach(card => {
       const cardLabel = t(card.label) || '';
@@ -2840,17 +2905,17 @@ function exportTabCSV(tabId){
           rows.push([
             tabLabel, cardLabel,
             t(d.name)||'', t(d.desc)||'', d.price||'',
-            d.spicy?'Oui':'', d.vegan?'Oui':''
+            badgeLabels(d).join(', ')
           ]);
         });
       } else if(card.type==='variants'){
         (card.variants||[]).forEach(v => {
-          rows.push([tabLabel, cardLabel, t(v.name)||'', '', v.price||'','','']);
+          rows.push([tabLabel, cardLabel, t(v.name)||'', '', v.price||'','']);
         });
       } else if(card.type==='bevs'){
         (card.items||[]).forEach(item => {
           const sizes = (item.sizes||[]).map(s=>s.cl+(s.unit==='l'?'L':'cl')+' '+s.price+'€').join(' / ');
-          rows.push([tabLabel, cardLabel, t(item.name)||'', t(item.desc)||'', sizes||item.price||'','','']);
+          rows.push([tabLabel, cardLabel, t(item.name)||'', t(item.desc)||'', sizes||item.price||'', badgeLabels(item).join(', ')]);
         });
       }
     });
@@ -3503,6 +3568,15 @@ renderAdminGlobal=function(){ return ghSectionHtml()+restaurantSettingHtml()+ren
 function dishGalleryHtml(d,ti,ci,di){ return entityGalleryHtml(ti,ci,di,'dishes',d.gallery); }
 
 // Generalized gallery editor — used for both dishes (kind='dishes') and boissons (kind='items')
+// Admin panel "Informations alimentaires" checkbox group. `path` is the JS expression
+// pointing at the dish/item object, e.g. DATA.tabs[0].cards[1].dishes[2]
+function adminBadgeGroup(obj, path){
+  obj=obj||{};
+  return `<div class="badge-group"><span style="width:100%;font-size:11px;font-weight:600;color:var(--text2);margin-bottom:2px">Informations alimentaires</span>`
+    + BADGE_DEFS.map(b=>`<label class="badge-check"><input type="checkbox" ${obj[b.key]?'checked':''} onchange="if(this.checked)${path}.${b.key}=true;else delete ${path}.${b.key};renderAll()"><span class="badge-emoji">${b.emoji}</span> ${b.label}</label>`).join('')
+    + `</div>`;
+}
+
 function entityGalleryHtml(ti,ci,idx,kind,gallery){
   gallery=gallery||[];
   const base=`DATA.tabs[${ti}].cards[${ci}].${kind}[${idx}]`;
