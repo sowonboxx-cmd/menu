@@ -87,7 +87,7 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .ef-acc{border:1px solid var(--border);border-radius:10px;margin-bottom:14px;overflow:hidden;background:#fbfbfa}
 .ef-acc>summary{list-style:none;cursor:pointer;padding:12px 14px;font-family:'Jost',sans-serif;font-size:13px;font-weight:500;color:var(--text);display:flex;align-items:center;justify-content:space-between;user-select:none}
 .ef-acc>summary::-webkit-details-marker{display:none}
-.ef-acc>summary::after{content:'⌄';font-size:16px;color:var(--text3);transition:transform .2s;margin-left:8px}
+.ef-acc>summary::after{content:'▾';font-size:14px;line-height:1;color:currentColor;transition:transform .2s;margin-left:8px;display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px}
 .ef-acc[open]>summary::after{transform:rotate(180deg)}
 .ef-acc .acc-body{padding:2px 14px 12px}
 .ef-acc .acc-body .ef:first-child{margin-top:0}
@@ -397,7 +397,7 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
       <button class="edit-pop-close" onclick="closeEditPop()">✕</button>
     </div>
     <div class="edit-pop-body" id="editPopBody"></div>
-    <div class="edit-pop-foot"><button class="edit-save" onclick="saveAndPublishEditPop()">🚀 Publier</button></div>
+    <div class="edit-pop-foot"><button class="edit-save" onclick="saveAndPublishEditPop()">Publier</button></div>
   </div>
 </div>
 
@@ -461,22 +461,7 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
   <div class="header">
     <div class="container">
       <div class="header-top">
-        <div class="header-top-left">
-          <div class="lang-wrap">
-            <div class="lang-sel" onclick="toggleDD()">
-              <span id="langCur">FR</span>
-              <svg width="10" height="7" viewBox="0 0 10 7" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1,1 5,6 9,1"/></svg>
-            </div>
-            <div class="lang-dd" id="langDD">
-              <div class="lang-opt active" data-lang="fr" onclick="setLang('fr')">FR — Français</div>
-              <div class="lang-opt" data-lang="en" onclick="setLang('en')">EN — English</div>
-              <div class="lang-opt" data-lang="es" onclick="setLang('es')">ES — Español</div>
-              <div class="lang-opt" data-lang="it" onclick="setLang('it')">IT — Italiano</div>
-              <div class="lang-opt" data-lang="kr" onclick="setLang('kr')">KR — 한국어</div>
-              <div class="lang-opt" data-lang="jp" onclick="setLang('jp')">JP — 日本語</div>
-            </div>
-          </div>
-        </div>
+        <div class="header-top-left"></div>
         <div class="logo-centered" style="display:flex;flex-direction:column;align-items:center;">
           <img class="logo-img" src="https://drevicioyster.com/wp-content/uploads/2026/06/Drevici-Oyster-white-HD.png" alt="Drevici Oyster" onerror="this.style.display='none'"/>
           <span class="logo-text" id="logoText">Drevici Oyster</span>
@@ -914,7 +899,7 @@ function openEditBev(ti,ci,ii){
   h+=`<div class="el" style="margin-bottom:8px">Tailles & prix</div><div id="ed-sizes">`;
   (item.sizes||[]).forEach((s,si)=>{ h+=efSizeRowHtml(si,s); });
   if(!(item.sizes||[]).length){ h+=efSizeRowHtml(0,{}); }
-  h+=`</div><button type="button" class="aadd" onclick="efAddSizeRow()">+ Taille</button>`;
+  h+=`</div><button type="button" class="aadd" onclick="efAddSizeRow()" style="margin-bottom:14px">+ Taille</button>`;
   h+=efSocialAccordion(item.gallery||[], item.caption||'', 'Ex: Notre sélection du moment 🍷');
   document.getElementById('editPopBody').innerHTML=h;
   showEditPop(iname||'Modifier la boisson');
@@ -1150,6 +1135,10 @@ function renderAll(){
     if(soc.instagram) sLinks.push(`<a class="social-link-txt" href="https://instagram.com/${soc.instagram.replace('@','')}" target="_blank">INSTAGRAM</a>`);
     if(soc.tiktok) sLinks.push(`<a class="social-link-txt" href="https://tiktok.com/@${soc.tiktok.replace('@','')}" target="_blank">TIKTOK</a>`);
     if(soc.facebook) sLinks.push(`<a class="social-link-txt" href="https://facebook.com/${soc.facebook.replace('@','')}" target="_blank">FACEBOOK</a>`);
+    if(soc.website){
+      const wsUrl=/^https?:\/\//.test(soc.website)?soc.website:'https://'+soc.website;
+      sLinks.push(`<a class="social-link-txt" href="${wsUrl}" target="_blank" rel="noopener">SITE WEB</a>`);
+    }
     sb.innerHTML=sLinks.length?`<div class="social-links-bar">${sLinks.join('<span class="social-link-sep">·</span>')}</div>`:'';
   }
 }
@@ -1788,7 +1777,7 @@ function closeAdmin(){ document.getElementById('adminOverlay').classList.remove(
 function renderAdminTabDd(){
   const dd=document.getElementById('adminTabDd');
   const tabOpts=DATA.tabs.filter(tb=>tb.id!=='__home').map(tb=>`<option value="${tb.id}"${tb.id===adminCurrentTab?' selected':''}>${t(tb.label)}</option>`).join('');
-  dd.innerHTML='<option value="__global">⌂ Informations générales</option>'
+  dd.innerHTML='<option value="__global">Informations générales</option>'
     +'<option value="__home">Accueil</option>'
     +tabOpts
     +'<option value="__addtab_plats">+ Nouvelle tab (plats)</option>'
@@ -1809,16 +1798,11 @@ function adminGoTab(val){
 
 function adminSaveBar(){
   return `<div style="display:flex;gap:8px;margin-top:12px;padding:0 0 4px">
-    <button class="asave" style="flex:1;background:rgba(16,40,94,0.12);color:var(--navy)" onclick="handlePreviewClick()">Aperçu</button>
-    <button class="asave" style="flex:1" onclick="handleSaveClick()">Sauvegarder</button>
+    <button class="asave" style="flex:1" onclick="handleSaveClick()">Publier</button>
   </div>`;
 }
 // Wrapped so that a rendering error can never silently block the GitHub publish —
 // the user always gets a clear toast instead of a click that appears to do nothing.
-function handlePreviewClick(){
-  try{ renderAll(); showToast('Aperçu mis à jour'); }
-  catch(e){ console.error('Preview error:', e); showToast('❌ Erreur d\'aperçu : '+e.message); }
-}
 function handleSaveClick(){
   try{ renderAll(); }
   catch(e){ console.error('Render error before publish:', e); showToast('⚠️ Erreur d\'affichage (publication quand même tentée) : '+e.message); }
@@ -1940,17 +1924,7 @@ function renderAdminHomeTab(){
     <div class="af"><label class="al">Photo principale (4:3)</label>
       <input class="ai" value="${(DATA.homeTab&&DATA.homeTab.photo)||''}" placeholder="https://... .jpg ou .webp"
         oninput="if(!DATA.homeTab)DATA.homeTab={};DATA.homeTab.photo=this.value.trim();DATA.homeTab.video='';renderAll()">
-      <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-top:4px">Format recommandé : 4:3, min 800px. La vidéo a la priorité si renseignée.</div>
-    </div>
-    <div class="af"><label class="al">Vidéo (YouTube ou Vimeo) — optionnel</label>
-      <input class="ai" value="${(DATA.homeTab&&DATA.homeTab.video)||''}" placeholder="https://youtube.com/watch?v=... ou youtu.be/..."
-        oninput="if(!DATA.homeTab)DATA.homeTab={};DATA.homeTab.video=this.value.trim();renderAll()">
-      <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-top:4px">Si renseignée, la vidéo remplace la photo.</div>
-    </div>
-    <div class="af"><label class="al">Lien vers le site du client (optionnel)</label>
-      <input class="ai" value="${(DATA.homeTab&&DATA.homeTab.siteUrl)||''}" placeholder="https://monrestaurant.fr"
-        oninput="if(!DATA.homeTab)DATA.homeTab={};DATA.homeTab.siteUrl=this.value.trim();renderAll()">
-      <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-top:4px">Si renseigné, l'onglet Accueil redirige vers ce site au lieu d'afficher la page.</div>
+      <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-top:4px">Format recommandé : 4:3, min 800px.</div>
     </div>
   </div></div>`;
   // Présentation
@@ -2015,9 +1989,8 @@ function renderAdminHomeTab(){
 
 function renderAdminGlobal(){
   let h='';
-  // Hero
-
-  h+=`<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Menu du jour</div><div class="admin-sect-body">`;
+  h+=`<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Menu du jour et impression</div><div class="admin-sect-body">`;
+  h+=`<div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:6px">Menu du jour</div>`;
   DATA.specials.forEach((sp,si)=>{
     h+=`<div class="admin-card">
       <div style="margin-bottom:8px">
@@ -2032,9 +2005,10 @@ function renderAdminGlobal(){
       <div class="af"><label class="al">Prix (€)</label><input class="ai ai-sm" type="text" inputmode="decimal" value="${sp.price||''}" oninput="const v=this.value.trim();DATA.specials[${si}].price=v&&/^[\d.,]+$/.test(v)?v+'€':v;renderAll()"></div>
     </div>`;
   });
+  h+=`<div style="height:14px;border-top:1px solid var(--border);margin:12px 0 10px"></div>`;
+  h+=`<div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:6px">Impression / Export PDF</div>`;
+  h+=renderPrintBody();
   h+=`</div></div>`;
-  // PDF export (Style section renamed)
-  h+=renderPdfStyleSection();
 
   return h;
 }
@@ -2123,9 +2097,32 @@ function renderAdminTab(ti){
     </div>
   </div></div></div>`;
 
+  // Réordonner les sections (only relevant when there are 2+ sections) — modelled
+  // exactly on the tab reorder UI which works reliably.
+  if(tab.cards.length>=2){
+    h+=`<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Ordre des sections</div><div class="admin-sect-body">`;
+    h+=`<div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:10px;line-height:1.5">Glissez pour changer l'ordre des sections dans cet onglet.</div>`;
+    h+=`<div id="sectionReorderList" data-ti="${ti}">`;
+    tab.cards.forEach((card,ci)=>{
+      h+=`<div class="admin-card" style="display:flex;align-items:center;gap:10px;background:#fff;margin-bottom:6px;cursor:grab;touch-action:none"
+            data-ti="${ti}" data-ci="${ci}"
+            draggable="true"
+            ondragstart="onDragSectionRow(event,${ti},${ci})"
+            ondragend="onDragSectionRowEnd(event)"
+            ondragover="onDragSectionRowOver(event,${ti},${ci})"
+            ondragleave="onDragLeave(event)"
+            ondrop="onDropSectionRow(event,${ti},${ci})">
+        <span class="drag-handle" style="font-size:18px;padding:8px 6px">⠿</span>
+        <span style="font-family:Jost,sans-serif;font-size:13px;font-weight:500;color:var(--navy);flex:1">${t(card.label)}</span>
+        <span style="font-size:10px;color:var(--text3)">Section ${ci+1}</span>
+      </div>`;
+    });
+    h+=`</div></div></div>`;
+  }
+
   // Cards
   tab.cards.forEach((card,ci)=>{
-    h+=`<div class="admin-section collapsible collapsed" ondragover="onDragSectionOver(event,${ti},${ci})" ondragleave="onDragLeave(event)" ondrop="onDropSection(event,${ti},${ci})"><div class="admin-sect-title" onclick="toggleAdminSection(this)" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer"><span draggable="true" ondragstart="onDragSection(event,${ti},${ci})" ondragend="onDragSectionEnd(event)" style="cursor:grab;user-select:none">⠿ Section — ${t(card.label)}</span><button class="adel" style="font-size:12px;padding:1px 5px;flex:none;opacity:.6;margin-left:auto;margin-right:20px" onclick="event.stopPropagation();askConfirm('Supprimer cette section ?',()=>{DATA.tabs[${ti}].cards.splice(${ci},1);renderAll();renderAdminSection(DATA.tabs[${ti}].id)})">✕</button></div><div class="admin-sect-body">`;
+    h+=`<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer"><span>Section — ${t(card.label)}</span><button class="adel" style="font-size:12px;padding:1px 5px;flex:none;opacity:.6;margin-left:auto;margin-right:20px" onclick="event.stopPropagation();askConfirm('Supprimer cette section ?',()=>{DATA.tabs[${ti}].cards.splice(${ci},1);renderAll();renderAdminSection(DATA.tabs[${ti}].id)})">✕</button></div><div class="admin-sect-body">`;
     h+=`<div class="admin-card">`;
     h+=biInput('Titre de section', card.label.fr||'', card.label[adminLang]||'', `DATA.tabs[${ti}].cards[${ci}].label[adminLang]=this.value;renderAll()`);
     h+=``;
@@ -2185,15 +2182,6 @@ function renderAdminTab(ti){
   });
 
   h+=`<div class="admin-section"><button class="aadd" style="display:block;width:100%;padding:10px" onclick="addCard(${ti})">+ Nouvelle section dans cette tab</button></div>`;
-
-  // Champ libre (par tab, indépendant)
-  const tib=tab.infoBanner||{};
-  h+=`<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Champ libre</div><div class="admin-sect-body">
-    <label class="admin-toggle"><input type="checkbox" ${tib.active?'checked':''} onchange="DATA.tabs[${ti}].infoBanner=DATA.tabs[${ti}].infoBanner||{};DATA.tabs[${ti}].infoBanner.active=this.checked;renderAll()"><label>Visible</label></label>
-    `+biInput('Étiquette (optionnel)', tib.label&&tib.label.fr||'', tib.label&&tib.label[adminLang]||'', `DATA.tabs[${ti}].infoBanner=DATA.tabs[${ti}].infoBanner||{};if(!DATA.tabs[${ti}].infoBanner.label)DATA.tabs[${ti}].infoBanner.label={};DATA.tabs[${ti}].infoBanner.label[adminLang]=this.value;renderAll()`)+`
-    `+biInput('Titre', tib.title&&tib.title.fr||'', tib.title&&tib.title[adminLang]||'', `DATA.tabs[${ti}].infoBanner=DATA.tabs[${ti}].infoBanner||{};if(!DATA.tabs[${ti}].infoBanner.title)DATA.tabs[${ti}].infoBanner.title={};DATA.tabs[${ti}].infoBanner.title[adminLang]=this.value;renderAll()`)+`
-    `+biInput('Texte libre', tib.desc&&tib.desc.fr||'', tib.desc&&tib.desc[adminLang]||'', `DATA.tabs[${ti}].infoBanner=DATA.tabs[${ti}].infoBanner||{};if(!DATA.tabs[${ti}].infoBanner.desc)DATA.tabs[${ti}].infoBanner.desc={};DATA.tabs[${ti}].infoBanner.desc[adminLang]=this.value;renderAll()`, true)+`
-  </div></div>`;
 
   h+=adminSaveBar();
 
@@ -2312,6 +2300,36 @@ function onDropSection(e,ti,ci){
 }
 function onDragOver(e,ti,ci,di){ e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
 function onDragLeave(e){ e.currentTarget.classList.remove('drag-over'); }
+
+// ── Dedicated section-row reorder (mirrors the tab reorder pattern which works cleanly) ──
+let dragSectionRowSrc=null;
+function onDragSectionRow(e,ti,ci){
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT'){ e.preventDefault(); return; }
+  dragSectionRowSrc={ti,ci};
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed='move';
+}
+function onDragSectionRowEnd(e){
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('#sectionReorderList .drag-over').forEach(el=>el.classList.remove('drag-over'));
+}
+function onDragSectionRowOver(e,ti,ci){
+  if(!dragSectionRowSrc||dragSectionRowSrc.ti!==ti||dragSectionRowSrc.ci===ci) return;
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+}
+function onDropSectionRow(e,ti,ci){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if(!dragSectionRowSrc||dragSectionRowSrc.ti!==ti||dragSectionRowSrc.ci===ci) return;
+  const cards=DATA.tabs[ti].cards;
+  const [moved]=cards.splice(dragSectionRowSrc.ci,1);
+  cards.splice(ci,0,moved);
+  dragSectionRowSrc=null;
+  renderAll();
+  renderAdminSection(DATA.tabs[ti].id);
+  showToast('Ordre des sections mis à jour');
+}
 function onDrop(e,ti,ci,di){
   e.preventDefault(); e.currentTarget.classList.remove('drag-over');
   if(!dragSrc||dragSrc.ti!==ti||dragSrc.ci!==ci||dragSrc.di===di) return;
@@ -2374,6 +2392,9 @@ async function loadFromGitHub(){
     if(typeof json.pinnedShowHome!=='undefined') DATA.pinnedShowHome=json.pinnedShowHome;
     if(typeof json.pinnedShowFirst!=='undefined') DATA.pinnedShowFirst=json.pinnedShowFirst;
     if(Array.isArray(json.schedule) && json.schedule.length>0) DATA.schedule=json.schedule;
+    // BUG FIX: was being published but never restored on reload — the reason
+    // "Adresse & contact" appeared to never save.
+    if(json.address && typeof json.address==='object') DATA.address=json.address;
     // Restore home tab if it was active
     if(DATA.homeTab&&DATA.homeTab.active){
       const hasHome=DATA.tabs.some(t=>t.id==='__home');
@@ -3175,7 +3196,7 @@ function exportGbizImage(cfg){
 }
 
 // Admin UI for the PDF style panel
-function renderPdfStyleSection(){
+function renderPrintBody(){
   const cfg = pdfCfg();
   const ic = DATA.icones||{};
   const swatch = (label, key, val) => `
@@ -3186,8 +3207,7 @@ function renderPdfStyleSection(){
       </div>
     </div>`;
   const logoSrc = cfg.logoData || getRestaurantLogo();
-  return `<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Exporter le menu en PDF</div><div class="admin-sect-body">
-    <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:12px;line-height:1.6">Personnalisez le menu imprimable, prévisualisez et exportez.</div>
+  return `<div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:12px;line-height:1.6">Personnalisez le menu imprimable, prévisualisez et exportez.</div>
 
     ${swatch('Couleur titre', 'titleColor', cfg.titleColor)}
     ${swatch('Couleur prix / accent', 'accentColor', cfg.accentColor)}
@@ -3213,8 +3233,11 @@ function renderPdfStyleSection(){
       <iframe id="pdfPreviewFrame" style="width:100%;height:420px;border:1px solid var(--border);border-radius:8px;background:#e8e8e8"></iframe>
     </div>
 
-    <button class="aadd" style="width:100%;padding:11px;margin-top:6px" onclick="exportA4Print(pdfCfg())">🖨 Générer PDF / Imprimer</button>
-  </div></div>`;
+    <button class="aadd" style="width:100%;padding:11px;margin-top:6px" onclick="exportA4Print(pdfCfg())">🖨 Générer PDF / Imprimer</button>`;
+}
+// Kept for compatibility (renderExportSection still calls it); wraps the body in its own section.
+function renderPdfStyleSection(){
+  return `<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Exporter le menu en PDF</div><div class="admin-sect-body">${renderPrintBody()}</div></div>`;
 }
 
 
@@ -3410,7 +3433,6 @@ function restaurantSettingHtml(){
     </div>
   </div></div>
   ${renderBrandColorsSection()}
-  ${renderCorpoTemplatesSection()}
 `;
 }
 
@@ -3516,7 +3538,7 @@ function fetchCityFromZip(zip){
 
 function renderSocialAdminSection(){
   const soc=DATA.social||{};
-  return `<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Réseaux sociaux</div><div class="admin-sect-body" style="padding:14px 16px">
+  return `<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Liens réseaux sociaux et site web</div><div class="admin-sect-body" style="padding:14px 16px">
     <div class="af"><label class="al">Instagram</label>
       <div style="display:flex;align-items:center;gap:6px">
         <span style="font-size:13px;color:var(--text3)">@</span>
@@ -3532,7 +3554,10 @@ function renderSocialAdminSection(){
         <span style="font-size:13px;color:var(--text3)">@</span>
         <input class="ai" value="${soc.facebook||''}" placeholder="drevicioyster" oninput="if(!DATA.social)DATA.social={};DATA.social.facebook=this.value;renderAll()">
       </div></div>
-    <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-top:4px;line-height:1.5">Les icônes s'affichent sous la présentation si le champ est rempli.</div>
+    <div class="af"><label class="al">Site web</label>
+      <input class="ai" value="${soc.website||''}" placeholder="https://monrestaurant.fr" inputmode="url" oninput="if(!DATA.social)DATA.social={};DATA.social.website=this.value.trim();renderAll()">
+    </div>
+    <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-top:4px;line-height:1.5">Les liens s'affichent sous la présentation si le champ est rempli.</div>
   </div></div>`;
 }
 
@@ -3560,7 +3585,7 @@ function ghSectionHtml(){
 
 // Patch renderAdminGlobal to prepend GH section
 const _origGlobal=renderAdminGlobal;
-renderAdminGlobal=function(){ return ghSectionHtml()+restaurantSettingHtml()+renderIconesDecorativesSection()+renderScheduleAdmin()+renderSocialAdminSection()+_origGlobal(); };
+renderAdminGlobal=function(){ return ghSectionHtml()+restaurantSettingHtml()+renderScheduleAdmin()+renderIconesDecorativesSection()+renderSocialAdminSection()+_origGlobal(); };
 
 // ═══════════════════════════════════════════
 // ADMIN COLLAPSE
