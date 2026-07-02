@@ -292,8 +292,10 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .al{font-size:11px;font-weight:500;color:var(--text2);font-family:'Jost',sans-serif;margin-bottom:3px;display:block;letter-spacing:.04em}
 .ai{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13px;font-family:'Jost',sans-serif;color:var(--text);background:#fff;outline:none;transition:border-color .15s}
 .ai-img-wrap{display:flex;align-items:center;gap:6px}
-.ai-img-wrap .ai{flex:1}
+.ai-img-wrap .ai,.ai-img-wrap .ei{flex:1}
 .ai-upload-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;cursor:pointer;color:var(--text3);background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);flex:none}
+.unit-sel{padding:9px 6px;border:1px solid var(--border);border-radius:8px;font-family:'Jost',sans-serif;font-size:13px;color:var(--text);background:#fff;flex:none;max-width:60px}
+.ai-unit-sel{padding:7px 4px;border:1px solid var(--border);border-radius:var(--rs);font-family:'Jost',sans-serif;font-size:12px;color:var(--text);background:#fff;flex:none;max-width:52px}
 .ai:focus{border-color:var(--navy)}
 .ai::placeholder{color:#ccc}
 .ai-row{display:flex;gap:6px}
@@ -331,7 +333,7 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .badge-check input{accent-color:var(--navy);cursor:pointer}
 
 /* ── CONFIRM MODAL ── */
-.confirm-modal{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:600;display:none;align-items:center;justify-content:center;padding:20px}
+.confirm-modal{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:1300;display:none;align-items:center;justify-content:center;padding:20px}
 .confirm-modal.open{display:flex}
 .confirm-box{background:#fff;border-radius:12px;padding:24px;max-width:320px;width:100%;text-align:center}
 .confirm-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:var(--navy);margin-bottom:8px}
@@ -650,6 +652,112 @@ function efBi(label,frVal,curVal,isText){
 }
 function readEf(idx){ const els=document.querySelectorAll('#editPopBody [data-ef]'); return els[idx]?els[idx].value:''; }
 
+// ---- Popup image field (URL + upload button + preview) — mirrors admin's imgFieldHtml ----
+function efImgField(id, val, label){
+  const previewStyle = val ? '' : 'display:none';
+  return `<div class="ef"><label class="el">${label}</label><div class="ai-img-wrap">
+    <input class="ei" id="${id}" value="${escAttr(val||'')}" placeholder="Image URL" oninput="syncEfImgPreview(this)">
+    <label class="ai-upload-btn" title="Uploader une image"><input type="file" accept="image/*" style="display:none" onchange="uploadEditImgFile(this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path></svg></label>
+  </div><img class="ai-img-preview" src="${escAttr(val||'')}" style="${previewStyle};width:100%;max-width:120px;aspect-ratio:1;object-fit:cover;border-radius:6px;margin-top:6px;border:1px solid var(--border)" onerror="this.style.display='none'"></div>`;
+}
+function uploadEditImgFile(fileInput){
+  const file=fileInput.files[0];
+  readImageFileSafe(file, dataUrl => {
+    const wrap=fileInput.closest('.ai-img-wrap');
+    const inp=wrap&&wrap.querySelector('.ei');
+    if(!inp) return;
+    inp.value=dataUrl;
+    syncEfImgPreview(inp);
+  });
+}
+function syncEfImgPreview(input){
+  const wrap=input.closest('.ai-img-wrap');
+  if(!wrap) return;
+  const preview=wrap.parentElement.querySelector('.ai-img-preview');
+  if(!preview) return;
+  const val=input.value.trim();
+  if(val){ preview.src=val; preview.style.display='block'; }
+  else { preview.style.display='none'; }
+}
+
+// ---- Popup gallery field (up to 4 photos, used for social posts) ----
+function efGalleryField(gallery){
+  gallery=gallery||[];
+  let h='<div class="ef"><label class="el">Galerie réseaux sociaux (1–4 photos)</label>';
+  for(let gi=0; gi<4; gi++){
+    h+=`<div style="margin-bottom:8px">`+efImgField(`ed-gal-${gi}`, gallery[gi]||'', 'Photo '+(gi+1))+`</div>`;
+  }
+  h+='</div>';
+  return h;
+}
+function readGalleryFields(){
+  const out=[];
+  for(let gi=0; gi<4; gi++){
+    const el=document.getElementById('ed-gal-'+gi);
+    const val=el?el.value.trim():'';
+    if(val) out.push(val);
+  }
+  return out;
+}
+
+// ---- Visible / Masquée / Supprimer row — mirrors admin panel buttons ----
+function efVisRow(hidden){
+  return `<div class="ef" style="display:flex;gap:6px;margin-bottom:14px">
+    <button type="button" class="dish-vis-btn ${!hidden?'dish-vis-active':''}" onclick="efSetHidden(false)">Visible</button>
+    <button type="button" class="dish-vis-btn dish-hid-btn ${hidden?'dish-hid-active':''}" onclick="efSetHidden(true)">Masquée</button>
+    <button type="button" class="dish-vis-btn dish-del-btn" style="margin-left:auto" onclick="efDeleteCurrent()">✕ Supprimer</button>
+  </div>`;
+}
+function efSetHidden(val){
+  if(!editCtx) return;
+  const {type,ti,ci,di,ii}=editCtx;
+  let obj=null;
+  if(type==='dish') obj=DATA.tabs[ti]?.cards[ci]?.dishes?.[di];
+  else if(type==='bev') obj=DATA.tabs[ti]?.cards[ci]?.items?.[ii];
+  if(!obj) return;
+  if(val) obj.hidden=true; else delete obj.hidden;
+  renderAll();
+  if(type==='dish') openEditDish(ti,ci,di);
+  else if(type==='bev') openEditBev(ti,ci,ii);
+  if(typeof adminCurrentTab!=='undefined' && adminCurrentTab && document.getElementById('adminBody')?.innerHTML) renderAdminSection(adminCurrentTab, true);
+}
+function efDeleteCurrent(){
+  if(!editCtx) return;
+  const {type,ti,ci,di,ii}=editCtx;
+  const msg = type==='dish' ? 'Supprimer ce plat ?' : 'Supprimer cette boisson ?';
+  askConfirm(msg, ()=>{
+    if(type==='dish' && DATA.tabs[ti]?.cards[ci]?.dishes) DATA.tabs[ti].cards[ci].dishes.splice(di,1);
+    else if(type==='bev' && DATA.tabs[ti]?.cards[ci]?.items) DATA.tabs[ti].cards[ci].items.splice(ii,1);
+    renderAll();
+    closeEditPop();
+    if(typeof adminCurrentTab!=='undefined' && adminCurrentTab && document.getElementById('adminBody')?.innerHTML) renderAdminSection(adminCurrentTab, true);
+    showToast('Supprimé — Publiez pour mettre en ligne');
+  });
+}
+
+// ---- Popup size row (boisson) — numeric value + cl/L unit dropdown + price, mirrors admin panel ----
+function efSizeRowHtml(si, s){
+  s=s||{};
+  const unit=s.unit||'cl';
+  return `<div class="efrow" data-srow="${si}" style="margin-bottom:8px;align-items:center;gap:6px">
+    <div class="ef" style="flex:1;margin-bottom:0"><input class="ei" data-scl type="number" min="0" value="${escAttr(s.cl||'')}" placeholder="Taille"></div>
+    <select class="unit-sel" data-sunit>
+      <option value="cl" ${unit==='cl'?'selected':''}>cl</option>
+      <option value="l" ${unit==='l'?'selected':''}>L</option>
+    </select>
+    <div class="ef" style="flex:1;margin-bottom:0"><input class="ei" data-sprice type="number" step="0.5" min="0" value="${escAttr(s.price||'')}" placeholder="Prix"></div>
+    <span style="font-size:12px;color:var(--text3);flex:none">€</span>
+  </div>`;
+}
+function efAddSizeRow(){
+  const wrap=document.getElementById('ed-sizes');
+  if(!wrap) return;
+  const idx=wrap.children.length;
+  const tmp=document.createElement('div');
+  tmp.innerHTML=efSizeRowHtml(idx,{});
+  wrap.appendChild(tmp.firstElementChild);
+}
+
 function openEditElement(el){
   const type=el.dataset.edit;
   const ti=+el.dataset.ti, ci=+el.dataset.ci;
@@ -678,6 +786,7 @@ function openEditDish(ti,ci,di){
   editCtx={type:'dish',ti,ci,di};
   const isHuitres=DATA.tabs[ti].id==='huitres';
   let h='';
+  h+=efVisRow(!!d.hidden);
   h+=efBi('Nom du plat', d.name&&d.name.fr, d.name&&d.name[lang]);
   h+=efBi('Description', d.desc&&d.desc.fr, d.desc&&d.desc[lang], true);
   if(d.priceType==='dual'){
@@ -696,7 +805,11 @@ function openEditDish(ti,ci,di){
   if(isHuitres){
     h+=`<div class="ef"><label class="ei-check"><input type="checkbox" id="ed-dual" ${d.priceType==='dual'?'checked':''}><span>Double tarif (ex : Les 6 / Les 12)</span></label></div>`;
   }
-  h+=`<div class="ef"><label class="el">Image (URL)</label><input class="ei" id="ed-img" value="${escAttr(d.img||'')}"></div>`;
+  h+=efImgField('ed-img', d.img||'', 'Image principale');
+  h+=efGalleryField(d.gallery||[]);
+  h+=`<div class="ef"><label class="el">Caption Instagram (pré-enregistrée)</label><textarea class="ei" id="ed-caption" rows="4" style="resize:vertical;min-height:72px;font-size:12px" placeholder="Ex: Nos huîtres Spéciales N°3 — iodées, fraîches, servies sur glace 🦪 Disponibles au bar ou à emporter.">${escHtml(d.caption||'')}</textarea>
+    <div style="font-size:10px;color:var(--text3);margin-top:3px">Pré-chargée automatiquement dans Réseaux sociaux quand vous sélectionnez ce plat.</div>
+  </div>`;
   h+=`<div class="ef"><label class="el">Badges</label><div class="ei-badges">
     <label class="ei-check"><input type="checkbox" id="ed-spicy" ${d.spicy?'checked':''}><span>Épicé</span></label>
     <label class="ei-check"><input type="checkbox" id="ed-vegan" ${d.vegan?'checked':''}><span>Vegan</span></label>
@@ -711,7 +824,7 @@ function openEditVariants(ti,ci){
   editCtx={type:'variants',ti,ci};
   let h='';
   h+=efBi('Titre de la carte', card.label&&card.label.fr, card.label&&card.label[lang]);
-  h+=`<div class="ef"><label class="el">Image (URL)</label><input class="ei" id="ed-img" value="${escAttr(card.img||'')}"></div>`;
+  h+=efImgField('ed-img', card.img||'', 'Image');
   h+=`<div class="el" style="margin-bottom:8px">Variantes</div><div id="ed-variants">`;
   (card.variants||[]).forEach((v,vi)=>{
     const vname=typeof v.name==='object'?(v.name[lang]||v.name.fr||''):(v.name||'');
@@ -733,21 +846,17 @@ function openEditBev(ti,ci,ii){
   const ifr=typeof item.name==='object'?(item.name.fr||''):(item.name||'');
   let h='';
   const isFr=lang==='fr';
+  h+=efVisRow(!!item.hidden);
   h+=`<div class="ef"><label class="el">Nom${isFr?'':' ('+lang.toUpperCase()+')'}</label><input class="ei" id="ed-bname" value="${escAttr(iname)}" placeholder="${escAttr(isFr?'':ifr)}"></div>`;
+  h+=efImgField('ed-img', item.img||'', 'Image (optionnel)');
   h+=`<div class="el" style="margin-bottom:8px">Tailles & prix</div><div id="ed-sizes">`;
-  (item.sizes||[]).forEach((s,si)=>{
-    h+=`<div class="efrow" data-srow="${si}" style="margin-bottom:8px">
-      <div class="ef" style="flex:1;margin-bottom:0"><input class="ei" data-scl type="number" value="${escAttr(s.cl||'')}" placeholder="cl"></div>
-      <div class="ef" style="flex:1;margin-bottom:0"><input class="ei" data-sprice type="number" step="0.5" value="${escAttr(s.price||'')}" placeholder="prix €"></div>
-    </div>`;
-  });
-  if(!(item.sizes||[]).length){
-    h+=`<div class="efrow" data-srow="0" style="margin-bottom:8px">
-      <div class="ef" style="flex:1;margin-bottom:0"><input class="ei" data-scl type="number" placeholder="cl"></div>
-      <div class="ef" style="flex:1;margin-bottom:0"><input class="ei" data-sprice type="number" step="0.5" placeholder="prix €"></div>
-    </div>`;
-  }
-  h+=`</div>`;
+  (item.sizes||[]).forEach((s,si)=>{ h+=efSizeRowHtml(si,s); });
+  if(!(item.sizes||[]).length){ h+=efSizeRowHtml(0,{}); }
+  h+=`</div><button type="button" class="aadd" onclick="efAddSizeRow()">+ Taille</button>`;
+  h+=efGalleryField(item.gallery||[]);
+  h+=`<div class="ef"><label class="el">Caption Instagram (pré-enregistrée)</label><textarea class="ei" id="ed-caption" rows="4" style="resize:vertical;min-height:72px;font-size:12px" placeholder="Ex: Notre sélection du moment 🍷">${escHtml(item.caption||'')}</textarea>
+    <div style="font-size:10px;color:var(--text3);margin-top:3px">Pré-chargée automatiquement dans Réseaux sociaux quand vous sélectionnez cette boisson.</div>
+  </div>`;
   document.getElementById('editPopBody').innerHTML=h;
   showEditPop(iname||'Modifier la boisson');
 }
@@ -778,71 +887,88 @@ function openEditSpecial(si){
 // ---- SAVE ----
 function saveEditPop(){
   if(!editCtx) return;
-  const {type,ti,ci,di,ii,si}=editCtx;
-  if(type==='intro'){
-    DATA.intro.active=document.getElementById('ed-intro-active').checked;
-    if(typeof DATA.intro.text!=='object') DATA.intro.text={fr:''};
-    DATA.intro.text[lang]=readEf(0);
-    renderAll(); closeEditPop(); showToast('Enregistré — Publiez pour mettre en ligne'); return;
-  }
-  if(type==='special'){
-    const sp=DATA.specials[si];
-    sp.active=document.getElementById('ed-sp-active').checked;
-    if(typeof sp.title!=='object') sp.title={fr:''};
-    if(typeof sp.desc!=='object') sp.desc={fr:''};
-    sp.title[lang]=readEf(0);
-    sp.desc[lang]=readEf(1);
-    sp.price=v('ed-sp-price');
-    renderAll(); closeEditPop(); showToast('Enregistré — Publiez pour mettre en ligne'); return;
-  }
-  if(type==='dish'){
-    const d=DATA.tabs[ti].cards[ci].dishes[di];
-    if(typeof d.name!=='object') d.name={fr:d.name||''};
-    if(typeof d.desc!=='object') d.desc={fr:d.desc||''};
-    d.name[lang]=readEf(0);
-    d.desc[lang]=readEf(1);
-    const dualCb=document.getElementById('ed-dual');
-    if(dualCb&&dualCb.checked){
-      d.priceType='dual';
-      d.qty1=v('ed-q1'); d.p1=v('ed-p1'); d.qty2=v('ed-q2'); d.p2=v('ed-p2');
-      d.price=`Les ${d.qty1||'?'} — ${d.p1||'?'}€ · Les ${d.qty2||'?'} — ${d.p2||'?'}€`;
-    } else if(document.getElementById('ed-q1')){
-      // was dual, still dual (non-huitres path keeps dual fields)
-      d.qty1=v('ed-q1'); d.p1=v('ed-p1'); d.qty2=v('ed-q2'); d.p2=v('ed-p2');
-      d.price=`Les ${d.qty1||'?'} — ${d.p1||'?'}€ · Les ${d.qty2||'?'} — ${d.p2||'?'}€`;
-    } else {
-      d.priceType='';
-      const pv=v('ed-price');
-      d.price=pv?pv+'€':'';
+  try{
+    const {type,ti,ci,di,ii,si}=editCtx;
+    if(type==='intro'){
+      DATA.intro.active=document.getElementById('ed-intro-active').checked;
+      if(typeof DATA.intro.text!=='object') DATA.intro.text={fr:''};
+      DATA.intro.text[lang]=readEf(0);
+      renderAll(); closeEditPop(); showToast('Enregistré — Publiez pour mettre en ligne'); return;
     }
-    d.img=v('ed-img');
-    d.spicy=!!document.getElementById('ed-spicy')?.checked;
-    d.vegan=!!document.getElementById('ed-vegan')?.checked;
-  } else if(type==='variants'){
-    const card=DATA.tabs[ti].cards[ci];
-    if(typeof card.label!=='object') card.label={fr:card.label||''};
-    card.label[lang]=readEf(0);
-    card.img=v('ed-img');
-    const names=document.querySelectorAll('#ed-variants [data-vname]');
-    const prices=document.querySelectorAll('#ed-variants [data-vprice]');
-    (card.variants||[]).forEach((vr,vi)=>{
-      if(typeof vr.name!=='object') vr.name={fr:vr.name||''};
-      if(names[vi]) vr.name[lang]=names[vi].value;
-      if(prices[vi]) vr.price=prices[vi].value;
-    });
-  } else if(type==='bev'){
-    const item=DATA.tabs[ti].cards[ci].items[ii];
-    if(typeof item.name!=='object') item.name={fr:item.name||''};
-    item.name[lang]=document.getElementById('ed-bname').value;
-    const cls=document.querySelectorAll('#ed-sizes [data-scl]');
-    const prs=document.querySelectorAll('#ed-sizes [data-sprice]');
-    const sizes=[];
-    cls.forEach((clEl,si)=>{ const cl=clEl.value.trim(); const pr=prs[si]?prs[si].value.trim():''; if(cl||pr) sizes.push({cl,price:pr}); });
-    item.sizes=sizes;
+    if(type==='special'){
+      const sp=DATA.specials[si];
+      sp.active=document.getElementById('ed-sp-active').checked;
+      if(typeof sp.title!=='object') sp.title={fr:''};
+      if(typeof sp.desc!=='object') sp.desc={fr:''};
+      sp.title[lang]=readEf(0);
+      sp.desc[lang]=readEf(1);
+      sp.price=v('ed-sp-price');
+      renderAll(); closeEditPop(); showToast('Enregistré — Publiez pour mettre en ligne'); return;
+    }
+    if(type==='dish'){
+      const d=DATA.tabs[ti].cards[ci].dishes[di];
+      if(typeof d.name!=='object') d.name={fr:d.name||''};
+      if(typeof d.desc!=='object') d.desc={fr:d.desc||''};
+      d.name[lang]=readEf(0);
+      d.desc[lang]=readEf(1);
+      const dualCb=document.getElementById('ed-dual');
+      if(dualCb&&dualCb.checked){
+        d.priceType='dual';
+        d.qty1=v('ed-q1'); d.p1=v('ed-p1'); d.qty2=v('ed-q2'); d.p2=v('ed-p2');
+        d.price=`Les ${d.qty1||'?'} — ${d.p1||'?'}€ · Les ${d.qty2||'?'} — ${d.p2||'?'}€`;
+      } else if(document.getElementById('ed-q1')){
+        // was dual, still dual (non-huitres path keeps dual fields)
+        d.qty1=v('ed-q1'); d.p1=v('ed-p1'); d.qty2=v('ed-q2'); d.p2=v('ed-p2');
+        d.price=`Les ${d.qty1||'?'} — ${d.p1||'?'}€ · Les ${d.qty2||'?'} — ${d.p2||'?'}€`;
+      } else {
+        d.priceType='';
+        const pv=v('ed-price');
+        d.price=pv?pv+'€':'';
+      }
+      d.img=v('ed-img');
+      d.gallery=readGalleryFields();
+      d.caption=v('ed-caption');
+      d.spicy=!!document.getElementById('ed-spicy')?.checked;
+      d.vegan=!!document.getElementById('ed-vegan')?.checked;
+    } else if(type==='variants'){
+      const card=DATA.tabs[ti].cards[ci];
+      if(typeof card.label!=='object') card.label={fr:card.label||''};
+      card.label[lang]=readEf(0);
+      card.img=v('ed-img');
+      const names=document.querySelectorAll('#ed-variants [data-vname]');
+      const prices=document.querySelectorAll('#ed-variants [data-vprice]');
+      (card.variants||[]).forEach((vr,vi)=>{
+        if(typeof vr.name!=='object') vr.name={fr:vr.name||''};
+        if(names[vi]) vr.name[lang]=names[vi].value;
+        if(prices[vi]) vr.price=prices[vi].value;
+      });
+    } else if(type==='bev'){
+      const item=DATA.tabs[ti].cards[ci].items[ii];
+      if(typeof item.name!=='object') item.name={fr:item.name||''};
+      item.name[lang]=v('ed-bname');
+      item.img=v('ed-img');
+      const cls=document.querySelectorAll('#ed-sizes [data-scl]');
+      const units=document.querySelectorAll('#ed-sizes [data-sunit]');
+      const prs=document.querySelectorAll('#ed-sizes [data-sprice]');
+      const sizes=[];
+      cls.forEach((clEl,si2)=>{
+        const cl=clEl.value.trim();
+        const pr=prs[si2]?prs[si2].value.trim():'';
+        const unit=units[si2]?units[si2].value:'cl';
+        if(cl||pr) sizes.push({cl,unit,price:pr});
+      });
+      item.sizes=sizes;
+      item.gallery=readGalleryFields();
+      item.caption=v('ed-caption');
+    }
+    renderAll();
+    closeEditPop();
+    showToast('Enregistré — Publiez pour mettre en ligne');
+    if(typeof adminCurrentTab!=='undefined' && adminCurrentTab && document.getElementById('adminBody')?.innerHTML) renderAdminSection(adminCurrentTab, true);
+  }catch(e){
+    console.error('saveEditPop error:', e);
+    showToast('❌ Erreur lors de l\'enregistrement : '+e.message);
   }
-  renderAll();
-  closeEditPop();
-  showToast('Enregistré — Publiez pour mettre en ligne');
 }
 function v(id){ const e=document.getElementById(id); return e?e.value.trim():''; }
 
@@ -1308,7 +1434,7 @@ function renderTabContent(tab,lbOffset){
         (card.items||[]).filter(item=>!item.hidden).forEach(item=>{
           const sizes=item.sizes||[];
           // sizes display: "25cl / 50cl" in name area, "5€ / 17€" in price area
-          const clStr=sizes.length>0?sizes.filter(s=>s.cl).map(s=>s.cl+'cl').join(' / '):'';
+          const clStr=sizes.length>0?sizes.filter(s=>s.cl).map(s=>s.cl+(s.unit==='l'?'L':'cl')).join(' / '):'';
           const rawPrice=(item.price||'').toString(); const priceStr=sizes.length>0?sizes.filter(s=>s.price).map(s=>s.price+'€').join(' / '):(rawPrice.includes('€')?rawPrice:rawPrice?rawPrice+'€':'');
           const _ci=tab.cards.indexOf(card); const _ii=(card.items||[]).indexOf(item);
           html+=`<div class="bev-row" data-edit="bev" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${_ci}" data-ii="${_ii}"><div><span class="bev-name">${t(item.name)}</span>${clStr?`<div class="bev-sizes">${clStr}</div>`:''}</div><span class="bev-price">${priceStr}</span></div>`;
@@ -1616,9 +1742,20 @@ function adminGoTab(val){
 
 function adminSaveBar(){
   return `<div style="display:flex;gap:8px;margin-top:12px;padding:0 0 4px">
-    <button class="asave" style="flex:1;background:rgba(16,40,94,0.12);color:var(--navy)" onclick="renderAll();showToast('Aperçu mis à jour')">Aperçu</button>
-    <button class="asave" style="flex:1" onclick="renderAll();publishToGitHub()">Sauvegarder</button>
+    <button class="asave" style="flex:1;background:rgba(16,40,94,0.12);color:var(--navy)" onclick="handlePreviewClick()">Aperçu</button>
+    <button class="asave" style="flex:1" onclick="handleSaveClick()">Sauvegarder</button>
   </div>`;
+}
+// Wrapped so that a rendering error can never silently block the GitHub publish —
+// the user always gets a clear toast instead of a click that appears to do nothing.
+function handlePreviewClick(){
+  try{ renderAll(); showToast('Aperçu mis à jour'); }
+  catch(e){ console.error('Preview error:', e); showToast('❌ Erreur d\'aperçu : '+e.message); }
+}
+function handleSaveClick(){
+  try{ renderAll(); }
+  catch(e){ console.error('Render error before publish:', e); showToast('⚠️ Erreur d\'affichage (publication quand même tentée) : '+e.message); }
+  publishToGitHub();
 }
 
 function getAdminOpenSections(){
@@ -1928,7 +2065,10 @@ function renderAdminTab(ti){
 
     if(card.type==='bevs'){
       (card.items||[]).forEach((item,ii)=>{
-        const sizeRows=(item.sizes||[]).map((s,si)=>`<div class="ai-row" style="margin-bottom:4px"><input class="ai" type="number" min="0" placeholder="cl" value="${s.cl||''}" style="max-width:64px" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].cl=this.value;renderAll()"><span style="font-size:11px;color:var(--text3);padding:0 4px">cl</span><input class="ai" type="number" min="0" step="0.5" placeholder="prix" value="${s.price||''}" style="max-width:64px" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].price=this.value;renderAll()"><span style="font-size:11px;color:var(--text3);padding:0 4px">€</span><button class="adel" onclick="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes.splice(${si},1);renderAll();renderAdminSection(DATA.tabs[${ti}].id)">×</button></div>`).join('');
+        const sizeRows=(item.sizes||[]).map((s,si)=>{
+          const unit=s.unit||'cl';
+          return `<div class="ai-row" style="margin-bottom:4px;align-items:center"><input class="ai" type="number" min="0" placeholder="Taille" value="${s.cl||''}" style="max-width:64px" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].cl=this.value;renderAll()"><select class="ai-unit-sel" onchange="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].unit=this.value;renderAll()"><option value="cl" ${unit==='cl'?'selected':''}>cl</option><option value="l" ${unit==='l'?'selected':''}>L</option></select><input class="ai" type="number" min="0" step="0.5" placeholder="prix" value="${s.price||''}" style="max-width:64px" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].price=this.value;renderAll()"><span style="font-size:11px;color:var(--text3);padding:0 4px">€</span><button class="adel" onclick="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes.splice(${si},1);renderAll();renderAdminSection(DATA.tabs[${ti}].id)">×</button></div>`;
+        }).join('');
         h+=`<div class="admin-card" style="background:#fff;margin-top:4px" ondragover="onDragOver(event,${ti},${ci},${ii})" ondragleave="onDragLeave(event)" ondrop="onDropBev(event,${ti},${ci},${ii})">
           <div class="admin-card-hdr"><span class="drag-handle" draggable="true" ondragstart="onDragBev(event,${ti},${ci},${ii})" ondragend="onDragEndHandle(event)">⠿</span><span class="admin-card-num">Boisson ${ii+1}</span><div style="display:flex;gap:3px;margin-left:auto;margin-right:4px"><button class="dish-vis-btn ${!item.hidden?'dish-vis-active':''}" onclick="delete DATA.tabs[${ti}].cards[${ci}].items[${ii}].hidden;renderAll();renderAdminSection(DATA.tabs[${ti}].id)">Visible</button><button class="dish-vis-btn dish-hid-btn ${item.hidden?'dish-hid-active':''}" onclick="DATA.tabs[${ti}].cards[${ci}].items[${ii}].hidden=true;renderAll();renderAdminSection(DATA.tabs[${ti}].id)">Masquée</button><button class="dish-vis-btn dish-del-btn" onclick="askConfirm('Supprimer cette boisson ?',()=>delBev(${ti},${ci},${ii}))">✕</button></div></div>
           <input class="ai" style="margin-bottom:4px" placeholder="${adminLang!=='fr'&&typeof item.name==='object'?item.name.fr||'Nom':'Nom'}" value="${typeof item.name==='object'?(item.name[adminLang]||''):item.name||''}" oninput="if(typeof DATA.tabs[${ti}].cards[${ci}].items[${ii}].name!=='object'){DATA.tabs[${ti}].cards[${ci}].items[${ii}].name={fr:DATA.tabs[${ti}].cards[${ci}].items[${ii}].name};}DATA.tabs[${ti}].cards[${ci}].items[${ii}].name[adminLang]=this.value;renderAll()">
@@ -1936,7 +2076,13 @@ function renderAdminTab(ti){
 
           <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:4px">Tailles & prix</div>
           ${sizeRows}
-          <button class="aadd" style="margin-top:2px" onclick="if(!Array.isArray(DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes)){DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes=[];}DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes.push({cl:'',price:''});renderAll();renderAdminSection(DATA.tabs[${ti}].id)">+ Taille</button>
+          <button class="aadd" style="margin-top:2px" onclick="if(!Array.isArray(DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes)){DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes=[];}DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes.push({cl:'',unit:'cl',price:''});renderAll();renderAdminSection(DATA.tabs[${ti}].id)">+ Taille</button>
+
+          <div class="af" style="margin-top:10px"><label class="al" style="font-size:11px;font-weight:600;color:var(--text2)">Caption Instagram (pré-enregistrée)</label>
+            <textarea class="ai" rows="4" style="resize:vertical;min-height:72px;font-size:12px" placeholder="Ex: Notre sélection du moment 🍷" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].caption=this.value">${item.caption||''}</textarea>
+            <div style="font-size:10px;color:var(--text3);margin-top:3px">Pré-chargée automatiquement dans Réseaux sociaux quand vous sélectionnez cette boisson.</div>
+          </div>
+          ${entityGalleryHtml(ti,ci,ii,'items',item.gallery)}
         </div>`;
       });
       h+=`<button class="aadd" style="margin-top:4px" onclick="addBev(${ti},${ci})">+ Boisson</button>`;
@@ -2170,7 +2316,10 @@ async function loadFromGitHub(){
     }
     currentTabId=DATA.tabs[0]?.id||'huitres';
     console.log('✓ Chargé depuis GitHub API — tabs:'+DATA.tabs.length+', specials actifs:'+DATA.specials.filter(s=>s.active).length+', intro:'+DATA.intro.active);
-  }catch(e){ console.warn('GitHub load failed:', e.message); }
+  }catch(e){
+    console.warn('GitHub load failed:', e.message);
+    showToast('⚠️ Chargement depuis GitHub impossible : '+e.message+' — données locales affichées');
+  }
 }
 
 // ── Publish to GitHub (always gets fresh SHA, stores it for next time) ──
@@ -2700,7 +2849,7 @@ function exportTabCSV(tabId){
         });
       } else if(card.type==='bevs'){
         (card.items||[]).forEach(item => {
-          const sizes = (item.sizes||[]).map(s=>s.cl+'cl '+s.price+'€').join(' / ');
+          const sizes = (item.sizes||[]).map(s=>s.cl+(s.unit==='l'?'L':'cl')+' '+s.price+'€').join(' / ');
           rows.push([tabLabel, cardLabel, t(item.name)||'', t(item.desc)||'', sizes||item.price||'','','']);
         });
       }
@@ -2787,7 +2936,7 @@ function buildPdfMenuHTML(cfg){
         });
       } else if(card.type==='bevs'){
         (card.items||[]).forEach(item=>{
-          const sizes=(item.sizes||[]).map(s=>s.cl+'cl — '+s.price+'€').join(' · ');
+          const sizes=(item.sizes||[]).map(s=>s.cl+(s.unit==='l'?'L':'cl')+' — '+s.price+'€').join(' · ');
           rows.push(`<div class="pdf-dish"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(item.name)||''}</span><span class="pdf-dots"></span><span class="pdf-dish-price">${sizes||item.price||''}</span></div>${t(item.desc)?`<div class="pdf-dish-desc">${t(item.desc)}</div>`:''}</div>`);
         });
       }
@@ -3045,7 +3194,7 @@ function exportMenuPDF(){
         });
       } else if(card.type==='bevs'){
         (card.items||[]).forEach(item=>{
-          const sizes=(item.sizes||[]).map(s=>s.cl+'cl — '+s.price+'€').join(' · ');
+          const sizes=(item.sizes||[]).map(s=>s.cl+(s.unit==='l'?'L':'cl')+' — '+s.price+'€').join(' · ');
           lines.push(`<div class="dish-wrap"><div class="dish"><span class="dish-name">${t(item.name)||''}</span><span class="dish-price">${sizes||item.price||''}</span></div>${t(item.desc)?`<div class="dish-desc">${t(item.desc)}</div>`:''}</div>`);
         });
       }
@@ -3096,6 +3245,13 @@ async function publishToGitHub(){
     const clean=JSON.parse(JSON.stringify(DATA));
     const jsonStr=JSON.stringify(clean,null,2);
     const bytes=new TextEncoder().encode(jsonStr);
+    // Safety check: a menu.json bloated with embedded base64 photos can silently
+    // fail (or time out) against the GitHub Contents API. Surface this clearly
+    // instead of a cryptic network/HTTP error.
+    const MAX_PAYLOAD_MB = 20;
+    if(bytes.length > MAX_PAYLOAD_MB*1024*1024){
+      throw new Error('menu.json trop volumineux ('+(bytes.length/1024/1024).toFixed(1)+' Mo) — remplacez certaines photos par des URLs externes au lieu d\'uploads pour réduire la taille');
+    }
     let bin=''; bytes.forEach(b=>bin+=String.fromCharCode(b));
     const content=btoa(bin);
 
@@ -3344,8 +3500,12 @@ renderAdminGlobal=function(){ return ghSectionHtml()+restaurantSettingHtml()+ren
 // ═══════════════════════════════════════════
 // ADMIN COLLAPSE
 // ═══════════════════════════════════════════
-function dishGalleryHtml(d,ti,ci,di){
-  const gallery=d.gallery||[];
+function dishGalleryHtml(d,ti,ci,di){ return entityGalleryHtml(ti,ci,di,'dishes',d.gallery); }
+
+// Generalized gallery editor — used for both dishes (kind='dishes') and boissons (kind='items')
+function entityGalleryHtml(ti,ci,idx,kind,gallery){
+  gallery=gallery||[];
+  const base=`DATA.tabs[${ti}].cards[${ci}].${kind}[${idx}]`;
   let h='<div class="af"><label class="al" style="font-size:11px;font-weight:600;color:var(--text2)">Galerie réseaux sociaux (1–4 photos)</label>';
   // Thumbnail strip — clickable previews of filled slots
   const filled=gallery.filter(Boolean);
@@ -3366,11 +3526,11 @@ function dishGalleryHtml(d,ti,ci,di){
   h+='<div style="display:flex;flex-direction:column;gap:8px">';
   for(let gi=0;gi<4;gi++){
     const val=gallery[gi]||'';
-    const cb=`if(!DATA.tabs[${ti}].cards[${ci}].dishes[${di}].gallery)DATA.tabs[${ti}].cards[${ci}].dishes[${di}].gallery=[];DATA.tabs[${ti}].cards[${ci}].dishes[${di}].gallery[${gi}]=this.value;renderAll()`;
+    const cb=`if(!${base}.gallery)${base}.gallery=[];${base}.gallery[${gi}]=this.value;renderAll()`;
     h+=`<div style="display:flex;align-items:flex-start;gap:6px">
       <span style="font-size:10px;color:var(--text3);min-width:14px;text-align:center;padding-top:10px;flex:none">${gi+1}</span>`
       +imgFieldHtml(val,cb,`Photo ${gi+1} — URL ou upload`)
-      +(val?`<button onclick="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].gallery[${gi}]='';renderAll();renderAdminSection(DATA.tabs[${ti}].id)" style="padding:4px 8px;font-size:11px;border:1px solid #fca5a5;border-radius:4px;color:#c62828;background:#fff;cursor:pointer;white-space:nowrap;align-self:center;flex:none">✕</button>`:'')
+      +(val?`<button onclick="${base}.gallery[${gi}]='';renderAll();renderAdminSection(DATA.tabs[${ti}].id)" style="padding:4px 8px;font-size:11px;border:1px solid #fca5a5;border-radius:4px;color:#c62828;background:#fff;cursor:pointer;white-space:nowrap;align-self:center;flex:none">✕</button>`:'')
       +`</div>`;
   }
   h+='</div></div>';
@@ -3394,16 +3554,30 @@ function syncImgPreview(input){
   else { preview.style.display = 'none'; }
 }
 
+// Shared guard: warns instead of silently bloating menu.json (and eventually breaking
+// GitHub publish) when someone uploads a very large photo. Images end up embedded as
+// base64 directly inside menu.json, so size adds up fast across dishes/galleries.
+const MAX_UPLOAD_BYTES = 1.5*1024*1024; // 1.5 Mo par photo
+function readImageFileSafe(file, onOk){
+  if(!file) return;
+  if(file.size > MAX_UPLOAD_BYTES){
+    showToast('⚠️ Image trop lourde ('+Math.round(file.size/1024)+' Ko) — compressez-la sous 1,5 Mo avant import');
+    return;
+  }
+  const r = new FileReader();
+  r.onload = ev => onOk(ev.target.result);
+  r.onerror = () => showToast('❌ Erreur de lecture du fichier image');
+  r.readAsDataURL(file);
+}
 function uploadImgFile(fileInput){
   const file = fileInput.files[0];
-  if(!file) return;
-  const r = new FileReader();
-  r.onload = ev => {
-    const inp = fileInput.closest('.ai-img-wrap').querySelector('.ai');
-    inp.value = ev.target.result;
+  readImageFileSafe(file, dataUrl => {
+    const wrap = fileInput.closest('.ai-img-wrap');
+    const inp = wrap && wrap.querySelector('.ai');
+    if(!inp) return;
+    inp.value = dataUrl;
     inp.dispatchEvent(new Event('input'));
-  };
-  r.readAsDataURL(file);
+  });
 }
 
 function toggleAdminSection(el){
