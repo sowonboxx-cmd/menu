@@ -288,7 +288,7 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
   .reserve-btn{border-radius:0;padding:17px 16px}
   .page{padding-bottom:130px}
   .header-top-right{visibility:hidden}
-  .mode-links-bar{display:flex;width:100%;margin-top:0;padding:12px 4px env(safe-area-inset-bottom,12px);border-radius:0;border-top:2px solid var(--bg)}
+  .mode-links-bar{display:flex;width:100%;margin-top:0;padding:14px 4px calc(14px + env(safe-area-inset-bottom,0px));border-radius:0;border-top:1px solid var(--bg);align-items:center}
 }
 
 /* ── ADMIN ── */
@@ -1017,7 +1017,6 @@ function openEditBev(ti,ci,ii){
   h+=efVisRow(!!item.hidden);
   h+=`<div class="ef"><label class="el">Nom${isFr?'':' ('+lang.toUpperCase()+')'}</label><input class="ei" id="ed-bname" value="${escAttr(iname)}" placeholder="${escAttr(isFr?'':ifr)}"></div>`;
   h+=efImgField('ed-img', item.img||'', 'Image (optionnel)');
-  h+=efBadgesField(item);
   h+=`<div class="el" style="margin-bottom:8px">Tailles & prix</div><div id="ed-sizes">`;
   (item.sizes||[]).forEach((s,si)=>{ h+=efSizeRowHtml(si,s); });
   if(!(item.sizes||[]).length){ h+=efSizeRowHtml(0,{}); }
@@ -1125,7 +1124,6 @@ function saveEditPop(silent){
       item.sizes=sizes;
       item.gallery=readGalleryFields();
       item.caption=v('ed-caption');
-      readBadgeFields(item);
     }
     renderAll();
     closeEditPop();
@@ -1596,9 +1594,14 @@ function renderTabContent(tab,lbOffset){
       });
     });
     if(gridItems.length) html+=`<div class="dish-grid">${gridItems.join('')}</div>`;
+    if(editMode){
+      const _ti=DATA.tabs.indexOf(tab);
+      html+=`<button type="button" class="aadd" style="margin-top:10px;margin-bottom:14px" onclick="addCard(${_ti})">+ Ajouter une section</button>`;
+    }
   } else {
     // list
     tab.cards.forEach(card=>{
+      const _ciE=tab.cards.indexOf(card);
       html+=`<div class="card"><div class="card-hdr"><span class="card-label">${t(card.label)}</span></div><div class="card-body">`;
 
       if(card.type==='bevs'){
@@ -1608,9 +1611,9 @@ function renderTabContent(tab,lbOffset){
           const clStr=sizes.length>0?sizes.filter(s=>s.cl).map(s=>s.cl+(s.unit==='l'?'L':'cl')).join(' / '):'';
           const rawPrice=(item.price||'').toString(); const priceStr=sizes.length>0?sizes.filter(s=>s.price).map(s=>s.price+'€').join(' / '):(rawPrice.includes('€')?rawPrice:rawPrice?rawPrice+'€':'');
           const _ci=tab.cards.indexOf(card); const _ii=(card.items||[]).indexOf(item);
-          const bevBadges=badgeIconsHtml(item);
-          html+=`<div class="bev-row" data-edit="bev" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${_ci}" data-ii="${_ii}"><div><span class="bev-name">${t(item.name)}</span>${bevBadges?` <span class="dish-badges" style="display:inline-flex">${bevBadges}</span>`:''}${clStr?`<div class="bev-sizes">${clStr}</div>`:''}</div><span class="bev-price">${priceStr}</span></div>`;
+          html+=`<div class="bev-row" data-edit="bev" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${_ci}" data-ii="${_ii}"><div><span class="bev-name">${t(item.name)}</span>${clStr?`<div class="bev-sizes">${clStr}</div>`:''}</div><span class="bev-price">${priceStr}</span></div>`;
         });
+        if(editMode) html+=`<button type="button" class="aadd" onclick="addBev(${DATA.tabs.indexOf(tab)},${_ciE})">+ Ajouter une boisson</button>`;
       } else if(card.type==='variants'){
         // Render as dish row: name in navy + all flavours as description
         const flavours=(card.variants||[]).map(v=>t(v.name)).join(' · ');
@@ -1624,6 +1627,7 @@ function renderTabContent(tab,lbOffset){
             <div class="dish-price">${price}</div>
           </div>
           ${card.img?`<span class="img-wrap"><img class="dish-img" src="${card.img}" alt="" loading="lazy"></span>`:''}</div>`;
+        if(editMode) html+=`<button type="button" class="aadd" onclick="addVariant(${DATA.tabs.indexOf(tab)},${_civ})">+ Ajouter une variante</button>`;
       } else {
         (card.dishes||[]).filter(d=>!d.hidden).forEach((d,di)=>{
           const idx=d.img?imgIdx++:null;
@@ -1631,9 +1635,14 @@ function renderTabContent(tab,lbOffset){
           const _cid=tab.cards.indexOf(card); const _did=card.dishes.indexOf(d);
           html+=`<div class="dish-row${d.img?' dish-row-clickable':''}" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${_cid}" data-di="${_did}"${d.img?` data-lbidx="${idx}"`:''}${di===0?' style="padding-top:0"':''}><div class="dish-text"><div class="dish-name-row"><span class="dish-name">${t(d.name)}</span>${badges?`<span class="dish-badges">${badges}</span>`:''}</div><div class="dish-desc">${t(d.desc)}</div><div class="dish-price">${(d.price||"").toString().includes("€")?(d.price||""):(d.price?(d.price+"€"):"")}</div></div>${d.img?`<span class="img-wrap"><img class="dish-img" src="${d.img}" alt="" loading="lazy"></span>`:''}</div>`;
         });
+        if(editMode) html+=`<button type="button" class="aadd" onclick="addDish(${DATA.tabs.indexOf(tab)},${_ciE})">+ Ajouter un plat</button>`;
       }
       html+=`</div></div>`;
     });
+    if(editMode){
+      const _ti=DATA.tabs.indexOf(tab);
+      html+=`<button type="button" class="aadd" style="margin-bottom:14px" onclick="addCard(${_ti})">+ Ajouter une section</button>`;
+    }
   }
 
   html+='</div>';
@@ -2280,7 +2289,6 @@ function renderAdminTab(ti){
             <div style="font-size:10px;color:var(--text3);margin-top:3px">Pré-chargée automatiquement dans Réseaux sociaux quand vous sélectionnez cette boisson.</div>
           </div>
           ${entityGalleryHtml(ti,ci,ii,'items',item.gallery)}
-          `+adminBadgeGroup(item,`DATA.tabs[${ti}].cards[${ci}].items[${ii}]`)+`
         </div>`;
       });
       h+=`<button class="aadd" style="margin-top:4px" onclick="addBev(${ti},${ci})">+ Boisson</button>`;
@@ -2364,8 +2372,37 @@ function toggleHomeTab(){
   }
 }
 
+// BUG FIX: tab ids used to be random timestamps ("tab_1782264697487"), which
+// meant a tab's shareable URL (#tab_...) never matched its actual name.
+// New tabs now get a slug derived from their name instead.
+function slugifyTabId(label){
+  const base=(label||'').toString().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'') // strip accents (é→e, etc.)
+    .replace(/[^a-z0-9]+/g,'-')
+    .replace(/^-+|-+$/g,'');
+  return base||'tab';
+}
+function uniqueTabId(baseSlug, excludeTab){
+  let slug=baseSlug, n=2;
+  while(DATA.tabs.some(tb=>tb!==excludeTab && tb.id===slug)){ slug=baseSlug+'-'+n; n++; }
+  return slug;
+}
+// One-time migration: any tab still carrying an old-style "tab_<timestamp>"
+// id gets a proper name-based slug, with every reference to it (pins,
+// current tab, last-visited tab) updated to match.
+function migrateTabIds(){
+  (DATA.tabs||[]).forEach(tab=>{
+    if(!/^tab_\d+$/.test(tab.id)) return;
+    const oldId=tab.id;
+    const name=(tab.label&&(tab.label.fr||tab.label.en||Object.values(tab.label)[0]))||oldId;
+    const newId=uniqueTabId(slugifyTabId(name), tab);
+    tab.id=newId;
+    (DATA.pinnedDishes||[]).forEach(p=>{ if(p.tabId===oldId) p.tabId=newId; });
+    if(currentTabId===oldId) currentTabId=newId;
+    if(sessionStorage.getItem('lastTabId')===oldId) sessionStorage.setItem('lastTabId',newId);
+  });
+}
 function addNewTab(type){
-  const id='tab_'+Date.now();
   let cards, labelFr, labelEn;
   if(type==='boissons'){
     labelFr='Nouvelle tab boissons'; labelEn='New drinks tab';
@@ -2374,6 +2411,7 @@ function addNewTab(type){
     labelFr='Nouvelle tab'; labelEn='New tab';
     cards=[{label:{fr:'À la carte',en:'À la carte'},dishes:[]}];
   }
+  const id=uniqueTabId(slugifyTabId(labelFr));
   DATA.tabs.push({id,label:{fr:labelFr,en:labelEn},cards});
   adminCurrentTab=id;
   currentTabId=id;
@@ -2492,7 +2530,7 @@ function saveSha(v){ if(v) localStorage.setItem('gh_sha_'+CLIENT_SLUG,v); else l
 // ── Load from GitHub API (not CDN — always fresh, no 5min cache) ──
 async function loadFromGitHub(){
   const token=getToken();
-  if(!token){ console.log('No token — mode local'); migratePins(); return; }
+  if(!token){ console.log('No token — mode local'); migrateTabIds(); migratePins(); return; }
   try{
     const apiBase=`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`;
     const headers={'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json'};
@@ -2533,6 +2571,7 @@ async function loadFromGitHub(){
       const hasHome=DATA.tabs.some(t=>t.id==='__home');
       if(!hasHome) DATA.tabs.unshift({id:'__home',label:{fr:'Accueil',en:'Home',es:'Inicio',it:'Casa',kr:'홈',jp:'ホーム'},cards:[]});
     }
+    migrateTabIds();
     { const hashTid=tabIdFromHash();
       currentTabId=(hashTid && DATA.tabs.some(tb=>tb.id===hashTid && tb.visible!==false)) ? hashTid : (DATA.tabs[0]?.id||'huitres');
     }
@@ -2541,6 +2580,7 @@ async function loadFromGitHub(){
   }catch(e){
     console.warn('GitHub load failed:', e.message);
     showToast('⚠️ Chargement depuis GitHub impossible : '+e.message+' — données locales affichées');
+    migrateTabIds();
     migratePins();
   }
 }
@@ -3073,7 +3113,7 @@ function exportTabCSV(tabId){
       } else if(card.type==='bevs'){
         (card.items||[]).forEach(item => {
           const sizes = (item.sizes||[]).map(s=>s.cl+(s.unit==='l'?'L':'cl')+' '+s.price+'€').join(' / ');
-          rows.push([tabLabel, cardLabel, t(item.name)||'', t(item.desc)||'', sizes||item.price||'', badgeLabels(item).join(', ')]);
+          rows.push([tabLabel, cardLabel, t(item.name)||'', t(item.desc)||'', sizes||item.price||'', '']);
         });
       }
     });
