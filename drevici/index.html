@@ -140,7 +140,7 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .social-link-txt:hover{color:var(--navy)}
 .social-link-sep{font-size:10px;color:var(--text3);padding:0 8px}
 .social-icon{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;border:1px solid var(--border);color:var(--text3);text-decoration:none;transition:all .15s;font-size:13px}
-.mode-links-bar{display:flex;align-items:center;justify-content:center;gap:2px;margin-top:8px;padding:8px 4px;background:var(--navy);border-radius:10px}
+.mode-links-bar{display:none;align-items:center;justify-content:center;gap:2px;margin-top:8px;padding:8px 4px;background:var(--navy);border-radius:10px}
 .mode-link{display:flex;align-items:center;gap:5px;background:none;border:none;cursor:pointer;padding:5px 10px;font-family:Jost,sans-serif;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;opacity:.55;transition:opacity .15s}
 .mode-link svg{width:14px;height:14px;flex:none}
 .mode-link.active{opacity:1}
@@ -286,7 +286,9 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
   .sticky-reserve{position:fixed;bottom:0;left:0;right:0;z-index:100;padding:10px 0 env(safe-area-inset-bottom,14px);background:linear-gradient(to top,var(--bg) 80%,transparent)}
   .sticky-reserve .container{padding:0 0}
   .reserve-btn{border-radius:0;padding:17px 16px}
-  .page{padding-bottom:80px}
+  .page{padding-bottom:130px}
+  .header-top-right{visibility:hidden}
+  .mode-links-bar{display:flex;width:100%;margin-top:0;padding:12px 4px env(safe-area-inset-bottom,12px);border-radius:0;border-top:2px solid var(--bg)}
 }
 
 /* ── ADMIN ── */
@@ -475,7 +477,17 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
           <span class="logo-text" id="logoText">Drevici Oyster</span>
           <span class="header-sub" id="heroSubEl" style="margin-bottom:0"></span>
         </div>
-        <div class="header-top-right"></div>
+        <div class="header-top-right">
+          <button class="mode-btn mode-read active" id="btnRead" title="Mode lecture" onclick="setEditMode(false)">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg>
+          </button>
+          <button class="mode-btn mode-edit" id="btnEdit" title="Mode modification" onclick="setEditMode(true)">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2l3 3-8 8H3v-3l8-8z"/><line x1="9" y1="4" x2="12" y2="7"/></svg>
+          </button>
+          <button class="admin-btn" onclick="openAdmin()" title="Paramètres">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 1.5l-.4 1.6a4.5 4.5 0 0 0-1.1.6L3.4 3l-1.9 3.2 1.2 1.2a4.6 4.6 0 0 0 0 1.2L1.5 9.8 3.4 13l1.6-.7c.34.24.7.43 1.1.6l.4 1.6h3.8l.4-1.6c.4-.17.76-.36 1.1-.6l1.6.7 1.9-3.2-1.2-1.2c.05-.4.05-.8 0-1.2l1.2-1.2L12.6 3l-1.6.7a4.5 4.5 0 0 0-1.1-.6L9.5 1.5z"/><circle cx="8" cy="8" r="2"/></svg>
+          </button>
+        </div>
       </div>
 
     </div>
@@ -736,6 +748,8 @@ function showToast(msg){
 function setEditMode(on){
   editMode=on;
   document.getElementById('app').classList.toggle('edit-mode',on);
+  const btnEdit=document.getElementById('btnEdit'); if(btnEdit) btnEdit.classList.toggle('active',on);
+  const btnRead=document.getElementById('btnRead'); if(btnRead) btnRead.classList.toggle('active',!on);
   const linkEdit=document.getElementById('modeLinkEdit'); if(linkEdit) linkEdit.classList.toggle('active',on);
   const linkRead=document.getElementById('modeLinkRead'); if(linkRead) linkRead.classList.toggle('active',!on);
   if(!on) closeEditPop();
