@@ -551,6 +551,8 @@ let DATA = {
   intro: { active:false, text:{fr:'Bienvenue au Bouillon du Maine, une cuisine traditionnelle française servie comme il vous plaît.'} },
   social: { instagram:'', tiktok:'', facebook:'', website:'' },
   brandColors: { primary: '#7A1F2B', accent: '#B8935A', bg: '#FFFFFF' },
+  restaurantName: 'Bouillon du Maine',
+  restaurantLogo: '',
   corpoTemplates: [],
   icones: { main: '', secondary: '' },
   showHeaderLogo: true,
@@ -4004,6 +4006,8 @@ async function loadFromGitHub(){
     // BUG FIX: was being published but never restored on reload — the reason
     // "Adresse & contact" appeared to never save.
     if(json.address && typeof json.address==='object') DATA.address=json.address;
+    if(typeof json.restaurantName==='string' && json.restaurantName) DATA.restaurantName=json.restaurantName;
+    if(typeof json.restaurantLogo==='string') DATA.restaurantLogo=json.restaurantLogo;
     // Restore home tab if it was active
     if(DATA.homeTab&&DATA.homeTab.active){
       const hasHome=DATA.tabs.some(t=>t.id==='__home');
@@ -4985,10 +4989,20 @@ async function publishToGitHub(){
   }
 }
 
-function getRestaurantName(){ return localStorage.getItem('restaurant_name')||'Bouillon du Maine'; }
-function getRestaurantLogo(){ return localStorage.getItem('restaurant_logo')||''; }
-function setRestaurantName(v){ localStorage.setItem('restaurant_name',v); applyRestaurantBranding(); }
-function setRestaurantLogo(v){ localStorage.setItem('restaurant_logo',v); applyRestaurantBranding(); }
+// BUG FIX: these keys used to be global ('restaurant_name'/'restaurant_logo'),
+// which meant every client site hosted under the same GitHub Pages domain
+// shared the exact same browser storage — whichever name was typed last (on
+// ANY client's admin panel) leaked into every other client's site in that
+// browser. Namespacing by CLIENT_SLUG isolates each deployment, matching how
+// gh_sha_ already worked correctly.
+// DATA.restaurantName/restaurantLogo are the authoritative, published values
+// (synced to GitHub like every other setting). The namespaced localStorage
+// key is only consulted as a one-time fallback, in case a name was typed
+// under the previous (browser-only) scheme before this fix.
+function getRestaurantName(){ return DATA.restaurantName || localStorage.getItem('restaurant_name_'+CLIENT_SLUG) || 'Bouillon du Maine'; }
+function getRestaurantLogo(){ return DATA.restaurantLogo || localStorage.getItem('restaurant_logo_'+CLIENT_SLUG) || ''; }
+function setRestaurantName(v){ DATA.restaurantName=v; applyRestaurantBranding(); }
+function setRestaurantLogo(v){ DATA.restaurantLogo=v; applyRestaurantBranding(); }
 function applyRestaurantBranding(){
   applyBrandColors();
   const name=getRestaurantName();
