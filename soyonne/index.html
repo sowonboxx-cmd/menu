@@ -1701,21 +1701,33 @@ function renderInfoBanner(ib){
     const idx=vis.findIndex(tb=>tb.id===currentTabId);
     const newIdx=idx+dir;
     const _active=activeEl,_neighbor=neighborEl;
+    // Slower, softer easing so the settle feels like one continuous
+    // surface gliding to a stop, not a snap.
+    const EASE='transform .32s cubic-bezier(0.22,1,0.36,1)';
     if(Math.abs(dx)>W*THRESHOLD&&newIdx>=0&&newIdx<vis.length){
-      _active.style.transition='transform .2s ease';
-      _neighbor.style.transition='transform .2s ease';
+      _active.style.transition=EASE;
+      _neighbor.style.transition=EASE;
       _active.style.transform=`translate3d(${-dir*W}px,0,0)`;
-      _neighbor.style.transform='translate3d(0,0,0)';
+      // BUG FIX: this must land the neighbor at the SAME net offset as the
+      // active panel's exit (-dir*W), because the neighbor's resting
+      // "left" is already offset by +dir*W — translate3d(0,0,0) here
+      // cancelled that offset back out instead of bringing it into view,
+      // which is exactly the "content disappears" flash right as the
+      // swipe committed.
+      _neighbor.style.transform=`translate3d(${-dir*W}px,0,0)`;
       setTimeout(()=>{
         cleanupSlide();
         goToTab(vis[newIdx].id);
-      },200);
+      },320);
     } else {
-      _active.style.transition='transform .2s ease';
-      _neighbor.style.transition='transform .2s ease';
+      _active.style.transition=EASE;
+      _neighbor.style.transition=EASE;
       _active.style.transform='translate3d(0,0,0)';
-      _neighbor.style.transform=`translate3d(${dir*W}px,0,0)`;
-      setTimeout(cleanupSlide,220);
+      // Return the neighbor to its exact starting offset (0 added
+      // translate on top of its resting +dir*W position) rather than
+      // doubling the offset.
+      _neighbor.style.transform='translate3d(0,0,0)';
+      setTimeout(cleanupSlide,340);
     }
   });
 })();
