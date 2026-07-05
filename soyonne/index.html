@@ -112,9 +112,10 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .sticky-nav{position:sticky;top:0;z-index:99}
 .nav-bar{background:var(--navy);overflow-x:auto;scrollbar-width:none;display:flex;border-bottom:none;margin-bottom:0;-webkit-overflow-scrolling:touch}
 .nav-bar::-webkit-scrollbar{display:none}
-.nav-bar-inner{display:flex;margin:0 auto;padding:0 16px 0 16px;min-width:max-content}
+.nav-bar-inner{display:flex;margin:0 auto;padding:0 16px 0 16px;min-width:max-content;position:relative}
+.nav-indicator{position:absolute;bottom:0;height:4px;background:var(--gold);border-radius:2px 2px 0 0;pointer-events:none;transition:left .22s ease,width .22s ease}
 .nav-tab{flex:none;padding:11px 14px 10px;font-size:11px;font-weight:500;font-family:'Jost',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--tabInactiveColor,rgba(255,255,255,0.4));cursor:pointer;border-bottom:4px solid transparent;white-space:nowrap;transition:all .2s}
-.nav-tab.active{color:#fff;border-bottom-color:var(--gold)}
+.nav-tab.active{color:#fff}
 .view-bar{background:#fff;border-bottom:1px solid var(--border)}
 .view-bar-inner{max-width:680px;margin:0 auto;padding:9px 16px;display:flex;align-items:center;justify-content:space-between}
 .view-tab-label{font-size:10px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);font-family:'Jost',sans-serif}
@@ -1472,6 +1473,20 @@ function renderNav(){
     });
     nav.appendChild(el);
   });
+  // Sliding active-tab indicator: a single bar that glides between tabs
+  // instead of each tab's border-bottom toggling instantly. Rebuilt fresh
+  // here on every renderNav() (so it's always correctly positioned after
+  // a real tab change), and additionally kept in sync frame-by-frame
+  // during the swipe gesture itself — see "SWIPE TO CHANGE TABS".
+  const indicator=document.createElement('div');
+  indicator.className='nav-indicator';
+  indicator.id='navIndicator';
+  nav.appendChild(indicator);
+  const activeTabEl=nav.querySelector('.nav-tab.active');
+  if(activeTabEl){
+    indicator.style.left=activeTabEl.offsetLeft+'px';
+    indicator.style.width=activeTabEl.offsetWidth+'px';
+  }
   // Scroll nav: show active + 2 full + half of 3rd on each side (Twitter-style)
   setTimeout(()=>{
     const activeEl=nav.querySelector('.nav-tab.active');
@@ -1616,8 +1631,13 @@ function renderInfoBanner(ib){
   // same amount. Cleanup happens either by resetting inline styles (swipe
   // cancelled) or automatically via goToTab()'s renderAll(), which
   // rebuilds #tabsContainer from scratch and discards our inline styles.
+  //
+  // The active-tab indicator bar (#navIndicator, see renderNav()) is
+  // driven in lockstep with the exact same drag progress, so it glides
+  // between tabs in real time instead of snapping after the fact.
   let tsX=0,tsY=0,isDragging=false,dragLocked=false,dir=0;
   let activeEl=null,neighborEl=null,containerEl=null,prevContainerStyle=null;
+  let navIndicatorEl=null,navActiveLeft=0,navActiveWidth=0,navNeighborLeft=0,navNeighborWidth=0;
   const THRESHOLD=0.12; // 12% of screen width to commit — light swipe enough
 
   function resetPanel(el){
@@ -1634,6 +1654,7 @@ function renderInfoBanner(ib){
     resetPanel(activeEl);
     resetPanel(neighborEl);
     activeEl=null;neighborEl=null;containerEl=null;prevContainerStyle=null;dir=0;
+    navIndicatorEl=null;
   }
 
   document.addEventListener('touchstart',e=>{
@@ -1652,6 +1673,7 @@ function renderInfoBanner(ib){
     if(e.target.closest('.nav-bar,.lb,.admin-panel,input,textarea,select')) return;
     const dx=e.touches[0].clientX-tsX;
     const dy=e.touches[0].clientY-tsY;
+    const W=window.innerWidth;
     // Lock to vertical scroll if clearly scrolling up/down
     if(!isDragging&&Math.abs(dy)>Math.abs(dx)*1.5+4){ dragLocked=true; return; }
     if(!isDragging&&Math.abs(dx)>6){
@@ -1665,7 +1687,6 @@ function renderInfoBanner(ib){
       activeEl=document.getElementById('tab-'+currentTabId);
       neighborEl=document.getElementById('tab-'+vis[newIdx].id);
       if(!containerEl||!activeEl||!neighborEl){ dir=0;activeEl=null;neighborEl=null;containerEl=null; return; }
-      const W=window.innerWidth;
       prevContainerStyle={position:containerEl.style.position,overflow:containerEl.style.overflow,height:containerEl.style.height};
       containerEl.style.position='relative';
       containerEl.style.overflow='hidden';
@@ -1678,6 +1699,20 @@ function renderInfoBanner(ib){
       neighborEl.style.top='0'; neighborEl.style.width='100%';
       neighborEl.style.left=(dir>0?W:-W)+'px';
       neighborEl.style.transition='none';
+      // Set up the indicator's start/end geometry once, from the two
+      // corresponding .nav-tab elements (same index order as `vis`).
+      const navEl=document.getElementById('nav');
+      const navTabs=navEl?Array.from(navEl.querySelectorAll('.nav-tab')):[];
+      const navActiveTabEl=navTabs[idx]||null;
+      const navNeighborTabEl=navTabs[newIdx]||null;
+      navIndicatorEl=document.getElementById('navIndicator');
+      if(navIndicatorEl&&navActiveTabEl&&navNeighborTabEl){
+        navIndicatorEl.style.transition='none';
+        navActiveLeft=navActiveTabEl.offsetLeft; navActiveWidth=navActiveTabEl.offsetWidth;
+        navNeighborLeft=navNeighborTabEl.offsetLeft; navNeighborWidth=navNeighborTabEl.offsetWidth;
+      } else {
+        navIndicatorEl=null;
+      }
     }
     if(!isDragging||dir===0) return;
     // Move both panels together with the finger — the neighbour follows
@@ -1685,6 +1720,13 @@ function renderInfoBanner(ib){
     // active panel slides out, instead of a cut between two states.
     activeEl.style.transform=`translate3d(${dx}px,0,0)`;
     neighborEl.style.transform=`translate3d(${dx}px,0,0)`;
+    // Slide the indicator in perfect lockstep with the same drag progress
+    // driving the content — never after the fact.
+    if(navIndicatorEl){
+      const p=Math.min(1,Math.abs(dx)/W);
+      navIndicatorEl.style.left=(navActiveLeft+(navNeighborLeft-navActiveLeft)*p)+'px';
+      navIndicatorEl.style.width=(navActiveWidth+(navNeighborWidth-navActiveWidth)*p)+'px';
+    }
   },{passive:true});
 
   document.addEventListener('touchend',e=>{
@@ -1700,10 +1742,12 @@ function renderInfoBanner(ib){
     const vis=DATA.tabs.filter(tb=>tb.visible!==false);
     const idx=vis.findIndex(tb=>tb.id===currentTabId);
     const newIdx=idx+dir;
-    const _active=activeEl,_neighbor=neighborEl;
+    const _active=activeEl,_neighbor=neighborEl,_navIndicator=navIndicatorEl;
     // Slower, softer easing so the settle feels like one continuous
-    // surface gliding to a stop, not a snap.
+    // surface gliding to a stop, not a snap. The indicator uses the exact
+    // same duration/easing so it lands at the same instant as the content.
     const EASE='transform .32s cubic-bezier(0.22,1,0.36,1)';
+    const NAV_EASE='left .32s cubic-bezier(0.22,1,0.36,1),width .32s cubic-bezier(0.22,1,0.36,1)';
     if(Math.abs(dx)>W*THRESHOLD&&newIdx>=0&&newIdx<vis.length){
       _active.style.transition=EASE;
       _neighbor.style.transition=EASE;
@@ -1715,6 +1759,11 @@ function renderInfoBanner(ib){
       // which is exactly the "content disappears" flash right as the
       // swipe committed.
       _neighbor.style.transform=`translate3d(${-dir*W}px,0,0)`;
+      if(_navIndicator){
+        _navIndicator.style.transition=NAV_EASE;
+        _navIndicator.style.left=navNeighborLeft+'px';
+        _navIndicator.style.width=navNeighborWidth+'px';
+      }
       setTimeout(()=>{
         cleanupSlide();
         goToTab(vis[newIdx].id);
@@ -1727,6 +1776,11 @@ function renderInfoBanner(ib){
       // translate on top of its resting +dir*W position) rather than
       // doubling the offset.
       _neighbor.style.transform='translate3d(0,0,0)';
+      if(_navIndicator){
+        _navIndicator.style.transition=NAV_EASE;
+        _navIndicator.style.left=navActiveLeft+'px';
+        _navIndicator.style.width=navActiveWidth+'px';
+      }
       setTimeout(cleanupSlide,340);
     }
   });
@@ -4160,6 +4214,19 @@ function openFirstAdminSection(){
 // ═══════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════
+// BUG FIX: renderAll() used to run ONLY after loadFromGitHub() resolved.
+// For a visitor with no saved token that's near-instant (loadFromGitHub
+// returns immediately), but for the site owner's own browser (which has
+// a token saved for publishing), it triggers a real network fetch first —
+// so the page sat completely blank for that round trip, then the entire
+// menu popped in all at once, reading as an unpleasant "reload flash".
+// Render immediately from whatever DATA is already embedded in this
+// page (always correct as of the last full deploy) so there's never a
+// blank moment, then let the GitHub check reconcile in the background —
+// this only visibly changes anything if newer edits were published from
+// elsewhere since this file was last deployed.
+renderAll();
+applyRestaurantBranding();
 loadFromGitHub().then(()=>{ renderAll(); applyRestaurantBranding(); });
 </script>
 </body>
