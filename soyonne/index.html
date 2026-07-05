@@ -2803,6 +2803,16 @@ async function loadFromGitHub(){
     if(json.address && typeof json.address==='object') DATA.address=json.address;
     if(typeof json.restaurantName==='string' && json.restaurantName) DATA.restaurantName=json.restaurantName;
     if(typeof json.restaurantLogo==='string') DATA.restaurantLogo=json.restaurantLogo;
+    // BUG FIX: same missing-restore pattern as "Adresse & contact" above —
+    // these were all published correctly but silently dropped on the next
+    // load, so any change (brand colors, title font, header logo toggle,
+    // decorative icons, social post templates) appeared to "not save" even
+    // though it had actually published fine.
+    if(json.brandColors && typeof json.brandColors==='object') DATA.brandColors=json.brandColors;
+    if(typeof json.restoFont==='string' && json.restoFont) DATA.restoFont=json.restoFont;
+    if(typeof json.showHeaderLogo!=='undefined') DATA.showHeaderLogo=json.showHeaderLogo;
+    if(json.icones && typeof json.icones==='object') DATA.icones=json.icones;
+    if(Array.isArray(json.corpoTemplates)) DATA.corpoTemplates=json.corpoTemplates;
     // Restore home tab if it was active
     if(DATA.homeTab&&DATA.homeTab.active){
       const hasHome=DATA.tabs.some(t=>t.id==='__home');
