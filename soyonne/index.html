@@ -1423,6 +1423,13 @@ document.addEventListener('keydown',e=>{ const lb=document.getElementById('lb');
 // RENDER
 // ═══════════════════════════════════════════
 function renderAll(){
+  // BUG FIX: isHome must always track array position 0, never a stale flag
+  // left over from before a tab reorder (drag & drop) or before the
+  // dedicated Accueil (__home) tab was toggled on/off/unshifted. Without
+  // this, a formerly-first tab (e.g. "Dopbap") keeps isHome:true forever,
+  // so "Nos incontournables" (pinned dishes) wrongly renders twice — once
+  // on Accueil, once on that stale tab.
+  DATA.tabs.forEach((t,i)=>{ t.isHome = (i===0); });
   // If current tab was hidden, reset to first visible
   if(!DATA.tabs.filter(t=>t.visible!==false).some(t=>t.id===currentTabId)){
     const first=DATA.tabs.find(t=>t.visible!==false);
