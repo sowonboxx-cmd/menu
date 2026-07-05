@@ -2860,23 +2860,43 @@ function saveSha(v){ if(v) localStorage.setItem('gh_sha_'+CLIENT_SLUG,v); else l
 // ── Load from GitHub API (not CDN — always fresh, no 5min cache) ──
 async function loadFromGitHub(){
   const token=getToken();
-  if(!token){ console.log('No token — mode local'); migrateTabIds(); migratePins(); return; }
   try{
-    const apiBase=`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`;
-    const headers={'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json'};
-    const r=await fetch(apiBase+'?ref='+GH_BRANCH,{headers});
-    if(!r.ok){
-      if(r.status===404){ console.log('menu.json absent — premier lancement'); return; }
-      throw new Error('HTTP '+r.status);
+    let json;
+    if(token){
+      const apiBase=`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`;
+      const headers={'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json'};
+      const r=await fetch(apiBase+'?ref='+GH_BRANCH,{headers});
+      if(!r.ok){
+        if(r.status===404){ console.log('menu.json absent — premier lancement'); migrateTabIds(); migratePins(); return; }
+        throw new Error('HTTP '+r.status);
+      }
+      const meta=await r.json();
+      // Save SHA for next publish (avoids a redundant GET)
+      if(meta.sha) saveSha(meta.sha);
+      // Decode base64 content → JSON
+      const raw=atob(meta.content.replace(/\n/g,''));
+      const bytes=Uint8Array.from(raw,ch=>ch.charCodeAt(0));
+      json=JSON.parse(new TextDecoder().decode(bytes));
+    } else {
+      // BUG FIX: this function used to bail out entirely with no token,
+      // meaning a regular site visitor NEVER fetched menu.json at all —
+      // they only ever saw whatever DATA was baked into index.html at the
+      // last full export/redeploy. Since "Publier" in the admin only ever
+      // writes menu.json (never touches index.html — see GH_FILE), any
+      // edit published there was invisible to real customers until
+      // someone manually regenerated and redeployed the whole HTML file.
+      // Public GitHub repos allow anonymous, unauthenticated reads of raw
+      // file content — no token is needed for this, only for publishing
+      // (writes). `?t=' + Date.now()` plus `cache:'no-store'` avoid a
+      // stale cached copy from CDN/browser cache.
+      const rawUrl=`https://raw.githubusercontent.com/${GH_USER}/${GH_REPO}/${GH_BRANCH}/${GH_FILE}?t=${Date.now()}`;
+      const r=await fetch(rawUrl,{cache:'no-store'});
+      if(!r.ok){
+        if(r.status===404){ console.log('menu.json absent — premier lancement'); migrateTabIds(); migratePins(); return; }
+        throw new Error('HTTP '+r.status);
+      }
+      json=await r.json();
     }
-    const meta=await r.json();
-    // Save SHA for next publish (avoids a redundant GET)
-    if(meta.sha) saveSha(meta.sha);
-    // Decode base64 content → JSON
-    const raw=atob(meta.content.replace(/\n/g,''));
-    const bytes=Uint8Array.from(raw,ch=>ch.charCodeAt(0));
-    const jsonStr=new TextDecoder().decode(bytes);
-    const json=JSON.parse(jsonStr);
     // Apply everything
     if(Array.isArray(json.tabs) && json.tabs.length>0){
       DATA.tabs=json.tabs;
@@ -2918,10 +2938,14 @@ async function loadFromGitHub(){
       currentTabId=(hashTid && DATA.tabs.some(tb=>tb.id===hashTid && tb.visible!==false)) ? hashTid : (DATA.tabs[0]?.id||'huitres');
     }
     migratePins();
-    console.log('✓ Chargé depuis GitHub API — tabs:'+DATA.tabs.length+', specials actifs:'+DATA.specials.filter(s=>s.active).length+', intro:'+DATA.intro.active);
+    console.log('✓ Chargé depuis GitHub'+(token?' (API, avec token)':' (lecture publique)')+' — tabs:'+DATA.tabs.length+', specials actifs:'+DATA.specials.filter(s=>s.active).length+', intro:'+DATA.intro.active);
   }catch(e){
     console.warn('GitHub load failed:', e.message);
-    showToast('⚠️ Chargement depuis GitHub impossible : '+e.message+' — données locales affichées');
+    // Only surface this warning in the admin's own browser (token present)
+    // — a regular visitor seeing a "GitHub loading error" toast would be
+    // confusing and unprofessional; for them we just silently keep
+    // whatever was already rendered from the embedded DATA.
+    if(token) showToast('⚠️ Chargement depuis GitHub impossible : '+e.message+' — données locales affichées');
     migrateTabIds();
     migratePins();
   }
