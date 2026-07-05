@@ -1590,28 +1590,53 @@ function renderScheduleInline(){
 function setView(v){ view=v; renderAll(); }
 
 function renderTabs(){
-  const container=document.getElementById('tabsContainer'); container.innerHTML='';
+  const container=document.getElementById('tabsContainer');
   collectLbImages();
-  let lbCounter=0;
-  DATA.tabs.filter(tab=>tab.visible!==false).forEach(tab=>{
-    const section=document.createElement('div');
-    section.className='tab-content'+(tab.id===currentTabId?' active':'');
-    section.id='tab-'+tab.id;
-    const inner=document.createElement('div');
-    inner.className='container';
-    inner.innerHTML=renderTabContent(tab,0);
-    section.appendChild(inner);
-    container.appendChild(section);
-    // attach lb handlers via delegation (works for img-wrap + gc-wrap)
-    section.addEventListener('click', e => {
-      if(editMode){
-        const ed = e.target.closest('[data-edit]');
-        if(ed){ e.preventDefault(); e.stopPropagation(); openEditElement(ed); return; }
-        return; // swallow other clicks in edit mode
-      }
-      const el = e.target.closest('[data-lbidx]');
-      if(el) openLb(parseInt(el.dataset.lbidx));
-    });
+  // BUG FIX: this used to wipe and fully rebuild every visible tab's
+  // content on every single render (container.innerHTML=''), even for a
+  // plain tab switch where nothing in DATA actually changed. That meant
+  // every <img> in every tab was destroyed and recreated on every click
+  // or swipe, forcing the browser to redecode/repaint them — a visible
+  // flicker on every tab change, not just the first load. Now existing
+  // section elements are reused, and a tab's inner HTML is only rewritten
+  // if its rendered content has actually changed; a pure tab switch just
+  // toggles which section carries the `active` class, touching no images
+  // at all.
+  const visibleTabs=DATA.tabs.filter(tab=>tab.visible!==false);
+  const visibleSectionIds=new Set(visibleTabs.map(tab=>'tab-'+tab.id));
+  // Remove sections for tabs that no longer exist or became hidden.
+  Array.from(container.children).forEach(child=>{
+    if(!visibleSectionIds.has(child.id)) child.remove();
+  });
+  visibleTabs.forEach((tab,i)=>{
+    const sectionId='tab-'+tab.id;
+    let section=document.getElementById(sectionId);
+    const isActive=tab.id===currentTabId;
+    const html=renderTabContent(tab,0);
+    if(!section){
+      section=document.createElement('div');
+      section.id=sectionId;
+      const inner=document.createElement('div');
+      inner.className='container';
+      inner.innerHTML=html;
+      section.appendChild(inner);
+      // attach lb handlers via delegation (works for img-wrap + gc-wrap)
+      section.addEventListener('click', e => {
+        if(editMode){
+          const ed = e.target.closest('[data-edit]');
+          if(ed){ e.preventDefault(); e.stopPropagation(); openEditElement(ed); return; }
+          return; // swallow other clicks in edit mode
+        }
+        const el = e.target.closest('[data-lbidx]');
+        if(el) openLb(parseInt(el.dataset.lbidx));
+      });
+    } else {
+      const inner=section.querySelector('.container');
+      if(inner && inner.innerHTML!==html) inner.innerHTML=html;
+    }
+    section.className='tab-content'+(isActive?' active':'');
+    // Keep DOM order matching tab order (handles admin tab reordering)
+    if(container.children[i]!==section) container.insertBefore(section, container.children[i]||null);
   });
 }
 
@@ -4232,7 +4257,22 @@ function openFirstAdminSection(){
 // elsewhere since this file was last deployed.
 renderAll();
 applyRestaurantBranding();
-loadFromGitHub().then(()=>{ renderAll(); applyRestaurantBranding(); });
+// BUG FIX: the reconciliation re-render below used to run unconditionally,
+// even when the fetched data was byte-for-byte identical to what's already
+// embedded (the common case, especially in the owner's own browser, which
+// is the only one that ever runs this fetch at all). A full re-render
+// recreates every DOM node — including every <img> — so even with no
+// visible content change, images briefly flicker as they're torn down and
+// recreated. Home/the first tab usually carries the largest photo, so
+// that's exactly where this one-time blink was most visible. Only
+// re-render now if the data genuinely differs.
+const _preFetchSnapshot=JSON.stringify(DATA);
+loadFromGitHub().then(()=>{
+  if(JSON.stringify(DATA)!==_preFetchSnapshot){
+    renderAll();
+    applyRestaurantBranding();
+  }
+});
 </script>
 </body>
 </html>
