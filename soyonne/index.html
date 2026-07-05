@@ -11,7 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--restoFont:'Cormorant Garamond';--navy:#7A1F2B;--gold:#B8935A;--bg:#FFFFFF;--white:#fff;--border:rgba(0,0,0,0.08);--text:#1a1a1a;--text2:#666;--text3:#aaa;--r:10px;--rs:6px}
+:root{--restoFont:'Cormorant Garamond';--navy:#7A1F2B;--gold:#B8935A;--bg:#FFFFFF;--white:#fff;--border:rgba(0,0,0,0.08);--text:#1a1a1a;--text2:#666;--text3:#aaa;--r:10px;--rs:6px;--subtitleColor:rgba(255,255,255,0.45);--tabInactiveColor:rgba(255,255,255,0.4)}
 body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-size:14px}
 
 /* ── LIGHTBOX ── */
@@ -106,14 +106,14 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .header-top{position:relative}
 .logo-centered{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;display:flex;align-items:center;justify-content:center}
 @media(min-width:480px){.logo-img{height:42px;max-width:200px;display:block}.logo-text{display:none}}
-.header-sub{font-size:10px;font-weight:300;color:rgba(255,255,255,0.45);letter-spacing:.14em;text-transform:uppercase;margin-bottom:0;text-align:center}
+.header-sub{font-size:10px;font-weight:300;color:var(--subtitleColor,rgba(255,255,255,0.45));letter-spacing:.14em;text-transform:uppercase;margin-bottom:0;text-align:center}
 
 /* ── STICKY NAV ── */
 .sticky-nav{position:sticky;top:0;z-index:99}
 .nav-bar{background:var(--navy);overflow-x:auto;scrollbar-width:none;display:flex;border-bottom:none;margin-bottom:0;-webkit-overflow-scrolling:touch}
 .nav-bar::-webkit-scrollbar{display:none}
 .nav-bar-inner{display:flex;margin:0 auto;padding:0 16px 0 16px;min-width:max-content}
-.nav-tab{flex:none;padding:11px 14px 10px;font-size:11px;font-weight:500;font-family:'Jost',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,0.4);cursor:pointer;border-bottom:4px solid transparent;white-space:nowrap;transition:all .2s}
+.nav-tab{flex:none;padding:11px 14px 10px;font-size:11px;font-weight:500;font-family:'Jost',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--tabInactiveColor,rgba(255,255,255,0.4));cursor:pointer;border-bottom:4px solid transparent;white-space:nowrap;transition:all .2s}
 .nav-tab.active{color:#fff;border-bottom-color:var(--gold)}
 .view-bar{background:#fff;border-bottom:1px solid var(--border)}
 .view-bar-inner{max-width:680px;margin:0 auto;padding:9px 16px;display:flex;align-items:center;justify-content:space-between}
@@ -296,6 +296,7 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .admin-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;display:none}
 .admin-overlay.open{display:block}
 .admin-panel{position:fixed;top:0;right:0;bottom:0;width:min(440px,100vw);background:#fff;z-index:501;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
+@media(max-width:640px){.admin-panel{background:#0C0C0C}}
 .admin-panel.open{transform:translateX(0)}
 .admin-hdr{padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--navy);z-index:2}
 .admin-hdr-title{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:700;color:var(--navy)}
@@ -1607,11 +1608,34 @@ function renderInfoBanner(ib){
 
 // ── SWIPE TO CHANGE TABS ──
 (function(){
-  // Twitter-style: content follows finger, validates on release
-  let tsX=0,tsY=0,isDragging=false,dragLocked=false;
+  // True carousel-style swipe: both the current tab panel and the
+  // neighbor it's revealing move together as one continuous surface,
+  // like Twitter — never a disappear/reappear. All tabs already exist in
+  // the DOM (#tabsContainer renders every visible tab, just toggling
+  // display via the .active class), so we temporarily position the
+  // active panel and its neighbor side by side and translate both by the
+  // same amount. Cleanup happens either by resetting inline styles (swipe
+  // cancelled) or automatically via goToTab()'s renderAll(), which
+  // rebuilds #tabsContainer from scratch and discards our inline styles.
+  let tsX=0,tsY=0,isDragging=false,dragLocked=false,dir=0;
+  let activeEl=null,neighborEl=null,containerEl=null,prevContainerStyle=null;
   const THRESHOLD=0.12; // 12% of screen width to commit — light swipe enough
 
-  function getTabsContainer(){ return document.querySelector('.tab-content.active')?.parentElement||document.querySelector('#tabsWrap'); }
+  function resetPanel(el){
+    if(!el) return;
+    el.style.position='';el.style.top='';el.style.left='';el.style.width='';
+    el.style.transition='';el.style.transform='';el.style.display='';
+  }
+  function cleanupSlide(){
+    if(containerEl&&prevContainerStyle){
+      containerEl.style.position=prevContainerStyle.position;
+      containerEl.style.overflow=prevContainerStyle.overflow;
+      containerEl.style.height=prevContainerStyle.height;
+    }
+    resetPanel(activeEl);
+    resetPanel(neighborEl);
+    activeEl=null;neighborEl=null;containerEl=null;prevContainerStyle=null;dir=0;
+  }
 
   document.addEventListener('touchstart',e=>{
     if(document.getElementById('adminPanel')?.classList.contains('open')) return;
@@ -1631,15 +1655,37 @@ function renderInfoBanner(ib){
     const dy=e.touches[0].clientY-tsY;
     // Lock to vertical scroll if clearly scrolling up/down
     if(!isDragging&&Math.abs(dy)>Math.abs(dx)*1.5+4){ dragLocked=true; return; }
-    if(!isDragging&&Math.abs(dx)>6){ isDragging=true; }
-    if(!isDragging) return;
-    // Check we have a neighbour in that direction
-    const vis=DATA.tabs.filter(tb=>tb.visible!==false);
-    const idx=vis.findIndex(tb=>tb.id===currentTabId);
-    if((dx<0&&idx>=vis.length-1)||(dx>0&&idx<=0)) return;
-    // Move the active content with the finger
-    const wrap=document.querySelector('.cards-stack');
-    if(wrap){ wrap.style.transition='none'; wrap.style.transform=`translate3d(${dx}px,0,0)`; }
+    if(!isDragging&&Math.abs(dx)>6){
+      isDragging=true;
+      const vis=DATA.tabs.filter(tb=>tb.visible!==false);
+      const idx=vis.findIndex(tb=>tb.id===currentTabId);
+      dir=dx<0?1:-1; // 1 = swiping to next tab, -1 = swiping to previous
+      const newIdx=idx+dir;
+      if(newIdx<0||newIdx>=vis.length){ dir=0; return; } // no neighbour that way
+      containerEl=document.getElementById('tabsContainer');
+      activeEl=document.getElementById('tab-'+currentTabId);
+      neighborEl=document.getElementById('tab-'+vis[newIdx].id);
+      if(!containerEl||!activeEl||!neighborEl){ dir=0;activeEl=null;neighborEl=null;containerEl=null; return; }
+      const W=window.innerWidth;
+      prevContainerStyle={position:containerEl.style.position,overflow:containerEl.style.overflow,height:containerEl.style.height};
+      containerEl.style.position='relative';
+      containerEl.style.overflow='hidden';
+      containerEl.style.height=activeEl.offsetHeight+'px';
+      activeEl.style.position='absolute';
+      activeEl.style.top='0'; activeEl.style.left='0'; activeEl.style.width='100%';
+      activeEl.style.transition='none';
+      neighborEl.style.display='block';
+      neighborEl.style.position='absolute';
+      neighborEl.style.top='0'; neighborEl.style.width='100%';
+      neighborEl.style.left=(dir>0?W:-W)+'px';
+      neighborEl.style.transition='none';
+    }
+    if(!isDragging||dir===0) return;
+    // Move both panels together with the finger — the neighbour follows
+    // right along at its fixed offset, so it visibly slides in as the
+    // active panel slides out, instead of a cut between two states.
+    activeEl.style.transform=`translate3d(${dx}px,0,0)`;
+    neighborEl.style.transform=`translate3d(${dx}px,0,0)`;
   },{passive:true});
 
   document.addEventListener('touchend',e=>{
@@ -1647,33 +1693,30 @@ function renderInfoBanner(ib){
     isDragging=false;
     dragLocked=false;
     // Pure tap — reset any stray transform and let click fire normally
-    if(!wasDragging){
-      const wrap=document.querySelector('.cards-stack');
-      if(wrap&&wrap.style.transform){ wrap.style.transition=''; wrap.style.transform=''; }
-      return;
-    }
-    if(document.getElementById('adminPanel')?.classList.contains('open')) return;
+    if(!wasDragging){ cleanupSlide(); return; }
+    if(document.getElementById('adminPanel')?.classList.contains('open')){ cleanupSlide(); return; }
+    if(dir===0||!activeEl||!neighborEl){ cleanupSlide(); return; }
     const dx=e.changedTouches[0].clientX-tsX;
     const W=window.innerWidth;
     const vis=DATA.tabs.filter(tb=>tb.visible!==false);
     const idx=vis.findIndex(tb=>tb.id===currentTabId);
-    const wrap=document.querySelector('.cards-stack');
-    if(Math.abs(dx)>W*THRESHOLD){
-      const dir=dx<0?1:-1;
-      const newIdx=idx+dir;
-      if(newIdx>=0&&newIdx<vis.length){
-        if(wrap){ wrap.style.transition='transform .2s ease'; wrap.style.transform=`translate3d(${-dir*W}px,0,0)`; }
-        setTimeout(()=>{
-          if(wrap){ wrap.style.transition='none'; wrap.style.transform=''; }
-          goToTab(vis[newIdx].id);
-        },200);
-      } else {
-        if(wrap){ wrap.style.transition='transform .2s ease'; wrap.style.transform=''; }
-        setTimeout(()=>{ if(wrap){ wrap.style.transition=''; wrap.style.transform=''; } },220);
-      }
+    const newIdx=idx+dir;
+    const _active=activeEl,_neighbor=neighborEl;
+    if(Math.abs(dx)>W*THRESHOLD&&newIdx>=0&&newIdx<vis.length){
+      _active.style.transition='transform .2s ease';
+      _neighbor.style.transition='transform .2s ease';
+      _active.style.transform=`translate3d(${-dir*W}px,0,0)`;
+      _neighbor.style.transform='translate3d(0,0,0)';
+      setTimeout(()=>{
+        cleanupSlide();
+        goToTab(vis[newIdx].id);
+      },200);
     } else {
-      if(wrap){ wrap.style.transition='transform .2s ease'; wrap.style.transform=''; }
-      setTimeout(()=>{ if(wrap){ wrap.style.transition=''; wrap.style.transform=''; } },220);
+      _active.style.transition='transform .2s ease';
+      _neighbor.style.transition='transform .2s ease';
+      _active.style.transform='translate3d(0,0,0)';
+      _neighbor.style.transform=`translate3d(${dir*W}px,0,0)`;
+      setTimeout(cleanupSlide,220);
     }
   });
 })();
@@ -3757,6 +3800,13 @@ function setRestaurantName(v){ DATA.restaurantName=v; applyRestaurantBranding();
 function setRestaurantLogo(v){ DATA.restaurantLogo=v; applyRestaurantBranding(); }
 function applyRestaurantBranding(){
   applyBrandColors();
+  // BUG FIX: setRestoFont() only ever set this CSS var live, in-session,
+  // when the admin dropdown fired onchange. Nothing re-applied it from
+  // DATA.restoFont on a fresh load, so the font change appeared to "work"
+  // only in that same browser tab and was lost on any other device/reload
+  // even though DATA.restoFont was saved correctly. Re-apply it here since
+  // this runs on every renderAll() and at init.
+  if(DATA.restoFont) document.documentElement.style.setProperty('--restoFont', "'"+DATA.restoFont+"'");
   const name=getRestaurantName();
   const logo=getRestaurantLogo();
   const logoEl=document.querySelector('.logo-img');
@@ -3814,17 +3864,17 @@ function restaurantSettingHtml(){
       <input class="ai" value="${DATA.address&&DATA.address.mapsUrl||''}" placeholder="https://maps.google.com/..." oninput="if(!DATA.address)DATA.address={};DATA.address.mapsUrl=this.value;renderAll()">
     </div>
   </div></div>
-  ${renderBrandColorsSection()}
 `;
 }
 
 function renderBrandColorsSection(){
   const bc=DATA.brandColors||{primary:'#10285E',accent:'#C6A24A',bg:'#F7F5F0'};
-  const labels={primary:'Couleurs principales',accent:'Couleur accent',bg:'Couleur de fond'};
+  const labels={primary:'Couleurs principales',accent:'Couleur accent',bg:'Couleur de fond',subtitle:'Sous-titre',tabInactive:'Titres des tabs (non sélectionnés)'};
+  const defaults={primary:'#10285E',accent:'#C6A24A',bg:'#F7F5F0',subtitle:'#E6E6E6',tabInactive:'#B3B3B3'};
   let h='<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Couleurs principales</div><div class="admin-sect-body">';
   h+='<div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.5">Utilisées dans l\'app et les templates réseaux. Sauvegarder pour appliquer.</div>';
-  ['primary','accent','bg'].forEach(key=>{
-    const val=bc[key]||'#000000';
+  ['primary','accent','bg','subtitle','tabInactive'].forEach(key=>{
+    const val=bc[key]||defaults[key];
     h+='<div class="af"><label class="al">'+labels[key]+'</label>'
       +'<div style="display:flex;align-items:center;gap:8px">'
       +'<input type="color" value="'+val+'" oninput="if(!DATA.brandColors)DATA.brandColors={};DATA.brandColors[&quot;'+key+'&quot;]=this.value;applyBrandColors()" style="width:38px;height:34px;border:1px solid var(--border);border-radius:6px;padding:2px;cursor:pointer">'
@@ -3877,6 +3927,8 @@ function applyBrandColors(){
   if(bc.primary) root.style.setProperty('--navy',bc.primary);
   if(bc.accent)  root.style.setProperty('--gold',bc.accent);
   if(bc.bg)      root.style.setProperty('--bg',bc.bg);
+  if(bc.subtitle)    root.style.setProperty('--subtitleColor',bc.subtitle);
+  if(bc.tabInactive) root.style.setProperty('--tabInactiveColor',bc.tabInactive);
   // Keep the browser/status-bar tint (iOS/Android) in sync with the header
   // color so it never falls back to showing --bg above the header. Read
   // the resolved --navy value (not just bc.primary) so this also self-heals
@@ -3889,7 +3941,7 @@ function applyBrandColors(){
 }
 
 function resetBrandColors(){
-  DATA.brandColors={primary:'#10285E',accent:'#C6A24A',bg:'#F7F5F0'};
+  DATA.brandColors={primary:'#10285E',accent:'#C6A24A',bg:'#F7F5F0',subtitle:'#E6E6E6',tabInactive:'#B3B3B3'};
   applyBrandColors();
   renderAdminSection(adminCurrentTab);
 }
@@ -3976,7 +4028,7 @@ function ghSectionHtml(){
 
 // Patch renderAdminGlobal to prepend GH section
 const _origGlobal=renderAdminGlobal;
-renderAdminGlobal=function(){ return ghSectionHtml()+restaurantSettingHtml()+renderScheduleAdmin()+renderIconesDecorativesSection()+renderSocialAdminSection()+_origGlobal(); };
+renderAdminGlobal=function(){ return ghSectionHtml()+restaurantSettingHtml()+renderScheduleAdmin()+renderBrandColorsSection()+renderIconesDecorativesSection()+renderSocialAdminSection()+_origGlobal(); };
 
 // ═══════════════════════════════════════════
 // ADMIN COLLAPSE
