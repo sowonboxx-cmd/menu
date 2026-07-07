@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" id="themeColorMeta" content="#10285E">
+<title>Réservation — Drevici Oyster</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<style>
+/* ══════════════════════════════════════════════════════
+   Design tokens — kept identical to index-drevici.html so
+   the jump from the menu site to this reservation page is
+   seamless (same navy, gold, font, header treatment).
+   ══════════════════════════════════════════════════════ */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--restoFont:'Cormorant Garamond';--navy:#10285E;--gold:#C6A24A;--bg:#F4F0EA;--white:#fff;--border:rgba(0,0,0,0.08);--text:#1a1a1a;--text2:#666;--text3:#aaa;--r:10px;--rs:6px;--red:#B31217;--subtitleColor:rgba(255,255,255,0.45);--tabInactiveColor:rgba(255,255,255,0.4)}
+body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-size:14px;color:var(--text)}
+.container{max-width:600px;margin:0 auto;padding:0 16px}
+
+/* ── Header — text title + subtitle, same font/treatment as the menu site ── */
+.header{background:var(--navy);padding:22px 0 18px}
+.header-top{position:relative;display:flex;align-items:center;justify-content:center}
+.logo-link{text-decoration:none}
+.logo-text{font-family:var(--restoFont),serif;font-size:24px;font-weight:700;color:#fff;letter-spacing:.08em;text-align:center;display:block;text-transform:uppercase}
+.header-sub{font-size:10px;font-weight:300;color:var(--subtitleColor,rgba(255,255,255,.45));letter-spacing:.14em;text-transform:uppercase;text-align:center;margin-top:6px}
+
+.wrap{max-width:600px;margin:0 auto;padding:18px 16px 48px}
+
+/* ── Segmented tab bar for Date / Couverts / Horaire ──
+   Onyx-style: one pill bar, one active panel below it. Tapping
+   any segment — even an already-completed one — reopens it for
+   editing. Completing a segment auto-advances to the next
+   *unfilled* one, it never forces you off a segment you tapped
+   into on purpose. */
+.seg-bar{display:flex;background:var(--navy);border-radius:50px;padding:4px;gap:4px;margin-bottom:14px}
+.seg{flex:1;min-width:0;text-align:center;padding:11px 6px;border-radius:50px;font-size:12px;font-weight:600;color:var(--tabInactiveColor,rgba(255,255,255,.55));cursor:pointer;transition:.15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seg.active{background:#fff;color:var(--navy)}
+.seg.filled:not(.active){color:#fff}
+
+.panel{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:14px}
+.panel-label{font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:14px;display:flex;align-items:center;gap:6px}
+
+/* Calendar */
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.cal-mo{font-size:15px;font-weight:600;color:var(--text)}
+.cal-arr{width:32px;height:32px;border-radius:var(--rs);border:1px solid var(--border);background:none;cursor:pointer;font-size:15px;color:var(--text2);display:flex;align-items:center;justify-content:center;transition:background .15s}
+.cal-arr:hover{background:#f5f5f3}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-dh{text-align:center;font-size:10px;color:var(--text3);padding:4px 0;letter-spacing:.06em}
+.cal-d{aspect-ratio:1;border-radius:var(--rs);display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;color:var(--text);border:1px solid transparent;transition:all .12s}
+.cal-d:hover:not(.past):not(.empty):not(.closed){border-color:var(--navy);color:var(--navy)}
+.cal-d.sel{background:var(--navy);color:#fff!important}
+.cal-d.today{font-weight:700;color:var(--gold)}
+.cal-d.past{color:#ddd;cursor:default}
+.cal-d.empty{cursor:default}
+.cal-d.closed{color:#ddd;cursor:not-allowed}
+
+/* Covers — clean number grid, like the Onyx reference */
+.cov-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.cov-btn{aspect-ratio:1;border-radius:var(--rs);border:1px solid var(--border);background:#fff;font-size:16px;font-weight:600;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s}
+.cov-btn:hover{border-color:var(--navy);color:var(--navy)}
+.cov-btn.sel{background:var(--navy);color:#fff!important;border-color:var(--navy)}
+.cov-note{font-size:11px;color:var(--text3);margin-top:14px;line-height:1.6}
+.cov-note a{color:var(--navy);font-weight:600;text-decoration:none}
+.custom-cov{margin-top:14px;display:none;align-items:center;gap:10px;flex-wrap:wrap}
+.custom-cov.show{display:flex}
+.custom-cov label{font-size:12px;color:var(--text2)}
+.cov-input{width:70px;padding:9px 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:14px;font-family:inherit;text-align:center;-webkit-appearance:none}
+.cov-input:focus{outline:none;border-color:var(--navy)}
+.cov-confirm{padding:9px 16px;background:var(--navy);color:#fff;border:none;border-radius:var(--rs);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+
+/* Time slots */
+.slots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sl-btn{padding:12px 6px;border-radius:var(--rs);border:1px solid var(--border);background:#fff;font-size:13px;cursor:pointer;color:var(--text);transition:all .12s;font-family:inherit}
+.sl-btn:hover:not(.full){border-color:var(--navy);color:var(--navy)}
+.sl-btn.sel{background:var(--navy);color:#fff!important;border-color:var(--navy)}
+.sl-btn.full{opacity:.4;cursor:not-allowed;text-decoration:line-through;font-size:12px}
+.no-slots{text-align:center;font-size:12px;color:var(--text3);padding:16px 0}
+
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:400px){.fg{grid-template-columns:1fr}}
+.fl{font-size:11px;color:var(--text2);display:block;margin-bottom:5px}
+.fi{width:100%;padding:11px 13px;border:1px solid var(--border);border-radius:var(--rs);font-size:16px;color:var(--text);background:#fff;font-family:inherit;transition:border-color .15s;-webkit-appearance:none}
+.phone-row{display:flex;gap:8px}
+.phone-code{flex:0 0 92px;padding:11px 8px;border:1px solid var(--border);border-radius:var(--rs);font-size:15px;color:var(--text);background:#fff;font-family:inherit;-webkit-appearance:none}
+.phone-code:focus{outline:none;border-color:var(--navy)}
+.phone-row .fi{flex:1}
+.fi:focus{outline:none;border-color:var(--navy)}
+.fi::placeholder{color:#ccc}
+.fr{margin-bottom:13px}
+.fr:last-child{margin-bottom:0}
+
+/* Récap tab — editable rows, no icons: bold text left, whole row
+   clickable to jump back to that step. Nothing here ever shows on the
+   Date/Couverts/Horaire tabs — it's fully contained in #panelRecap. */
+.recap-not-ready{text-align:center;font-size:13px;color:var(--text3);padding:20px 0}
+.step-recap-title{font-size:19px;font-weight:700;color:var(--text);margin-bottom:12px}
+.step-recap-row{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:10px;font-size:16px;font-weight:700;color:var(--text);cursor:pointer;transition:border-color .15s}
+.step-recap-row:hover{border-color:var(--navy)}
+.step-recap-row:last-child{margin-bottom:16px}
+
+.btn-main{width:100%;background:var(--navy);color:#fff!important;border:none;border-radius:var(--rs);padding:15px;font-size:14px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:background .15s,opacity .15s;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;-webkit-appearance:none}
+.btn-main:hover:not(:disabled){background:#0a1a3e}
+.btn-main:disabled{opacity:.35;cursor:not-allowed}
+.btn-main.red{background:var(--red)}
+.btn-main.red:hover:not(:disabled){background:#8f0d11}
+
+.err{font-size:12px;color:var(--red);margin-bottom:10px;display:none}
+.hidden{display:none!important}
+
+/* Success */
+.success{text-align:center;padding:16px 0 32px}
+.s-title{font-family:var(--restoFont),serif;font-size:26px;font-weight:700;color:var(--text);margin-bottom:10px}
+.s-sub{font-size:14px;color:var(--text2);line-height:1.65;margin-bottom:20px}
+.s-ref{font-size:11px;color:var(--text3);letter-spacing:.12em;text-transform:uppercase;margin-top:8px}
+</style>
+</head>
+<body>
+
+<!-- ── Header — text title + subtitle, same font/treatment as index-drevici.html ── -->
+<div class="header">
+  <div class="container">
+    <div class="header-top">
+      <a href="https://sowonboxx-cmd.github.io/menu/drevici-oyster/" class="logo-link">
+        <span class="logo-text">Drevici Oyster</span>
+      </a>
+    </div>
+    <div class="header-sub">Réservation</div>
+  </div>
+</div>
+
+<div class="wrap">
+
+
+  <!-- 3-segment tab bar: Date / Couverts / Horaire -->
+  <div class="seg-bar" id="segBar">
+    <div class="seg active" id="segDate" onclick="selectTab('date')">Date</div>
+    <div class="seg" id="segCovers" onclick="selectTab('couverts')">Couverts</div>
+    <div class="seg" id="segSlot" onclick="selectTab('horaire')">Horaire</div>
+    <div class="seg" id="segRecap" onclick="selectTab('recap')">Récap</div>
+  </div>
+
+  <!-- DATE panel -->
+  <div class="panel" id="panelDate">
+    <div class="cal-nav">
+      <button class="cal-arr" onclick="chMo(-1)">‹</button>
+      <span class="cal-mo" id="calMo"></span>
+      <button class="cal-arr" onclick="chMo(1)">›</button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
+
+  <!-- COUVERTS panel -->
+  <div class="panel hidden" id="panelCovers">
+    <div class="cov-grid" id="covGrid">
+      <button class="cov-btn" onclick="pickCover(this,1)">1</button>
+      <button class="cov-btn" onclick="pickCover(this,2)">2</button>
+      <button class="cov-btn" onclick="pickCover(this,3)">3</button>
+      <button class="cov-btn" onclick="pickCover(this,4)">4</button>
+      <button class="cov-btn" onclick="pickCover(this,5)">5</button>
+      <button class="cov-btn" onclick="pickCover(this,6)">6</button>
+      <button class="cov-btn" onclick="pickCover(this,7)">7</button>
+      <button class="cov-btn" onclick="pickCover(this,8)">8</button>
+      <button class="cov-btn" onclick="pickCover(this,9)">9</button>
+      <button class="cov-btn" id="cvPlus" onclick="showCustomCover(this)">10+</button>
+    </div>
+    <div class="custom-cov" id="customCovers">
+      <label>Nombre exact :</label>
+      <input class="cov-input" id="coverNum" type="number" min="10" max="25" value="10">
+      <button class="cov-confirm" onclick="confirmCustomCover()">Confirmer</button>
+    </div>
+    <div class="cov-note">Pour les groupes de plus de 10 personnes, contactez-nous directement au <a href="https://www.google.com/search?client=opera&q=drevicioyster&sourceid=opera&ie=UTF-8&oe=UTF-8#">09 74 64 05 87</a> ou par email à <a href="mailto:benji@oceanprosarl.com">benji@oceanprosarl.com</a>.</div>
+  </div>
+
+  <!-- HORAIRE panel -->
+  <div class="panel hidden" id="panelSlot">
+    <div class="slots" id="slDinner"></div>
+    <div class="no-slots hidden" id="noSlotsMsg">Sélectionnez d'abord une date pour voir les créneaux disponibles.</div>
+  </div>
+
+  <!-- RÉCAP panel — 4th tab. Only ever visible when this tab is active,
+       never bleeds into the Date/Couverts/Horaire tabs. Each recap row
+       is clickable and jumps back to that step (no recap visible there,
+       kept clean per request). -->
+  <div class="panel hidden" id="panelRecap">
+    <div class="recap-not-ready" id="recapNotReady">Complétez d'abord la date, le nombre de personnes et l'horaire.</div>
+
+    <div id="recapReady" class="hidden">
+      <div class="step-recap-title">Votre réservation :</div>
+      <div class="step-recap-row" id="recapDateRow" onclick="selectTab('date')"><span id="recapDate">—</span></div>
+      <div class="step-recap-row" id="recapCovRow" onclick="selectTab('couverts')"><span id="recapCov">—</span></div>
+      <div class="step-recap-row" id="recapSlotRow" onclick="selectTab('horaire')"><span id="recapSlot">—</span></div>
+
+      <div class="panel-label" style="margin-top:22px">Vos informations</div>
+      <div class="fg">
+        <div class="fr"><label class="fl">Prénom *</label><input class="fi" id="fPre" type="text" placeholder="Jean" oninput="onFormInput()"></div>
+        <div class="fr"><label class="fl">Nom *</label><input class="fi" id="fNom" type="text" placeholder="Dupont" oninput="onFormInput()"></div>
+      </div>
+      <div class="fr"><label class="fl">Email *</label><input class="fi" id="fMail" type="email" placeholder="jean@exemple.fr" oninput="onFormInput()"></div>
+      <div class="fr">
+        <label class="fl">Téléphone</label>
+        <div class="phone-row">
+          <select class="phone-code" id="fTelCode">
+            <option value="+33" selected>🇫🇷 +33</option>
+            <option value="+32">🇧🇪 +32</option>
+            <option value="+41">🇨🇭 +41</option>
+            <option value="+352">🇱🇺 +352</option>
+            <option value="+44">🇬🇧 +44</option>
+            <option value="+49">🇩🇪 +49</option>
+            <option value="+34">🇪🇸 +34</option>
+            <option value="+39">🇮🇹 +39</option>
+            <option value="+31">🇳🇱 +31</option>
+            <option value="+351">🇵🇹 +351</option>
+            <option value="+1">🇺🇸 +1</option>
+          </select>
+          <input class="fi" id="fTel" type="tel" placeholder="6 00 00 00 00">
+        </div>
+      </div>
+      <div class="fr"><label class="fl">Commentaires, préférences ou restrictions alimentaires :</label><input class="fi" id="fNote" type="text" placeholder="Sans gluten, anniversaire…"></div>
+
+      <div class="err" id="sendErr">Erreur d'envoi. Vérifiez votre configuration EmailJS.</div>
+      <button class="btn-main red" id="btnConfirm" disabled onclick="sendResa()">
+        <span id="btnTxt">Réserver</span>
+        <span id="btnLoad" class="hidden">Envoi…</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- SUCCESS -->
+  <div id="sOk" class="hidden">
+    <div class="panel success">
+      <div class="s-title">Réservation confirmée !</div>
+      <div class="s-sub">Un email de confirmation a été envoyé à<br><strong id="okEmail"></strong>.</div>
+      <a href="https://sowonboxx-cmd.github.io/menu/drevici-oyster/" style="display:block;text-align:center;font-size:13px;color:var(--navy);margin-top:16px">← Retour au site</a>
+      <div class="s-ref" id="okRef"></div>
+    </div>
+  </div>
+
+</div><!-- /.wrap -->
+
+<script>
+/* ══ CONFIG ══ */
+const EMAILJS_PUBLIC_KEY      = 'OtZrumB6ygJnmfppg';
+const EMAILJS_SERVICE_ID      = 'service_30imgy6';
+const EMAILJS_TEMPLATE_ID     = 'template_tju5op3';     // Template notif restaurant
+const EMAILJS_TEMPLATE_CLIENT = 'VOTRE_TEMPLATE_CLIENT'; // Template confirmation client
+
+// CONFIG NOTE: this file now handles a single location (Paris/Surzur
+// switching was removed). Adjust these two lines for whichever venue
+// this exact deployment is for.
+const LOCATION_NAME = 'Paris';
+const CLOSED_DAYS   = [0,1]; // Sunday, Monday
+
+const DINNER      = ['17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30','22:00','22:30'];
+const FULL_SLOTS  = [];
+
+let activeTab = 'date'; // 'date' | 'couverts' | 'horaire'
+
+const S = { covers: null, date: null, slot: null };
+let curM = new Date().getMonth();
+let curY = new Date().getFullYear();
+const today = new Date();
+const MONTHS   = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const MONTHS_S = ['jan.','fév.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+const DAY_HD  = ['Lu','Ma','Me','Je','Ve','Sa','Di'];
+const DAY_FUL = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+const DAY_S   = ['Lun.','Mar.','Mer.','Jeu.','Ven.','Sam.','Dim.'];
+
+(function(){ if (typeof emailjs !== 'undefined') emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY }); })();
+
+/* ── Segmented tab bar: which panel is open ──
+   Tapping a segment — filled or not — just opens that panel.
+   Auto-advance (called after a selection) only moves to the next
+   segment if it doesn't already have a value, so re-editing a
+   completed step never gets yanked away from you. */
+const SEG_IDS = { date: 'segDate', couverts: 'segCovers', horaire: 'segSlot', recap: 'segRecap' };
+function selectTab(name) {
+  activeTab = name;
+  Object.keys(SEG_IDS).forEach(n => {
+    document.getElementById(SEG_IDS[n]).classList.toggle('active', n === name);
+  });
+  document.getElementById('panelDate').classList.toggle('hidden', name !== 'date');
+  document.getElementById('panelCovers').classList.toggle('hidden', name !== 'couverts');
+  document.getElementById('panelSlot').classList.toggle('hidden', name !== 'horaire');
+  document.getElementById('panelRecap').classList.toggle('hidden', name !== 'recap');
+  if (name === 'recap') renderRecapPanel();
+}
+function autoAdvance(from) {
+  // 'recap' has no fill state of its own — it's always the fallback
+  // destination once date/couverts/horaire are all set, which is
+  // exactly what we want once the last of the three gets picked.
+  const order = ['date','couverts','horaire','recap'];
+  const filled = { date: !!S.date, couverts: !!S.covers, horaire: !!S.slot, recap: false };
+  const idx = order.indexOf(from);
+  for (let i = idx + 1; i < order.length; i++) {
+    if (!filled[order[i]]) { selectTab(order[i]); return; }
+  }
+}
+function updateSegLabels() {
+  document.getElementById('segDate').textContent = S.date
+    ? DAY_S[(S.date.getDay() + 6) % 7] + ' ' + S.date.getDate() + ' ' + MONTHS_S[S.date.getMonth()]
+    : 'Date';
+  document.getElementById('segDate').classList.toggle('filled', !!S.date);
+  document.getElementById('segCovers').textContent = S.covers
+    ? S.covers + (S.covers === 1 ? ' pers.' : ' pers.')
+    : 'Couverts';
+  document.getElementById('segCovers').classList.toggle('filled', !!S.covers);
+  document.getElementById('segSlot').textContent = S.slot || 'Horaire';
+  document.getElementById('segSlot').classList.toggle('filled', !!S.slot);
+  // Re-apply active state after relabeling (textContent wipe doesn't
+  // touch classList, but keep this here in case markup changes later)
+  Object.keys(SEG_IDS).forEach(n => {
+    document.getElementById(SEG_IDS[n]).classList.toggle('active', n === activeTab);
+  });
+}
+
+/* ── Covers ── */
+function pickCover(el, n) {
+  S.covers = n;
+  document.querySelectorAll('.cov-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('customCovers').classList.remove('show');
+  updateSegLabels();
+  renderRecapPanel();
+  autoAdvance('couverts');
+}
+function showCustomCover(el) {
+  document.querySelectorAll('.cov-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('customCovers').classList.add('show');
+  document.getElementById('coverNum').focus();
+}
+function confirmCustomCover() {
+  const n = parseInt(document.getElementById('coverNum').value);
+  if (n >= 10 && n <= 25) {
+    S.covers = n;
+    document.getElementById('cvPlus').textContent = n + ' pers.';
+    updateSegLabels();
+    renderRecapPanel();
+    autoAdvance('couverts');
+  }
+}
+
+/* ── Calendar ── */
+function renderCal() {
+  document.getElementById('calMo').textContent = MONTHS[curM] + ' ' + curY;
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+  DAY_HD.forEach(d => { const h = document.createElement('div'); h.className = 'cal-dh'; h.textContent = d; grid.appendChild(h); });
+  const first = new Date(curY, curM, 1);
+  let start = first.getDay() - 1; if (start < 0) start = 6;
+  for (let i = 0; i < start; i++) { const e = document.createElement('div'); e.className = 'cal-d empty'; grid.appendChild(e); }
+  const daysIn = new Date(curY, curM + 1, 0).getDate();
+  const closed = CLOSED_DAYS;
+  for (let d = 1; d <= daysIn; d++) {
+    const btn = document.createElement('div'); btn.className = 'cal-d'; btn.textContent = d;
+    const dt = new Date(curY, curM, d);
+    const isToday  = dt.toDateString() === today.toDateString();
+    const isPast   = dt < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const isClosed = closed.includes(dt.getDay());
+    if (isToday) btn.classList.add('today');
+    if (isPast || isClosed) { btn.classList.add(isClosed ? 'closed' : 'past'); }
+    else { if (S.date && S.date.getTime() === dt.getTime()) btn.classList.add('sel'); btn.onclick = () => pickDate(dt, btn); }
+    grid.appendChild(btn);
+  }
+}
+function chMo(dir) { curM += dir; if (curM > 11) { curM = 0; curY++; } if (curM < 0) { curM = 11; curY--; } renderCal(); }
+function pickDate(d, el) {
+  S.date = d;
+  document.querySelectorAll('.cal-d').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+  updateSegLabels();
+  renderSlots();
+  renderRecapPanel();
+  autoAdvance('date');
+}
+
+/* ── Slots ── */
+function renderSlots() {
+  const row = document.getElementById('slDinner');
+  const noMsg = document.getElementById('noSlotsMsg');
+  if (!S.date) { row.innerHTML = ''; noMsg.classList.remove('hidden'); return; }
+  noMsg.classList.add('hidden');
+  row.innerHTML = '';
+  DINNER.forEach(t => {
+    const btn = document.createElement('button'); btn.className = 'sl-btn';
+    const isFull = FULL_SLOTS.includes(t);
+    if (isFull) { btn.classList.add('full'); btn.textContent = t; btn.disabled = true; }
+    else { btn.textContent = t; if (S.slot === t) btn.classList.add('sel'); btn.onclick = () => pickSlot(t, btn); }
+    row.appendChild(btn);
+  });
+}
+function pickSlot(t, el) {
+  S.slot = t;
+  document.querySelectorAll('.sl-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+  updateSegLabels();
+  renderRecapPanel();
+  autoAdvance('horaire');
+}
+
+/* ── Populate the Récap tab: shows a "not ready" message until
+   date/couverts/horaire are all set, then the editable recap rows +
+   contact form. Safe to call anytime — it's a no-op visually unless
+   the Récap tab is actually the one open. ── */
+function renderRecapPanel() {
+  const ready = !!(S.covers && S.date && S.slot);
+  document.getElementById('recapNotReady').classList.toggle('hidden', ready);
+  document.getElementById('recapReady').classList.toggle('hidden', !ready);
+  if (ready) fillSummary();
+  onFormInput();
+}
+
+/* ── Form validity ── */
+function onFormInput() {
+  const ok = document.getElementById('fPre').value.trim() &&
+             document.getElementById('fNom').value.trim() &&
+             document.getElementById('fMail').value.includes('@') &&
+             !!(S.covers && S.date && S.slot);
+  document.getElementById('btnConfirm').disabled = !ok;
+}
+
+/* ── Step recap (editable, no icons) — matches the reference: bold
+   text rows, tap any row to jump back and change that step. ── */
+function fillSummary() {
+  const d = S.date; const dow = DAY_FUL[(d.getDay() + 6) % 7];
+  document.getElementById('recapDate').textContent = dow + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()];
+  document.getElementById('recapCov').textContent  = S.covers + (S.covers === 1 ? ' personne' : ' personne(s)');
+  document.getElementById('recapSlot').textContent = S.slot;
+}
+
+/* ── Send ── */
+function sendResa() {
+  const btn = document.getElementById('btnConfirm');
+  const d = S.date; const dow = DAY_FUL[(d.getDay() + 6) % 7];
+  const ref = 'DRV-' + Math.random().toString(36).substring(2,7).toUpperCase();
+  btn.disabled = true;
+  document.getElementById('btnTxt').classList.add('hidden');
+  document.getElementById('btnLoad').classList.remove('hidden');
+  document.getElementById('sendErr').style.display = 'none';
+
+  const clientEmail = document.getElementById('fMail').value;
+
+  const params = {
+    from_name:    document.getElementById('fPre').value + ' ' + document.getElementById('fNom').value,
+    from_email:   clientEmail,
+    reply_to:     clientEmail,
+    to_email:     clientEmail,
+    phone:        document.getElementById('fTel').value.trim()
+                    ? document.getElementById('fTelCode').value + ' ' + document.getElementById('fTel').value.trim()
+                    : 'Non renseigné',
+    covers:       S.covers + (S.covers === 1 ? ' couvert' : ' couverts'),
+    location:     LOCATION_NAME,
+    date:         dow + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(),
+    slot:         S.slot,
+    note:         document.getElementById('fNote').value || 'Aucune',
+    ref:          ref,
+  };
+
+  if (typeof emailjs !== 'undefined') {
+    const send1 = emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params);
+    const paramsClient = { ...params, to_email: clientEmail };
+    const send2 = EMAILJS_TEMPLATE_CLIENT !== 'VOTRE_TEMPLATE_CLIENT'
+      ? emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_CLIENT, paramsClient)
+      : Promise.resolve();
+    Promise.all([send1, send2])
+      .then(() => showSuccess(clientEmail, ref))
+      .catch(err => {
+        console.error('EmailJS:', err); btn.disabled = false;
+        document.getElementById('btnTxt').classList.remove('hidden');
+        document.getElementById('btnLoad').classList.add('hidden');
+        document.getElementById('sendErr').style.display = 'block';
+      });
+  } else {
+    setTimeout(() => showSuccess(clientEmail, ref), 600);
+  }
+}
+
+function showSuccess(email, ref) {
+  document.getElementById('segBar').classList.add('hidden');
+  document.getElementById('panelDate').classList.add('hidden');
+  document.getElementById('panelCovers').classList.add('hidden');
+  document.getElementById('panelSlot').classList.add('hidden');
+  document.getElementById('panelRecap').classList.add('hidden');
+  document.getElementById('okEmail').textContent = email;
+  document.getElementById('okRef').textContent = 'Référence : ' + ref;
+  document.getElementById('sOk').classList.remove('hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+renderCal();
+renderSlots();
+updateSegLabels();
+</script>
+</body>
+</html>
