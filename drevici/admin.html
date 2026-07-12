@@ -88,6 +88,9 @@ tbody tr:hover{background:#fafaf8}
   .controls .btn-navy{display:none}
 
   thead{display:none}
+  /* Cards float on the cream background with a real gap between them,
+     instead of one continuous white block cut by divider lines. */
+  .table-wrap{background:transparent;border:none;border-radius:0}
   table, tbody{display:block;width:100%}
   tbody tr{
     display:grid;
@@ -98,16 +101,23 @@ tbody tr:hover{background:#fafaf8}
       "contact  slot"
       "footer   footer";
     column-gap:12px;
-    border-top:1px solid var(--border);
-    padding:14px 16px;
+    background:#fff;
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:16px;
+    margin-bottom:12px;
     position:relative;
   }
-  tbody tr:first-child{border-top:none}
-  tbody td{padding:3px 0}
-  /* Réf. + date d'enregistrement — de-emphasized, at the bottom */
-  td:nth-child(1){grid-area:footer;margin-top:6px;padding-top:8px;border-top:1px solid var(--border)}
-  td:nth-child(1) .t-ref{font-size:12px}
+  tbody tr:last-child{margin-bottom:0}
+  /* Every <td> inherited a border-top from the desktop table rule —
+     it has to be reset here, otherwise each grid cell shows its own
+     stray line at its own top edge instead of one clean card. */
+  tbody td{padding:3px 0;border-top:none}
+  /* "Date de réservation : …" — de-emphasized, at the bottom, no line */
+  td:nth-child(1){grid-area:footer;margin-top:8px;font-size:12px;color:var(--text3)}
+  td:nth-child(1) .t-ref{display:none}
   td:nth-child(1) .t-ref-date{margin-top:0}
+  td:nth-child(1) .t-ref-date::before{content:"Date de réservation : "}
   /* Client name + note */
   td:nth-child(2){grid-area:client}
   /* Email + phone */
@@ -121,6 +131,7 @@ tbody tr:hover{background:#fafaf8}
   td:nth-child(5) .covers-pill::after{content:" pers."}
   td:nth-child(6){grid-area:slot;text-align:right;font-size:15px;align-self:center}
   .t-del{position:absolute;top:14px;right:16px}
+  .empty-msg{background:#fff;border:1px solid var(--border);border-radius:14px}
 }
 
 /* ── Toast ── */
@@ -325,10 +336,13 @@ function renderTable() {
     const phoneHtml = r.phone
       ? `<a href="tel:${phoneDigits}" style="color:inherit;text-decoration:none">${escapeHtml(r.phone)}</a> <a href="sms:${phoneDigits}" style="font-size:11px;font-weight:600;color:var(--navy);text-decoration:none">Message</a>`
       : '';
+    const emailHtml = r.from_email
+      ? `<a href="mailto:${escapeAttr(r.from_email)}" style="color:inherit;text-decoration:none">${escapeHtml(r.from_email)}</a>`
+      : '';
     tr.innerHTML = `
       <td><div class="t-ref">${escapeHtml(r.ref || '')}</div><div class="t-ref-date">${escapeHtml(createdDate)}</div></td>
       <td><div class="t-client">${escapeHtml(r.from_name || '')}</div>${r.note && r.note !== 'Aucune' ? `<div class="t-note">${escapeHtml(r.note)}</div>` : ''}</td>
-      <td class="t-contact"><div>${escapeHtml(r.from_email || '')}</div><div>${phoneHtml}</div></td>
+      <td class="t-contact"><div>${emailHtml}</div><div>${phoneHtml}</div></td>
       <td>${escapeHtml(r.date_label || '')}</td>
       <td><span class="covers-pill">${escapeHtml(String(r.covers || ''))}</span></td>
       <td class="t-slot">${escapeHtml(r.slot || '')}</td>
