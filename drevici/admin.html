@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#10285E">
+<title>Réservations — Drevici Oyster</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+/* Same design tokens as resa.html, for a consistent look. */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--restoFont:'Cormorant Garamond';--navy:#10285E;--gold:#C6A24A;--bg:#F4F0EA;--white:#fff;--border:rgba(0,0,0,0.08);--text:#1a1a1a;--text2:#666;--text3:#aaa;--r:10px;--rs:6px;--red:#B31217}
+body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-size:14px;color:var(--text)}
+.container{max-width:1100px;margin:0 auto;padding:0 16px}
+.hidden{display:none!important}
+
+/* ── Login screen ── */
+.login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;padding:20px}
+.login-card{background:#fff;border-radius:14px;border:1px solid var(--border);padding:32px 28px;width:100%;max-width:340px;text-align:center}
+.login-title{font-family:var(--restoFont),serif;font-size:22px;font-weight:700;color:var(--navy);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+.login-sub{font-size:11px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:24px}
+.login-field{margin-bottom:14px;text-align:left}
+.login-field label{font-size:11px;color:var(--text2);display:block;margin-bottom:5px}
+.login-field input{width:100%;padding:11px 13px;border:1px solid var(--border);border-radius:var(--rs);font-size:16px;font-family:inherit;-webkit-appearance:none}
+.login-field input:focus{outline:none;border-color:var(--navy)}
+.login-err{font-size:12px;color:var(--red);margin-bottom:12px;display:none;text-align:left}
+.login-btn{width:100%;padding:13px;background:var(--navy);color:#fff;border:none;border-radius:var(--rs);font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;font-family:inherit}
+.login-btn:hover{background:#0a1a3e}
+.login-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* ── Header — identical banner to resa.html ── */
+.header{background:var(--navy);padding:22px 0 18px}
+.header-top{position:relative;display:flex;align-items:center;justify-content:center}
+.logo-link{text-decoration:none}
+.logo-text{font-family:var(--restoFont),serif;font-size:24px;font-weight:700;color:#fff;letter-spacing:.08em;text-align:center;display:block;text-transform:uppercase}
+.header-sub{font-size:10px;font-weight:300;color:#FFFFFF;letter-spacing:.14em;text-transform:uppercase;text-align:center;margin-top:6px}
+.logout-btn{position:absolute;right:16px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(255,255,255,.6);font-size:11px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;font-family:inherit}
+.logout-btn:hover{color:#fff}
+
+.wrap{max-width:1100px;margin:0 auto;padding:20px 16px 48px}
+
+/* ── Stat cards ── */
+.stats{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+.stat-card{flex:1;min-width:150px;background:#fff;border-radius:14px;padding:20px;text-align:center;border:1px solid var(--border)}
+.stat-n{font-family:var(--restoFont),serif;font-size:34px;font-weight:700;color:var(--navy)}
+.stat-l{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-top:4px}
+
+/* ── Controls row ── */
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.search-input{flex:1;min-width:220px;padding:12px 16px;border:1px solid var(--border);border-radius:var(--rs);font-size:14px;font-family:inherit;background:#fff;color:var(--text)}
+.search-input:focus{outline:none;border-color:var(--navy)}
+.search-input::placeholder{color:var(--text3)}
+.btn-plain{padding:12px 18px;border:1px solid var(--border);border-radius:var(--rs);background:#fff;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-plain:hover{background:#f5f5f3}
+.btn-navy{padding:12px 20px;border:none;border-radius:var(--rs);background:var(--navy);color:#fff;font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;font-family:inherit}
+.btn-navy:hover{background:#0a1a3e}
+
+/* ── Table ── */
+.table-wrap{background:#fff;border-radius:14px;border:1px solid var(--border);overflow:hidden}
+table{width:100%;border-collapse:collapse}
+thead th{background:#f7f5f2;text-align:left;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);padding:14px 16px;white-space:nowrap}
+tbody td{padding:16px;border-top:1px solid var(--border);vertical-align:top;font-size:13px}
+tbody tr:hover{background:#fafaf8}
+.t-ref{font-family:var(--restoFont),serif;font-weight:700;color:var(--navy);font-size:15px}
+.t-ref-date{font-size:11px;color:var(--text3);margin-top:2px}
+.t-client{font-weight:700;color:var(--text)}
+.t-note{font-size:12px;color:var(--text3);font-style:italic;margin-top:3px}
+.t-contact div{white-space:nowrap}
+.t-contact div:first-child{color:var(--text)}
+.t-contact div:last-child{color:var(--text2);margin-top:2px}
+.covers-pill{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;padding:0 8px;border-radius:50px;background:var(--navy);color:#fff;font-weight:700;font-size:13px}
+.t-slot{font-weight:700;color:var(--navy)}
+.t-del{cursor:pointer;color:var(--text3);font-size:18px;text-align:center;transition:color .15s}
+.t-del:hover{color:var(--red)}
+.empty-msg{text-align:center;padding:48px 20px;color:var(--text3);font-size:14px}
+.empty-icon{font-size:32px;margin-bottom:10px}
+
+/* Mobile: collapse the table into stacked cards */
+@media(max-width:760px){
+  thead{display:none}
+  table, tbody, tr, td{display:block;width:100%}
+  tbody tr{border-top:1px solid var(--border);padding:14px 16px;position:relative}
+  tbody td{border-top:none;padding:4px 0}
+  .t-del{position:absolute;top:14px;right:16px}
+}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:30px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:99;white-space:nowrap}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- Login screen — Supabase Auth. Shown until a valid admin session
+     exists; nothing below it ever renders before that. -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="login-title">Drevici Oyster</div>
+    <div class="login-sub">Réservations — Administration</div>
+    <div class="login-field">
+      <label>Email</label>
+      <input id="loginEmail" type="email" placeholder="toi@exemple.fr" onkeydown="if(event.key==='Enter') tryLogin()">
+    </div>
+    <div class="login-field">
+      <label>Mot de passe</label>
+      <input id="loginPass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter') tryLogin()">
+    </div>
+    <div class="login-err" id="loginErr">Identifiants incorrects.</div>
+    <button class="login-btn" id="loginBtn" onclick="tryLogin()">Se connecter</button>
+  </div>
+</div>
+
+<div id="dashContent" class="hidden">
+
+  <div class="header">
+    <div class="container">
+      <div class="header-top">
+        <a href="resa.html" class="logo-link">
+          <span class="logo-text">Drevici Oyster</span>
+        </a>
+        <button class="logout-btn" onclick="logout()">Déconnexion</button>
+      </div>
+      <div class="header-sub">Réservations — Administration</div>
+    </div>
+  </div>
+
+  <div class="wrap">
+
+    <div class="stats">
+      <div class="stat-card"><div class="stat-n" id="statCount">—</div><div class="stat-l">Réservations</div></div>
+      <div class="stat-card"><div class="stat-n" id="statCovers">—</div><div class="stat-l">Couverts</div></div>
+      <div class="stat-card"><div class="stat-n" id="statToday">—</div><div class="stat-l">Aujourd'hui</div></div>
+    </div>
+
+    <div class="controls">
+      <input class="search-input" id="searchInput" type="text" placeholder="Rechercher un nom, email, téléphone…" oninput="renderTable()">
+      <button class="btn-plain" onclick="clearSearch()">Effacer</button>
+      <button class="btn-navy" onclick="exportCsv()">Exporter CSV</button>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Réf.</th>
+            <th>Client</th>
+            <th>Contact</th>
+            <th>Date</th>
+            <th>Couverts</th>
+            <th>Heure</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+      <div class="empty-msg hidden" id="emptyMsg"></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══ CONFIG ══
+   Same Supabase project/keys as resa.html — see supabase-setup.sql.
+   CLIENT_SLUG filters the shared table down to this restaurant only. */
+const SUPABASE_URL      = 'COLLE_ICI_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'COLLE_ICI_SUPABASE_ANON_KEY';
+const CLIENT_SLUG       = 'drevici-paris';
+
+const sb = (SUPABASE_URL !== 'COLLE_ICI_SUPABASE_URL' && window.supabase)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+
+let ALL = [];
+
+/* ── Auth ── */
+async function tryLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPass').value;
+  const btn   = document.getElementById('loginBtn');
+  const err   = document.getElementById('loginErr');
+  err.style.display = 'none';
+
+  if (!sb) {
+    err.textContent = 'Configuration manquante : colle l\u2019URL et la clé Supabase en haut du script de cette page.';
+    err.style.display = 'block';
+    return;
+  }
+  btn.disabled = true;
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  btn.disabled = false;
+  if (error) {
+    err.textContent = 'Identifiants incorrects.';
+    err.style.display = 'block';
+    document.getElementById('loginPass').value = '';
+    document.getElementById('loginPass').focus();
+    return;
+  }
+  enterDashboard();
+}
+
+async function logout() {
+  if (sb) await sb.auth.signOut();
+  document.getElementById('dashContent').classList.add('hidden');
+  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginPass').value = '';
+}
+
+function enterDashboard() {
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('dashContent').classList.remove('hidden');
+  loadReservations();
+}
+
+/* If a Supabase session already exists (page reload), skip straight to
+   the dashboard instead of asking to log in again. */
+async function checkExistingSession() {
+  if (!sb) return;
+  const { data } = await sb.auth.getSession();
+  if (data.session) enterDashboard();
+}
+
+/* ── Data ── */
+async function loadReservations() {
+  if (!sb) return;
+  try {
+    const { data, error } = await sb
+      .from('restaurant_reservations')
+      .select('*')
+      .eq('client_slug', CLIENT_SLUG)
+      .order('date_iso', { ascending: true });
+    if (error) throw error;
+    ALL = data || [];
+    renderStats();
+    renderTable();
+  } catch (err) {
+    console.error('Reservations load failed:', err);
+    document.getElementById('emptyMsg').textContent = 'Impossible de charger les réservations.';
+    document.getElementById('emptyMsg').classList.remove('hidden');
+  }
+}
+
+function renderStats() {
+  const todayIso = new Date().toISOString().slice(0, 10);
+  document.getElementById('statCount').textContent = ALL.length;
+  document.getElementById('statCovers').textContent = ALL.reduce((sum, r) => sum + (parseInt(r.covers) || 0), 0);
+  document.getElementById('statToday').textContent = ALL.filter(r => r.date_iso === todayIso).length;
+}
+
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  renderTable();
+}
+
+function filtered() {
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  if (!q) return ALL;
+  return ALL.filter(r =>
+    (r.from_name || '').toLowerCase().includes(q) ||
+    (r.from_email || '').toLowerCase().includes(q) ||
+    (r.phone || '').toLowerCase().includes(q) ||
+    (r.ref || '').toLowerCase().includes(q)
+  );
+}
+
+function renderTable() {
+  const rows = filtered();
+  const body = document.getElementById('tableBody');
+  const emptyMsg = document.getElementById('emptyMsg');
+  body.innerHTML = '';
+  emptyMsg.classList.toggle('hidden', rows.length > 0);
+  if (rows.length === 0) {
+    emptyMsg.innerHTML = `<div class="empty-icon">🦪</div>${ALL.length === 0 ? 'Aucune réservation pour l\u2019instant.' : 'Aucun résultat pour cette recherche.'}`;
+    return;
+  }
+
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    const createdDate = r.created_at ? new Date(r.created_at).toLocaleDateString('fr-FR') : '';
+    tr.innerHTML = `
+      <td><div class="t-ref">${escapeHtml(r.ref || '')}</div><div class="t-ref-date">${escapeHtml(createdDate)}</div></td>
+      <td><div class="t-client">${escapeHtml(r.from_name || '')}</div>${r.note && r.note !== 'Aucune' ? `<div class="t-note">${escapeHtml(r.note)}</div>` : ''}</td>
+      <td class="t-contact"><div>${escapeHtml(r.from_email || '')}</div><div>${escapeHtml(r.phone || '')}</div></td>
+      <td>${escapeHtml(r.date_label || '')}</td>
+      <td><span class="covers-pill">${escapeHtml(String(r.covers || ''))}</span></td>
+      <td class="t-slot">${escapeHtml(r.slot || '')}</td>
+      <td class="t-del" onclick="deleteReservation('${escapeAttr(r.ref)}')">×</td>
+    `;
+    body.appendChild(tr);
+  });
+}
+
+async function deleteReservation(ref) {
+  if (!confirm('Supprimer la réservation ' + ref + ' ?')) return;
+  try {
+    const { error } = await sb.from('restaurant_reservations').delete().eq('ref', ref).eq('client_slug', CLIENT_SLUG);
+    if (error) throw error;
+    ALL = ALL.filter(r => r.ref !== ref);
+    renderStats();
+    renderTable();
+    showToast('Réservation supprimée');
+  } catch (err) {
+    showToast('Suppression impossible : ' + err.message);
+  }
+}
+
+function exportCsv() {
+  const rows = filtered();
+  const headers = ['Référence', 'Client', 'Nom', 'Email', 'Téléphone', 'Date', 'Couverts', 'Heure', 'Note', 'Enregistré le'];
+  const lines = [headers.join(';')];
+  rows.forEach(r => {
+    lines.push([
+      r.ref, CLIENT_SLUG, r.from_name, r.from_email, r.phone,
+      r.date_label, r.covers, r.slot, r.note,
+      r.created_at ? new Date(r.created_at).toLocaleString('fr-FR') : ''
+    ].map(csvEscape).join(';'));
+  });
+  const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'reservations-drevici-' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Export CSV téléchargé');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function csvEscape(v) {
+  v = (v === undefined || v === null) ? '' : String(v);
+  return '"' + v.replace(/"/g, '""') + '"';
+}
+function escapeHtml(v) {
+  return String(v).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+function escapeAttr(v) {
+  return String(v).replace(/'/g, "\\'");
+}
+
+checkExistingSession();
+</script>
+</body>
+</html>

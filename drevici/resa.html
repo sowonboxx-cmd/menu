@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 /* ══════════════════════════════════════════════════════
    Design tokens — kept identical to index-drevici.html so
@@ -110,6 +111,10 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 
 .err{font-size:12px;color:var(--red);margin-bottom:10px;display:none}
 .hidden{display:none!important}
+
+/* Admin-only sticky "see all reservations" button */
+.admin-sticky{position:fixed;left:0;right:0;bottom:0;z-index:50;background:var(--navy);color:#fff!important;text-decoration:none;text-align:center;font-size:13px;font-weight:700;letter-spacing:.08em;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));text-transform:uppercase}
+body.has-admin-sticky .wrap{padding-bottom:88px}
 
 /* Success */
 .success{text-align:center;padding:16px 0 32px}
@@ -241,6 +246,11 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 
 </div><!-- /.wrap -->
 
+<!-- Admin-only sticky button — only ever shown when this page is opened
+     with ?admin=1 in the URL (bookmarked by the admin, never seen by a
+     regular customer). Links to the reservations dashboard. -->
+<a href="admin.html" class="admin-sticky hidden" id="adminStickyBtn">VOIR TOUTES LES RÉSERVATIONS</a>
+
 <script>
 /* ══ CONFIG ══ */
 const EMAILJS_PUBLIC_KEY      = 'OtZrumB6ygJnmfppg';
@@ -253,6 +263,19 @@ const EMAILJS_TEMPLATE_CLIENT = 'template_x60pqoj'; // Template confirmation cli
 // this exact deployment is for.
 const LOCATION_NAME = 'Paris';
 const CLOSED_DAYS   = [0,1]; // Sunday, Monday
+
+// CONFIG NOTE: same Supabase project/keys for every client — see
+// supabase-setup.sql. Only CLIENT_SLUG changes per deployment; it's
+// what keeps each restaurant's reservations separate in the shared
+// table. Recording here is best-effort and never blocks the booking
+// flow if it fails — the email confirmation is still the primary
+// source of truth for the customer.
+const SUPABASE_URL      = 'COLLE_ICI_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'COLLE_ICI_SUPABASE_ANON_KEY';
+const CLIENT_SLUG       = 'drevici-paris';
+const supabaseClient = (SUPABASE_URL !== 'COLLE_ICI_SUPABASE_URL' && window.supabase)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
 
 const DINNER      = ['17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30','22:00','22:30'];
 const FULL_SLOTS  = [];
@@ -455,10 +478,30 @@ function sendResa() {
     covers:       S.covers + (S.covers === 1 ? ' couvert' : ' couverts'),
     location:     LOCATION_NAME,
     date:         dow + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(),
+    date_iso:     d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'),
     slot:         S.slot,
     note:         document.getElementById('fNote').value || 'Aucune',
     ref:          ref,
   };
+
+  // Record in Supabase — best-effort, never blocks the booking flow or
+  // shows an error to the customer if it fails. The email is still what
+  // actually confirms the reservation to them.
+  if (supabaseClient) {
+    supabaseClient.from('restaurant_reservations').insert({
+      ref: ref,
+      client_slug: CLIENT_SLUG,
+      from_name: params.from_name,
+      from_email: params.from_email,
+      phone: params.phone,
+      date_label: params.date,
+      date_iso: params.date_iso,
+      slot: params.slot,
+      covers: S.covers,
+      location: params.location,
+      note: params.note,
+    }).then(({ error }) => { if (error) console.warn('Supabase insert failed:', error); });
+  }
 
   if (typeof emailjs !== 'undefined') {
     const send1 = emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params);
@@ -494,6 +537,13 @@ function showSuccess(email, ref) {
 renderCal();
 renderSlots();
 updateSegLabels();
+
+// Admin-only sticky button: never shown to a regular customer, only
+// when the admin opens this page with ?admin=1 in the URL.
+if (new URLSearchParams(window.location.search).get('admin') === '1') {
+  document.getElementById('adminStickyBtn').classList.remove('hidden');
+  document.body.classList.add('has-admin-sticky');
+}
 </script>
 </body>
 </html>
