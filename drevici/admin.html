@@ -37,7 +37,7 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 .logo-link{text-decoration:none}
 .logo-text{font-family:var(--restoFont),serif;font-size:24px;font-weight:700;color:#fff;letter-spacing:.08em;text-align:center;display:block;text-transform:uppercase}
 .header-sub{font-size:10px;font-weight:300;color:#FFFFFF;letter-spacing:.14em;text-transform:uppercase;text-align:center;margin-top:6px}
-.logout-btn{position:absolute;right:16px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(255,255,255,.6);font-size:11px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;font-family:inherit}
+.logout-btn{position:absolute;right:16px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(255,255,255,.6);cursor:pointer;font-family:inherit;display:flex;align-items:center;padding:4px}
 .logout-btn:hover{color:#fff}
 
 .wrap{max-width:1100px;margin:0 auto;padding:20px 16px 48px}
@@ -45,7 +45,7 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 /* ── Stat cards ── */
 .stats{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px}
 .stat-card{flex:1;min-width:150px;background:#fff;border-radius:14px;padding:20px;text-align:center;border:1px solid var(--border)}
-.stat-n{font-family:var(--restoFont),serif;font-size:34px;font-weight:700;color:var(--navy)}
+.stat-n{font-family:'Jost',sans-serif;font-size:34px;font-weight:700;color:var(--navy)}
 .stat-l{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-top:4px}
 
 /* ── Controls row ── */
@@ -78,12 +78,44 @@ tbody tr:hover{background:#fafaf8}
 .empty-msg{text-align:center;padding:48px 20px;color:var(--text3);font-size:14px}
 .empty-icon{font-size:32px;margin-bottom:10px}
 
-/* Mobile: collapse the table into stacked cards */
+/* Mobile: compact stat row, no CSV export, and a clean 2-column card
+   per reservation instead of a stacked list of unlabeled fields. */
 @media(max-width:760px){
+  .stats{gap:8px;flex-wrap:nowrap}
+  .stat-card{min-width:0;padding:10px 6px}
+  .stat-n{font-size:22px}
+  .stat-l{font-size:8.5px;letter-spacing:.06em;margin-top:2px}
+  .controls .btn-navy{display:none}
+
   thead{display:none}
-  table, tbody, tr, td{display:block;width:100%}
-  tbody tr{border-top:1px solid var(--border);padding:14px 16px;position:relative}
-  tbody td{border-top:none;padding:4px 0}
+  table, tbody{display:block;width:100%}
+  tbody tr{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    grid-template-areas:
+      "date     date"
+      "client   covers"
+      "contact  slot"
+      "footer   footer";
+    column-gap:12px;
+    border-top:1px solid var(--border);
+    padding:14px 16px;
+    position:relative;
+  }
+  tbody td{padding:3px 0}
+  /* Réf. + date d'enregistrement — de-emphasized, at the bottom */
+  td:nth-child(1){grid-area:footer;margin-top:6px;padding-top:8px;border-top:1px solid var(--border)}
+  td:nth-child(1) .t-ref{font-size:12px}
+  td:nth-child(1) .t-ref-date{margin-top:0}
+  /* Client name + note */
+  td:nth-child(2){grid-area:client}
+  /* Email + phone */
+  td:nth-child(3){grid-area:contact;margin-top:2px}
+  /* The actual booking date — the headline of the card */
+  td:nth-child(4){grid-area:date;font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;padding-right:28px}
+  /* Covers + time — right column, aligned with the info they answer */
+  td:nth-child(5){grid-area:covers;text-align:right}
+  td:nth-child(6){grid-area:slot;text-align:right;font-size:15px}
   .t-del{position:absolute;top:14px;right:16px}
 }
 
@@ -121,7 +153,9 @@ tbody tr:hover{background:#fafaf8}
         <a href="resa.html" class="logo-link">
           <span class="logo-text">Drevici Oyster</span>
         </a>
-        <button class="logout-btn" onclick="logout()">Déconnexion</button>
+        <button class="logout-btn" onclick="logout()" title="Déconnexion" aria-label="Déconnexion">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8v1H4v-1z"/></svg>
+        </button>
       </div>
       <div class="header-sub">Réservations — Administration</div>
     </div>
