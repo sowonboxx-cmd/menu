@@ -45,7 +45,8 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 .header .container{display:flex;flex-direction:column;align-items:center}
 .header-top{width:100%;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
 .header-top-left{display:flex;align-items:center;gap:6px}
-.header-top-right{display:flex;align-items:center;gap:6px}
+.header-top-right{display:flex;align-items:center;gap:6px;visibility:hidden}
+body.is-admin .header-top-right{visibility:visible}
 
 .lang-wrap{position:relative}
 .lang-sel{display:flex;align-items:center;gap:3px;padding:5px 10px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;cursor:pointer;background:var(--navy);color:rgba(255,255,255,0.85);font-size:11px;font-family:'Jost',sans-serif;font-weight:500;letter-spacing:.06em;user-select:none}
@@ -540,6 +541,8 @@ let DATA = {
   intro: { active:false, text:{fr:'Bienvenue chez Drevici Oyster, un bar à huîtres breton au cœur de Paris.',en:'Welcome to Drevici Oyster, a Breton oyster bar in the heart of Paris.'} },
   social: { instagram:'', tiktok:'', facebook:'' },
   brandColors: { primary: '#10285E', accent: '#C6A24A', bg: '#F7F5F0' },
+  restaurantName: 'Drevici Oyster',
+  restaurantLogo: '',
   corpoTemplates: [],
   icones: { main: '', secondary: '' },
   showHeaderLogo: true,
@@ -3743,10 +3746,22 @@ async function publishToGitHub(){
   }
 }
 
-function getRestaurantName(){ return localStorage.getItem('restaurant_name')||'Drevici Oyster'; }
-function getRestaurantLogo(){ return localStorage.getItem('restaurant_logo')||''; }
-function setRestaurantName(v){ localStorage.setItem('restaurant_name',v); applyRestaurantBranding(); }
-function setRestaurantLogo(v){ localStorage.setItem('restaurant_logo',v); applyRestaurantBranding(); }
+// BUG FIX: these four functions used to read/write
+// localStorage.getItem/setItem('restaurant_name' / 'restaurant_logo')
+// directly — completely disconnected from DATA.restaurantName /
+// DATA.restaurantLogo, which are the fields actually restored from and
+// published to menu.json (see loadFromGitHub()). That meant a name or
+// logo set in the admin only ever lived in that one browser's
+// localStorage: never published, never seen by a real customer, and
+// silently reverting to a hardcoded fallback for anyone else — including
+// the same admin in a different browser or incognito window. This is
+// also why the name could appear in different casing between "admin"
+// and "public": they were really two entirely separate values, not a
+// styling difference.
+function getRestaurantName(){ return DATA.restaurantName||'Mon Restaurant'; }
+function getRestaurantLogo(){ return DATA.restaurantLogo||''; }
+function setRestaurantName(v){ DATA.restaurantName=v; applyRestaurantBranding(); }
+function setRestaurantLogo(v){ DATA.restaurantLogo=v; applyRestaurantBranding(); }
 function applyRestaurantBranding(){
   applyBrandColors();
   // BUG FIX: setRestoFont() only ever set this CSS var live, in-session,
