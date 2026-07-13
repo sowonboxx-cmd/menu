@@ -295,7 +295,8 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
   .reserve-btn{border-radius:0;padding:17px 16px}
   .page{padding-bottom:130px}
   .header-top-right{visibility:hidden}
-  .mode-links-bar{display:flex;width:100%;margin-top:0;padding:14px 4px calc(14px + env(safe-area-inset-bottom,0px));border-radius:0;border-top:1px solid var(--bg);align-items:center;background:#0C0C0C}
+  .mode-links-bar{display:none;width:100%;margin-top:0;padding:14px 4px calc(14px + env(safe-area-inset-bottom,0px));border-radius:0;border-top:1px solid var(--bg);align-items:center;background:#0C0C0C}
+  body.is-admin .mode-links-bar{display:flex}
 }
 
 /* ── ADMIN ── */
@@ -4100,6 +4101,16 @@ function openFirstAdminSection(){
 // elsewhere since this file was last deployed.
 renderAll();
 applyRestaurantBranding();
+// BUG FIX: the "Lecture / Modifier / Réglages" bar (.mode-links-bar) was
+// never actually gated by admin status — its visibility was controlled
+// purely by a responsive CSS media query (hidden on desktop, always
+// shown on mobile), with no check anywhere for whether a GitHub token
+// existed. That meant any regular visitor on a phone saw the admin
+// controls, even in a fresh private/incognito window with no token at
+// all. Toggle a body class based on real token presence, and require
+// it in the CSS rule that reveals this bar on mobile (see .mode-links-bar
+// in the stylesheet) — now it only ever appears for an actual admin.
+document.body.classList.toggle('is-admin', !!getToken());
 // BUG FIX: the reconciliation re-render below used to run unconditionally,
 // even when the fetched data was byte-for-byte identical to what's already
 // embedded (the common case, especially in the owner's own browser, which
