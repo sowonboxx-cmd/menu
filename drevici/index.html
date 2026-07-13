@@ -135,6 +135,13 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
    call — so each tab change replayed a 0→1 opacity fade, reading as an
    unpleasant flash. Content just appears normally now, with no fade. */
 .dish-grid,.cards-stack{}
+/* Grey placeholder + smooth fade-in for content photos (dish photos,
+   hero, gallery) — scoped to #tabsContainer only so header/nav/admin
+   icons are unaffected. Without this, a slow-loading photo either shows
+   nothing or a broken-image icon until the network delivers it, which
+   reads as the page "switching" from an empty state to the real menu. */
+#tabsContainer img{background:#e8e8e8;opacity:0}
+#tabsContainer img.img-loaded{opacity:1;transition:opacity .25s ease}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .cards-stack{display:flex;flex-direction:column;gap:12px}
 
@@ -1388,6 +1395,36 @@ function renderScheduleInline(){
 }
 
 function setView(v){ view=v; renderAll(); }
+
+// ── Grey-placeholder → fade-in for content photos ──
+// Watches every <img> that ever appears inside #tabsContainer (dish
+// photos, hero, gallery — anything rendered from DATA) and adds
+// .img-loaded once it has actually finished loading, so the CSS above
+// can fade it in from the grey placeholder. A MutationObserver means
+// this needs no changes anywhere content HTML is generated — it just
+// reacts to whatever ends up in the DOM, including images inserted
+// later (tab switches, admin edits, reconciliation re-renders).
+(function(){
+  function markLoaded(img){ img.classList.add('img-loaded'); }
+  function watch(img){
+    if(img.classList.contains('img-loaded')) return;
+    if(img.complete && img.naturalWidth>0){ markLoaded(img); return; }
+    img.addEventListener('load',()=>markLoaded(img),{once:true});
+    // Don't leave a broken image invisible forever — reveal it (browser's
+    // own broken-image icon) rather than an eternal grey box.
+    img.addEventListener('error',()=>markLoaded(img),{once:true});
+  }
+  function watchAll(root){
+    if(root.tagName==='IMG') watch(root);
+    root.querySelectorAll && root.querySelectorAll('img').forEach(watch);
+  }
+  const container=document.getElementById('tabsContainer');
+  if(!container) return;
+  watchAll(container);
+  new MutationObserver(muts=>{
+    muts.forEach(m=>{ m.addedNodes.forEach(node=>{ if(node.nodeType===1) watchAll(node); }); });
+  }).observe(container,{childList:true,subtree:true});
+})();
 
 function renderTabs(){
   const container=document.getElementById('tabsContainer');
