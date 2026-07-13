@@ -8,6 +8,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" id="themeColorMeta" content="#10285E">
 <title>Menu</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -46,7 +47,7 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 .header-top{width:100%;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
 .header-top-left{display:flex;align-items:center;gap:6px}
 .header-top-right{display:flex;align-items:center;gap:6px;visibility:hidden}
-body.is-admin .header-top-right{visibility:visible}
+body.is-admin .header-top-right, body.admin-entry-visible .header-top-right{visibility:visible}
 
 .lang-wrap{position:relative}
 .lang-sel{display:flex;align-items:center;gap:3px;padding:5px 10px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;cursor:pointer;background:var(--navy);color:rgba(255,255,255,0.85);font-size:11px;font-family:'Jost',sans-serif;font-weight:500;letter-spacing:.06em;user-select:none}
@@ -304,7 +305,7 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
   .page{padding-bottom:130px}
   .header-top-right{visibility:hidden}
   .mode-links-bar{display:none;width:100%;margin-top:0;padding:14px 4px calc(14px + env(safe-area-inset-bottom,0px));border-radius:0;border-top:1px solid var(--bg);align-items:center;background:#0C0C0C}
-  body.is-admin .mode-links-bar{display:flex}
+  body.is-admin .mode-links-bar, body.admin-entry-visible .mode-links-bar{display:flex}
 }
 
 /* ── ADMIN ── */
@@ -1135,10 +1136,10 @@ function saveEditPop(silent){
     return false;
   }
 }
-// Popup footer action: save to DATA *and* publish to GitHub in one click.
+// Popup footer action: save to DATA *and* publish in one click.
 function saveAndPublishEditPop(){
   const ok=saveEditPop(true); // silent — the publish toast reports the final status
-  if(ok!==false) publishToGitHub();
+  if(ok!==false) publishToSupabase();
 }
 function v(id){ const e=document.getElementById(id); return e?e.value.trim():''; }
 
@@ -2139,12 +2140,12 @@ function adminSaveBar(){
     <button class="asave" style="flex:1" onclick="handleSaveClick()">Publier</button>
   </div>`;
 }
-// Wrapped so that a rendering error can never silently block the GitHub publish —
+// Wrapped so that a rendering error can never silently block publishing —
 // the user always gets a clear toast instead of a click that appears to do nothing.
 function handleSaveClick(){
   try{ renderAll(); }
   catch(e){ console.error('Render error before publish:', e); showToast('⚠️ Erreur d\'affichage (publication quand même tentée) : '+e.message); }
-  publishToGitHub();
+  publishToSupabase();
 }
 
 function getAdminOpenSections(){
@@ -2712,92 +2713,70 @@ function onDrop(e,ti,ci,di){
 }
 
 // ═══════════════════════════════════════════
-// GITHUB SYNC
+// SUPABASE SYNC (was: GITHUB SYNC)
 // ═══════════════════════════════════════════
-const GH_USER   = 'sowonboxx-cmd';
-const GH_REPO   = 'menu';
-const GH_BRANCH = 'main';
+// Same Supabase project/keys as the reservation system (resa.html /
+// admin.html) — and crucially the SAME restaurant_admins table, so one
+// login works for both the menu editor and the reservations dashboard.
+const SUPABASE_URL      = 'https://fdbzzkzfipzabryfanun.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_9PaqDuXnWV3aOCBPk9ImmQ_4YgYTU9n';
 // Detect client slug from URL: /menu/drevici → 'drevici'
 const _pathParts = window.location.pathname.replace(/\/+$/,'').replace(/^\/+/,'').split('/');
 const CLIENT_SLUG = _pathParts[_pathParts.length - 1] || 'default';
-const GH_FILE   = CLIENT_SLUG + '/menu.json';
 
-function getToken(){ return localStorage.getItem('menu_gh_token')||localStorage.getItem('drevici_gh_token')||''; }
-function saveToken(v){ if(v) localStorage.setItem('menu_gh_token',v); else localStorage.removeItem('menu_gh_token'); }
-function getSha(){ return localStorage.getItem('gh_sha_'+CLIENT_SLUG)||null; }
-function saveSha(v){ if(v) localStorage.setItem('gh_sha_'+CLIENT_SLUG,v); else localStorage.removeItem('gh_sha_'+CLIENT_SLUG); }
+const supabaseClient = (SUPABASE_URL !== 'COLLE_ICI_SUPABASE_URL' && window.supabase)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
 
-// ── Load from GitHub API (not CDN — always fresh, no 5min cache) ──
-async function loadFromGitHub(){
-  const token=getToken();
+// BUG FIX / ARCHITECTURE CHANGE: this used to be a GitHub personal
+// access token stored in localStorage, checked synchronously everywhere
+// via getToken(). Supabase Auth sessions are checked asynchronously, so
+// `supaSession` is a module-level cache of the current session — set
+// once at init (see checkAdminSession(), called right after the first
+// render so it never delays or blanks the first paint) and refreshed on
+// login/logout. Everywhere the old code did `if(!getToken())`, it now
+// checks `!supaSession`.
+let supaSession = null;
+async function checkAdminSession(){
+  if(!supabaseClient) return;
+  const { data } = await supabaseClient.auth.getSession();
+  supaSession = data.session || null;
+  document.body.classList.toggle('is-admin', !!supaSession);
+}
+async function adminSignIn(email, password){
+  if(!supabaseClient) return { error: { message: 'Configuration Supabase manquante' } };
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if(!error){ supaSession = data.session; document.body.classList.add('is-admin'); }
+  return { error };
+}
+async function adminSignOut(){
+  if(supabaseClient) await supabaseClient.auth.signOut();
+  supaSession = null;
+  document.body.classList.remove('is-admin');
+  renderAdminSection('__global');
+}
+
+// ── Load the menu from Supabase (public read, no login needed) ──
+async function loadFromSupabase(){
+  if(!supabaseClient) return;
   try{
-    let json;
-    if(token){
-      const apiBase=`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`;
-      const headers={'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json'};
-      const r=await fetch(apiBase+'?ref='+GH_BRANCH,{headers});
-      if(!r.ok){
-        if(r.status===404){ console.log('menu.json absent — premier lancement'); migrateTabIds(); migratePins(); return; }
-        throw new Error('HTTP '+r.status);
-      }
-      const meta=await r.json();
-      // Save SHA for next publish (avoids a redundant GET)
-      if(meta.sha) saveSha(meta.sha);
-      // Decode base64 content → JSON
-      const raw=atob(meta.content.replace(/\n/g,''));
-      const bytes=Uint8Array.from(raw,ch=>ch.charCodeAt(0));
-      json=JSON.parse(new TextDecoder().decode(bytes));
-    } else {
-      // BUG FIX: this function used to bail out entirely with no token,
-      // meaning a regular site visitor NEVER fetched menu.json at all —
-      // they only ever saw whatever DATA was baked into index.html at the
-      // last full export/redeploy. Since "Publier" in the admin only ever
-      // writes menu.json (never touches index.html — see GH_FILE), any
-      // edit published there was invisible to real customers until
-      // someone manually regenerated and redeployed the whole HTML file.
-      // Public GitHub repos allow anonymous, unauthenticated reads of raw
-      // file content — no token is needed for this, only for publishing
-      // (writes). `?t=' + Date.now()` plus `cache:'no-store'` avoid a
-      // stale cached copy from CDN/browser cache.
-      const rawUrl=`https://raw.githubusercontent.com/${GH_USER}/${GH_REPO}/${GH_BRANCH}/${GH_FILE}?t=${Date.now()}`;
-      const r=await fetch(rawUrl,{cache:'no-store'});
-      if(!r.ok){
-        if(r.status===404){ console.log('menu.json absent — premier lancement'); migrateTabIds(); migratePins(); return; }
-        throw new Error('HTTP '+r.status);
-      }
-      json=await r.json();
-    }
-    // Apply everything
-    if(Array.isArray(json.tabs) && json.tabs.length>0){
-      DATA.tabs=json.tabs;
-      DATA.tabs[0].isHome=true;
-    }
-    if(json.hero && typeof json.hero==='object') DATA.hero=json.hero;
-    if(typeof json.heroActive!=='undefined') DATA.heroActive=json.heroActive;
-    if(json.intro && typeof json.intro==='object') DATA.intro=json.intro;
-    if(Array.isArray(json.specials) && json.specials.length>0) DATA.specials=json.specials.filter(s=>s.id!=='midi'&&s.id!=='soir');
-    if(Array.isArray(json.pinnedDishes)) DATA.pinnedDishes=json.pinnedDishes;
-    if(json.social && typeof json.social==='object') DATA.social=json.social;
-    if(json.homeTab && typeof json.homeTab==='object') DATA.homeTab=json.homeTab;
-    if(json.infoBanner && typeof json.infoBanner==='object') DATA.infoBanner=json.infoBanner;
-    if(typeof json.pinnedShowHome!=='undefined') DATA.pinnedShowHome=json.pinnedShowHome;
-    if(typeof json.pinnedShowFirst!=='undefined') DATA.pinnedShowFirst=json.pinnedShowFirst;
-    if(Array.isArray(json.schedule) && json.schedule.length>0) DATA.schedule=json.schedule;
-    // BUG FIX: was being published but never restored on reload — the reason
-    // "Adresse & contact" appeared to never save.
-    if(json.address && typeof json.address==='object') DATA.address=json.address;
-    if(typeof json.restaurantName==='string' && json.restaurantName) DATA.restaurantName=json.restaurantName;
-    if(typeof json.restaurantLogo==='string') DATA.restaurantLogo=json.restaurantLogo;
-    // BUG FIX: same missing-restore pattern as "Adresse & contact" above —
-    // these were all published correctly but silently dropped on the next
-    // load, so any change (brand colors, title font, header logo toggle,
-    // decorative icons, social post templates) appeared to "not save" even
-    // though it had actually published fine.
-    if(json.brandColors && typeof json.brandColors==='object') DATA.brandColors=json.brandColors;
-    if(typeof json.restoFont==='string' && json.restoFont) DATA.restoFont=json.restoFont;
-    if(typeof json.showHeaderLogo!=='undefined') DATA.showHeaderLogo=json.showHeaderLogo;
-    if(json.icones && typeof json.icones==='object') DATA.icones=json.icones;
-    if(Array.isArray(json.corpoTemplates)) DATA.corpoTemplates=json.corpoTemplates;
+    const { data: row, error } = await supabaseClient
+      .from('menu_data')
+      .select('data')
+      .eq('client_slug', CLIENT_SLUG)
+      .maybeSingle();
+    if(error) throw error;
+    if(!row){ console.log('menu_data absent — premier lancement'); migrateTabIds(); migratePins(); return; }
+    const json = row.data;
+    // BUG FIX (architecture): the old GitHub version restored fields one
+    // by one from a hand-maintained whitelist (see pitfall #16/#9) —
+    // easy to forget a new field and have it silently fail to persist.
+    // Since Supabase stores the whole DATA object as a single JSON blob
+    // (exactly what publishToSupabase() writes), a straight merge covers
+    // every field automatically, with no whitelist to maintain.
+    Object.assign(DATA, json);
+    if(Array.isArray(DATA.tabs) && DATA.tabs.length>0) DATA.tabs[0].isHome=true;
+    if(Array.isArray(DATA.specials)) DATA.specials=DATA.specials.filter(s=>s.id!=='midi'&&s.id!=='soir');
     // Restore home tab if it was active
     if(DATA.homeTab&&DATA.homeTab.active){
       const hasHome=DATA.tabs.some(t=>t.id==='__home');
@@ -2808,16 +2787,10 @@ async function loadFromGitHub(){
       currentTabId=(hashTid && DATA.tabs.some(tb=>tb.id===hashTid && tb.visible!==false)) ? hashTid : (DATA.tabs[0]?.id||'huitres');
     }
     migratePins();
-    console.log('✓ Chargé depuis GitHub'+(token?' (API, avec token)':' (lecture publique)')+' — tabs:'+DATA.tabs.length+', specials actifs:'+DATA.specials.filter(s=>s.active).length+', intro:'+DATA.intro.active);
+    console.log('✓ Chargé depuis Supabase — tabs:'+DATA.tabs.length+', specials actifs:'+DATA.specials.filter(s=>s.active).length+', intro:'+DATA.intro.active);
   }catch(e){
-    console.warn('GitHub load failed:', e.message);
-    // Only surface this warning in the admin's own browser (token present)
-    // — a regular visitor seeing a "GitHub loading error" toast would be
-    // confusing and unprofessional; for them we just silently keep
-    // whatever was already rendered from the embedded DATA.
-    if(token) showToast('⚠️ Chargement depuis GitHub impossible : '+e.message+' — données locales affichées');
-    migrateTabIds();
-    migratePins();
+    console.warn('Supabase load failed:', e.message);
+    if(supaSession) showToast('⚠️ Chargement impossible : '+e.message+' — données locales affichées');
   }
 }
 
@@ -3727,59 +3700,35 @@ function renderExportSection(){
   </div></div>`+renderPdfStyleSection();
 }
 
-async function publishToGitHub(){
-  const token=getToken();
-  if(!token){ showToast('⚠️ Token GitHub manquant'); renderAdminSection('__global'); return; }
+async function publishToSupabase(){
+  if(!supaSession){ showToast('⚠️ Connecte-toi pour publier'); renderAdminSection('__global'); return; }
   const btn=document.getElementById('ghPublishBtn');
   if(btn){ btn.textContent='⏳ Publication…'; btn.disabled=true; }
   try{
-    const apiBase=`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`;
-    const headers={'Authorization':'token '+token,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'};
-
-    // Always get a fresh SHA from the API (never use stale cache)
-    let sha=null;
-    const getR=await fetch(apiBase+'?ref='+GH_BRANCH+'&t='+Date.now(),{headers,cache:'no-store'});
-    if(getR.ok){ const meta=await getR.json(); sha=meta.sha||null; saveSha(sha); }
-    else if(getR.status!==404){ throw new Error('Erreur SHA: HTTP '+getR.status); }
-
-    // Deep-clone DATA, serialize to JSON, encode to base64 (Unicode-safe)
+    // Deep-clone DATA so we publish a clean snapshot, same as before.
     const clean=JSON.parse(JSON.stringify(DATA));
-    const jsonStr=JSON.stringify(clean,null,2);
-    const bytes=new TextEncoder().encode(jsonStr);
-    // Safety check: a menu.json bloated with embedded base64 photos can silently
-    // fail (or time out) against the GitHub Contents API. Surface this clearly
-    // instead of a cryptic network/HTTP error.
+    // Same oversized-payload guard as the old GitHub version — a menu
+    // bloated with embedded base64 photos is still worth catching early
+    // with a clear message rather than a cryptic network error.
     const MAX_PAYLOAD_MB = 20;
-    if(bytes.length > MAX_PAYLOAD_MB*1024*1024){
-      throw new Error('menu.json trop volumineux ('+(bytes.length/1024/1024).toFixed(1)+' Mo) — remplacez certaines photos par des URLs externes au lieu d\'uploads pour réduire la taille');
+    const approxBytes=new TextEncoder().encode(JSON.stringify(clean)).length;
+    if(approxBytes > MAX_PAYLOAD_MB*1024*1024){
+      throw new Error('Menu trop volumineux ('+(approxBytes/1024/1024).toFixed(1)+' Mo) — remplacez certaines photos par des URLs externes au lieu d\'uploads pour réduire la taille');
     }
-    let bin=''; bytes.forEach(b=>bin+=String.fromCharCode(b));
-    const content=btoa(bin);
-
-    const body={message:'Menu update — '+new Date().toLocaleString('fr-FR'),content,branch:GH_BRANCH};
-    if(sha) body.sha=sha;
-
-    const putR=await fetch(apiBase,{method:'PUT',headers,body:JSON.stringify(body),cache:'no-store'});
-    if(!putR.ok){
-      const err=await putR.json();
-      // SHA conflict → retry with fresh SHA
-      if(putR.status===409||putR.status===422){
-        showToast('⏳ Conflit SHA, nouvelle tentative…');
-        setTimeout(publishToGitHub,1000);
-        return;
-      }
-      throw new Error(err.message||'HTTP '+putR.status);
-    }
-    const putData=await putR.json();
-    // Store the new SHA immediately so next publish doesn't need a GET
-    if(putData?.content?.sha) saveSha(putData.content.sha);
-    showToast('✅ Publié ! En ligne dans ~30s');
+    // BUG FIX (architecture): the old GitHub version needed a fresh SHA
+    // before every write, with retry-on-conflict logic (see pitfall
+    // about SHA races). Postgres upsert handles create-or-update
+    // atomically — no SHA, no conflict retries needed at all.
+    const { error }=await supabaseClient
+      .from('menu_data')
+      .upsert({ client_slug: CLIENT_SLUG, data: clean, updated_at: new Date().toISOString() }, { onConflict: 'client_slug' });
+    if(error) throw error;
+    showToast('✅ Publié !');
   }catch(e){
     console.error('Publish error:',e);
     showToast('❌ '+e.message);
-    if(e.message.includes('401')||e.message.toLowerCase().includes('credential')){ saveToken(''); renderAdminSection('__global'); }
   }finally{
-    if(btn){ btn.textContent='🚀 Publier sur GitHub'; btn.disabled=false; }
+    if(btn){ btn.textContent='🚀 Publier'; btn.disabled=false; }
   }
 }
 
@@ -4006,28 +3955,36 @@ function renderSocialAdminSection(){
 }
 
 function ghSectionHtml(){
-  const token=getToken();
-  const masked=token?token.slice(0,7)+'••••••••••••••••••'+token.slice(-4):'';
-  return `<div class="admin-section collapsible"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Synchronisation GitHub</div><div class="admin-sect-body">
-    ${token
-      ?`<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#eef6ee;border-radius:8px;border:1px solid #b8e0b8;margin-bottom:10px">
-          <div style="flex:1"><div style="font-size:12px;color:#2a7a2a;font-family:Jost,sans-serif;font-weight:500">✓ Token configuré</div><div style="font-size:11px;color:#999;font-family:monospace;margin-top:2px">${masked}</div></div>
-          <button onclick="saveToken('');renderAdminSection('__global')" style="font-size:11px;color:#c0392b;background:none;border:1px solid #f5c6c2;border-radius:6px;padding:4px 8px;cursor:pointer;font-family:Jost,sans-serif">Réinitialiser</button>
-        </div>`
-      :`<div class="af"><label class="al">Token GitHub (ghp_…)</label>
-          <div style="display:flex;gap:6px">
-            <input class="ai" id="ghTokenInput" type="password" placeholder="ghp_xxxxxxxxxxxx" style="font-family:monospace">
-            <button onclick="const v=document.getElementById('ghTokenInput').value.trim();if(v){saveToken(v);showToast('Token enregistré ✓');renderAdminSection('__global');}else{showToast('Token vide');}" style="padding:7px 12px;background:var(--navy);color:#fff;border:none;border-radius:6px;font-family:Jost,sans-serif;font-size:12px;cursor:pointer;white-space:nowrap">OK</button>
-          </div>
-          <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-top:5px;line-height:1.5">github.com → Settings → Developer settings → Tokens (classic) → scope <strong>repo</strong></div>
-        </div>`
-    }
-    <button class="asave" id="ghPublishBtn" onclick="publishToGitHub()" ${!token?'disabled style="opacity:.5;cursor:not-allowed"':''}style="margin-top:4px">Publier sur GitHub</button>
-    <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-top:8px;line-height:1.6">Ton menu sera en ligne sur<br><a href="https://${GH_USER}.github.io/${GH_REPO}/" target="_blank" style="color:var(--navy);font-weight:500">${GH_USER}.github.io/${GH_REPO}/</a><br>en ~30 secondes après chaque publication.</div>
+  if(supaSession){
+    return `<div class="admin-section collapsible"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Connexion admin</div><div class="admin-sect-body">
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#eef6ee;border-radius:8px;border:1px solid #b8e0b8;margin-bottom:10px">
+        <div style="flex:1"><div style="font-size:12px;color:#2a7a2a;font-family:Jost,sans-serif;font-weight:500">✓ Connecté</div><div style="font-size:11px;color:#999;font-family:Jost,sans-serif;margin-top:2px">${escAttr(supaSession.user?.email||'')}</div></div>
+        <button onclick="adminSignOut()" style="font-size:11px;color:#c0392b;background:none;border:1px solid #f5c6c2;border-radius:6px;padding:4px 8px;cursor:pointer;font-family:Jost,sans-serif">Déconnexion</button>
+      </div>
+      <button class="asave" id="ghPublishBtn" onclick="publishToSupabase()" style="margin-top:4px">🚀 Publier</button>
+      <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-top:8px;line-height:1.6">Ton menu est en ligne, à jour pour tous tes clients dès la publication.</div>
+    </div></div>`;
+  }
+  return `<div class="admin-section collapsible"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Connexion admin</div><div class="admin-sect-body">
+    <div class="af"><label class="al">Email</label><input class="ai" id="adminEmailInput" type="email" placeholder="toi@exemple.fr"></div>
+    <div class="af"><label class="al">Mot de passe</label><input class="ai" id="adminPassInput" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter') doAdminSignIn()"></div>
+    <div id="adminLoginErr" style="font-size:12px;color:#c0392b;margin-bottom:8px;display:none"></div>
+    <button class="asave" onclick="doAdminSignIn()" style="margin-top:4px">Se connecter</button>
+    <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-top:8px;line-height:1.6">Même compte que le dashboard réservations.</div>
   </div></div>`;
 }
+async function doAdminSignIn(){
+  const email=document.getElementById('adminEmailInput').value.trim();
+  const pass=document.getElementById('adminPassInput').value;
+  const err=document.getElementById('adminLoginErr');
+  err.style.display='none';
+  const { error }=await adminSignIn(email,pass);
+  if(error){ err.textContent='Identifiants incorrects.'; err.style.display='block'; return; }
+  showToast('Connecté ✓');
+  renderAdminSection('__global');
+}
 
-// Patch renderAdminGlobal to prepend GH section
+// Patch renderAdminGlobal to prepend the admin login/publish section
 const _origGlobal=renderAdminGlobal;
 renderAdminGlobal=function(){ return ghSectionHtml()+restaurantSettingHtml()+renderScheduleAdmin()+renderBrandColorsSection()+renderIconesDecorativesSection()+renderSocialAdminSection()+_origGlobal(); };
 
@@ -4156,13 +4113,27 @@ applyRestaurantBranding();
 // BUG FIX: the "Lecture / Modifier / Réglages" bar (.mode-links-bar) was
 // never actually gated by admin status — its visibility was controlled
 // purely by a responsive CSS media query (hidden on desktop, always
-// shown on mobile), with no check anywhere for whether a GitHub token
+// shown on mobile), with no check anywhere for whether an admin session
 // existed. That meant any regular visitor on a phone saw the admin
-// controls, even in a fresh private/incognito window with no token at
-// all. Toggle a body class based on real token presence, and require
-// it in the CSS rule that reveals this bar on mobile (see .mode-links-bar
-// in the stylesheet) — now it only ever appears for an actual admin.
-document.body.classList.toggle('is-admin', !!getToken());
+// controls, even in a fresh private/incognito window. Toggle a body
+// class based on the real Supabase session, and require it in the CSS
+// rule that reveals this bar on mobile (see .mode-links-bar in the
+// stylesheet) — now it only ever appears for an actual admin.
+//
+// ARCHITECTURE NOTE: since the admin buttons only show once `is-admin`
+// is set, and that now depends on an actual Supabase session (not a
+// token you could just paste into an always-visible field), there needs
+// to be a way to log in for the very first time. Same convention as the
+// reservations admin sticky button: opening this page with `?admin=1`
+// reveals the entry point regardless of session state, where a login
+// form (email/password, same restaurant_admins account used for
+// reservations) is presented. Once logged in, the session persists
+// normally and the plain URL (no query param) is enough from then on.
+(async function initAdminAccess(){
+  const wantsAdminEntry = new URLSearchParams(location.search).get('admin')==='1';
+  await checkAdminSession(); // sets supaSession + toggles is-admin if a session exists
+  if(wantsAdminEntry) document.body.classList.add('admin-entry-visible');
+})();
 // BUG FIX: the reconciliation re-render below used to run unconditionally,
 // even when the fetched data was byte-for-byte identical to what's already
 // embedded (the common case, especially in the owner's own browser, which
@@ -4173,7 +4144,7 @@ document.body.classList.toggle('is-admin', !!getToken());
 // that's exactly where this one-time blink was most visible. Only
 // re-render now if the data genuinely differs.
 const _preFetchSnapshot=JSON.stringify(DATA);
-loadFromGitHub().then(()=>{
+loadFromSupabase().then(()=>{
   if(JSON.stringify(DATA)!==_preFetchSnapshot){
     renderAll();
     applyRestaurantBranding();
