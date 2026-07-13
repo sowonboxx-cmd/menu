@@ -746,6 +746,15 @@ function showToast(msg){
 // EDIT MODE (bouton vert lecture / rouge modifier)
 // ═══════════════════════════════════════════
 function setEditMode(on){
+  // BUG FIX: entering edit mode had no auth check at all — a completely
+  // separate code path from openAdmin()'s login wall. "Modifier" let
+  // anyone click straight into inline editing on the page itself,
+  // without ever logging in, bypassing the wall entirely.
+  if(on && !supaSession){
+    showToast('Connecte-toi d\'abord');
+    openAdmin();
+    return;
+  }
   editMode=on;
   document.getElementById('app').classList.toggle('edit-mode',on);
   const btnEdit=document.getElementById('btnEdit'); if(btnEdit) btnEdit.classList.toggle('active',on);
