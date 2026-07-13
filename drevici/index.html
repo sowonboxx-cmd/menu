@@ -2110,7 +2110,41 @@ function setLang(l){
 let adminCurrentTab='__global';
 let adminLang='fr'; // language being edited in admin
 
-function openAdmin(){ document.getElementById('adminOverlay').classList.add('open'); document.getElementById('adminPanel').classList.add('open'); renderAdminTabDd(); const targetTab=DATA.tabs.find(t=>t.id===currentTabId); if(targetTab){adminCurrentTab=currentTabId;document.getElementById('adminTabDd').value=currentTabId;} renderAdminSection(adminCurrentTab); }
+// BUG FIX: this used to open every admin section unconditionally — a
+// GitHub token was only ever checked at publish time, so anyone who
+// reached this (e.g. via ?admin=1) could browse and edit every section,
+// just without being able to actually save. For a real product, the
+// panel itself should stay closed until an admin is actually logged in,
+// not just gate the publish button. Show only a login form if there's
+// no session yet.
+function openAdmin(){
+  document.getElementById('adminOverlay').classList.add('open');
+  document.getElementById('adminPanel').classList.add('open');
+  if(!supaSession){
+    document.getElementById('adminTabDd').style.display='none';
+    document.getElementById('adminLangDd').style.display='none';
+    document.getElementById('adminBody').innerHTML=adminLoginOnlyHtml();
+    return;
+  }
+  document.getElementById('adminTabDd').style.display='';
+  document.getElementById('adminLangDd').style.display='';
+  renderAdminTabDd();
+  const targetTab=DATA.tabs.find(t=>t.id===currentTabId);
+  if(targetTab){adminCurrentTab=currentTabId;document.getElementById('adminTabDd').value=currentTabId;}
+  renderAdminSection(adminCurrentTab);
+}
+function adminLoginOnlyHtml(){
+  return `<div class="admin-section" style="border:none">
+    <div class="admin-sect-body" style="padding-top:8px">
+      <div style="font-family:var(--restoFont),serif;font-size:20px;font-weight:700;color:var(--navy);margin-bottom:4px;text-align:center">Connexion admin</div>
+      <div style="font-size:12px;color:var(--text3);text-align:center;margin-bottom:20px">Même compte que le dashboard réservations.</div>
+      <div class="af"><label class="al">Email</label><input class="ai" id="adminEmailInput" type="email" placeholder="toi@exemple.fr"></div>
+      <div class="af"><label class="al">Mot de passe</label><input class="ai" id="adminPassInput" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter') doAdminSignIn()"></div>
+      <div id="adminLoginErr" style="font-size:12px;color:#c0392b;margin-bottom:8px;display:none"></div>
+      <button class="asave" onclick="doAdminSignIn()" style="margin-top:4px;width:100%">Se connecter</button>
+    </div>
+  </div>`;
+}
 function closeAdmin(){ document.getElementById('adminOverlay').classList.remove('open'); document.getElementById('adminPanel').classList.remove('open'); }
 
 function renderAdminTabDd(){
@@ -2164,6 +2198,17 @@ function restoreAdminOpenSections(states){
 }
 function renderAdminSection(tid, _skipScroll){
   const body=document.getElementById('adminBody');
+  // BUG FIX: every admin section (dish editing, colors, schedule, etc.)
+  // used to render and stay fully usable — locally — for anyone who
+  // reached this panel via ?admin=1, even with no real session. Only
+  // the "Publier" button itself checked for a session. Now nothing
+  // renders except the login form until there's an actual Supabase
+  // session — matching how admin.html (reservations) already works.
+  if(!supaSession){
+    adminCurrentTab='__global';
+    body.innerHTML=ghSectionHtml();
+    return;
+  }
   const prevStates=getAdminOpenSections();
   const prevScroll=body?body.scrollTop:0;
   adminCurrentTab=tid;
@@ -2753,7 +2798,7 @@ async function adminSignOut(){
   if(supabaseClient) await supabaseClient.auth.signOut();
   supaSession = null;
   document.body.classList.remove('is-admin');
-  renderAdminSection('__global');
+  openAdmin();
 }
 
 // ── Load the menu from Supabase (public read, no login needed) ──
@@ -3981,7 +4026,7 @@ async function doAdminSignIn(){
   const { error }=await adminSignIn(email,pass);
   if(error){ err.textContent='Identifiants incorrects.'; err.style.display='block'; return; }
   showToast('Connecté ✓');
-  renderAdminSection('__global');
+  openAdmin();
 }
 
 // Patch renderAdminGlobal to prepend the admin login/publish section
