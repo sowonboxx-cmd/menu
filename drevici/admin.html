@@ -39,6 +39,8 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 .header-sub{font-size:10px;font-weight:300;color:#FFFFFF;letter-spacing:.14em;text-transform:uppercase;text-align:center;margin-top:6px}
 .logout-btn{position:absolute;right:16px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(255,255,255,.6);cursor:pointer;font-family:inherit;display:flex;align-items:center;padding:4px}
 .logout-btn:hover{color:#fff}
+.home-btn{position:absolute;left:16px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(255,255,255,.6);cursor:pointer;font-family:inherit;display:flex;align-items:center;padding:4px;text-decoration:none}
+.home-btn:hover{color:#fff}
 
 .wrap{max-width:1100px;margin:0 auto;padding:20px 16px 48px}
 
@@ -48,90 +50,79 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 .stat-n{font-family:'Jost',sans-serif;font-size:34px;font-weight:700;color:var(--navy)}
 .stat-l{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-top:4px}
 
-/* ── Controls row ── */
-.controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
-.search-input{flex:1;min-width:220px;padding:12px 16px;border:1px solid var(--border);border-radius:var(--rs);font-size:14px;font-family:inherit;background:#fff;color:var(--text)}
-.search-input:focus{outline:none;border-color:var(--navy)}
-.search-input::placeholder{color:var(--text3)}
-.btn-plain{padding:12px 18px;border:1px solid var(--border);border-radius:var(--rs);background:#fff;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
-.btn-plain:hover{background:#f5f5f3}
-.btn-navy{padding:12px 20px;border:none;border-radius:var(--rs);background:var(--navy);color:#fff;font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;font-family:inherit}
-.btn-navy:hover{background:#0a1a3e}
+/* ── View tabs (Semaine / Mois) — same segmented pill as resa.html ── */
+.view-tabs{display:flex;background:var(--navy);border-radius:50px;padding:4px;gap:4px;margin-bottom:14px}
+.view-tab{flex:1;text-align:center;padding:11px 6px;border-radius:50px;font-size:13px;font-weight:600;color:rgba(255,255,255,.55);cursor:pointer;transition:.15s}
+.view-tab.active{background:#fff;color:var(--navy)}
 
-/* ── Table ── */
-.table-wrap{background:#fff;border-radius:14px;border:1px solid var(--border);overflow:hidden}
-table{width:100%;border-collapse:collapse}
-thead th{background:#f7f5f2;text-align:left;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);padding:14px 16px;white-space:nowrap}
-tbody td{padding:16px;border-top:1px solid var(--border);vertical-align:top;font-size:13px}
-tbody tr:hover{background:#fafaf8}
-.t-ref{font-family:var(--restoFont),serif;font-weight:700;color:var(--navy);font-size:15px}
-.t-ref-date{font-size:11px;color:var(--text3);margin-top:2px}
-.t-client{font-weight:700;color:var(--text)}
-.t-note{font-size:12px;color:var(--text3);font-style:italic;margin-top:3px}
-.t-contact div{white-space:nowrap}
-.t-contact div:first-child{color:var(--text)}
-.t-contact div:last-child{color:var(--text2);margin-top:2px}
-.covers-pill{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;padding:0 8px;border-radius:50px;background:var(--navy);color:#fff;font-weight:700;font-size:13px}
-.t-slot{font-weight:700;color:var(--navy)}
-.t-del{cursor:pointer;color:var(--text3);font-size:18px;text-align:center;transition:color .15s}
-.t-del:hover{color:var(--red)}
+/* ── Calendar panel wrapper ── */
+.cal-panel{background:#fff;border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:16px}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cal-nav-label{font-size:15px;font-weight:600;color:var(--text)}
+.cal-arr{width:32px;height:32px;border-radius:var(--rs);border:1px solid var(--border);background:none;cursor:pointer;font-size:15px;color:var(--text2);display:flex;align-items:center;justify-content:center}
+.cal-arr:hover{background:#f5f5f3}
+
+/* Month view grid (reuses the same visual language as resa.html) */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-dh{text-align:center;font-size:10px;color:var(--text3);padding:4px 0;letter-spacing:.06em}
+.cal-d{aspect-ratio:1;border-radius:var(--rs);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;color:var(--text);border:1px solid var(--border);position:relative;gap:2px}
+.cal-d.empty{border:none}
+.cal-d.today{border-color:var(--gold);font-weight:700}
+.cal-d.blocked{background:#faf0ef;color:#c0392b}
+.cal-count{font-size:10px;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:2px}
+.cal-count svg{width:9px;height:9px}
+
+/* Week view: a vertical list of 7 days, each with a lock toggle and a
+   reservation-count badge — day is either bookable or locked, synced
+   with resa.html via the blocked_dates table. */
+.week-day{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--border)}
+.week-day:last-child{border-bottom:none}
+.week-day-label{width:74px;flex:none}
+.week-day-name{font-size:13px;color:var(--text2);text-transform:capitalize}
+.week-day-num{font-size:18px;font-weight:700;color:var(--text)}
+.week-day.today .week-day-num{color:var(--gold)}
+.week-day-count{flex:1;font-size:13px;color:var(--navy);font-weight:600;display:flex;align-items:center;gap:5px}
+.week-day-count svg{width:13px;height:13px;opacity:.7}
+.lock-btn{background:none;border:none;cursor:pointer;color:var(--text3);padding:6px;display:flex;align-items:center}
+.lock-btn.locked{color:#c0392b}
+.lock-btn:hover{color:var(--navy)}
+.lock-btn.locked:hover{color:#c0392b}
+
+/* ── Compact reservation cards (desktop + mobile share this now) ── */
+.resa-list{display:flex;flex-direction:column;gap:10px}
+.resa-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px 16px;cursor:pointer;transition:border-color .15s;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.resa-card:hover{border-color:var(--navy)}
+.resa-card-date{font-weight:700;color:var(--text);font-size:14px;flex:1;min-width:140px}
+.resa-card-in{font-size:11px;color:var(--text3);font-weight:400;margin-left:6px}
+.resa-card-covers{display:flex;align-items:center;gap:4px;font-weight:700;color:var(--navy);font-size:13px}
+.resa-card-covers svg{width:13px;height:13px}
+.resa-card-name{font-weight:600;color:var(--text);font-size:13px;flex:1;min-width:120px}
+.resa-card-time{font-weight:700;color:var(--navy);font-size:14px}
 .empty-msg{text-align:center;padding:48px 20px;color:var(--text3);font-size:14px}
 .empty-icon{font-size:32px;margin-bottom:10px}
 
-/* Mobile: compact stat row, no CSV export, and a clean 2-column card
-   per reservation instead of a stacked list of unlabeled fields. */
+/* ── Reservation detail modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal-card{background:#fff;border-radius:14px;max-width:400px;width:100%;padding:24px;position:relative;max-height:85vh;overflow-y:auto}
+.modal-close{position:absolute;top:14px;right:16px;background:none;border:none;font-size:20px;color:var(--text3);cursor:pointer}
+.modal-ref{font-family:var(--restoFont),serif;font-weight:700;color:var(--navy);font-size:18px;margin-bottom:2px}
+.modal-created{font-size:11px;color:var(--text3);margin-bottom:16px}
+.modal-row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--border)}
+.modal-row:first-of-type{border-top:none}
+.modal-label{font-size:11px;color:var(--text3);flex:none}
+.modal-value{font-size:13px;color:var(--text);font-weight:600;text-align:right}
+.modal-value a{color:var(--navy);text-decoration:none}
+.modal-del{width:100%;margin-top:18px;padding:11px;background:none;border:1px solid #f5c6c2;color:#c0392b;border-radius:var(--rs);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.modal-del:hover{background:#faf0ef}
+
+/* Mobile: compact stat row (cards use the same .resa-card style as
+   desktop now — no separate table/grid treatment needed anymore). */
 @media(max-width:760px){
   .stats{gap:8px;flex-wrap:nowrap}
   .stat-card{min-width:0;padding:10px 6px}
   .stat-n{font-size:22px}
   .stat-l{font-size:8.5px;letter-spacing:.06em;margin-top:2px}
-  .controls .btn-navy{display:none}
-
-  thead{display:none}
-  /* Cards float on the cream background with a real gap between them,
-     instead of one continuous white block cut by divider lines. */
-  .table-wrap{background:transparent;border:none;border-radius:0}
-  table, tbody{display:block;width:100%}
-  tbody tr{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    grid-template-areas:
-      "date     date"
-      "client   covers"
-      "contact  slot"
-      "footer   footer";
-    column-gap:12px;
-    background:#fff;
-    border:1px solid var(--border);
-    border-radius:14px;
-    padding:16px;
-    margin-bottom:12px;
-    position:relative;
-  }
-  tbody tr:last-child{margin-bottom:0}
-  /* Every <td> inherited a border-top from the desktop table rule —
-     it has to be reset here, otherwise each grid cell shows its own
-     stray line at its own top edge instead of one clean card. */
-  tbody td{padding:3px 0;border-top:none}
-  /* "Date de réservation : …" — de-emphasized, at the bottom, no line */
-  td:nth-child(1){grid-area:footer;margin-top:8px;font-size:12px;color:var(--text3)}
-  td:nth-child(1) .t-ref{display:none}
-  td:nth-child(1) .t-ref-date{margin-top:0}
-  td:nth-child(1) .t-ref-date::before{content:"Date de réservation : "}
-  /* Client name + note */
-  td:nth-child(2){grid-area:client}
-  /* Email + phone */
-  td:nth-child(3){grid-area:contact;margin-top:2px}
-  /* The actual booking date — the headline of the card */
-  td:nth-child(4){grid-area:date;font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;padding-right:28px}
-  /* Covers + time — right column, same style as each other, vertically
-     centered against their taller neighbour (name+note / email+phone) */
-  td:nth-child(5){grid-area:covers;text-align:right;align-self:center}
-  td:nth-child(5) .covers-pill{display:inline;background:none;color:var(--navy);font-weight:700;font-size:15px;min-width:0;height:auto;padding:0;border-radius:0}
-  td:nth-child(5) .covers-pill::after{content:" pers."}
-  td:nth-child(6){grid-area:slot;text-align:right;font-size:15px;align-self:center}
-  .t-del{position:absolute;top:14px;right:16px}
-  .empty-msg{background:#fff;border:1px solid var(--border);border-radius:14px}
+  .cal-d{font-size:11px}
 }
 
 /* ── Toast ── */
@@ -165,10 +156,13 @@ tbody tr:hover{background:#fafaf8}
   <div class="header">
     <div class="container">
       <div class="header-top">
+        <a href="#" class="home-btn" id="homeBtn" title="Voir le menu" aria-label="Voir le menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+        </a>
         <a href="resa.html" class="logo-link">
           <span class="logo-text">Drevici Oyster</span>
         </a>
-        <button class="logout-btn" onclick="logout()" title="Déconnexion" aria-label="Déconnexion">
+        <button class="logout-btn" onclick="confirmLogout()" title="Déconnexion" aria-label="Déconnexion">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8v1H4v-1z"/></svg>
         </button>
       </div>
@@ -184,30 +178,41 @@ tbody tr:hover{background:#fafaf8}
       <div class="stat-card"><div class="stat-n" id="statToday">—</div><div class="stat-l">Aujourd'hui</div></div>
     </div>
 
-    <div class="controls">
-      <input class="search-input" id="searchInput" type="text" placeholder="Rechercher un nom, email, téléphone…" oninput="renderTable()">
-      <button class="btn-plain" onclick="clearSearch()">Effacer</button>
-      <button class="btn-navy" onclick="exportCsv()">Exporter CSV</button>
+    <div class="view-tabs">
+      <div class="view-tab active" id="viewTabWeek" onclick="switchView('week')">Semaine</div>
+      <div class="view-tab" id="viewTabMonth" onclick="switchView('month')">Mois</div>
     </div>
 
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Réf.</th>
-            <th>Client</th>
-            <th>Contact</th>
-            <th>Date</th>
-            <th>Couverts</th>
-            <th>Heure</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-      </table>
-      <div class="empty-msg hidden" id="emptyMsg"></div>
+    <div class="cal-panel" id="weekPanel">
+      <div class="cal-nav">
+        <button class="cal-arr" onclick="chWeek(-1)">‹</button>
+        <span class="cal-nav-label" id="weekLabel"></span>
+        <button class="cal-arr" onclick="chWeek(1)">›</button>
+      </div>
+      <div id="weekDays"></div>
     </div>
 
+    <div class="cal-panel hidden" id="monthPanel">
+      <div class="cal-nav">
+        <button class="cal-arr" onclick="chMonth(-1)">‹</button>
+        <span class="cal-nav-label" id="monthLabel"></span>
+        <button class="cal-arr" onclick="chMonth(1)">›</button>
+      </div>
+      <div class="cal-grid" id="monthGrid"></div>
+    </div>
+
+    <div class="resa-list" id="resaList"></div>
+    <div class="empty-msg hidden" id="emptyMsg"></div>
+
+    <button class="btn-plain" onclick="exportCsv()" style="width:100%;margin-top:14px;padding:12px">Exporter CSV</button>
+
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="detailModal" onclick="if(event.target===this) closeModal()">
+  <div class="modal-card">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div id="modalBody"></div>
   </div>
 </div>
 
@@ -231,11 +236,23 @@ const SUPABASE_ANON_KEY = 'sb_publishable_9PaqDuXnWV3aOCBPk9ImmQ_4YgYTU9n';
 // (this location's reservations).
 const CLIENT_SLUG = 'drevici-paris';
 
+// CONFIG NOTE: the menu site uses a different slug ('drevici', see
+// index.html) than this reservation system ('drevici-paris') — they
+// can't be derived from each other, so this is a separate, explicit
+// value. Points at the menu's plain URL (no #tab) so the menu site's
+// own logic decides Accueil-if-active vs first-tab, exactly like the
+// header logo link in resa.html.
+const MENU_URL = 'https://sowonboxx-cmd.github.io/menu/drevici/';
+
 const sb = (SUPABASE_URL !== 'COLLE_ICI_SUPABASE_URL' && window.supabase)
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
 
 let ALL = [];
+let BLOCKED = new Set();
+
+const ICON_PERSON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+const ICON_LOCK  = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
 
 /* ── Auth ── */
 async function tryLogin() {
@@ -270,11 +287,18 @@ async function logout() {
   document.getElementById('loginEmail').value = '';
   document.getElementById('loginPass').value = '';
 }
+function confirmLogout() {
+  if (confirm('Voulez-vous vraiment vous déconnecter ?')) logout();
+}
 
 function enterDashboard() {
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('dashContent').classList.remove('hidden');
-  loadReservations();
+  document.getElementById('homeBtn').href = MENU_URL;
+  Promise.all([loadReservations(), loadBlockedDates()]).then(() => {
+    renderWeek();
+    renderMonth();
+  });
 }
 
 /* If a Supabase session already exists (page reload), skip straight to
@@ -297,11 +321,22 @@ async function loadReservations() {
     if (error) throw error;
     ALL = data || [];
     renderStats();
-    renderTable();
+    renderResaList();
   } catch (err) {
     console.error('Reservations load failed:', err);
     document.getElementById('emptyMsg').textContent = 'Impossible de charger les réservations.';
     document.getElementById('emptyMsg').classList.remove('hidden');
+  }
+}
+
+async function loadBlockedDates() {
+  if (!sb) return;
+  try {
+    const { data, error } = await sb.from('blocked_dates').select('date_iso').eq('client_slug', CLIENT_SLUG);
+    if (error) throw error;
+    BLOCKED = new Set((data || []).map(r => r.date_iso));
+  } catch (err) {
+    console.warn('Blocked dates load failed:', err.message);
   }
 }
 
@@ -312,55 +347,171 @@ function renderStats() {
   document.getElementById('statToday').textContent = ALL.filter(r => r.date_iso === todayIso).length;
 }
 
-function clearSearch() {
-  document.getElementById('searchInput').value = '';
-  renderTable();
+/* ── View tabs (Semaine / Mois) ── */
+function switchView(v) {
+  document.getElementById('viewTabWeek').classList.toggle('active', v === 'week');
+  document.getElementById('viewTabMonth').classList.toggle('active', v === 'month');
+  document.getElementById('weekPanel').classList.toggle('hidden', v !== 'week');
+  document.getElementById('monthPanel').classList.toggle('hidden', v !== 'month');
 }
 
-function filtered() {
-  const q = document.getElementById('searchInput').value.trim().toLowerCase();
-  if (!q) return ALL;
-  return ALL.filter(r =>
-    (r.from_name || '').toLowerCase().includes(q) ||
-    (r.from_email || '').toLowerCase().includes(q) ||
-    (r.phone || '').toLowerCase().includes(q) ||
-    (r.ref || '').toLowerCase().includes(q)
-  );
+/* ── Week view ── */
+const DAY_FUL = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+const MONTHS_S = ['jan.','fév.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+const MONTHS   = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const DAY_HD   = ['Lu','Ma','Me','Je','Ve','Sa','Di'];
+
+function toIso(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function getMonday(d) {
+  const day = d.getDay();
+  const diff = (day === 0 ? -6 : 1 - day);
+  const m = new Date(d);
+  m.setDate(d.getDate() + diff);
+  m.setHours(0,0,0,0);
+  return m;
 }
 
-function renderTable() {
-  const rows = filtered();
-  const body = document.getElementById('tableBody');
-  const emptyMsg = document.getElementById('emptyMsg');
-  body.innerHTML = '';
-  emptyMsg.classList.toggle('hidden', rows.length > 0);
-  if (rows.length === 0) {
-    emptyMsg.innerHTML = `<div class="empty-icon">🦪</div>${ALL.length === 0 ? 'Aucune réservation pour l\u2019instant.' : 'Aucun résultat pour cette recherche.'}`;
-    return;
-  }
+let weekStart = getMonday(new Date());
+function chWeek(dir) { weekStart.setDate(weekStart.getDate() + dir*7); renderWeek(); }
 
-  rows.forEach(r => {
-    const tr = document.createElement('tr');
-    const createdDate = r.created_at ? new Date(r.created_at).toLocaleDateString('fr-FR') : '';
-    const phoneDigits = (r.phone || '').replace(/[^\d+]/g, '');
-    const phoneHtml = r.phone
-      ? `<a href="tel:${phoneDigits}" style="color:inherit;text-decoration:none">${escapeHtml(r.phone)}</a> <a href="sms:${phoneDigits}" style="font-size:11px;font-weight:600;color:var(--navy);text-decoration:none">Message</a>`
-      : '';
-    const emailHtml = r.from_email
-      ? `<a href="mailto:${escapeAttr(r.from_email)}" style="color:inherit;text-decoration:none">${escapeHtml(r.from_email)}</a>`
-      : '';
-    tr.innerHTML = `
-      <td><div class="t-ref">${escapeHtml(r.ref || '')}</div><div class="t-ref-date">${escapeHtml(createdDate)}</div></td>
-      <td><div class="t-client">${escapeHtml(r.from_name || '')}</div>${r.note && r.note !== 'Aucune' ? `<div class="t-note">${escapeHtml(r.note)}</div>` : ''}</td>
-      <td class="t-contact"><div>${emailHtml}</div><div>${phoneHtml}</div></td>
-      <td>${escapeHtml(r.date_label || '')}</td>
-      <td><span class="covers-pill">${escapeHtml(String(r.covers || ''))}</span></td>
-      <td class="t-slot">${escapeHtml(r.slot || '')}</td>
-      <td class="t-del" onclick="deleteReservation('${escapeAttr(r.ref)}')">×</td>
+function renderWeek() {
+  const days = [];
+  for (let i=0; i<7; i++) { const d = new Date(weekStart); d.setDate(weekStart.getDate()+i); days.push(d); }
+  const last = days[6];
+  document.getElementById('weekLabel').textContent =
+    `${weekStart.getDate()} ${MONTHS_S[weekStart.getMonth()]} – ${last.getDate()} ${MONTHS_S[last.getMonth()]}`;
+  const todayIso = new Date().toISOString().slice(0,10);
+  const container = document.getElementById('weekDays');
+  container.innerHTML = '';
+  days.forEach(d => {
+    const iso = toIso(d);
+    const isToday = iso === todayIso;
+    const isLocked = BLOCKED.has(iso);
+    const covers = ALL.filter(r => r.date_iso === iso).reduce((s,r) => s + (parseInt(r.covers)||0), 0);
+    const row = document.createElement('div');
+    row.className = 'week-day' + (isToday ? ' today' : '');
+    row.innerHTML = `
+      <div class="week-day-label">
+        <div class="week-day-name">${DAY_FUL[(d.getDay()+6)%7]}</div>
+        <div class="week-day-num">${d.getDate()}</div>
+      </div>
+      <div class="week-day-count">${covers > 0 ? ICON_PERSON + ' ' + covers + ' pers.' : ''}</div>
+      <button class="lock-btn${isLocked ? ' locked' : ''}" onclick="toggleLock('${iso}')" title="${isLocked ? 'Débloquer ce jour' : 'Bloquer ce jour'}">${ICON_LOCK}</button>
     `;
-    body.appendChild(tr);
+    container.appendChild(row);
   });
 }
+
+/* ── Month view ── */
+let monthCur = new Date(); monthCur.setDate(1);
+function chMonth(dir) { monthCur.setMonth(monthCur.getMonth()+dir); renderMonth(); }
+
+function renderMonth() {
+  document.getElementById('monthLabel').textContent = MONTHS[monthCur.getMonth()] + ' ' + monthCur.getFullYear();
+  const grid = document.getElementById('monthGrid');
+  grid.innerHTML = '';
+  DAY_HD.forEach(d => { const h = document.createElement('div'); h.className = 'cal-dh'; h.textContent = d; grid.appendChild(h); });
+  const first = new Date(monthCur.getFullYear(), monthCur.getMonth(), 1);
+  let start = first.getDay()-1; if (start<0) start=6;
+  for (let i=0;i<start;i++) { const e = document.createElement('div'); e.className='cal-d empty'; grid.appendChild(e); }
+  const daysIn = new Date(monthCur.getFullYear(), monthCur.getMonth()+1, 0).getDate();
+  const todayIso = new Date().toISOString().slice(0,10);
+  for (let d=1; d<=daysIn; d++) {
+    const dt = new Date(monthCur.getFullYear(), monthCur.getMonth(), d);
+    const iso = toIso(dt);
+    const isToday = iso === todayIso;
+    const isBlocked = BLOCKED.has(iso);
+    const covers = ALL.filter(r => r.date_iso === iso).reduce((s,r) => s + (parseInt(r.covers)||0), 0);
+    const cell = document.createElement('div');
+    cell.className = 'cal-d' + (isToday?' today':'') + (isBlocked?' blocked':'');
+    cell.innerHTML = `<div>${d}</div>${covers>0 ? `<div class="cal-count">${ICON_PERSON}${covers}</div>` : ''}`;
+    grid.appendChild(cell);
+  }
+}
+
+/* ── Blocked dates — synced with resa.html via the same table ── */
+async function toggleLock(iso) {
+  const isBlocked = BLOCKED.has(iso);
+  try {
+    if (isBlocked) {
+      const { error } = await sb.from('blocked_dates').delete().eq('client_slug', CLIENT_SLUG).eq('date_iso', iso);
+      if (error) throw error;
+      BLOCKED.delete(iso);
+      showToast('Jour débloqué');
+    } else {
+      const { error } = await sb.from('blocked_dates').insert({ client_slug: CLIENT_SLUG, date_iso: iso });
+      if (error) throw error;
+      BLOCKED.add(iso);
+      showToast('Jour bloqué — plus réservable');
+    }
+    renderWeek();
+    renderMonth();
+  } catch (err) {
+    showToast('Erreur : ' + err.message);
+  }
+}
+
+/* ── Compact reservation cards ── */
+function relativeDaysLabel(dateIso) {
+  if (!dateIso) return '';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const target = new Date(dateIso + 'T00:00:00');
+  const diff = Math.round((target - today) / 86400000);
+  if (diff === 0) return "Aujourd'hui";
+  if (diff === 1) return 'Demain';
+  if (diff > 1) return 'Dans ' + diff + ' jours';
+  if (diff === -1) return 'Hier';
+  return 'Il y a ' + Math.abs(diff) + ' jours';
+}
+
+function renderResaList() {
+  const body = document.getElementById('resaList');
+  const emptyMsg = document.getElementById('emptyMsg');
+  body.innerHTML = '';
+  emptyMsg.classList.toggle('hidden', ALL.length > 0);
+  if (ALL.length === 0) {
+    emptyMsg.innerHTML = `<div class="empty-icon">🦪</div>Aucune réservation pour l\u2019instant.`;
+    return;
+  }
+  ALL.forEach(r => {
+    const card = document.createElement('div');
+    card.className = 'resa-card';
+    card.onclick = () => openDetailModal(r.ref);
+    card.innerHTML = `
+      <div class="resa-card-date">${escapeHtml(r.date_label || '')}<span class="resa-card-in">${relativeDaysLabel(r.date_iso)}</span></div>
+      <div class="resa-card-covers">${ICON_PERSON}${escapeHtml(String(r.covers || ''))}</div>
+      <div class="resa-card-name">${escapeHtml(r.from_name || '')}</div>
+      <div class="resa-card-time">${escapeHtml(r.slot || '')}</div>
+    `;
+    body.appendChild(card);
+  });
+}
+
+/* ── Detail modal ── */
+function openDetailModal(ref) {
+  const r = ALL.find(x => x.ref === ref);
+  if (!r) return;
+  const createdDate = r.created_at ? new Date(r.created_at).toLocaleDateString('fr-FR') : '';
+  const phoneDigits = (r.phone || '').replace(/[^\d+]/g, '');
+  const phoneHtml = r.phone
+    ? `<a href="tel:${phoneDigits}">${escapeHtml(r.phone)}</a> <a href="sms:${phoneDigits}" style="font-size:11px">Message</a>`
+    : '—';
+  const emailHtml = r.from_email ? `<a href="mailto:${escapeAttr(r.from_email)}">${escapeHtml(r.from_email)}</a>` : '—';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="modal-ref">${escapeHtml(r.ref || '')}</div>
+    <div class="modal-created">Enregistrée le ${escapeHtml(createdDate)}</div>
+    <div class="modal-row"><span class="modal-label">Client</span><span class="modal-value">${escapeHtml(r.from_name || '')}</span></div>
+    <div class="modal-row"><span class="modal-label">Email</span><span class="modal-value">${emailHtml}</span></div>
+    <div class="modal-row"><span class="modal-label">Téléphone</span><span class="modal-value">${phoneHtml}</span></div>
+    <div class="modal-row"><span class="modal-label">Date</span><span class="modal-value">${escapeHtml(r.date_label || '')}</span></div>
+    <div class="modal-row"><span class="modal-label">Heure</span><span class="modal-value">${escapeHtml(r.slot || '')}</span></div>
+    <div class="modal-row"><span class="modal-label">Couverts</span><span class="modal-value">${escapeHtml(String(r.covers || ''))}</span></div>
+    ${r.note && r.note !== 'Aucune' ? `<div class="modal-row"><span class="modal-label">Note</span><span class="modal-value">${escapeHtml(r.note)}</span></div>` : ''}
+    <button class="modal-del" onclick="deleteReservation('${escapeAttr(r.ref)}');closeModal()">Supprimer cette réservation</button>
+  `;
+  document.getElementById('detailModal').classList.remove('hidden');
+}
+function closeModal() { document.getElementById('detailModal').classList.add('hidden'); }
 
 async function deleteReservation(ref) {
   if (!confirm('Supprimer la réservation ' + ref + ' ?')) return;
@@ -369,7 +520,9 @@ async function deleteReservation(ref) {
     if (error) throw error;
     ALL = ALL.filter(r => r.ref !== ref);
     renderStats();
-    renderTable();
+    renderResaList();
+    renderWeek();
+    renderMonth();
     showToast('Réservation supprimée');
   } catch (err) {
     showToast('Suppression impossible : ' + err.message);
@@ -377,10 +530,9 @@ async function deleteReservation(ref) {
 }
 
 function exportCsv() {
-  const rows = filtered();
   const headers = ['Référence', 'Client', 'Nom', 'Email', 'Téléphone', 'Date', 'Couverts', 'Heure', 'Note', 'Enregistré le'];
   const lines = [headers.join(';')];
-  rows.forEach(r => {
+  ALL.forEach(r => {
     lines.push([
       r.ref, CLIENT_SLUG, r.from_name, r.from_email, r.phone,
       r.date_label, r.covers, r.slot, r.note,

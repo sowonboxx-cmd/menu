@@ -296,6 +296,22 @@ const S = { covers: null, date: null, slot: null };
 let curM = new Date().getMonth();
 let curY = new Date().getFullYear();
 const today = new Date();
+function toIso(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+
+// Days the admin has locked (admin.html's week-view lock toggle) —
+// loaded once at init from the same shared blocked_dates table, so the
+// public calendar never offers a date the restaurant has closed off.
+let BLOCKED_DATES = new Set();
+async function loadBlockedDates() {
+  if (!supabaseClient) return;
+  try {
+    const { data, error } = await supabaseClient.from('blocked_dates').select('date_iso').eq('client_slug', CLIENT_SLUG);
+    if (error) throw error;
+    BLOCKED_DATES = new Set((data || []).map(r => r.date_iso));
+  } catch (e) {
+    console.warn('Blocked dates load failed:', e.message);
+  }
+}
 const MONTHS   = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 const MONTHS_S = ['jan.','fév.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
 const DAY_HD  = ['Lu','Ma','Me','Je','Ve','Sa','Di'];
@@ -391,11 +407,15 @@ function renderCal() {
   for (let d = 1; d <= daysIn; d++) {
     const btn = document.createElement('div'); btn.className = 'cal-d'; btn.textContent = d;
     const dt = new Date(curY, curM, d);
+    const iso = toIso(dt);
     const isToday  = dt.toDateString() === today.toDateString();
     const isPast   = dt < new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const isClosed = closed.includes(dt.getDay());
+    // Synced with admin.html's week-view lock toggle (same blocked_dates
+    // table) — a day the admin locks there becomes unbookable here too.
+    const isBlocked = BLOCKED_DATES.has(iso);
     if (isToday) btn.classList.add('today');
-    if (isPast || isClosed) { btn.classList.add(isClosed ? 'closed' : 'past'); }
+    if (isPast || isClosed || isBlocked) { btn.classList.add((isClosed||isBlocked) ? 'closed' : 'past'); }
     else { if (S.date && S.date.getTime() === dt.getTime()) btn.classList.add('sel'); btn.onclick = () => pickDate(dt, btn); }
     grid.appendChild(btn);
   }
@@ -547,6 +567,12 @@ function showSuccess(email, ref) {
 renderCal();
 renderSlots();
 updateSegLabels();
+
+// Fetch blocked dates in the background and re-render the calendar once
+// known — the initial render above already shows something instantly
+// (nothing blocked yet), this just narrows it down a moment later if the
+// admin has locked any days.
+loadBlockedDates().then(() => renderCal());
 
 // Admin-only sticky button: never shown to a regular customer, only
 // when the admin opens this page with ?admin=1 in the URL.
