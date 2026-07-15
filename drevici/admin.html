@@ -93,8 +93,10 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
    then one clickable row per reservation on that date. Mobile packs the
    header onto 2 lines and shows first-name only; desktop keeps
    everything on one line with the full name and year. */
-.resa-list{display:flex;flex-direction:column;gap:10px}
-.resa-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px 16px}
+.resa-list{display:flex;flex-direction:column}
+.resa-card{padding:14px 0;border-top:1px solid var(--border)}
+.resa-card:first-child{border-top:none;padding-top:0}
+.resa-card:last-child{padding-bottom:0}
 .resa-card-header{display:flex;flex-direction:column;margin-bottom:8px}
 .resa-card-date{font-weight:700;color:var(--text);font-size:14px}
 .resa-card-year{display:none}
@@ -113,6 +115,14 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
   .resa-card-indays{margin-top:0}
   .entry-lastname{display:inline}
 }
+/* Exception: a single reservation that day doesn't need its own
+   stacked header — everything fits on one row, except the days-left
+   label, which always stays under the date (even on desktop, overriding
+   the row layout above). */
+.resa-card.single{display:flex;align-items:center;flex-wrap:wrap;column-gap:12px}
+.resa-card.single .resa-card-header{flex-direction:column!important;margin-bottom:0;flex:none}
+.resa-card.single .resa-card-indays{margin-top:2px!important}
+.resa-card.single .resa-entry{flex:1;min-width:160px;padding:0;border-top:none}
 .empty-msg{text-align:center;padding:48px 20px;color:var(--text3);font-size:14px}
 .empty-icon{font-size:32px;margin-bottom:10px}
 
@@ -525,7 +535,7 @@ function renderUpcoming() {
   groups.forEach(g => {
     const { main, year } = splitDateYear(g.date_label);
     const card = document.createElement('div');
-    card.className = 'resa-card';
+    card.className = 'resa-card' + (g.items.length === 1 ? ' single' : '');
     card.innerHTML = `
       <div class="resa-card-header">
         <span class="resa-card-date">${escapeHtml(main)}<span class="resa-card-year"> ${escapeHtml(year)}</span></span>
