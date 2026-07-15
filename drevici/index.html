@@ -482,6 +482,9 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
           <span class="header-sub" id="heroSubEl" style="margin-bottom:0"></span>
         </div>
         <div class="header-top-right">
+          <a class="admin-btn" id="calAdminBtnDesktop" href="#" target="_blank" rel="noopener" title="Réservations">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1.5"/><line x1="2" y1="6.5" x2="14" y2="6.5"/><line x1="5" y1="1.5" x2="5" y2="4"/><line x1="11" y1="1.5" x2="11" y2="4"/></svg>
+          </a>
           <button class="mode-btn mode-read active" id="btnRead" title="Mode lecture" onclick="setEditMode(false)">
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg>
           </button>
@@ -526,19 +529,20 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
       <div id="globalSocialBar"></div>
       <a class="reserve-btn" id="reserveMain" href="https://sowonboxx-cmd.github.io/menu/drevici/resa" style="text-transform:uppercase;letter-spacing:.1em;">Réserver une table</a>
       <div class="mode-links-bar">
+        <a class="mode-link" id="calAdminBtnMobile" href="#" target="_blank" rel="noopener" title="Réservations">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1.5"/><line x1="2" y1="6.5" x2="14" y2="6.5"/><line x1="5" y1="1.5" x2="5" y2="4"/><line x1="11" y1="1.5" x2="11" y2="4"/></svg>
+        </a>
+        <span class="mode-link-sep">·</span>
         <button class="mode-link mode-link-read active" id="modeLinkRead" title="Mode lecture" onclick="setEditMode(false)">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg>
-          <span>Lecture</span>
         </button>
         <span class="mode-link-sep">·</span>
         <button class="mode-link mode-link-edit" id="modeLinkEdit" title="Mode modification" onclick="setEditMode(true)">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2l3 3-8 8H3v-3l8-8z"/><line x1="9" y1="4" x2="12" y2="7"/></svg>
-          <span>Modifier</span>
         </button>
         <span class="mode-link-sep">·</span>
         <button class="mode-link mode-link-settings" onclick="openAdmin()" title="Paramètres">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 1.5l-.4 1.6a4.5 4.5 0 0 0-1.1.6L3.4 3l-1.9 3.2 1.2 1.2a4.6 4.6 0 0 0 0 1.2L1.5 9.8 3.4 13l1.6-.7c.34.24.7.43 1.1.6l.4 1.6h3.8l.4-1.6c.4-.17.76-.36 1.1-.6l1.6.7 1.9-3.2-1.2-1.2c.05-.4.05-.8 0-1.2l1.2-1.2L12.6 3l-1.6.7a4.5 4.5 0 0 0-1.1-.6L9.5 1.5z"/><circle cx="8" cy="8" r="2"/></svg>
-          <span>Réglages</span>
         </button>
       </div>
     </div>
@@ -2783,6 +2787,11 @@ const SUPABASE_ANON_KEY = 'sb_publishable_9PaqDuXnWV3aOCBPk9ImmQ_4YgYTU9n';
 // Detect client slug from URL: /menu/drevici → 'drevici'
 const _pathParts = window.location.pathname.replace(/\/+$/,'').replace(/^\/+/,'').split('/');
 const CLIENT_SLUG = _pathParts[_pathParts.length - 1] || 'default';
+// Reservations admin dashboard for this restaurant (admin.html) — a
+// per-deployment value, since the reservation module lives in its own
+// folder/slug (e.g. 'drevici-paris'), separate from this menu's own
+// CLIENT_SLUG. Adjust per restaurant when reusing this template.
+const RESA_ADMIN_URL = 'https://sowonboxx-cmd.github.io/menu/drevici/admin';
 
 const supabaseClient = (SUPABASE_URL !== 'COLLE_ICI_SUPABASE_URL' && window.supabase)
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
@@ -4170,6 +4179,8 @@ function openFirstAdminSection(){
 // elsewhere since this file was last deployed.
 renderAll();
 applyRestaurantBranding();
+{ const dBtn=document.getElementById('calAdminBtnDesktop'); if(dBtn) dBtn.href=RESA_ADMIN_URL;
+  const mBtn=document.getElementById('calAdminBtnMobile'); if(mBtn) mBtn.href=RESA_ADMIN_URL; }
 // BUG FIX: the "Lecture / Modifier / Réglages" bar (.mode-links-bar) was
 // never actually gated by admin status — its visibility was controlled
 // purely by a responsive CSS media query (hidden on desktop, always
