@@ -45,12 +45,7 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 .wrap{max-width:1100px;margin:0 auto;padding:20px 16px 48px}
 
 /* ── Stat cards ── */
-.stats{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px}
-.stat-card{flex:1;min-width:150px;background:#fff;border-radius:14px;padding:20px;text-align:center;border:1px solid var(--border)}
-.stat-n{font-family:'Jost',sans-serif;font-size:34px;font-weight:700;color:var(--navy)}
-.stat-l{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-top:4px}
-
-/* ── View tabs (Semaine / Mois) — same segmented pill as resa.html ── */
+/* ── View tabs (À venir / Semaine / Mois) — same segmented pill as resa.html ── */
 .view-tabs{display:flex;background:var(--navy);border-radius:50px;padding:4px;gap:4px;margin-bottom:14px}
 .view-tab{flex:1;text-align:center;padding:11px 6px;border-radius:50px;font-size:13px;font-weight:600;color:rgba(255,255,255,.55);cursor:pointer;transition:.15s}
 .view-tab.active{background:#fff;color:var(--navy)}
@@ -69,6 +64,11 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 .cal-d.empty{border:none}
 .cal-d.today{border-color:var(--gold);font-weight:700}
 .cal-d.blocked{background:#faf0ef;color:#c0392b}
+.cal-d.closed{background:#f2f2f0;color:var(--text3)}
+.cal-d.has-resa{cursor:pointer}
+.cal-d.has-resa:hover{border-color:var(--navy)}
+.cal-lock{position:absolute;top:3px;right:3px;color:#c0392b}
+.cal-lock svg{width:10px;height:10px}
 .cal-count{font-size:10px;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:2px}
 .cal-count svg{width:9px;height:9px}
 
@@ -88,16 +88,31 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 .lock-btn:hover{color:var(--navy)}
 .lock-btn.locked:hover{color:#c0392b}
 
-/* ── Compact reservation cards (desktop + mobile share this now) ── */
+/* ── Reservation cards, grouped by date ──
+   One card per date: a header (date + how-many-days-left) shown once,
+   then one clickable row per reservation on that date. Mobile packs the
+   header onto 2 lines and shows first-name only; desktop keeps
+   everything on one line with the full name and year. */
 .resa-list{display:flex;flex-direction:column;gap:10px}
-.resa-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px 16px;cursor:pointer;transition:border-color .15s;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.resa-card:hover{border-color:var(--navy)}
-.resa-card-date{font-weight:700;color:var(--text);font-size:14px;flex:1;min-width:140px}
-.resa-card-in{font-size:11px;color:var(--text3);font-weight:400;margin-left:6px}
-.resa-card-covers{display:flex;align-items:center;gap:4px;font-weight:700;color:var(--navy);font-size:13px}
-.resa-card-covers svg{width:13px;height:13px}
-.resa-card-name{font-weight:600;color:var(--text);font-size:13px;flex:1;min-width:120px}
-.resa-card-time{font-weight:700;color:var(--navy);font-size:14px}
+.resa-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px 16px}
+.resa-card-header{display:flex;flex-direction:column;margin-bottom:8px}
+.resa-card-date{font-weight:700;color:var(--text);font-size:14px}
+.resa-card-year{display:none}
+.resa-card-indays{font-size:11px;color:var(--text3);font-weight:400;margin-top:2px}
+.resa-entry{display:flex;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--border);cursor:pointer;transition:opacity .15s}
+.resa-entry:first-of-type{border-top:none;padding-top:0}
+.resa-entry:hover{opacity:.7}
+.entry-name{font-weight:600;color:var(--text);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.entry-lastname{display:none}
+.entry-covers{display:flex;align-items:center;gap:3px;font-weight:700;color:var(--navy);font-size:12px;flex:none}
+.entry-covers svg{width:12px;height:12px}
+.entry-time{font-weight:700;color:var(--navy);font-size:13px;margin-left:auto;flex:none}
+@media(min-width:761px){
+  .resa-card-header{flex-direction:row;align-items:baseline;gap:10px}
+  .resa-card-year{display:inline}
+  .resa-card-indays{margin-top:0}
+  .entry-lastname{display:inline}
+}
 .empty-msg{text-align:center;padding:48px 20px;color:var(--text3);font-size:14px}
 .empty-icon{font-size:32px;margin-bottom:10px}
 
@@ -172,18 +187,18 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 
   <div class="wrap">
 
-    <div class="stats">
-      <div class="stat-card"><div class="stat-n" id="statCount">—</div><div class="stat-l">Réservations</div></div>
-      <div class="stat-card"><div class="stat-n" id="statCovers">—</div><div class="stat-l">Couverts</div></div>
-      <div class="stat-card"><div class="stat-n" id="statToday">—</div><div class="stat-l">Aujourd'hui</div></div>
-    </div>
-
     <div class="view-tabs">
-      <div class="view-tab active" id="viewTabWeek" onclick="switchView('week')">Semaine</div>
+      <div class="view-tab active" id="viewTabUpcoming" onclick="switchView('upcoming')">À venir</div>
+      <div class="view-tab" id="viewTabWeek" onclick="switchView('week')">Semaine</div>
       <div class="view-tab" id="viewTabMonth" onclick="switchView('month')">Mois</div>
     </div>
 
-    <div class="cal-panel" id="weekPanel">
+    <div class="cal-panel" id="upcomingPanel">
+      <div class="resa-list" id="upcomingList"></div>
+      <div class="empty-msg hidden" id="emptyMsg"></div>
+    </div>
+
+    <div class="cal-panel hidden" id="weekPanel">
       <div class="cal-nav">
         <button class="cal-arr" onclick="chWeek(-1)">‹</button>
         <span class="cal-nav-label" id="weekLabel"></span>
@@ -200,11 +215,6 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
       </div>
       <div class="cal-grid" id="monthGrid"></div>
     </div>
-
-    <div class="resa-list" id="resaList"></div>
-    <div class="empty-msg hidden" id="emptyMsg"></div>
-
-    <button class="btn-plain" onclick="exportCsv()" style="width:100%;margin-top:14px;padding:12px">Exporter CSV</button>
 
   </div>
 </div>
@@ -243,6 +253,12 @@ const CLIENT_SLUG = 'drevici-paris';
 // own logic decides Accueil-if-active vs first-tab, exactly like the
 // header logo link in resa.html.
 const MENU_URL = 'https://sowonboxx-cmd.github.io/menu/drevici/';
+
+// CONFIG NOTE: must match CLOSED_DAYS in resa.html exactly — used here
+// only to grey out the same closed days in the month view for visual
+// consistency (the public calendar is the actual source of truth for
+// bookability; this is just so the admin sees the same picture).
+const CLOSED_DAYS = [0,1]; // Sunday, Monday
 
 const sb = (SUPABASE_URL !== 'COLLE_ICI_SUPABASE_URL' && window.supabase)
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
@@ -320,8 +336,7 @@ async function loadReservations() {
       .order('date_iso', { ascending: true });
     if (error) throw error;
     ALL = data || [];
-    renderStats();
-    renderResaList();
+    renderUpcoming();
   } catch (err) {
     console.error('Reservations load failed:', err);
     document.getElementById('emptyMsg').textContent = 'Impossible de charger les réservations.';
@@ -340,17 +355,12 @@ async function loadBlockedDates() {
   }
 }
 
-function renderStats() {
-  const todayIso = new Date().toISOString().slice(0, 10);
-  document.getElementById('statCount').textContent = ALL.length;
-  document.getElementById('statCovers').textContent = ALL.reduce((sum, r) => sum + (parseInt(r.covers) || 0), 0);
-  document.getElementById('statToday').textContent = ALL.filter(r => r.date_iso === todayIso).length;
-}
-
-/* ── View tabs (Semaine / Mois) ── */
+/* ── View tabs (À venir / Semaine / Mois) ── */
 function switchView(v) {
+  document.getElementById('viewTabUpcoming').classList.toggle('active', v === 'upcoming');
   document.getElementById('viewTabWeek').classList.toggle('active', v === 'week');
   document.getElementById('viewTabMonth').classList.toggle('active', v === 'month');
+  document.getElementById('upcomingPanel').classList.toggle('hidden', v !== 'upcoming');
   document.getElementById('weekPanel').classList.toggle('hidden', v !== 'week');
   document.getElementById('monthPanel').classList.toggle('hidden', v !== 'month');
 }
@@ -395,7 +405,7 @@ function renderWeek() {
         <div class="week-day-name">${DAY_FUL[(d.getDay()+6)%7]}</div>
         <div class="week-day-num">${d.getDate()}</div>
       </div>
-      <div class="week-day-count">${covers > 0 ? ICON_PERSON + ' ' + covers + ' pers.' : ''}</div>
+      <div class="week-day-count"${covers > 0 ? ` style="cursor:pointer" onclick="openDayModal('${iso}')"` : ''}>${covers > 0 ? ICON_PERSON + ' ' + covers + ' pers.' : ''}</div>
       <button class="lock-btn${isLocked ? ' locked' : ''}" onclick="toggleLock('${iso}')" title="${isLocked ? 'Débloquer ce jour' : 'Bloquer ce jour'}">${ICON_LOCK}</button>
     `;
     container.appendChild(row);
@@ -421,10 +431,16 @@ function renderMonth() {
     const iso = toIso(dt);
     const isToday = iso === todayIso;
     const isBlocked = BLOCKED.has(iso);
+    const isClosed = CLOSED_DAYS.includes(dt.getDay());
     const covers = ALL.filter(r => r.date_iso === iso).reduce((s,r) => s + (parseInt(r.covers)||0), 0);
+    const hasResa = covers > 0;
     const cell = document.createElement('div');
-    cell.className = 'cal-d' + (isToday?' today':'') + (isBlocked?' blocked':'');
-    cell.innerHTML = `<div>${d}</div>${covers>0 ? `<div class="cal-count">${ICON_PERSON}${covers}</div>` : ''}`;
+    cell.className = 'cal-d'
+      + (isToday?' today':'')
+      + (isBlocked?' blocked':(isClosed?' closed':''))
+      + (hasResa?' has-resa':'');
+    if (hasResa) cell.onclick = () => openDayModal(iso);
+    cell.innerHTML = `${isBlocked ? `<span class="cal-lock">${ICON_LOCK}</span>` : ''}<div>${d}</div>${hasResa ? `<div class="cal-count">${ICON_PERSON}${covers}</div>` : ''}`;
     grid.appendChild(cell);
   }
 }
@@ -464,40 +480,76 @@ function relativeDaysLabel(dateIso) {
   return 'Il y a ' + Math.abs(diff) + ' jours';
 }
 
-function renderResaList() {
-  const body = document.getElementById('resaList');
+// date_label is always "<jour> <num> <mois> <année>" (see resa.html) —
+// split off the year so mobile can hide it (shown only in the popup)
+// while desktop keeps it inline.
+function splitDateYear(dateLabel) {
+  const idx = (dateLabel || '').lastIndexOf(' ');
+  if (idx === -1) return { main: dateLabel || '', year: '' };
+  return { main: dateLabel.slice(0, idx), year: dateLabel.slice(idx + 1) };
+}
+
+function reservationEntryHtml(r) {
+  const parts = (r.from_name || '').trim().split(/\s+/);
+  const first = parts[0] || '';
+  const rest = parts.slice(1).join(' ');
+  return `<div class="resa-entry" onclick="openDetailModal('${escapeAttr(r.ref)}')">
+    <span class="entry-name">${escapeHtml(first)}<span class="entry-lastname"> ${escapeHtml(rest)}</span></span>
+    <span class="entry-covers">${ICON_PERSON}${escapeHtml(String(r.covers || ''))}</span>
+    <span class="entry-time">${escapeHtml(r.slot || '')}</span>
+  </div>`;
+}
+
+/* ── "À venir" — next 7 reservations, grouped by date so a shared date
+   isn't repeated per person; each person still opens their own popup. ── */
+function renderUpcoming() {
+  const body = document.getElementById('upcomingList');
   const emptyMsg = document.getElementById('emptyMsg');
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const upcoming = ALL
+    .filter(r => r.date_iso >= todayIso)
+    .sort((a, b) => (a.date_iso + (a.slot||'')).localeCompare(b.date_iso + (b.slot||'')))
+    .slice(0, 7);
   body.innerHTML = '';
-  emptyMsg.classList.toggle('hidden', ALL.length > 0);
-  if (ALL.length === 0) {
-    emptyMsg.innerHTML = `<div class="empty-icon">🦪</div>Aucune réservation pour l\u2019instant.`;
+  emptyMsg.classList.toggle('hidden', upcoming.length > 0);
+  if (upcoming.length === 0) {
+    emptyMsg.innerHTML = `<div class="empty-icon">🦪</div>Aucune réservation à venir.`;
     return;
   }
-  ALL.forEach(r => {
+  const groups = [];
+  upcoming.forEach(r => {
+    const last = groups[groups.length - 1];
+    if (last && last.date_iso === r.date_iso) last.items.push(r);
+    else groups.push({ date_iso: r.date_iso, date_label: r.date_label, items: [r] });
+  });
+  groups.forEach(g => {
+    const { main, year } = splitDateYear(g.date_label);
     const card = document.createElement('div');
     card.className = 'resa-card';
-    card.onclick = () => openDetailModal(r.ref);
     card.innerHTML = `
-      <div class="resa-card-date">${escapeHtml(r.date_label || '')}<span class="resa-card-in">${relativeDaysLabel(r.date_iso)}</span></div>
-      <div class="resa-card-covers">${ICON_PERSON}${escapeHtml(String(r.covers || ''))}</div>
-      <div class="resa-card-name">${escapeHtml(r.from_name || '')}</div>
-      <div class="resa-card-time">${escapeHtml(r.slot || '')}</div>
+      <div class="resa-card-header">
+        <span class="resa-card-date">${escapeHtml(main)}<span class="resa-card-year"> ${escapeHtml(year)}</span></span>
+        <span class="resa-card-indays">${relativeDaysLabel(g.date_iso)}</span>
+      </div>
+      ${g.items.map(reservationEntryHtml).join('')}
     `;
     body.appendChild(card);
   });
 }
 
-/* ── Detail modal ── */
-function openDetailModal(ref) {
-  const r = ALL.find(x => x.ref === ref);
-  if (!r) return;
+/* ── Detail modal — one reservation's full info, reused both for a
+   single click (openDetailModal) and for a whole day at once
+   (openDayModal, week/month view clicks): several of these blocks
+   stacked and separated by a divider, scrollable within the same
+   modal, in chronological order. ── */
+function reservationDetailHtml(r) {
   const createdDate = r.created_at ? new Date(r.created_at).toLocaleDateString('fr-FR') : '';
   const phoneDigits = (r.phone || '').replace(/[^\d+]/g, '');
   const phoneHtml = r.phone
     ? `<a href="tel:${phoneDigits}">${escapeHtml(r.phone)}</a> <a href="sms:${phoneDigits}" style="font-size:11px">Message</a>`
     : '—';
   const emailHtml = r.from_email ? `<a href="mailto:${escapeAttr(r.from_email)}">${escapeHtml(r.from_email)}</a>` : '—';
-  document.getElementById('modalBody').innerHTML = `
+  return `
     <div class="modal-ref">${escapeHtml(r.ref || '')}</div>
     <div class="modal-created">Enregistrée le ${escapeHtml(createdDate)}</div>
     <div class="modal-row"><span class="modal-label">Client</span><span class="modal-value">${escapeHtml(r.from_name || '')}</span></div>
@@ -509,6 +561,19 @@ function openDetailModal(ref) {
     ${r.note && r.note !== 'Aucune' ? `<div class="modal-row"><span class="modal-label">Note</span><span class="modal-value">${escapeHtml(r.note)}</span></div>` : ''}
     <button class="modal-del" onclick="deleteReservation('${escapeAttr(r.ref)}');closeModal()">Supprimer cette réservation</button>
   `;
+}
+function openDetailModal(ref) {
+  const r = ALL.find(x => x.ref === ref);
+  if (!r) return;
+  document.getElementById('modalBody').innerHTML = reservationDetailHtml(r);
+  document.getElementById('detailModal').classList.remove('hidden');
+}
+function openDayModal(iso) {
+  const rows = ALL.filter(r => r.date_iso === iso).sort((a,b) => (a.slot||'').localeCompare(b.slot||''));
+  if (rows.length === 0) return;
+  document.getElementById('modalBody').innerHTML = rows
+    .map(reservationDetailHtml)
+    .join('<hr style="border:none;border-top:1px solid var(--border);margin:16px 0">');
   document.getElementById('detailModal').classList.remove('hidden');
 }
 function closeModal() { document.getElementById('detailModal').classList.add('hidden'); }
@@ -519,34 +584,13 @@ async function deleteReservation(ref) {
     const { error } = await sb.from('restaurant_reservations').delete().eq('ref', ref).eq('client_slug', CLIENT_SLUG);
     if (error) throw error;
     ALL = ALL.filter(r => r.ref !== ref);
-    renderStats();
-    renderResaList();
+    renderUpcoming();
     renderWeek();
     renderMonth();
     showToast('Réservation supprimée');
   } catch (err) {
     showToast('Suppression impossible : ' + err.message);
   }
-}
-
-function exportCsv() {
-  const headers = ['Référence', 'Client', 'Nom', 'Email', 'Téléphone', 'Date', 'Couverts', 'Heure', 'Note', 'Enregistré le'];
-  const lines = [headers.join(';')];
-  ALL.forEach(r => {
-    lines.push([
-      r.ref, CLIENT_SLUG, r.from_name, r.from_email, r.phone,
-      r.date_label, r.covers, r.slot, r.note,
-      r.created_at ? new Date(r.created_at).toLocaleString('fr-FR') : ''
-    ].map(csvEscape).join(';'));
-  });
-  const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'reservations-drevici-' + new Date().toISOString().slice(0, 10) + '.csv';
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('Export CSV téléchargé');
 }
 
 function showToast(msg) {
@@ -556,10 +600,6 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 2500);
 }
 
-function csvEscape(v) {
-  v = (v === undefined || v === null) ? '' : String(v);
-  return '"' + v.replace(/"/g, '""') + '"';
-}
 function escapeHtml(v) {
   return String(v).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 }
