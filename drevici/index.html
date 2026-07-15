@@ -12,6 +12,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
+/* NOTE: the viewport meta tag already sets user-scalable=no, but modern
+   iOS Safari ignores that for accessibility reasons and allows pinch-zoom
+   regardless — there's no way to fully block that on iOS anymore. This at
+   least prevents the double-tap-to-zoom gesture everywhere, which does
+   still work on all browsers. */
+html,body{touch-action:manipulation}
 :root{--restoFont:'Cormorant Garamond';--navy:#10285E;--gold:#C6A24A;--bg:#F4F0EA;--white:#fff;--border:rgba(0,0,0,0.08);--text:#1a1a1a;--text2:#666;--text3:#aaa;--r:10px;--rs:6px;--subtitleColor:rgba(255,255,255,0.45);--tabInactiveColor:rgba(255,255,255,0.4)}
 body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-size:14px}
 
@@ -262,7 +268,7 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .st-sub{font-family:"Open Sans",sans-serif;color:rgba(255,255,255,.75);line-height:1.5}
 .st-gold{color:#C6A24A}
 .st-badge{display:inline-block;background:#C6A24A;color:#fff;font-family:"Open Sans",sans-serif;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
-.st-divider{width:40px;height:2px;background:#C6A24A}
+.st-divider{width:40px;height:2px;background:#fff}
 .st-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(10,26,46,.95) 0%,rgba(10,26,46,.4) 60%,transparent 100%)}
 .st-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .st-content{position:relative;z-index:1;display:flex;flex-direction:column;height:100%}
@@ -484,7 +490,7 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
           <span class="header-sub" id="heroSubEl" style="margin-bottom:0"></span>
         </div>
         <div class="header-top-right">
-          <a class="admin-btn" id="calAdminBtnDesktop" href="#" target="_blank" rel="noopener" title="Réservations">
+          <a class="admin-btn" id="calAdminBtnDesktop" href="#" title="Réservations">
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1.5"/><line x1="2" y1="6.5" x2="14" y2="6.5"/><line x1="5" y1="1.5" x2="5" y2="4"/><line x1="11" y1="1.5" x2="11" y2="4"/></svg>
           </a>
           <button class="mode-btn mode-read active" id="btnRead" title="Mode lecture" onclick="setEditMode(false)">
@@ -531,7 +537,7 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
       <div id="globalSocialBar"></div>
       <a class="reserve-btn" id="reserveMain" href="https://sowonboxx-cmd.github.io/menu/drevici/resa" style="text-transform:uppercase;letter-spacing:.1em;margin-bottom:0">Réserver une table</a>
       <div class="mode-links-bar">
-        <a class="mode-link" id="calAdminBtnMobile" href="#" target="_blank" rel="noopener" title="Réservations">
+        <a class="mode-link" id="calAdminBtnMobile" href="#" title="Réservations">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1.5"/><line x1="2" y1="6.5" x2="14" y2="6.5"/><line x1="5" y1="1.5" x2="5" y2="4"/><line x1="11" y1="1.5" x2="11" y2="4"/></svg>
         </a>
         <button class="mode-link mode-link-read active" id="modeLinkRead" title="Mode lecture" onclick="setEditMode(false)">
@@ -1403,6 +1409,10 @@ function renderScheduleInline(){
     }).join(', ');
     return `<div class="resto-popup-row${isToday?' today':''}"><span class="rday">${d.day}</span><span>${h}</span></div>`;
   }).join('');
+  const mapsUrl = DATA.address && DATA.address.mapsUrl;
+  const pinHtml = mapsUrl ? `<a href="${escAttr(mapsUrl)}" target="_blank" rel="noopener" title="Voir sur Google Maps" style="display:inline-flex;align-items:center;margin-left:8px;color:var(--navy);vertical-align:middle">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 7 12 7.29 12.29a1 1 0 0 0 1.42 0C13 22 20 15.25 20 10c0-4.42-3.58-8-8-8zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>
+  </a>` : '';
   return `<div class="resto-badge-inline" id="schedBadge" onclick="toggleSchedPopup(event)" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;padding:4px 0;position:relative;user-select:none">
     <span class="resto-dot ${dotClass}"></span>
     <span style="font-size:11px;color:var(--text2);font-family:Jost,sans-serif">${label}</span>
@@ -1410,7 +1420,7 @@ function renderScheduleInline(){
       <div class="resto-popup-title" style="color:${state==='open'?'#22c55e':state==='soon'?'#f97316':'#ef4444'}">Horaires d'ouverture</div>
       ${rows}
     </div>
-  </div>`;
+  </div>${pinHtml}`;
 }
 
 function setView(v){ view=v; renderAll(); }
@@ -2174,6 +2184,7 @@ function renderAdminTabDd(){
     +'<option value="__addtab_plats">+ Nouvelle tab (plats)</option>'
     +'<option value="__addtab_boissons">+ Nouvelle tab (boissons)</option>'
     +'<option value="__reorder">☰ Réordonner les tabs</option>'
+    +'<option value="__print">🖨 Impression du menu</option>'
     +'<option value="__social" style="font-weight:600">★ Réseaux sociaux</option>';
   dd.value=adminCurrentTab;
 }
@@ -2182,6 +2193,7 @@ function adminGoTab(val){
   if(val==='__addtab_plats'){ addNewTab('plats'); return; }
   if(val==='__addtab_boissons'){ addNewTab('boissons'); return; }
   if(val==='__reorder'){ adminCurrentTab='__reorder'; renderAdminSection('__reorder'); return; }
+  if(val==='__print'){ adminCurrentTab='__print'; renderAdminSection('__print'); return; }
   if(val==='__social'){ adminCurrentTab='__social'; renderAdminSection('__social'); return; }
   adminCurrentTab=val;
   renderAdminSection(val);
@@ -2238,6 +2250,8 @@ function renderAdminSection(tid, _skipScroll){
     body.innerHTML=renderSocialSection()+adminSaveBar();
   } else if(tid==='__reorder'){
     body.innerHTML=renderTabReorder();
+  } else if(tid==='__print'){
+    body.innerHTML=`<div class="admin-section"><div class="admin-sect-body">${renderPrintBody()}</div></div>`;
   } else {
     const ti=DATA.tabs.findIndex(tb=>tb.id===tid);
     if(ti<0){body.innerHTML='';return;}
@@ -2407,9 +2421,6 @@ function renderAdminGlobal(){
       <div class="af"><label class="al">Prix (€)</label><input class="ai ai-sm" type="text" inputmode="decimal" value="${sp.price||''}" oninput="const v=this.value.trim();DATA.specials[${si}].price=v&&/^[\d.,]+$/.test(v)?v+'€':v;renderAll()"></div>
     </div>`;
   });
-  h+=`<div style="height:14px;border-top:1px solid var(--border);margin:12px 0 10px"></div>`;
-  h+=`<div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:6px">Impression / Export PDF</div>`;
-  h+=renderPrintBody();
   h+=`</div></div>`;
 
   return h;
@@ -3352,7 +3363,7 @@ function downloadSocImg(fmt){
       a.click();
       document.body.removeChild(div);
       s.format = prevFmt;
-      showToast('✓ Image exportée !');
+      showToast('Image exportée !');
     }).catch((e)=>{ console.error(e); document.body.removeChild(div); s.format=prevFmt; showToast('Erreur export — vérifiez les images CORS'); });
   } else {
     document.body.removeChild(div);
@@ -3467,15 +3478,15 @@ function buildPdfMenuHTML(cfg){
       if(t(card.label) && tb.cards.length>1) h += `<h3 class="pdf-subcat">${t(card.label)}</h3>`;
       const rows = [];
       if(card.dishes){
-        card.dishes.forEach(d=>{
+        card.dishes.filter(d=>!d.hidden).forEach(d=>{
           rows.push(`<div class="pdf-dish"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(d.name)||''}</span><span class="pdf-dots"></span><span class="pdf-dish-price">${d.price||''}</span></div>${t(d.desc)?`<div class="pdf-dish-desc">${t(d.desc)}</div>`:''}</div>`);
         });
       } else if(card.type==='variants'){
-        (card.variants||[]).forEach(v=>{
+        (card.variants||[]).filter(v=>!v.hidden).forEach(v=>{
           rows.push(`<div class="pdf-dish"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(v.name)||''}</span><span class="pdf-dots"></span><span class="pdf-dish-price">${v.price||''}</span></div></div>`);
         });
       } else if(card.type==='bevs'){
-        (card.items||[]).forEach(item=>{
+        (card.items||[]).filter(item=>!item.hidden).forEach(item=>{
           const sizes=(item.sizes||[]).map(s=>s.cl+(s.unit==='l'?'L':'cl')+' — '+s.price+'€').join(' · ');
           rows.push(`<div class="pdf-dish"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(item.name)||''}</span><span class="pdf-dots"></span><span class="pdf-dish-price">${sizes||item.price||''}</span></div>${t(item.desc)?`<div class="pdf-dish-desc">${t(item.desc)}</div>`:''}</div>`);
         });
@@ -3639,7 +3650,7 @@ function exportGbizImage(cfg){
         link.download = (getRestaurantName()||'menu').replace(/\s+/g,'-').toLowerCase() + '-google-business.png';
         link.href = canvas.toDataURL('image/png');
         link.click();
-        showToast('✓ Image Google Business téléchargée');
+        showToast('Image Google Business téléchargée');
       })
       .catch(err => {
         document.body.removeChild(holder);
