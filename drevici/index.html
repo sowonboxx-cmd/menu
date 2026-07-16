@@ -34,7 +34,7 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 .lb-prev{left:10px}.lb-next{right:10px}
 .lb-footer{background:#10285E;padding:14px 20px 20px}
 .lb-cat-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px}
-.lb-cat-line{flex:1;height:1px;background:var(--gold);opacity:.6;max-width:40px}
+.lb-cat-line{flex:1;height:1px;background:rgba(255,255,255,0.45);max-width:40px}
 .lb-cat-label{font-family:'Open Sans',sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,0.45)}
 .lb-dish-name{font-family:'Open Sans',sans-serif;font-size:16px;color:#fff;font-weight:600;line-height:1.2;text-align:center;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em}
 .lb-dish-desc{font-size:13px;color:rgba(255,255,255,0.65);font-family:'Open Sans',sans-serif;font-weight:400;line-height:1.55;text-align:center;margin-bottom:10px}
@@ -306,7 +306,11 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
   .sticky-reserve{position:fixed;bottom:0;left:0;right:0;z-index:100;padding:10px 0 env(safe-area-inset-bottom,14px);background:linear-gradient(to top,var(--bg) 80%,transparent)}
   .sticky-reserve .container{padding:0 0}
   .reserve-btn{border-radius:0;padding:17px 16px}
-  .page{padding-bottom:130px}
+  /* BUG FIX: 130px reserved way more space than the sticky bar (reserve
+     button + admin bar) actually takes up on mobile (~106-115px in
+     practice), leaving a visible empty cream gap above it once scrolled
+     to the bottom. Tightened to match. */
+  .page{padding-bottom:110px}
   /* BUG FIX: this used to be beaten by the higher-specificity
      "body.is-admin .header-top-right{visibility:visible}" rule further
      up — on mobile, an admin ended up seeing the header icons AND the
@@ -2434,26 +2438,7 @@ function renderAdminHomeTab(){
 }
 
 function renderAdminGlobal(){
-  let h='';
-  h+=`<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Menu du jour et impression</div><div class="admin-sect-body">`;
-  h+=`<div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:6px">Menu du jour</div>`;
-  DATA.specials.forEach((sp,si)=>{
-    h+=`<div class="admin-card">
-      <div style="margin-bottom:8px">
-        <label class="admin-toggle" style="margin-bottom:6px"><input type="checkbox" ${sp.active?'checked':''} onchange="DATA.specials[${si}].active=this.checked;renderAll()"><label>Visible</label></label>
-        <div style="display:flex;gap:12px;margin-top:4px">
-          <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text3);cursor:pointer"><input type="checkbox" ${sp.showHome!==false?'checked':''} onchange="DATA.specials[${si}].showHome=this.checked;renderAll()"> Onglet Accueil</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text3);cursor:pointer"><input type="checkbox" ${sp.showFirst!==false?'checked':''} onchange="DATA.specials[${si}].showFirst=this.checked;renderAll()"> Première tab</label>
-        </div>
-      </div>
-      `+biInput('Titre du menu', sp.title.fr||'', sp.title[adminLang]||'', `DATA.specials[${si}].title[adminLang]=this.value;renderAll()`)+`
-      `+biInput('Description / plats', sp.desc.fr||'', sp.desc[adminLang]||'', `DATA.specials[${si}].desc[adminLang]=this.value;renderAll()`)+`
-      <div class="af"><label class="al">Prix (€)</label><input class="ai ai-sm" type="text" inputmode="decimal" value="${sp.price||''}" oninput="const v=this.value.trim();DATA.specials[${si}].price=v&&/^[\d.,]+$/.test(v)?v+'€':v;renderAll()"></div>
-    </div>`;
-  });
-  h+=`</div></div>`;
-
-  return h;
+  return '';
 }
 
 let dragPinSrc=null;
@@ -4040,7 +4025,7 @@ function fetchCityFromZip(zip){
 
 function renderSocialAdminSection(){
   const soc=DATA.social||{};
-  return `<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Liens réseaux sociaux et site web</div><div class="admin-sect-body" style="padding:14px 16px">
+  return `<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Réseaux sociaux</div><div class="admin-sect-body" style="padding:14px 16px">
     <div class="af"><label class="al">Instagram</label>
       <div style="display:flex;align-items:center;gap:6px">
         <span style="font-size:13px;color:var(--text3)">@</span>
