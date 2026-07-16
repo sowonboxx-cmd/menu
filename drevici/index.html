@@ -129,6 +129,7 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .view-tab-label{font-size:10px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);font-family:'Jost',sans-serif}
 .view-btns{display:flex;gap:4px}
 .view-btn{width:30px;height:30px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:#fff;color:var(--text3);display:flex;align-items:center;justify-content:center;transition:all .15s}
+.sched-pin-frame{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:6px;background:#fff;padding:5px 10px}
 .view-btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .view-btn.active{background:var(--navy);border-color:var(--navy);color:#fff}
 .view-btn.active svg{stroke:#fff}
@@ -534,7 +535,6 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 
   <div class="sticky-reserve">
     <div class="container">
-      <div id="globalSocialBar"></div>
       <a class="reserve-btn" id="reserveMain" href="https://sowonboxx-cmd.github.io/menu/drevici/resa" style="text-transform:uppercase;letter-spacing:.1em;margin-bottom:0">Réserver une table</a>
       <div class="mode-links-bar">
         <a class="mode-link" id="calAdminBtnMobile" href="#" title="Réservations">
@@ -1279,20 +1279,24 @@ function renderAll(){
   const subEl=document.getElementById('heroSubEl');
   if(subEl){ const st=DATA.hero?t(DATA.hero):''; subEl.textContent=st; subEl.style.display=st?'block':'none'; }
   applyRestaurantBranding();
-  // Global social bar above reserve CTA
+}
+
+// BUG FIX: this used to populate a sticky #globalSocialBar shown on
+// every single tab, permanently fixed at the bottom of the screen. Social
+// links + website should only appear once, in-flow, at the bottom of the
+// actual home page content — not as a sticky bar repeated everywhere else.
+function homeSocialBarHtml(){
   const soc=DATA.social||{};
-  const sb=document.getElementById('globalSocialBar');
-  if(sb){
-    const sLinks=[];
-    if(soc.instagram) sLinks.push(`<a class="social-link-txt" href="https://instagram.com/${soc.instagram.replace('@','')}" target="_blank">INSTAGRAM</a>`);
-    if(soc.tiktok) sLinks.push(`<a class="social-link-txt" href="https://tiktok.com/@${soc.tiktok.replace('@','')}" target="_blank">TIKTOK</a>`);
-    if(soc.facebook) sLinks.push(`<a class="social-link-txt" href="https://facebook.com/${soc.facebook.replace('@','')}" target="_blank">FACEBOOK</a>`);
-    if(soc.website){
-      const wsUrl=/^https?:\/\//.test(soc.website)?soc.website:'https://'+soc.website;
-      sLinks.push(`<a class="social-link-txt" href="${wsUrl}" target="_blank" rel="noopener">SITE WEB</a>`);
-    }
-    sb.innerHTML=sLinks.length?`<div class="social-links-bar">${sLinks.join('<span class="social-link-sep">·</span>')}</div>`:'';
+  const sLinks=[];
+  if(soc.instagram) sLinks.push(`<a class="social-link-txt" href="https://instagram.com/${soc.instagram.replace('@','')}" target="_blank">INSTAGRAM</a>`);
+  if(soc.tiktok) sLinks.push(`<a class="social-link-txt" href="https://tiktok.com/@${soc.tiktok.replace('@','')}" target="_blank">TIKTOK</a>`);
+  if(soc.facebook) sLinks.push(`<a class="social-link-txt" href="https://facebook.com/${soc.facebook.replace('@','')}" target="_blank">FACEBOOK</a>`);
+  if(soc.website){
+    const wsUrl=/^https?:\/\//.test(soc.website)?soc.website:'https://'+soc.website;
+    sLinks.push(`<a class="social-link-txt" href="${wsUrl}" target="_blank" rel="noopener">SITE WEB</a>`);
   }
+  if(!sLinks.length) return '';
+  return `<div class="social-links-bar" style="margin-top:24px;padding-top:18px;border-top:1px solid var(--border)">${sLinks.join('<span class="social-link-sep">·</span>')}</div>`;
 }
 
 function renderNav(){
@@ -1410,18 +1414,30 @@ function renderScheduleInline(){
     return `<div class="resto-popup-row${isToday?' today':''}"><span class="rday">${d.day}</span><span>${h}</span></div>`;
   }).join('');
   const mapsUrl = DATA.address && DATA.address.mapsUrl;
-  const pinHtml = mapsUrl ? `<a href="${escAttr(mapsUrl)}" target="_blank" rel="noopener" title="Voir sur Google Maps" style="display:inline-flex;align-items:center;margin-left:8px;color:var(--navy);vertical-align:middle">
+  const addr = DATA.address || {};
+  const addrText = [addr.street, addr.zip, addr.city].filter(Boolean).join(', ');
+  const addrHtml = addrText
+    ? (mapsUrl
+        ? `<a href="${escAttr(mapsUrl)}" target="_blank" rel="noopener" style="display:block;color:rgba(255,255,255,.75);font-size:13px;text-decoration:none;margin-bottom:10px;padding-bottom:10px;border-bottom:.5px solid rgba(255,255,255,.07)">${escapeHtmlLocal(addrText)}</a>`
+        : `<div style="color:rgba(255,255,255,.75);font-size:13px;margin-bottom:10px;padding-bottom:10px;border-bottom:.5px solid rgba(255,255,255,.07)">${escapeHtmlLocal(addrText)}</div>`)
+    : '';
+  const pinIconHtml = mapsUrl ? `<span style="display:inline-flex;align-items:center;color:var(--navy)">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 7 12 7.29 12.29a1 1 0 0 0 1.42 0C13 22 20 15.25 20 10c0-4.42-3.58-8-8-8zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>
-  </a>` : '';
-  return `<div class="resto-badge-inline" id="schedBadge" onclick="toggleSchedPopup(event)" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;padding:4px 0;position:relative;user-select:none">
-    <span class="resto-dot ${dotClass}"></span>
-    <span style="font-size:11px;color:var(--text2);font-family:Jost,sans-serif">${label}</span>
-    <div class="resto-popup" id="schedPopup">
-      <div class="resto-popup-title" style="color:${state==='open'?'#22c55e':state==='soon'?'#f97316':'#ef4444'}">Horaires d'ouverture</div>
-      ${rows}
+  </span>` : '';
+  return `<div class="sched-pin-frame">
+    <div class="resto-badge-inline" id="schedBadge" onclick="toggleSchedPopup(event)" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
+      <span class="resto-dot ${dotClass}"></span>
+      <span style="font-size:11px;color:var(--text2);font-family:Jost,sans-serif">${label}</span>
+      ${pinIconHtml}
+      <div class="resto-popup" id="schedPopup">
+        ${addrText?`<div class="resto-popup-title">Adresse</div>${addrHtml}`:''}
+        <div class="resto-popup-title" style="color:${state==='open'?'#22c55e':state==='soon'?'#f97316':'#ef4444'}">Horaires d'ouverture</div>
+        ${rows}
+      </div>
     </div>
-  </div>${pinHtml}`;
+  </div>`;
 }
+function escapeHtmlLocal(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 function setView(v){ view=v; renderAll(); }
 
@@ -1775,6 +1791,7 @@ function renderTabContent(tab,lbOffset){
       }
     }
     // Schedule widget rendered in subheader (renderViewBar)
+    html+=homeSocialBarHtml();
     html+='</div>';
     return html;
   }
@@ -1879,6 +1896,11 @@ function renderTabContent(tab,lbOffset){
   if(tab.infoBanner && tab.infoBanner.active){
     html += renderInfoBanner(tab.infoBanner);
   }
+  // Old-home fallback (no dedicated __home tab): this first tab IS the
+  // home page, so the social bar belongs at its bottom too.
+  if(tab.isHome && !DATA.tabs.some(tb=>tb.id==='__home')){
+    html += homeSocialBarHtml();
+  }
   return html;
 }
 
@@ -1933,9 +1955,17 @@ function toggleSchedPopup(e){
   const rect=badge.getBoundingClientRect();
   const pw=268;
   const vw=window.innerWidth;
-  let left=rect.right-pw;
-  if(left<12) left=12;
-  if(left+pw>vw-12) left=vw-pw-12;
+  let left;
+  if(vw<=640){
+    // BUG FIX: on mobile the badge sits near the left edge, so aligning
+    // the popup to its right edge pinned it awkwardly to the left of the
+    // screen. Center it in the viewport instead.
+    left=(vw-pw)/2;
+  } else {
+    left=rect.right-pw;
+    if(left<12) left=12;
+    if(left+pw>vw-12) left=vw-pw-12;
+  }
   // Open downward below the badge
   const top=rect.bottom+8;
   p.style.left=left+'px';
