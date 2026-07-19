@@ -199,7 +199,7 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .dish-badges{display:flex;gap:4px;align-items:center}
 .badge-icon{width:18px;height:18px;object-fit:contain;display:inline-block}
 .dish-desc{font-size:12px;font-family:'Open Sans',sans-serif;font-weight:300;color:var(--text2);line-height:1.55;margin-top:2px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.dish-price{font-size:13px;font-weight:500;color:var(--gold);margin-top:6px}
+.dish-price{font-size:13px;font-weight:500;color:var(--gold);margin-top:6px;white-space:nowrap;flex-shrink:0}
 .dish-img{width:80px;height:80px;border-radius:8px;object-fit:cover;flex:none;background:#ece8e1;cursor:pointer;transition:opacity .15s}
 .dish-img:hover{opacity:.82}
 
@@ -211,7 +211,7 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .gc-body{padding:10px 12px 12px}
 .gc-name{font-family:'Open Sans',sans-serif;font-size:14px;font-weight:600;color:var(--navy);margin-bottom:2px;line-height:1.2}
 .gc-desc{font-size:12px;font-family:'Open Sans',sans-serif;font-weight:300;color:var(--text2);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.gc-price{font-size:12px;font-weight:500;color:var(--gold);margin-top:5px}
+.gc-price{font-size:12px;font-weight:500;color:var(--gold);margin-top:5px;white-space:nowrap;flex-shrink:0}
 @media(max-width:640px){.gc-name{font-size:12px!important;font-family:'Open Sans',sans-serif!important}.gc-desc{font-size:11px!important;font-family:'Open Sans',sans-serif!important}}
 
 /* ── VARIANTS / BEV ── */
@@ -219,15 +219,17 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .variant-row:last-child{border-bottom:none;padding-bottom:0}
 .variant-name{font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:400;color:var(--text)}
 .variant-price{font-size:12px;font-weight:500;color:var(--gold)}
-.bev-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(0,0,0,0.05)}
+.bev-row{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid rgba(0,0,0,0.05);gap:10px}
+.bev-row>div:first-child{min-width:0;flex:1}
+.bev-desc{font-size:12px;font-family:'Open Sans',sans-serif;font-weight:300;color:var(--text2);line-height:1.5;margin-top:2px;max-width:340px}
 .bev-sizes{font-size:12px;font-weight:300;color:var(--text2);font-family:'Jost',sans-serif;margin-top:2px}
 .bev-row:last-child{border-bottom:none;padding-bottom:0}
 .bev-name{font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:400;color:var(--text)}
-.bev-price{font-size:12px;font-weight:500;color:var(--gold)}
+.bev-price{font-size:12px;font-weight:500;color:var(--gold);white-space:nowrap;flex-shrink:0}
 .tag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;border:1px solid rgba(198,162,74,0.35);color:var(--gold);margin-left:6px;vertical-align:middle;font-family:'Jost',sans-serif;letter-spacing:.04em}
 
 /* ── SPECIALS BANNER (menu du jour/midi/soir) ── */
-.special-banner{background:var(--navy);border-radius:var(--r);padding:16px 18px}
+.special-banner{background:var(--navy);border-radius:var(--r);padding:16px 18px;margin-top:26px}
 .special-banner-label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,0.45);font-family:'Jost',sans-serif;margin-bottom:4px;display:flex;align-items:center;justify-content:space-between}
 .special-banner-title{font-family:'Open Sans',sans-serif;font-size:14px;font-weight:600;color:#fff;margin-bottom:6px}
 .special-banner-text{font-size:12px;font-weight:400;font-family:'Open Sans',sans-serif;color:rgba(255,255,255,0.7);line-height:1.6}
@@ -938,11 +940,45 @@ function efDeleteCurrent(){
 }
 
 // ---- Popup size row (boisson) — numeric value + cl/L unit dropdown + price, mirrors admin panel ----
+// ---- Bev size "format" (verre/pinte/demi/...) — a fixed, curated list
+// rather than free text: the admin adds new formats to this list
+// himself as new clients need them, instead of each client typing
+// something that might not render consistently. Formats with a known
+// fixed quantity (pinte, demi, galopin) auto-fill the cl field when
+// picked — canette is deliberately NOT auto-filled since it varies
+// (33cl standard, 25cl for energy drinks like Red Bull); verre/bouteille/
+// coupe have no fixed size at all, always filled in by hand.
+const BEV_FORMATS = [
+  {key:'', label:'—'},
+  {key:'verre', label:'Verre'},
+  {key:'bouteille', label:'Bouteille'},
+  {key:'coupe', label:'Coupe'},
+  {key:'pinte', label:'Pinte', autoCl:50},
+  {key:'demi', label:'Demi', autoCl:25},
+  {key:'canette', label:'Canette'},
+  {key:'galopin', label:'Galopin', autoCl:12.5},
+];
+function bevFormatOptionsHtml(selected){
+  return BEV_FORMATS.map(f=>`<option value="${f.key}" ${f.key===(selected||'')?'selected':''}>${f.label}</option>`).join('');
+}
+// Public-facing label for one size row: if a format is picked, show
+// just its name (a "Pinte" doesn't need "— 50cl" next to it, everyone
+// already knows roughly what that means) — otherwise fall back to the
+// raw cl/L value, exactly as before this feature existed.
+function bevSizeLabel(s){
+  if(s.format){
+    const f=BEV_FORMATS.find(f=>f.key===s.format);
+    if(f) return f.label;
+  }
+  return s.cl ? (s.cl+(s.unit==='l'?'L':'cl')) : '';
+}
+// ---- Popup size row (boisson) — numeric value + cl/L unit dropdown + price, mirrors admin panel ----
 function efSizeRowHtml(si, s){
   s=s||{};
   const unit=s.unit||'cl';
   return `<div class="efrow" data-srow="${si}" style="margin-bottom:8px;align-items:center;gap:6px">
-    <div class="ef" style="flex:1;margin-bottom:0"><input class="ei" data-scl type="number" min="0" value="${escAttr(s.cl||'')}" placeholder="Taille"></div>
+    <select class="unit-sel" data-sformat onchange="efSizeFormatChange(this)">${bevFormatOptionsHtml(s.format)}</select>
+    <div class="ef" style="flex:1;margin-bottom:0"><input class="ei" data-scl type="number" min="0" value="${escAttr(s.cl||'')}" placeholder="Contenance"></div>
     <select class="unit-sel" data-sunit>
       <option value="cl" ${unit==='cl'?'selected':''}>cl</option>
       <option value="l" ${unit==='l'?'selected':''}>L</option>
@@ -950,6 +986,18 @@ function efSizeRowHtml(si, s){
     <div class="ef" style="flex:1;margin-bottom:0"><input class="ei" data-sprice type="number" step="0.5" min="0" value="${escAttr(s.price||'')}" placeholder="Prix"></div>
     <span style="font-size:12px;color:var(--text3);flex:none">€</span>
   </div>`;
+}
+// Auto-fills the known fixed contenance (pinte/demi/galopin) when that
+// format is picked — still editable by hand afterward if needed.
+function efSizeFormatChange(sel){
+  const f=BEV_FORMATS.find(f=>f.key===sel.value);
+  const row=sel.closest('.efrow');
+  if(f && f.autoCl!=null && row){
+    const clInput=row.querySelector('[data-scl]');
+    const unitSel=row.querySelector('[data-sunit]');
+    if(clInput) clInput.value=f.autoCl;
+    if(unitSel) unitSel.value='cl';
+  }
 }
 function efAddSizeRow(){
   const wrap=document.getElementById('ed-sizes');
@@ -1044,8 +1092,9 @@ function openEditBev(ti,ci,ii){
   const isFr=lang==='fr';
   h+=efVisRow(!!item.hidden);
   h+=`<div class="ef"><label class="el">Nom${isFr?'':' ('+lang.toUpperCase()+')'}</label><input class="ei" id="ed-bname" value="${escAttr(iname)}" placeholder="${escAttr(isFr?'':ifr)}"></div>`;
+  h+=efBi('Description (notes de dégustation, etc.)', item.desc&&item.desc.fr, item.desc&&item.desc[lang], true);
   h+=efImgField('ed-img', item.img||'', 'Image (optionnel)');
-  h+=`<div class="el" style="margin-bottom:8px">Tailles & prix</div><div id="ed-sizes">`;
+  h+=`<div class="el" style="margin-bottom:8px">Format, contenance & prix</div><div id="ed-sizes">`;
   (item.sizes||[]).forEach((s,si)=>{ h+=efSizeRowHtml(si,s); });
   if(!(item.sizes||[]).length){ h+=efSizeRowHtml(0,{}); }
   h+=`</div><button type="button" class="aadd" onclick="efAddSizeRow()" style="margin-bottom:14px">+ Taille</button>`;
@@ -1138,7 +1187,10 @@ function saveEditPop(silent){
       const item=DATA.tabs[ti].cards[ci].items[ii];
       if(typeof item.name!=='object') item.name={fr:item.name||''};
       item.name[lang]=v('ed-bname');
+      if(!item.desc || typeof item.desc!=='object') item.desc={fr:''};
+      item.desc[lang]=readEf(0);
       item.img=v('ed-img');
+      const formats=document.querySelectorAll('#ed-sizes [data-sformat]');
       const cls=document.querySelectorAll('#ed-sizes [data-scl]');
       const units=document.querySelectorAll('#ed-sizes [data-sunit]');
       const prs=document.querySelectorAll('#ed-sizes [data-sprice]');
@@ -1147,7 +1199,8 @@ function saveEditPop(silent){
         const cl=clEl.value.trim();
         const pr=prs[si2]?prs[si2].value.trim():'';
         const unit=units[si2]?units[si2].value:'cl';
-        if(cl||pr) sizes.push({cl,unit,price:pr});
+        const format=formats[si2]?formats[si2].value:'';
+        if(cl||pr||format) sizes.push({format,cl,unit,price:pr});
       });
       item.sizes=sizes;
       item.gallery=readGalleryFields();
@@ -1300,7 +1353,7 @@ function homeSocialBarHtml(){
     sLinks.push(`<a class="social-link-txt" href="${wsUrl}" target="_blank" rel="noopener">SITE WEB</a>`);
   }
   if(!sLinks.length) return '';
-  return `<div class="social-links-bar" style="margin-top:24px;padding-top:18px;border-top:1px solid var(--border)">${sLinks.join('<span class="social-link-sep">·</span>')}</div>`;
+  return `<div class="social-links-bar" style="margin-top:15px">${sLinks.join('<span class="social-link-sep">·</span>')}</div>`;
 }
 
 function renderNav(){
@@ -1390,6 +1443,12 @@ function renderViewBar(){
 }
 
 function renderScheduleInline(){
+  // Standard formatting for a closing hour: midnight is stored as 24 (or
+  // 24+N for hours past midnight, e.g. 26 = 2am) so the "is still open"
+  // math above works, but displaying that raw number reads as "24h" —
+  // normalize with a plain modulo so midnight shows "0h00" instead
+  // (post-midnight hours like 2am still show as "2h", unchanged).
+  const fmtCloseHour = c => { if(c==null) return ''; const h=c%24; return h===0?'0h00':h+'h'; };
   const sch=DATA.schedule||[];
   const now=new Date();
   let today=now.getDay(); let hour=now.getHours()+now.getMinutes()/60;
@@ -1401,9 +1460,8 @@ function renderScheduleInline(){
   let state='closed',label="Fermé";
   for(const s of allSvcs){
     if(s.open==null) continue;
-    const openH=s.open; const closeH=s.close>24?s.close-24:s.close;
     const effectiveClose=s.close<=s.open?s.close+24:s.close;
-    if(hour>=s.open&&hour<effectiveClose){state='open';label="Ouvert jusqu'à "+closeH+'h';break;}
+    if(hour>=s.open&&hour<effectiveClose){state='open';label="Ouvert jusqu'à "+fmtCloseHour(s.close);break;}
     if(hour<s.open){state='soon';label='Ouvre à '+s.open+'h';}
   }
   const dotClass=state==='open'?'open':state==='soon'?'soon':'closed';
@@ -1412,7 +1470,7 @@ function renderScheduleInline(){
     const svs=(d.services||[]).length>0?d.services:(d.open!=null?[{label:'',open:d.open,close:d.close}]:[]);
     const h=svs.length===0?'Fermé':svs.map(s=>{
       const o=s.open!=null?s.open+'h':'';
-      const c=s.close!=null?(s.close>24?(s.close-24)+'h':s.close+'h'):'';
+      const c=s.close!=null?fmtCloseHour(s.close):'';
       return o&&c?o+' – '+c:(s.label||'Fermé');
     }).join(', ');
     return `<div class="resto-popup-row${isToday?' today':''}"><span class="rday">${d.day}</span><span>${h}</span></div>`;
@@ -1428,6 +1486,10 @@ function renderScheduleInline(){
   const pinIconHtml = mapsUrl ? `<span style="display:inline-flex;align-items:center;color:var(--navy)">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 7 12 7.29 12.29a1 1 0 0 0 1.42 0C13 22 20 15.25 20 10c0-4.42-3.58-8-8-8zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>
   </span>` : '';
+  const phone = addr.phone;
+  const phoneHtml = phone
+    ? `<div class="resto-popup-title" style="margin-top:10px">Téléphone</div><a href="tel:${escAttr(phone.replace(/\s+/g,''))}" style="display:block;color:rgba(255,255,255,.75);font-size:13px;text-decoration:none">${escapeHtmlLocal(phone)}</a>`
+    : '';
   return `<div class="sched-pin-frame">
     <div class="resto-badge-inline" id="schedBadge" onclick="toggleSchedPopup(event)" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
       <span class="resto-dot ${dotClass}"></span>
@@ -1437,11 +1499,38 @@ function renderScheduleInline(){
         ${addrText?`<div class="resto-popup-title">Adresse</div>${addrHtml}`:''}
         <div class="resto-popup-title" style="color:${state==='open'?'#22c55e':state==='soon'?'#f97316':'#ef4444'}">Horaires d'ouverture</div>
         ${rows}
+        ${phoneHtml}
       </div>
     </div>
   </div>`;
 }
 function escapeHtmlLocal(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+// Variants (e.g. Rillettes flavours) used to only ever show the FIRST
+// variant's raw price (no €, and silently wrong the moment two flavours
+// are priced differently). Now: one shared price if every variant costs
+// the same, otherwise each flavour shows its own price inline — same
+// idea as how bevs shows several format/price pairs side by side.
+function variantsPriceInfo(variants){
+  const list=variants||[];
+  const fmt=p=>{ const s=(p||'').toString().trim(); if(!s) return ''; return s.includes('€')?s:s+'€'; };
+  const prices=list.map(v=>fmt(v.price));
+  const allSame=prices.length>0 && prices.every(p=>p===prices[0]);
+  if(allSame){
+    return {sharedPrice:prices[0]||'', flavourText:list.map(v=>t(v.name)).join(' · ')};
+  }
+  return {sharedPrice:'', flavourText:list.map(v=>t(v.name)+(fmt(v.price)?' — '+fmt(v.price):'')).join(' · ')};
+}
+
+// Home tab photo: respect the photo's own proportions rather than
+// force-cropping every upload to a fixed 4:3 — but keep it within a
+// sane range (never taller than 4:3, never flatter/wider than 16:9)
+// so an odd source photo can't make the header oddly tall or a thin strip.
+function clampHomePhotoRatio(img){
+  if(!img.naturalWidth || !img.naturalHeight) return;
+  const natural = img.naturalWidth / img.naturalHeight;
+  const clamped = Math.min(Math.max(natural, 4/3), 16/9);
+  img.style.aspectRatio = clamped;
+}
 
 function setView(v){ view=v; renderAll(); }
 
@@ -1757,7 +1846,7 @@ function renderTabContent(tab,lbOffset){
       else embedUrl=videoUrl;
       if(embedUrl) html+=`<div class="home-photo-wrap" style="aspect-ratio:4/3;background:#000"><iframe src="${embedUrl+(embedUrl.includes('?')?'&':'?')+'autoplay=1&mute=1&controls=0&loop=1&playsinline=1'}" style="width:100%;height:100%;border:none;pointer-events:none" allow="autoplay; encrypted-media" allowfullscreen loading="lazy"></iframe></div>`;
     } else if(DATA.homeTab&&DATA.homeTab.photo){
-      html+=`<div class="home-photo-wrap"><img class="home-photo" src="${DATA.homeTab.photo}" alt="Photo restaurant" loading="lazy"></div>`;
+      html+=`<div class="home-photo-wrap"><img class="home-photo" src="${DATA.homeTab.photo}" alt="Photo restaurant" loading="lazy" onload="clampHomePhotoRatio(this)"></div>`;
     }
     // 3. Specials + info banners
     DATA.specials.forEach(sp=>{
@@ -1835,14 +1924,34 @@ function renderTabContent(tab,lbOffset){
   if(view==='grid' && hasGridableContent){
     // Collect all grid items across cards into one unified 2-col grid
     let gridItems=[];
+    // BUG FIX: bevs-type cards (name+format+price, no image) don't suit
+    // an image-tile grid, so they used to be skipped entirely here —
+    // fine when a WHOLE tab was bevs-only, but a card was silently
+    // dropped when it shared a tab with normal dish cards. Render any
+    // bevs card in its normal list style instead, appended after the
+    // grid rather than dropped.
+    let bevsCardsHtml='';
     tab.cards.forEach(card=>{
-      if(card.type==='bevs') return;
+      if(card.type==='bevs'){
+        const _ci=tab.cards.indexOf(card);
+        bevsCardsHtml+=`<div class="card"><div class="card-hdr"><span class="card-label">${t(card.label)}</span></div><div class="card-body">`;
+        (card.items||[]).filter(item=>!item.hidden).forEach(item=>{
+          const sizes=item.sizes||[];
+          const clStr=sizes.length>0?sizes.filter(s=>bevSizeLabel(s)).map(s=>bevSizeLabel(s)).join(' / '):'';
+          const rawPrice=(item.price||'').toString(); const priceStr=sizes.length>0?sizes.filter(s=>s.price).map(s=>s.price+'€').join(' / '):(rawPrice.includes('€')?rawPrice:rawPrice?rawPrice+'€':'');
+          const descStr=t(item.desc)||'';
+          const _ii=(card.items||[]).indexOf(item);
+          bevsCardsHtml+=`<div class="bev-row" data-edit="bev" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${_ci}" data-ii="${_ii}"><div><span class="bev-name">${t(item.name)}</span>${descStr?`<div class="bev-desc">${descStr}</div>`:''}${clStr?`<div class="bev-sizes">${clStr}</div>`:''}</div><span class="bev-price">${priceStr}</span></div>`;
+        });
+        if(editMode) bevsCardsHtml+=`<button type="button" class="aadd" onclick="addBev(${DATA.tabs.indexOf(tab)},${_ci})">+ Ajouter une boisson</button>`;
+        bevsCardsHtml+=`</div></div>`;
+        return;
+      }
       if(card.type==='variants'){
         const ci=tab.cards.indexOf(card);
         const idx=card.img?imgIdx++:null;
-        const flavours=(card.variants||[]).map(v=>t(v.name)).join(' · ');
-        const price=card.variants&&card.variants[0]?card.variants[0].price:'';
-        gridItems.push(`<div class="gc" data-edit="variants" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${ci}"><div class="gc-wrap" ${card.img?`data-lbidx="${idx}"`:''}>${card.img?`<img class="gc-img" src="${card.img}" alt="" loading="lazy">`:'<div style="aspect-ratio:1;background:#ece8e1"></div>'}</div><div class="gc-body"><div class="gc-name">${t(card.label)}</div><div class="gc-desc">${flavours}</div><div class="gc-price">${price}</div></div></div>`);
+        const vinfo=variantsPriceInfo(card.variants);
+        gridItems.push(`<div class="gc" data-edit="variants" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${ci}"><div class="gc-wrap" ${card.img?`data-lbidx="${idx}"`:''}>${card.img?`<img class="gc-img" src="${card.img}" alt="" loading="lazy">`:'<div style="aspect-ratio:1;background:#ece8e1"></div>'}</div><div class="gc-body"><div class="gc-name">${t(card.label)}</div><div class="gc-desc">${vinfo.flavourText}</div><div class="gc-price">${vinfo.sharedPrice}</div></div></div>`);
         return;
       }
       (card.dishes||[]).filter(d=>!d.hidden).forEach(d=>{
@@ -1853,6 +1962,7 @@ function renderTabContent(tab,lbOffset){
       });
     });
     if(gridItems.length) html+=`<div class="dish-grid">${gridItems.join('')}</div>`;
+    if(bevsCardsHtml) html+=bevsCardsHtml;
     if(editMode){
       const _ti=DATA.tabs.indexOf(tab);
       html+=`<button type="button" class="aadd" style="margin-top:10px;margin-bottom:14px" onclick="addCard(${_ti})">+ Ajouter une section</button>`;
@@ -1866,24 +1976,25 @@ function renderTabContent(tab,lbOffset){
       if(card.type==='bevs'){
         (card.items||[]).filter(item=>!item.hidden).forEach(item=>{
           const sizes=item.sizes||[];
-          // sizes display: "25cl / 50cl" in name area, "5€ / 17€" in price area
-          const clStr=sizes.length>0?sizes.filter(s=>s.cl).map(s=>s.cl+(s.unit==='l'?'L':'cl')).join(' / '):'';
+          // sizes display: "Pinte / Demi" or "25cl / 50cl" depending on
+          // whether a format was picked for that row, "5€ / 17€" in price area
+          const clStr=sizes.length>0?sizes.filter(s=>bevSizeLabel(s)).map(s=>bevSizeLabel(s)).join(' / '):'';
           const rawPrice=(item.price||'').toString(); const priceStr=sizes.length>0?sizes.filter(s=>s.price).map(s=>s.price+'€').join(' / '):(rawPrice.includes('€')?rawPrice:rawPrice?rawPrice+'€':'');
+          const descStr=t(item.desc)||'';
           const _ci=tab.cards.indexOf(card); const _ii=(card.items||[]).indexOf(item);
-          html+=`<div class="bev-row" data-edit="bev" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${_ci}" data-ii="${_ii}"><div><span class="bev-name">${t(item.name)}</span>${clStr?`<div class="bev-sizes">${clStr}</div>`:''}</div><span class="bev-price">${priceStr}</span></div>`;
+          html+=`<div class="bev-row" data-edit="bev" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${_ci}" data-ii="${_ii}"><div><span class="bev-name">${t(item.name)}</span>${descStr?`<div class="bev-desc">${descStr}</div>`:''}${clStr?`<div class="bev-sizes">${clStr}</div>`:''}</div><span class="bev-price">${priceStr}</span></div>`;
         });
         if(editMode) html+=`<button type="button" class="aadd" onclick="addBev(${DATA.tabs.indexOf(tab)},${_ciE})">+ Ajouter une boisson</button>`;
       } else if(card.type==='variants'){
         // Render as dish row: name in navy + all flavours as description
-        const flavours=(card.variants||[]).map(v=>t(v.name)).join(' · ');
-        const price=card.variants&&card.variants[0]?card.variants[0].price:'';
+        const vinfo=variantsPriceInfo(card.variants);
         const idx=card.img?imgIdx++:null;
         const _civ=tab.cards.indexOf(card);
         html+=`<div class="dish-row${card.img?' dish-row-clickable':''}" data-edit="variants" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${_civ}" style="padding-top:0"${card.img?` data-lbidx="${idx}"`:''}>
           <div class="dish-text">
             <div class="dish-name-row"><span class="dish-name">${t(card.label)}</span></div>
-            <div class="dish-desc">${flavours}</div>
-            <div class="dish-price">${price}</div>
+            <div class="dish-desc">${vinfo.flavourText}</div>
+            <div class="dish-price">${vinfo.sharedPrice}</div>
           </div>
           ${card.img?`<span class="img-wrap"><img class="dish-img" src="${card.img}" alt="" loading="lazy"></span>`:''}</div>`;
         if(editMode) html+=`<button type="button" class="aadd" onclick="addVariant(${DATA.tabs.indexOf(tab)},${_civ})">+ Ajouter une variante</button>`;
@@ -2572,16 +2683,17 @@ function renderAdminTab(ti){
       (card.items||[]).forEach((item,ii)=>{
         const sizeRows=(item.sizes||[]).map((s,si)=>{
           const unit=s.unit||'cl';
-          return `<div class="ai-row" style="margin-bottom:4px;align-items:center"><input class="ai" type="number" min="0" placeholder="Taille" value="${s.cl||''}" style="max-width:64px" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].cl=this.value;renderAll()"><select class="ai-unit-sel" onchange="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].unit=this.value;renderAll()"><option value="cl" ${unit==='cl'?'selected':''}>cl</option><option value="l" ${unit==='l'?'selected':''}>L</option></select><input class="ai" type="number" min="0" step="0.5" placeholder="prix" value="${s.price||''}" style="max-width:64px" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].price=this.value;renderAll()"><span style="font-size:11px;color:var(--text3);padding:0 4px">€</span><button class="adel" onclick="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes.splice(${si},1);renderAll();renderAdminSection(DATA.tabs[${ti}].id)">×</button></div>`;
+          return `<div class="ai-row" style="margin-bottom:4px;align-items:center"><select class="ai-unit-sel" onchange="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].format=this.value;const f=BEV_FORMATS.find(f=>f.key===this.value);if(f&&f.autoCl!=null){DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].cl=f.autoCl;DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].unit='cl';}renderAll();renderAdminSection(DATA.tabs[${ti}].id)">${bevFormatOptionsHtml(s.format)}</select><input class="ai" type="number" min="0" placeholder="Contenance" value="${s.cl||''}" style="max-width:64px" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].cl=this.value;renderAll()"><select class="ai-unit-sel" onchange="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].unit=this.value;renderAll()"><option value="cl" ${unit==='cl'?'selected':''}>cl</option><option value="l" ${unit==='l'?'selected':''}>L</option></select><input class="ai" type="number" min="0" step="0.5" placeholder="prix" value="${s.price||''}" style="max-width:64px" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].price=this.value;renderAll()"><span style="font-size:11px;color:var(--text3);padding:0 4px">€</span><button class="adel" onclick="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes.splice(${si},1);renderAll();renderAdminSection(DATA.tabs[${ti}].id)">×</button></div>`;
         }).join('');
         h+=`<div class="admin-card" style="background:#fff;margin-top:4px" ondragover="onDragOver(event,${ti},${ci},${ii})" ondragleave="onDragLeave(event)" ondrop="onDropBev(event,${ti},${ci},${ii})">
           <div class="admin-card-hdr"><span class="drag-handle" draggable="true" ondragstart="onDragBev(event,${ti},${ci},${ii})" ondragend="onDragEndHandle(event)">⠿</span><span class="admin-card-num">Boisson ${ii+1}</span><div style="display:flex;gap:3px;margin-left:auto;margin-right:4px"><button class="dish-vis-btn ${!item.hidden?'dish-vis-active':''}" onclick="delete DATA.tabs[${ti}].cards[${ci}].items[${ii}].hidden;renderAll();renderAdminSection(DATA.tabs[${ti}].id)">Visible</button><button class="dish-vis-btn dish-hid-btn ${item.hidden?'dish-hid-active':''}" onclick="DATA.tabs[${ti}].cards[${ci}].items[${ii}].hidden=true;renderAll();renderAdminSection(DATA.tabs[${ti}].id)">Masquée</button><button class="dish-vis-btn dish-del-btn" onclick="askConfirm('Supprimer cette boisson ?',()=>delBev(${ti},${ci},${ii}))">✕</button></div></div>
           <input class="ai" style="margin-bottom:4px" placeholder="${adminLang!=='fr'&&typeof item.name==='object'?item.name.fr||'Nom':'Nom'}" value="${typeof item.name==='object'?(item.name[adminLang]||''):item.name||''}" oninput="if(typeof DATA.tabs[${ti}].cards[${ci}].items[${ii}].name!=='object'){DATA.tabs[${ti}].cards[${ci}].items[${ii}].name={fr:DATA.tabs[${ti}].cards[${ci}].items[${ii}].name};}DATA.tabs[${ti}].cards[${ci}].items[${ii}].name[adminLang]=this.value;renderAll()">
+          <textarea class="ai" rows="2" style="resize:vertical;margin-bottom:4px;font-size:12px" placeholder="Description (notes de dégustation, etc.)" oninput="if(!DATA.tabs[${ti}].cards[${ci}].items[${ii}].desc||typeof DATA.tabs[${ti}].cards[${ci}].items[${ii}].desc!=='object'){DATA.tabs[${ti}].cards[${ci}].items[${ii}].desc={};}DATA.tabs[${ti}].cards[${ci}].items[${ii}].desc[adminLang]=this.value;renderAll()">${(item.desc&&item.desc[adminLang])||''}</textarea>
           `+imgFieldHtml(item.img||'',`DATA.tabs[${ti}].cards[${ci}].items[${ii}].img=this.value;renderAll()`,"Image URL ou uploader")+`
 
-          <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:4px">Tailles & prix</div>
+          <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:4px">Format, contenance & prix</div>
           ${sizeRows}
-          <button class="aadd" style="margin-top:2px" onclick="if(!Array.isArray(DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes)){DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes=[];}DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes.push({cl:'',unit:'cl',price:''});renderAll();renderAdminSection(DATA.tabs[${ti}].id)">+ Taille</button>
+          <button class="aadd" style="margin-top:2px" onclick="if(!Array.isArray(DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes)){DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes=[];}DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes.push({format:'',cl:'',unit:'cl',price:''});renderAll();renderAdminSection(DATA.tabs[${ti}].id)">+ Taille</button>
 
           <div class="af" style="margin-top:10px"><label class="al" style="font-size:11px;font-weight:600;color:var(--text2)">Caption Instagram (pré-enregistrée)</label>
             <textarea class="ai" rows="4" style="resize:vertical;min-height:72px;font-size:12px" placeholder="Ex: Notre sélection du moment 🍷" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].caption=this.value">${item.caption||''}</textarea>
@@ -3438,7 +3550,7 @@ function exportTabCSV(tabId){
         });
       } else if(card.type==='bevs'){
         (card.items||[]).forEach(item => {
-          const sizes = (item.sizes||[]).map(s=>s.cl+(s.unit==='l'?'L':'cl')+' '+s.price+'€').join(' / ');
+          const sizes = (item.sizes||[]).map(s=>bevSizeLabel(s)+' '+s.price+'€').join(' / ');
           rows.push([tabLabel, cardLabel, t(item.name)||'', t(item.desc)||'', sizes||item.price||'', '']);
         });
       }
@@ -3525,7 +3637,7 @@ function buildPdfMenuHTML(cfg){
         });
       } else if(card.type==='bevs'){
         (card.items||[]).filter(item=>!item.hidden).forEach(item=>{
-          const sizes=(item.sizes||[]).map(s=>s.cl+(s.unit==='l'?'L':'cl')+' — '+s.price+'€').join(' · ');
+          const sizes=(item.sizes||[]).map(s=>bevSizeLabel(s)+' — '+s.price+'€').join(' · ');
           rows.push(`<div class="pdf-dish"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(item.name)||''}</span><span class="pdf-dots"></span><span class="pdf-dish-price">${sizes||item.price||''}</span></div>${t(item.desc)?`<div class="pdf-dish-desc">${t(item.desc)}</div>`:''}</div>`);
         });
       }
@@ -3785,7 +3897,7 @@ function exportMenuPDF(){
         });
       } else if(card.type==='bevs'){
         (card.items||[]).forEach(item=>{
-          const sizes=(item.sizes||[]).map(s=>s.cl+(s.unit==='l'?'L':'cl')+' — '+s.price+'€').join(' · ');
+          const sizes=(item.sizes||[]).map(s=>bevSizeLabel(s)+' — '+s.price+'€').join(' · ');
           lines.push(`<div class="dish-wrap"><div class="dish"><span class="dish-name">${t(item.name)||''}</span><span class="dish-price">${sizes||item.price||''}</span></div>${t(item.desc)?`<div class="dish-desc">${t(item.desc)}</div>`:''}</div>`);
         });
       }
