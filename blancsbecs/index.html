@@ -41,6 +41,14 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 .lb-footer-row{display:flex;align-items:center;justify-content:center}
 .lb-count{font-size:11px;color:#fff;letter-spacing:.12em;font-family:'Open Sans',sans-serif;background:none;padding:2px 0}
 .lb-close{position:absolute;top:-40px;right:0;background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:3;opacity:.8;transition:opacity .15s}
+.font-gallery-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px}
+.font-gallery-card{background:#fff;border-radius:14px;width:min(560px,100%);max-height:85vh;display:flex;flex-direction:column;overflow:hidden}
+.font-gallery-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);font-family:'Jost',sans-serif;font-weight:500;font-size:15px;color:var(--text)}
+.font-gallery-list{overflow-y:auto;padding:6px 0}
+.font-gallery-row{padding:12px 20px;cursor:pointer;border-bottom:1px solid rgba(0,0,0,.04);transition:background .1s}
+.font-gallery-row:hover{background:#faf9f6}
+.font-gallery-name{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);font-family:'Jost',sans-serif;margin-bottom:3px}
+.font-gallery-sample{font-size:22px;color:var(--text);line-height:1.2}
 .lb-close:hover{opacity:1}
 
 /* ── LAYOUT ── */
@@ -359,7 +367,7 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .ai-unit-sel{padding:7px 4px;border:1px solid var(--border);border-radius:var(--rs);font-family:'Jost',sans-serif;font-size:12px;color:var(--text);background:#fff;flex:none;max-width:52px}
 .ai:focus{border-color:var(--navy)}
 .ai::placeholder{color:#ccc}
-.ai-row{display:flex;gap:6px}
+.ai-row{display:flex;gap:6px;align-items:center}
 .ai-sm{width:80px!important;flex:none!important}
 .ai-check{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-family:'Jost',sans-serif;color:var(--text2)}
 .ai-check input{cursor:pointer;accent-color:var(--navy)}
@@ -414,6 +422,8 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .drag-handle:active{cursor:grabbing}
 .admin-card.dragging{opacity:.4;border:2px dashed var(--navy)}
 .admin-card.drag-over{border-top:3px solid var(--navy)}
+.ai-row.dragging{opacity:.4}
+.ai-row.drag-over{border-top:3px solid var(--navy)}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
@@ -2587,7 +2597,13 @@ function variantsPriceInfo(variants){
   if(allSame){
     return {sharedPrice:prices[0]||'', flavourText:list.map(v=>t(v.name)).join(' · ')};
   }
-  return {sharedPrice:'', flavourText:list.map(v=>t(v.name)+(fmt(v.price)?' — '+fmt(v.price):'')).join(' · ')};
+  // Different prices per flavour: show each price inline, colored with
+  // the theme's accent (same as a normal price) instead of blending
+  // into the grey description text.
+  return {sharedPrice:'', flavourText:list.map(v=>{
+    const p=fmt(v.price);
+    return t(v.name)+(p?` — <span style="color:var(--gold)">${p}</span>`:'');
+  }).join(' · ')};
 }
 // Home tab photo: respect the photo's own proportions rather than
 // force-cropping every upload to a fixed 4:3 — but keep it within a
@@ -3059,15 +3075,14 @@ function renderTabContent(tab,lbOffset){
         if(editMode) html+=`<button type="button" class="aadd" onclick="addBev(${DATA.tabs.indexOf(tab)},${_ciE})">+ Ajouter une boisson</button>`;
       } else if(card.type==='variants'){
         // Render as dish row: name in navy + all flavours as description
-        const flavours=(card.variants||[]).map(v=>t(v.name)).join(' · ');
-        const price=card.variants&&card.variants[0]?card.variants[0].price:'';
+        const vinfo=variantsPriceInfo(card.variants);
         const idx=card.img?imgIdx++:null;
         const _civ=tab.cards.indexOf(card);
         html+=`<div class="dish-row${card.img?' dish-row-clickable':''}" data-edit="variants" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${_civ}" style="padding-top:0"${card.img?` data-lbidx="${idx}"`:''}>
           <div class="dish-text">
             <div class="dish-name-row"><span class="dish-name">${t(card.label)}</span></div>
-            <div class="dish-desc">${flavours}</div>
-            <div class="dish-price">${price}</div>
+            <div class="dish-desc">${vinfo.flavourText}</div>
+            <div class="dish-price">${vinfo.sharedPrice}</div>
           </div>
           ${card.img?`<span class="img-wrap"><img class="dish-img" src="${card.img}" alt="" loading="lazy"></span>`:''}</div>`;
         if(editMode) html+=`<button type="button" class="aadd" onclick="addVariant(${DATA.tabs.indexOf(tab)},${_civ})">+ Ajouter une variante</button>`;
@@ -3770,7 +3785,7 @@ function renderAdminTab(ti){
       (card.variants||[]).forEach((v,vi)=>{
         const vFr=typeof v.name==='object'?v.name.fr||'':v.name||'';
         const vVal=typeof v.name==='object'?(v.name[adminLang]||''):v.name||'';
-        h+=`<div class="ai-row" style="margin-top:4px"><input class="ai" value="${vVal}" placeholder="${adminLang!=='fr'?vFr:''}" oninput="if(typeof DATA.tabs[${ti}].cards[${ci}].variants[${vi}].name!=='object'){DATA.tabs[${ti}].cards[${ci}].variants[${vi}].name={fr:DATA.tabs[${ti}].cards[${ci}].variants[${vi}].name};}DATA.tabs[${ti}].cards[${ci}].variants[${vi}].name[adminLang]=this.value;renderAll()"><input class="ai ai-sm" value="${v.price||''}" oninput="DATA.tabs[${ti}].cards[${ci}].variants[${vi}].price=this.value;renderAll()"><button class="adel" onclick="askConfirm('Supprimer cette variante ?',()=>delVariant(${ti},${ci},${vi}))">×</button></div>`;
+        h+=`<div class="ai-row" style="margin-top:4px" ondragover="onDragOver(event,${ti},${ci},${vi})" ondragleave="onDragLeave(event)" ondrop="onDropVariant(event,${ti},${ci},${vi})"><span class="drag-handle" title="Glisser pour réordonner" draggable="true" ondragstart="onDragVariant(event,${ti},${ci},${vi})" ondragend="onDragEndHandle(event)">⠿</span><input class="ai" value="${vVal}" placeholder="${adminLang!=='fr'?vFr:''}" oninput="if(typeof DATA.tabs[${ti}].cards[${ci}].variants[${vi}].name!=='object'){DATA.tabs[${ti}].cards[${ci}].variants[${vi}].name={fr:DATA.tabs[${ti}].cards[${ci}].variants[${vi}].name};}DATA.tabs[${ti}].cards[${ci}].variants[${vi}].name[adminLang]=this.value;renderAll()"><input class="ai ai-sm" value="${v.price||''}" oninput="DATA.tabs[${ti}].cards[${ci}].variants[${vi}].price=this.value;renderAll()"><button class="adel" onclick="askConfirm('Supprimer cette variante ?',()=>delVariant(${ti},${ci},${vi}))">×</button></div>`;
       });
       h+=`<button class="aadd" onclick="addVariant(${ti},${ci})">+ Variante</button>`;
     } else {
@@ -3913,6 +3928,15 @@ function addNewTab(type){
 // ═══════════════════════════════════════════
 let dragSrc=null;
 function onDragBev(e,ti,ci,ii){ dragSrc={ti,ci,ii,isBev:true}; const card=e.currentTarget.closest('.admin-card')||e.currentTarget; card.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; }
+function onDragVariant(e,ti,ci,vi){ dragSrc={ti,ci,vi,isVariant:true}; const row=e.currentTarget.closest('.ai-row')||e.currentTarget; row.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; }
+function onDropVariant(e,ti,ci,vi){
+  e.preventDefault();
+  const row=e.currentTarget; row.classList.remove('drag-over');
+  if(!dragSrc||!dragSrc.isVariant||dragSrc.ti!==ti||dragSrc.ci!==ci||dragSrc.vi===vi) return;
+  const variants=DATA.tabs[ti].cards[ci].variants;
+  const [moved]=variants.splice(dragSrc.vi,1); variants.splice(vi,0,moved);
+  dragSrc=null; renderAll(); renderAdminSection(DATA.tabs[ti].id);
+}
 function onDropBev(e,ti,ci,ii){
   e.preventDefault(); e.currentTarget.classList.remove('drag-over');
   if(!dragSrc||!dragSrc.isBev||dragSrc.ti!==ti||dragSrc.ci!==ci||dragSrc.ii===ii) return;
@@ -3922,7 +3946,7 @@ function onDropBev(e,ti,ci,ii){
 }
 function onDragStart(e,ti,ci,di){ dragSrc={ti,ci,di}; const card=e.currentTarget.closest('.admin-card')||e.currentTarget; card.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; }
 function onDragEnd(e){ e.currentTarget.classList.remove('dragging'); document.querySelectorAll('.admin-card').forEach(el=>el.classList.remove('drag-over')); }
-function onDragEndHandle(e){ const card=e.currentTarget.closest('.admin-card'); if(card) card.classList.remove('dragging'); document.querySelectorAll('.admin-card').forEach(el=>el.classList.remove('drag-over')); }
+function onDragEndHandle(e){ const card=e.currentTarget.closest('.admin-card')||e.currentTarget.closest('.ai-row'); if(card) card.classList.remove('dragging'); document.querySelectorAll('.admin-card,.ai-row').forEach(el=>el.classList.remove('drag-over')); }
 
 let dragSectionSrc=null;
 function onDragSection(e,ti,ci){
@@ -5070,8 +5094,9 @@ function restaurantSettingHtml(){
     </div>
     <div class="af"><label class="al">Police du menu</label>
       <select class="ai" id="restoFontSelect" style="font-size:13px" onchange="setRestoFont(this.value)">
-        ${(()=>{const fonts=["Roboto", "Open Sans", "Lato", "Montserrat", "Oswald", "Raleway", "Poppins", "Merriweather", "Playfair Display", "Ubuntu", "Source Sans Pro", "Nunito", "PT Sans", "Libre Baskerville", "Josefin Sans", "Crimson Text", "Fira Sans", "Noto Sans", "Work Sans", "Quicksand", "Mulish", "Barlow", "Inter", "DM Sans", "Space Grotesk", "Outfit", "Plus Jakarta Sans", "Sora", "Manrope", "Karla", "Cormorant Garamond", "EB Garamond", "Spectral", "Libre Franklin", "Source Serif Pro", "Arvo", "Crete Round", "Bitter", "Zilla Slab", "Rokkitt", "Dancing Script", "Pacifico", "Lobster", "Satisfy", "Abril Fatface", "Bebas Neue", "Anton", "Righteous", "Cinzel", "Teko"];const cur=DATA.restoFont||'';return fonts.map(f=>`<option value="${f}" style="font-family:'${f}',sans-serif" ${cur===f?'selected':''}>${f}</option>`).join('');})()}
+        ${FONT_LIST.map(f=>`<option value="${f}" style="font-family:'${f}',sans-serif" ${(DATA.restoFont||'')===f?'selected':''}>${f}</option>`).join('')}
       </select>
+      <button type="button" class="aadd" style="margin-top:6px" onclick="showFontGallery()">Voir toutes les polices</button>
       <div style="margin-top:8px;padding:10px;border:1px solid var(--border);border-radius:6px;background:#fafaf7" id="fontPreviewBox">
         <div style="font-size:22px;font-family:var(--restoFont,'Cormorant Garamond'),serif;font-weight:700;color:var(--navy)">${name||'Nom du restaurant'}</div>
         <div style="font-size:13px;font-family:var(--restoFont,'Cormorant Garamond'),serif;color:var(--text3);margin-top:4px">Entrées · Plats · Desserts</div>
@@ -5190,6 +5215,46 @@ function resetBrandColors(){
   renderAdminSection(adminCurrentTab);
 }
 
+// Shared list of the 50 selectable Google Fonts — used by both the
+// dropdown and the "view all fonts" gallery below, so there's only one
+// place to add/remove a font.
+const FONT_LIST = ["Roboto", "Open Sans", "Lato", "Montserrat", "Oswald", "Raleway", "Poppins", "Merriweather", "Playfair Display", "Ubuntu", "Source Sans Pro", "Nunito", "PT Sans", "Libre Baskerville", "Josefin Sans", "Crimson Text", "Fira Sans", "Noto Sans", "Work Sans", "Quicksand", "Mulish", "Barlow", "Inter", "DM Sans", "Space Grotesk", "Outfit", "Plus Jakarta Sans", "Sora", "Manrope", "Karla", "Cormorant Garamond", "EB Garamond", "Spectral", "Libre Franklin", "Source Serif Pro", "Arvo", "Crete Round", "Bitter", "Zilla Slab", "Rokkitt", "Dancing Script", "Pacifico", "Lobster", "Satisfy", "Abril Fatface", "Bebas Neue", "Anton", "Righteous", "Cinzel", "Teko"];
+// Picking a font from a native <select> means comparing them one at a
+// time from memory — hard to judge 50 options that way. This opens a
+// popup that loads every font at once and shows the restaurant's own
+// name (or "Restaurant" as a fallback) set in each of them side by
+// side, so they can actually be compared at a glance.
+function showFontGallery(){
+  // Google Fonts supports combining every family into one request —
+  // load them all in a single <link> rather than 50 separate ones.
+  if(!document.querySelector('link[data-font-gallery]')){
+    const l=document.createElement('link');
+    l.rel='stylesheet';
+    l.dataset.fontGallery='1';
+    l.href='https://fonts.googleapis.com/css2?'+FONT_LIST.map(f=>'family='+encodeURIComponent(f)+':wght@400;700').join('&')+'&display=swap';
+    document.head.appendChild(l);
+  }
+  const sampleText = (DATA.restaurantName||'Restaurant');
+  const rows = FONT_LIST.map(f=>`<div class="font-gallery-row" onclick="setRestoFont('${f.replace(/'/g,"\\'")}');closeFontGallery()">
+    <div class="font-gallery-name">${f}</div>
+    <div class="font-gallery-sample" style="font-family:'${f}',serif">${escapeHtmlLocal(sampleText)}</div>
+  </div>`).join('');
+  const modal=document.createElement('div');
+  modal.className='font-gallery-overlay';
+  modal.id='fontGalleryOverlay';
+  modal.innerHTML=`<div class="font-gallery-card">
+    <div class="font-gallery-hdr"><span>Choisir une police</span><button type="button" class="lb-close" style="position:static;color:var(--text)" onclick="closeFontGallery()">✕</button></div>
+    <div class="font-gallery-list">${rows}</div>
+  </div>`;
+  modal.addEventListener('click', e=>{ if(e.target===modal) closeFontGallery(); });
+  document.body.appendChild(modal);
+  document.body.style.overflow='hidden';
+}
+function closeFontGallery(){
+  const el=document.getElementById('fontGalleryOverlay');
+  if(el) el.remove();
+  document.body.style.overflow='';
+}
 function setRestoFont(font){
   DATA.restoFont = font;
   document.documentElement.style.setProperty('--restoFont', "'"+font+"'");
