@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#10285E">
+<title>Réservations — Les Blancs Becs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+/* Same design tokens as resa.html, for a consistent look. */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--restoFont:'Jost';--navy:#1A1A1A;--gold:#E36F1E;--bg:#F1F0EC;--white:#fff;--border:rgba(0,0,0,0.08);--text:#1a1a1a;--text2:#666;--text3:#aaa;--r:10px;--rs:6px;--red:#B31217}
+body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-size:14px;color:var(--text)}
+.container{max-width:1100px;margin:0 auto;padding:0 16px}
+.hidden{display:none!important}
+
+/* ── Login screen ── */
+.login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;padding:20px}
+.login-card{background:#fff;border-radius:14px;border:1px solid var(--border);padding:32px 28px;width:100%;max-width:340px;text-align:center}
+.login-title{font-family:var(--restoFont),serif;font-size:22px;font-weight:700;color:var(--navy);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+.login-sub{font-size:11px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:24px}
+.login-field{margin-bottom:14px;text-align:left}
+.login-field label{font-size:11px;color:var(--text2);display:block;margin-bottom:5px}
+.login-field input{width:100%;padding:11px 13px;border:1px solid var(--border);border-radius:var(--rs);font-size:16px;font-family:inherit;-webkit-appearance:none}
+.login-field input:focus{outline:none;border-color:var(--navy)}
+.login-err{font-size:12px;color:var(--red);margin-bottom:12px;display:none;text-align:left}
+.login-btn{width:100%;padding:13px;background:var(--navy);color:#fff;border:none;border-radius:var(--rs);font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;font-family:inherit}
+.login-btn:hover{background:#0a1a3e}
+.login-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* ── Header — identical banner to resa.html ── */
+.header{background:var(--navy);padding:22px 0 18px}
+.header-top{position:relative;display:flex;align-items:center;justify-content:center}
+.logo-link{text-decoration:none}
+.logo-text{font-family:var(--restoFont),serif;font-size:24px;font-weight:700;color:#fff;letter-spacing:.08em;text-align:center;display:block;text-transform:uppercase}
+.header-sub{font-size:10px;font-weight:300;color:#FFFFFF;letter-spacing:.14em;text-transform:uppercase;text-align:center;margin-top:6px}
+.logout-btn{position:absolute;right:16px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(255,255,255,.6);cursor:pointer;font-family:inherit;display:flex;align-items:center;padding:4px}
+.logout-btn:hover{color:#fff}
+.home-btn{position:absolute;left:16px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(255,255,255,.6);cursor:pointer;font-family:inherit;display:flex;align-items:center;padding:4px;text-decoration:none}
+.home-btn:hover{color:#fff}
+
+.wrap{max-width:1100px;margin:0 auto;padding:20px 16px 48px}
+
+/* ── Stat cards ── */
+/* ── View tabs (À venir / Semaine / Mois) — same segmented pill as resa.html ── */
+.view-tabs{display:flex;background:var(--navy);border-radius:50px;padding:4px;gap:4px;margin-bottom:14px}
+.view-tab{flex:1;text-align:center;padding:11px 6px;border-radius:50px;font-size:13px;font-weight:600;color:rgba(255,255,255,.55);cursor:pointer;transition:.15s}
+.view-tab.active{background:#fff;color:var(--navy)}
+
+/* ── Calendar panel wrapper ── */
+.cal-panel{background:#fff;border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:16px}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cal-nav-label{font-size:15px;font-weight:600;color:var(--text)}
+.cal-arr{width:32px;height:32px;border-radius:var(--rs);border:1px solid var(--border);background:none;cursor:pointer;font-size:15px;color:var(--text2);display:flex;align-items:center;justify-content:center}
+.cal-arr:hover{background:#f5f5f3}
+
+/* Month view grid (reuses the same visual language as resa.html) */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-dh{text-align:center;font-size:10px;color:var(--text3);padding:4px 0;letter-spacing:.06em}
+.cal-d{aspect-ratio:1;border-radius:var(--rs);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;color:var(--text);border:1px solid var(--border);position:relative;gap:2px}
+.cal-d.empty{border:none}
+.cal-d.today{border-color:var(--gold);font-weight:700}
+.cal-d.blocked{background:#faf0ef;color:#c0392b}
+.cal-d.closed{background:#f2f2f0;color:var(--text3)}
+.cal-d.has-resa{cursor:pointer}
+.cal-d.has-resa:hover{border-color:var(--navy)}
+.cal-lock{position:absolute;top:3px;right:3px;color:#c0392b}
+.cal-lock svg{width:10px;height:10px}
+.cal-count{font-size:10px;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:2px}
+.cal-count svg{width:9px;height:9px}
+
+/* Week view: a vertical list of 7 days, each with a lock toggle and a
+   reservation-count badge — day is either bookable or locked, synced
+   with resa.html via the blocked_dates table. */
+.week-day{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--border)}
+.week-day:last-child{border-bottom:none}
+.week-day-label{width:74px;flex:none}
+.week-day-name{font-size:13px;color:var(--text2);text-transform:capitalize}
+.week-day-num{font-size:18px;font-weight:700;color:var(--text)}
+.week-day.today .week-day-num{color:var(--gold)}
+.week-day-count{flex:1;font-size:13px;color:var(--navy);font-weight:600;display:flex;align-items:center;gap:5px}
+.week-day-count svg{width:13px;height:13px;opacity:.7}
+.lock-btn{background:none;border:none;cursor:pointer;color:var(--text3);padding:6px;display:flex;align-items:center}
+.lock-btn.locked{color:#c0392b}
+.lock-btn:hover{color:var(--navy)}
+.lock-btn.locked:hover{color:#c0392b}
+
+/* ── Reservation cards, grouped by date ──
+   One card per date: a header (date + how-many-days-left) shown once,
+   then one clickable row per reservation on that date. Mobile packs the
+   header onto 2 lines and shows first-name only; desktop keeps
+   everything on one line with the full name and year. */
+.resa-list{display:flex;flex-direction:column;gap:10px}
+.resa-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px 16px}
+.resa-card-header{display:flex;flex-direction:column;margin-bottom:8px}
+.resa-card-date{font-weight:700;color:var(--text);font-size:14px}
+.resa-card-year{display:none}
+.resa-card-indays{font-size:11px;color:var(--text3);font-weight:400;margin-top:2px}
+.resa-entry{display:flex;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--border);cursor:pointer;transition:opacity .15s}
+.resa-entry:first-of-type{border-top:none;padding-top:0}
+.resa-entry:hover{opacity:.7}
+.entry-name{font-weight:600;color:var(--text);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.entry-lastname{display:inline}
+.entry-covers{display:flex;align-items:center;gap:3px;font-weight:700;color:var(--navy);font-size:12px;flex:none}
+.entry-covers svg{width:12px;height:12px}
+.entry-time{font-weight:700;color:var(--navy);font-size:13px;margin-left:auto;flex:none}
+@media(min-width:761px){
+  .resa-card-header{flex-direction:row;align-items:baseline;gap:10px}
+  .resa-card-year{display:inline}
+  .resa-card-indays{margin-top:0}
+}
+.empty-msg{text-align:center;padding:48px 20px;color:var(--text3);font-size:14px}
+.empty-icon{font-size:32px;margin-bottom:10px}
+
+/* ── Reservation detail modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal-card{background:#fff;border-radius:14px;max-width:400px;width:100%;padding:24px;position:relative;max-height:85vh;overflow-y:auto}
+.modal-close{position:absolute;top:14px;right:16px;background:none;border:none;font-size:20px;color:var(--text3);cursor:pointer}
+.modal-ref{font-family:var(--restoFont),serif;font-weight:700;color:var(--navy);font-size:18px;margin-bottom:2px}
+.modal-created{font-size:11px;color:var(--text3);margin-bottom:16px}
+.modal-row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--border)}
+.modal-row:first-of-type{border-top:none}
+.modal-label{font-size:11px;color:var(--text3);flex:none}
+.modal-value{font-size:13px;color:var(--text);font-weight:600;text-align:right}
+.modal-value a{color:var(--navy);text-decoration:none}
+.modal-del{width:100%;margin-top:18px;padding:11px;background:none;border:1px solid #f5c6c2;color:#c0392b;border-radius:var(--rs);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.modal-del:hover{background:#faf0ef}
+
+/* Mobile: compact stat row (cards use the same .resa-card style as
+   desktop now — no separate table/grid treatment needed anymore). */
+@media(max-width:760px){
+  .stats{gap:8px;flex-wrap:nowrap}
+  .stat-card{min-width:0;padding:10px 6px}
+  .stat-n{font-size:22px}
+  .stat-l{font-size:8.5px;letter-spacing:.06em;margin-top:2px}
+  .cal-d{font-size:11px}
+}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:30px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:99;white-space:nowrap}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- Login screen — Supabase Auth. Shown until a valid admin session
+     exists; nothing below it ever renders before that. -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="login-title">Les Blancs Becs</div>
+    <div class="login-sub">Réservations — Administration</div>
+    <div class="login-field">
+      <label>Email</label>
+      <input id="loginEmail" type="email" placeholder="toi@exemple.fr" onkeydown="if(event.key==='Enter') tryLogin()">
+    </div>
+    <div class="login-field">
+      <label>Mot de passe</label>
+      <input id="loginPass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter') tryLogin()">
+    </div>
+    <div class="login-err" id="loginErr">Identifiants incorrects.</div>
+    <button class="login-btn" id="loginBtn" onclick="tryLogin()">Se connecter</button>
+  </div>
+</div>
+
+<div id="dashContent" class="hidden">
+
+  <div class="header">
+    <div class="container">
+      <div class="header-top">
+        <a href="#" class="home-btn" id="homeBtn" title="Voir le menu" aria-label="Voir le menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+        </a>
+        <a href="resa.html" class="logo-link">
+          <span class="logo-text">Les Blancs Becs</span>
+        </a>
+        <button class="logout-btn" onclick="confirmLogout()" title="Déconnexion" aria-label="Déconnexion">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8v1H4v-1z"/></svg>
+        </button>
+      </div>
+      <div class="header-sub">Réservations — Administration</div>
+    </div>
+  </div>
+
+  <div class="wrap">
+
+    <div class="view-tabs">
+      <div class="view-tab active" id="viewTabUpcoming" onclick="switchView('upcoming')">À venir</div>
+      <div class="view-tab" id="viewTabWeek" onclick="switchView('week')">Semaine</div>
+      <div class="view-tab" id="viewTabMonth" onclick="switchView('month')">Mois</div>
+    </div>
+
+    <div id="upcomingPanel">
+      <div class="resa-list" id="upcomingList"></div>
+      <div class="empty-msg hidden" id="emptyMsg"></div>
+    </div>
+
+    <div class="cal-panel hidden" id="weekPanel">
+      <div class="cal-nav">
+        <button class="cal-arr" onclick="chWeek(-1)">‹</button>
+        <span class="cal-nav-label" id="weekLabel"></span>
+        <button class="cal-arr" onclick="chWeek(1)">›</button>
+      </div>
+      <div id="weekDays"></div>
+    </div>
+
+    <div class="cal-panel hidden" id="monthPanel">
+      <div class="cal-nav">
+        <button class="cal-arr" onclick="chMonth(-1)">‹</button>
+        <span class="cal-nav-label" id="monthLabel"></span>
+        <button class="cal-arr" onclick="chMonth(1)">›</button>
+      </div>
+      <div class="cal-grid" id="monthGrid"></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="detailModal" onclick="if(event.target===this) closeModal()">
+  <div class="modal-card">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══ CONFIG ══
+   Same Supabase project/keys as resa.html — see supabase-setup.sql.
+   CLIENT_SLUG filters the shared table down to this restaurant only. */
+const SUPABASE_URL      = 'https://fdbzzkzfipzabryfanun.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_9PaqDuXnWV3aOCBPk9ImmQ_4YgYTU9n';
+// CONFIG NOTE: for a single-location restaurant, this can just match
+// the menu's own CLIENT_SLUG ('blancsbecs') — no need for a distinct
+// per-location suffix like Drevici's 'drevici-paris' (which exists
+// because that restaurant has two physical addresses). If this bar ever
+// opens a second location, give it its own slug then, matching the
+// pattern used for Drevici.
+const CLIENT_SLUG = 'blancsbecs';
+
+// Points at the menu's plain URL (no #tab) so the menu site's own logic
+// decides Accueil-if-active vs first-tab, exactly like the header logo
+// link in resa.html.
+const MENU_URL = 'https://sowonboxx-cmd.github.io/menu/blancsbecs/';
+
+// CONFIG NOTE: must match CLOSED_DAYS in resa.html exactly — used here
+// only to grey out the same closed days in the month view for visual
+// consistency (the public calendar is the actual source of truth for
+// bookability; this is just so the admin sees the same picture).
+const CLOSED_DAYS = [0,1]; // Sunday, Monday
+
+const sb = (SUPABASE_URL !== 'COLLE_ICI_SUPABASE_URL' && window.supabase)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+
+let ALL = [];
+let BLOCKED = new Set();
+
+const ICON_PERSON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+const ICON_LOCK  = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+
+/* ── Auth ── */
+async function tryLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPass').value;
+  const btn   = document.getElementById('loginBtn');
+  const err   = document.getElementById('loginErr');
+  err.style.display = 'none';
+
+  if (!sb) {
+    err.textContent = 'Configuration manquante : colle l\u2019URL et la clé Supabase en haut du script de cette page.';
+    err.style.display = 'block';
+    return;
+  }
+  btn.disabled = true;
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  btn.disabled = false;
+  if (error) {
+    err.textContent = 'Identifiants incorrects.';
+    err.style.display = 'block';
+    document.getElementById('loginPass').value = '';
+    document.getElementById('loginPass').focus();
+    return;
+  }
+  enterDashboard();
+}
+
+async function logout() {
+  if (sb) await sb.auth.signOut();
+  document.getElementById('dashContent').classList.add('hidden');
+  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginPass').value = '';
+}
+function confirmLogout() {
+  if (confirm('Voulez-vous vraiment vous déconnecter ?')) logout();
+}
+
+function enterDashboard() {
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('dashContent').classList.remove('hidden');
+  document.getElementById('homeBtn').href = MENU_URL;
+  Promise.all([loadReservations(), loadBlockedDates()]).then(() => {
+    renderWeek();
+    renderMonth();
+  });
+}
+
+/* If a Supabase session already exists (page reload), skip straight to
+   the dashboard instead of asking to log in again. */
+async function checkExistingSession() {
+  if (!sb) return;
+  const { data } = await sb.auth.getSession();
+  if (data.session) enterDashboard();
+}
+
+/* ── Data ── */
+async function loadReservations() {
+  if (!sb) return;
+  try {
+    const { data, error } = await sb
+      .from('restaurant_reservations')
+      .select('*')
+      .eq('client_slug', CLIENT_SLUG)
+      .order('date_iso', { ascending: true });
+    if (error) throw error;
+    ALL = data || [];
+    renderUpcoming();
+  } catch (err) {
+    console.error('Reservations load failed:', err);
+    document.getElementById('emptyMsg').textContent = 'Impossible de charger les réservations.';
+    document.getElementById('emptyMsg').classList.remove('hidden');
+  }
+}
+
+async function loadBlockedDates() {
+  if (!sb) return;
+  try {
+    const { data, error } = await sb.from('blocked_dates').select('date_iso').eq('client_slug', CLIENT_SLUG);
+    if (error) throw error;
+    BLOCKED = new Set((data || []).map(r => r.date_iso));
+  } catch (err) {
+    console.warn('Blocked dates load failed:', err.message);
+  }
+}
+
+/* ── View tabs (À venir / Semaine / Mois) ── */
+function switchView(v) {
+  document.getElementById('viewTabUpcoming').classList.toggle('active', v === 'upcoming');
+  document.getElementById('viewTabWeek').classList.toggle('active', v === 'week');
+  document.getElementById('viewTabMonth').classList.toggle('active', v === 'month');
+  document.getElementById('upcomingPanel').classList.toggle('hidden', v !== 'upcoming');
+  document.getElementById('weekPanel').classList.toggle('hidden', v !== 'week');
+  document.getElementById('monthPanel').classList.toggle('hidden', v !== 'month');
+}
+
+/* ── Week view ── */
+const DAY_FUL = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+const MONTHS_S = ['jan.','fév.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+const MONTHS   = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const DAY_HD   = ['Lu','Ma','Me','Je','Ve','Sa','Di'];
+
+function toIso(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function getMonday(d) {
+  const day = d.getDay();
+  const diff = (day === 0 ? -6 : 1 - day);
+  const m = new Date(d);
+  m.setDate(d.getDate() + diff);
+  m.setHours(0,0,0,0);
+  return m;
+}
+
+let weekStart = getMonday(new Date());
+function chWeek(dir) { weekStart.setDate(weekStart.getDate() + dir*7); renderWeek(); }
+
+function renderWeek() {
+  const days = [];
+  for (let i=0; i<7; i++) { const d = new Date(weekStart); d.setDate(weekStart.getDate()+i); days.push(d); }
+  const last = days[6];
+  document.getElementById('weekLabel').textContent =
+    `${weekStart.getDate()} ${MONTHS_S[weekStart.getMonth()]} – ${last.getDate()} ${MONTHS_S[last.getMonth()]}`;
+  const todayIso = new Date().toISOString().slice(0,10);
+  const container = document.getElementById('weekDays');
+  container.innerHTML = '';
+  days.forEach(d => {
+    const iso = toIso(d);
+    const isToday = iso === todayIso;
+    const isLocked = BLOCKED.has(iso);
+    const covers = ALL.filter(r => r.date_iso === iso).reduce((s,r) => s + (parseInt(r.covers)||0), 0);
+    const row = document.createElement('div');
+    row.className = 'week-day' + (isToday ? ' today' : '');
+    row.innerHTML = `
+      <div class="week-day-label">
+        <div class="week-day-name">${DAY_FUL[(d.getDay()+6)%7]}</div>
+        <div class="week-day-num">${d.getDate()}</div>
+      </div>
+      <div class="week-day-count"${covers > 0 ? ` style="cursor:pointer" onclick="openDayModal('${iso}')"` : ''}>${covers > 0 ? ICON_PERSON + ' ' + covers + ' pers.' : ''}</div>
+      <button class="lock-btn${isLocked ? ' locked' : ''}" onclick="toggleLock('${iso}')" title="${isLocked ? 'Débloquer ce jour' : 'Bloquer ce jour'}">${ICON_LOCK}</button>
+    `;
+    container.appendChild(row);
+  });
+}
+
+/* ── Month view ── */
+let monthCur = new Date(); monthCur.setDate(1);
+function chMonth(dir) { monthCur.setMonth(monthCur.getMonth()+dir); renderMonth(); }
+
+function renderMonth() {
+  document.getElementById('monthLabel').textContent = MONTHS[monthCur.getMonth()] + ' ' + monthCur.getFullYear();
+  const grid = document.getElementById('monthGrid');
+  grid.innerHTML = '';
+  DAY_HD.forEach(d => { const h = document.createElement('div'); h.className = 'cal-dh'; h.textContent = d; grid.appendChild(h); });
+  const first = new Date(monthCur.getFullYear(), monthCur.getMonth(), 1);
+  let start = first.getDay()-1; if (start<0) start=6;
+  for (let i=0;i<start;i++) { const e = document.createElement('div'); e.className='cal-d empty'; grid.appendChild(e); }
+  const daysIn = new Date(monthCur.getFullYear(), monthCur.getMonth()+1, 0).getDate();
+  const todayIso = new Date().toISOString().slice(0,10);
+  for (let d=1; d<=daysIn; d++) {
+    const dt = new Date(monthCur.getFullYear(), monthCur.getMonth(), d);
+    const iso = toIso(dt);
+    const isToday = iso === todayIso;
+    const isBlocked = BLOCKED.has(iso);
+    const isClosed = CLOSED_DAYS.includes(dt.getDay());
+    const covers = ALL.filter(r => r.date_iso === iso).reduce((s,r) => s + (parseInt(r.covers)||0), 0);
+    const hasResa = covers > 0;
+    const cell = document.createElement('div');
+    cell.className = 'cal-d'
+      + (isToday?' today':'')
+      + (isBlocked?' blocked':(isClosed?' closed':''))
+      + (hasResa?' has-resa':'');
+    if (hasResa) cell.onclick = () => openDayModal(iso);
+    cell.innerHTML = `${isBlocked ? `<span class="cal-lock">${ICON_LOCK}</span>` : ''}<div>${d}</div>${hasResa ? `<div class="cal-count">${ICON_PERSON}${covers}</div>` : ''}`;
+    grid.appendChild(cell);
+  }
+}
+
+/* ── Blocked dates — synced with resa.html via the same table ── */
+async function toggleLock(iso) {
+  const isBlocked = BLOCKED.has(iso);
+  try {
+    if (isBlocked) {
+      const { error } = await sb.from('blocked_dates').delete().eq('client_slug', CLIENT_SLUG).eq('date_iso', iso);
+      if (error) throw error;
+      BLOCKED.delete(iso);
+      showToast('Jour débloqué');
+    } else {
+      const { error } = await sb.from('blocked_dates').insert({ client_slug: CLIENT_SLUG, date_iso: iso });
+      if (error) throw error;
+      BLOCKED.add(iso);
+      showToast('Jour bloqué — plus réservable');
+    }
+    renderWeek();
+    renderMonth();
+  } catch (err) {
+    showToast('Erreur : ' + err.message);
+  }
+}
+
+/* ── Compact reservation cards ── */
+function relativeDaysLabel(dateIso) {
+  if (!dateIso) return '';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const target = new Date(dateIso + 'T00:00:00');
+  const diff = Math.round((target - today) / 86400000);
+  if (diff === 0) return "Aujourd'hui";
+  if (diff === 1) return 'Demain';
+  if (diff > 1) return 'Dans ' + diff + ' jours';
+  if (diff === -1) return 'Hier';
+  return 'Il y a ' + Math.abs(diff) + ' jours';
+}
+
+// date_label is always "<jour> <num> <mois> <année>" (see resa.html) —
+// split off the year so mobile can hide it (shown only in the popup)
+// while desktop keeps it inline.
+function splitDateYear(dateLabel) {
+  const idx = (dateLabel || '').lastIndexOf(' ');
+  if (idx === -1) return { main: dateLabel || '', year: '' };
+  return { main: dateLabel.slice(0, idx), year: dateLabel.slice(idx + 1) };
+}
+
+function reservationEntryHtml(r) {
+  const parts = (r.from_name || '').trim().split(/\s+/);
+  const first = parts[0] || '';
+  const rest = parts.slice(1).join(' ');
+  return `<div class="resa-entry" onclick="openDetailModal('${escapeAttr(r.ref)}')">
+    <span class="entry-name">${escapeHtml(first)}<span class="entry-lastname"> ${escapeHtml(rest)}</span></span>
+    <span class="entry-covers">${ICON_PERSON}${escapeHtml(String(r.covers || ''))}</span>
+    <span class="entry-time">${escapeHtml(r.slot || '')}</span>
+  </div>`;
+}
+
+/* ── "À venir" — next 7 reservations, grouped by date so a shared date
+   isn't repeated per person; each person still opens their own popup. ── */
+function renderUpcoming() {
+  const body = document.getElementById('upcomingList');
+  const emptyMsg = document.getElementById('emptyMsg');
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const upcoming = ALL
+    .filter(r => r.date_iso >= todayIso)
+    .sort((a, b) => (a.date_iso + (a.slot||'')).localeCompare(b.date_iso + (b.slot||'')))
+    .slice(0, 7);
+  body.innerHTML = '';
+  emptyMsg.classList.toggle('hidden', upcoming.length > 0);
+  if (upcoming.length === 0) {
+    emptyMsg.innerHTML = `<div class="empty-icon">🦪</div>Aucune réservation à venir.`;
+    return;
+  }
+  const groups = [];
+  upcoming.forEach(r => {
+    const last = groups[groups.length - 1];
+    if (last && last.date_iso === r.date_iso) last.items.push(r);
+    else groups.push({ date_iso: r.date_iso, date_label: r.date_label, items: [r] });
+  });
+  groups.forEach(g => {
+    const { main, year } = splitDateYear(g.date_label);
+    const card = document.createElement('div');
+    card.className = 'resa-card';
+    card.innerHTML = `
+      <div class="resa-card-header">
+        <span class="resa-card-date">${escapeHtml(main)}<span class="resa-card-year"> ${escapeHtml(year)}</span></span>
+        <span class="resa-card-indays">${relativeDaysLabel(g.date_iso)}</span>
+      </div>
+      ${g.items.map(reservationEntryHtml).join('')}
+    `;
+    body.appendChild(card);
+  });
+}
+
+/* ── Detail modal — one reservation's full info, reused both for a
+   single click (openDetailModal) and for a whole day at once
+   (openDayModal, week/month view clicks): several of these blocks
+   stacked and separated by a divider, scrollable within the same
+   modal, in chronological order. ── */
+function reservationDetailHtml(r) {
+  const createdDate = r.created_at ? new Date(r.created_at).toLocaleDateString('fr-FR') : '';
+  const phoneDigits = (r.phone || '').replace(/[^\d+]/g, '');
+  const phoneHtml = r.phone
+    ? `<a href="tel:${phoneDigits}">${escapeHtml(r.phone)}</a> <a href="sms:${phoneDigits}" style="font-size:11px">Message</a>`
+    : '—';
+  const emailHtml = r.from_email ? `<a href="mailto:${escapeAttr(r.from_email)}">${escapeHtml(r.from_email)}</a>` : '—';
+  return `
+    <div class="modal-ref">${escapeHtml(r.ref || '')}</div>
+    <div class="modal-created">Enregistrée le ${escapeHtml(createdDate)}</div>
+    <div class="modal-row"><span class="modal-label">Client</span><span class="modal-value">${escapeHtml(r.from_name || '')}</span></div>
+    <div class="modal-row"><span class="modal-label">Email</span><span class="modal-value">${emailHtml}</span></div>
+    <div class="modal-row"><span class="modal-label">Téléphone</span><span class="modal-value">${phoneHtml}</span></div>
+    <div class="modal-row"><span class="modal-label">Date</span><span class="modal-value">${escapeHtml(r.date_label || '')}</span></div>
+    <div class="modal-row"><span class="modal-label">Heure</span><span class="modal-value">${escapeHtml(r.slot || '')}</span></div>
+    <div class="modal-row"><span class="modal-label">Couverts</span><span class="modal-value">${escapeHtml(String(r.covers || ''))}</span></div>
+    ${r.note && r.note !== 'Aucune' ? `<div class="modal-row"><span class="modal-label">Note</span><span class="modal-value">${escapeHtml(r.note)}</span></div>` : ''}
+    <button class="modal-del" onclick="deleteReservation('${escapeAttr(r.ref)}');closeModal()">Supprimer cette réservation</button>
+  `;
+}
+function openDetailModal(ref) {
+  const r = ALL.find(x => x.ref === ref);
+  if (!r) return;
+  document.getElementById('modalBody').innerHTML = reservationDetailHtml(r);
+  document.getElementById('detailModal').classList.remove('hidden');
+}
+function openDayModal(iso) {
+  const rows = ALL.filter(r => r.date_iso === iso).sort((a,b) => (a.slot||'').localeCompare(b.slot||''));
+  if (rows.length === 0) return;
+  document.getElementById('modalBody').innerHTML = rows
+    .map(reservationDetailHtml)
+    .join('<hr style="border:none;border-top:1px solid var(--border);margin:16px 0">');
+  document.getElementById('detailModal').classList.remove('hidden');
+}
+function closeModal() { document.getElementById('detailModal').classList.add('hidden'); }
+
+async function deleteReservation(ref) {
+  if (!confirm('Supprimer la réservation ' + ref + ' ?')) return;
+  try {
+    const { error } = await sb.from('restaurant_reservations').delete().eq('ref', ref).eq('client_slug', CLIENT_SLUG);
+    if (error) throw error;
+    ALL = ALL.filter(r => r.ref !== ref);
+    renderUpcoming();
+    renderWeek();
+    renderMonth();
+    showToast('Réservation supprimée');
+  } catch (err) {
+    showToast('Suppression impossible : ' + err.message);
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function escapeHtml(v) {
+  return String(v).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+function escapeAttr(v) {
+  return String(v).replace(/'/g, "\\'");
+}
+
+checkExistingSession();
+</script>
+</body>
+</html>
