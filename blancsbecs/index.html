@@ -422,6 +422,9 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .drag-handle:active{cursor:grabbing}
 .admin-card.dragging{opacity:.4;border:2px dashed var(--navy)}
 .admin-card.drag-over{border-top:3px solid var(--navy)}
+.admin-card.collapsed .admin-card-details{display:none}
+.collapse-chevron{display:inline-block;transition:transform .15s;color:var(--text3);font-size:11px}
+.admin-card.collapsed .collapse-chevron{transform:rotate(-90deg)}
 .ai-row.dragging{opacity:.4}
 .ai-row.drag-over{border-top:3px solid var(--navy)}
 </style>
@@ -3443,7 +3446,7 @@ function adminGoTab(val){
 
 function adminSaveBar(){
   return `<div style="display:flex;gap:8px;margin-top:12px;padding:0 0 4px">
-    <button class="asave" style="flex:1" onclick="handleSaveClick()">Publier</button>
+    <button class="asave" id="mainPublishBtn" style="flex:1" onclick="handleSaveClick()">Publier</button>
   </div>`;
 }
 // Wrapped so that a rendering error can never silently block publishing —
@@ -3762,8 +3765,10 @@ function renderAdminTab(ti){
           const unit=s.unit||'cl';
           return `<div class="ai-row" style="margin-bottom:4px;align-items:center"><select class="ai-unit-sel" onchange="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].format=this.value;const f=BEV_FORMATS.find(f=>f.key===this.value);if(f&&f.autoCl!=null){DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].cl=f.autoCl;DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].unit='cl';}renderAll();renderAdminSection(DATA.tabs[${ti}].id)">${bevFormatOptionsHtml(s.format)}</select><input class="ai" type="number" min="0" placeholder="Contenance" value="${s.cl||''}" style="max-width:64px" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].cl=this.value;renderAll()"><select class="ai-unit-sel" onchange="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].unit=this.value;renderAll()"><option value="cl" ${unit==='cl'?'selected':''}>cl</option><option value="l" ${unit==='l'?'selected':''}>L</option></select><input class="ai" type="number" min="0" step="0.5" placeholder="prix" value="${s.price||''}" style="max-width:64px" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].price=this.value;renderAll()"><span style="font-size:11px;color:var(--text3);padding:0 4px">€</span><button class="adel" onclick="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes.splice(${si},1);renderAll();renderAdminSection(DATA.tabs[${ti}].id)">×</button></div>`;
         }).join('');
-        h+=`<div class="admin-card" style="background:#fff;margin-top:4px" ondragover="onDragOver(event,${ti},${ci},${ii})" ondragleave="onDragLeave(event)" ondrop="onDropBev(event,${ti},${ci},${ii})">
-          <div class="admin-card-hdr"><span class="drag-handle" draggable="true" ondragstart="onDragBev(event,${ti},${ci},${ii})" ondragend="onDragEndHandle(event)">⠿</span><span class="admin-card-num">Boisson ${ii+1}</span><div style="display:flex;gap:3px;margin-left:auto;margin-right:4px"><button class="dish-vis-btn ${!item.hidden?'dish-vis-active':''}" onclick="delete DATA.tabs[${ti}].cards[${ci}].items[${ii}].hidden;renderAll();renderAdminSection(DATA.tabs[${ti}].id)">Visible</button><button class="dish-vis-btn dish-hid-btn ${item.hidden?'dish-hid-active':''}" onclick="DATA.tabs[${ti}].cards[${ci}].items[${ii}].hidden=true;renderAll();renderAdminSection(DATA.tabs[${ti}].id)">Masquée</button><button class="dish-vis-btn dish-del-btn" onclick="askConfirm('Supprimer cette boisson ?',()=>delBev(${ti},${ci},${ii}))">✕</button></div></div>
+        const bevName=typeof item.name==='object'?(item.name[adminLang]||item.name.fr||''):(item.name||'');
+        h+=`<div class="admin-card collapsed" style="background:#fff;margin-top:4px" ondragover="onDragOver(event,${ti},${ci},${ii})" ondragleave="onDragLeave(event)" ondrop="onDropBev(event,${ti},${ci},${ii})">
+          <div class="admin-card-hdr"><span class="drag-handle" draggable="true" ondragstart="onDragBev(event,${ti},${ci},${ii})" ondragend="onDragEndHandle(event)">⠿</span><span class="admin-card-num" style="cursor:pointer" onclick="this.closest('.admin-card').classList.toggle('collapsed')">Boisson ${ii+1}${bevName?' — '+escAttr(bevName):''} <span class="collapse-chevron">▾</span></span><div style="display:flex;gap:3px;margin-left:auto;margin-right:4px"><button class="dish-vis-btn ${!item.hidden?'dish-vis-active':''}" onclick="delete DATA.tabs[${ti}].cards[${ci}].items[${ii}].hidden;renderAll();renderAdminSection(DATA.tabs[${ti}].id)">Visible</button><button class="dish-vis-btn dish-hid-btn ${item.hidden?'dish-hid-active':''}" onclick="DATA.tabs[${ti}].cards[${ci}].items[${ii}].hidden=true;renderAll();renderAdminSection(DATA.tabs[${ti}].id)">Masquée</button><button class="dish-vis-btn dish-del-btn" onclick="askConfirm('Supprimer cette boisson ?',()=>delBev(${ti},${ci},${ii}))">✕</button></div></div>
+          <div class="admin-card-details">
           <input class="ai" style="margin-bottom:4px" placeholder="${adminLang!=='fr'&&typeof item.name==='object'?item.name.fr||'Nom':'Nom'}" value="${typeof item.name==='object'?(item.name[adminLang]||''):item.name||''}" oninput="if(typeof DATA.tabs[${ti}].cards[${ci}].items[${ii}].name!=='object'){DATA.tabs[${ti}].cards[${ci}].items[${ii}].name={fr:DATA.tabs[${ti}].cards[${ci}].items[${ii}].name};}DATA.tabs[${ti}].cards[${ci}].items[${ii}].name[adminLang]=this.value;renderAll()">
           <textarea class="ai" rows="2" style="resize:vertical;margin-bottom:4px;font-size:12px" placeholder="Description (notes de dégustation, etc.)" oninput="if(!DATA.tabs[${ti}].cards[${ci}].items[${ii}].desc||typeof DATA.tabs[${ti}].cards[${ci}].items[${ii}].desc!=='object'){DATA.tabs[${ti}].cards[${ci}].items[${ii}].desc={};}DATA.tabs[${ti}].cards[${ci}].items[${ii}].desc[adminLang]=this.value;renderAll()">${(item.desc&&item.desc[adminLang])||''}</textarea>
           `+imgFieldHtml(item.img||'',`DATA.tabs[${ti}].cards[${ci}].items[${ii}].img=this.value;renderAll()`,"Image URL ou uploader")+`
@@ -3777,6 +3782,7 @@ function renderAdminTab(ti){
             <div style="font-size:10px;color:var(--text3);margin-top:3px">Pré-chargée automatiquement dans Réseaux sociaux quand vous sélectionnez cette boisson.</div>
           </div>
           ${entityGalleryHtml(ti,ci,ii,'items',item.gallery)}
+          </div>
         </div>`;
       });
       h+=`<button class="aadd" style="margin-top:4px" onclick="addBev(${ti},${ci})">+ Boisson</button>`;
@@ -3790,8 +3796,10 @@ function renderAdminTab(ti){
       h+=`<button class="aadd" onclick="addVariant(${ti},${ci})">+ Variante</button>`;
     } else {
       (card.dishes||[]).forEach((d,di)=>{
-        h+=`<div class="admin-card" style="background:#fff;margin-top:6px" ondragover="onDragOver(event,${ti},${ci},${di})" ondragleave="onDragLeave(event)" ondrop="onDrop(event,${ti},${ci},${di})">
-          <div class="admin-card-hdr"><span class="drag-handle" title="Glisser pour réordonner" draggable="true" ondragstart="onDragStart(event,${ti},${ci},${di})" ondragend="onDragEndHandle(event)">⠿</span><span class="admin-card-num">Plat ${di+1}</span><div style="display:flex;gap:3px;margin-left:auto;margin-right:4px"><button class="dish-vis-btn ${!d.hidden?'dish-vis-active':''}" onclick="delete DATA.tabs[${ti}].cards[${ci}].dishes[${di}].hidden;renderAll();renderAdminSection(DATA.tabs[${ti}].id)">Visible</button><button class="dish-vis-btn dish-hid-btn ${d.hidden?'dish-hid-active':''}" onclick="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].hidden=true;renderAll();renderAdminSection(DATA.tabs[${ti}].id)">Masquée</button><button class="dish-vis-btn dish-del-btn" onclick="askConfirm('Supprimer « ${d.name.fr||'ce plat'} » ?',()=>delDish(${ti},${ci},${di}))">✕</button></div></div>
+        const dName=d.name&&(d.name[adminLang]||d.name.fr)||'';
+        h+=`<div class="admin-card collapsed" style="background:#fff;margin-top:6px" ondragover="onDragOver(event,${ti},${ci},${di})" ondragleave="onDragLeave(event)" ondrop="onDrop(event,${ti},${ci},${di})">
+          <div class="admin-card-hdr"><span class="drag-handle" title="Glisser pour réordonner" draggable="true" ondragstart="onDragStart(event,${ti},${ci},${di})" ondragend="onDragEndHandle(event)">⠿</span><span class="admin-card-num" style="cursor:pointer" onclick="this.closest('.admin-card').classList.toggle('collapsed')">Plat ${di+1}${dName?' — '+escAttr(dName):''} <span class="collapse-chevron">▾</span></span><div style="display:flex;gap:3px;margin-left:auto;margin-right:4px"><button class="dish-vis-btn ${!d.hidden?'dish-vis-active':''}" onclick="delete DATA.tabs[${ti}].cards[${ci}].dishes[${di}].hidden;renderAll();renderAdminSection(DATA.tabs[${ti}].id)">Visible</button><button class="dish-vis-btn dish-hid-btn ${d.hidden?'dish-hid-active':''}" onclick="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].hidden=true;renderAll();renderAdminSection(DATA.tabs[${ti}].id)">Masquée</button><button class="dish-vis-btn dish-del-btn" onclick="askConfirm('Supprimer « ${d.name.fr||'ce plat'} » ?',()=>delDish(${ti},${ci},${di}))">✕</button></div></div>
+          <div class="admin-card-details">
           `+biInput('Nom', d.name.fr||'', d.name[adminLang]||'', `DATA.tabs[${ti}].cards[${ci}].dishes[${di}].name[adminLang]=this.value;renderAll()`)+`
           `+biInput('Description', d.desc.fr||'', d.desc[adminLang]||'', `DATA.tabs[${ti}].cards[${ci}].dishes[${di}].desc[adminLang]=this.value;renderAll()`)+`
           `+priceField(d,ti,ci,di)+`
@@ -3802,6 +3810,7 @@ function renderAdminTab(ti){
             <div style="font-size:10px;color:var(--text3);margin-top:3px">Pré-chargée automatiquement dans Réseaux sociaux quand vous sélectionnez ce plat.</div>
           </div>
           `+adminBadgeGroup(d,`DATA.tabs[${ti}].cards[${ci}].dishes[${di}]`)+`
+          </div>
         </div>`;
       });
       h+=`<button class="aadd" onclick="addDish(${ti},${ci})">+ Plat</button>`;
@@ -5022,7 +5031,11 @@ function renderExportSection(){
 
 async function publishToSupabase(){
   if(!supaSession){ showToast('⚠️ Connecte-toi pour publier'); renderAdminSection('__global'); return; }
-  const btn=document.getElementById('ghPublishBtn');
+  // NOTE: this used to target a second, redundant "Publier" button
+  // (🚀, inside the collapsible "Connexion admin" section) — removed
+  // since every admin tab already ends with its own adminSaveBar()
+  // "Publier" button; the loading state now lives on that one instead.
+  const btn=document.getElementById('mainPublishBtn');
   if(btn){ btn.textContent='⏳ Publication…'; btn.disabled=true; }
   try{
     // Deep-clone DATA so we publish a clean snapshot, same as before.
@@ -5048,7 +5061,7 @@ async function publishToSupabase(){
     console.error('Publish error:',e);
     showToast('❌ '+e.message);
   }finally{
-    if(btn){ btn.textContent='🚀 Publier'; btn.disabled=false; }
+    if(btn){ btn.textContent='Publier'; btn.disabled=false; }
   }
 }
 
@@ -5215,10 +5228,13 @@ function resetBrandColors(){
   renderAdminSection(adminCurrentTab);
 }
 
-// Shared list of the 50 selectable Google Fonts — used by both the
-// dropdown and the "view all fonts" gallery below, so there's only one
-// place to add/remove a font.
-const FONT_LIST = ["Roboto", "Open Sans", "Lato", "Montserrat", "Oswald", "Raleway", "Poppins", "Merriweather", "Playfair Display", "Ubuntu", "Source Sans Pro", "Nunito", "PT Sans", "Libre Baskerville", "Josefin Sans", "Crimson Text", "Fira Sans", "Noto Sans", "Work Sans", "Quicksand", "Mulish", "Barlow", "Inter", "DM Sans", "Space Grotesk", "Outfit", "Plus Jakarta Sans", "Sora", "Manrope", "Karla", "Cormorant Garamond", "EB Garamond", "Spectral", "Libre Franklin", "Source Serif Pro", "Arvo", "Crete Round", "Bitter", "Zilla Slab", "Rokkitt", "Dancing Script", "Pacifico", "Lobster", "Satisfy", "Abril Fatface", "Bebas Neue", "Anton", "Righteous", "Cinzel", "Teko"];
+// Shared list of selectable Google Fonts — used by both the dropdown
+// and the "view all fonts" gallery below, so there's only one place to
+// add/remove a font. Trimmed the most generic/overlapping sans-serifs
+// (many look near-identical at a glance) in favor of more distinctive,
+// characterful options — scripts, display faces, slab serifs — so the
+// gallery is actually useful for telling fonts apart quickly.
+const FONT_LIST = ["Jost", "Montserrat", "Oswald", "Raleway", "Poppins", "Merriweather", "Playfair Display", "Libre Baskerville", "Josefin Sans", "Quicksand", "Inter", "Cormorant Garamond", "EB Garamond", "Spectral", "Source Serif Pro", "Bitter", "Dancing Script", "Pacifico", "Lobster", "Satisfy", "Abril Fatface", "Bebas Neue", "Anton", "Righteous", "Cinzel", "Teko", "Fraunces", "DM Serif Display", "Prata", "Marcellus", "Bodoni Moda", "Yeseva One", "Italiana", "Cinzel Decorative", "Great Vibes", "Tangerine", "Sacramento", "Yellowtail", "Grand Hotel", "Kaushan Script", "Caveat", "Amatic SC", "Permanent Marker", "Fredoka", "Comfortaa", "Baloo 2", "Alfa Slab One", "Passion One", "Bungee", "Monoton", "Fjalla One"];
 // Picking a font from a native <select> means comparing them one at a
 // time from memory — hard to judge 50 options that way. This opens a
 // popup that loads every font at once and shows the restaurant's own
@@ -5315,16 +5331,14 @@ function renderSocialAdminSection(){
 
 function ghSectionHtml(){
   if(supaSession){
-    return `<div class="admin-section collapsible"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Connexion admin</div><div class="admin-sect-body">
-      <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#eef6ee;border-radius:8px;border:1px solid #b8e0b8;margin-bottom:10px">
+    return `<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Connexion admin</div><div class="admin-sect-body">
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#eef6ee;border-radius:8px;border:1px solid #b8e0b8">
         <div style="flex:1"><div style="font-size:12px;color:#2a7a2a;font-family:Jost,sans-serif;font-weight:500">✓ Connecté</div><div style="font-size:11px;color:#999;font-family:Jost,sans-serif;margin-top:2px">${escAttr(supaSession.user?.email||'')}</div></div>
         <button onclick="adminSignOut()" style="font-size:11px;color:#c0392b;background:none;border:1px solid #f5c6c2;border-radius:6px;padding:4px 8px;cursor:pointer;font-family:Jost,sans-serif">Déconnexion</button>
       </div>
-      <button class="asave" id="ghPublishBtn" onclick="publishToSupabase()" style="margin-top:4px">🚀 Publier</button>
-      <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-top:8px;line-height:1.6">Ton menu est en ligne, à jour pour tous tes clients dès la publication.</div>
     </div></div>`;
   }
-  return `<div class="admin-section collapsible"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Connexion admin</div><div class="admin-sect-body">
+  return `<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Connexion admin</div><div class="admin-sect-body">
     <div class="af"><label class="al">Email</label><input class="ai" id="adminEmailInput" type="email" placeholder="toi@exemple.fr"></div>
     <div class="af"><label class="al">Mot de passe</label><input class="ai" id="adminPassInput" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter') doAdminSignIn()"></div>
     <div id="adminLoginErr" style="font-size:12px;color:#c0392b;margin-bottom:8px;display:none"></div>
