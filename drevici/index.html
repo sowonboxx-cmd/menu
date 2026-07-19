@@ -855,14 +855,14 @@ function efSocialAccordion(gallery, caption, placeholder){
 }
 
 // ---- Popup image field (URL + upload button + preview) — mirrors admin's imgFieldHtml ----
-function efImgField(id, val, label){
+function efImgField(id, val, label, ratio=1){
   const previewStyle = val ? '' : 'display:none';
   return `<div class="ef"><label class="el">${label}</label><div class="ai-img-wrap">
     <input class="ei" id="${id}" value="${escAttr(val||'')}" placeholder="Image URL" oninput="syncEfImgPreview(this)">
-    <label class="ai-upload-btn" title="Uploader une image"><input type="file" accept="image/*" style="display:none" onchange="uploadEditImgFile(this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path></svg></label>
+    <label class="ai-upload-btn" title="Uploader une image"><input type="file" accept="image/*" style="display:none" onchange="uploadEditImgFile(this,${ratio===null?'null':ratio})"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path></svg></label>
   </div><img class="ai-img-preview" src="${escAttr(val||'')}" style="${previewStyle};width:100%;max-width:120px;aspect-ratio:1;object-fit:cover;border-radius:6px;margin-top:6px;border:1px solid var(--border)" onerror="this.style.display='none'"></div>`;
 }
-function uploadEditImgFile(fileInput){
+function uploadEditImgFile(fileInput, ratio){
   const file=fileInput.files[0];
   readImageFileSafe(file, dataUrl => {
     const wrap=fileInput.closest('.ai-img-wrap');
@@ -870,7 +870,7 @@ function uploadEditImgFile(fileInput){
     if(!inp) return;
     inp.value=dataUrl;
     syncEfImgPreview(inp);
-  });
+  }, {ratio});
 }
 function syncEfImgPreview(input){
   const wrap=input.closest('.ai-img-wrap');
@@ -887,7 +887,7 @@ function efGalleryField(gallery){
   gallery=gallery||[];
   let h='<div class="ef"><label class="el">Galerie réseaux sociaux (1–4 photos)</label>';
   for(let gi=0; gi<4; gi++){
-    h+=`<div style="margin-bottom:8px">`+efImgField(`ed-gal-${gi}`, gallery[gi]||'', 'Photo '+(gi+1))+`</div>`;
+    h+=`<div style="margin-bottom:8px">`+efImgField(`ed-gal-${gi}`, gallery[gi]||'', 'Photo '+(gi+1), 9/16)+`</div>`;
   }
   h+='</div>';
   return h;
@@ -2614,6 +2614,19 @@ function renderAdminTab(ti){
 
   h+=`<div class="admin-section"><button class="aadd" style="display:block;width:100%;padding:10px" onclick="addCard(${ti})">+ Nouvelle section dans cette tab</button></div>`;
 
+  // Champ libre de la tab — présent par défaut sur chaque onglet, pas
+  // seulement là où on en a besoin aujourd'hui : parfois il ne sert à
+  // rien (laissé inactif), parfois c'est un texte d'explication utile
+  // qu'il doit être possible d'activer et de modifier sans intervention
+  // de développement.
+  const tib=tab.infoBanner||{};
+  h+=`<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Champ libre</div><div class="admin-sect-body">
+    <label class="admin-toggle" style="margin-bottom:8px"><input type="checkbox" ${tib.active?'checked':''} onchange="if(!DATA.tabs[${ti}].infoBanner)DATA.tabs[${ti}].infoBanner={};DATA.tabs[${ti}].infoBanner.active=this.checked;renderAll()"><label>Visible</label></label>
+    `+biInput('Étiquette (optionnel)', t(tib.label)||'', t(tib.label)||'', `if(!DATA.tabs[${ti}].infoBanner)DATA.tabs[${ti}].infoBanner={};if(!DATA.tabs[${ti}].infoBanner.label)DATA.tabs[${ti}].infoBanner.label={};DATA.tabs[${ti}].infoBanner.label[adminLang]=this.value;renderAll()`)+`
+    `+biInput('Titre', (tib.title&&tib.title.fr)||'', (tib.title&&tib.title[adminLang])||'', `if(!DATA.tabs[${ti}].infoBanner)DATA.tabs[${ti}].infoBanner={};if(!DATA.tabs[${ti}].infoBanner.title)DATA.tabs[${ti}].infoBanner.title={};DATA.tabs[${ti}].infoBanner.title[adminLang]=this.value;renderAll()`)+`
+    `+biInput('Texte', (tib.desc&&tib.desc.fr)||'', (tib.desc&&tib.desc[adminLang])||'', `if(!DATA.tabs[${ti}].infoBanner)DATA.tabs[${ti}].infoBanner={};if(!DATA.tabs[${ti}].infoBanner.desc)DATA.tabs[${ti}].infoBanner.desc={};DATA.tabs[${ti}].infoBanner.desc[adminLang]=this.value;renderAll()`, true)+`
+  </div></div>`;
+
   h+=adminSaveBar();
 
   return h;
@@ -3311,9 +3324,10 @@ function socPickTpl(id){
 
 function socLoadFile(input){
   if(!input.files||!input.files[0]) return;
-  const reader = new FileReader();
-  reader.onload = e => { socState.photo = e.target.result; renderSocPreview(); };
-  reader.readAsDataURL(input.files[0]);
+  compressImageFile(input.files[0], {ratio:9/16, maxDim:1080}).then(dataUrl => {
+    socState.photo = dataUrl;
+    renderSocPreview();
+  }).catch(e => showToast('⚠️ '+e.message));
 }
 
 function renderSocPreview(){
@@ -3701,7 +3715,7 @@ function renderPrintBody(){
       </div>` : `<div style="font-size:11px;color:var(--text3);margin-bottom:6px">Aucun logo — le nom de l'établissement sera affiché.</div>`}
       <label class="aadd" style="display:block;width:100%;text-align:center;padding:9px;cursor:pointer">
         📁 Uploader un logo (PNG, SVG, WEBP…)
-        <input type="file" accept="image/*" style="display:none" onchange="(function(e){const r=new FileReader();r.onload=ev=>{setPdfCfg('logoData',ev.target.result);};r.readAsDataURL(e.target.files[0])})(event)">
+        <input type="file" accept="image/*" style="display:none" onchange="(function(e){const f=e.target.files[0];if(!f)return;if(f.type==='image/svg+xml'){const r=new FileReader();r.onload=ev=>setPdfCfg('logoData',ev.target.result);r.readAsDataURL(f);}else{compressImageFile(f,{ratio:null,maxDim:600,quality:0.9}).then(d=>setPdfCfg('logoData',d)).catch(err=>showToast('⚠️ '+err.message));}})(event)">
       </label>
       <label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showLogo?'checked':''} onchange="setPdfCfg('showLogo',this.checked);renderAdminSection(adminCurrentTab)"><label>Afficher le logo</label></label>
     </div>
@@ -3883,7 +3897,7 @@ function restaurantSettingHtml(){
     </div>
     <div class="af"><label class="al" style="font-weight:600">Uploadez votre logo</label>
       ${logo?`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><img src="${logo}" style="max-height:40px;max-width:140px;object-fit:contain;border:1px solid var(--border);border-radius:6px;padding:4px;background:#fff" onerror="this.style.display='none'"><button class="adel" onclick="setRestaurantLogo('');applyRestaurantBranding()" title="Supprimer">✕</button></div>`:''}
-      <label class="aadd" style="display:block;width:100%;text-align:center;padding:9px;cursor:pointer;margin-bottom:8px">📁 Uploader un logo (PNG, SVG, WEBP…)<input type="file" accept="image/*" style="display:none" onchange="(function(e){const r=new FileReader();r.onload=ev=>{setRestaurantLogo(ev.target.result);applyRestaurantBranding();};r.readAsDataURL(e.target.files[0])})(event)"></label>
+      <label class="aadd" style="display:block;width:100%;text-align:center;padding:9px;cursor:pointer;margin-bottom:8px">📁 Uploader un logo (PNG, SVG, WEBP…)<input type="file" accept="image/*" style="display:none" onchange="(function(e){const f=e.target.files[0];if(!f)return;if(f.type==='image/svg+xml'){const r=new FileReader();r.onload=ev=>{setRestaurantLogo(ev.target.result);applyRestaurantBranding();};r.readAsDataURL(f);}else{compressImageFile(f,{ratio:null,maxDim:600,quality:0.9}).then(d=>{setRestaurantLogo(d);applyRestaurantBranding();}).catch(err=>showToast('⚠️ '+err.message));}})(event)"></label>
       <input class="ai" value="${logo}" placeholder="ou coller une URL https://..." oninput="setRestaurantLogo(this.value.trim());applyRestaurantBranding()">
       <div style="font-size:10px;color:var(--text3);font-family:Jost,sans-serif;margin-top:4px">Format recommandé : PNG transparent, hauteur 50–70px, largeur max 200px (ratio conseillé 3:1 à 5:1).</div>
     </div>
@@ -3939,7 +3953,7 @@ function renderCorpoTemplatesSection(){
     h+='<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px">'
       +'<span style="font-size:10px;color:var(--text3);padding-top:10px;flex:none">'+(i+1)+'</span>'
       +'<div style="flex:1">'
-      +imgFieldHtml(tpl,cb,'URL ou upload')
+      +imgFieldHtml(tpl,cb,'URL ou upload',9/16)
       +(tpl?'<img src="'+tpl+'" style="margin-top:6px;width:60px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--border)" onerror="this.remove()">':'')
       +'</div></div>';
   }
@@ -3954,12 +3968,12 @@ function renderIconesDecorativesSection(){
   // Principale
   h += '<div class="af"><label class="al" style="font-weight:600">Icône principale (PNG HD ou SVG, format 1:1)</label>';
   if(ic.main) h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><img src="'+ic.main+'" style="width:60px;height:60px;object-fit:contain;border:1px solid var(--border);border-radius:8px;padding:6px;background:#fff" onerror="this.remove()"><button class="adel" onclick="if(!DATA.icones)DATA.icones={};DATA.icones.main=\'\';renderAdminSection(adminCurrentTab)" title="Supprimer">✕</button></div>';
-  h += imgFieldHtml(ic.main||'','if(!DATA.icones)DATA.icones={};DATA.icones.main=this.value;renderAll()','URL ou upload PNG/SVG');
+  h += imgFieldHtml(ic.main||'','if(!DATA.icones)DATA.icones={};DATA.icones.main=this.value;renderAll()','URL ou upload PNG/SVG',null);
   h += '</div>';
   // Secondaire
   h += '<div class="af"><label class="al" style="font-weight:600">Icône secondaire</label>';
   if(ic.secondary) h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><img src="'+ic.secondary+'" style="width:40px;height:40px;object-fit:contain;border:1px solid var(--border);border-radius:6px;padding:4px;background:#fff" onerror="this.remove()"><button class="adel" onclick="if(!DATA.icones)DATA.icones={};DATA.icones.secondary=\'\';renderAdminSection(adminCurrentTab)" title="Supprimer">✕</button></div>';
-  h += imgFieldHtml(ic.secondary||'','if(!DATA.icones)DATA.icones={};DATA.icones.secondary=this.value;renderAll()','URL ou upload PNG/SVG');
+  h += imgFieldHtml(ic.secondary||'','if(!DATA.icones)DATA.icones={};DATA.icones.secondary=this.value;renderAll()','URL ou upload PNG/SVG',null);
   h += '</div>';
   h += '</div></div>';
   return h;
@@ -4123,7 +4137,7 @@ function entityGalleryHtml(ti,ci,idx,kind,gallery){
     const cb=`if(!${base}.gallery)${base}.gallery=[];${base}.gallery[${gi}]=this.value;renderAll()`;
     h+=`<div style="display:flex;align-items:flex-start;gap:6px">
       <span style="font-size:10px;color:var(--text3);min-width:14px;text-align:center;padding-top:10px;flex:none">${gi+1}</span>`
-      +imgFieldHtml(val,cb,`Photo ${gi+1} — URL ou upload`)
+      +imgFieldHtml(val,cb,`Photo ${gi+1} — URL ou upload`,9/16)
       +(val?`<button onclick="${base}.gallery[${gi}]='';renderAll();renderAdminSection(DATA.tabs[${ti}].id)" style="padding:4px 8px;font-size:11px;border:1px solid #fca5a5;border-radius:4px;color:#c62828;background:#fff;cursor:pointer;white-space:nowrap;align-self:center;flex:none">✕</button>`:'')
       +`</div>`;
   }
@@ -4131,11 +4145,11 @@ function entityGalleryHtml(ti,ci,idx,kind,gallery){
   return h;
 }
 
-function imgFieldHtml(val, onchangeJs, placeholder){
+function imgFieldHtml(val, onchangeJs, placeholder, ratio=1){
   const previewStyle = val ? '' : 'display:none';
   // oninput = the SAME inline save+render that name/price use, then a clean preview sync call
   const handler = onchangeJs + ';syncImgPreview(this)';
-  return `<div class="af"><div class="ai-img-wrap"><input class="ai" value="${val||''}" placeholder="${placeholder||'Image URL'}" oninput="${handler}"><label class="ai-upload-btn" title="Uploader une image"><input type="file" accept="image/*" style="display:none" onchange="uploadImgFile(this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path></svg></label></div><img class="ai-img-preview" src="${val||''}" style="${previewStyle};width:100%;max-width:120px;aspect-ratio:1;object-fit:cover;border-radius:6px;margin-top:6px;border:1px solid var(--border)" onerror="this.style.display='none'"></div>`;
+  return `<div class="af"><div class="ai-img-wrap"><input class="ai" value="${val||''}" placeholder="${placeholder||'Image URL'}" oninput="${handler}"><label class="ai-upload-btn" title="Uploader une image"><input type="file" accept="image/*" style="display:none" onchange="uploadImgFile(this,${ratio===null?'null':ratio})"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path></svg></label></div><img class="ai-img-preview" src="${val||''}" style="${previewStyle};width:100%;max-width:120px;aspect-ratio:1;object-fit:cover;border-radius:6px;margin-top:6px;border:1px solid var(--border)" onerror="this.style.display='none'"></div>`;
 }
 
 function syncImgPreview(input){
@@ -4151,19 +4165,64 @@ function syncImgPreview(input){
 // Shared guard: warns instead of silently bloating menu.json (and eventually breaking
 // GitHub publish) when someone uploads a very large photo. Images end up embedded as
 // base64 directly inside menu.json, so size adds up fast across dishes/galleries.
-const MAX_UPLOAD_BYTES = 1.5*1024*1024; // 1.5 Mo par photo
-function readImageFileSafe(file, onOk){
-  if(!file) return;
-  if(file.size > MAX_UPLOAD_BYTES){
-    showToast('⚠️ Image trop lourde ('+Math.round(file.size/1024)+' Ko) — compressez-la sous 1,5 Mo avant import');
-    return;
-  }
-  const r = new FileReader();
-  r.onload = ev => onOk(ev.target.result);
-  r.onerror = () => showToast('❌ Erreur de lecture du fichier image');
-  r.readAsDataURL(file);
+// BUG FIX / FEATURE: photos used to be stored exactly as uploaded (any
+// size, any format) — a raw smartphone photo (often 5-15 Mo) got
+// embedded as-is into DATA, which gets published straight into
+// Supabase's menu_data column. That bloats every page load (every
+// visitor downloads every photo, full size, regardless of the tiny
+// thumbnail it's actually displayed at) and eats storage. Every upload
+// now goes through automatic compression instead: cropped to the right
+// ratio for its context, resized to a sane display size, and
+// re-encoded as WEBP — all in the browser, before it ever gets stored.
+// No manual "please compress your photo first" step needed anymore.
+const MAX_RAW_UPLOAD_BYTES = 25*1024*1024; // 25 Mo — just a sanity cap on the *source* file (before compression), not the stored result
+function compressImageFile(file, {ratio=null, maxDim=1000, quality=0.8}={}){
+  return new Promise((resolve, reject) => {
+    if(!file) return reject(new Error('Aucun fichier'));
+    if(file.size > MAX_RAW_UPLOAD_BYTES){
+      reject(new Error('Fichier trop lourd ('+Math.round(file.size/1024/1024)+' Mo) — 25 Mo max en entrée'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Erreur de lecture du fichier'));
+    reader.onload = e => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Image illisible'));
+      img.onload = () => {
+        // 1. Crop to the target ratio (e.g. 1:1 for dishes, 9:16 for
+        // social photos) — "cover" style, centered. No ratio => keep the
+        // photo's own proportions untouched (logos, decorative icons).
+        let sx=0, sy=0, sw=img.width, sh=img.height;
+        if(ratio){
+          const target = ratio;
+          const current = img.width / img.height;
+          if(current > target){ sw = img.height*target; sx = (img.width-sw)/2; }
+          else if(current < target){ sh = img.width/target; sy = (img.height-sh)/2; }
+        }
+        // 2. Resize down to a sane display size — never worth storing a
+        // 4000px photo for a menu thumbnail or a story background.
+        let outW = sw, outH = sh;
+        if(Math.max(outW, outH) > maxDim){
+          const scale = maxDim / Math.max(outW, outH);
+          outW = Math.round(outW*scale); outH = Math.round(outH*scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = outW; canvas.height = outH;
+        canvas.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
+        // 3. Re-encode as WEBP — ~25-35% lighter than JPEG at the same
+        // visual quality.
+        resolve(canvas.toDataURL('image/webp', quality));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
 }
-function uploadImgFile(fileInput){
+function readImageFileSafe(file, onOk, opts){
+  if(!file) return;
+  compressImageFile(file, opts).then(onOk).catch(e => showToast('⚠️ '+e.message));
+}
+function uploadImgFile(fileInput, ratio){
   const file = fileInput.files[0];
   readImageFileSafe(file, dataUrl => {
     const wrap = fileInput.closest('.ai-img-wrap');
@@ -4171,7 +4230,7 @@ function uploadImgFile(fileInput){
     if(!inp) return;
     inp.value = dataUrl;
     inp.dispatchEvent(new Event('input'));
-  });
+  }, {ratio});
 }
 
 function toggleAdminSection(el){
