@@ -540,7 +540,7 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 
   <div class="sticky-reserve">
     <div class="container">
-      <a class="reserve-btn" id="reserveMain" href="https://LIEN_A_DEFINIR" style="text-transform:uppercase;letter-spacing:.1em;margin-bottom:0">Réserver une table</a>
+      <a class="reserve-btn" id="reserveMain" href="https://sowonboxx-cmd.github.io/menu/blancsbecs/resa" style="text-transform:uppercase;letter-spacing:.1em;margin-bottom:0">Réserver une table</a>
       <div class="mode-links-bar">
         <a class="mode-link" id="calAdminBtnMobile" href="#" title="Réservations">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1.5"/><line x1="2" y1="6.5" x2="14" y2="6.5"/><line x1="5" y1="1.5" x2="5" y2="4"/><line x1="11" y1="1.5" x2="11" y2="4"/></svg>
@@ -3528,6 +3528,19 @@ function renderAdminTab(ti){
 
   h+=`<div class="admin-section"><button class="aadd" style="display:block;width:100%;padding:10px" onclick="addCard(${ti})">+ Nouvelle section dans cette tab</button></div>`;
 
+  // Champ libre de la tab — présent par défaut sur chaque onglet, pas
+  // seulement là où on en a besoin aujourd'hui : parfois il ne sert à
+  // rien (laissé inactif), parfois c'est un texte d'explication utile
+  // (ex. "qu'est-ce qu'un Baozi ?") qu'il doit être possible d'activer
+  // et de modifier sans intervention de développement.
+  const tib=tab.infoBanner||{};
+  h+=`<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Champ libre</div><div class="admin-sect-body">
+    <label class="admin-toggle" style="margin-bottom:8px"><input type="checkbox" ${tib.active?'checked':''} onchange="if(!DATA.tabs[${ti}].infoBanner)DATA.tabs[${ti}].infoBanner={};DATA.tabs[${ti}].infoBanner.active=this.checked;renderAll()"><label>Visible</label></label>
+    `+biInput('Étiquette (optionnel)', t(tib.label)||'', t(tib.label)||'', `if(!DATA.tabs[${ti}].infoBanner)DATA.tabs[${ti}].infoBanner={};if(!DATA.tabs[${ti}].infoBanner.label)DATA.tabs[${ti}].infoBanner.label={};DATA.tabs[${ti}].infoBanner.label[adminLang]=this.value;renderAll()`)+`
+    `+biInput('Titre', (tib.title&&tib.title.fr)||'', (tib.title&&tib.title[adminLang])||'', `if(!DATA.tabs[${ti}].infoBanner)DATA.tabs[${ti}].infoBanner={};if(!DATA.tabs[${ti}].infoBanner.title)DATA.tabs[${ti}].infoBanner.title={};DATA.tabs[${ti}].infoBanner.title[adminLang]=this.value;renderAll()`)+`
+    `+biInput('Texte', (tib.desc&&tib.desc.fr)||'', (tib.desc&&tib.desc[adminLang])||'', `if(!DATA.tabs[${ti}].infoBanner)DATA.tabs[${ti}].infoBanner={};if(!DATA.tabs[${ti}].infoBanner.desc)DATA.tabs[${ti}].infoBanner.desc={};DATA.tabs[${ti}].infoBanner.desc[adminLang]=this.value;renderAll()`, true)+`
+  </div></div>`;
+
   h+=adminSaveBar();
 
   return h;
@@ -3734,7 +3747,7 @@ const CLIENT_SLUG = _pathParts[_pathParts.length - 1] || 'default';
 // per-deployment value, since the reservation module lives in its own
 // folder/slug, separate from this menu's own CLIENT_SLUG. Set this for
 // each new restaurant deployed from this template.
-const RESA_ADMIN_URL = 'COLLE_ICI_URL_ADMIN_RESERVATIONS';
+const RESA_ADMIN_URL = 'https://sowonboxx-cmd.github.io/menu/blancsbecs/admin';
 
 const supabaseClient = (SUPABASE_URL !== 'COLLE_ICI_SUPABASE_URL' && window.supabase)
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
