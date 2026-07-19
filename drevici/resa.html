@@ -79,7 +79,7 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 .sl-btn:hover:not(.full){border-color:var(--navy);color:var(--navy)}
 .sl-btn.sel{background:var(--navy);color:#fff!important;border-color:var(--navy)}
 .sl-btn.full{opacity:.4;cursor:not-allowed;text-decoration:line-through;font-size:12px}
-.no-slots{text-align:center;font-size:12px;color:var(--text3);padding:16px 0}
+.no-slots{text-align:center;font-family:'Jost',sans-serif;font-size:13px;color:var(--text3);padding:16px 0}
 
 .fg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:400px){.fg{grid-template-columns:1fr}}
@@ -97,7 +97,7 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 /* Récap tab — editable rows, no icons: bold text left, whole row
    clickable to jump back to that step. Nothing here ever shows on the
    Date/Couverts/Horaire tabs — it's fully contained in #panelRecap. */
-.recap-not-ready{text-align:center;font-size:13px;color:var(--text3);padding:20px 0}
+.recap-not-ready{text-align:center;font-family:'Jost',sans-serif;font-size:13px;color:var(--text3);padding:16px 0}
 .step-recap-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:12px}
 .step-recap-row{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:10px;font-size:13px;font-weight:700;color:var(--text);cursor:pointer;transition:border-color .15s}
 .step-recap-row:hover{border-color:var(--navy)}
@@ -160,6 +160,7 @@ body.has-admin-sticky .wrap{padding-bottom:88px}
 
   <!-- COUVERTS panel -->
   <div class="panel hidden" id="panelCovers">
+    <div class="no-slots hidden" id="noDateForCoversMsg">Sélectionnez d'abord une date.</div>
     <div class="cov-grid" id="covGrid">
       <button class="cov-btn" onclick="pickCover(this,1)">1</button>
       <button class="cov-btn" onclick="pickCover(this,2)">2</button>
@@ -335,7 +336,24 @@ function selectTab(name) {
   document.getElementById('panelCovers').classList.toggle('hidden', name !== 'couverts');
   document.getElementById('panelSlot').classList.toggle('hidden', name !== 'horaire');
   document.getElementById('panelRecap').classList.toggle('hidden', name !== 'recap');
+  if (name === 'couverts') renderCoversPanel();
   if (name === 'recap') renderRecapPanel();
+}
+// BUG FIX: the Couverts tab was reachable (and its picker fully usable)
+// before a date was even chosen — the same "complete the steps in order"
+// rule already enforced on Horaire/Récap wasn't applied here. Same
+// pattern: hide the actual picker and show a "select a date first"
+// message until S.date is set.
+function renderCoversPanel() {
+  const grid = document.getElementById('covGrid');
+  const custom = document.getElementById('customCovers');
+  const note = document.querySelector('#panelCovers .cov-note');
+  const msg = document.getElementById('noDateForCoversMsg');
+  const ready = !!S.date;
+  msg.classList.toggle('hidden', ready);
+  grid.classList.toggle('hidden', !ready);
+  note.classList.toggle('hidden', !ready);
+  if (!ready) custom.classList.remove('show');
 }
 function autoAdvance(from) {
   // 'recap' has no fill state of its own — it's always the fallback
