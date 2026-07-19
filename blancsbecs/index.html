@@ -199,7 +199,7 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .dish-badges{display:flex;gap:4px;align-items:center}
 .badge-icon{width:18px;height:18px;object-fit:contain;display:inline-block}
 .dish-desc{font-size:12px;font-family:'Open Sans',sans-serif;font-weight:300;color:var(--text2);line-height:1.55;margin-top:2px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.dish-price{font-size:13px;font-weight:500;color:var(--gold);margin-top:6px}
+.dish-price{font-size:13px;font-weight:500;color:var(--gold);margin-top:6px;white-space:nowrap;flex-shrink:0}
 .dish-img{width:80px;height:80px;border-radius:8px;object-fit:cover;flex:none;background:#ece8e1;cursor:pointer;transition:opacity .15s}
 .dish-img:hover{opacity:.82}
 
@@ -211,7 +211,7 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .gc-body{padding:10px 12px 12px}
 .gc-name{font-family:'Open Sans',sans-serif;font-size:14px;font-weight:600;color:var(--navy);margin-bottom:2px;line-height:1.2}
 .gc-desc{font-size:12px;font-family:'Open Sans',sans-serif;font-weight:300;color:var(--text2);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.gc-price{font-size:12px;font-weight:500;color:var(--gold);margin-top:5px}
+.gc-price{font-size:12px;font-weight:500;color:var(--gold);margin-top:5px;white-space:nowrap;flex-shrink:0}
 @media(max-width:640px){.gc-name{font-size:12px!important;font-family:'Open Sans',sans-serif!important}.gc-desc{font-size:11px!important;font-family:'Open Sans',sans-serif!important}}
 
 /* ── VARIANTS / BEV ── */
@@ -219,16 +219,17 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .variant-row:last-child{border-bottom:none;padding-bottom:0}
 .variant-name{font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:400;color:var(--text)}
 .variant-price{font-size:12px;font-weight:500;color:var(--gold)}
-.bev-row{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid rgba(0,0,0,0.05)}
+.bev-row{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid rgba(0,0,0,0.05);gap:10px}
+.bev-row>div:first-child{min-width:0;flex:1}
 .bev-desc{font-size:12px;font-family:'Open Sans',sans-serif;font-weight:300;color:var(--text2);line-height:1.5;margin-top:2px;max-width:340px}
 .bev-sizes{font-size:12px;font-weight:300;color:var(--text2);font-family:'Jost',sans-serif;margin-top:2px}
 .bev-row:last-child{border-bottom:none;padding-bottom:0}
 .bev-name{font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:400;color:var(--text)}
-.bev-price{font-size:12px;font-weight:500;color:var(--gold)}
+.bev-price{font-size:12px;font-weight:500;color:var(--gold);white-space:nowrap;flex-shrink:0}
 .tag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;border:1px solid rgba(198,162,74,0.35);color:var(--gold);margin-left:6px;vertical-align:middle;font-family:'Jost',sans-serif;letter-spacing:.04em}
 
 /* ── SPECIALS BANNER (menu du jour/midi/soir) ── */
-.special-banner{background:var(--navy);border-radius:var(--r);padding:16px 18px}
+.special-banner{background:var(--navy);border-radius:var(--r);padding:16px 18px;margin-top:26px}
 .special-banner-label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,0.45);font-family:'Jost',sans-serif;margin-bottom:4px;display:flex;align-items:center;justify-content:space-between}
 .special-banner-title{font-family:'Open Sans',sans-serif;font-size:14px;font-weight:600;color:#fff;margin-bottom:6px}
 .special-banner-text{font-size:12px;font-weight:400;font-family:'Open Sans',sans-serif;color:rgba(255,255,255,0.7);line-height:1.6}
@@ -710,6 +711,7 @@ let DATA = {
     "street": "26 Rue de Douai",
     "zip": "75009",
     "city": "Paris",
+    "phone": "01 80 50 32 91",
     "mapsUrl": ""
   },
   "tabs": [
@@ -2510,6 +2512,12 @@ function renderViewBar(){
 }
 
 function renderScheduleInline(){
+  // Standard formatting for a closing hour: midnight is stored as 24 (or
+  // 24+N for hours past midnight, e.g. 26 = 2am) so the "is still open"
+  // math above works, but displaying that raw number reads as "24h" —
+  // normalize with a plain modulo so midnight shows "0h00" instead
+  // (post-midnight hours like 2am still show as "2h", unchanged).
+  const fmtCloseHour = c => { if(c==null) return ''; const h=c%24; return h===0?'0h00':h+'h'; };
   const sch=DATA.schedule||[];
   const now=new Date();
   let today=now.getDay(); let hour=now.getHours()+now.getMinutes()/60;
@@ -2521,9 +2529,8 @@ function renderScheduleInline(){
   let state='closed',label="Fermé";
   for(const s of allSvcs){
     if(s.open==null) continue;
-    const openH=s.open; const closeH=s.close>24?s.close-24:s.close;
     const effectiveClose=s.close<=s.open?s.close+24:s.close;
-    if(hour>=s.open&&hour<effectiveClose){state='open';label="Ouvert jusqu'à "+closeH+'h';break;}
+    if(hour>=s.open&&hour<effectiveClose){state='open';label="Ouvert jusqu'à "+fmtCloseHour(s.close);break;}
     if(hour<s.open){state='soon';label='Ouvre à '+s.open+'h';}
   }
   const dotClass=state==='open'?'open':state==='soon'?'soon':'closed';
@@ -2532,7 +2539,7 @@ function renderScheduleInline(){
     const svs=(d.services||[]).length>0?d.services:(d.open!=null?[{label:'',open:d.open,close:d.close}]:[]);
     const h=svs.length===0?'Fermé':svs.map(s=>{
       const o=s.open!=null?s.open+'h':'';
-      const c=s.close!=null?(s.close>24?(s.close-24)+'h':s.close+'h'):'';
+      const c=s.close!=null?fmtCloseHour(s.close):'';
       return o&&c?o+' – '+c:(s.label||'Fermé');
     }).join(', ');
     return `<div class="resto-popup-row${isToday?' today':''}"><span class="rday">${d.day}</span><span>${h}</span></div>`;
@@ -2548,6 +2555,10 @@ function renderScheduleInline(){
   const pinIconHtml = mapsUrl ? `<span style="display:inline-flex;align-items:center;color:var(--navy)">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 7 12 7.29 12.29a1 1 0 0 0 1.42 0C13 22 20 15.25 20 10c0-4.42-3.58-8-8-8zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>
   </span>` : '';
+  const phone = addr.phone;
+  const phoneHtml = phone
+    ? `<div class="resto-popup-title" style="margin-top:10px">Téléphone</div><a href="tel:${escAttr(phone.replace(/\s+/g,''))}" style="display:block;color:rgba(255,255,255,.75);font-size:13px;text-decoration:none">${escapeHtmlLocal(phone)}</a>`
+    : '';
   return `<div class="sched-pin-frame">
     <div class="resto-badge-inline" id="schedBadge" onclick="toggleSchedPopup(event)" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
       <span class="resto-dot ${dotClass}"></span>
@@ -2557,11 +2568,37 @@ function renderScheduleInline(){
         ${addrText?`<div class="resto-popup-title">Adresse</div>${addrHtml}`:''}
         <div class="resto-popup-title" style="color:${state==='open'?'#22c55e':state==='soon'?'#f97316':'#ef4444'}">Horaires d'ouverture</div>
         ${rows}
+        ${phoneHtml}
       </div>
     </div>
   </div>`;
 }
 function escapeHtmlLocal(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+// Variants (e.g. Bao-Burger flavours) used to only ever show the FIRST
+// variant's raw price (no €, and silently wrong the moment two flavours
+// are priced differently). Now: one shared price if every variant costs
+// the same, otherwise each flavour shows its own price inline — same
+// idea as how bevs shows several format/price pairs side by side.
+function variantsPriceInfo(variants){
+  const list=variants||[];
+  const fmt=p=>{ const s=(p||'').toString().trim(); if(!s) return ''; return s.includes('€')?s:s+'€'; };
+  const prices=list.map(v=>fmt(v.price));
+  const allSame=prices.length>0 && prices.every(p=>p===prices[0]);
+  if(allSame){
+    return {sharedPrice:prices[0]||'', flavourText:list.map(v=>t(v.name)).join(' · ')};
+  }
+  return {sharedPrice:'', flavourText:list.map(v=>t(v.name)+(fmt(v.price)?' — '+fmt(v.price):'')).join(' · ')};
+}
+// Home tab photo: respect the photo's own proportions rather than
+// force-cropping every upload to a fixed 4:3 — but keep it within a
+// sane range (never taller than 4:3, never flatter/wider than 16:9)
+// so an odd source photo can't make the header oddly tall or a thin strip.
+function clampHomePhotoRatio(img){
+  if(!img.naturalWidth || !img.naturalHeight) return;
+  const natural = img.naturalWidth / img.naturalHeight;
+  const clamped = Math.min(Math.max(natural, 4/3), 16/9);
+  img.style.aspectRatio = clamped;
+}
 
 function setView(v){ view=v; renderAll(); }
 
@@ -2877,7 +2914,7 @@ function renderTabContent(tab,lbOffset){
       else embedUrl=videoUrl;
       if(embedUrl) html+=`<div class="home-photo-wrap" style="aspect-ratio:4/3;background:#000"><iframe src="${embedUrl+(embedUrl.includes('?')?'&':'?')+'autoplay=1&mute=1&controls=0&loop=1&playsinline=1'}" style="width:100%;height:100%;border:none;pointer-events:none" allow="autoplay; encrypted-media" allowfullscreen loading="lazy"></iframe></div>`;
     } else if(DATA.homeTab&&DATA.homeTab.photo){
-      html+=`<div class="home-photo-wrap"><img class="home-photo" src="${DATA.homeTab.photo}" alt="Photo restaurant" loading="lazy"></div>`;
+      html+=`<div class="home-photo-wrap"><img class="home-photo" src="${DATA.homeTab.photo}" alt="Photo restaurant" loading="lazy" onload="clampHomePhotoRatio(this)"></div>`;
     }
     // 3. Specials + info banners
     DATA.specials.forEach(sp=>{
@@ -2983,8 +3020,9 @@ function renderTabContent(tab,lbOffset){
       if(card.type==='variants'){
         const ci=tab.cards.indexOf(card);
         const idx=card.img?imgIdx++:null;
-        const flavours=(card.variants||[]).map(v=>t(v.name)).join(' · ');
-        const price=card.variants&&card.variants[0]?card.variants[0].price:'';
+        const vinfo=variantsPriceInfo(card.variants);
+        const flavours=vinfo.flavourText;
+        const price=vinfo.sharedPrice;
         gridItems.push(`<div class="gc" data-edit="variants" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${ci}"><div class="gc-wrap" ${card.img?`data-lbidx="${idx}"`:''}>${card.img?`<img class="gc-img" src="${card.img}" alt="" loading="lazy">`:'<div style="aspect-ratio:1;background:#ece8e1"></div>'}</div><div class="gc-body"><div class="gc-name">${t(card.label)}</div><div class="gc-desc">${flavours}</div><div class="gc-price">${price}</div></div></div>`);
         return;
       }
