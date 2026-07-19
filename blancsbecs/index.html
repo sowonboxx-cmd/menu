@@ -6,7 +6,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Lovelo:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" id="themeColorMeta" content="#10285E">
+<meta name="theme-color" id="themeColorMeta" content="#1A1A1A">
 <title>Menu</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
@@ -1861,12 +1861,45 @@ function efDeleteCurrent(){
   });
 }
 
+// ---- Bev size "format" (verre/pinte/demi/...) — a fixed, curated list
+// rather than free text: the admin (Will) adds new formats to this list
+// himself as new clients need them, instead of each client typing
+// something that might not render consistently. Formats with a known
+// fixed quantity (pinte, demi, galopin) auto-fill the cl field when
+// picked — canette is deliberately NOT auto-filled since it varies
+// (33cl standard, 25cl for energy drinks like Red Bull); verre/bouteille/
+// coupe have no fixed size at all, always filled in by hand.
+const BEV_FORMATS = [
+  {key:'', label:'—'},
+  {key:'verre', label:'Verre'},
+  {key:'bouteille', label:'Bouteille'},
+  {key:'coupe', label:'Coupe'},
+  {key:'pinte', label:'Pinte', autoCl:50},
+  {key:'demi', label:'Demi', autoCl:25},
+  {key:'canette', label:'Canette'},
+  {key:'galopin', label:'Galopin', autoCl:12.5},
+];
+function bevFormatOptionsHtml(selected){
+  return BEV_FORMATS.map(f=>`<option value="${f.key}" ${f.key===(selected||'')?'selected':''}>${f.label}</option>`).join('');
+}
+// Public-facing label for one size row: if a format is picked, show
+// just its name (a "Pinte" doesn't need "— 50cl" next to it, everyone
+// already knows roughly what that means) — otherwise fall back to the
+// raw cl/L value, exactly as before this feature existed.
+function bevSizeLabel(s){
+  if(s.format){
+    const f=BEV_FORMATS.find(f=>f.key===s.format);
+    if(f) return f.label;
+  }
+  return s.cl ? (s.cl+(s.unit==='l'?'L':'cl')) : '';
+}
 // ---- Popup size row (boisson) — numeric value + cl/L unit dropdown + price, mirrors admin panel ----
 function efSizeRowHtml(si, s){
   s=s||{};
   const unit=s.unit||'cl';
   return `<div class="efrow" data-srow="${si}" style="margin-bottom:8px;align-items:center;gap:6px">
-    <div class="ef" style="flex:1;margin-bottom:0"><input class="ei" data-scl type="number" min="0" value="${escAttr(s.cl||'')}" placeholder="Taille"></div>
+    <select class="unit-sel" data-sformat onchange="efSizeFormatChange(this)">${bevFormatOptionsHtml(s.format)}</select>
+    <div class="ef" style="flex:1;margin-bottom:0"><input class="ei" data-scl type="number" min="0" value="${escAttr(s.cl||'')}" placeholder="Contenance"></div>
     <select class="unit-sel" data-sunit>
       <option value="cl" ${unit==='cl'?'selected':''}>cl</option>
       <option value="l" ${unit==='l'?'selected':''}>L</option>
@@ -1874,6 +1907,18 @@ function efSizeRowHtml(si, s){
     <div class="ef" style="flex:1;margin-bottom:0"><input class="ei" data-sprice type="number" step="0.5" min="0" value="${escAttr(s.price||'')}" placeholder="Prix"></div>
     <span style="font-size:12px;color:var(--text3);flex:none">€</span>
   </div>`;
+}
+// Auto-fills the known fixed contenance (pinte/demi/galopin) when that
+// format is picked — still editable by hand afterward if needed.
+function efSizeFormatChange(sel){
+  const f=BEV_FORMATS.find(f=>f.key===sel.value);
+  const row=sel.closest('.efrow');
+  if(f && f.autoCl!=null && row){
+    const clInput=row.querySelector('[data-scl]');
+    const unitSel=row.querySelector('[data-sunit]');
+    if(clInput) clInput.value=f.autoCl;
+    if(unitSel) unitSel.value='cl';
+  }
 }
 function efAddSizeRow(){
   const wrap=document.getElementById('ed-sizes');
@@ -1969,7 +2014,7 @@ function openEditBev(ti,ci,ii){
   h+=efVisRow(!!item.hidden);
   h+=`<div class="ef"><label class="el">Nom${isFr?'':' ('+lang.toUpperCase()+')'}</label><input class="ei" id="ed-bname" value="${escAttr(iname)}" placeholder="${escAttr(isFr?'':ifr)}"></div>`;
   h+=efImgField('ed-img', item.img||'', 'Image (optionnel)');
-  h+=`<div class="el" style="margin-bottom:8px">Tailles & prix</div><div id="ed-sizes">`;
+  h+=`<div class="el" style="margin-bottom:8px">Format, contenance & prix</div><div id="ed-sizes">`;
   (item.sizes||[]).forEach((s,si)=>{ h+=efSizeRowHtml(si,s); });
   if(!(item.sizes||[]).length){ h+=efSizeRowHtml(0,{}); }
   h+=`</div><button type="button" class="aadd" onclick="efAddSizeRow()" style="margin-bottom:14px">+ Taille</button>`;
@@ -2063,6 +2108,7 @@ function saveEditPop(silent){
       if(typeof item.name!=='object') item.name={fr:item.name||''};
       item.name[lang]=v('ed-bname');
       item.img=v('ed-img');
+      const formats=document.querySelectorAll('#ed-sizes [data-sformat]');
       const cls=document.querySelectorAll('#ed-sizes [data-scl]');
       const units=document.querySelectorAll('#ed-sizes [data-sunit]');
       const prs=document.querySelectorAll('#ed-sizes [data-sprice]');
@@ -2071,7 +2117,8 @@ function saveEditPop(silent){
         const cl=clEl.value.trim();
         const pr=prs[si2]?prs[si2].value.trim():'';
         const unit=units[si2]?units[si2].value:'cl';
-        if(cl||pr) sizes.push({cl,unit,price:pr});
+        const format=formats[si2]?formats[si2].value:'';
+        if(cl||pr||format) sizes.push({format,cl,unit,price:pr});
       });
       item.sizes=sizes;
       item.gallery=readGalleryFields();
@@ -2791,8 +2838,9 @@ function renderTabContent(tab,lbOffset){
       if(card.type==='bevs'){
         (card.items||[]).filter(item=>!item.hidden).forEach(item=>{
           const sizes=item.sizes||[];
-          // sizes display: "25cl / 50cl" in name area, "5€ / 17€" in price area
-          const clStr=sizes.length>0?sizes.filter(s=>s.cl).map(s=>s.cl+(s.unit==='l'?'L':'cl')).join(' / '):'';
+          // sizes display: "Pinte / Demi" or "25cl / 50cl" depending on
+          // whether a format was picked for that row, "5€ / 17€" in price area
+          const clStr=sizes.length>0?sizes.filter(s=>bevSizeLabel(s)).map(s=>bevSizeLabel(s)).join(' / '):'';
           const rawPrice=(item.price||'').toString(); const priceStr=sizes.length>0?sizes.filter(s=>s.price).map(s=>s.price+'€').join(' / '):(rawPrice.includes('€')?rawPrice:rawPrice?rawPrice+'€':'');
           const _ci=tab.cards.indexOf(card); const _ii=(card.items||[]).indexOf(item);
           html+=`<div class="bev-row" data-edit="bev" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${_ci}" data-ii="${_ii}"><div><span class="bev-name">${t(item.name)}</span>${clStr?`<div class="bev-sizes">${clStr}</div>`:''}</div><span class="bev-price">${priceStr}</span></div>`;
@@ -3486,16 +3534,16 @@ function renderAdminTab(ti){
       (card.items||[]).forEach((item,ii)=>{
         const sizeRows=(item.sizes||[]).map((s,si)=>{
           const unit=s.unit||'cl';
-          return `<div class="ai-row" style="margin-bottom:4px;align-items:center"><input class="ai" type="number" min="0" placeholder="Taille" value="${s.cl||''}" style="max-width:64px" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].cl=this.value;renderAll()"><select class="ai-unit-sel" onchange="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].unit=this.value;renderAll()"><option value="cl" ${unit==='cl'?'selected':''}>cl</option><option value="l" ${unit==='l'?'selected':''}>L</option></select><input class="ai" type="number" min="0" step="0.5" placeholder="prix" value="${s.price||''}" style="max-width:64px" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].price=this.value;renderAll()"><span style="font-size:11px;color:var(--text3);padding:0 4px">€</span><button class="adel" onclick="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes.splice(${si},1);renderAll();renderAdminSection(DATA.tabs[${ti}].id)">×</button></div>`;
+          return `<div class="ai-row" style="margin-bottom:4px;align-items:center"><select class="ai-unit-sel" onchange="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].format=this.value;const f=BEV_FORMATS.find(f=>f.key===this.value);if(f&&f.autoCl!=null){DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].cl=f.autoCl;DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].unit='cl';}renderAll();renderAdminSection(DATA.tabs[${ti}].id)">${bevFormatOptionsHtml(s.format)}</select><input class="ai" type="number" min="0" placeholder="Contenance" value="${s.cl||''}" style="max-width:64px" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].cl=this.value;renderAll()"><select class="ai-unit-sel" onchange="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].unit=this.value;renderAll()"><option value="cl" ${unit==='cl'?'selected':''}>cl</option><option value="l" ${unit==='l'?'selected':''}>L</option></select><input class="ai" type="number" min="0" step="0.5" placeholder="prix" value="${s.price||''}" style="max-width:64px" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].price=this.value;renderAll()"><span style="font-size:11px;color:var(--text3);padding:0 4px">€</span><button class="adel" onclick="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes.splice(${si},1);renderAll();renderAdminSection(DATA.tabs[${ti}].id)">×</button></div>`;
         }).join('');
         h+=`<div class="admin-card" style="background:#fff;margin-top:4px" ondragover="onDragOver(event,${ti},${ci},${ii})" ondragleave="onDragLeave(event)" ondrop="onDropBev(event,${ti},${ci},${ii})">
           <div class="admin-card-hdr"><span class="drag-handle" draggable="true" ondragstart="onDragBev(event,${ti},${ci},${ii})" ondragend="onDragEndHandle(event)">⠿</span><span class="admin-card-num">Boisson ${ii+1}</span><div style="display:flex;gap:3px;margin-left:auto;margin-right:4px"><button class="dish-vis-btn ${!item.hidden?'dish-vis-active':''}" onclick="delete DATA.tabs[${ti}].cards[${ci}].items[${ii}].hidden;renderAll();renderAdminSection(DATA.tabs[${ti}].id)">Visible</button><button class="dish-vis-btn dish-hid-btn ${item.hidden?'dish-hid-active':''}" onclick="DATA.tabs[${ti}].cards[${ci}].items[${ii}].hidden=true;renderAll();renderAdminSection(DATA.tabs[${ti}].id)">Masquée</button><button class="dish-vis-btn dish-del-btn" onclick="askConfirm('Supprimer cette boisson ?',()=>delBev(${ti},${ci},${ii}))">✕</button></div></div>
           <input class="ai" style="margin-bottom:4px" placeholder="${adminLang!=='fr'&&typeof item.name==='object'?item.name.fr||'Nom':'Nom'}" value="${typeof item.name==='object'?(item.name[adminLang]||''):item.name||''}" oninput="if(typeof DATA.tabs[${ti}].cards[${ci}].items[${ii}].name!=='object'){DATA.tabs[${ti}].cards[${ci}].items[${ii}].name={fr:DATA.tabs[${ti}].cards[${ci}].items[${ii}].name};}DATA.tabs[${ti}].cards[${ci}].items[${ii}].name[adminLang]=this.value;renderAll()">
           `+imgFieldHtml(item.img||'',`DATA.tabs[${ti}].cards[${ci}].items[${ii}].img=this.value;renderAll()`,"Image URL ou uploader")+`
 
-          <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:4px">Tailles & prix</div>
+          <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:4px">Format, contenance & prix</div>
           ${sizeRows}
-          <button class="aadd" style="margin-top:2px" onclick="if(!Array.isArray(DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes)){DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes=[];}DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes.push({cl:'',unit:'cl',price:''});renderAll();renderAdminSection(DATA.tabs[${ti}].id)">+ Taille</button>
+          <button class="aadd" style="margin-top:2px" onclick="if(!Array.isArray(DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes)){DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes=[];}DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes.push({format:'',cl:'',unit:'cl',price:''});renderAll();renderAdminSection(DATA.tabs[${ti}].id)">+ Taille</button>
 
           <div class="af" style="margin-top:10px"><label class="al" style="font-size:11px;font-weight:600;color:var(--text2)">Caption Instagram (pré-enregistrée)</label>
             <textarea class="ai" rows="4" style="resize:vertical;min-height:72px;font-size:12px" placeholder="Ex: Notre sélection du moment 🍷" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].caption=this.value">${item.caption||''}</textarea>
@@ -4357,7 +4405,7 @@ function exportTabCSV(tabId){
         });
       } else if(card.type==='bevs'){
         (card.items||[]).forEach(item => {
-          const sizes = (item.sizes||[]).map(s=>s.cl+(s.unit==='l'?'L':'cl')+' '+s.price+'€').join(' / ');
+          const sizes = (item.sizes||[]).map(s=>bevSizeLabel(s)+' '+s.price+'€').join(' / ');
           rows.push([tabLabel, cardLabel, t(item.name)||'', t(item.desc)||'', sizes||item.price||'', '']);
         });
       }
@@ -4444,7 +4492,7 @@ function buildPdfMenuHTML(cfg){
         });
       } else if(card.type==='bevs'){
         (card.items||[]).filter(item=>!item.hidden).forEach(item=>{
-          const sizes=(item.sizes||[]).map(s=>s.cl+(s.unit==='l'?'L':'cl')+' — '+s.price+'€').join(' · ');
+          const sizes=(item.sizes||[]).map(s=>bevSizeLabel(s)+' — '+s.price+'€').join(' · ');
           rows.push(`<div class="pdf-dish"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(item.name)||''}</span><span class="pdf-dots"></span><span class="pdf-dish-price">${sizes||item.price||''}</span></div>${t(item.desc)?`<div class="pdf-dish-desc">${t(item.desc)}</div>`:''}</div>`);
         });
       }
@@ -4704,7 +4752,7 @@ function exportMenuPDF(){
         });
       } else if(card.type==='bevs'){
         (card.items||[]).forEach(item=>{
-          const sizes=(item.sizes||[]).map(s=>s.cl+(s.unit==='l'?'L':'cl')+' — '+s.price+'€').join(' · ');
+          const sizes=(item.sizes||[]).map(s=>bevSizeLabel(s)+' — '+s.price+'€').join(' · ');
           lines.push(`<div class="dish-wrap"><div class="dish"><span class="dish-name">${t(item.name)||''}</span><span class="dish-price">${sizes||item.price||''}</span></div>${t(item.desc)?`<div class="dish-desc">${t(item.desc)}</div>`:''}</div>`);
         });
       }
