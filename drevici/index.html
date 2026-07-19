@@ -1823,7 +1823,16 @@ function renderTabContent(tab,lbOffset){
     }
   }
 
-  if(view==='grid' && !['boissons'].includes(tab.id)){
+  // BUG FIX: this used to hardcode an exemption for a tab literally
+  // id'd 'boissons' — but grid view skips EVERY bevs-type card (they
+  // don't suit an image-tile layout), so any tab made entirely of
+  // bevs cards under a DIFFERENT id (e.g. "Apéritifs & Digestifs")
+  // rendered as a silently empty grid, even though its data was
+  // correctly there. Check generically instead: does this tab have at
+  // least one non-bevs card worth showing as a grid? If every card is
+  // bevs-type, force list rendering regardless of the tab's name.
+  const hasGridableContent = tab.cards.some(c => c.type !== 'bevs');
+  if(view==='grid' && hasGridableContent){
     // Collect all grid items across cards into one unified 2-col grid
     let gridItems=[];
     tab.cards.forEach(card=>{
