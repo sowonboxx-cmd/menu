@@ -693,6 +693,9 @@ function renderOffers(){
     const meta = DATA.offerMeta[tag];
     const items = allItems.filter(i=>i.tags.includes(tag));
     const editable = editMode;
+    const isAgence = tag==='agence';
+    const isServices = tag==='services';
+    const hidePricing = isAgence || isServices;
 
     // Compute "new" items vs previous tier (items in this tier but not in the previous one)
     const prevTag = idx>0 ? order[idx-1] : null;
@@ -709,6 +712,7 @@ function renderOffers(){
       ${editable ? `
         <input class="feature-name-input" style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;padding:0;width:100%" value="${esc(meta.title||'')}" placeholder="Titre accrocheur…" onchange="DATA.offerMeta['${tag}'].title=this.value;save()">
         <input class="feature-name-input" style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:12px;padding:0;width:100%" value="${esc(meta.subtitle||'')}" placeholder="Sous-titre…" onchange="DATA.offerMeta['${tag}'].subtitle=this.value;save()">
+        ${hidePricing ? '' : `
         <div style="display:flex;gap:6px;margin-bottom:8px;align-items:baseline">
           <span style="font-size:20px;font-weight:800;color:var(--text)">€</span>
           <input class="feature-price-input" style="width:64px;font-size:20px;font-weight:800;text-align:left;border:none;padding:0" type="number" step="0.01" value="${meta.price}" onchange="DATA.offerMeta['${tag}'].price=parseFloat(this.value)||0;save();renderOffers()">
@@ -729,9 +733,11 @@ function renderOffers(){
           </div>
         `).join('')}
         </div>
+        `}
       ` : `
         ${meta.title?`<div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;line-height:1.25">${esc(meta.title)}</div>`:''}
         ${meta.subtitle?`<div style="font-size:13px;color:var(--text2);margin-bottom:14px">${esc(meta.subtitle)}</div>`:''}
+        ${hidePricing ? '' : `
         <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:2px;flex-wrap:wrap">
           ${meta.price>0 ? `
             <span style="font-size:30px;font-weight:800;color:var(--text);letter-spacing:-.01em">€&nbsp;${meta.price.toFixed(2)}</span>
@@ -740,9 +746,10 @@ function renderOffers(){
           ` : `<span style="font-size:24px;font-weight:800;color:var(--text)">Sur devis</span>`}
         </div>
         ${meta.setup>0?`<div style="font-size:11px;color:var(--text3);margin-bottom:12px">Installation et configuration complète : ${meta.setup.toLocaleString('fr-FR')} €</div>`:'<div style="margin-bottom:12px"></div>'}
+        `}
       `}
-      <button class="offer-cta" type="button">Choisir le plan</button>
-      ${(!editable && (meta.points||[]).some(p=>p.text))?`
+      ${isServices ? '' : `<button class="offer-cta" type="button">${isAgence?'Nous contacter':'Choisir le plan'}</button>`}
+      ${(!editable && !hidePricing && (meta.points||[]).some(p=>p.text))?`
         <div class="offer-points-box">
         ${(meta.points||[]).filter(p=>p.text).map(p=>`
           <div class="offer-point">
