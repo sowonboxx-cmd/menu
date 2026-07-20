@@ -685,7 +685,7 @@ function renderOffersHeader(){
 // ══════════════════════════════════════════
 function renderOffers(){
   const el = document.getElementById('offersAuto');
-  const allItems = DATA.categories.flatMap(c=>c.items);
+  const allItems = DATA.categories.flatMap(c=>c.items.map(i=>({...i, cat:c.name})));
   const order = ['base','pro','premium','agence','services'];
   const prevLabel = {base:null, pro:'Entrée', premium:'Menu', agence:'Signature', services:'Agence'};
 
@@ -759,17 +759,20 @@ function renderOffers(){
         `).join('')}
         </div>
       `:''}
+      ${isAgence ? '' : `
       <div class="offer-card-count">${items.length} fonctionnalité${items.length>1?'s':''}</div>
-      <div${(tag==='agence'||tag==='services')?' style="columns:2;column-gap:24px"':''}>
-      ${prevLabel[tag] ? `<div class="offer-feature-line" style="font-weight:700;color:var(--text);margin-bottom:10px;break-inside:avoid"><span class="check">•</span><span>Tout de l'offre ${prevLabel[tag]}${inheritedCount?` (${inheritedCount})`:''}</span></div>` : ''}
-      ${newItems.map(i=>`<div class="offer-feature-line" style="break-inside:avoid"><span class="check">•</span><span>${esc(i.name)}${i.price?` <span style="color:var(--text3)">(+${i.price}€)</span>`:''}</span></div>`).join('')}
-      ${!items.length?'<div style="font-size:11px;color:var(--text3);font-style:italic">Aucune fonctionnalité assignée</div>':''}
-      ${(prevLabel[tag] && !newItems.length && items.length)?'<div style="font-size:11px;color:var(--text3);font-style:italic">Aucune fonctionnalité supplémentaire</div>':''}
+      <div${isServices?' style="columns:2;column-gap:24px"':''}>
+      ${isServices ? groupedFeatureListHtml(items) : `
+        ${prevLabel[tag] ? `<div class="offer-feature-line" style="font-weight:700;color:var(--text);margin-bottom:10px;break-inside:avoid"><span class="check">•</span><span>Tout de l'offre ${prevLabel[tag]}${inheritedCount?` (${inheritedCount})`:''}</span></div>` : ''}
+        ${newItems.map(i=>`<div class="offer-feature-line" style="break-inside:avoid"><span class="check">•</span><span>${esc(i.name)}${i.price?` <span style="color:var(--text3)">(+${i.price}€)</span>`:''}</span></div>`).join('')}
+        ${!items.length?'<div style="font-size:11px;color:var(--text3);font-style:italic">Aucune fonctionnalité assignée</div>':''}
+        ${(prevLabel[tag] && !newItems.length && items.length)?'<div style="font-size:11px;color:var(--text3);font-style:italic">Aucune fonctionnalité supplémentaire</div>':''}
+      `}
       </div>
-      ${tag==='agence' ? `
-        <div style="margin-top:18px;padding-top:18px;border-top:1px solid var(--border)">
-        ${editable ? categoriesEditorHtml(meta.categories, tag) : categoriesDisplayHtml(meta.categories)}
-        ${(!editable && meta.categoriesNote)?`<div style="font-size:12px;color:var(--text2);font-style:italic;margin-top:4px">${esc(meta.categoriesNote)}</div>`:''}
+      `}
+      ${isAgence ? `
+        <div style="margin-top:14px">
+        ${(!editable && meta.categoriesNote)?`<div style="font-size:12px;color:var(--text2);font-style:italic">${esc(meta.categoriesNote)}</div>`:''}
         ${editable?`<input class="feature-name-input" style="font-size:12px;color:var(--text2);font-style:italic;padding:0;width:100%" value="${esc(meta.categoriesNote||'')}" placeholder="Note de bas de bloc (optionnel)…" onchange="DATA.offerMeta['${tag}'].categoriesNote=this.value;save()">`:''}
         </div>
       ` : ''}
@@ -1022,6 +1025,17 @@ function categoriesDisplayHtml(categories){
     </div>
   `).join('')}
   </div>`;
+}
+function groupedFeatureListHtml(items){
+  if(!items.length) return '<div style="font-size:11px;color:var(--text3);font-style:italic">Aucune fonctionnalité assignée</div>';
+  const groups = {};
+  items.forEach(i=>{ (groups[i.cat] = groups[i.cat]||[]).push(i); });
+  return Object.keys(groups).map(catName=>`
+    <div style="break-inside:avoid;margin-bottom:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">${esc(catName)}</div>
+      ${groups[catName].map(i=>`<div class="offer-feature-line"><span class="check">•</span><span>${esc(i.name)}${i.price?` <span style="color:var(--text3)">(+${i.price}€)</span>`:''}</span></div>`).join('')}
+    </div>
+  `).join('');
 }
 function showToast(msg){
   const t=document.getElementById('toast');
