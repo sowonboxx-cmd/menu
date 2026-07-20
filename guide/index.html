@@ -398,7 +398,7 @@ const DEFAULT_DATA = {
       { header:'Restaurant', items:['Habillage vitrine','Murale','Enseigne','Signalétique'] },
       { header:'Contenu', items:['Shooting Photo Premium','Shooting Food','Menu Instagram','Menu Google','Création de vidéos','Design du menu'] },
     ], categoriesNote:'C\'est un studio de création.' },
-    services:{ name:'À la carte', title:'', subtitle:'Ajoutez des options ponctuelles à n\'importe quelle offre.', desc:'', price:0, setup:0 },
+    services:{ name:'À la carte', title:'', subtitle:'', desc:'', price:0, setup:0 },
   },
   strategy: [
     { title:'Identifier les prospects', detail:'Repérer les restaurants sans QR code, avec menu PDF périmé, ou très présents sur TheFork (signe de commissions élevées). Privilégier les indépendants avec 30+ couverts/soir.' },
@@ -437,10 +437,13 @@ function migrateData(){
         DATA.categories.push({ name:'Services à la carte', items: names.map(n=>({name:n, tags:['services'], price:0})) });
       }
     }
-    DATA.offerMeta.services = { name:'À la carte', title:'', subtitle:'Ajoutez des options ponctuelles à n\'importe quelle offre.', desc:'', price:0, setup:0 };
+    DATA.offerMeta.services = { name:'À la carte', title:'', subtitle:'', desc:'', price:0, setup:0 };
     if(DATA.offerMeta.agence && DATA.offerMeta.agence.name==='À la carte') DATA.offerMeta.agence.name = 'Agence';
     DATA.categories.forEach(c=>{ c.name = c.name.replace(/^\p{Extended_Pictographic}\uFE0F?\s*/u,''); });
     DATA._alacarteMigratedV2 = true;
+  }
+  if(DATA.offerMeta.services && DATA.offerMeta.services.subtitle==='Ajoutez des options ponctuelles à n\'importe quelle offre.'){
+    DATA.offerMeta.services.subtitle = '';
   }
 
   Object.keys(DATA.offerMeta||{}).forEach(k=>{
@@ -686,8 +689,8 @@ function renderOffersHeader(){
 function renderOffers(){
   const el = document.getElementById('offersAuto');
   const allItems = DATA.categories.flatMap(c=>c.items.map(i=>({...i, cat:c.name})));
-  const order = ['base','pro','premium','agence','services'];
-  const prevLabel = {base:null, pro:'Entrée', premium:'Menu', agence:'Signature', services:'Agence'};
+  const order = ['base','pro','premium','services','agence'];
+  const prevLabel = {base:null, pro:'Entrée', premium:'Menu', services:'Signature', agence:'À la carte'};
 
   const cardsHtml = order.map((tag, idx)=>{
     const meta = DATA.offerMeta[tag];
@@ -760,7 +763,7 @@ function renderOffers(){
         </div>
       `:''}
       ${isAgence ? '' : `
-      <div class="offer-card-count">${items.length} fonctionnalité${items.length>1?'s':''}</div>
+      ${isServices ? '' : `<div class="offer-card-count">${items.length} fonctionnalité${items.length>1?'s':''}</div>`}
       <div${isServices?' style="columns:2;column-gap:24px"':''}>
       ${isServices ? groupedFeatureListHtml(items) : `
         ${prevLabel[tag] ? `<div class="offer-feature-line" style="font-weight:700;color:var(--text);margin-bottom:10px;break-inside:avoid"><span class="check">•</span><span>Tout de l'offre ${prevLabel[tag]}${inheritedCount?` (${inheritedCount})`:''}</span></div>` : ''}
