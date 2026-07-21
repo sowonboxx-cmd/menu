@@ -162,7 +162,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .offer-cta{display:flex;align-items:center;justify-content:center;width:100%;padding:14px 16px;border:none;border-radius:10px;background:var(--navy);color:#fff;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;margin-bottom:14px;font-family:'Inter',sans-serif;transition:opacity .15s}
 .offer-cta:hover{opacity:.88}
 .offer-vat-note{font-size:11px;color:var(--text3);margin-bottom:20px}
-.offer-points-box{background:rgba(15,42,61,.04);border:1px solid rgba(15,42,61,.08);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
+.offer-points-box{background:rgba(15,42,61,.04);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
 .offer-point{display:flex;gap:8px;align-items:flex-start}
 .offer-point-text{font-size:13px;color:var(--text2);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .offer-point-text strong{color:var(--text);font-weight:700}
@@ -465,6 +465,12 @@ function migrateData(){
 }
 migrateData();
 let editMode = false;
+let expandedFeatureCards = new Set();
+function toggleCardFeatures(tag){
+  if(expandedFeatureCards.has(tag)) expandedFeatureCards.delete(tag);
+  else expandedFeatureCards.add(tag);
+  renderOffers();
+}
 let saveTimer = null;
 
 function save(){
@@ -794,21 +800,41 @@ function renderOffers(){
       ${isAgence ? '' : `
       ${isServices ? '' : `<div class="offer-card-count">${items.length} fonctionnalité${items.length>1?'s':''}</div>`}
       <div${isServices?' style="columns:2;column-gap:24px"':''}>
-      ${isServices ? groupedFeatureListHtml(items) : `
-        ${prevLabel[tag] ? `<div class="offer-feature-line" style="font-weight:700;color:var(--text);margin-bottom:10px;break-inside:avoid"><span class="check">•</span><span>Tout de l'offre ${prevLabel[tag]}${inheritedCount?` (${inheritedCount})`:''}</span></div>` : ''}
-        ${newItems.map(i=>`<div class="offer-feature-line" style="break-inside:avoid"><span class="check">•</span><span>${esc(i.name)}${i.price?` <span style="color:var(--text3)">(+${i.price}€)</span>`:''}</span></div>`).join('')}
-        ${!items.length?'<div style="font-size:11px;color:var(--text3);font-style:italic">Aucune fonctionnalité assignée</div>':''}
-        ${(prevLabel[tag] && !newItems.length && items.length)?'<div style="font-size:11px;color:var(--text3);font-style:italic">Aucune fonctionnalité supplémentaire</div>':''}
-      `}
+      ${(()=>{
+        const expanded = expandedFeatureCards.has(tag);
+        if(isServices){
+          const total = items.length;
+          return groupedFeatureListHtml(items, expanded?undefined:8);
+        }
+        const lines = [];
+        if(prevLabel[tag]) lines.push(`<div class="offer-feature-line" style="font-weight:700;color:var(--text);margin-bottom:10px;break-inside:avoid"><span class="check">•</span><span>Tout de l'offre ${prevLabel[tag]}${inheritedCount?` (${inheritedCount})`:''}</span></div>`);
+        newItems.forEach(i=>lines.push(`<div class="offer-feature-line" style="break-inside:avoid"><span class="check">•</span><span>${esc(i.name)}${i.price?` <span style="color:var(--text3)">(+${i.price}€)</span>`:''}</span></div>`));
+        const shown = expanded ? lines : lines.slice(0,8);
+        let out = shown.join('');
+        if(!items.length) out += '<div style="font-size:11px;color:var(--text3);font-style:italic">Aucune fonctionnalité assignée</div>';
+        if(prevLabel[tag] && !newItems.length && items.length) out += '<div style="font-size:11px;color:var(--text3);font-style:italic">Aucune fonctionnalité supplémentaire</div>';
+        return out;
+      })()}
       </div>
+      ${(()=>{
+        const expanded = expandedFeatureCards.has(tag);
+        const total = isServices ? items.length : ((prevLabel[tag]?1:0) + newItems.length);
+        if(total<=8) return '';
+        return `<button type="button" onclick="toggleCardFeatures('${tag}')" style="background:none;border:none;color:var(--pro);font-size:12px;font-weight:600;cursor:pointer;padding:6px 0;margin-top:2px">${expanded?'Voir moins':`+ ${total-8} · Tout voir`}</button>`;
+      })()}
       `}
       ${isAgence ? `
-        <div style="margin-top:14px;display:flex;align-items:center;gap:20px">
+        <div style="margin-top:14px;margin-bottom:-4px;display:flex;align-items:flex-end;gap:20px">
           <div style="flex:1;min-width:0">
           ${editable ? categoriesEditorHtml(meta.categories, tag) : categoriesDisplayHtml(meta.categories)}
           ${(!editable && meta.categoriesNote)?`<div style="font-size:12px;color:var(--text2);font-style:italic;margin-top:4px">${esc(meta.categoriesNote)}</div>`:''}
           ${editable?`<input class="feature-name-input" style="font-size:12px;color:var(--text2);font-style:italic;padding:0;width:100%" value="${esc(meta.categoriesNote||'')}" placeholder="Note de bas de bloc (optionnel)…" onchange="DATA.offerMeta['${tag}'].categoriesNote=this.value;save()">`:''}
           </div>
+          <button class="offer-cta" type="button" style="width:auto;margin-bottom:0;padding:12px 22px;flex:none">Sur devis</button>
+        </div>
+      ` : ''}
+      ${isServices ? `
+        <div style="margin-top:14px;margin-bottom:-4px;display:flex;justify-content:flex-end">
           <button class="offer-cta" type="button" style="width:auto;margin-bottom:0;padding:12px 22px;flex:none">Sur devis</button>
         </div>
       ` : ''}
@@ -1075,16 +1101,23 @@ function categoriesDisplayHtml(categories){
   `).join('')}
   </div>`;
 }
-function groupedFeatureListHtml(items){
+function groupedFeatureListHtml(items, limit){
   if(!items.length) return '<div style="font-size:11px;color:var(--text3);font-style:italic">Aucune fonctionnalité assignée</div>';
   const groups = {};
   items.forEach(i=>{ (groups[i.cat] = groups[i.cat]||[]).push(i); });
-  return Object.keys(groups).map(catName=>`
+  let remaining = (limit===undefined || limit===null) ? Infinity : limit;
+  return Object.keys(groups).map(catName=>{
+    if(remaining<=0) return '';
+    const groupItems = groups[catName].slice(0, remaining);
+    remaining -= groupItems.length;
+    if(!groupItems.length) return '';
+    return `
     <div style="break-inside:avoid;margin-bottom:14px">
       <div style="font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">${esc(catName)}</div>
-      ${groups[catName].map(i=>`<div class="offer-feature-line"><span class="check">•</span><span>${esc(i.name)}${i.price?` <span style="color:var(--text3)">(+${i.price}€)</span>`:''}</span></div>`).join('')}
+      ${groupItems.map(i=>`<div class="offer-feature-line"><span class="check">•</span><span>${esc(i.name)}${i.price?` <span style="color:var(--text3)">(+${i.price}€)</span>`:''}</span></div>`).join('')}
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 function showToast(msg){
   const t=document.getElementById('toast');
