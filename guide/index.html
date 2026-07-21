@@ -306,11 +306,6 @@ table.matrix tr:hover td{background:#fafaf7}
 </div>
 
 <div class="wrap">
-  <!-- ════════ OFFRES AUTO-GÉNÉRÉES (bas : Agence/À la carte) ════════ -->
-  <div class="section" style="padding-top:32px">
-    <div class="offers-grid" id="offersAutoBottom"></div>
-  </div>
-
   <!-- ════════ FONCTIONNALITÉS ════════ -->
   <div class="section" id="features">
     <div class="section-hdr-row">
@@ -376,7 +371,7 @@ const DEFAULT_DATA = {
   installationLabel: 'Installation & prise en main',
   cardColors: {},
   offersHeader: { title:'Vos offres packagées', subtitle:'Construites automatiquement à partir des tags assignés dans la liste des fonctionnalités ci-dessous.' },
-  appleCardsHeader: { label:'MODE AGENCE', title:'On s\'occupe du reste', subtitle:'L\'humain là où l\'IA s\'arrête' },
+  appleCardsHeader: { label:'MODE AGENCE', title:'On s\'occupe du reste', subtitle:'L\'humain là où l\'IA s\'arrête', cta:'Sur devis' },
   appleCards: [
     { icon:'', label:'Création de contenu', title:'Chaque plat raconte une histoire', subtitle:'Photos, vidéos et Reels qui mettent votre cuisine en valeur.', bullets:['Shooting photo','Reels','Direction artistique'], image:'' },
     { icon:'', label:'', title:'', subtitle:'', bullets:['','',''], image:'' },
@@ -476,6 +471,7 @@ function migrateData(){
   if(!DATA.installationLabel) DATA.installationLabel = DEFAULT_DATA.installationLabel;
   if(!DATA.cardColors) DATA.cardColors = {};
   if(!DATA.appleCardsHeader) DATA.appleCardsHeader = DEFAULT_DATA.appleCardsHeader;
+  if(DATA.appleCardsHeader && DATA.appleCardsHeader.cta===undefined) DATA.appleCardsHeader.cta = DEFAULT_DATA.appleCardsHeader.cta;
   if(!Array.isArray(DATA.appleCards)) DATA.appleCards = JSON.parse(JSON.stringify(DEFAULT_DATA.appleCards));
   DATA.appleCards.forEach(c=>{
     if(!Array.isArray(c.bullets)) c.bullets = [];
@@ -750,13 +746,19 @@ function renderAppleCardsHeader(){
   const el = document.getElementById('appleCardsHeader');
   const h = DATA.appleCardsHeader || DEFAULT_DATA.appleCardsHeader;
   el.innerHTML = editMode ? `
-    <input class="feature-name-input" style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;padding:0;width:100%" value="${esc(h.label||'')}" placeholder="Label (ex: MODE AGENCE)" onchange="DATA.appleCardsHeader.label=this.value;save();renderAppleCardsHeader()">
+    <input class="feature-name-input" style="font-size:14px;font-weight:700;letter-spacing:.01em;text-transform:uppercase;color:var(--text);margin-bottom:8px;padding:0;width:100%" value="${esc(h.label||'')}" placeholder="Label (ex: MODE AGENCE)" onchange="DATA.appleCardsHeader.label=this.value;save();renderAppleCardsHeader()">
     <input class="feature-name-input" style="font-size:clamp(22px,3vw,28px);font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:8px;padding:0;width:100%" value="${esc(h.title||'')}" placeholder="Titre" onchange="DATA.appleCardsHeader.title=this.value;save();renderAppleCardsHeader()">
-    <textarea style="width:100%;max-width:none;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text2);resize:vertical;min-height:44px;outline:none;margin-bottom:24px" placeholder="Sous-titre" onchange="DATA.appleCardsHeader.subtitle=this.value;save()">${esc(h.subtitle||'')}</textarea>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:24px">
+      <textarea style="flex:1;min-width:0;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text2);resize:vertical;min-height:44px;outline:none" placeholder="Sous-titre" onchange="DATA.appleCardsHeader.subtitle=this.value;save()">${esc(h.subtitle||'')}</textarea>
+      <input type="text" value="${esc(h.cta||'')}" placeholder="Sur devis" style="flex:none;width:110px;font-size:12px;font-weight:600;color:var(--pro);border:1px solid var(--border);border-radius:8px;padding:8px 10px" onchange="DATA.appleCardsHeader.cta=this.value;save()">
+    </div>
   ` : `
-    <div class="section-label">${esc(h.label||'')}</div>
+    <div class="offer-card-name" style="margin-bottom:8px">${esc(h.label||'')}</div>
     <h2 class="section-title">${esc(h.title||'')}</h2>
-    <p class="section-sub" style="margin-bottom:24px;max-width:none;white-space:pre-wrap">${esc(h.subtitle||'')}</p>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:24px;flex-wrap:wrap">
+      <p class="section-sub" style="margin:0;max-width:none;white-space:pre-wrap;flex:1;min-width:200px">${esc(h.subtitle||'')}</p>
+      ${h.cta?`<span style="color:var(--pro);font-size:12px;font-weight:600;white-space:nowrap;flex:none">${esc(h.cta)}</span>`:''}
+    </div>
   `;
 }
 
@@ -827,7 +829,7 @@ function setupAppleCardsScrollSync(){
 // ══════════════════════════════════════════
 function renderOffers(){
   const allItems = DATA.categories.flatMap(c=>c.items.map(i=>({...i, cat:c.name})));
-  const order = ['base','pro','premium','agence','services'];
+  const order = ['base','pro','premium'];
   const prevLabel = {base:null, pro:'Entrée', premium:'Menu', agence:'Signature', services:'Agence'};
 
   const cardsHtml = order.map((tag, idx)=>{
@@ -973,8 +975,7 @@ function renderOffers(){
     </div>`;
   });
 
-  document.getElementById('offersAutoTop').innerHTML = cardsHtml.slice(0,3).join('');
-  document.getElementById('offersAutoBottom').innerHTML = cardsHtml.slice(3).join('');
+  document.getElementById('offersAutoTop').innerHTML = cardsHtml.join('');
 }
 
 // ══════════════════════════════════════════
