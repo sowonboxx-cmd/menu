@@ -786,7 +786,6 @@ function renderOffers(){
         <div class="offer-points-box">
         ${(meta.points||[]).filter(p=>p.text).map(p=>`
           <div class="offer-point">
-            <span class="check">•</span>
             <div class="offer-point-text">${formatPointText(p.text)}</div>
           </div>
         `).join('')}
@@ -815,7 +814,7 @@ function renderOffers(){
       ` : ''}
       ${editable ? `
         <div style="display:flex;align-items:center;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
-          <input type="color" value="${customColor||'#ffffff'}" style="width:32px;height:28px;border:1px solid var(--border);border-radius:6px;padding:2px;background:#fff;cursor:pointer" onchange="DATA.cardColors['${tag}']=this.value;save();renderOffers()">
+          <input type="color" value="${customColor||DEFAULT_TINT_HEX[tag]}" style="width:32px;height:28px;border:1px solid var(--border);border-radius:6px;padding:2px;background:#fff;cursor:pointer" oninput="this.closest('.offer-card').style.background=hexToRgba(this.value,0.09)" onchange="DATA.cardColors['${tag}']=this.value;save();renderOffers()">
           <span style="font-size:11px;color:var(--text3)">Couleur du bloc</span>
           ${customColor?`<button type="button" style="font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;text-decoration:underline;margin-left:auto" onclick="delete DATA.cardColors['${tag}'];save();renderOffers()">Réinitialiser</button>`:''}
         </div>
@@ -1042,6 +1041,7 @@ function hexToRgba(hex, alpha){
   const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
   return `rgba(${r},${g},${b},${alpha})`;
 }
+const DEFAULT_TINT_HEX = {base:'#FAFAFA', pro:'#EEF2F6', premium:'#FBECEE', agence:'#F1F1F5', services:'#F0F3EE'};
 function formatPointText(s){
   let t = esc(s);
   t = t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
