@@ -713,21 +713,33 @@ function renderOffers(){
     return `
     <div class="offer-card ${tag}">
       ${isAgence ? `
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:${editable?'8px':'14px'}">
-        ${editable
-          ? `<input type="text" value="${esc(meta.icon||'')}" placeholder="URL icône" style="width:100px;font-size:10px;border:1px solid var(--border);border-radius:6px;padding:4px 6px;color:var(--text2)" onchange="DATA.offerMeta['${tag}'].icon=this.value;save();renderOffers()">`
-          : (meta.icon?`<img src="${esc(meta.icon)}" alt="" style="width:26px;height:26px;object-fit:contain;flex:none">`:'')
-        }
-        ${editable
-          ? `<input class="feature-name-input" value="${esc(meta.name)}" style="font-size:13px;font-weight:700;text-transform:uppercase;color:inherit;padding:0;width:100%" onchange="DATA.offerMeta['${tag}'].name=this.value;save()">`
-          : `<div class="offer-card-name" style="margin-bottom:0">${meta.name}</div>`
-        }
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:14px">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:${editable?'8px':'4px'}">
+            ${editable
+              ? `<input type="text" value="${esc(meta.icon||'')}" placeholder="URL icône" style="width:100px;font-size:10px;border:1px solid var(--border);border-radius:6px;padding:4px 6px;color:var(--text2)" onchange="DATA.offerMeta['${tag}'].icon=this.value;save();renderOffers()">`
+              : (meta.icon?`<img src="${esc(meta.icon)}" alt="" style="width:26px;height:26px;object-fit:contain;flex:none">`:'')
+            }
+            ${editable
+              ? `<input class="feature-name-input" value="${esc(meta.name)}" style="font-size:13px;font-weight:700;text-transform:uppercase;color:inherit;padding:0;width:100%" onchange="DATA.offerMeta['${tag}'].name=this.value;save()">`
+              : `<div class="offer-card-name" style="margin-bottom:0">${meta.name}</div>`
+            }
+          </div>
+          ${editable ? `
+            <input class="feature-name-input" style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;padding:0;width:100%" value="${esc(meta.title||'')}" placeholder="Titre accrocheur…" onchange="DATA.offerMeta['${tag}'].title=this.value;save()">
+            <input class="feature-name-input" style="font-size:13px;font-weight:600;color:var(--text2);padding:0;width:100%" value="${esc(meta.subtitle||'')}" placeholder="Sous-titre…" onchange="DATA.offerMeta['${tag}'].subtitle=this.value;save()">
+          ` : `
+            ${meta.title?`<div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;line-height:1.25">${esc(meta.title)}</div>`:''}
+            ${meta.subtitle?`<div style="font-size:13px;color:var(--text2)">${esc(meta.subtitle)}</div>`:''}
+          `}
+        </div>
+        <button class="offer-cta" type="button" style="width:auto;margin-bottom:0;padding:12px 22px;flex:none">Nous contacter</button>
       </div>
       ` : (editable
         ? `<input class="feature-name-input" value="${esc(meta.name)}" style="font-size:13px;font-weight:700;text-transform:uppercase;color:inherit;padding:0;margin-bottom:14px;width:100%" onchange="DATA.offerMeta['${tag}'].name=this.value;save()">`
         : `<div class="offer-card-name">${meta.name}</div>`
       )}
-      ${editable ? `
+      ${isAgence ? '' : (editable ? `
         <input class="feature-name-input" style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;padding:0;width:100%" value="${esc(meta.title||'')}" placeholder="Titre accrocheur…" onchange="DATA.offerMeta['${tag}'].title=this.value;save()">
         <input class="feature-name-input" style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:12px;padding:0;width:100%" value="${esc(meta.subtitle||'')}" placeholder="Sous-titre…" onchange="DATA.offerMeta['${tag}'].subtitle=this.value;save()">
         ${hidePricing ? '' : `
@@ -766,8 +778,8 @@ function renderOffers(){
         </div>
         ${meta.setup>0?`<div style="font-size:11px;color:var(--text3);margin-bottom:12px">${esc(DATA.installationLabel)} : ${meta.setup.toLocaleString('fr-FR')} €</div>`:'<div style="margin-bottom:12px"></div>'}
         `}
-      `}
-      ${isServices ? '' : `<button class="offer-cta" type="button">${isAgence?'Nous contacter':'Choisir le plan'}</button>`}
+      `)}
+      ${(isServices||isAgence) ? '' : `<button class="offer-cta" type="button">Choisir le plan</button>`}
       ${(!editable && !hidePricing && (meta.points||[]).some(p=>p.text))?`
         <div class="offer-points-box">
         ${(meta.points||[]).filter(p=>p.text).map(p=>`
@@ -1025,7 +1037,7 @@ function categoriesEditorHtml(categories, tag){
   ${(categories||[]).map((c,ci)=>`
     <div style="border:1px solid var(--border);border-radius:8px;padding:8px;background:#fff">
       <input type="text" value="${esc(c.header||'')}" placeholder="Emoji + nom de catégorie" style="width:100%;font-size:12px;font-weight:700;border:none;outline:none;color:var(--text);padding:2px 0;margin-bottom:4px" onchange="DATA.offerMeta['${tag}'].categories[${ci}].header=this.value;save();renderOffers()">
-      <textarea placeholder="Un élément par ligne" style="width:100%;font-size:11px;border:none;outline:none;color:var(--text2);padding:2px 0;resize:vertical;min-height:60px;font-family:'Inter',sans-serif" onchange="DATA.offerMeta['${tag}'].categories[${ci}].items=this.value.split('\n').map(s=>s.trim()).filter(Boolean);save();renderOffers()">${esc((c.items||[]).join('\n'))}</textarea>
+      <textarea placeholder="Un élément par ligne" style="width:100%;font-size:11px;border:none;outline:none;color:var(--text2);padding:2px 0;resize:vertical;min-height:60px;font-family:'Inter',sans-serif" onchange="DATA.offerMeta['${tag}'].categories[${ci}].items=this.value.split('\\n').map(s=>s.trim()).filter(Boolean);save();renderOffers()">${esc((c.items||[]).join('\n'))}</textarea>
       <button type="button" style="font-size:10px;color:var(--red);background:none;border:none;cursor:pointer;padding:2px 0" onclick="DATA.offerMeta['${tag}'].categories.splice(${ci},1);save();renderOffers()">Supprimer catégorie</button>
     </div>
   `).join('')}
