@@ -269,7 +269,6 @@ table.matrix tr:hover td{background:#fafaf7}
 
   <!-- ════════ OFFRES AUTO-GÉNÉRÉES ════════ -->
   <div class="section">
-    <div class="section-label">Vos offres packagées</div>
     <div id="offersHeader"></div>
     <div class="offers-grid" id="offersAuto"></div>
   </div>
@@ -336,7 +335,7 @@ table.matrix tr:hover td{background:#fafaf7}
 // DEFAULT DATA
 // ══════════════════════════════════════════
 const DEFAULT_DATA = {
-  installationLabel: 'Installation complète et formation',
+  installationLabel: 'Installation & prise en main',
   offersHeader: { title:'Vos offres packagées', subtitle:'Construites automatiquement à partir des tags assignés dans la liste des fonctionnalités ci-dessous.' },
   categories: [
     { name: 'Menu digital', items: [
@@ -429,6 +428,7 @@ let DATA = JSON.parse(localStorage.getItem('tensai_guide_data') || JSON.stringif
 function migrateData(){
   if(!DATA.offersHeader) DATA.offersHeader = DEFAULT_DATA.offersHeader;
   if(!DATA.installationLabel) DATA.installationLabel = DEFAULT_DATA.installationLabel;
+  if(DATA.installationLabel==='Installation complète et formation') DATA.installationLabel = DEFAULT_DATA.installationLabel;
   if(!DATA.offerMeta.services) DATA.offerMeta.services = DEFAULT_DATA.offerMeta.services;
 
   // One-time: convert legacy "Services complémentaires" categories block into
@@ -679,9 +679,11 @@ function renderOffersHeader(){
   const el = document.getElementById('offersHeader');
   const h = DATA.offersHeader || DEFAULT_DATA.offersHeader;
   el.innerHTML = editMode ? `
+    <input class="feature-name-input" style="font-size:clamp(22px,3vw,28px);font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:8px;padding:0;width:100%" value="${esc(h.title)}" placeholder="Titre de la section" onchange="DATA.offersHeader.title=this.value;save();renderOffersHeader()">
     <textarea style="width:100%;max-width:none;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text2);resize:vertical;min-height:44px;outline:none;margin-bottom:24px" placeholder="Sous-titre de la section" onchange="DATA.offersHeader.subtitle=this.value;save()">${esc(h.subtitle||'')}</textarea>
   ` : `
-    <p class="section-sub" style="margin-bottom:24px;max-width:none">${esc(h.subtitle||'')}</p>
+    <h2 class="section-title">${esc(h.title)}</h2>
+    <p class="section-sub" style="margin-bottom:24px;max-width:none;white-space:pre-wrap">${esc(h.subtitle||'')}</p>
   `;
 }
 
