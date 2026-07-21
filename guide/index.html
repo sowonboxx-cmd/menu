@@ -51,6 +51,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .tag-pro{background:var(--pro)}
 .tag-premium{background:var(--premium)}
 .tag-agence{background:var(--agence)}
+.tag-services{background:var(--services)}
 .tag-editable{cursor:pointer;border:none}
 
 /* ── FEATURE LIST (master list with tag assignment) ── */
@@ -285,7 +286,8 @@ table.matrix tr:hover td{background:#fafaf7}
         <span class="tag tag-base">Entrée</span>
         <span class="tag tag-pro">Menu</span>
         <span class="tag tag-premium">Signature</span>
-        <span class="tag tag-agence">À la carte</span>
+        <span class="tag tag-agence">Agence</span>
+        <span class="tag tag-services">À la carte</span>
       </div>
     </div>
 
@@ -334,6 +336,7 @@ table.matrix tr:hover td{background:#fafaf7}
 // DEFAULT DATA
 // ══════════════════════════════════════════
 const DEFAULT_DATA = {
+  installationLabel: 'Installation complète et formation',
   offersHeader: { title:'Vos offres packagées', subtitle:'Construites automatiquement à partir des tags assignés dans la liste des fonctionnalités ci-dessous.' },
   categories: [
     { name: 'Menu digital', items: [
@@ -393,7 +396,7 @@ const DEFAULT_DATA = {
     base:    { name:'Entrée',    title:'Menu Digital',           subtitle:'Votre vitrine digitale, en ligne en 24h',             desc:'La solution d\'entrée pour digitaliser votre carte, générer votre QR code et rester à jour en temps réel.', price:149, setup:800 },
     pro:     { name:'Menu',     title:'Digital + Réseaux',      subtitle:'Réseaux sociaux automatisés',          desc:'Tout le menu digital, plus les outils pour poster sur Instagram en 2 minutes et gérer votre CRM clients.', price:300, setup:1500 },
     premium: { name:'Signature', title:'Agence Complète',        subtitle:'Une présence professionnelle de A à Z',   desc:'Notre offre complète : shooting photo, identité visuelle, optimisation Google et réseaux — clé en main.', price:500, setup:2500 },
-    agence:  { name:'Agence',  title:'Sur-mesure',             subtitle:'Toutes les prestations one-shot.',           desc:'Prestations à la carte : murale, mascotte, DA spécifique, setup CRM avancé. Facturé au projet.', price:0, setup:0, categories:[
+    agence:  { name:'Agence',  title:'Sur-mesure',             subtitle:'Toutes les prestations one-shot.',           desc:'Prestations à la carte : murale, mascotte, DA spécifique, setup CRM avancé. Facturé au projet.', price:0, setup:0, icon:'', categories:[
       { header:'Identité', items:['Logo','Charte graphique','Typographies','Mascotte','Direction artistique'] },
       { header:'Restaurant', items:['Habillage vitrine','Murale','Enseigne','Signalétique'] },
       { header:'Contenu', items:['Shooting Photo Premium','Shooting Food','Menu Instagram','Menu Google','Création de vidéos','Design du menu'] },
@@ -425,6 +428,7 @@ function saveSha(v){ if(v) localStorage.setItem('gh_sha_guide',v); else localSto
 let DATA = JSON.parse(localStorage.getItem('tensai_guide_data') || JSON.stringify(DEFAULT_DATA));
 function migrateData(){
   if(!DATA.offersHeader) DATA.offersHeader = DEFAULT_DATA.offersHeader;
+  if(!DATA.installationLabel) DATA.installationLabel = DEFAULT_DATA.installationLabel;
   if(!DATA.offerMeta.services) DATA.offerMeta.services = DEFAULT_DATA.offerMeta.services;
 
   // One-time: convert legacy "Services complémentaires" categories block into
@@ -689,8 +693,8 @@ function renderOffersHeader(){
 function renderOffers(){
   const el = document.getElementById('offersAuto');
   const allItems = DATA.categories.flatMap(c=>c.items.map(i=>({...i, cat:c.name})));
-  const order = ['base','pro','premium','services','agence'];
-  const prevLabel = {base:null, pro:'Entrée', premium:'Menu', services:'Signature', agence:'À la carte'};
+  const order = ['base','pro','premium','agence','services'];
+  const prevLabel = {base:null, pro:'Entrée', premium:'Menu', agence:'Signature', services:'Agence'};
 
   const cardsHtml = order.map((tag, idx)=>{
     const meta = DATA.offerMeta[tag];
@@ -708,10 +712,21 @@ function renderOffers(){
 
     return `
     <div class="offer-card ${tag}">
-      ${editable
+      ${isAgence ? `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:${editable?'8px':'14px'}">
+        ${editable
+          ? `<input type="text" value="${esc(meta.icon||'')}" placeholder="URL icône" style="width:100px;font-size:10px;border:1px solid var(--border);border-radius:6px;padding:4px 6px;color:var(--text2)" onchange="DATA.offerMeta['${tag}'].icon=this.value;save();renderOffers()">`
+          : (meta.icon?`<img src="${esc(meta.icon)}" alt="" style="width:26px;height:26px;object-fit:contain;flex:none">`:'')
+        }
+        ${editable
+          ? `<input class="feature-name-input" value="${esc(meta.name)}" style="font-size:13px;font-weight:700;text-transform:uppercase;color:inherit;padding:0;width:100%" onchange="DATA.offerMeta['${tag}'].name=this.value;save()">`
+          : `<div class="offer-card-name" style="margin-bottom:0">${meta.name}</div>`
+        }
+      </div>
+      ` : (editable
         ? `<input class="feature-name-input" value="${esc(meta.name)}" style="font-size:13px;font-weight:700;text-transform:uppercase;color:inherit;padding:0;margin-bottom:14px;width:100%" onchange="DATA.offerMeta['${tag}'].name=this.value;save()">`
         : `<div class="offer-card-name">${meta.name}</div>`
-      }
+      )}
       ${editable ? `
         <input class="feature-name-input" style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;padding:0;width:100%" value="${esc(meta.title||'')}" placeholder="Titre accrocheur…" onchange="DATA.offerMeta['${tag}'].title=this.value;save()">
         <input class="feature-name-input" style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:12px;padding:0;width:100%" value="${esc(meta.subtitle||'')}" placeholder="Sous-titre…" onchange="DATA.offerMeta['${tag}'].subtitle=this.value;save()">
@@ -724,7 +739,8 @@ function renderOffers(){
           <span style="font-size:12px;color:var(--text3)">/mois</span>
         </div>
         <div style="display:flex;gap:6px;margin-bottom:14px;align-items:center">
-          <span style="font-size:11px;color:var(--text3)">Installation et configuration complète :</span>
+          <input type="text" value="${esc(DATA.installationLabel)}" style="font-size:11px;color:var(--text3);border:none;outline:none;background:transparent;padding:0;width:150px" onchange="DATA.installationLabel=this.value;save();renderOffers()">
+          <span style="font-size:11px;color:var(--text3)">:</span>
           <input class="feature-price-input" style="width:70px" type="number" value="${meta.setup}" onchange="DATA.offerMeta['${tag}'].setup=parseInt(this.value)||0;save();renderOffers()">
           <span style="font-size:12px;color:var(--text2)">€</span>
         </div>
@@ -748,7 +764,7 @@ function renderOffers(){
             <span style="font-size:13px;color:var(--text3)">/mois</span>
           ` : `<span style="font-size:24px;font-weight:800;color:var(--text)">Sur devis</span>`}
         </div>
-        ${meta.setup>0?`<div style="font-size:11px;color:var(--text3);margin-bottom:12px">Installation et configuration complète : ${meta.setup.toLocaleString('fr-FR')} €</div>`:'<div style="margin-bottom:12px"></div>'}
+        ${meta.setup>0?`<div style="font-size:11px;color:var(--text3);margin-bottom:12px">${esc(DATA.installationLabel)} : ${meta.setup.toLocaleString('fr-FR')} €</div>`:'<div style="margin-bottom:12px"></div>'}
         `}
       `}
       ${isServices ? '' : `<button class="offer-cta" type="button">${isAgence?'Nous contacter':'Choisir le plan'}</button>`}
@@ -775,7 +791,8 @@ function renderOffers(){
       `}
       ${isAgence ? `
         <div style="margin-top:14px">
-        ${(!editable && meta.categoriesNote)?`<div style="font-size:12px;color:var(--text2);font-style:italic">${esc(meta.categoriesNote)}</div>`:''}
+        ${editable ? categoriesEditorHtml(meta.categories, tag) : categoriesDisplayHtml(meta.categories)}
+        ${(!editable && meta.categoriesNote)?`<div style="font-size:12px;color:var(--text2);font-style:italic;margin-top:4px">${esc(meta.categoriesNote)}</div>`:''}
         ${editable?`<input class="feature-name-input" style="font-size:12px;color:var(--text2);font-style:italic;padding:0;width:100%" value="${esc(meta.categoriesNote||'')}" placeholder="Note de bas de bloc (optionnel)…" onchange="DATA.offerMeta['${tag}'].categoriesNote=this.value;save()">`:''}
         </div>
       ` : ''}
