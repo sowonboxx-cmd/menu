@@ -679,11 +679,9 @@ function renderOffersHeader(){
   const el = document.getElementById('offersHeader');
   const h = DATA.offersHeader || DEFAULT_DATA.offersHeader;
   el.innerHTML = editMode ? `
-    <input class="feature-name-input" style="font-size:clamp(22px,3vw,28px);font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:8px;padding:0;width:100%" value="${esc(h.title)}" placeholder="Titre de la section" onchange="DATA.offersHeader.title=this.value;save();renderOffersHeader()">
-    <textarea style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text2);resize:vertical;min-height:44px;outline:none;margin-bottom:24px" placeholder="Sous-titre de la section" onchange="DATA.offersHeader.subtitle=this.value;save()">${esc(h.subtitle||'')}</textarea>
+    <textarea style="width:100%;max-width:none;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text2);resize:vertical;min-height:44px;outline:none;margin-bottom:24px" placeholder="Sous-titre de la section" onchange="DATA.offersHeader.subtitle=this.value;save()">${esc(h.subtitle||'')}</textarea>
   ` : `
-    <h2 class="section-title">${esc(h.title)}</h2>
-    <p class="section-sub" style="margin-bottom:24px">${esc(h.subtitle||'')}</p>
+    <p class="section-sub" style="margin-bottom:24px;max-width:none">${esc(h.subtitle||'')}</p>
   `;
 }
 
@@ -713,27 +711,24 @@ function renderOffers(){
     return `
     <div class="offer-card ${tag}">
       ${isAgence ? `
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:14px">
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:${editable?'8px':'4px'}">
-            ${editable
-              ? `<input type="text" value="${esc(meta.icon||'')}" placeholder="URL icône" style="width:100px;font-size:10px;border:1px solid var(--border);border-radius:6px;padding:4px 6px;color:var(--text2)" onchange="DATA.offerMeta['${tag}'].icon=this.value;save();renderOffers()">`
-              : (meta.icon?`<img src="${esc(meta.icon)}" alt="" style="width:26px;height:26px;object-fit:contain;flex:none">`:'')
-            }
-            ${editable
-              ? `<input class="feature-name-input" value="${esc(meta.name)}" style="font-size:13px;font-weight:700;text-transform:uppercase;color:inherit;padding:0;width:100%" onchange="DATA.offerMeta['${tag}'].name=this.value;save()">`
-              : `<div class="offer-card-name" style="margin-bottom:0">${meta.name}</div>`
-            }
-          </div>
-          ${editable ? `
-            <input class="feature-name-input" style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;padding:0;width:100%" value="${esc(meta.title||'')}" placeholder="Titre accrocheur…" onchange="DATA.offerMeta['${tag}'].title=this.value;save()">
-            <input class="feature-name-input" style="font-size:13px;font-weight:600;color:var(--text2);padding:0;width:100%" value="${esc(meta.subtitle||'')}" placeholder="Sous-titre…" onchange="DATA.offerMeta['${tag}'].subtitle=this.value;save()">
-          ` : `
-            ${meta.title?`<div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;line-height:1.25">${esc(meta.title)}</div>`:''}
-            ${meta.subtitle?`<div style="font-size:13px;color:var(--text2)">${esc(meta.subtitle)}</div>`:''}
-          `}
+      <div style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:${editable?'8px':'4px'}">
+          ${editable
+            ? `<input type="text" value="${esc(meta.icon||'')}" placeholder="URL icône" style="width:100px;font-size:10px;border:1px solid var(--border);border-radius:6px;padding:4px 6px;color:var(--text2)" onchange="DATA.offerMeta['${tag}'].icon=this.value;save();renderOffers()">`
+            : (meta.icon?`<img src="${esc(meta.icon)}" alt="" style="width:26px;height:26px;object-fit:contain;flex:none">`:'')
+          }
+          ${editable
+            ? `<input class="feature-name-input" value="${esc(meta.name)}" style="font-size:13px;font-weight:700;text-transform:uppercase;color:inherit;padding:0;width:100%" onchange="DATA.offerMeta['${tag}'].name=this.value;save()">`
+            : `<div class="offer-card-name" style="margin-bottom:0">${meta.name}</div>`
+          }
         </div>
-        <button class="offer-cta" type="button" style="width:auto;margin-bottom:0;padding:12px 22px;flex:none">Nous contacter</button>
+        ${editable ? `
+          <input class="feature-name-input" style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;padding:0;width:100%" value="${esc(meta.title||'')}" placeholder="Titre accrocheur…" onchange="DATA.offerMeta['${tag}'].title=this.value;save()">
+          <input class="feature-name-input" style="font-size:13px;font-weight:600;color:var(--text2);padding:0;width:100%" value="${esc(meta.subtitle||'')}" placeholder="Sous-titre…" onchange="DATA.offerMeta['${tag}'].subtitle=this.value;save()">
+        ` : `
+          ${meta.title?`<div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;line-height:1.25">${esc(meta.title)}</div>`:''}
+          ${meta.subtitle?`<div style="font-size:13px;color:var(--text2)">${esc(meta.subtitle)}</div>`:''}
+        `}
       </div>
       ` : (editable
         ? `<input class="feature-name-input" value="${esc(meta.name)}" style="font-size:13px;font-weight:700;text-transform:uppercase;color:inherit;padding:0;margin-bottom:14px;width:100%" onchange="DATA.offerMeta['${tag}'].name=this.value;save()">`
@@ -802,10 +797,13 @@ function renderOffers(){
       </div>
       `}
       ${isAgence ? `
-        <div style="margin-top:14px">
-        ${editable ? categoriesEditorHtml(meta.categories, tag) : categoriesDisplayHtml(meta.categories)}
-        ${(!editable && meta.categoriesNote)?`<div style="font-size:12px;color:var(--text2);font-style:italic;margin-top:4px">${esc(meta.categoriesNote)}</div>`:''}
-        ${editable?`<input class="feature-name-input" style="font-size:12px;color:var(--text2);font-style:italic;padding:0;width:100%" value="${esc(meta.categoriesNote||'')}" placeholder="Note de bas de bloc (optionnel)…" onchange="DATA.offerMeta['${tag}'].categoriesNote=this.value;save()">`:''}
+        <div style="margin-top:14px;display:flex;align-items:center;gap:20px">
+          <div style="flex:1;min-width:0">
+          ${editable ? categoriesEditorHtml(meta.categories, tag) : categoriesDisplayHtml(meta.categories)}
+          ${(!editable && meta.categoriesNote)?`<div style="font-size:12px;color:var(--text2);font-style:italic;margin-top:4px">${esc(meta.categoriesNote)}</div>`:''}
+          ${editable?`<input class="feature-name-input" style="font-size:12px;color:var(--text2);font-style:italic;padding:0;width:100%" value="${esc(meta.categoriesNote||'')}" placeholder="Note de bas de bloc (optionnel)…" onchange="DATA.offerMeta['${tag}'].categoriesNote=this.value;save()">`:''}
+          </div>
+          <button class="offer-cta" type="button" style="width:auto;margin-bottom:0;padding:12px 22px;flex:none">Sur devis</button>
         </div>
       ` : ''}
     </div>`;
