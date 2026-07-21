@@ -142,6 +142,19 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 
 /* ── AUTO-GENERATED OFFERS TABLE ── */
 .offers-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.apple-cards-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+@media(max-width:900px){.apple-cards-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:640px){.apple-cards-grid{grid-template-columns:1fr}}
+.apple-card{background:#F7F7F8;border-radius:24px;padding:28px 24px 0;display:flex;flex-direction:column;overflow:hidden}
+.apple-card-eyebrow{display:flex;align-items:center;gap:8px;margin-bottom:20px}
+.apple-card-eyebrow img{width:20px;height:20px;object-fit:contain;flex:none}
+.apple-card-eyebrow span{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.03em}
+.apple-card-title{font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.01em;line-height:1.15;margin-bottom:8px}
+.apple-card-subtitle{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:16px}
+.apple-card-bullets{display:flex;flex-direction:column;gap:6px;margin-bottom:20px}
+.apple-card-bullet{font-size:12.5px;color:var(--text2);display:flex;gap:6px;align-items:flex-start;line-height:1.4}
+.apple-card-image{width:calc(100% + 48px);margin:0 -24px 0;border-radius:0;overflow:hidden;margin-top:auto}
+.apple-card-image img{width:100%;display:block;object-fit:cover}
 .offers-grid .offer-card.agence{grid-column:1/-1}
 .offers-grid .offer-card.services{grid-column:1/-1}
 .offer-card{border-radius:20px;border:none;padding:28px 24px;position:relative;display:flex;flex-direction:column}
@@ -273,6 +286,12 @@ table.matrix tr:hover td{background:#fafaf7}
     <div class="offers-grid" id="offersAuto"></div>
   </div>
 
+  <!-- ════════ CARTES STYLE APPLE ════════ -->
+  <div class="section">
+    <div id="appleCardsHeader"></div>
+    <div class="apple-cards-grid" id="appleCardsGrid"></div>
+  </div>
+
   <!-- ════════ FONCTIONNALITÉS ════════ -->
   <div class="section" id="features">
     <div class="section-hdr-row">
@@ -338,6 +357,13 @@ const DEFAULT_DATA = {
   installationLabel: 'Installation & prise en main',
   cardColors: {},
   offersHeader: { title:'Vos offres packagées', subtitle:'Construites automatiquement à partir des tags assignés dans la liste des fonctionnalités ci-dessous.' },
+  appleCardsHeader: { label:'MODE AGENCE', title:'On s\'occupe du reste', subtitle:'L\'humain là où l\'IA s\'arrête' },
+  appleCards: [
+    { icon:'', label:'Création de contenu', title:'Chaque plat raconte une histoire', subtitle:'Photos, vidéos et Reels qui mettent votre cuisine en valeur.', bullets:['Shooting photo','Reels','Direction artistique'], image:'' },
+    { icon:'', label:'', title:'', subtitle:'', bullets:['','',''], image:'' },
+    { icon:'', label:'', title:'', subtitle:'', bullets:['','',''], image:'' },
+    { icon:'', label:'', title:'', subtitle:'', bullets:['','',''], image:'' },
+  ],
   categories: [
     { name: 'Menu digital', items: [
       { name: 'Menu digital multi-langue (6 langues)', tags:['base','pro','premium'], price:0 },
@@ -430,6 +456,12 @@ function migrateData(){
   if(!DATA.offersHeader) DATA.offersHeader = DEFAULT_DATA.offersHeader;
   if(!DATA.installationLabel) DATA.installationLabel = DEFAULT_DATA.installationLabel;
   if(!DATA.cardColors) DATA.cardColors = {};
+  if(!DATA.appleCardsHeader) DATA.appleCardsHeader = DEFAULT_DATA.appleCardsHeader;
+  if(!Array.isArray(DATA.appleCards)) DATA.appleCards = JSON.parse(JSON.stringify(DEFAULT_DATA.appleCards));
+  DATA.appleCards.forEach(c=>{
+    if(!Array.isArray(c.bullets)) c.bullets = [];
+    while(c.bullets.length<3) c.bullets.push('');
+  });
   if(DATA.installationLabel==='Installation complète et formation') DATA.installationLabel = DEFAULT_DATA.installationLabel;
   if(!DATA.offerMeta.services) DATA.offerMeta.services = DEFAULT_DATA.offerMeta.services;
 
@@ -695,6 +727,56 @@ function renderOffersHeader(){
   `;
 }
 
+function renderAppleCardsHeader(){
+  const el = document.getElementById('appleCardsHeader');
+  const h = DATA.appleCardsHeader || DEFAULT_DATA.appleCardsHeader;
+  el.innerHTML = editMode ? `
+    <input class="feature-name-input" style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;padding:0;width:100%" value="${esc(h.label||'')}" placeholder="Label (ex: MODE AGENCE)" onchange="DATA.appleCardsHeader.label=this.value;save();renderAppleCardsHeader()">
+    <input class="feature-name-input" style="font-size:clamp(22px,3vw,28px);font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:8px;padding:0;width:100%" value="${esc(h.title||'')}" placeholder="Titre" onchange="DATA.appleCardsHeader.title=this.value;save();renderAppleCardsHeader()">
+    <textarea style="width:100%;max-width:none;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text2);resize:vertical;min-height:44px;outline:none;margin-bottom:24px" placeholder="Sous-titre" onchange="DATA.appleCardsHeader.subtitle=this.value;save()">${esc(h.subtitle||'')}</textarea>
+  ` : `
+    <div class="section-label">${esc(h.label||'')}</div>
+    <h2 class="section-title">${esc(h.title||'')}</h2>
+    <p class="section-sub" style="margin-bottom:24px;max-width:none;white-space:pre-wrap">${esc(h.subtitle||'')}</p>
+  `;
+}
+
+function renderAppleCards(){
+  const el = document.getElementById('appleCardsGrid');
+  const editable = editMode;
+  el.innerHTML = DATA.appleCards.map((c, ci)=>`
+    <div class="apple-card">
+      ${editable ? `
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+          <input type="text" value="${esc(c.icon||'')}" placeholder="URL icône" style="width:70px;font-size:10px;border:1px solid var(--border);border-radius:6px;padding:4px 6px;color:var(--text2)" onchange="DATA.appleCards[${ci}].icon=this.value;save();renderAppleCards()">
+          <input type="text" value="${esc(c.label||'')}" placeholder="Label" style="flex:1;font-size:11px;font-weight:700;text-transform:uppercase;border:1px solid var(--border);border-radius:6px;padding:4px 6px;color:var(--text2);min-width:0" onchange="DATA.appleCards[${ci}].label=this.value;save()">
+        </div>
+        <input type="text" value="${esc(c.title||'')}" placeholder="Grand titre" style="font-size:18px;font-weight:800;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;margin-bottom:8px;width:100%" onchange="DATA.appleCards[${ci}].title=this.value;save()">
+        <textarea placeholder="Sous-titre" style="font-size:12px;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;margin-bottom:10px;width:100%;resize:vertical;min-height:44px;font-family:'Inter',sans-serif" onchange="DATA.appleCards[${ci}].subtitle=this.value;save()">${esc(c.subtitle||'')}</textarea>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">
+        ${[0,1,2].map(bi=>`<input type="text" value="${esc(c.bullets[bi]||'')}" placeholder="Bullet ${bi+1}" style="font-size:11px;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;width:100%" onchange="DATA.appleCards[${ci}].bullets[${bi}]=this.value;save()">`).join('')}
+        </div>
+        <input type="text" value="${esc(c.image||'')}" placeholder="URL image (bas de carte)" style="font-size:11px;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;margin-bottom:16px;width:100%" onchange="DATA.appleCards[${ci}].image=this.value;save();renderAppleCards()">
+      ` : `
+        ${(c.icon||c.label) ? `
+        <div class="apple-card-eyebrow">
+          ${c.icon?`<img src="${esc(c.icon)}" alt="">`:''}
+          ${c.label?`<span>${esc(c.label)}</span>`:''}
+        </div>
+        ` : ''}
+        ${c.title?`<div class="apple-card-title">${esc(c.title)}</div>`:''}
+        ${c.subtitle?`<div class="apple-card-subtitle">${esc(c.subtitle)}</div>`:''}
+        ${(c.bullets||[]).some(b=>b) ? `
+        <div class="apple-card-bullets">
+          ${c.bullets.filter(b=>b).map(b=>`<div class="apple-card-bullet"><span class="check">•</span><span>${esc(b)}</span></div>`).join('')}
+        </div>
+        ` : ''}
+        ${c.image ? `<div class="apple-card-image"><img src="${esc(c.image)}" alt=""></div>` : '<div style="margin-top:auto;height:8px"></div>'}
+      `}
+    </div>
+  `).join('');
+}
+
 // ══════════════════════════════════════════
 // AUTO-GENERATED OFFERS
 // ══════════════════════════════════════════
@@ -798,7 +880,6 @@ function renderOffers(){
         </div>
       `:''}
       ${isAgence ? '' : `
-      ${isServices ? '' : `<div class="offer-card-count">${items.length} fonctionnalité${items.length>1?'s':''}</div>`}
       <div${isServices?' style="columns:2;column-gap:24px"':''}>
       ${(()=>{
         const expanded = expandedFeatureCards.has(tag);
@@ -820,7 +901,7 @@ function renderOffers(){
         const expanded = expandedFeatureCards.has(tag);
         const total = isServices ? items.length : ((prevLabel[tag]?1:0) + newItems.length);
         if(total<=8) return '';
-        return `<button type="button" onclick="toggleCardFeatures('${tag}')" style="background:none;border:none;color:var(--pro);font-size:12px;font-weight:600;cursor:pointer;padding:6px 0;margin-top:2px">${expanded?'Voir moins':`+ ${total-8} · Tout voir`}</button>`;
+        return `<button type="button" onclick="toggleCardFeatures('${tag}')" style="background:none;border:none;color:var(--pro);font-size:12px;font-weight:600;cursor:pointer;padding:6px 0;margin-top:2px">${expanded?'Voir moins':'Tout voir'}</button>`;
       })()}
       `}
       ${isAgence ? `
@@ -1152,6 +1233,8 @@ function renderAll(){
   renderFeatures();
   renderOffers();
   renderMatrix();
+  renderAppleCardsHeader();
+  renderAppleCards();
 }
 
 // ── INIT ──
