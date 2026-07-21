@@ -336,6 +336,7 @@ table.matrix tr:hover td{background:#fafaf7}
 // ══════════════════════════════════════════
 const DEFAULT_DATA = {
   installationLabel: 'Installation & prise en main',
+  cardColors: {},
   offersHeader: { title:'Vos offres packagées', subtitle:'Construites automatiquement à partir des tags assignés dans la liste des fonctionnalités ci-dessous.' },
   categories: [
     { name: 'Menu digital', items: [
@@ -428,6 +429,7 @@ let DATA = JSON.parse(localStorage.getItem('tensai_guide_data') || JSON.stringif
 function migrateData(){
   if(!DATA.offersHeader) DATA.offersHeader = DEFAULT_DATA.offersHeader;
   if(!DATA.installationLabel) DATA.installationLabel = DEFAULT_DATA.installationLabel;
+  if(!DATA.cardColors) DATA.cardColors = {};
   if(DATA.installationLabel==='Installation complète et formation') DATA.installationLabel = DEFAULT_DATA.installationLabel;
   if(!DATA.offerMeta.services) DATA.offerMeta.services = DEFAULT_DATA.offerMeta.services;
 
@@ -710,8 +712,11 @@ function renderOffers(){
     const newItems = prevTag ? items.filter(i=>!prevItems.some(p=>p.name===i.name)) : items;
     const inheritedCount = prevTag ? items.filter(i=>prevItems.some(p=>p.name===i.name)).length : 0;
 
+    const customColor = DATA.cardColors[tag];
+    const customBgStyle = customColor ? ` style="background:${hexToRgba(customColor,0.09)}"` : '';
+
     return `
-    <div class="offer-card ${tag}">
+    <div class="offer-card ${tag}"${customBgStyle}>
       ${isAgence ? `
       <div style="margin-bottom:14px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:${editable?'8px':'4px'}">
@@ -806,6 +811,13 @@ function renderOffers(){
           ${editable?`<input class="feature-name-input" style="font-size:12px;color:var(--text2);font-style:italic;padding:0;width:100%" value="${esc(meta.categoriesNote||'')}" placeholder="Note de bas de bloc (optionnel)…" onchange="DATA.offerMeta['${tag}'].categoriesNote=this.value;save()">`:''}
           </div>
           <button class="offer-cta" type="button" style="width:auto;margin-bottom:0;padding:12px 22px;flex:none">Sur devis</button>
+        </div>
+      ` : ''}
+      ${editable ? `
+        <div style="display:flex;align-items:center;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+          <input type="color" value="${customColor||'#ffffff'}" style="width:32px;height:28px;border:1px solid var(--border);border-radius:6px;padding:2px;background:#fff;cursor:pointer" onchange="DATA.cardColors['${tag}']=this.value;save();renderOffers()">
+          <span style="font-size:11px;color:var(--text3)">Couleur du bloc</span>
+          ${customColor?`<button type="button" style="font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;text-decoration:underline;margin-left:auto" onclick="delete DATA.cardColors['${tag}'];save();renderOffers()">Réinitialiser</button>`:''}
         </div>
       ` : ''}
     </div>`;
@@ -1025,6 +1037,11 @@ function onRowTouchEnd(e){
 // UTILS
 // ══════════════════════════════════════════
 function esc(s){ return (s||'').toString().replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function hexToRgba(hex, alpha){
+  const h = hex.replace('#','');
+  const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
 function formatPointText(s){
   let t = esc(s);
   t = t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
