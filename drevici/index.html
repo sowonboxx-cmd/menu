@@ -1857,13 +1857,22 @@ function renderTabContent(tab,lbOffset){
     // 2. Media (photo or video)
     if(DATA.homeTab&&DATA.homeTab.video){
       const videoUrl=DATA.homeTab.video;
-      let embedUrl='';
+      const ratio=DATA.homeTab.videoRatio||'16/9';
       const ytMatch=videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
       const vimeoMatch=videoUrl.match(/vimeo\.com\/([\d]+)/);
-      if(ytMatch) embedUrl=`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=0&rel=0&controls=0&modestbranding=1&showinfo=0`;
-      else if(vimeoMatch) embedUrl=`https://player.vimeo.com/video/${vimeoMatch[1]}?controls=0&title=0&byline=0&portrait=0`;
-      else embedUrl=videoUrl;
-      if(embedUrl) html+=`<div class="home-photo-wrap" style="aspect-ratio:4/3;background:#000"><iframe src="${embedUrl+(embedUrl.includes('?')?'&':'?')+'autoplay=1&mute=1&controls=0&loop=1&playsinline=1'}" style="width:100%;height:100%;border:none;pointer-events:none" allow="autoplay; encrypted-media" allowfullscreen loading="lazy"></iframe></div>`;
+      const isDirectFile=/\.(mp4|webm|mov)(\?|$)/i.test(videoUrl);
+      if(isDirectFile && !ytMatch && !vimeoMatch){
+        // A direct video file plays natively — autoplay/loop/mute work
+        // as real HTML attributes here, unlike the YouTube/Vimeo iframe
+        // embeds below which only respond to their own query params.
+        html+=`<div class="home-photo-wrap" style="aspect-ratio:${ratio};background:#000"><video src="${videoUrl}" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover"></video></div>`;
+      } else {
+        let embedUrl='';
+        if(ytMatch) embedUrl=`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=0&rel=0&controls=0&modestbranding=1&showinfo=0`;
+        else if(vimeoMatch) embedUrl=`https://player.vimeo.com/video/${vimeoMatch[1]}?controls=0&title=0&byline=0&portrait=0`;
+        else embedUrl=videoUrl;
+        if(embedUrl) html+=`<div class="home-photo-wrap" style="aspect-ratio:${ratio};background:#000"><iframe src="${embedUrl+(embedUrl.includes('?')?'&':'?')+'autoplay=1&mute=1&controls=0&loop=1&playsinline=1'}" style="width:100%;height:100%;border:none;pointer-events:none" allow="autoplay; encrypted-media" allowfullscreen loading="lazy"></iframe></div>`;
+      }
     } else if(DATA.homeTab&&DATA.homeTab.photo){
       html+=`<div class="home-photo-wrap"><img class="home-photo" src="${DATA.homeTab.photo}" alt="Photo restaurant" loading="lazy" onload="clampHomePhotoRatio(this)"></div>`;
     }
@@ -2514,6 +2523,18 @@ function renderAdminHomeTab(){
       <input class="ai" value="${(DATA.homeTab&&DATA.homeTab.photo)||''}" placeholder="https://... .jpg ou .webp"
         oninput="if(!DATA.homeTab)DATA.homeTab={};DATA.homeTab.photo=this.value.trim();DATA.homeTab.video='';renderAll()">
       <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-top:4px">Format recommandé : 4:3, min 800px.</div>
+    </div>
+    <div class="af"><label class="al">Vidéo (URL YouTube, Vimeo, ou lien direct .mp4)</label>
+      <input class="ai" value="${(DATA.homeTab&&DATA.homeTab.video)||''}" placeholder="https://youtube.com/watch?v=... ou https://vimeo.com/..."
+        oninput="if(!DATA.homeTab)DATA.homeTab={};DATA.homeTab.video=this.value.trim();DATA.homeTab.photo='';renderAll()">
+      <div class="af" style="margin-top:8px;margin-bottom:0"><label class="al" style="font-size:11px">Format de la vidéo</label>
+        <select class="ai" onchange="if(!DATA.homeTab)DATA.homeTab={};DATA.homeTab.videoRatio=this.value;renderAll()">
+          <option value="16/9" ${(!DATA.homeTab||!DATA.homeTab.videoRatio||DATA.homeTab.videoRatio==='16/9')?'selected':''}>16:9 (paysage)</option>
+          <option value="1/1" ${(DATA.homeTab&&DATA.homeTab.videoRatio==='1/1')?'selected':''}>1:1 (carré)</option>
+          <option value="9/16" ${(DATA.homeTab&&DATA.homeTab.videoRatio==='9/16')?'selected':''}>9:16 (vertical / story)</option>
+        </select>
+      </div>
+      <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-top:4px">La vidéo remplace la photo si les deux sont renseignées.</div>
     </div>
   </div></div>`;
   // Présentation
