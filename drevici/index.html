@@ -287,7 +287,9 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 
 /* ── HOME TAB ── */
 .home-photo{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:var(--r);display:block}
-.home-photo-wrap{border-radius:var(--r);overflow:hidden;border:1px solid var(--border)}
+.home-photo-wrap{border-radius:var(--r);overflow:hidden;border:1px solid #EBEBEB}
+.video-mute-btn{position:absolute;bottom:10px;right:10px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.55);border:none;color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;transition:background .15s}
+.video-mute-btn:hover{background:rgba(0,0,0,.75)}
 .home-schedule-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#fff;border-radius:var(--r);border:1px solid var(--border)}
 .home-schedule-label{font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);font-family:'Jost',sans-serif}
 
@@ -1551,6 +1553,31 @@ function clampHomePhotoRatio(img){
   img.style.aspectRatio = clamped;
 }
 
+// Home tab background video is forced muted for autoplay to work at
+// all in modern browsers — but that means no way to hear it otherwise.
+// This button un-mutes on click: a real property toggle for a native
+// <video>, or a postMessage command for YouTube/Vimeo iframes (each
+// platform has its own tiny protocol for this, since we can't reach
+// into a cross-origin iframe directly).
+function toggleHomeVideoMute(btn){
+  const wrap=btn.closest('.home-photo-wrap');
+  if(!wrap) return;
+  const nowUnmuted=!wrap.classList.contains('video-unmuted');
+  const video=wrap.querySelector('video');
+  const iframe=wrap.querySelector('iframe');
+  if(video){ video.muted=!nowUnmuted; }
+  if(iframe){
+    const src=iframe.src||'';
+    if(src.includes('youtube.com')){
+      iframe.contentWindow.postMessage(JSON.stringify({event:'command',func:nowUnmuted?'unMute':'mute',args:[]}), '*');
+    } else if(src.includes('vimeo.com')){
+      iframe.contentWindow.postMessage(JSON.stringify({method:'setVolume',value:nowUnmuted?1:0}), '*');
+    }
+  }
+  wrap.classList.toggle('video-unmuted', nowUnmuted);
+  btn.textContent = nowUnmuted ? '🔊' : '🔇';
+}
+
 function setView(v){ view=v; renderAll(); }
 
 // ── Grey-placeholder → fade-in for content photos ──
@@ -1861,17 +1888,21 @@ function renderTabContent(tab,lbOffset){
       const ytMatch=videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
       const vimeoMatch=videoUrl.match(/vimeo\.com\/([\d]+)/);
       const isDirectFile=/\.(mp4|webm|mov)(\?|$)/i.test(videoUrl);
+      const muteBtnHtml=`<button type="button" class="video-mute-btn" onclick="toggleHomeVideoMute(this)" aria-label="Activer/couper le son">🔇</button>`;
       if(isDirectFile && !ytMatch && !vimeoMatch){
         // A direct video file plays natively — autoplay/loop/mute work
         // as real HTML attributes here, unlike the YouTube/Vimeo iframe
         // embeds below which only respond to their own query params.
-        html+=`<div class="home-photo-wrap" style="aspect-ratio:${ratio};background:#000"><video src="${videoUrl}" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover"></video></div>`;
+        html+=`<div class="home-photo-wrap" style="position:relative;aspect-ratio:${ratio};background:#000"><video src="${videoUrl}" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover"></video>${muteBtnHtml}</div>`;
       } else {
         let embedUrl='';
-        if(ytMatch) embedUrl=`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=0&rel=0&controls=0&modestbranding=1&showinfo=0`;
+        // enablejsapi=1 lets the mute button below talk to the embed via
+        // postMessage — otherwise there'd be no way to unmute a
+        // YouTube/Vimeo background video at all once it's forced muted.
+        if(ytMatch) embedUrl=`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=0&rel=0&controls=0&modestbranding=1&showinfo=0&enablejsapi=1`;
         else if(vimeoMatch) embedUrl=`https://player.vimeo.com/video/${vimeoMatch[1]}?controls=0&title=0&byline=0&portrait=0`;
         else embedUrl=videoUrl;
-        if(embedUrl) html+=`<div class="home-photo-wrap" style="aspect-ratio:${ratio};background:#000"><iframe src="${embedUrl+(embedUrl.includes('?')?'&':'?')+'autoplay=1&mute=1&controls=0&loop=1&playsinline=1'}" style="width:100%;height:100%;border:none;pointer-events:none" allow="autoplay; encrypted-media" allowfullscreen loading="lazy"></iframe></div>`;
+        if(embedUrl) html+=`<div class="home-photo-wrap" style="position:relative;aspect-ratio:${ratio};background:#000"><iframe src="${embedUrl+(embedUrl.includes('?')?'&':'?')+'autoplay=1&mute=1&controls=0&loop=1&playsinline=1'}" style="width:100%;height:100%;border:none;pointer-events:none" allow="autoplay; encrypted-media" allowfullscreen loading="lazy"></iframe>${muteBtnHtml}</div>`;
       }
     } else if(DATA.homeTab&&DATA.homeTab.photo){
       html+=`<div class="home-photo-wrap"><img class="home-photo" src="${DATA.homeTab.photo}" alt="Photo restaurant" loading="lazy" onload="clampHomePhotoRatio(this)"></div>`;
