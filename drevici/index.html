@@ -1882,7 +1882,8 @@ function renderTabContent(tab,lbOffset){
       html+=`<div class="intro-card" data-edit="intro"><div class="intro-card-label">À propos</div><div class="intro-card-text">${t(DATA.intro.text)}</div></div>`;
     }
     // 2. Media (photo or video)
-    if(DATA.homeTab&&DATA.homeTab.video){
+    const wantVideo = DATA.homeTab && DATA.homeTab.mediaChoice==='video' && DATA.homeTab.video;
+    if(wantVideo){
       const videoUrl=DATA.homeTab.video;
       const ratio=DATA.homeTab.videoRatio||'16/9';
       const ytMatch=videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
@@ -2550,14 +2551,21 @@ function renderAdminHomeTab(){
   // Onglet Accueil
   h+=`<div class="admin-section"><div class="admin-sect-title">Onglet Accueil</div><div class="admin-sect-body">
     <label class="admin-toggle"><input type="checkbox" ${(DATA.homeTab&&DATA.homeTab.active)?'checked':''} onchange="if(!DATA.homeTab)DATA.homeTab={};DATA.homeTab.active=this.checked;toggleHomeTab();renderAll();renderAdminTabDd();renderAdminSection('__home')"><label>Activer l'onglet Accueil (en premier)</label></label>
+    <div class="af"><label class="al">Média affiché</label>
+      <div style="display:flex;gap:16px;margin-top:2px">
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="homeMediaChoice" value="photo" ${(!DATA.homeTab||DATA.homeTab.mediaChoice!=='video')?'checked':''} onchange="if(!DATA.homeTab)DATA.homeTab={};DATA.homeTab.mediaChoice='photo';renderAll()"> Photo</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="homeMediaChoice" value="video" ${(DATA.homeTab&&DATA.homeTab.mediaChoice==='video')?'checked':''} onchange="if(!DATA.homeTab)DATA.homeTab={};DATA.homeTab.mediaChoice='video';renderAll()"> Vidéo</label>
+      </div>
+      <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-top:4px">Les deux liens ci-dessous restent enregistrés même si l'un des deux n'est pas affiché — pratique pour alterner sans avoir à retaper l'URL à chaque fois.</div>
+    </div>
     <div class="af"><label class="al">Photo principale (4:3)</label>
       <input class="ai" value="${(DATA.homeTab&&DATA.homeTab.photo)||''}" placeholder="https://... .jpg ou .webp"
-        oninput="if(!DATA.homeTab)DATA.homeTab={};DATA.homeTab.photo=this.value.trim();DATA.homeTab.video='';renderAll()">
+        oninput="if(!DATA.homeTab)DATA.homeTab={};DATA.homeTab.photo=this.value.trim();renderAll()">
       <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-top:4px">Format recommandé : 4:3, min 800px.</div>
     </div>
     <div class="af"><label class="al">Vidéo (URL YouTube, Vimeo, ou lien direct .mp4)</label>
       <input class="ai" value="${(DATA.homeTab&&DATA.homeTab.video)||''}" placeholder="https://youtube.com/watch?v=... ou https://vimeo.com/..."
-        oninput="if(!DATA.homeTab)DATA.homeTab={};DATA.homeTab.video=this.value.trim();DATA.homeTab.photo='';renderAll()">
+        oninput="if(!DATA.homeTab)DATA.homeTab={};DATA.homeTab.video=this.value.trim();renderAll()">
       <div class="af" style="margin-top:8px;margin-bottom:0"><label class="al" style="font-size:11px">Format de la vidéo</label>
         <select class="ai" onchange="if(!DATA.homeTab)DATA.homeTab={};DATA.homeTab.videoRatio=this.value;renderAll()">
           <option value="16/9" ${(!DATA.homeTab||!DATA.homeTab.videoRatio||DATA.homeTab.videoRatio==='16/9')?'selected':''}>16:9 (paysage)</option>
@@ -2565,7 +2573,6 @@ function renderAdminHomeTab(){
           <option value="9/16" ${(DATA.homeTab&&DATA.homeTab.videoRatio==='9/16')?'selected':''}>9:16 (vertical / story)</option>
         </select>
       </div>
-      <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-top:4px">La vidéo remplace la photo si les deux sont renseignées.</div>
     </div>
   </div></div>`;
   // Présentation
