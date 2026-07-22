@@ -288,8 +288,9 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 /* ── HOME TAB ── */
 .home-photo{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:var(--r);display:block}
 .home-photo-wrap{border-radius:var(--r);overflow:hidden;border:1px solid #EBEBEB}
-.video-mute-btn{position:absolute;bottom:10px;right:10px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.55);border:none;color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;transition:background .15s}
-.video-mute-btn:hover{background:rgba(0,0,0,.75)}
+.video-mute-btn{position:absolute;bottom:10px;right:10px;width:34px;height:34px;border-radius:11px;background:rgba(30,20,15,.72);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;transition:background .15s}
+.video-mute-btn:hover{background:rgba(30,20,15,.9)}
+.video-mute-btn svg{width:17px;height:17px}
 .home-schedule-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#fff;border-radius:var(--r);border:1px solid var(--border)}
 .home-schedule-label{font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);font-family:'Jost',sans-serif}
 
@@ -1575,7 +1576,9 @@ function toggleHomeVideoMute(btn){
     }
   }
   wrap.classList.toggle('video-unmuted', nowUnmuted);
-  btn.textContent = nowUnmuted ? '🔊' : '🔇';
+  btn.innerHTML = nowUnmuted
+    ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18 6a9 9 0 0 1 0 12"/></svg>`
+    : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5z"/><line x1="16" y1="9" x2="22" y2="15"/><line x1="22" y1="9" x2="16" y2="15"/></svg>`;
 }
 
 function setView(v){ view=v; renderAll(); }
@@ -1889,7 +1892,11 @@ function renderTabContent(tab,lbOffset){
       const ytMatch=videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
       const vimeoMatch=videoUrl.match(/vimeo\.com\/([\d]+)/);
       const isDirectFile=/\.(mp4|webm|mov)(\?|$)/i.test(videoUrl);
-      const muteBtnHtml=`<button type="button" class="video-mute-btn" onclick="toggleHomeVideoMute(this)" aria-label="Activer/couper le son">🔇</button>`;
+      // Flat line-art icons matching the reference style (rounded-square
+      // dark badge, white speaker glyph) instead of relying on emoji,
+      // which render inconsistently across platforms/fonts.
+      const muteIconSvg=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5z"/><line x1="16" y1="9" x2="22" y2="15"/><line x1="22" y1="9" x2="16" y2="15"/></svg>`;
+      const muteBtnHtml=`<button type="button" class="video-mute-btn" onclick="toggleHomeVideoMute(this)" aria-label="Activer/couper le son">${muteIconSvg}</button>`;
       if(isDirectFile && !ytMatch && !vimeoMatch){
         // A direct video file plays natively — autoplay/loop/mute work
         // as real HTML attributes here, unlike the YouTube/Vimeo iframe
