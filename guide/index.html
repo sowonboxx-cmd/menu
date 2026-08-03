@@ -42,7 +42,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .section{padding:48px 0}
 .section-label{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:8px}
 .section-label-pill{display:inline-block;background:#F0F0F2;color:var(--text3);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-radius:20px;margin-bottom:18px}
-.section-title{font-family:'Inter',sans-serif;font-size:clamp(28px,3.6vw,40px);font-weight:700;color:var(--text);margin-bottom:10px;letter-spacing:-.02em}
+.section-title{font-family:'Inter',sans-serif;font-size:clamp(28px,3.6vw,40px);font-weight:600;color:var(--text);margin-bottom:10px;letter-spacing:-.02em}
 .section-sub{font-size:16px;color:var(--text2);max-width:600px;line-height:1.6}
 .section-hdr-row{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:24px}
 
@@ -179,11 +179,11 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .ov2-icon{width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;flex:none}
 .ov2-icon img{width:28px;height:28px;object-fit:contain}
 .ov2-label{font-size:12px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;margin-bottom:4px}
-.ov2-title{font-size:19px;font-weight:800;color:var(--text);line-height:1.2}
+.ov2-title{font-size:19px;font-weight:700;color:var(--text);line-height:1.2}
 .ov2-subtitle{font-size:14px;color:var(--text2);margin-bottom:18px;line-height:1.4}
 .ov2-divider{height:1px;background:var(--border);margin-bottom:18px}
 .ov2-price-row{display:flex;align-items:baseline;gap:6px;margin-bottom:4px}
-.ov2-price{font-size:32px;font-weight:800;color:var(--text);letter-spacing:-.01em}
+.ov2-price{font-size:32px;font-weight:600;color:var(--text);letter-spacing:-.01em}
 .ov2-price-old{font-size:15px;font-weight:600;color:var(--text3);text-decoration:line-through}
 .ov2-install{font-size:12.5px;color:var(--text3);margin-bottom:20px}
 .ov2-features{display:flex;flex-direction:column;gap:11px;margin-bottom:22px}
@@ -212,7 +212,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .offer-card-count{font-size:11px;color:var(--text3);margin-bottom:14px}
 .offer-feature-line{display:flex;gap:8px;align-items:flex-start;font-size:14px;color:var(--text2);margin-bottom:10px;line-height:1.45}
 .offer-feature-line .check{color:var(--text3);flex:none;font-weight:700;margin-top:1px}
-.offer-cta{display:flex;align-items:center;justify-content:center;width:100%;padding:15px 18px;border:none;border-radius:10px;background:var(--navy);color:#fff;font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;margin-bottom:14px;font-family:'Inter',sans-serif;transition:opacity .15s}
+.offer-cta{display:flex;align-items:center;justify-content:center;width:100%;padding:15px 18px;border:none;border-radius:10px;background:#7ba5c3;color:#fff;font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;margin-bottom:14px;font-family:'Inter',sans-serif;transition:opacity .15s}
 .offer-cta:hover{opacity:.88}
 .offer-vat-note{font-size:11px;color:var(--text3);margin-bottom:20px}
 .offer-points-box{background:rgba(15,42,61,.04);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
@@ -401,7 +401,7 @@ table.matrix tr:hover td{background:#fafaf7}
 // DEFAULT DATA
 // ══════════════════════════════════════════
 const DEFAULT_DATA = {
-  installationLabel: 'Installation & prise en main incluse',
+  installationLabel: 'Installation & prise en main',
   cardColors: {},
   offersHeader: { label:'Vos offres packagées', title:'Trois offres. Tout compris.', subtitle:'Gérez, développez et fidélisez votre restaurant depuis votre téléphone.', cta:'Sur devis' },
   appleCardsHeader: { label:'MODE AGENCE', title:'On s\'occupe du reste', subtitle:'L\'humain là où l\'IA s\'arrête', cta:'Sur devis' },
@@ -522,6 +522,7 @@ function migrateData(){
   });
   if(DATA.installationLabel==='Installation complète et formation') DATA.installationLabel = DEFAULT_DATA.installationLabel;
   if(DATA.installationLabel==='Installation & prise en main') DATA.installationLabel = DEFAULT_DATA.installationLabel;
+  if(DATA.installationLabel==='Installation & prise en main incluse') DATA.installationLabel = DEFAULT_DATA.installationLabel;
   if(!DATA.offerMeta.services) DATA.offerMeta.services = DEFAULT_DATA.offerMeta.services;
 
   // One-time: convert legacy "Services complémentaires" categories block into
@@ -779,18 +780,14 @@ function renderOffersHeader(){
   const el = document.getElementById('offersHeader');
   const h = DATA.offersHeader || DEFAULT_DATA.offersHeader;
   el.innerHTML = editMode ? `
-    <input class="feature-name-input" style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding:0;width:100%" value="${esc(h.label||'')}" placeholder="Label (pastille, ex: Vos offres packagées)" onchange="DATA.offersHeader.label=this.value;save();renderOffersHeader()">
-    <input class="feature-name-input" style="font-size:clamp(22px,3vw,28px);font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:8px;padding:0;width:100%" value="${esc(h.title)}" placeholder="Titre de la section" onchange="DATA.offersHeader.title=this.value;save();renderOffersHeader()">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:24px">
-      <textarea style="flex:1;min-width:0;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text2);resize:vertical;min-height:44px;outline:none" placeholder="Sous-titre de la section" onchange="DATA.offersHeader.subtitle=this.value;save()">${esc(h.subtitle||'')}</textarea>
-      <input type="text" value="${esc(h.cta||'')}" placeholder="Sur devis" style="flex:none;width:110px;font-size:12px;font-weight:600;color:var(--pro);border:1px solid var(--border);border-radius:8px;padding:8px 10px" onchange="DATA.offersHeader.cta=this.value;save()">
-    </div>
+    <input class="feature-name-input" style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding:0;width:100%;text-align:center" value="${esc(h.label||'')}" placeholder="Label (pastille, ex: Vos offres packagées)" onchange="DATA.offersHeader.label=this.value;save();renderOffersHeader()">
+    <input class="feature-name-input" style="font-size:clamp(22px,3vw,28px);font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:8px;padding:0;width:100%;text-align:center" value="${esc(h.title)}" placeholder="Titre de la section" onchange="DATA.offersHeader.title=this.value;save();renderOffersHeader()">
+    <textarea style="width:100%;max-width:none;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text2);resize:vertical;min-height:44px;outline:none;margin-bottom:24px;text-align:center" placeholder="Sous-titre de la section" onchange="DATA.offersHeader.subtitle=this.value;save()">${esc(h.subtitle||'')}</textarea>
   ` : `
-    ${h.label?`<div class="section-label-pill">${esc(h.label)}</div>`:''}
-    <h2 class="section-title">${esc(h.title)}</h2>
-    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:24px;flex-wrap:wrap">
-      <p class="section-sub" style="margin:0;max-width:none;white-space:pre-wrap;flex:1;min-width:200px">${esc(h.subtitle||'')}</p>
-      ${h.cta?`<span style="color:var(--pro);font-size:12px;font-weight:600;white-space:nowrap;flex:none">${esc(h.cta)} ›</span>`:''}
+    <div style="text-align:center">
+      ${h.label?`<div class="section-label-pill">${esc(h.label)}</div>`:''}
+      <h2 class="section-title">${esc(h.title)}</h2>
+      <p class="section-sub" style="margin:0 auto 24px;max-width:none;white-space:pre-wrap">${esc(h.subtitle||'')}</p>
     </div>
   `;
 }
@@ -799,18 +796,16 @@ function renderAppleCardsHeader(){
   const el = document.getElementById('appleCardsHeader');
   const h = DATA.appleCardsHeader || DEFAULT_DATA.appleCardsHeader;
   el.innerHTML = editMode ? `
-    <input class="feature-name-input" style="font-size:14px;font-weight:700;letter-spacing:.01em;text-transform:uppercase;color:var(--text);margin-bottom:8px;padding:0;width:100%" value="${esc(h.label||'')}" placeholder="Label (ex: MODE AGENCE)" onchange="DATA.appleCardsHeader.label=this.value;save();renderAppleCardsHeader()">
-    <input class="feature-name-input" style="font-size:clamp(22px,3vw,28px);font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:8px;padding:0;width:100%" value="${esc(h.title||'')}" placeholder="Titre" onchange="DATA.appleCardsHeader.title=this.value;save();renderAppleCardsHeader()">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:24px">
-      <textarea style="flex:1;min-width:0;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text2);resize:vertical;min-height:44px;outline:none" placeholder="Sous-titre" onchange="DATA.appleCardsHeader.subtitle=this.value;save()">${esc(h.subtitle||'')}</textarea>
-      <input type="text" value="${esc(h.cta||'')}" placeholder="Sur devis" style="flex:none;width:110px;font-size:12px;font-weight:600;color:var(--pro);border:1px solid var(--border);border-radius:8px;padding:8px 10px" onchange="DATA.appleCardsHeader.cta=this.value;save()">
-    </div>
+    <input class="feature-name-input" style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding:0;width:100%;text-align:center" value="${esc(h.label||'')}" placeholder="Label (pastille, ex: MODE AGENCE)" onchange="DATA.appleCardsHeader.label=this.value;save();renderAppleCardsHeader()">
+    <input class="feature-name-input" style="font-size:clamp(22px,3vw,28px);font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:8px;padding:0;width:100%;text-align:center" value="${esc(h.title||'')}" placeholder="Titre" onchange="DATA.appleCardsHeader.title=this.value;save();renderAppleCardsHeader()">
+    <textarea style="width:100%;max-width:none;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text2);resize:vertical;min-height:44px;outline:none;margin-bottom:12px;text-align:center" placeholder="Sous-titre" onchange="DATA.appleCardsHeader.subtitle=this.value;save()">${esc(h.subtitle||'')}</textarea>
+    <input type="text" value="${esc(h.cta||'')}" placeholder="Sur devis" style="width:150px;margin:0 auto 24px;display:block;font-size:12px;font-weight:600;color:var(--pro);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center" onchange="DATA.appleCardsHeader.cta=this.value;save()">
   ` : `
-    <div class="offer-card-name" style="margin-bottom:8px">${esc(h.label||'')}</div>
-    <h2 class="section-title">${esc(h.title||'')}</h2>
-    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:24px;flex-wrap:wrap">
-      <p class="section-sub" style="margin:0;max-width:none;white-space:pre-wrap;flex:1;min-width:200px">${esc(h.subtitle||'')}</p>
-      ${h.cta?`<span style="color:var(--pro);font-size:12px;font-weight:600;white-space:nowrap;flex:none">${esc(h.cta)}</span>`:''}
+    <div style="text-align:center">
+      ${h.label?`<div class="section-label-pill">${esc(h.label)}</div>`:''}
+      <h2 class="section-title">${esc(h.title||'')}</h2>
+      <p class="section-sub" style="margin:0 auto 12px;max-width:none;white-space:pre-wrap">${esc(h.subtitle||'')}</p>
+      ${h.cta?`<div style="color:var(--pro);font-size:12px;font-weight:600;margin-bottom:24px">${esc(h.cta)}</div>`:''}
     </div>
   `;
 }
@@ -936,7 +931,7 @@ function renderOffers(){
           <span style="font-size:12px;color:var(--text3)">/mois</span>
         </div>
         <div style="display:flex;gap:6px;margin-bottom:20px;align-items:center">
-          <input type="text" value="${esc(DATA.installationLabel)}" style="font-size:11px;color:var(--text3);border:none;outline:none;background:transparent;padding:0;width:150px" onchange="DATA.installationLabel=this.value;save();renderOffers()">
+          <input type="text" value="${esc(DATA.installationLabel)}" style="font-size:11px;color:var(--text3);border:1px solid var(--border);border-radius:6px;outline:none;background:#fff;padding:4px 6px;width:160px" onchange="DATA.installationLabel=this.value;save();renderOffers()">
           <span style="font-size:11px;color:var(--text3)">:</span>
           <input class="feature-price-input" style="width:70px" type="number" value="${meta.setup}" onchange="DATA.offerMeta['${tag}'].setup=parseInt(this.value)||0;save();renderOffers()">
           <span style="font-size:12px;color:var(--text2)">€</span>
@@ -954,7 +949,7 @@ function renderOffers(){
         ${!items.length?'<div style="font-size:12px;color:var(--text3);font-style:italic">Aucune fonctionnalité assignée</div>':''}
       </div>
       <button class="offer-cta" type="button">Choisir ce plan</button>
-      <div class="ov2-footnote">${prevName ? `+ Tout le plan ${esc(prevName)} inclus` : `+ ${items.length} fonctionnalité${items.length>1?'s':''} incluse${items.length>1?'s':''}`}</div>
+      <div class="ov2-footnote">${prevName ? `Tout le plan ${esc(prevName)} inclus + ${newItems.length} fonctionnalité${newItems.length>1?'s':''}` : `+ ${items.length} fonctionnalité${items.length>1?'s':''}`}</div>
       ${editable ? `
         <div style="display:flex;align-items:center;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
           <input type="color" value="${accent}" style="width:32px;height:28px;border:1px solid var(--border);border-radius:6px;padding:2px;background:#fff;cursor:pointer" oninput="this.closest('.offer-card').querySelectorAll('.ov2-icon')[0].style.background=hexToRgba(this.value,0.12)" onchange="DATA.cardColors['${tag}']=this.value;save();renderOffers()">
