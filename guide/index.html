@@ -143,7 +143,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 
 /* ── AUTO-GENERATED OFFERS TABLE ── */
 .offers-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.apple-section-bg{background:#F5F5F7;padding:56px 0;width:100%;margin-top:48px}
+.apple-section-bg{background:#F5F5F7;padding:56px 0;width:100%}
 .offers-section-panel{background:#F5F5F7;border-radius:32px;padding:48px 40px}
 @media(max-width:640px){.offers-section-panel{padding:32px 20px}}
 .apple-cards-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
@@ -161,7 +161,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .apple-card-eyebrow{display:flex;align-items:center;gap:8px;margin-bottom:22px}
 .apple-card-eyebrow img{width:22px;height:22px;object-fit:contain;flex:none}
 .apple-card-eyebrow span{font-size:14px;font-weight:700;color:var(--text2)}
-.apple-card-title{font-size:21px;font-weight:800;color:var(--text);letter-spacing:-.015em;line-height:1.2;margin-bottom:10px;min-width:0;width:100%;white-space:pre-wrap}
+.apple-card-title{font-size:21px;font-weight:700;color:var(--text);letter-spacing:-.015em;line-height:1.2;margin-bottom:10px;min-width:0;width:100%;white-space:pre-wrap}
 .apple-card-subtitle{font-size:14px;color:var(--text2);line-height:1.45;margin-bottom:20px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text','Inter',sans-serif;font-weight:400;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap;min-width:0;width:100%}
 .apple-card-bullets{display:flex;flex-direction:column;gap:8px;margin-bottom:24px}
 .apple-card-bullet{font-size:14px;color:var(--text2);display:flex;gap:7px;align-items:flex-start;line-height:1.4}
@@ -188,7 +188,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .ov2-install{font-size:12.5px;color:var(--text3);margin-bottom:20px}
 .ov2-features{display:flex;flex-direction:column;gap:11px;margin-bottom:22px}
 .ov2-feature{display:flex;gap:9px;align-items:flex-start;font-size:14px;color:var(--text2);line-height:1.4}
-.ov2-check{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;color:#fff;font-size:10px;font-weight:800;margin-top:1px}
+.ov2-check{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;color:#fff;font-size:10px;font-weight:800;margin-top:1px;opacity:.85}
 .ov2-footnote{font-size:12.5px;color:var(--text3);margin-top:14px}
 .offers-trust-bar{display:flex;align-items:center;background:#fff;border-radius:20px;padding:24px 32px;margin-top:20px;gap:0}
 .otb-item{display:flex;align-items:center;gap:14px;flex:1;padding:0 20px}
@@ -813,27 +813,28 @@ function renderAppleCardsHeader(){
 function renderAppleCards(){
   const el = document.getElementById('appleCardsGrid');
   const editable = editMode;
+  const titleColors = ['#0a861a','#cc29bc','#3746e0','#eb660c'];
   el.innerHTML = DATA.appleCards.map((c, ci)=>`
     <div class="apple-card">
       ${editable ? `
+        <textarea placeholder="Grand titre (Entrée = retour à la ligne)" style="font-size:16px;font-weight:700;color:${titleColors[ci%titleColors.length]};border:1px solid var(--border);border-radius:6px;padding:6px 8px;margin-bottom:10px;width:100%;resize:vertical;min-height:44px;font-family:'Inter',sans-serif" onchange="DATA.appleCards[${ci}].title=this.value;save()">${esc(c.title||'')}</textarea>
         <div style="display:flex;gap:6px;margin-bottom:10px">
           <input type="text" value="${esc(c.icon||'')}" placeholder="URL icône" style="width:70px;font-size:10px;border:1px solid var(--border);border-radius:6px;padding:4px 6px;color:var(--text2)" onchange="DATA.appleCards[${ci}].icon=this.value;save();renderAppleCards()">
           <input type="text" value="${esc(c.label||'')}" placeholder="Label" style="flex:1;font-size:12px;font-weight:700;border:1px solid var(--border);border-radius:6px;padding:4px 6px;color:var(--text2);min-width:0" onchange="DATA.appleCards[${ci}].label=this.value;save()">
         </div>
-        <textarea placeholder="Grand titre (Entrée = retour à la ligne)" style="font-size:16px;font-weight:800;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;margin-bottom:8px;width:100%;resize:vertical;min-height:44px;font-family:'Inter',sans-serif" onchange="DATA.appleCards[${ci}].title=this.value;save()">${esc(c.title||'')}</textarea>
         <textarea placeholder="Sous-titre" style="font-size:12px;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;margin-bottom:10px;width:100%;resize:vertical;min-height:44px;font-family:'Inter',sans-serif" onchange="DATA.appleCards[${ci}].subtitle=this.value;save()">${esc(c.subtitle||'')}</textarea>
         <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">
         ${[0,1,2].map(bi=>`<input type="text" value="${esc(c.bullets[bi]||'')}" placeholder="Bullet ${bi+1}" style="font-size:11px;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;width:100%" onchange="DATA.appleCards[${ci}].bullets[${bi}]=this.value;save()">`).join('')}
         </div>
         <input type="text" value="${esc(c.image||'')}" placeholder="URL image (bas de carte)" style="font-size:11px;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;margin-bottom:16px;width:100%" onchange="DATA.appleCards[${ci}].image=this.value;save();renderAppleCards()">
       ` : `
+        ${c.title?`<div class="apple-card-title" style="color:${titleColors[ci%titleColors.length]}">${esc(c.title)}</div>`:''}
         ${(c.icon||c.label) ? `
         <div class="apple-card-eyebrow">
           ${c.icon?`<img src="${esc(c.icon)}" alt="">`:''}
           ${c.label?`<span>${esc(c.label)}</span>`:''}
         </div>
         ` : ''}
-        ${c.title?`<div class="apple-card-title">${esc(c.title)}</div>`:''}
         ${c.subtitle?`<div class="apple-card-subtitle">${esc(c.subtitle)}</div>`:''}
         ${(c.bullets||[]).some(b=>b) ? `
         <div class="apple-card-bullets">
@@ -942,7 +943,7 @@ function renderOffers(){
           ${meta.price>0?`<span style="font-size:14px;color:var(--text3)">/mois</span>`:''}
           ${meta.oldPrice>meta.price?`<span class="ov2-price-old">€${meta.oldPrice.toFixed(0)}</span>`:''}
         </div>
-        <div class="ov2-install">${esc(DATA.installationLabel)}</div>
+        <div class="ov2-install">${esc(DATA.installationLabel)}${meta.setup>0?` : ${meta.setup.toLocaleString('fr-FR')} €`:''}</div>
       `}
       <div class="ov2-features">
         ${shown.join('')}
