@@ -315,13 +315,14 @@ table.matrix tr:hover td{background:#fafaf7}
 </div>
 
 <div class="wrap">
-
   <div class="edit-banner" id="editBanner">
     ✎ Mode édition activé — modifiez librement, tout se sauvegarde automatiquement dans ce navigateur. Pensez à exporter régulièrement pour synchroniser entre vos appareils.
   </div>
+</div>
 
-  <!-- ════════ OFFRES AUTO-GÉNÉRÉES (haut : Entrée/Menu/Signature) ════════ -->
-  <div class="section offers-section-panel">
+<!-- ════════ OFFRES AUTO-GÉNÉRÉES (haut : Entrée/Menu/Signature) — fond gris plein largeur ════════ -->
+<div class="apple-section-bg" style="margin-top:0">
+  <div class="wrap">
     <div id="offersHeader"></div>
     <div class="offers-grid" id="offersAutoTop"></div>
     <div class="offers-trust-bar" id="offersTrustBar"></div>
@@ -400,7 +401,7 @@ table.matrix tr:hover td{background:#fafaf7}
 // DEFAULT DATA
 // ══════════════════════════════════════════
 const DEFAULT_DATA = {
-  installationLabel: 'Installation & prise en main',
+  installationLabel: 'Installation & prise en main incluse',
   cardColors: {},
   offersHeader: { label:'Vos offres packagées', title:'Trois offres. Tout compris.', subtitle:'Gérez, développez et fidélisez votre restaurant depuis votre téléphone.', cta:'Sur devis' },
   appleCardsHeader: { label:'MODE AGENCE', title:'On s\'occupe du reste', subtitle:'L\'humain là où l\'IA s\'arrête', cta:'Sur devis' },
@@ -520,6 +521,7 @@ function migrateData(){
     while(c.bullets.length<3) c.bullets.push('');
   });
   if(DATA.installationLabel==='Installation complète et formation') DATA.installationLabel = DEFAULT_DATA.installationLabel;
+  if(DATA.installationLabel==='Installation & prise en main') DATA.installationLabel = DEFAULT_DATA.installationLabel;
   if(!DATA.offerMeta.services) DATA.offerMeta.services = DEFAULT_DATA.offerMeta.services;
 
   // One-time: convert legacy "Services complémentaires" categories block into
@@ -897,11 +899,9 @@ function renderOffers(){
     const newItems = prevTag ? items.filter(i=>!prevItems.some(p=>p.name===i.name)) : items;
     const prevName = prevTag ? DATA.offerMeta[prevTag].name : null;
 
-    const expanded = expandedFeatureCards.has(tag);
     const lines = [];
     newItems.forEach(i=>lines.push(`<div class="ov2-feature"><span class="ov2-check" style="background:${accent}">✓</span><span>${esc(i.name)}${i.price?` <span style="color:var(--text3)">(+${i.price}€)</span>`:''}</span></div>`));
-    const shown = expanded ? lines : lines.slice(0,8);
-    const total = newItems.length;
+    const shown = lines.slice(0,4);
 
     return `
     <div class="offer-card ${tag}">
@@ -947,13 +947,12 @@ function renderOffers(){
           ${meta.price>0?`<span style="font-size:14px;color:var(--text3)">/mois</span>`:''}
           ${meta.oldPrice>meta.price?`<span class="ov2-price-old">€${meta.oldPrice.toFixed(0)}</span>`:''}
         </div>
-        <div class="ov2-install">${esc(DATA.installationLabel)} incluse</div>
+        <div class="ov2-install">${esc(DATA.installationLabel)}</div>
       `}
       <div class="ov2-features">
         ${shown.join('')}
         ${!items.length?'<div style="font-size:12px;color:var(--text3);font-style:italic">Aucune fonctionnalité assignée</div>':''}
       </div>
-      ${total>8 ? `<button type="button" onclick="toggleCardFeatures('${tag}')" style="background:none;border:none;color:var(--pro);font-size:12px;font-weight:600;cursor:pointer;padding:0 0 14px;text-align:left">${expanded?'Voir moins':'Tout voir'}</button>` : ''}
       <button class="offer-cta" type="button">Choisir ce plan</button>
       <div class="ov2-footnote">${prevName ? `+ Tout le plan ${esc(prevName)} inclus` : `+ ${items.length} fonctionnalité${items.length>1?'s':''} incluse${items.length>1?'s':''}`}</div>
       ${editable ? `
