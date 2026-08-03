@@ -41,6 +41,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .wrap{max-width:1320px;margin:0 auto;padding:0 20px}
 .section{padding:48px 0}
 .section-label{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:8px}
+.section-label-pill{display:inline-block;background:#F0F0F2;color:var(--text3);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-radius:20px;margin-bottom:18px}
 .section-title{font-family:'Inter',sans-serif;font-size:clamp(28px,3.6vw,40px);font-weight:700;color:var(--text);margin-bottom:10px;letter-spacing:-.02em}
 .section-sub{font-size:16px;color:var(--text2);max-width:600px;line-height:1.6}
 .section-hdr-row{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:24px}
@@ -166,12 +167,40 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .apple-card-image img{width:100%;display:block;object-fit:cover}
 .offers-grid .offer-card.agence{grid-column:1/-1}
 .offers-grid .offer-card.services{grid-column:1/-1}
-.offer-card{border-radius:20px;border:none;padding:28px 24px;position:relative;display:flex;flex-direction:column}
-.offer-card.base{background:var(--tint-base)}
-.offer-card.pro{background:var(--tint-pro)}
-.offer-card.premium{background:var(--tint-premium)}
+.offer-card{border-radius:20px;border:1px solid var(--border);background:#fff;padding:32px 28px;position:relative;display:flex;flex-direction:column;box-shadow:0 1px 3px rgba(15,42,61,.05)}
+.offer-card.base{background:#fff}
+.offer-card.pro{background:#fff}
+.offer-card.premium{background:#fff}
 .offer-card.agence{background:var(--tint-agence)}
 .offer-card.services{background:var(--tint-services)}
+.ov2-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:10px}
+.ov2-icon{width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;flex:none}
+.ov2-icon img{width:28px;height:28px;object-fit:contain}
+.ov2-label{font-size:12px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;margin-bottom:4px}
+.ov2-title{font-size:19px;font-weight:800;color:var(--text);line-height:1.2}
+.ov2-subtitle{font-size:14px;color:var(--text2);margin-bottom:18px;line-height:1.4}
+.ov2-divider{height:1px;background:var(--border);margin-bottom:18px}
+.ov2-price-row{display:flex;align-items:baseline;gap:6px;margin-bottom:4px}
+.ov2-price{font-size:32px;font-weight:800;color:var(--text);letter-spacing:-.01em}
+.ov2-price-old{font-size:15px;font-weight:600;color:var(--text3);text-decoration:line-through}
+.ov2-install{font-size:12.5px;color:var(--text3);margin-bottom:20px}
+.ov2-features{display:flex;flex-direction:column;gap:11px;margin-bottom:22px}
+.ov2-feature{display:flex;gap:9px;align-items:flex-start;font-size:14px;color:var(--text2);line-height:1.4}
+.ov2-check{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;color:#fff;font-size:10px;font-weight:800;margin-top:1px}
+.ov2-footnote{font-size:12.5px;color:var(--text3);margin-top:14px}
+.offers-trust-bar{display:flex;align-items:center;background:#F7F7F8;border-radius:20px;padding:24px 32px;margin-top:20px;gap:0}
+.otb-item{display:flex;align-items:center;gap:14px;flex:1;padding:0 20px}
+.otb-item:not(:last-child){border-right:1px solid var(--border)}
+.otb-icon{width:32px;height:32px;flex:none;display:flex;align-items:center;justify-content:center}
+.otb-icon img{width:28px;height:28px;object-fit:contain}
+.otb-text{font-size:14px;color:var(--text2);line-height:1.35;white-space:pre-line}
+@media(max-width:900px){
+  .offers-trust-bar{flex-wrap:wrap;gap:16px}
+  .otb-item{flex:1 1 40%;border-right:none!important;padding:0}
+}
+@media(max-width:640px){
+  .otb-item{flex:1 1 100%}
+}
 .offer-card-name{font-size:14px;font-weight:700;letter-spacing:.01em;text-transform:uppercase;margin-bottom:18px;color:var(--text)}
 .offer-card .feature-name-input,.offer-card .feature-price-input{flex:none}
 .offer-card.base .offer-card-name{color:var(--text)}
@@ -293,6 +322,7 @@ table.matrix tr:hover td{background:#fafaf7}
   <div class="section" style="padding-bottom:0">
     <div id="offersHeader"></div>
     <div class="offers-grid" id="offersAutoTop"></div>
+    <div class="offers-trust-bar" id="offersTrustBar"></div>
   </div>
 </div>
 
@@ -370,7 +400,7 @@ table.matrix tr:hover td{background:#fafaf7}
 const DEFAULT_DATA = {
   installationLabel: 'Installation & prise en main',
   cardColors: {},
-  offersHeader: { title:'Vos offres packagées', subtitle:'Construites automatiquement à partir des tags assignés dans la liste des fonctionnalités ci-dessous.' },
+  offersHeader: { label:'Vos offres packagées', title:'Trois offres. Tout compris.', subtitle:'Gérez, développez et fidélisez votre restaurant depuis votre téléphone.', cta:'Sur devis' },
   appleCardsHeader: { label:'MODE AGENCE', title:'On s\'occupe du reste', subtitle:'L\'humain là où l\'IA s\'arrête', cta:'Sur devis' },
   appleCards: [
     { icon:'', label:'Création de contenu', title:'Chaque plat raconte une histoire', subtitle:'Photos, vidéos et Reels qui mettent votre cuisine en valeur.', bullets:['Shooting photo','Reels','Direction artistique'], image:'' },
@@ -433,9 +463,9 @@ const DEFAULT_DATA = {
     ]},
   ],
   offerMeta: {
-    base:    { name:'Entrée',    title:'Menu Digital',           subtitle:'Votre vitrine digitale, en ligne en 24h',             desc:'La solution d\'entrée pour digitaliser votre carte, générer votre QR code et rester à jour en temps réel.', price:149, setup:800 },
-    pro:     { name:'Menu',     title:'Digital + Réseaux',      subtitle:'Réseaux sociaux automatisés',          desc:'Tout le menu digital, plus les outils pour poster sur Instagram en 2 minutes et gérer votre CRM clients.', price:300, setup:1500 },
-    premium: { name:'Signature', title:'Agence Complète',        subtitle:'Une présence professionnelle de A à Z',   desc:'Notre offre complète : shooting photo, identité visuelle, optimisation Google et réseaux — clé en main.', price:500, setup:2500 },
+    base:    { name:'Entrée',    title:'Je digitalise mon restaurant',           subtitle:'Votre menu, partout.',             desc:'La solution d\'entrée pour digitaliser votre carte, générer votre QR code et rester à jour en temps réel.', price:199, setup:800, icon:'' },
+    pro:     { name:'Plat',     title:'Je remplis mes tables',      subtitle:'Des réservations automatiques. Moins de no-shows.',          desc:'Tout le menu digital, plus les outils pour poster sur Instagram en 2 minutes et gérer votre CRM clients.', price:299, setup:1500, icon:'' },
+    premium: { name:'Signature', title:'Je fais grandir mon restaurant',        subtitle:'Votre communication tourne toute seule.',   desc:'Notre offre complète : shooting photo, identité visuelle, optimisation Google et réseaux — clé en main.', price:399, setup:2500, icon:'' },
     agence:  { name:'Agence',  title:'Sur-mesure',             subtitle:'Toutes les prestations one-shot.',           desc:'Prestations à la carte : murale, mascotte, DA spécifique, setup CRM avancé. Facturé au projet.', price:0, setup:0, icon:'', categories:[
       { header:'Identité', items:['Logo','Charte graphique','Typographies','Mascotte','Direction artistique'] },
       { header:'Restaurant', items:['Habillage vitrine','Murale','Enseigne','Signalétique'] },
@@ -443,6 +473,12 @@ const DEFAULT_DATA = {
     ], categoriesNote:'C\'est un studio de création.' },
     services:{ name:'À la carte', title:'', subtitle:'', desc:'', price:0, setup:0 },
   },
+  offersTrustBar: [
+    { icon:'', text:'Tout depuis\nvotre téléphone' },
+    { icon:'', text:'Aucune commission\nAucun intermédiaire' },
+    { icon:'', text:'Sécurisé\net fiable' },
+    { icon:'', text:'Support réactif\net humain' },
+  ],
   strategy: [
     { title:'Identifier les prospects', detail:'Repérer les restaurants sans QR code, avec menu PDF périmé, ou très présents sur TheFork (signe de commissions élevées). Privilégier les indépendants avec 30+ couverts/soir.' },
     { title:'Accroche sans rendez-vous', detail:'Entrer dans le restaurant ou contacter après avoir repéré 2-3 points faibles précis sur leur présence digitale actuelle. Proposer une démo gratuite de 15 minutes, sans vendre.' },
@@ -468,6 +504,10 @@ function saveSha(v){ if(v) localStorage.setItem('gh_sha_guide',v); else localSto
 let DATA = JSON.parse(localStorage.getItem('tensai_guide_data') || JSON.stringify(DEFAULT_DATA));
 function migrateData(){
   if(!DATA.offersHeader) DATA.offersHeader = DEFAULT_DATA.offersHeader;
+  if(DATA.offersHeader && DATA.offersHeader.label===undefined) DATA.offersHeader.label = DEFAULT_DATA.offersHeader.label;
+  if(DATA.offersHeader && DATA.offersHeader.cta===undefined) DATA.offersHeader.cta = DEFAULT_DATA.offersHeader.cta;
+  if(!Array.isArray(DATA.offersTrustBar)) DATA.offersTrustBar = JSON.parse(JSON.stringify(DEFAULT_DATA.offersTrustBar));
+  ['base','pro','premium'].forEach(k=>{ if(DATA.offerMeta[k] && DATA.offerMeta[k].icon===undefined) DATA.offerMeta[k].icon = ''; });
   if(!DATA.installationLabel) DATA.installationLabel = DEFAULT_DATA.installationLabel;
   if(!DATA.cardColors) DATA.cardColors = {};
   if(!DATA.appleCardsHeader) DATA.appleCardsHeader = DEFAULT_DATA.appleCardsHeader;
@@ -654,7 +694,8 @@ function renderFeatures(){
 }
 
 function tagLabel(tag){
-  return {base:'Entrée',pro:'Menu',premium:'Signature',agence:'Agence',services:'À la carte'}[tag];
+  if(DATA.offerMeta[tag] && DATA.offerMeta[tag].name) return DATA.offerMeta[tag].name;
+  return {base:'Entrée',pro:'Plat',premium:'Signature',agence:'Agence',services:'À la carte'}[tag];
 }
 
 let infoModalTarget = null; // {ci, ii}
@@ -734,11 +775,19 @@ function renderOffersHeader(){
   const el = document.getElementById('offersHeader');
   const h = DATA.offersHeader || DEFAULT_DATA.offersHeader;
   el.innerHTML = editMode ? `
+    <input class="feature-name-input" style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding:0;width:100%" value="${esc(h.label||'')}" placeholder="Label (pastille, ex: Vos offres packagées)" onchange="DATA.offersHeader.label=this.value;save();renderOffersHeader()">
     <input class="feature-name-input" style="font-size:clamp(22px,3vw,28px);font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:8px;padding:0;width:100%" value="${esc(h.title)}" placeholder="Titre de la section" onchange="DATA.offersHeader.title=this.value;save();renderOffersHeader()">
-    <textarea style="width:100%;max-width:none;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text2);resize:vertical;min-height:44px;outline:none;margin-bottom:24px" placeholder="Sous-titre de la section" onchange="DATA.offersHeader.subtitle=this.value;save()">${esc(h.subtitle||'')}</textarea>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:24px">
+      <textarea style="flex:1;min-width:0;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text2);resize:vertical;min-height:44px;outline:none" placeholder="Sous-titre de la section" onchange="DATA.offersHeader.subtitle=this.value;save()">${esc(h.subtitle||'')}</textarea>
+      <input type="text" value="${esc(h.cta||'')}" placeholder="Sur devis" style="flex:none;width:110px;font-size:12px;font-weight:600;color:var(--pro);border:1px solid var(--border);border-radius:8px;padding:8px 10px" onchange="DATA.offersHeader.cta=this.value;save()">
+    </div>
   ` : `
+    ${h.label?`<div class="section-label-pill">${esc(h.label)}</div>`:''}
     <h2 class="section-title">${esc(h.title)}</h2>
-    <p class="section-sub" style="margin-bottom:24px;max-width:none;white-space:pre-wrap">${esc(h.subtitle||'')}</p>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:24px;flex-wrap:wrap">
+      <p class="section-sub" style="margin:0;max-width:none;white-space:pre-wrap;flex:1;min-width:200px">${esc(h.subtitle||'')}</p>
+      ${h.cta?`<span style="color:var(--pro);font-size:12px;font-weight:600;white-space:nowrap;flex:none">${esc(h.cta)} ›</span>`:''}
+    </div>
   `;
 }
 
@@ -827,58 +876,56 @@ function setupAppleCardsScrollSync(){
 // ══════════════════════════════════════════
 // AUTO-GENERATED OFFERS
 // ══════════════════════════════════════════
+const DEFAULT_ACCENT = {base:'#7C5CD6', pro:'#2F6FE0', premium:'#D2566B'};
+
 function renderOffers(){
   const allItems = DATA.categories.flatMap(c=>c.items.map(i=>({...i, cat:c.name})));
   const order = ['base','pro','premium'];
-  const prevLabel = {base:null, pro:'Entrée', premium:'Menu', agence:'Signature', services:'Agence'};
 
   const cardsHtml = order.map((tag, idx)=>{
     const meta = DATA.offerMeta[tag];
     const items = allItems.filter(i=>i.tags.includes(tag));
     const editable = editMode;
-    const isAgence = tag==='agence';
-    const isServices = tag==='services';
-    const hidePricing = isAgence || isServices;
+    const accent = DATA.cardColors[tag] || DEFAULT_ACCENT[tag];
+    const accentTint = hexToRgba(accent, 0.12);
 
     // Compute "new" items vs previous tier (items in this tier but not in the previous one)
     const prevTag = idx>0 ? order[idx-1] : null;
     const prevItems = prevTag ? allItems.filter(i=>i.tags.includes(prevTag)) : [];
     const newItems = prevTag ? items.filter(i=>!prevItems.some(p=>p.name===i.name)) : items;
-    const inheritedCount = prevTag ? items.filter(i=>prevItems.some(p=>p.name===i.name)).length : 0;
+    const prevName = prevTag ? DATA.offerMeta[prevTag].name : null;
 
-    const customColor = DATA.cardColors[tag];
-    const customBgStyle = customColor ? ` style="background:${hexToRgba(customColor,0.09)}"` : '';
+    const expanded = expandedFeatureCards.has(tag);
+    const lines = [];
+    newItems.forEach(i=>lines.push(`<div class="ov2-feature"><span class="ov2-check" style="background:${accent}">✓</span><span>${esc(i.name)}${i.price?` <span style="color:var(--text3)">(+${i.price}€)</span>`:''}</span></div>`));
+    const shown = expanded ? lines : lines.slice(0,8);
+    const total = newItems.length;
 
     return `
-    <div class="offer-card ${tag}"${customBgStyle}>
-      ${isAgence ? `
-      <div style="margin-bottom:14px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:${editable?'8px':'4px'}">
+    <div class="offer-card ${tag}">
+      <div class="ov2-header">
+        <div class="ov2-icon" style="background:${accentTint}">
           ${editable
-            ? `<input type="text" value="${esc(meta.icon||'')}" placeholder="URL icône" style="width:100px;font-size:10px;border:1px solid var(--border);border-radius:6px;padding:4px 6px;color:var(--text2)" onchange="DATA.offerMeta['${tag}'].icon=this.value;save();renderOffers()">`
-            : (meta.icon?`<img src="${esc(meta.icon)}" alt="" style="width:26px;height:26px;object-fit:contain;flex:none">`:'')
+            ? ''
+            : (meta.icon?`<img src="${esc(meta.icon)}" alt="">`:'')}
+        </div>
+        <div style="flex:1;min-width:0">
+          ${editable
+            ? `<input class="feature-name-input" value="${esc(meta.name)}" style="font-size:12px;font-weight:700;text-transform:uppercase;color:${accent};padding:0;margin-bottom:4px;width:100%" onchange="DATA.offerMeta['${tag}'].name=this.value;save()">`
+            : `<div class="ov2-label" style="color:${accent}">${esc(meta.name)}</div>`
           }
           ${editable
-            ? `<input class="feature-name-input" value="${esc(meta.name)}" style="font-size:13px;font-weight:700;text-transform:uppercase;color:inherit;padding:0;width:100%" onchange="DATA.offerMeta['${tag}'].name=this.value;save()">`
-            : `<div class="offer-card-name" style="margin-bottom:0">${meta.name}</div>`
+            ? `<textarea class="feature-name-input" placeholder="Grand titre" style="font-size:16px;font-weight:800;color:var(--text);padding:0;width:100%;resize:vertical;min-height:40px;font-family:'Inter',sans-serif" onchange="DATA.offerMeta['${tag}'].title=this.value;save()">${esc(meta.title||'')}</textarea>`
+            : `<div class="ov2-title">${esc(meta.title||'')}</div>`
           }
         </div>
-        ${editable ? `
-          <input class="feature-name-input" style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;padding:0;width:100%" value="${esc(meta.title||'')}" placeholder="Titre accrocheur…" onchange="DATA.offerMeta['${tag}'].title=this.value;save()">
-          <input class="feature-name-input" style="font-size:13px;font-weight:600;color:var(--text2);padding:0;width:100%" value="${esc(meta.subtitle||'')}" placeholder="Sous-titre…" onchange="DATA.offerMeta['${tag}'].subtitle=this.value;save()">
-        ` : `
-          ${meta.title?`<div style="font-size:19px;font-weight:700;color:var(--text);margin-bottom:6px;line-height:1.25">${esc(meta.title)}</div>`:''}
-          ${meta.subtitle?`<div style="font-size:15px;color:var(--text2)">${esc(meta.subtitle)}</div>`:''}
-        `}
       </div>
-      ` : (editable
-        ? `<input class="feature-name-input" value="${esc(meta.name)}" style="font-size:13px;font-weight:700;text-transform:uppercase;color:inherit;padding:0;margin-bottom:14px;width:100%" onchange="DATA.offerMeta['${tag}'].name=this.value;save()">`
-        : `<div class="offer-card-name">${meta.name}</div>`
-      )}
-      ${isAgence ? '' : (editable ? `
-        <input class="feature-name-input" style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;padding:0;width:100%" value="${esc(meta.title||'')}" placeholder="Titre accrocheur…" onchange="DATA.offerMeta['${tag}'].title=this.value;save()">
-        <input class="feature-name-input" style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:12px;padding:0;width:100%" value="${esc(meta.subtitle||'')}" placeholder="Sous-titre…" onchange="DATA.offerMeta['${tag}'].subtitle=this.value;save()">
-        ${hidePricing ? '' : `
+      ${editable ? `
+        <input type="text" value="${esc(meta.icon||'')}" placeholder="URL icône" style="font-size:10px;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;margin-bottom:10px;width:100%" onchange="DATA.offerMeta['${tag}'].icon=this.value;save();renderOffers()">
+        <textarea class="feature-name-input" placeholder="Sous-titre" style="font-size:13px;font-weight:500;color:var(--text2);padding:0;margin-bottom:14px;width:100%;resize:vertical;min-height:36px;font-family:'Inter',sans-serif" onchange="DATA.offerMeta['${tag}'].subtitle=this.value;save()">${esc(meta.subtitle||'')}</textarea>
+      ` : `${meta.subtitle?`<div class="ov2-subtitle">${esc(meta.subtitle)}</div>`:''}`}
+      <div class="ov2-divider"></div>
+      ${editable ? `
         <div style="display:flex;gap:6px;margin-bottom:8px;align-items:baseline">
           <span style="font-size:20px;font-weight:800;color:var(--text)">€</span>
           <input class="feature-price-input" style="width:64px;font-size:20px;font-weight:800;text-align:left;border:none;padding:0" type="number" step="0.01" value="${meta.price}" onchange="DATA.offerMeta['${tag}'].price=parseFloat(this.value)||0;save();renderOffers()">
@@ -886,96 +933,58 @@ function renderOffers(){
           <input class="feature-price-input" style="width:56px" type="number" step="0.01" value="${meta.oldPrice||''}" placeholder="—" onchange="DATA.offerMeta['${tag}'].oldPrice=parseFloat(this.value)||0;save();renderOffers()">
           <span style="font-size:12px;color:var(--text3)">/mois</span>
         </div>
-        <div style="display:flex;gap:6px;margin-bottom:14px;align-items:center">
+        <div style="display:flex;gap:6px;margin-bottom:20px;align-items:center">
           <input type="text" value="${esc(DATA.installationLabel)}" style="font-size:11px;color:var(--text3);border:none;outline:none;background:transparent;padding:0;width:150px" onchange="DATA.installationLabel=this.value;save();renderOffers()">
           <span style="font-size:11px;color:var(--text3)">:</span>
           <input class="feature-price-input" style="width:70px" type="number" value="${meta.setup}" onchange="DATA.offerMeta['${tag}'].setup=parseInt(this.value)||0;save();renderOffers()">
           <span style="font-size:12px;color:var(--text2)">€</span>
         </div>
-        <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin-bottom:6px">3 points clés</div>
-        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
-        ${(meta.points||[]).slice(0,3).map((pt,pi)=>`
-          <div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:6px">
-            <textarea placeholder="Texte (**gras**, retour à la ligne ok, 2 lignes max affichées)" style="width:100%;font-size:11px;border:none;outline:none;color:var(--text2);padding:4px;resize:vertical;min-height:36px;font-family:'Inter',sans-serif" onchange="DATA.offerMeta['${tag}'].points[${pi}].text=this.value;save();renderOffers()">${esc(pt.text||'')}</textarea>
-          </div>
-        `).join('')}
-        </div>
-        `}
       ` : `
-        ${meta.title?`<div style="font-size:19px;font-weight:700;color:var(--text);margin-bottom:6px;line-height:1.25">${esc(meta.title)}</div>`:''}
-        ${meta.subtitle?`<div style="font-size:15px;color:var(--text2);margin-bottom:14px">${esc(meta.subtitle)}</div>`:''}
-        ${hidePricing ? '' : `
-        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:2px;flex-wrap:wrap">
-          ${meta.price>0 ? `
-            <span style="font-size:34px;font-weight:800;color:var(--text);letter-spacing:-.01em">€&nbsp;${meta.price.toFixed(2)}</span>
-            ${meta.oldPrice>meta.price?`<span style="font-size:16px;font-weight:600;color:var(--text3);text-decoration:line-through">€${meta.oldPrice.toFixed(2)}</span>`:''}
-            <span style="font-size:13px;color:var(--text3)">/mois</span>
-          ` : `<span style="font-size:24px;font-weight:800;color:var(--text)">Sur devis</span>`}
+        <div class="ov2-price-row">
+          <span class="ov2-price">${meta.price>0?`€ ${meta.price.toFixed(0)}`:'Sur devis'}</span>
+          ${meta.price>0?`<span style="font-size:14px;color:var(--text3)">/mois</span>`:''}
+          ${meta.oldPrice>meta.price?`<span class="ov2-price-old">€${meta.oldPrice.toFixed(0)}</span>`:''}
         </div>
-        ${meta.setup>0?`<div style="font-size:11px;color:var(--text3);margin-bottom:12px">${esc(DATA.installationLabel)} : ${meta.setup.toLocaleString('fr-FR')} €</div>`:'<div style="margin-bottom:12px"></div>'}
-        `}
-      `)}
-      ${(isServices||isAgence) ? '' : `<button class="offer-cta" type="button">Choisir le plan</button>`}
-      ${(!editable && !hidePricing && (meta.points||[]).some(p=>p.text))?`
-        <div class="offer-points-box">
-        ${(meta.points||[]).filter(p=>p.text).map(p=>`
-          <div class="offer-point">
-            <div class="offer-point-text">${formatPointText(p.text)}</div>
-          </div>
-        `).join('')}
-        </div>
-      `:''}
-      ${isAgence ? '' : `
-      <div${isServices?' style="columns:2;column-gap:24px"':''}>
-      ${(()=>{
-        const expanded = expandedFeatureCards.has(tag);
-        if(isServices){
-          const total = items.length;
-          return groupedFeatureListHtml(items, expanded?undefined:8);
-        }
-        const lines = [];
-        if(prevLabel[tag]) lines.push(`<div class="offer-feature-line" style="font-weight:700;color:var(--text);margin-bottom:10px;break-inside:avoid"><span class="check">•</span><span>Tout de l'offre ${prevLabel[tag]}${inheritedCount?` (${inheritedCount})`:''}</span></div>`);
-        newItems.forEach(i=>lines.push(`<div class="offer-feature-line" style="break-inside:avoid"><span class="check">•</span><span>${esc(i.name)}${i.price?` <span style="color:var(--text3)">(+${i.price}€)</span>`:''}</span></div>`));
-        const shown = expanded ? lines : lines.slice(0,8);
-        let out = shown.join('');
-        if(!items.length) out += '<div style="font-size:11px;color:var(--text3);font-style:italic">Aucune fonctionnalité assignée</div>';
-        if(prevLabel[tag] && !newItems.length && items.length) out += '<div style="font-size:11px;color:var(--text3);font-style:italic">Aucune fonctionnalité supplémentaire</div>';
-        return out;
-      })()}
-      </div>
-      ${(()=>{
-        const expanded = expandedFeatureCards.has(tag);
-        const total = isServices ? items.length : ((prevLabel[tag]?1:0) + newItems.length);
-        if(total<=8) return '';
-        return `<button type="button" onclick="toggleCardFeatures('${tag}')" style="background:none;border:none;color:var(--pro);font-size:12px;font-weight:600;cursor:pointer;padding:6px 0;margin-top:2px">${expanded?'Voir moins':'Tout voir'}</button>`;
-      })()}
+        <div class="ov2-install">${esc(DATA.installationLabel)} incluse</div>
       `}
-      ${isAgence ? `
-        <div style="margin-top:14px;margin-bottom:-4px;display:flex;align-items:flex-end;gap:20px">
-          <div style="flex:1;min-width:0">
-          ${editable ? categoriesEditorHtml(meta.categories, tag) : categoriesDisplayHtml(meta.categories)}
-          ${(!editable && meta.categoriesNote)?`<div style="font-size:12px;color:var(--text2);font-style:italic;margin-top:4px">${esc(meta.categoriesNote)}</div>`:''}
-          ${editable?`<input class="feature-name-input" style="font-size:12px;color:var(--text2);font-style:italic;padding:0;width:100%" value="${esc(meta.categoriesNote||'')}" placeholder="Note de bas de bloc (optionnel)…" onchange="DATA.offerMeta['${tag}'].categoriesNote=this.value;save()">`:''}
-          </div>
-          <button class="offer-cta" type="button" style="width:auto;margin-bottom:0;padding:12px 22px;flex:none">Sur devis</button>
-        </div>
-      ` : ''}
-      ${isServices ? `
-        <div style="margin-top:14px;margin-bottom:-4px;display:flex;justify-content:flex-end">
-          <button class="offer-cta" type="button" style="width:auto;margin-bottom:0;padding:12px 22px;flex:none">Sur devis</button>
-        </div>
-      ` : ''}
+      <div class="ov2-features">
+        ${shown.join('')}
+        ${!items.length?'<div style="font-size:12px;color:var(--text3);font-style:italic">Aucune fonctionnalité assignée</div>':''}
+      </div>
+      ${total>8 ? `<button type="button" onclick="toggleCardFeatures('${tag}')" style="background:none;border:none;color:var(--pro);font-size:12px;font-weight:600;cursor:pointer;padding:0 0 14px;text-align:left">${expanded?'Voir moins':'Tout voir'}</button>` : ''}
+      <button class="offer-cta" type="button">Choisir ce plan</button>
+      <div class="ov2-footnote">${prevName ? `+ Tout le plan ${esc(prevName)} inclus` : `+ ${items.length} fonctionnalité${items.length>1?'s':''} incluse${items.length>1?'s':''}`}</div>
       ${editable ? `
         <div style="display:flex;align-items:center;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
-          <input type="color" value="${customColor||DEFAULT_TINT_HEX[tag]}" style="width:32px;height:28px;border:1px solid var(--border);border-radius:6px;padding:2px;background:#fff;cursor:pointer" oninput="this.closest('.offer-card').style.background=hexToRgba(this.value,0.09)" onchange="DATA.cardColors['${tag}']=this.value;save();renderOffers()">
-          <span style="font-size:11px;color:var(--text3)">Couleur du bloc</span>
-          ${customColor?`<button type="button" style="font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;text-decoration:underline;margin-left:auto" onclick="delete DATA.cardColors['${tag}'];save();renderOffers()">Réinitialiser</button>`:''}
+          <input type="color" value="${accent}" style="width:32px;height:28px;border:1px solid var(--border);border-radius:6px;padding:2px;background:#fff;cursor:pointer" oninput="this.closest('.offer-card').querySelectorAll('.ov2-icon')[0].style.background=hexToRgba(this.value,0.12)" onchange="DATA.cardColors['${tag}']=this.value;save();renderOffers()">
+          <span style="font-size:11px;color:var(--text3)">Couleur d'accent</span>
+          ${DATA.cardColors[tag]?`<button type="button" style="font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;text-decoration:underline;margin-left:auto" onclick="delete DATA.cardColors['${tag}'];save();renderOffers()">Réinitialiser</button>`:''}
         </div>
       ` : ''}
     </div>`;
   });
 
   document.getElementById('offersAutoTop').innerHTML = cardsHtml.join('');
+  renderOffersTrustBar();
+}
+
+function renderOffersTrustBar(){
+  const el = document.getElementById('offersTrustBar');
+  if(!el) return;
+  const editable = editMode;
+  el.innerHTML = DATA.offersTrustBar.map((item, i)=>`
+    <div class="otb-item">
+      ${editable ? `
+        <div style="display:flex;flex-direction:column;gap:6px;width:100%">
+          <input type="text" value="${esc(item.icon||'')}" placeholder="URL icône" style="font-size:10px;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;width:100%" onchange="DATA.offersTrustBar[${i}].icon=this.value;save();renderOffersTrustBar()">
+          <textarea placeholder="Texte (retour à la ligne ok)" style="font-size:12px;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;width:100%;resize:vertical;min-height:44px;font-family:'Inter',sans-serif" onchange="DATA.offersTrustBar[${i}].text=this.value;save()">${esc(item.text||'')}</textarea>
+        </div>
+      ` : `
+        <div class="otb-icon">${item.icon?`<img src="${esc(item.icon)}" alt="">`:''}</div>
+        <div class="otb-text">${esc(item.text||'')}</div>
+      `}
+    </div>
+  `).join('');
 }
 
 // ══════════════════════════════════════════
