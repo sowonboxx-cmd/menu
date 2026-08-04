@@ -170,13 +170,13 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .apple-card-image img{width:100%;display:block;object-fit:cover}
 .offers-grid .offer-card.agence{grid-column:1/-1}
 .offers-grid .offer-card.services{grid-column:1/-1}
-.offer-card{border-radius:20px;background:#fff;padding:32px 28px;position:relative;display:flex;flex-direction:column}
+.offer-card{border-radius:20px;background:#fff;padding:5px 28px 32px;position:relative;display:flex;flex-direction:column}
 .offer-card.base{background:#fff}
 .offer-card.pro{background:#fff}
 .offer-card.premium{background:#fff}
 .offer-card.agence{background:var(--tint-agence)}
 .offer-card.services{background:var(--tint-services)}
-.ov2-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:10px}
+.ov2-header{display:flex;align-items:center;gap:14px;margin-bottom:10px}
 .ov2-icon{width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;flex:none}
 .ov2-icon img{width:28px;height:28px;object-fit:contain}
 .ov2-label{font-size:12px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;margin-bottom:4px}
@@ -903,6 +903,10 @@ function renderOffers(){
 
     return `
     <div class="offer-card ${tag}">
+      ${editable
+        ? `<input class="feature-name-input" value="${esc(meta.name)}" style="font-size:12px;font-weight:700;text-transform:uppercase;color:${accent};padding:0;margin-bottom:10px;width:100%;text-align:center" onchange="DATA.offerMeta['${tag}'].name=this.value;save()">`
+        : `<div class="ov2-label" style="color:${accent};text-align:center;margin-top:5px;margin-bottom:24px">${esc(meta.name)}</div>`
+      }
       <div class="ov2-header">
         <div class="ov2-icon" style="background:${accentTint}">
           ${editable
@@ -911,20 +915,15 @@ function renderOffers(){
         </div>
         <div style="flex:1;min-width:0">
           ${editable
-            ? `<input class="feature-name-input" value="${esc(meta.name)}" style="font-size:12px;font-weight:700;text-transform:uppercase;color:${accent};padding:0;margin-bottom:4px;width:100%" onchange="DATA.offerMeta['${tag}'].name=this.value;save()">`
-            : `<div class="ov2-label" style="color:${accent}">${esc(meta.name)}</div>`
-          }
-          ${editable
-            ? `<textarea class="feature-name-input" placeholder="Grand titre (Entrée = retour à la ligne)" style="font-size:16px;font-weight:800;color:var(--text);padding:0;width:100%;resize:vertical;min-height:40px;font-family:'Inter',sans-serif;margin-bottom:8px" onchange="DATA.offerMeta['${tag}'].title=this.value;save()">${esc(meta.title||'')}</textarea>`
+            ? `<textarea class="feature-name-input" placeholder="Grand titre (Entrée = retour à la ligne)" style="font-size:16px;font-weight:800;color:var(--text);padding:0;width:100%;resize:vertical;min-height:40px;font-family:'Inter',sans-serif" onchange="DATA.offerMeta['${tag}'].title=this.value;save()">${esc(meta.title||'')}</textarea>`
             : `<div class="ov2-title">${esc(meta.title||'')}</div>`
-          }
-          ${editable
-            ? `<input type="text" value="${esc(meta.icon||'')}" placeholder="URL icône" style="font-size:10px;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;margin-bottom:8px;width:100%" onchange="DATA.offerMeta['${tag}'].icon=this.value;save();renderOffers()">
-              <textarea class="feature-name-input" placeholder="Sous-titre" style="font-size:13px;font-weight:500;color:var(--text2);padding:0;width:100%;resize:vertical;min-height:36px;font-family:'Inter',sans-serif" onchange="DATA.offerMeta['${tag}'].subtitle=this.value;save()">${esc(meta.subtitle||'')}</textarea>`
-            : `${meta.subtitle?`<div class="ov2-subtitle" style="margin-bottom:0">${esc(meta.subtitle)}</div>`:''}`
           }
         </div>
       </div>
+      ${editable ? `
+        <input type="text" value="${esc(meta.icon||'')}" placeholder="URL icône" style="font-size:10px;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;margin-bottom:10px;width:100%" onchange="DATA.offerMeta['${tag}'].icon=this.value;save();renderOffers()">
+        <textarea class="feature-name-input" placeholder="Sous-titre" style="font-size:13px;font-weight:500;color:var(--text2);padding:0;margin-bottom:14px;width:100%;resize:vertical;min-height:36px;font-family:'Inter',sans-serif" onchange="DATA.offerMeta['${tag}'].subtitle=this.value;save()">${esc(meta.subtitle||'')}</textarea>
+      ` : `${meta.subtitle?`<div class="ov2-subtitle">${esc(meta.subtitle)}</div>`:''}`}
       <div class="ov2-divider"></div>
       ${editable ? `
         <div style="display:flex;gap:6px;margin-bottom:20px;align-items:baseline">
