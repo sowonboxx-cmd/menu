@@ -11,7 +11,7 @@
   --navy:#0F2A3D;--gold:#0F2A3D;--bg:#F7F7F8;--white:#fff;
   --text:#16202A;--text2:#5B6572;--text3:#98A1AB;
   --border:#E9EAEC;--red:#b91c1c;--green:#166534;
-  --base:#6b7280;--pro:#2F6FE0;--premium:#D2566B;--agence:#7C5CD6;--services:#0E8F7A;
+  --base:#6b7280;--pro:#2F6FE0;--premium:#D2566B;--agence:#7C5CD6;--services:#0E8F7A;--apero:#C9932E;
   --tint-base:#FAFAFA;--tint-pro:#EEF2F6;--tint-premium:#FBECEE;--tint-agence:#F1F1F5;--tint-services:#F0F3EE;
   --accent:#6FA8FF;
   --rs:16px;
@@ -78,6 +78,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .feature-tag-btn.on.premium{background:var(--premium);border-color:var(--premium);color:#fff}
 .feature-tag-btn.on.agence{background:var(--agence);border-color:var(--agence);color:#fff}
 .feature-tag-btn.on.services{background:var(--services);border-color:var(--services);color:#fff}
+.feature-tag-btn.on.apero{background:var(--apero);border-color:var(--apero);color:#fff}
 .feature-price-input{width:70px;text-align:right;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:11px;font-family:'Inter',sans-serif;flex:none}
 .feature-del{background:none;border:none;color:#ccc;cursor:pointer;font-size:13px;flex:none;padding:2px 4px}
 .feature-del:hover{color:var(--red)}
@@ -142,7 +143,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .add-cat-btn{display:flex;align-items:center;gap:6px;padding:10px 18px;font-size:11px;font-weight:600;color:var(--gold);cursor:pointer;border-top:1px dashed var(--border)}
 
 /* ── AUTO-GENERATED OFFERS TABLE ── */
-.offers-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.offers-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
 .apple-section-bg{background:#F5F5F7;padding:56px 0;width:100%}
 .offers-section-panel{background:#F5F5F7;border-radius:32px;padding:48px 40px}
 @media(max-width:640px){.offers-section-panel{padding:32px 20px}}
@@ -169,7 +170,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .apple-card-image img{width:100%;display:block;object-fit:cover}
 .offers-grid .offer-card.agence{grid-column:1/-1}
 .offers-grid .offer-card.services{grid-column:1/-1}
-.offer-card{border-radius:20px;border:1px solid var(--border);background:#fff;padding:32px 28px;position:relative;display:flex;flex-direction:column;box-shadow:0 1px 3px rgba(15,42,61,.05)}
+.offer-card{border-radius:20px;background:#fff;padding:32px 28px;position:relative;display:flex;flex-direction:column}
 .offer-card.base{background:#fff}
 .offer-card.pro{background:#fff}
 .offer-card.premium{background:#fff}
@@ -466,6 +467,7 @@ const DEFAULT_DATA = {
     ]},
   ],
   offerMeta: {
+    apero:   { name:'Apéro',     title:'On s\'occupe de votre présence en ligne.',   subtitle:'Le restaurant qui veut une présence en ligne propre sans investir dans un gros projet au départ.', desc:'', price:99, setup:750, icon:'' },
     base:    { name:'Entrée',    title:'Je digitalise mon restaurant',           subtitle:'Votre menu, partout.',             desc:'La solution d\'entrée pour digitaliser votre carte, générer votre QR code et rester à jour en temps réel.', price:199, setup:800, icon:'' },
     pro:     { name:'Plat',     title:'Je remplis mes tables',      subtitle:'Des réservations automatiques. Moins de no-shows.',          desc:'Tout le menu digital, plus les outils pour poster sur Instagram en 2 minutes et gérer votre CRM clients.', price:299, setup:1500, icon:'' },
     premium: { name:'Signature', title:'Je fais grandir mon restaurant',        subtitle:'Votre communication tourne toute seule.',   desc:'Notre offre complète : shooting photo, identité visuelle, optimisation Google et réseaux — clé en main.', price:399, setup:2500, icon:'' },
@@ -524,6 +526,7 @@ function migrateData(){
   if(DATA.installationLabel==='Installation & prise en main') DATA.installationLabel = DEFAULT_DATA.installationLabel;
   if(DATA.installationLabel==='Installation & prise en main incluse') DATA.installationLabel = DEFAULT_DATA.installationLabel;
   if(!DATA.offerMeta.services) DATA.offerMeta.services = DEFAULT_DATA.offerMeta.services;
+  if(!DATA.offerMeta.apero) DATA.offerMeta.apero = DEFAULT_DATA.offerMeta.apero;
 
   // One-time: convert legacy "Services complémentaires" categories block into
   // real tagged feature items, and rename Agence's old "À la carte" label.
@@ -673,7 +676,7 @@ function renderFeatures(){
             }
             <button class="feature-info-btn${item.desc?' has-content':''}" type="button" onclick="openInfoModal(event,${ci},${ii})" title="Description détaillée">i</button>
             <div class="feature-tags">
-              ${['base','pro','premium','agence','services'].map(tag => `
+              ${['apero','base','pro','premium','agence','services'].map(tag => `
                 <button class="feature-tag-btn ${tag}${item.tags.includes(tag)?' on':''}" onclick="${editMode?`toggleTag(${ci},${ii},'${tag}')`:''}" ${editMode?'':'disabled style="cursor:default"'}>${tagLabel(tag)}</button>
               `).join('')}
             </div>
@@ -700,7 +703,7 @@ function renderFeatures(){
 
 function tagLabel(tag){
   if(DATA.offerMeta[tag] && DATA.offerMeta[tag].name) return DATA.offerMeta[tag].name;
-  return {base:'Entrée',pro:'Plat',premium:'Signature',agence:'Agence',services:'À la carte'}[tag];
+  return {apero:'Apéro',base:'Entrée',pro:'Plat',premium:'Signature',agence:'Agence',services:'À la carte'}[tag];
 }
 
 let infoModalTarget = null; // {ci, ii}
@@ -876,11 +879,11 @@ function setupAppleCardsScrollSync(){
 // ══════════════════════════════════════════
 // AUTO-GENERATED OFFERS
 // ══════════════════════════════════════════
-const DEFAULT_ACCENT = {base:'#7C5CD6', pro:'#2F6FE0', premium:'#D2566B'};
+const DEFAULT_ACCENT = {apero:'#C9932E', base:'#7C5CD6', pro:'#2F6FE0', premium:'#D2566B'};
 
 function renderOffers(){
   const allItems = DATA.categories.flatMap(c=>c.items.map(i=>({...i, cat:c.name})));
-  const order = ['base','pro','premium'];
+  const order = ['apero','base','pro','premium'];
 
   const cardsHtml = order.map((tag, idx)=>{
     const meta = DATA.offerMeta[tag];
@@ -990,15 +993,15 @@ function renderOffersTrustBar(){
 function renderMatrix(){
   const el = document.getElementById('matrixTable');
   const allItems = DATA.categories.flatMap(c=>c.items.map(i=>({...i, cat:c.name})));
-  let html = `<thead><tr><th>Fonctionnalité</th><th class="center">Base</th><th class="center">Pro</th><th class="center">Premium</th><th class="center">Agence</th><th class="center">À la carte</th></tr></thead><tbody>`;
+  let html = `<thead><tr><th>Fonctionnalité</th><th class="center">Apéro</th><th class="center">Base</th><th class="center">Pro</th><th class="center">Premium</th><th class="center">Agence</th><th class="center">À la carte</th></tr></thead><tbody>`;
   let lastCat = null;
   allItems.forEach(item=>{
     if(item.cat !== lastCat){
-      html += `<tr><td colspan="6" style="background:var(--bg);font-weight:700;font-size:11px;color:var(--navy)">${esc(item.cat)}</td></tr>`;
+      html += `<tr><td colspan="7" style="background:var(--bg);font-weight:700;font-size:11px;color:var(--navy)">${esc(item.cat)}</td></tr>`;
       lastCat = item.cat;
     }
     html += `<tr><td>${esc(item.name)}${item.price?` <span style="color:var(--text3);font-size:10px">(+${item.price}€)</span>`:''}</td>`;
-    ['base','pro','premium','agence','services'].forEach(tag=>{
+    ['apero','base','pro','premium','agence','services'].forEach(tag=>{
       html += `<td class="center">${item.tags.includes(tag)?'<span class="matrix-check">✓</span>':'<span class="matrix-dash">–</span>'}</td>`;
     });
     html += '</tr>';
