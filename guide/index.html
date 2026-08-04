@@ -192,7 +192,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .ov2-check{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;color:#fff;font-size:10px;font-weight:800;margin-top:1px;opacity:.85}
 .ov2-info{display:flex;flex-direction:column;gap:8px;margin:18px 0}
 .ov2-info-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text3)}
-.ov2-info-row.included{color:#1F9D4A}
+.ov2-info-row.included{color:var(--text3)}
 .ov2-info-row svg{flex:none}
 .offers-trust-bar{display:flex;align-items:center;background:#fff;border-radius:20px;padding:24px 32px;margin-top:20px;gap:0}
 .otb-item{display:flex;align-items:center;gap:14px;flex:1;padding:0 20px}
@@ -939,9 +939,11 @@ function renderOffers(){
           ${meta.price>0?`<span style="font-size:14px;color:var(--text3)">/mois</span>`:''}
           ${meta.oldPrice>meta.price?`<span class="ov2-price-old">€${meta.oldPrice.toFixed(0)}</span>`:''}
         </div>
+        ${prevName?`<div class="ov2-info-row included" style="margin-bottom:16px">${CHECK_ICON}<span>Inclut tout ${esc(prevName)}</span></div>`:''}
       `}
       ${editable ? `
-        <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin:16px 0 6px">4 fonctionnalités (manuel)</div>
+        ${prevName?`<div style="font-size:11px;color:var(--text3);margin-bottom:14px">Inclut tout ${esc(prevName)} (automatique)</div>`:''}
+        <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin:2px 0 6px">4 fonctionnalités (manuel)</div>
         <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">
         ${[0,1,2,3].map(fi=>`<input type="text" value="${esc(feats[fi]||'')}" placeholder="Fonctionnalité ${fi+1}" style="font-size:12px;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;width:100%" onchange="DATA.offerMeta['${tag}'].features[${fi}]=this.value;save();renderOffers()">`).join('')}
         </div>
@@ -952,20 +954,20 @@ function renderOffers(){
         </div>
       `}
       ${editable ? `
-        <div style="display:flex;gap:6px;margin-bottom:8px;align-items:center">
+        <div style="display:flex;gap:6px;margin:14px 0 8px;align-items:center">
           <input type="text" value="${esc(DATA.installationLabel)}" style="font-size:11px;color:var(--text3);border:1px solid var(--border);border-radius:6px;outline:none;background:#fff;padding:4px 6px;width:160px" onchange="DATA.installationLabel=this.value;save();renderOffers()">
           <span style="font-size:11px;color:var(--text3)">:</span>
           <input class="feature-price-input" style="width:70px" type="number" value="${meta.setup}" onchange="DATA.offerMeta['${tag}'].setup=parseInt(this.value)||0;save();renderOffers()">
           <span style="font-size:12px;color:var(--text2)">€</span>
         </div>
-        ${prevName?`<div style="font-size:11px;color:var(--text3)">Inclut tout ${esc(prevName)} (automatique)</div>`:''}
-      ` : `
-        <div class="ov2-info">
-          ${meta.setup>0?`<div class="ov2-info-row">${TAG_ICON}<span>${esc(DATA.installationLabel)} : ${meta.setup.toLocaleString('fr-FR')} €</span></div>`:''}
-          ${prevName?`<div class="ov2-info-row included">${CHECK_ICON}<span>Inclut tout ${esc(prevName)}</span></div>`:''}
-        </div>
-      `}
+      ` : ''}
       <button class="offer-cta" type="button">Choisir ce plan</button>
+      ${(!editable && meta.setup>0) ? `
+        <div class="ov2-divider" style="margin-top:0"></div>
+        <div class="ov2-info">
+          <div class="ov2-info-row">${TAG_ICON}<span>${esc(DATA.installationLabel)} : ${meta.setup.toLocaleString('fr-FR')} €</span></div>
+        </div>
+      ` : ''}
       ${editable ? `
         <div style="display:flex;align-items:center;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
           <input type="color" value="${accent}" style="width:32px;height:28px;border:1px solid var(--border);border-radius:6px;padding:2px;background:#fff;cursor:pointer" oninput="this.closest('.offer-card').querySelectorAll('.ov2-icon')[0].style.background=hexToRgba(this.value,0.12)" onchange="DATA.cardColors['${tag}']=this.value;save();renderOffers()">
