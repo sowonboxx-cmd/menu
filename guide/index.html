@@ -473,7 +473,7 @@ const DEFAULT_DATA = {
     apero:   { name:'Apéro',     title:'On s\'occupe de votre présence en ligne.',   subtitle:'Le restaurant qui veut une présence en ligne propre sans investir dans un gros projet au départ.', desc:'', price:99, setup:750, icon:'', features:['','','',''] },
     base:    { name:'Entrée',    title:'Je digitalise mon restaurant',           subtitle:'Votre menu, partout.',             desc:'La solution d\'entrée pour digitaliser votre carte, générer votre QR code et rester à jour en temps réel.', price:199, setup:800, icon:'', features:['Site web & menu à jour','Modification en 10 secondes','QR code & Google Business','Menu du jour & export PDF'] },
     pro:     { name:'Plat',     title:'Je remplis mes tables',      subtitle:'Des réservations automatiques. Moins de no-shows.',          desc:'Tout le menu digital, plus les outils pour poster sur Instagram en 2 minutes et gérer votre CRM clients.', price:299, setup:1500, icon:'', features:['Réservations en ligne 24/7','Confirmations automatiques','Gestion des disponibilités','Calendrier & statistiques'] },
-    premium: { name:'Signature', title:'Je fais grandir mon restaurant',        subtitle:'Votre communication tourne toute seule.',   desc:'Notre offre complète : shooting photo, identité visuelle, optimisation Google et réseaux — clé en main.', price:399, setup:2500, icon:'', features:['IA qui crée vos publications','Emails & SMS automatiques','Collecte d\'avis Google','Fidélisation & CRM client'] },
+    premium: { name:'Dessert', title:'Je fais grandir mon restaurant',        subtitle:'Votre communication tourne toute seule.',   desc:'Notre offre complète : shooting photo, identité visuelle, optimisation Google et réseaux — clé en main.', price:399, setup:2500, icon:'', features:['IA qui crée vos publications','Emails & SMS automatiques','Collecte d\'avis Google','Fidélisation & CRM client'] },
     agence:  { name:'Agence',  title:'Sur-mesure',             subtitle:'Toutes les prestations one-shot.',           desc:'Prestations à la carte : murale, mascotte, DA spécifique, setup CRM avancé. Facturé au projet.', price:0, setup:0, icon:'', categories:[
       { header:'Identité', items:['Logo','Charte graphique','Typographies','Mascotte','Direction artistique'] },
       { header:'Restaurant', items:['Habillage vitrine','Murale','Enseigne','Signalétique'] },
@@ -543,6 +543,7 @@ function migrateData(){
     }
     DATA.offerMeta.services = { name:'À la carte', title:'', subtitle:'', desc:'', price:0, setup:0 };
     if(DATA.offerMeta.agence && DATA.offerMeta.agence.name==='À la carte') DATA.offerMeta.agence.name = 'Agence';
+    if(DATA.offerMeta.premium && DATA.offerMeta.premium.name==='Signature') DATA.offerMeta.premium.name = 'Dessert';
     DATA.categories.forEach(c=>{ c.name = c.name.replace(/^\p{Extended_Pictographic}\uFE0F?\s*/u,''); });
     DATA._alacarteMigratedV2 = true;
   }
@@ -1316,12 +1317,13 @@ else setSyncStatus('offline');
 // ══════════════════════════════════════════
 // ── SIMULATOR STATE ──
 const SIM_BASE_OFFERS = [
+  { id:'apero',     tagKey:'apero',   color:'var(--apero)' },
   { id:'entree',    tagKey:'base',    color:'var(--base)' },
   { id:'menu',      tagKey:'pro',     color:'var(--pro)' },
   { id:'signature', tagKey:'premium', color:'var(--premium)' },
 ];
 
-let simQ    = { entree:0, menu:0, signature:0 };
+let simQ    = { apero:0, entree:0, menu:0, signature:0 };
 let simOpts = {}; // populated dynamically from DATA (features with price > 0)
 
 function simGetMeta(tagKey){ return DATA.offerMeta[tagKey] || {}; }
