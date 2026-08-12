@@ -53,6 +53,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .tag-premium{background:var(--premium)}
 .tag-agence{background:var(--agence)}
 .tag-services{background:var(--services)}
+.tag-apero{background:var(--apero)}
 .tag-editable{cursor:pointer;border:none}
 
 /* ── FEATURE LIST (master list with tag assignment) ── */
@@ -346,7 +347,7 @@ table.matrix tr:hover td{background:#fafaf7}
   </div>
 </div>
 
-<!-- ════════ OFFRES AUTO-GÉNÉRÉES (haut : Entrée/Menu/Signature) — fond gris plein largeur ════════ -->
+<!-- ════════ OFFRES AUTO-GÉNÉRÉES (Apéro / Entrée / Plat / Dessert) — fond gris plein largeur ════════ -->
 <div class="apple-section-bg" style="margin-top:0">
   <div class="wrap">
     <div id="offersHeader"></div>
@@ -374,9 +375,10 @@ table.matrix tr:hover td{background:#fafaf7}
         <p class="section-sub">Listez chaque fonctionnalité et assignez-la à une ou plusieurs offres. Le tableau des offres ci-dessus se met à jour automatiquement.</p>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span class="tag tag-apero">Apéro</span>
         <span class="tag tag-base">Entrée</span>
-        <span class="tag tag-pro">Menu</span>
-        <span class="tag tag-premium">Signature</span>
+        <span class="tag tag-pro">Plat</span>
+        <span class="tag tag-premium">Dessert</span>
         <span class="tag tag-agence">Agence</span>
         <span class="tag tag-services">À la carte</span>
       </div>
@@ -739,7 +741,7 @@ function renderFeatures(){
 
 function tagLabel(tag){
   if(DATA.offerMeta[tag] && DATA.offerMeta[tag].name) return DATA.offerMeta[tag].name;
-  return {apero:'Apéro',base:'Entrée',pro:'Plat',premium:'Signature',agence:'Agence',services:'À la carte'}[tag];
+  return {apero:'Apéro',base:'Entrée',pro:'Plat',premium:'Dessert',agence:'Agence',services:'À la carte'}[tag];
 }
 
 let infoModalTarget = null; // {ci, ii}
@@ -1050,7 +1052,7 @@ function renderOffersTrustBar(){
 function renderMatrix(){
   const el = document.getElementById('matrixTable');
   const allItems = DATA.categories.flatMap(c=>c.items.map(i=>({...i, cat:c.name})));
-  let html = `<thead><tr><th>Fonctionnalité</th><th class="center">Apéro</th><th class="center">Base</th><th class="center">Pro</th><th class="center">Premium</th><th class="center">Agence</th><th class="center">À la carte</th></tr></thead><tbody>`;
+  let html = `<thead><tr><th>Fonctionnalité</th>${['apero','base','pro','premium','agence','services'].map(tag=>`<th class="center">${esc(tagLabel(tag))}</th>`).join('')}</tr></thead><tbody>`;
   let lastCat = null;
   allItems.forEach(item=>{
     if(item.cat !== lastCat){
