@@ -394,6 +394,19 @@ table.matrix tr:hover td{background:#fafaf7}
     </div>
   </div>
 
+  <!-- ════════ MODULES COMPLÉMENTAIRES ════════ -->
+  <div class="section" id="addonModules">
+    <div class="section-hdr-row">
+      <div>
+        <div class="section-label">En option</div>
+        <h2 class="section-title">Modules complémentaires</h2>
+        <p class="section-sub">Des modules à part, avec leur propre abonnement mensuel. Ils ne sont liés à aucune offre en particulier et peuvent être vendus en solo ou ajoutés à n'importe quelle offre.</p>
+      </div>
+    </div>
+    <div class="feature-table" id="addonModulesTable"></div>
+    <div style="margin-top:10px;padding:0 2px" id="addAddonBtnWrap"></div>
+  </div>
+
   <!-- ════════ TABLEAU MATRICE ════════ -->
 
 
@@ -432,6 +445,10 @@ const DEFAULT_DATA = {
   installationLabel: 'Installation & prise en main',
   installationTooltipTitle: 'Mise en service unique',
   installationTooltipDesc: 'Création, configuration et lancement de votre restaurant.',
+  addonModules: [
+    { name:'Menu immersif', price:0 },
+    { name:'Fidélisation', price:0 },
+  ],
   cardColors: {},
   offersHeader: { label:'Vos offres packagées', title:'Trois offres. Tout compris.', subtitle:'Gérez, développez et fidélisez votre restaurant depuis votre téléphone.', cta:'Sur devis' },
   appleCardsHeader: { label:'MODE AGENCE', title:'On s\'occupe du reste', subtitle:'L\'humain là où l\'IA s\'arrête', cta:'Sur devis' },
@@ -545,6 +562,7 @@ function migrateData(){
   if(!DATA.installationLabel) DATA.installationLabel = DEFAULT_DATA.installationLabel;
   if(!DATA.installationTooltipTitle) DATA.installationTooltipTitle = DEFAULT_DATA.installationTooltipTitle;
   if(!DATA.installationTooltipDesc) DATA.installationTooltipDesc = DEFAULT_DATA.installationTooltipDesc;
+  if(!DATA.addonModules) DATA.addonModules = JSON.parse(JSON.stringify(DEFAULT_DATA.addonModules));
   ['apero','base','pro','premium'].forEach(k=>{
     if(DATA.offerMeta[k] && !DATA.offerMeta[k].installTitle) DATA.offerMeta[k].installTitle = (DEFAULT_DATA.offerMeta[k]&&DEFAULT_DATA.offerMeta[k].installTitle) || 'Mise en service unique';
     if(DATA.offerMeta[k] && !DATA.offerMeta[k].installDesc) DATA.offerMeta[k].installDesc = (DEFAULT_DATA.offerMeta[k]&&DEFAULT_DATA.offerMeta[k].installDesc) || 'Création, configuration et lancement de votre restaurant.';
@@ -737,6 +755,49 @@ function renderFeatures(){
     : '';
 
   if(editMode) attachDragHandlers();
+}
+
+// ══════════════════════════════════════════
+// MODULES COMPLÉMENTAIRES (add-ons standalone, abonnement mensuel)
+// ══════════════════════════════════════════
+function renderAddonModules(){
+  const el = document.getElementById('addonModulesTable');
+  if(!el) return;
+  const mods = DATA.addonModules || [];
+  el.innerHTML = mods.map((m, mi) => `
+    <div class="feature-row" data-mi="${mi}">
+      ${editMode
+        ? `<input class="feature-name-input" value="${esc(m.name)}" placeholder="Nom du module" onchange="DATA.addonModules[${mi}].name=this.value;save();renderSimulator()">`
+        : `<div class="feature-name-input" style="cursor:default">${esc(m.name)}</div>`
+      }
+      ${editMode
+        ? `<input class="feature-price-input" type="number" value="${m.price||0}" placeholder="€/mois" onchange="DATA.addonModules[${mi}].price=parseInt(this.value)||0;save();renderSimulator()" title="Montant de l'abonnement mensuel">`
+        : `<span style="font-size:11px;color:var(--text3);width:70px;text-align:right">${(m.price||0).toLocaleString('fr-FR')} €/mois</span>`
+      }
+      ${editMode ? `<button class="feature-del" onclick="deleteAddonModule(${mi})">✕</button>` : ''}
+    </div>
+  `).join('') || `<div style="padding:16px 18px;font-size:12px;color:var(--text3);font-style:italic">Aucun module pour l'instant</div>`;
+
+  document.getElementById('addAddonBtnWrap').innerHTML = editMode ? `
+    <div class="add-feature-row">
+      <input type="text" id="addAddonInput" placeholder="+ Nouveau module…" onkeydown="if(event.key==='Enter'){event.preventDefault();addAddonModule(this.value);this.value='';this.focus()}">
+      <button class="btn-icon-only" style="background:var(--navy);width:32px;height:32px" onclick="const inp=document.getElementById('addAddonInput');addAddonModule(inp.value);inp.value='';inp.focus()" title="Ajouter">+</button>
+    </div>
+  ` : '';
+}
+function addAddonModule(name){
+  name = (name||'').trim();
+  if(!name) return;
+  DATA.addonModules.push({name:name, price:0});
+  save();
+  renderAll();
+  showToast('✓ Module ajouté');
+}
+function deleteAddonModule(mi){
+  if(!confirm('Supprimer ce module complémentaire ?')) return;
+  DATA.addonModules.splice(mi,1);
+  save();
+  renderAll();
 }
 
 function tagLabel(tag){
@@ -1345,16 +1406,13 @@ function toggleFeatures(){
 function renderAll(){
   renderOffersHeader();
   renderFeatures();
+  renderAddonModules();
   renderOffers();
   renderMatrix();
   renderAppleCardsHeader();
   renderAppleCards();
+  if(typeof renderSimulator === 'function') renderSimulator();
 }
-
-// ── INIT ──
-renderAll();
-if(getToken()) loadFromGitHub();
-else setSyncStatus('offline');
 
 // ══════════════════════════════════════════
 // SIMULATEUR DE REVENUS
@@ -1369,8 +1427,14 @@ const SIM_BASE_OFFERS = [
 
 let simQ    = { apero:0, entree:0, menu:0, signature:0 };
 let simOpts = {}; // populated dynamically from DATA (features with price > 0)
+let simAddons = {}; // populated dynamically from DATA.addonModules (monthly subscription add-ons)
 
 function simGetMeta(tagKey){ return DATA.offerMeta[tagKey] || {}; }
+
+// Build add-on modules list from DATA.addonModules: standalone, monthly subscription
+function getSimAddons(){
+  return (DATA.addonModules||[]).filter(function(m){ return (m.price||0) > 0; });
+}
 
 // Build options list from DATA categories: all items with price > 0
 function getSimOptions(){
@@ -1398,9 +1462,16 @@ function simAdjustOpt(name, delta){
   if(el) el.textContent = simOpts[name];
   simRefresh();
 }
+function simAdjustAddon(name, delta){
+  if(simAddons[name] === undefined) simAddons[name] = 0;
+  simAddons[name] = Math.max(0, simAddons[name] + delta);
+  const el = document.getElementById('sa_'+btoa(name).replace(/=/g,''));
+  if(el) el.textContent = simAddons[name];
+  simRefresh();
+}
 
 function simRefresh(){
-  let monthly = 0, onboarding = 0, optionsTotal = 0;
+  let monthly = 0, onboarding = 0, optionsTotal = 0, addonsMonthly = 0;
 
   SIM_BASE_OFFERS.forEach(function(o){
     const n = simQ[o.id] || 0;
@@ -1416,6 +1487,13 @@ function simRefresh(){
     optionsTotal += o.price * n;
   });
 
+  getSimAddons().forEach(function(m){
+    const n = simAddons[m.name] || 0;
+    if(!n) return;
+    addonsMonthly += m.price * n;
+  });
+
+  monthly += addonsMonthly;
   const total = onboarding + monthly + optionsTotal;
 
   const setEl = function(id, txt){ const e=document.getElementById(id); if(e) e.textContent=txt; };
@@ -1457,6 +1535,9 @@ function renderSimulator(){
   const opts = getSimOptions();
   // Sync simOpts with current options
   opts.forEach(function(o){ if(simOpts[o.name]===undefined) simOpts[o.name]=0; });
+
+  const addons = getSimAddons();
+  addons.forEach(function(m){ if(simAddons[m.name]===undefined) simAddons[m.name]=0; });
 
   // ── PROJECTION (top) ──
   const proj = document.createElement('div');
@@ -1548,12 +1629,17 @@ function renderSimulator(){
   resetBtn.addEventListener('click', function(){
     simQ = { entree:0, menu:0, signature:0 };
     Object.keys(simOpts).forEach(k=>{ simOpts[k]=0; });
+    Object.keys(simAddons).forEach(k=>{ simAddons[k]=0; });
     renderSimulator();
   });
   resetRow.appendChild(resetBtn);
   offersCol.appendChild(resetRow);
 
   wrap.appendChild(outerCol);
+
+  // RIGHT column: options block + add-on modules block stacked
+  const rightCol = document.createElement('div');
+  rightCol.style.cssText = 'display:flex;flex-direction:column;gap:16px';
 
   // RIGHT: options block
   const optsBlock = document.createElement('div'); optsBlock.className='sim-block';
@@ -1587,7 +1673,42 @@ function renderSimulator(){
       optsBlock.appendChild(row);
     });
   }
-  wrap.appendChild(optsBlock);
+  rightCol.appendChild(optsBlock);
+
+  // RIGHT (below options): add-on modules block — standalone, monthly subscription
+  const addonsBlock = document.createElement('div'); addonsBlock.className='sim-block';
+  const addonsHdr = document.createElement('div'); addonsHdr.className='sim-block-hdr';
+  const addonsTitle = document.createElement('span'); addonsTitle.className='sim-block-name';
+  addonsTitle.style.color='var(--services)'; addonsTitle.textContent='Modules complémentaires';
+  addonsHdr.appendChild(addonsTitle); addonsBlock.appendChild(addonsHdr);
+
+  if(addons.length === 0){
+    const empty = document.createElement('div');
+    empty.style.cssText='padding:16px;font-size:12px;color:var(--text3);font-style:italic;text-align:center';
+    empty.textContent='Ajoutez un prix à vos modules complémentaires pour les voir ici';
+    addonsBlock.appendChild(empty);
+  } else {
+    addons.forEach(function(m){
+      const row = document.createElement('div'); row.className='sim-opt-row';
+      const nm = document.createElement('span'); nm.className='sim-opt-name'; nm.textContent=m.name;
+      const pr = document.createElement('span'); pr.className='sim-opt-price'; pr.textContent=m.price.toLocaleString('fr-FR')+'€/mois';
+      const cnt = document.createElement('div'); cnt.className='sim-counter'; cnt.style.flexShrink='0';
+      const key = btoa(m.name).replace(/=/g,'');
+      const bm = document.createElement('button'); bm.className='sim-counter-btn';
+      bm.style.cssText='width:24px;height:24px;font-size:15px'; bm.textContent='−';
+      bm.addEventListener('click',(function(n){return function(){simAdjustAddon(n,-1);};})(m.name));
+      const vsp = document.createElement('span'); vsp.className='sim-counter-val';
+      vsp.style.fontSize='13px'; vsp.id='sa_'+key; vsp.textContent='0';
+      const bp = document.createElement('button'); bp.className='sim-counter-btn';
+      bp.style.cssText='width:24px;height:24px;font-size:15px'; bp.textContent='+';
+      bp.addEventListener('click',(function(n){return function(){simAdjustAddon(n,1);};})(m.name));
+      cnt.appendChild(bm); cnt.appendChild(vsp); cnt.appendChild(bp);
+      row.appendChild(nm); row.appendChild(pr); row.appendChild(cnt);
+      addonsBlock.appendChild(row);
+    });
+  }
+  rightCol.appendChild(addonsBlock);
+  wrap.appendChild(rightCol);
 
   el.innerHTML = '';
   el.appendChild(proj);
@@ -1596,7 +1717,10 @@ function renderSimulator(){
 }
 
 // Call simulator after all vars are defined
-renderSimulator();
+// ── INIT ──
+renderAll();
+if(getToken()) loadFromGitHub();
+else setSyncStatus('offline');
 </script>
 </body>
 </html>
