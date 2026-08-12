@@ -446,8 +446,8 @@ const DEFAULT_DATA = {
   installationTooltipTitle: 'Mise en service unique',
   installationTooltipDesc: 'Création, configuration et lancement de votre restaurant.',
   addonModules: [
-    { name:'Menu immersif', price:0 },
-    { name:'Fidélisation', price:0 },
+    { name:'Menu immersif', price:0, setup:0 },
+    { name:'Fidélisation', price:0, setup:0 },
   ],
   cardColors: {},
   offersHeader: { label:'Vos offres packagées', title:'Trois offres. Tout compris.', subtitle:'Gérez, développez et fidélisez votre restaurant depuis votre téléphone.', cta:'Sur devis' },
@@ -563,6 +563,7 @@ function migrateData(){
   if(!DATA.installationTooltipTitle) DATA.installationTooltipTitle = DEFAULT_DATA.installationTooltipTitle;
   if(!DATA.installationTooltipDesc) DATA.installationTooltipDesc = DEFAULT_DATA.installationTooltipDesc;
   if(!DATA.addonModules) DATA.addonModules = JSON.parse(JSON.stringify(DEFAULT_DATA.addonModules));
+  (DATA.addonModules||[]).forEach(m=>{ if(m.setup===undefined) m.setup = 0; });
   ['apero','base','pro','premium'].forEach(k=>{
     if(DATA.offerMeta[k] && !DATA.offerMeta[k].installTitle) DATA.offerMeta[k].installTitle = (DEFAULT_DATA.offerMeta[k]&&DEFAULT_DATA.offerMeta[k].installTitle) || 'Mise en service unique';
     if(DATA.offerMeta[k] && !DATA.offerMeta[k].installDesc) DATA.offerMeta[k].installDesc = (DEFAULT_DATA.offerMeta[k]&&DEFAULT_DATA.offerMeta[k].installDesc) || 'Création, configuration et lancement de votre restaurant.';
@@ -772,7 +773,11 @@ function renderAddonModules(){
       }
       ${editMode
         ? `<input class="feature-price-input" type="number" value="${m.price||0}" placeholder="€/mois" onchange="DATA.addonModules[${mi}].price=parseInt(this.value)||0;save();renderSimulator()" title="Montant de l'abonnement mensuel">`
-        : `<span style="font-size:11px;color:var(--text3);width:70px;text-align:right">${(m.price||0).toLocaleString('fr-FR')} €/mois</span>`
+        : `<span style="font-size:11px;color:var(--text3);width:80px;text-align:right">${(m.price||0).toLocaleString('fr-FR')} €/mois</span>`
+      }
+      ${editMode
+        ? `<input class="feature-price-input" type="number" value="${m.setup||0}" placeholder="€ onboarding" onchange="DATA.addonModules[${mi}].setup=parseInt(this.value)||0;save();renderSimulator()" title="Prix d'onboarding (unique)">`
+        : (m.setup ? `<span style="font-size:11px;color:var(--text3);width:100px;text-align:right">+ ${m.setup.toLocaleString('fr-FR')} € onboarding</span>` : '<span style="width:100px"></span>')
       }
       ${editMode ? `<button class="feature-del" onclick="deleteAddonModule(${mi})">✕</button>` : ''}
     </div>
@@ -788,7 +793,7 @@ function renderAddonModules(){
 function addAddonModule(name){
   name = (name||'').trim();
   if(!name) return;
-  DATA.addonModules.push({name:name, price:0});
+  DATA.addonModules.push({name:name, price:0, setup:0});
   save();
   renderAll();
   showToast('✓ Module ajouté');
@@ -1433,7 +1438,7 @@ function simGetMeta(tagKey){ return DATA.offerMeta[tagKey] || {}; }
 
 // Build add-on modules list from DATA.addonModules: standalone, monthly subscription
 function getSimAddons(){
-  return (DATA.addonModules||[]).filter(function(m){ return (m.price||0) > 0; });
+  return (DATA.addonModules||[]).filter(function(m){ return (m.price||0) > 0 || (m.setup||0) > 0; });
 }
 
 // Build options list from DATA categories: all items with price > 0
@@ -1490,7 +1495,8 @@ function simRefresh(){
   getSimAddons().forEach(function(m){
     const n = simAddons[m.name] || 0;
     if(!n) return;
-    addonsMonthly += m.price * n;
+    addonsMonthly += (m.price||0) * n;
+    onboarding += (m.setup||0) * n;
   });
 
   monthly += addonsMonthly;
@@ -1691,7 +1697,9 @@ function renderSimulator(){
     addons.forEach(function(m){
       const row = document.createElement('div'); row.className='sim-opt-row';
       const nm = document.createElement('span'); nm.className='sim-opt-name'; nm.textContent=m.name;
-      const pr = document.createElement('span'); pr.className='sim-opt-price'; pr.textContent=m.price.toLocaleString('fr-FR')+'€/mois';
+      const pr = document.createElement('span'); pr.className='sim-opt-price';
+      pr.textContent = (m.price||0).toLocaleString('fr-FR')+'€/mois'
+        + ((m.setup||0)>0 ? ' · onb. '+m.setup.toLocaleString('fr-FR')+'€' : '');
       const cnt = document.createElement('div'); cnt.className='sim-counter'; cnt.style.flexShrink='0';
       const key = btoa(m.name).replace(/=/g,'');
       const bm = document.createElement('button'); bm.className='sim-counter-btn';
