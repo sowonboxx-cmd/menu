@@ -170,7 +170,9 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .apple-card-image img{width:100%;display:block;object-fit:cover}
 .offers-grid .offer-card.agence{grid-column:1/-1}
 .offers-grid .offer-card.services{grid-column:1/-1}
-.offer-card{border-radius:20px;background:#fff;padding:5px 28px 32px;position:relative;display:flex;flex-direction:column}
+.offer-card-wrap{display:flex;flex-direction:column}
+.offer-card{border-radius:20px;background:#fff;padding:5px 28px 32px;position:relative;display:flex;flex-direction:column;flex:1}
+.ov2-info-outside{margin-top:14px;text-align:center;font-size:13px;color:var(--text3)}
 .offer-card.base{background:#fff}
 .offer-card.pro{background:#fff}
 .offer-card.premium{background:#fff}
@@ -210,7 +212,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .ov2-info-row svg{flex:none}
 .ov2-install-wrap{position:relative;display:inline-block;cursor:help}
 .ov2-install-wrap .ov2-install-text{border-bottom:1px dashed var(--text3)}
-.ov2-install-tooltip{position:absolute;bottom:calc(100% + 10px);left:0;background:#1f2430;color:#fff;width:220px;padding:12px 14px;border-radius:10px;font-size:12px;line-height:1.45;text-align:left;box-shadow:0 10px 26px rgba(0,0,0,.2);opacity:0;visibility:hidden;transform:translateY(4px);transition:opacity .15s,transform .15s;z-index:30}
+.ov2-install-tooltip{position:absolute;bottom:calc(100% + 10px);left:0;background:#1f2430;color:#fff;width:220px;padding:12px 14px;border-radius:10px;font-size:12px;line-height:1.45;text-align:left;box-shadow:0 10px 26px rgba(0,0,0,.2);opacity:0;visibility:hidden;transform:translateY(4px);transition:opacity .15s,transform .15s;z-index:30;white-space:pre-line}
 .ov2-install-tooltip strong{display:block;font-size:12.5px;font-weight:700;margin-bottom:4px}
 .ov2-install-wrap:hover .ov2-install-tooltip{opacity:1;visibility:visible;transform:translateY(0)}
 .offers-trust-bar{display:flex;align-items:center;background:#fff;border-radius:20px;padding:24px 32px;margin-top:20px;gap:0}
@@ -935,6 +937,7 @@ function renderOffers(){
     const includedLabel = prevName ? `Toute l'offre ${esc(cap(prevName))} et :` : 'Ce que vous avez :';
 
     return `
+    <div class="offer-card-wrap">
     <div class="offer-card ${tag}">
       <div class="ov2-banner ${tag}"></div>
       ${editable
@@ -993,16 +996,6 @@ function renderOffers(){
         </div>
       ` : ''}
       <button class="offer-cta ${tag==='apero'?'apero':''}" type="button">Choisir cette offre</button>
-      ${(!editable && meta.setup>0) ? `
-        <div class="ov2-info" style="margin-bottom:-18px">
-          <div class="ov2-info-row">
-            <span class="ov2-install-wrap">
-              <span class="ov2-install-text">${esc(DATA.installationLabel)} : ${meta.setup.toLocaleString('fr-FR')} €</span>
-              <span class="ov2-install-tooltip"><strong>${esc(meta.installTitle||'Mise en service unique')}</strong>${esc(meta.installDesc||'')}</span>
-            </span>
-          </div>
-        </div>
-      ` : ''}
       ${editable ? `
         <div style="display:flex;align-items:center;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
           <input type="color" value="${accent}" style="width:32px;height:28px;border:1px solid var(--border);border-radius:6px;padding:2px;background:#fff;cursor:pointer" oninput="this.closest('.offer-card').querySelectorAll('.ov2-icon')[0].style.background=hexToRgba(this.value,0.12)" onchange="DATA.cardColors['${tag}']=this.value;save();renderOffers()">
@@ -1010,6 +1003,15 @@ function renderOffers(){
           ${DATA.cardColors[tag]?`<button type="button" style="font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;text-decoration:underline;margin-left:auto" onclick="delete DATA.cardColors['${tag}'];save();renderOffers()">Réinitialiser</button>`:''}
         </div>
       ` : ''}
+    </div>
+    ${(!editable && meta.setup>0) ? `
+      <div class="ov2-info-outside">
+        <span class="ov2-install-wrap">
+          <span class="ov2-install-text">${esc(DATA.installationLabel)} : ${meta.setup.toLocaleString('fr-FR')} €</span>
+          <span class="ov2-install-tooltip"><strong>${esc(meta.installTitle||'Mise en service unique')}</strong>${esc(meta.installDesc||'')}</span>
+        </span>
+      </div>
+    ` : ''}
     </div>`;
   });
 
