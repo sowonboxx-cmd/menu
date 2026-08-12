@@ -180,7 +180,8 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .ov2-icon{width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;flex:none}
 .ov2-icon img{width:28px;height:28px;object-fit:contain}
 .ov2-label{font-size:12px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;margin-bottom:4px}
-.ov2-title{font-size:17px;font-weight:700;color:var(--text);line-height:1.25;white-space:pre-wrap;margin-bottom:28px}
+.ov2-title{font-size:17px;font-weight:700;color:var(--text);line-height:1.25;white-space:pre-wrap;margin-bottom:4px}
+.ov2-subtitle2{font-size:13px;color:var(--text3);line-height:1.35;margin-bottom:26px}
 .ov2-subtitle{font-size:14px;color:var(--text2);margin-bottom:18px;line-height:1.4}
 .ov2-divider{height:1px;background:var(--border);margin-bottom:18px}
 .ov2-price-row{display:flex;align-items:baseline;gap:6px;margin-bottom:4px}
@@ -193,7 +194,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .ov2-banner.base{background:linear-gradient(135deg,#bfe3ff 0%,#79c2f7 45%,#e4f6ff 100%)}
 .ov2-banner.pro{background:linear-gradient(135deg,#d7f56b 0%,#a3e04a 45%,#f6f9a8 100%)}
 .ov2-banner.premium{background:linear-gradient(135deg,#ffc2cf 0%,#ff8fa3 45%,#ffd9ad 100%)}
-.ov2-top-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:22px}
+.ov2-top-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:18px}
 .ov2-name{font-size:17px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:var(--text)}
 .ov2-price-pill{display:inline-flex;align-items:baseline;gap:3px;background:#EAF3FE;color:#2F6FE0;font-size:12px;font-weight:600;padding:5px 11px;border-radius:8px;border:1px solid #D6E8FC;white-space:nowrap}
 .ov2-price-pill span{font-weight:600;opacity:1}
@@ -206,6 +207,11 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .ov2-info-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text3)}
 .ov2-info-row.included{color:var(--text3)}
 .ov2-info-row svg{flex:none}
+.ov2-install-wrap{position:relative;display:inline-block;cursor:help}
+.ov2-install-wrap .ov2-install-text{border-bottom:1px dashed var(--text3)}
+.ov2-install-tooltip{position:absolute;bottom:calc(100% + 10px);left:0;background:#1f2430;color:#fff;width:220px;padding:12px 14px;border-radius:10px;font-size:12px;line-height:1.45;text-align:left;box-shadow:0 10px 26px rgba(0,0,0,.2);opacity:0;visibility:hidden;transform:translateY(4px);transition:opacity .15s,transform .15s;z-index:30}
+.ov2-install-tooltip strong{display:block;font-size:12.5px;font-weight:700;margin-bottom:4px}
+.ov2-install-wrap:hover .ov2-install-tooltip{opacity:1;visibility:visible;transform:translateY(0)}
 .offers-trust-bar{display:flex;align-items:center;background:#fff;border-radius:20px;padding:24px 32px;margin-top:20px;gap:0}
 .otb-item{display:flex;align-items:center;gap:14px;flex:1;padding:0 20px}
 .otb-item:not(:last-child){border-right:1px solid var(--border)}
@@ -419,6 +425,8 @@ table.matrix tr:hover td{background:#fafaf7}
 // ══════════════════════════════════════════
 const DEFAULT_DATA = {
   installationLabel: 'Installation & prise en main',
+  installationTooltipTitle: 'Mise en service unique',
+  installationTooltipDesc: 'Création, configuration et lancement de votre restaurant.',
   cardColors: {},
   offersHeader: { label:'Vos offres packagées', title:'Trois offres. Tout compris.', subtitle:'Gérez, développez et fidélisez votre restaurant depuis votre téléphone.', cta:'Sur devis' },
   appleCardsHeader: { label:'MODE AGENCE', title:'On s\'occupe du reste', subtitle:'L\'humain là où l\'IA s\'arrête', cta:'Sur devis' },
@@ -530,6 +538,8 @@ function migrateData(){
   if(!Array.isArray(DATA.offersTrustBar)) DATA.offersTrustBar = JSON.parse(JSON.stringify(DEFAULT_DATA.offersTrustBar));
   ['base','pro','premium'].forEach(k=>{ if(DATA.offerMeta[k] && DATA.offerMeta[k].icon===undefined) DATA.offerMeta[k].icon = ''; });
   if(!DATA.installationLabel) DATA.installationLabel = DEFAULT_DATA.installationLabel;
+  if(!DATA.installationTooltipTitle) DATA.installationTooltipTitle = DEFAULT_DATA.installationTooltipTitle;
+  if(!DATA.installationTooltipDesc) DATA.installationTooltipDesc = DEFAULT_DATA.installationTooltipDesc;
   if(!DATA.cardColors) DATA.cardColors = {};
   if(!DATA.appleCardsHeader) DATA.appleCardsHeader = DEFAULT_DATA.appleCardsHeader;
   if(DATA.appleCardsHeader && DATA.appleCardsHeader.cta===undefined) DATA.appleCardsHeader.cta = DEFAULT_DATA.appleCardsHeader.cta;
@@ -916,7 +926,7 @@ function renderOffers(){
     const FLAT_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter"><path d="M4 12l6 6L20 6"/></svg>';
     const CHECK_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>';
 
-    const includedLabel = prevName ? `Inclut tout ${esc(prevName)} :` : 'Ce que vous avez :';
+    const includedLabel = prevName ? `Tout ce qu'il y a dans ${esc(prevName)} +` : 'Ce que vous avez :';
 
     return `
     <div class="offer-card ${tag}">
@@ -943,6 +953,10 @@ function renderOffers(){
         ? `<textarea class="feature-name-input" placeholder="Titre (ex: On s'occupe de tout)" style="font-size:16px;font-weight:800;color:var(--text);padding:0;width:100%;resize:vertical;min-height:40px;font-family:'Inter',sans-serif" onchange="DATA.offerMeta['${tag}'].title=this.value;save()">${esc(meta.title||'')}</textarea>`
         : `<div class="ov2-title">${esc(meta.title||'')}</div>`
       }
+      ${editable
+        ? `<textarea class="feature-name-input" placeholder="Sous-titre (optionnel)" style="font-size:12px;color:var(--text2);padding:0;margin-bottom:14px;width:100%;resize:vertical;min-height:30px;font-family:'Inter',sans-serif" onchange="DATA.offerMeta['${tag}'].subtitle=this.value;save()">${esc(meta.subtitle||'')}</textarea>`
+        : `<div class="ov2-subtitle2">${esc(meta.subtitle||'')}</div>`
+      }
       ${editable ? `
         <div style="font-size:11px;color:var(--text3);margin-bottom:14px">${includedLabel} (auto)</div>
       ` : `
@@ -967,11 +981,20 @@ function renderOffers(){
           <input class="feature-price-input" style="width:70px" type="number" value="${meta.setup}" onchange="DATA.offerMeta['${tag}'].setup=parseInt(this.value)||0;save();renderOffers()">
           <span style="font-size:12px;color:var(--text2)">€</span>
         </div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
+          <input type="text" value="${esc(DATA.installationTooltipTitle)}" placeholder="Titre infobulle" style="font-size:11px;color:var(--text2);border:1px solid var(--border);border-radius:6px;outline:none;background:#fff;padding:5px 8px;width:100%" onchange="DATA.installationTooltipTitle=this.value;save();renderOffers()">
+          <textarea placeholder="Description infobulle" style="font-size:11px;color:var(--text2);border:1px solid var(--border);border-radius:6px;outline:none;background:#fff;padding:5px 8px;width:100%;resize:vertical;min-height:36px;font-family:'Inter',sans-serif" onchange="DATA.installationTooltipDesc=this.value;save();renderOffers()">${esc(DATA.installationTooltipDesc)}</textarea>
+        </div>
       ` : ''}
-      <button class="offer-cta ${tag==='apero'?'apero':''}" type="button">Choisir ce plan</button>
+      <button class="offer-cta ${tag==='apero'?'apero':''}" type="button">Choisir cette offre</button>
       ${(!editable && meta.setup>0) ? `
         <div class="ov2-info" style="margin-bottom:-18px">
-          <div class="ov2-info-row"><span>${esc(DATA.installationLabel)} : ${meta.setup.toLocaleString('fr-FR')} €</span></div>
+          <div class="ov2-info-row">
+            <span class="ov2-install-wrap">
+              <span class="ov2-install-text">${esc(DATA.installationLabel)} : ${meta.setup.toLocaleString('fr-FR')} €</span>
+              <span class="ov2-install-tooltip"><strong>${esc(DATA.installationTooltipTitle)}</strong>${esc(DATA.installationTooltipDesc)}</span>
+            </span>
+          </div>
         </div>
       ` : ''}
       ${editable ? `
