@@ -621,6 +621,20 @@ function migrateData(){
     });
     DATA._prestationMigratedV1 = true;
   }
+  // Safety net (runs every load, not just once): make sure any category named/flagged
+  // "Prestation" always has prestation:true and every item has a proper options[] array —
+  // covers items added before this flag existed, or a category renamed by hand.
+  DATA.categories.forEach(c=>{
+    if(c.name==='Prestation') c.prestation = true;
+    if(c.prestation){
+      (c.items||[]).forEach(item=>{
+        if(!item.options || !item.options.length){
+          item.options = [{ label:'Standard', price: item.price||0 }];
+        }
+        delete item.price;
+      });
+    }
+  });
   if(DATA.offerMeta.services && DATA.offerMeta.services.subtitle==='Ajoutez des options ponctuelles à n\'importe quelle offre.'){
     DATA.offerMeta.services.subtitle = '';
   }
