@@ -1514,30 +1514,21 @@ function getSimAddons(){
 }
 
 // Build options list from DATA categories: all items with price > 0 (excludes Prestation items, which use options[])
+// "Prestations" block: merges simple priced items AND multi-option (dropdown) items
+// from all categories — includes the Prestation category items alongside the rest.
 function getSimOptions(){
   const opts = [];
   (DATA.categories||[]).forEach(function(cat){
-    if(cat.prestation) return;
     (cat.items||[]).forEach(function(item){
-      if((item.price||0) > 0){
-        opts.push({ id: item.name, name: item.name, price: item.price });
+      if(cat.prestation){
+        const variants = (item.options||[]).filter(function(o){ return (o.price||0) > 0; });
+        if(variants.length) opts.push({ type:'options', name: item.name, options: variants });
+      } else if((item.price||0) > 0){
+        opts.push({ type:'simple', id: item.name, name: item.name, price: item.price });
       }
     });
   });
   return opts;
-}
-
-// Build prestation list: items with multiple priced variants (options), chosen via dropdown
-function getSimPrestations(){
-  const list = [];
-  (DATA.categories||[]).forEach(function(cat){
-    if(!cat.prestation) return;
-    (cat.items||[]).forEach(function(item){
-      const opts = (item.options||[]).filter(function(o){ return (o.price||0) > 0; });
-      if(opts.length) list.push({ name:item.name, options:opts });
-    });
-  });
-  return list;
 }
 
 function simAdjust(id, delta){
@@ -1586,9 +1577,17 @@ function simRefresh(){
   });
 
   getSimOptions().forEach(function(o){
-    const n = simOpts[o.name] || 0;
-    if(!n) return;
-    optionsTotal += o.price * n;
+    if(o.type === 'options'){
+      const state = simPrestations[o.name];
+      const n = state ? state.qty : 0;
+      if(!n) return;
+      const opt = o.options[state.optionIndex] || o.options[0];
+      optionsTotal += (opt.price||0) * n;
+    } else {
+      const n = simOpts[o.name] || 0;
+      if(!n) return;
+      optionsTotal += o.price * n;
+    }
   });
 
   getSimAddons().forEach(function(m){
@@ -1596,14 +1595,6 @@ function simRefresh(){
     if(!n) return;
     addonsMonthly += (m.price||0) * n;
     onboarding += (m.setup||0) * n;
-  });
-
-  getSimPrestations().forEach(function(p){
-    const state = simPrestations[p.name];
-    const n = state ? state.qty : 0;
-    if(!n) return;
-    const opt = p.options[state.optionIndex] || p.options[0];
-    optionsTotal += (opt.price||0) * n;
   });
 
   monthly += addonsMonthly;
@@ -1646,14 +1637,15 @@ function renderSimulator(){
   if(!el) return;
 
   const opts = getSimOptions();
-  // Sync simOpts with current options
-  opts.forEach(function(o){ if(simOpts[o.name]===undefined) simOpts[o.name]=0; });
+  // Sync simOpts / simPrestations with current options
+  opts.forEach(function(o){
+    if(o.type === 'options'){
+      if(simPrestations[o.name]===undefined) simPrestations[o.name] = {optionIndex:0, qty:0};
+    } else if(simOpts[o.name]===undefined) simOpts[o.name]=0;
+  });
 
   const addons = getSimAddons();
   addons.forEach(function(m){ if(simAddons[m.name]===undefined) simAddons[m.name]=0; });
-
-  const prestations = getSimPrestations();
-  prestations.forEach(function(p){ if(simPrestations[p.name]===undefined) simPrestations[p.name]={optionIndex:0, qty:0}; });
 
   // ── PROJECTION (top) ──
   const proj = document.createElement('div');
@@ -1668,7 +1660,7 @@ function renderSimulator(){
   const boxData = [
     {id:'simOnboarding', label:'Onboarding', val:'0 €'},
     {id:'simMonthly',    label:'Récurrent mensuel', val:'0 €/mois'},
-    {id:'simOptions',    label:'Fonctionnalités', val:'0 €'},
+    {id:'simOptions',    label:'Prestations', val:'0 €'},
     {id:'simTotal',      label:'Total', val:'0 €', cls:'total'},
   ];
   boxData.forEach(function(b){
@@ -1683,7 +1675,7 @@ function renderSimulator(){
 
   const tlLbl = document.createElement('div');
   tlLbl.style.cssText='font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:8px';
-  tlLbl.textContent = 'Récurrent cumulé · ligne grise = avec onboarding + fonctionnalités';
+  tlLbl.textContent = 'Récurrent cumulé · ligne grise = avec onboarding + prestations';
   proj.appendChild(tlLbl);
   const tl = document.createElement('div'); tl.className='sim-timeline'; tl.id='simTimeline';
   proj.appendChild(tl);
@@ -1762,32 +1754,61 @@ function renderSimulator(){
   const optsBlock = document.createElement('div'); optsBlock.className='sim-block';
   const optsHdr = document.createElement('div'); optsHdr.className='sim-block-hdr';
   const optsTitle = document.createElement('span'); optsTitle.className='sim-block-name';
-  optsTitle.style.color='var(--agence)'; optsTitle.textContent='Fonctionnalités';
+  optsTitle.style.color='var(--agence)'; optsTitle.textContent='Prestations';
   optsHdr.appendChild(optsTitle); optsBlock.appendChild(optsHdr);
 
   if(opts.length === 0){
     const empty = document.createElement('div');
     empty.style.cssText='padding:16px;font-size:12px;color:var(--text3);font-style:italic;text-align:center';
-    empty.textContent='Ajoutez un prix à vos fonctionnalités pour les voir ici';
+    empty.textContent='Ajoutez un prix à vos prestations pour les voir ici';
     optsBlock.appendChild(empty);
   } else {
     opts.forEach(function(o){
-      const row = document.createElement('div'); row.className='sim-opt-row';
-      const nm = document.createElement('span'); nm.className='sim-opt-name'; nm.textContent=o.name;
-      const pr = document.createElement('span'); pr.className='sim-opt-price'; pr.textContent=o.price.toLocaleString('fr-FR')+'€';
-      const cnt = document.createElement('div'); cnt.className='sim-counter'; cnt.style.flexShrink='0';
-      const key = btoa(o.name).replace(/=/g,'');
-      const bm = document.createElement('button'); bm.className='sim-counter-btn';
-      bm.style.cssText='width:24px;height:24px;font-size:15px';  bm.textContent='−';
-      bm.addEventListener('click',(function(n){return function(){simAdjustOpt(n,-1);};})(o.name));
-      const vsp = document.createElement('span'); vsp.className='sim-counter-val';
-      vsp.style.fontSize='13px'; vsp.id='so_'+key; vsp.textContent='0';
-      const bp = document.createElement('button'); bp.className='sim-counter-btn';
-      bp.style.cssText='width:24px;height:24px;font-size:15px'; bp.textContent='+';
-      bp.addEventListener('click',(function(n){return function(){simAdjustOpt(n,1);};})(o.name));
-      cnt.appendChild(bm); cnt.appendChild(vsp); cnt.appendChild(bp);
-      row.appendChild(nm); row.appendChild(pr); row.appendChild(cnt);
-      optsBlock.appendChild(row);
+      if(o.type === 'options'){
+        const state = simPrestations[o.name] || {optionIndex:0, qty:0};
+        const row = document.createElement('div'); row.className='sim-opt-row'; row.style.flexWrap='wrap';
+        const nm = document.createElement('span'); nm.className='sim-opt-name'; nm.textContent=o.name; nm.style.flex='1 0 100%';
+        const sel = document.createElement('select');
+        sel.style.cssText='font-size:11px;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-family:Inter,sans-serif;background:#fff;flex:1;min-width:0';
+        o.options.forEach(function(v,vi){
+          const optEl = document.createElement('option');
+          optEl.value = vi;
+          optEl.textContent = v.label+' — '+(v.price||0).toLocaleString('fr-FR')+'€';
+          if(vi === state.optionIndex) optEl.selected = true;
+          sel.appendChild(optEl);
+        });
+        sel.addEventListener('change',(function(n){return function(){simSetPrestationOption(n,this.value);};})(o.name));
+        const cnt = document.createElement('div'); cnt.className='sim-counter'; cnt.style.flexShrink='0';
+        const key = btoa(o.name).replace(/=/g,'');
+        const bm = document.createElement('button'); bm.className='sim-counter-btn';
+        bm.style.cssText='width:24px;height:24px;font-size:15px'; bm.textContent='−';
+        bm.addEventListener('click',(function(n){return function(){simAdjustPrestation(n,-1);};})(o.name));
+        const vsp = document.createElement('span'); vsp.className='sim-counter-val';
+        vsp.style.fontSize='13px'; vsp.id='sp_'+key; vsp.textContent=String(state.qty);
+        const bp = document.createElement('button'); bp.className='sim-counter-btn';
+        bp.style.cssText='width:24px;height:24px;font-size:15px'; bp.textContent='+';
+        bp.addEventListener('click',(function(n){return function(){simAdjustPrestation(n,1);};})(o.name));
+        cnt.appendChild(bm); cnt.appendChild(vsp); cnt.appendChild(bp);
+        row.appendChild(nm); row.appendChild(sel); row.appendChild(cnt);
+        optsBlock.appendChild(row);
+      } else {
+        const row = document.createElement('div'); row.className='sim-opt-row';
+        const nm = document.createElement('span'); nm.className='sim-opt-name'; nm.textContent=o.name;
+        const pr = document.createElement('span'); pr.className='sim-opt-price'; pr.textContent=o.price.toLocaleString('fr-FR')+'€';
+        const cnt = document.createElement('div'); cnt.className='sim-counter'; cnt.style.flexShrink='0';
+        const key = btoa(o.name).replace(/=/g,'');
+        const bm = document.createElement('button'); bm.className='sim-counter-btn';
+        bm.style.cssText='width:24px;height:24px;font-size:15px';  bm.textContent='−';
+        bm.addEventListener('click',(function(n){return function(){simAdjustOpt(n,-1);};})(o.name));
+        const vsp = document.createElement('span'); vsp.className='sim-counter-val';
+        vsp.style.fontSize='13px'; vsp.id='so_'+key; vsp.textContent='0';
+        const bp = document.createElement('button'); bp.className='sim-counter-btn';
+        bp.style.cssText='width:24px;height:24px;font-size:15px'; bp.textContent='+';
+        bp.addEventListener('click',(function(n){return function(){simAdjustOpt(n,1);};})(o.name));
+        cnt.appendChild(bm); cnt.appendChild(vsp); cnt.appendChild(bp);
+        row.appendChild(nm); row.appendChild(pr); row.appendChild(cnt);
+        optsBlock.appendChild(row);
+      }
     });
   }
   rightCol.appendChild(optsBlock);
@@ -1827,50 +1848,6 @@ function renderSimulator(){
     });
   }
   rightCol.appendChild(addonsBlock);
-
-  // RIGHT (below add-ons): Prestation block — items with multiple priced variants (dropdown)
-  const prestaBlock = document.createElement('div'); prestaBlock.className='sim-block';
-  const prestaHdr = document.createElement('div'); prestaHdr.className='sim-block-hdr';
-  const prestaTitle = document.createElement('span'); prestaTitle.className='sim-block-name';
-  prestaTitle.style.color='var(--services)'; prestaTitle.textContent='Prestation';
-  prestaHdr.appendChild(prestaTitle); prestaBlock.appendChild(prestaHdr);
-
-  if(prestations.length === 0){
-    const empty = document.createElement('div');
-    empty.style.cssText='padding:16px;font-size:12px;color:var(--text3);font-style:italic;text-align:center';
-    empty.textContent='Ajoutez un prix à vos prestations pour les voir ici';
-    prestaBlock.appendChild(empty);
-  } else {
-    prestations.forEach(function(p){
-      const state = simPrestations[p.name] || {optionIndex:0, qty:0};
-      const row = document.createElement('div'); row.className='sim-opt-row'; row.style.flexWrap='wrap';
-      const nm = document.createElement('span'); nm.className='sim-opt-name'; nm.textContent=p.name; nm.style.flex='1 0 100%';
-      const sel = document.createElement('select');
-      sel.style.cssText='font-size:11px;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-family:Inter,sans-serif;background:#fff;flex:1;min-width:0';
-      p.options.forEach(function(o,oi){
-        const optEl = document.createElement('option');
-        optEl.value = oi;
-        optEl.textContent = o.label+' — '+(o.price||0).toLocaleString('fr-FR')+'€';
-        if(oi === state.optionIndex) optEl.selected = true;
-        sel.appendChild(optEl);
-      });
-      sel.addEventListener('change',(function(n){return function(){simSetPrestationOption(n,this.value);};})(p.name));
-      const cnt = document.createElement('div'); cnt.className='sim-counter'; cnt.style.flexShrink='0';
-      const key = btoa(p.name).replace(/=/g,'');
-      const bm = document.createElement('button'); bm.className='sim-counter-btn';
-      bm.style.cssText='width:24px;height:24px;font-size:15px'; bm.textContent='−';
-      bm.addEventListener('click',(function(n){return function(){simAdjustPrestation(n,-1);};})(p.name));
-      const vsp = document.createElement('span'); vsp.className='sim-counter-val';
-      vsp.style.fontSize='13px'; vsp.id='sp_'+key; vsp.textContent=String(state.qty);
-      const bp = document.createElement('button'); bp.className='sim-counter-btn';
-      bp.style.cssText='width:24px;height:24px;font-size:15px'; bp.textContent='+';
-      bp.addEventListener('click',(function(n){return function(){simAdjustPrestation(n,1);};})(p.name));
-      cnt.appendChild(bm); cnt.appendChild(vsp); cnt.appendChild(bp);
-      row.appendChild(nm); row.appendChild(sel); row.appendChild(cnt);
-      prestaBlock.appendChild(row);
-    });
-  }
-  rightCol.appendChild(prestaBlock);
   wrap.appendChild(rightCol);
 
   el.innerHTML = '';
