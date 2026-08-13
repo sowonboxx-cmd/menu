@@ -380,7 +380,7 @@ table.matrix tr:hover td{background:#fafaf7}
         <span class="tag tag-pro">Plat</span>
         <span class="tag tag-premium">Dessert</span>
         <span class="tag tag-agence">Agence</span>
-        <span class="tag tag-services">À la carte</span>
+        <span class="tag tag-services">Prestation</span>
       </div>
     </div>
 
@@ -451,7 +451,7 @@ const DEFAULT_DATA = {
   ],
   cardColors: {},
   offersHeader: { label:'Vos offres packagées', title:'Trois offres. Tout compris.', subtitle:'Gérez, développez et fidélisez votre restaurant depuis votre téléphone.', cta:'Sur devis' },
-  appleCardsHeader: { label:'MODE AGENCE', title:'On s\'occupe du reste', subtitle:'L\'humain là où l\'IA s\'arrête', cta:'Sur devis' },
+  appleCardsHeader: { label:'AGENCE', title:'On s\'occupe du reste', subtitle:'L\'humain là où l\'IA s\'arrête', cta:'Sur devis' },
   appleCards: [
     { icon:'', label:'Création de contenu', title:'Chaque plat raconte une histoire', subtitle:'Photos, vidéos et Reels qui mettent votre cuisine en valeur.', bullets:['Shooting photo','Reels','Direction artistique'], image:'' },
     { icon:'', label:'', title:'', subtitle:'', bullets:['','',''], image:'' },
@@ -497,19 +497,19 @@ const DEFAULT_DATA = {
       { name: 'Saisie menu + config + formation 1h', tags:['base','pro'], price:800 },
       { name: 'Onboarding Premium (shoot + brand kit)', tags:['premium'], price:4500 },
     ]},
-    { name: 'Services à la carte', items: [
-      { name: 'Pack Menu', tags:['services'], price:0 },
-      { name: 'Premium Plus', tags:['services'], price:0 },
-      { name: 'Pack Social', tags:['services'], price:0 },
-      { name: 'Refonte du menu', tags:['services'], price:0 },
-      { name: 'Brand Kit', tags:['services'], price:0 },
-      { name: 'Mascotte', tags:['services'], price:0 },
-      { name: 'Habillage', tags:['services'], price:0 },
-      { name: 'Optimisation Instagram', tags:['services'], price:0 },
-      { name: 'Optimisation Google', tags:['services'], price:0 },
-      { name: 'Menu Instagram', tags:['services'], price:0 },
-      { name: 'Menu Google', tags:['services'], price:0 },
-      { name: 'Création de Reels', tags:['services'], price:0 },
+    { name: 'Prestation', prestation: true, items: [
+      { name: 'Pack Menu', tags:['services'], options:[{label:'Standard', price:0}] },
+      { name: 'Premium Plus', tags:['services'], options:[{label:'Standard', price:0}] },
+      { name: 'Pack Social', tags:['services'], options:[{label:'Standard', price:0}] },
+      { name: 'Refonte du menu', tags:['services'], options:[{label:'Standard', price:0}] },
+      { name: 'Brand Kit', tags:['services'], options:[{label:'Standard', price:0}] },
+      { name: 'Mascotte', tags:['services'], options:[{label:'Standard', price:0}] },
+      { name: 'Habillage', tags:['services'], options:[{label:'Standard', price:0}] },
+      { name: 'Optimisation Instagram', tags:['services'], options:[{label:'Standard', price:0}] },
+      { name: 'Optimisation Google', tags:['services'], options:[{label:'Standard', price:0}] },
+      { name: 'Menu Instagram', tags:['services'], options:[{label:'Standard', price:0}] },
+      { name: 'Menu Google', tags:['services'], options:[{label:'Standard', price:0}] },
+      { name: 'Création de Reels', tags:['services'], options:[{label:'Standard', price:0}] },
     ]},
   ],
   offerMeta: {
@@ -571,6 +571,7 @@ function migrateData(){
   if(!DATA.cardColors) DATA.cardColors = {};
   if(!DATA.appleCardsHeader) DATA.appleCardsHeader = DEFAULT_DATA.appleCardsHeader;
   if(DATA.appleCardsHeader && DATA.appleCardsHeader.cta===undefined) DATA.appleCardsHeader.cta = DEFAULT_DATA.appleCardsHeader.cta;
+  if(DATA.appleCardsHeader && DATA.appleCardsHeader.label==='MODE AGENCE') DATA.appleCardsHeader.label = 'AGENCE';
   if(!Array.isArray(DATA.appleCards)) DATA.appleCards = JSON.parse(JSON.stringify(DEFAULT_DATA.appleCards));
   DATA.appleCards.forEach(c=>{
     if(!Array.isArray(c.bullets)) c.bullets = [];
@@ -597,6 +598,24 @@ function migrateData(){
     if(DATA.offerMeta.premium && DATA.offerMeta.premium.name==='Signature') DATA.offerMeta.premium.name = 'Dessert';
     DATA.categories.forEach(c=>{ c.name = c.name.replace(/^\p{Extended_Pictographic}\uFE0F?\s*/u,''); });
     DATA._alacarteMigratedV2 = true;
+  }
+
+  // One-time: convert "Services à la carte" category into "Prestation" with
+  // multi-option pricing (dropdown of variants instead of a single price).
+  if(!DATA._prestationMigratedV1){
+    DATA.categories.forEach(c=>{
+      if(c.name==='Services à la carte' || c.prestation){
+        c.name = 'Prestation';
+        c.prestation = true;
+        (c.items||[]).forEach(item=>{
+          if(!item.options || !item.options.length){
+            item.options = [{ label:'Standard', price: item.price||0 }];
+          }
+          delete item.price;
+        });
+      }
+    });
+    DATA._prestationMigratedV1 = true;
   }
   if(DATA.offerMeta.services && DATA.offerMeta.services.subtitle==='Ajoutez des options ponctuelles à n\'importe quelle offre.'){
     DATA.offerMeta.services.subtitle = '';
@@ -724,7 +743,7 @@ function renderFeatures(){
         <span class="feature-cat-arrow">▾</span>
       </div>
       <div class="feature-cat-body">
-        ${cat.items.map((item, ii) => `
+        ${cat.prestation ? cat.items.map((item, ii) => renderPrestationRow(ci, ii, item)).join('') : cat.items.map((item, ii) => `
           <div class="feature-row" data-ci="${ci}" data-ii="${ii}" data-name="${(item.name||"").toLowerCase()}" ${editMode?'draggable="true"':''}>
             ${editMode ? '<span class="feature-drag">⠿</span>' : ''}
             ${editMode
@@ -756,6 +775,54 @@ function renderFeatures(){
     : '';
 
   if(editMode) attachDragHandlers();
+}
+
+// A "Prestation" item has multiple priced variants (options) chosen via a dropdown,
+// instead of a single price — e.g. "Shooting photo" → Agence 400€ / Client 250€.
+function renderPrestationRow(ci, ii, item){
+  const opts = item.options && item.options.length ? item.options : [{label:'Standard', price:0}];
+  if(editMode){
+    return `
+    <div class="feature-row" data-ci="${ci}" data-ii="${ii}" style="align-items:flex-start;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:center;gap:8px;width:100%">
+        <input class="feature-name-input" value="${esc(item.name)}" onchange="DATA.categories[${ci}].items[${ii}].name=this.value;save()">
+        <button class="feature-del" onclick="deleteFeature(${ci},${ii})">✕</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;width:100%;padding-left:22px">
+        ${opts.map((o,oi)=>`
+          <div style="display:flex;gap:6px;align-items:center">
+            <input class="feature-name-input" style="flex:1" value="${esc(o.label)}" placeholder="Option (ex: 5 plats)" onchange="DATA.categories[${ci}].items[${ii}].options[${oi}].label=this.value;save();renderSimulator()">
+            <input class="feature-price-input" type="number" value="${o.price||0}" placeholder="€" onchange="DATA.categories[${ci}].items[${ii}].options[${oi}].price=parseInt(this.value)||0;save();renderSimulator()">
+            ${opts.length>1 ? `<button class="feature-del" onclick="deletePrestationOption(${ci},${ii},${oi})">✕</button>` : '<span style="width:21px"></span>'}
+          </div>
+        `).join('')}
+        <button type="button" style="font-size:11px;color:var(--navy);background:none;border:1px dashed var(--border);border-radius:6px;padding:5px 10px;cursor:pointer;align-self:flex-start;font-family:'Inter',sans-serif" onclick="addPrestationOption(${ci},${ii})">+ Ajouter une option</button>
+      </div>
+    </div>`;
+  }
+  return `
+    <div class="feature-row" data-ci="${ci}" data-ii="${ii}" style="align-items:center">
+      <div class="feature-name-input" style="cursor:default;flex:1">${esc(item.name)}</div>
+      <select class="prestation-select" style="font-size:12px;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-family:'Inter',sans-serif;background:#fff">
+        ${opts.map(o=>`<option>${esc(o.label)} — ${(o.price||0).toLocaleString('fr-FR')} €</option>`).join('')}
+      </select>
+    </div>`;
+}
+function addPrestationOption(ci, ii){
+  const item = DATA.categories[ci].items[ii];
+  if(!item.options) item.options = [];
+  item.options.push({ label:'Nouvelle option', price:0 });
+  save();
+  renderFeatures();
+  renderSimulator();
+}
+function deletePrestationOption(ci, ii, oi){
+  const item = DATA.categories[ci].items[ii];
+  if(item.options.length<=1) return;
+  item.options.splice(oi,1);
+  save();
+  renderFeatures();
+  renderSimulator();
 }
 
 // ══════════════════════════════════════════
@@ -807,7 +874,7 @@ function deleteAddonModule(mi){
 
 function tagLabel(tag){
   if(DATA.offerMeta[tag] && DATA.offerMeta[tag].name) return DATA.offerMeta[tag].name;
-  return {apero:'Apéro',base:'Entrée',pro:'Plat',premium:'Dessert',agence:'Agence',services:'À la carte'}[tag];
+  return {apero:'Apéro',base:'Entrée',pro:'Plat',premium:'Dessert',agence:'Agence',services:'Prestation'}[tag];
 }
 
 let infoModalTarget = null; // {ci, ii}
@@ -857,7 +924,11 @@ function addFeature(ci, name){
   name = (name||'').trim();
   if(!name) return;
   if(!DATA.categories[ci]) return;
-  DATA.categories[ci].items.push({name:name, tags:[], price:0});
+  if(DATA.categories[ci].prestation){
+    DATA.categories[ci].items.push({name:name, tags:['services'], options:[{label:'Standard', price:0}]});
+  } else {
+    DATA.categories[ci].items.push({name:name, tags:[], price:0});
+  }
   save();
   renderAll();
   showToast('✓ Fonctionnalité ajoutée');
@@ -1433,6 +1504,7 @@ const SIM_BASE_OFFERS = [
 let simQ    = { apero:0, entree:0, menu:0, signature:0 };
 let simOpts = {}; // populated dynamically from DATA (features with price > 0)
 let simAddons = {}; // populated dynamically from DATA.addonModules (monthly subscription add-ons)
+let simPrestations = {}; // populated dynamically from Prestation category items: { name: {optionIndex, qty} }
 
 function simGetMeta(tagKey){ return DATA.offerMeta[tagKey] || {}; }
 
@@ -1441,10 +1513,11 @@ function getSimAddons(){
   return (DATA.addonModules||[]).filter(function(m){ return (m.price||0) > 0 || (m.setup||0) > 0; });
 }
 
-// Build options list from DATA categories: all items with price > 0
+// Build options list from DATA categories: all items with price > 0 (excludes Prestation items, which use options[])
 function getSimOptions(){
   const opts = [];
   (DATA.categories||[]).forEach(function(cat){
+    if(cat.prestation) return;
     (cat.items||[]).forEach(function(item){
       if((item.price||0) > 0){
         opts.push({ id: item.name, name: item.name, price: item.price });
@@ -1452,6 +1525,19 @@ function getSimOptions(){
     });
   });
   return opts;
+}
+
+// Build prestation list: items with multiple priced variants (options), chosen via dropdown
+function getSimPrestations(){
+  const list = [];
+  (DATA.categories||[]).forEach(function(cat){
+    if(!cat.prestation) return;
+    (cat.items||[]).forEach(function(item){
+      const opts = (item.options||[]).filter(function(o){ return (o.price||0) > 0; });
+      if(opts.length) list.push({ name:item.name, options:opts });
+    });
+  });
+  return list;
 }
 
 function simAdjust(id, delta){
@@ -1472,6 +1558,19 @@ function simAdjustAddon(name, delta){
   simAddons[name] = Math.max(0, simAddons[name] + delta);
   const el = document.getElementById('sa_'+btoa(name).replace(/=/g,''));
   if(el) el.textContent = simAddons[name];
+  simRefresh();
+}
+function simAdjustPrestation(name, delta){
+  if(!simPrestations[name]) simPrestations[name] = { optionIndex:0, qty:0 };
+  simPrestations[name].qty = Math.max(0, simPrestations[name].qty + delta);
+  const key = btoa(name).replace(/=/g,'');
+  const el = document.getElementById('sp_'+key);
+  if(el) el.textContent = simPrestations[name].qty;
+  simRefresh();
+}
+function simSetPrestationOption(name, optionIndex){
+  if(!simPrestations[name]) simPrestations[name] = { optionIndex:0, qty:0 };
+  simPrestations[name].optionIndex = parseInt(optionIndex)||0;
   simRefresh();
 }
 
@@ -1497,6 +1596,14 @@ function simRefresh(){
     if(!n) return;
     addonsMonthly += (m.price||0) * n;
     onboarding += (m.setup||0) * n;
+  });
+
+  getSimPrestations().forEach(function(p){
+    const state = simPrestations[p.name];
+    const n = state ? state.qty : 0;
+    if(!n) return;
+    const opt = p.options[state.optionIndex] || p.options[0];
+    optionsTotal += (opt.price||0) * n;
   });
 
   monthly += addonsMonthly;
@@ -1544,6 +1651,9 @@ function renderSimulator(){
 
   const addons = getSimAddons();
   addons.forEach(function(m){ if(simAddons[m.name]===undefined) simAddons[m.name]=0; });
+
+  const prestations = getSimPrestations();
+  prestations.forEach(function(p){ if(simPrestations[p.name]===undefined) simPrestations[p.name]={optionIndex:0, qty:0}; });
 
   // ── PROJECTION (top) ──
   const proj = document.createElement('div');
@@ -1636,6 +1746,7 @@ function renderSimulator(){
     simQ = { entree:0, menu:0, signature:0 };
     Object.keys(simOpts).forEach(k=>{ simOpts[k]=0; });
     Object.keys(simAddons).forEach(k=>{ simAddons[k]=0; });
+    Object.keys(simPrestations).forEach(k=>{ simPrestations[k]={optionIndex:0, qty:0}; });
     renderSimulator();
   });
   resetRow.appendChild(resetBtn);
@@ -1716,6 +1827,50 @@ function renderSimulator(){
     });
   }
   rightCol.appendChild(addonsBlock);
+
+  // RIGHT (below add-ons): Prestation block — items with multiple priced variants (dropdown)
+  const prestaBlock = document.createElement('div'); prestaBlock.className='sim-block';
+  const prestaHdr = document.createElement('div'); prestaHdr.className='sim-block-hdr';
+  const prestaTitle = document.createElement('span'); prestaTitle.className='sim-block-name';
+  prestaTitle.style.color='var(--services)'; prestaTitle.textContent='Prestation';
+  prestaHdr.appendChild(prestaTitle); prestaBlock.appendChild(prestaHdr);
+
+  if(prestations.length === 0){
+    const empty = document.createElement('div');
+    empty.style.cssText='padding:16px;font-size:12px;color:var(--text3);font-style:italic;text-align:center';
+    empty.textContent='Ajoutez un prix à vos prestations pour les voir ici';
+    prestaBlock.appendChild(empty);
+  } else {
+    prestations.forEach(function(p){
+      const state = simPrestations[p.name] || {optionIndex:0, qty:0};
+      const row = document.createElement('div'); row.className='sim-opt-row'; row.style.flexWrap='wrap';
+      const nm = document.createElement('span'); nm.className='sim-opt-name'; nm.textContent=p.name; nm.style.flex='1 0 100%';
+      const sel = document.createElement('select');
+      sel.style.cssText='font-size:11px;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-family:Inter,sans-serif;background:#fff;flex:1;min-width:0';
+      p.options.forEach(function(o,oi){
+        const optEl = document.createElement('option');
+        optEl.value = oi;
+        optEl.textContent = o.label+' — '+(o.price||0).toLocaleString('fr-FR')+'€';
+        if(oi === state.optionIndex) optEl.selected = true;
+        sel.appendChild(optEl);
+      });
+      sel.addEventListener('change',(function(n){return function(){simSetPrestationOption(n,this.value);};})(p.name));
+      const cnt = document.createElement('div'); cnt.className='sim-counter'; cnt.style.flexShrink='0';
+      const key = btoa(p.name).replace(/=/g,'');
+      const bm = document.createElement('button'); bm.className='sim-counter-btn';
+      bm.style.cssText='width:24px;height:24px;font-size:15px'; bm.textContent='−';
+      bm.addEventListener('click',(function(n){return function(){simAdjustPrestation(n,-1);};})(p.name));
+      const vsp = document.createElement('span'); vsp.className='sim-counter-val';
+      vsp.style.fontSize='13px'; vsp.id='sp_'+key; vsp.textContent=String(state.qty);
+      const bp = document.createElement('button'); bp.className='sim-counter-btn';
+      bp.style.cssText='width:24px;height:24px;font-size:15px'; bp.textContent='+';
+      bp.addEventListener('click',(function(n){return function(){simAdjustPrestation(n,1);};})(p.name));
+      cnt.appendChild(bm); cnt.appendChild(vsp); cnt.appendChild(bp);
+      row.appendChild(nm); row.appendChild(sel); row.appendChild(cnt);
+      prestaBlock.appendChild(row);
+    });
+  }
+  rightCol.appendChild(prestaBlock);
   wrap.appendChild(rightCol);
 
   el.innerHTML = '';
