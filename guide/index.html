@@ -522,7 +522,7 @@ const DEFAULT_DATA = {
       { header:'Restaurant', items:['Habillage vitrine','Murale','Enseigne','Signalétique'] },
       { header:'Contenu', items:['Shooting Photo Premium','Shooting Food','Menu Instagram','Menu Google','Création de vidéos','Design du menu'] },
     ], categoriesNote:'C\'est un studio de création.' },
-    services:{ name:'À la carte', title:'', subtitle:'', desc:'', price:0, setup:0 },
+    services:{ name:'Prestation', title:'', subtitle:'', desc:'', price:0, setup:0 },
   },
   offersTrustBar: [
     { icon:'', text:'Tout depuis\nvotre téléphone' },
@@ -572,6 +572,10 @@ function migrateData(){
   if(!DATA.appleCardsHeader) DATA.appleCardsHeader = DEFAULT_DATA.appleCardsHeader;
   if(DATA.appleCardsHeader && DATA.appleCardsHeader.cta===undefined) DATA.appleCardsHeader.cta = DEFAULT_DATA.appleCardsHeader.cta;
   if(DATA.appleCardsHeader && DATA.appleCardsHeader.label==='MODE AGENCE') DATA.appleCardsHeader.label = 'AGENCE';
+  if(DATA.offerMeta.agence && /^mode agence$/i.test(DATA.offerMeta.agence.name||'')) DATA.offerMeta.agence.name = 'Agence';
+  if(DATA.offerMeta.agence && DATA.offerMeta.agence.name==='À la carte') DATA.offerMeta.agence.name = 'Agence';
+  if(DATA.offerMeta.services && /^services? compl[ée]mentaires?$/i.test(DATA.offerMeta.services.name||'')) DATA.offerMeta.services.name = 'Prestation';
+  if(DATA.offerMeta.services && DATA.offerMeta.services.name==='À la carte') DATA.offerMeta.services.name = 'Prestation';
   if(!Array.isArray(DATA.appleCards)) DATA.appleCards = JSON.parse(JSON.stringify(DEFAULT_DATA.appleCards));
   DATA.appleCards.forEach(c=>{
     if(!Array.isArray(c.bullets)) c.bullets = [];
@@ -593,7 +597,7 @@ function migrateData(){
         DATA.categories.push({ name:'Services à la carte', items: names.map(n=>({name:n, tags:['services'], price:0})) });
       }
     }
-    DATA.offerMeta.services = { name:'À la carte', title:'', subtitle:'', desc:'', price:0, setup:0 };
+    DATA.offerMeta.services = { name:'Prestation', title:'', subtitle:'', desc:'', price:0, setup:0 };
     if(DATA.offerMeta.agence && DATA.offerMeta.agence.name==='À la carte') DATA.offerMeta.agence.name = 'Agence';
     if(DATA.offerMeta.premium && DATA.offerMeta.premium.name==='Signature') DATA.offerMeta.premium.name = 'Dessert';
     DATA.categories.forEach(c=>{ c.name = c.name.replace(/^\p{Extended_Pictographic}\uFE0F?\s*/u,''); });
