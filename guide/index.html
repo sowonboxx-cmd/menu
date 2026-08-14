@@ -111,9 +111,9 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .sim-opt-name{flex:1;color:var(--text2)}
 .sim-opt-price{font-weight:600;color:var(--navy);white-space:nowrap;font-size:11px;min-width:50px;text-align:right}
 /* Prestation accordion (title + expandable option list, each with its own quantity) */
-.sim-presta-item{border-bottom:1px solid #f5f2ee}
-.sim-presta-item:last-child{border-bottom:none}
-.sim-presta-hdr{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 14px;cursor:pointer;user-select:none;font-size:12px}
+.sim-presta-item{}
+.sim-presta-hdr{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 14px;cursor:pointer;user-select:none;font-size:12px;border-top:1px solid #ece6dd}
+.sim-presta-title{font-weight:600;color:var(--navy)}
 .sim-presta-arrow{font-size:10px;color:var(--text3);transition:transform .15s;flex:none}
 .sim-presta-item.open .sim-presta-arrow{transform:rotate(180deg)}
 .sim-presta-body{display:none;padding:0 14px 6px 14px}
@@ -811,9 +811,11 @@ function renderPrestationRow(ci, ii, item){
   const opts = item.options && item.options.length ? item.options : [{label:'Standard', price:0}];
   if(editMode){
     return `
-    <div class="feature-row" data-ci="${ci}" data-ii="${ii}" style="align-items:flex-start;flex-direction:column;gap:8px">
+    <div class="feature-row" data-ci="${ci}" data-ii="${ii}" data-name="${(item.name||"").toLowerCase()}" draggable="true" style="align-items:flex-start;flex-direction:column;gap:8px">
       <div style="display:flex;align-items:center;gap:8px;width:100%">
+        <span class="feature-drag">⠿</span>
         <input class="feature-name-input" value="${esc(item.name)}" onchange="DATA.categories[${ci}].items[${ii}].name=this.value;save()">
+        <button class="feature-info-btn${item.desc?' has-content':''}" type="button" onclick="openInfoModal(event,${ci},${ii})" title="Description détaillée">i</button>
         <button class="feature-del" onclick="deleteFeature(${ci},${ii})">✕</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;width:100%;padding-left:22px">
@@ -831,6 +833,7 @@ function renderPrestationRow(ci, ii, item){
   return `
     <div class="feature-row" data-ci="${ci}" data-ii="${ii}" style="align-items:center">
       <div class="feature-name-input" style="cursor:default;flex:1">${esc(item.name)}</div>
+      <button class="feature-info-btn${item.desc?' has-content':''}" type="button" onclick="openInfoModal(event,${ci},${ii})" title="Description détaillée">i</button>
       <select class="prestation-select" style="font-size:12px;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-family:'Inter',sans-serif;background:#fff">
         ${opts.map(o=>`<option>${esc(o.label)} — ${(o.price||0).toLocaleString('fr-FR')} €</option>`).join('')}
       </select>
@@ -1877,7 +1880,7 @@ function renderSimulator(){
         const key = btoa(o.name).replace(/=/g,'');
         const item = document.createElement('div'); item.className='sim-presta-item';
         const hdr = document.createElement('div'); hdr.className='sim-presta-hdr';
-        const nm = document.createElement('span'); nm.className='sim-opt-name'; nm.textContent=o.name;
+        const nm = document.createElement('span'); nm.className='sim-opt-name sim-presta-title'; nm.textContent=o.name;
         const arrow = document.createElement('span'); arrow.className='sim-presta-arrow'; arrow.textContent='▾';
         hdr.appendChild(nm); hdr.appendChild(arrow);
         hdr.addEventListener('click', function(){ item.classList.toggle('open'); });
