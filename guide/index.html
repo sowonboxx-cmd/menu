@@ -110,6 +110,16 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .sim-opt-row:last-child{border-bottom:none}
 .sim-opt-name{flex:1;color:var(--text2)}
 .sim-opt-price{font-weight:600;color:var(--navy);white-space:nowrap;font-size:11px;min-width:50px;text-align:right}
+/* Prestation accordion (title + expandable option list, each with its own quantity) */
+.sim-presta-item{border-bottom:1px solid #f5f2ee}
+.sim-presta-item:last-child{border-bottom:none}
+.sim-presta-hdr{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 14px;cursor:pointer;user-select:none}
+.sim-presta-arrow{font-size:10px;color:var(--text3);transition:transform .15s;flex:none}
+.sim-presta-item.open .sim-presta-arrow{transform:rotate(180deg)}
+.sim-presta-body{display:none;padding:0 14px 6px 14px}
+.sim-presta-item.open .sim-presta-body{display:block}
+.sim-presta-opt-row{display:flex;align-items:center;gap:8px;padding:6px 0 6px 14px;font-size:12px;border-top:1px dashed #efe9e2}
+.sim-presta-opt-row:first-child{border-top:none}
 /* Projection 4 boxes */
 .sim-projection{background:var(--navy);border-radius:var(--rs);padding:20px;color:#fff;margin-bottom:16px}
 .sim-proj-boxes{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
@@ -851,7 +861,8 @@ function renderAddonModules(){
   if(!el) return;
   const mods = DATA.addonModules || [];
   el.innerHTML = mods.map((m, mi) => `
-    <div class="feature-row" data-mi="${mi}">
+    <div class="feature-row" data-mi="${mi}" ${editMode?'draggable="true"':''}>
+      ${editMode ? '<span class="feature-drag addon-drag">⠿</span>' : ''}
       ${editMode
         ? `<input class="feature-name-input" value="${esc(m.name)}" placeholder="Nom du module" onchange="DATA.addonModules[${mi}].name=this.value;save();renderSimulator()">`
         : `<div class="feature-name-input" style="cursor:default">${esc(m.name)}</div>`
@@ -874,6 +885,7 @@ function renderAddonModules(){
       <button class="btn-icon-only" style="background:var(--navy);width:32px;height:32px" onclick="const inp=document.getElementById('addAddonInput');addAddonModule(inp.value);inp.value='';inp.focus()" title="Ajouter">+</button>
     </div>
   ` : '';
+  if(editMode) attachAddonDragHandlers();
 }
 function addAddonModule(name){
   name = (name||'').trim();
@@ -1323,6 +1335,87 @@ function runSearch(query){
 // ══════════════════════════════════════════
 let dragSrc = null;
 
+function attachAddonDragHandlers(){
+  const rows = document.querySelectorAll('#addonModulesTable .feature-row[draggable="true"]');
+  rows.forEach(row=>{
+    row.addEventListener('dragstart', onAddonDragStart);
+    row.addEventListener('dragover', onAddonDragOver);
+    row.addEventListener('dragend', onAddonDragEnd);
+    row.addEventListener('drop', onAddonDrop);
+    row.addEventListener('touchstart', onAddonTouchStart, {passive:true});
+  });
+}
+let addonDragSrc = null;
+function onAddonDragStart(e){
+  addonDragSrc = parseInt(this.dataset.mi);
+  this.style.opacity = '0.4';
+  e.dataTransfer.effectAllowed = 'move';
+}
+function onAddonDragEnd(e){
+  this.style.opacity = '';
+  document.querySelectorAll('#addonModulesTable .feature-row').forEach(r=>r.style.borderTop='');
+}
+function onAddonDragOver(e){
+  e.preventDefault();
+  if(addonDragSrc===null) return;
+  this.style.borderTop = '2px solid var(--navy)';
+}
+function onAddonDrop(e){
+  e.preventDefault();
+  this.style.borderTop = '';
+  const mi = parseInt(this.dataset.mi);
+  if(addonDragSrc===null || addonDragSrc===mi) return;
+  const mods = DATA.addonModules;
+  const [moved] = mods.splice(addonDragSrc, 1);
+  mods.splice(mi, 0, moved);
+  addonDragSrc = null;
+  save();
+  renderAddonModules();
+  renderSimulator();
+}
+let addonTouchDragEl = null, addonTouchStartY = 0;
+function onAddonTouchStart(e){
+  const handle = e.target.closest('.addon-drag');
+  if(!handle) return;
+  addonTouchDragEl = this;
+  addonTouchStartY = e.touches[0].clientY;
+  this.style.opacity = '0.5';
+  document.addEventListener('touchmove', onAddonTouchMove, {passive:false});
+  document.addEventListener('touchend', onAddonTouchEnd);
+}
+function onAddonTouchMove(e){
+  if(!addonTouchDragEl) return;
+  e.preventDefault();
+  const y = e.touches[0].clientY;
+  const rows = document.querySelectorAll('#addonModulesTable .feature-row');
+  rows.forEach(r=>r.style.borderTop='');
+  rows.forEach(r=>{
+    const rect = r.getBoundingClientRect();
+    if(y > rect.top && y < rect.bottom && r !== addonTouchDragEl){
+      r.style.borderTop = '2px solid var(--navy)';
+    }
+  });
+}
+function onAddonTouchEnd(e){
+  if(!addonTouchDragEl) return;
+  const target = document.querySelector('#addonModulesTable .feature-row[style*="border-top"]');
+  if(target && target !== addonTouchDragEl){
+    const srcMi = parseInt(addonTouchDragEl.dataset.mi);
+    const dstMi = parseInt(target.dataset.mi);
+    const mods = DATA.addonModules;
+    const [moved] = mods.splice(srcMi, 1);
+    mods.splice(dstMi, 0, moved);
+    save();
+    renderAddonModules();
+    renderSimulator();
+  }
+  addonTouchDragEl.style.opacity = '';
+  document.querySelectorAll('#addonModulesTable .feature-row').forEach(r=>r.style.borderTop='');
+  addonTouchDragEl = null;
+  document.removeEventListener('touchmove', onAddonTouchMove);
+  document.removeEventListener('touchend', onAddonTouchEnd);
+}
+
 function attachDragHandlers(){
   const rows = document.querySelectorAll('.feature-row[draggable="true"]');
   rows.forEach(row=>{
@@ -1522,7 +1615,7 @@ const SIM_BASE_OFFERS = [
 let simQ    = { apero:0, entree:0, menu:0, signature:0 };
 let simOpts = {}; // populated dynamically from DATA (features with price > 0)
 let simAddons = {}; // populated dynamically from DATA.addonModules (monthly subscription add-ons)
-let simPrestations = {}; // populated dynamically from Prestation category items: { name: {optionIndex, qty} }
+let simPrestations = {}; // { name: { optionIndex: qty, ... } } — each option keeps its own quantity
 
 function simGetMeta(tagKey){ return DATA.offerMeta[tagKey] || {}; }
 
@@ -1569,17 +1662,13 @@ function simAdjustAddon(name, delta){
   if(el) el.textContent = simAddons[name];
   simRefresh();
 }
-function simAdjustPrestation(name, delta){
-  if(!simPrestations[name]) simPrestations[name] = { optionIndex:0, qty:0 };
-  simPrestations[name].qty = Math.max(0, simPrestations[name].qty + delta);
+function simAdjustPrestation(name, optionIndex, delta){
+  if(!simPrestations[name]) simPrestations[name] = {};
+  const cur = simPrestations[name][optionIndex] || 0;
+  simPrestations[name][optionIndex] = Math.max(0, cur + delta);
   const key = btoa(name).replace(/=/g,'');
-  const el = document.getElementById('sp_'+key);
-  if(el) el.textContent = simPrestations[name].qty;
-  simRefresh();
-}
-function simSetPrestationOption(name, optionIndex){
-  if(!simPrestations[name]) simPrestations[name] = { optionIndex:0, qty:0 };
-  simPrestations[name].optionIndex = parseInt(optionIndex)||0;
+  const el = document.getElementById('sp_'+key+'_'+optionIndex);
+  if(el) el.textContent = simPrestations[name][optionIndex];
   simRefresh();
 }
 
@@ -1596,11 +1685,12 @@ function simRefresh(){
 
   getSimOptions().forEach(function(o){
     if(o.type === 'options'){
-      const state = simPrestations[o.name];
-      const n = state ? state.qty : 0;
-      if(!n) return;
-      const opt = o.options[state.optionIndex] || o.options[0];
-      optionsTotal += (opt.price||0) * n;
+      const state = simPrestations[o.name] || {};
+      o.options.forEach(function(opt, oi){
+        const n = state[oi] || 0;
+        if(!n) return;
+        optionsTotal += (opt.price||0) * n;
+      });
     } else {
       const n = simOpts[o.name] || 0;
       if(!n) return;
@@ -1658,7 +1748,7 @@ function renderSimulator(){
   // Sync simOpts / simPrestations with current options
   opts.forEach(function(o){
     if(o.type === 'options'){
-      if(simPrestations[o.name]===undefined) simPrestations[o.name] = {optionIndex:0, qty:0};
+      if(simPrestations[o.name]===undefined) simPrestations[o.name] = {};
     } else if(simOpts[o.name]===undefined) simOpts[o.name]=0;
   });
 
@@ -1756,7 +1846,7 @@ function renderSimulator(){
     simQ = { entree:0, menu:0, signature:0 };
     Object.keys(simOpts).forEach(k=>{ simOpts[k]=0; });
     Object.keys(simAddons).forEach(k=>{ simAddons[k]=0; });
-    Object.keys(simPrestations).forEach(k=>{ simPrestations[k]={optionIndex:0, qty:0}; });
+    Object.keys(simPrestations).forEach(k=>{ simPrestations[k]={}; });
     renderSimulator();
   });
   resetRow.appendChild(resetBtn);
@@ -1783,32 +1873,36 @@ function renderSimulator(){
   } else {
     opts.forEach(function(o){
       if(o.type === 'options'){
-        const state = simPrestations[o.name] || {optionIndex:0, qty:0};
-        const row = document.createElement('div'); row.className='sim-opt-row'; row.style.flexWrap='wrap';
-        const nm = document.createElement('span'); nm.className='sim-opt-name'; nm.textContent=o.name; nm.style.flex='1 0 100%';
-        const sel = document.createElement('select');
-        sel.style.cssText='font-size:11px;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-family:Inter,sans-serif;background:#fff;flex:1;min-width:0';
-        o.options.forEach(function(v,vi){
-          const optEl = document.createElement('option');
-          optEl.value = vi;
-          optEl.textContent = v.label+' — '+(v.price||0).toLocaleString('fr-FR')+'€';
-          if(vi === state.optionIndex) optEl.selected = true;
-          sel.appendChild(optEl);
-        });
-        sel.addEventListener('change',(function(n){return function(){simSetPrestationOption(n,this.value);};})(o.name));
-        const cnt = document.createElement('div'); cnt.className='sim-counter'; cnt.style.flexShrink='0';
+        const state = simPrestations[o.name] || {};
         const key = btoa(o.name).replace(/=/g,'');
-        const bm = document.createElement('button'); bm.className='sim-counter-btn';
-        bm.style.cssText='width:24px;height:24px;font-size:15px'; bm.textContent='−';
-        bm.addEventListener('click',(function(n){return function(){simAdjustPrestation(n,-1);};})(o.name));
-        const vsp = document.createElement('span'); vsp.className='sim-counter-val';
-        vsp.style.fontSize='13px'; vsp.id='sp_'+key; vsp.textContent=String(state.qty);
-        const bp = document.createElement('button'); bp.className='sim-counter-btn';
-        bp.style.cssText='width:24px;height:24px;font-size:15px'; bp.textContent='+';
-        bp.addEventListener('click',(function(n){return function(){simAdjustPrestation(n,1);};})(o.name));
-        cnt.appendChild(bm); cnt.appendChild(vsp); cnt.appendChild(bp);
-        row.appendChild(nm); row.appendChild(sel); row.appendChild(cnt);
-        optsBlock.appendChild(row);
+        const item = document.createElement('div'); item.className='sim-presta-item';
+        const hdr = document.createElement('div'); hdr.className='sim-presta-hdr';
+        const nm = document.createElement('span'); nm.className='sim-opt-name'; nm.textContent=o.name;
+        const arrow = document.createElement('span'); arrow.className='sim-presta-arrow'; arrow.textContent='▾';
+        hdr.appendChild(nm); hdr.appendChild(arrow);
+        hdr.addEventListener('click', function(){ item.classList.toggle('open'); });
+        item.appendChild(hdr);
+        const body = document.createElement('div'); body.className='sim-presta-body';
+        o.options.forEach(function(v, vi){
+          const n = state[vi] || 0;
+          const row = document.createElement('div'); row.className='sim-presta-opt-row';
+          const lbl = document.createElement('span'); lbl.className='sim-opt-name'; lbl.textContent=v.label;
+          const pr = document.createElement('span'); pr.className='sim-opt-price'; pr.textContent=(v.price||0).toLocaleString('fr-FR')+'€';
+          const cnt = document.createElement('div'); cnt.className='sim-counter'; cnt.style.flexShrink='0';
+          const bm = document.createElement('button'); bm.className='sim-counter-btn';
+          bm.style.cssText='width:24px;height:24px;font-size:15px'; bm.textContent='−';
+          bm.addEventListener('click',(function(nm2,vi2){return function(e){e.stopPropagation();simAdjustPrestation(nm2,vi2,-1);};})(o.name,vi));
+          const vsp = document.createElement('span'); vsp.className='sim-counter-val';
+          vsp.style.fontSize='13px'; vsp.id='sp_'+key+'_'+vi; vsp.textContent=String(n);
+          const bp = document.createElement('button'); bp.className='sim-counter-btn';
+          bp.style.cssText='width:24px;height:24px;font-size:15px'; bp.textContent='+';
+          bp.addEventListener('click',(function(nm2,vi2){return function(e){e.stopPropagation();simAdjustPrestation(nm2,vi2,1);};})(o.name,vi));
+          cnt.appendChild(bm); cnt.appendChild(vsp); cnt.appendChild(bp);
+          row.appendChild(lbl); row.appendChild(pr); row.appendChild(cnt);
+          body.appendChild(row);
+        });
+        item.appendChild(body);
+        optsBlock.appendChild(item);
       } else {
         const row = document.createElement('div'); row.className='sim-opt-row';
         const nm = document.createElement('span'); nm.className='sim-opt-name'; nm.textContent=o.name;
