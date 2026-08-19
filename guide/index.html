@@ -158,15 +158,15 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .apple-section-bg{background:#F5F5F7;padding:56px 0;width:100%}
 .offers-section-panel{background:#F5F5F7;border-radius:32px;padding:48px 40px}
 @media(max-width:640px){.offers-section-panel{padding:32px 20px}}
-.apple-cards-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
-@media(max-width:900px){.apple-cards-grid{grid-template-columns:repeat(2,1fr)}}
+.apple-cards-grid{display:flex;gap:20px;overflow-x:auto;scroll-snap-type:x proximity;padding:4px 4px 12px;-webkit-overflow-scrolling:touch;scrollbar-width:none;cursor:grab;user-select:none}
+.apple-cards-grid.dragging{cursor:grabbing;scroll-snap-type:none}
+.apple-cards-grid::-webkit-scrollbar{display:none}
+.apple-cards-grid .apple-card{flex:0 0 300px;scroll-snap-align:start;min-height:420px}
 @media(max-width:640px){
-  .apple-cards-grid{display:flex;grid-template-columns:none;overflow-x:auto;scroll-snap-type:x mandatory;gap:14px;padding:4px 0 8px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-  .apple-cards-grid::-webkit-scrollbar{display:none}
+  .apple-cards-grid{gap:14px}
   .apple-cards-grid .apple-card{flex:0 0 82%;scroll-snap-align:center;min-height:380px}
 }
-.apple-cards-dots{display:none;justify-content:center;gap:7px;margin-top:16px}
-@media(max-width:640px){.apple-cards-dots{display:flex}}
+.apple-cards-dots{display:flex;justify-content:center;gap:7px;margin-top:16px}
 .apple-cards-dot{width:7px;height:7px;border-radius:50%;background:var(--border);transition:background .15s}
 .apple-cards-dot.active{background:var(--text3)}
 .apple-card{background:#fff;border-radius:24px;padding:36px 32px 0;display:flex;flex-direction:column;overflow:hidden;min-height:420px}
@@ -204,7 +204,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .ov2-install{font-size:12.5px;color:var(--text3);margin-bottom:20px}
 /* ── Banner-style offer cards (mockup redesign) ── */
 .ov2-banner{height:56px;margin:-5px -28px 18px;border-radius:20px 20px 0 0}
-.ov2-banner.apero{background:linear-gradient(135deg,#c9b6f5 0%,#9f8cf0 45%,#eaddfb 100%)}
+.ov2-banner.apero{background:linear-gradient(135deg,#d7f56b 0%,#a3e04a 45%,#f6f9a8 100%)}
 .ov2-banner.base{background:linear-gradient(135deg,#bfe3ff 0%,#79c2f7 45%,#e4f6ff 100%)}
 .ov2-banner.pro{background:linear-gradient(135deg,#d7f56b 0%,#a3e04a 45%,#f6f9a8 100%)}
 .ov2-banner.premium{background:linear-gradient(135deg,#ffc2cf 0%,#ff8fa3 45%,#ffd9ad 100%)}
@@ -463,11 +463,11 @@ const DEFAULT_DATA = {
   offersHeader: { label:'Vos offres packagées', title:'Trois offres. Tout compris.', subtitle:'Gérez, développez et fidélisez votre restaurant depuis votre téléphone.', cta:'Sur devis' },
   appleCardsHeader: { label:'AGENCE', title:'On s\'occupe du reste', subtitle:'L\'humain là où l\'IA s\'arrête', cta:'Sur devis' },
   appleCards: [
-    { icon:'', label:'Création de contenu', title:'Chaque plat raconte une histoire', subtitle:'Photos, vidéos et Reels qui mettent votre cuisine en valeur.', bullets:['Shooting photo','Reels','Direction artistique'], image:'' },
-    { icon:'', label:'', title:'', subtitle:'', bullets:['','',''], image:'' },
     { icon:'', label:'Réservation', title:'', subtitle:'', bullets:['','',''], image:'' },
+    { icon:'', label:'Vis-à-vis', title:'', subtitle:'', bullets:['','',''], image:'' },
     { icon:'', label:'', title:'', subtitle:'', bullets:['','',''], image:'' },
     { icon:'', label:'', title:'', subtitle:'', bullets:['','',''], image:'' },
+    { icon:'', label:'Création de contenu', title:'Chaque plat raconte une histoire', subtitle:'Photos, vidéos et Reels qui mettent votre cuisine en valeur.', bullets:['Shooting photo','Reels','Direction artistique'], image:'' },
   ],
   categories: [
     { name: 'Menu digital', items: [
@@ -592,6 +592,18 @@ function migrateData(){
       DATA.appleCards.splice(2, 0, { icon:'', label:'Réservation', title:'', subtitle:'', bullets:['','',''], image:'' });
     }
     DATA._reservationMovedOutOfModulesV1 = true;
+  }
+  // Reorder the Apple Cards: Vis-à-vis moves to 2nd (Identité visuelle's old spot);
+  // Identité visuelle and Création de contenu move to the end.
+  if(!DATA._appleCardsReorderV1 && DATA.appleCards && DATA.appleCards.length){
+    const byLabel = name => DATA.appleCards.find(c=>c.label===name);
+    const order = ['Réservation','Vis-à-vis','Aperçu du menu','Identité visuelle','Création de contenu'];
+    const named = order.map(byLabel).filter(Boolean);
+    const rest = DATA.appleCards.filter(c=>!order.includes(c.label));
+    if(named.length >= 2){ // only reorder if these known cards actually exist
+      DATA.appleCards = [...named, ...rest];
+    }
+    DATA._appleCardsReorderV1 = true;
   }
   (DATA.addonModules||[]).forEach(m=>{ if(m.setup===undefined) m.setup = 0; });
   ['apero','base','pro','premium'].forEach(k=>{
@@ -1102,6 +1114,30 @@ function setupAppleCardsScrollSync(){
       dot.classList.toggle('active', i===closest);
     });
   }, { passive:true });
+
+  // Mouse drag-to-scroll (click and slide left/right, like Apple's site)
+  let isDown = false, startX = 0, startScroll = 0, moved = false;
+  grid.addEventListener('mousedown', (e)=>{
+    isDown = true; moved = false;
+    grid.classList.add('dragging');
+    startX = e.pageX;
+    startScroll = grid.scrollLeft;
+  });
+  window.addEventListener('mouseup', ()=>{
+    isDown = false;
+    grid.classList.remove('dragging');
+  });
+  window.addEventListener('mousemove', (e)=>{
+    if(!isDown) return;
+    e.preventDefault();
+    const dx = e.pageX - startX;
+    if(Math.abs(dx) > 4) moved = true;
+    grid.scrollLeft = startScroll - dx;
+  });
+  // Prevent a click firing right after a drag (would otherwise trigger card inputs/links)
+  grid.addEventListener('click', (e)=>{
+    if(moved){ e.preventDefault(); e.stopPropagation(); moved = false; }
+  }, true);
 }
 
 // ══════════════════════════════════════════
