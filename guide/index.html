@@ -387,7 +387,7 @@ table.matrix tr:hover td{background:#fafaf7}
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <span class="tag tag-apero">Apéro</span>
         <span class="tag tag-base">Entrée</span>
-        <span class="tag tag-pro">Plat</span>
+        <span class="tag tag-pro">Réservation</span>
         <span class="tag tag-premium">Dessert</span>
         <span class="tag tag-agence">Agence</span>
         <span class="tag tag-services">Prestation</span>
@@ -458,7 +458,6 @@ const DEFAULT_DATA = {
   addonModules: [
     { name:'Menu immersif', price:0, setup:0 },
     { name:'Fidélisation', price:0, setup:0 },
-    { name:'Apéro', price:99, setup:750 },
   ],
   cardColors: {},
   offersHeader: { label:'Vos offres packagées', title:'Trois offres. Tout compris.', subtitle:'Gérez, développez et fidélisez votre restaurant depuis votre téléphone.', cta:'Sur devis' },
@@ -466,6 +465,7 @@ const DEFAULT_DATA = {
   appleCards: [
     { icon:'', label:'Création de contenu', title:'Chaque plat raconte une histoire', subtitle:'Photos, vidéos et Reels qui mettent votre cuisine en valeur.', bullets:['Shooting photo','Reels','Direction artistique'], image:'' },
     { icon:'', label:'', title:'', subtitle:'', bullets:['','',''], image:'' },
+    { icon:'', label:'Réservation', title:'', subtitle:'', bullets:['','',''], image:'' },
     { icon:'', label:'', title:'', subtitle:'', bullets:['','',''], image:'' },
     { icon:'', label:'', title:'', subtitle:'', bullets:['','',''], image:'' },
   ],
@@ -526,7 +526,7 @@ const DEFAULT_DATA = {
   offerMeta: {
     apero:   { name:'Apéro',     title:'On s\'occupe de tout',   subtitle:'', desc:'', price:99, setup:750, icon:'', features:['','','',''], installTitle:'Mise en service unique', installDesc:'Création, configuration et lancement de votre présence en ligne.' },
     base:    { name:'Entrée',    title:'Vous êtes les chefs',           subtitle:'',             desc:'La solution d\'entrée pour digitaliser votre carte, générer votre QR code et rester à jour en temps réel.', price:199, setup:800, icon:'', features:['Site web & menu à jour','Modification en 10 secondes','QR code & Google Business','Menu du jour & export PDF'], installTitle:'Mise en service unique', installDesc:'Création, configuration et lancement de votre menu digital.' },
-    pro:     { name:'Plat',     title:'Ne manquez plus de réservations',      subtitle:'',          desc:'Tout le menu digital, plus les outils pour poster sur Instagram en 2 minutes et gérer votre CRM clients.', price:299, setup:1500, icon:'', features:['Réservations en ligne 24/7','Confirmations automatiques','Gestion des disponibilités','Calendrier & statistiques'], installTitle:'Mise en service unique', installDesc:'Création, configuration et lancement de votre système de réservation.' },
+    pro:     { name:'Réservation',     title:'Ne manquez plus de réservations',      subtitle:'',          desc:'Tout le menu digital, plus les outils pour poster sur Instagram en 2 minutes et gérer votre CRM clients.', price:299, setup:1500, icon:'', features:['Réservations en ligne 24/7','Confirmations automatiques','Gestion des disponibilités','Calendrier & statistiques'], installTitle:'Mise en service unique', installDesc:'Création, configuration et lancement de votre système de réservation.' },
     premium: { name:'Dessert', title:'Votre visibilité ne s\'arrête jamais',        subtitle:'',   desc:'Notre offre complète : shooting photo, identité visuelle, optimisation Google et réseaux — clé en main.', price:399, setup:2500, icon:'', features:['IA qui crée vos publications','Emails & SMS automatiques','Collecte d\'avis Google','Fidélisation & CRM client'], installTitle:'Mise en service unique', installDesc:'Création, configuration et lancement de votre stratégie de communication.' },
     agence:  { name:'Agence',  title:'Sur-mesure',             subtitle:'Toutes les prestations one-shot.',           desc:'Prestations à la carte : murale, mascotte, DA spécifique, setup CRM avancé. Facturé au projet.', price:0, setup:0, icon:'', categories:[
       { header:'Identité', items:['Logo','Charte graphique','Typographies','Mascotte','Direction artistique'] },
@@ -574,15 +574,24 @@ function migrateData(){
   if(!DATA.installationTooltipTitle) DATA.installationTooltipTitle = DEFAULT_DATA.installationTooltipTitle;
   if(!DATA.installationTooltipDesc) DATA.installationTooltipDesc = DEFAULT_DATA.installationTooltipDesc;
   if(!DATA.addonModules) DATA.addonModules = JSON.parse(JSON.stringify(DEFAULT_DATA.addonModules));
-  // One-time: Apéro is no longer a paid offer tier — move it into Modules complémentaires,
-  // carrying over its former monthly price and onboarding fee.
-  if(!DATA._aperoMovedToModulesV1){
-    const hasApero = (DATA.addonModules||[]).some(m=>m.name==='Apéro');
-    if(!hasApero){
-      const old = DATA.offerMeta && DATA.offerMeta.apero;
-      DATA.addonModules.push({ name:'Apéro', price:(old&&old.price)||99, setup:(old&&old.setup)||750 });
+  // Correction: Apéro stays a full offer tier (not a module) — undo the previous move if it
+  // already ran.
+  if(!DATA._aperoRestoredAsOfferV1){
+    DATA.addonModules = (DATA.addonModules||[]).filter(m=>m.name!=='Apéro');
+    if(DATA.offerMeta && DATA.offerMeta.pro) DATA.offerMeta.pro.name = 'Réservation';
+    DATA._aperoRestoredAsOfferV1 = true;
+  }
+  // Correction: Réservation (ex-Plat) doesn't belong in "Modules complémentaires" — it belongs
+  // in the Apple Cards presentation section (same place as Création de contenu, Identité
+  // visuelle, etc.), as a blank card at the 3rd position for Will to fill in himself.
+  if(!DATA._reservationMovedOutOfModulesV1){
+    DATA.addonModules = (DATA.addonModules||[]).filter(m=>m.name!=='Réservation');
+    const hasReservationCard = (DATA.appleCards||[]).some(c=>c.label==='Réservation');
+    if(!hasReservationCard){
+      if(!DATA.appleCards) DATA.appleCards = [];
+      DATA.appleCards.splice(2, 0, { icon:'', label:'Réservation', title:'', subtitle:'', bullets:['','',''], image:'' });
     }
-    DATA._aperoMovedToModulesV1 = true;
+    DATA._reservationMovedOutOfModulesV1 = true;
   }
   (DATA.addonModules||[]).forEach(m=>{ if(m.setup===undefined) m.setup = 0; });
   ['apero','base','pro','premium'].forEach(k=>{
@@ -918,7 +927,7 @@ function deleteAddonModule(mi){
 
 function tagLabel(tag){
   if(DATA.offerMeta[tag] && DATA.offerMeta[tag].name) return DATA.offerMeta[tag].name;
-  return {apero:'Apéro',base:'Entrée',pro:'Plat',premium:'Dessert',agence:'Agence',services:'Prestation'}[tag];
+  return {apero:'Apéro',base:'Entrée',pro:'Réservation',premium:'Dessert',agence:'Agence',services:'Prestation'}[tag];
 }
 
 let infoModalTarget = null; // {ci, ii}
@@ -1101,7 +1110,7 @@ function setupAppleCardsScrollSync(){
 const DEFAULT_ACCENT = {apero:'#C9932E', base:'#7C5CD6', pro:'#2F6FE0', premium:'#D2566B'};
 
 function renderOffers(){
-  const order = ['base','pro','premium'];
+  const order = ['apero','base','premium'];
 
   const cardsHtml = order.map((tag, idx)=>{
     const meta = DATA.offerMeta[tag];
@@ -1178,7 +1187,7 @@ function renderOffers(){
           <textarea placeholder="Description infobulle (unique à cette offre)" style="font-size:11px;color:var(--text2);border:1px solid var(--border);border-radius:6px;outline:none;background:#fff;padding:5px 8px;width:100%;resize:vertical;min-height:36px;font-family:'Inter',sans-serif" onchange="DATA.offerMeta['${tag}'].installDesc=this.value;save();renderOffers()">${esc(meta.installDesc||'')}</textarea>
         </div>
       ` : ''}
-      <button class="offer-cta ${tag==='base'?'apero':''}" type="button">Choisir cette offre</button>
+      <button class="offer-cta ${tag==='apero'?'apero':''}" type="button">Choisir cette offre</button>
       ${editable ? `
         <div style="display:flex;align-items:center;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
           <input type="color" value="${accent}" style="width:32px;height:28px;border:1px solid var(--border);border-radius:6px;padding:2px;background:#fff;cursor:pointer" oninput="this.closest('.offer-card').querySelectorAll('.ov2-icon')[0].style.background=hexToRgba(this.value,0.12)" onchange="DATA.cardColors['${tag}']=this.value;save();renderOffers()">
@@ -1620,12 +1629,12 @@ function renderAll(){
 // ══════════════════════════════════════════
 // ── SIMULATOR STATE ──
 const SIM_BASE_OFFERS = [
+  { id:'apero',     tagKey:'apero',   color:'var(--apero)' },
   { id:'entree',    tagKey:'base',    color:'var(--base)' },
-  { id:'menu',      tagKey:'pro',     color:'var(--pro)' },
   { id:'signature', tagKey:'premium', color:'var(--premium)' },
 ];
 
-let simQ    = { entree:0, menu:0, signature:0 };
+let simQ    = { apero:0, entree:0, signature:0 };
 let simOpts = {}; // populated dynamically from DATA (features with price > 0)
 let simAddons = {}; // populated dynamically from DATA.addonModules (monthly subscription add-ons)
 let simPrestations = {}; // { name: { optionIndex: qty, ... } } — each option keeps its own quantity
@@ -1856,7 +1865,7 @@ function renderSimulator(){
   resetBtn.addEventListener('mouseover', function(){ this.style.borderColor='var(--navy)'; this.style.color='var(--navy)'; });
   resetBtn.addEventListener('mouseout',  function(){ this.style.borderColor='var(--border)'; this.style.color='var(--text3)'; });
   resetBtn.addEventListener('click', function(){
-    simQ = { entree:0, menu:0, signature:0 };
+    simQ = { apero:0, entree:0, signature:0 };
     Object.keys(simOpts).forEach(k=>{ simOpts[k]=0; });
     Object.keys(simAddons).forEach(k=>{ simAddons[k]=0; });
     Object.keys(simPrestations).forEach(k=>{ simPrestations[k]={}; });
