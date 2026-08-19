@@ -154,7 +154,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .add-cat-btn{display:flex;align-items:center;gap:6px;padding:10px 18px;font-size:11px;font-weight:600;color:var(--gold);cursor:pointer;border-top:1px dashed var(--border)}
 
 /* ── AUTO-GENERATED OFFERS TABLE ── */
-.offers-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.offers-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .apple-section-bg{background:#F5F5F7;padding:56px 0;width:100%}
 .offers-section-panel{background:#F5F5F7;border-radius:32px;padding:48px 40px}
 @media(max-width:640px){.offers-section-panel{padding:32px 20px}}
@@ -458,6 +458,7 @@ const DEFAULT_DATA = {
   addonModules: [
     { name:'Menu immersif', price:0, setup:0 },
     { name:'Fidélisation', price:0, setup:0 },
+    { name:'Apéro', price:99, setup:750 },
   ],
   cardColors: {},
   offersHeader: { label:'Vos offres packagées', title:'Trois offres. Tout compris.', subtitle:'Gérez, développez et fidélisez votre restaurant depuis votre téléphone.', cta:'Sur devis' },
@@ -573,6 +574,16 @@ function migrateData(){
   if(!DATA.installationTooltipTitle) DATA.installationTooltipTitle = DEFAULT_DATA.installationTooltipTitle;
   if(!DATA.installationTooltipDesc) DATA.installationTooltipDesc = DEFAULT_DATA.installationTooltipDesc;
   if(!DATA.addonModules) DATA.addonModules = JSON.parse(JSON.stringify(DEFAULT_DATA.addonModules));
+  // One-time: Apéro is no longer a paid offer tier — move it into Modules complémentaires,
+  // carrying over its former monthly price and onboarding fee.
+  if(!DATA._aperoMovedToModulesV1){
+    const hasApero = (DATA.addonModules||[]).some(m=>m.name==='Apéro');
+    if(!hasApero){
+      const old = DATA.offerMeta && DATA.offerMeta.apero;
+      DATA.addonModules.push({ name:'Apéro', price:(old&&old.price)||99, setup:(old&&old.setup)||750 });
+    }
+    DATA._aperoMovedToModulesV1 = true;
+  }
   (DATA.addonModules||[]).forEach(m=>{ if(m.setup===undefined) m.setup = 0; });
   ['apero','base','pro','premium'].forEach(k=>{
     if(DATA.offerMeta[k] && !DATA.offerMeta[k].installTitle) DATA.offerMeta[k].installTitle = (DEFAULT_DATA.offerMeta[k]&&DEFAULT_DATA.offerMeta[k].installTitle) || 'Mise en service unique';
@@ -1090,7 +1101,7 @@ function setupAppleCardsScrollSync(){
 const DEFAULT_ACCENT = {apero:'#C9932E', base:'#7C5CD6', pro:'#2F6FE0', premium:'#D2566B'};
 
 function renderOffers(){
-  const order = ['apero','base','pro','premium'];
+  const order = ['base','pro','premium'];
 
   const cardsHtml = order.map((tag, idx)=>{
     const meta = DATA.offerMeta[tag];
@@ -1167,7 +1178,7 @@ function renderOffers(){
           <textarea placeholder="Description infobulle (unique à cette offre)" style="font-size:11px;color:var(--text2);border:1px solid var(--border);border-radius:6px;outline:none;background:#fff;padding:5px 8px;width:100%;resize:vertical;min-height:36px;font-family:'Inter',sans-serif" onchange="DATA.offerMeta['${tag}'].installDesc=this.value;save();renderOffers()">${esc(meta.installDesc||'')}</textarea>
         </div>
       ` : ''}
-      <button class="offer-cta ${tag==='apero'?'apero':''}" type="button">Choisir cette offre</button>
+      <button class="offer-cta ${tag==='base'?'apero':''}" type="button">Choisir cette offre</button>
       ${editable ? `
         <div style="display:flex;align-items:center;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
           <input type="color" value="${accent}" style="width:32px;height:28px;border:1px solid var(--border);border-radius:6px;padding:2px;background:#fff;cursor:pointer" oninput="this.closest('.offer-card').querySelectorAll('.ov2-icon')[0].style.background=hexToRgba(this.value,0.12)" onchange="DATA.cardColors['${tag}']=this.value;save();renderOffers()">
@@ -1609,13 +1620,12 @@ function renderAll(){
 // ══════════════════════════════════════════
 // ── SIMULATOR STATE ──
 const SIM_BASE_OFFERS = [
-  { id:'apero',     tagKey:'apero',   color:'var(--apero)' },
   { id:'entree',    tagKey:'base',    color:'var(--base)' },
   { id:'menu',      tagKey:'pro',     color:'var(--pro)' },
   { id:'signature', tagKey:'premium', color:'var(--premium)' },
 ];
 
-let simQ    = { apero:0, entree:0, menu:0, signature:0 };
+let simQ    = { entree:0, menu:0, signature:0 };
 let simOpts = {}; // populated dynamically from DATA (features with price > 0)
 let simAddons = {}; // populated dynamically from DATA.addonModules (monthly subscription add-ons)
 let simPrestations = {}; // { name: { optionIndex: qty, ... } } — each option keeps its own quantity
