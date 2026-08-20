@@ -192,14 +192,15 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .fshow-nav-arrows{display:flex;flex-direction:column;gap:8px;padding-top:2px;flex:none}
 .fshow-nav-btn{width:28px;height:28px;border-radius:50%;border:none;background:#F0F0F2;color:var(--text3);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;transition:background .15s}
 .fshow-nav-btn:hover{background:#E4E4E7}
-.fshow-list{display:flex;flex-direction:column;gap:10px;flex:1;min-width:0}
-.fshow-item{background:#F5F5F7;border-radius:20px;overflow:hidden}
-.fshow-item-hdr{display:flex;align-items:center;gap:14px;padding:18px 20px;cursor:pointer;font-weight:700;font-size:16px;color:var(--text);user-select:none}
-.fshow-item-icon{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--text3);display:flex;align-items:center;justify-content:center;flex:none;font-size:14px;line-height:1;color:var(--text3);transition:transform .2s ease}
-.fshow-item.open .fshow-item-icon{transform:rotate(45deg)}
-.fshow-item-body{max-height:0;overflow:hidden;transition:max-height .35s ease}
-.fshow-item.open .fshow-item-body{max-height:400px}
-.fshow-item-desc{font-size:14px;color:var(--text2);line-height:1.65;padding:0 20px 20px 60px}
+.fshow-list{display:flex;flex-direction:column;flex:1;min-width:0;background:#F5F5F7;border-radius:20px;overflow:hidden;padding:6px}
+.fshow-item{position:relative;border-top:1px solid rgba(0,0,0,.06)}
+.fshow-item:first-child{border-top:none}
+.fshow-item-hdr{display:flex;align-items:center;gap:14px;padding:16px 18px;cursor:pointer;font-weight:700;font-size:16px;color:var(--text);user-select:none}
+.fshow-item-icon{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--text3);display:flex;align-items:center;justify-content:center;flex:none;font-size:14px;line-height:1;color:var(--text3)}
+.fshow-item-open-body{padding:20px 44px 22px 18px;position:relative}
+.fshow-item-close{position:absolute;top:14px;right:14px;width:26px;height:26px;border-radius:50%;border:1.5px solid var(--text3);background:none;display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1;color:var(--text3);cursor:pointer;transition:background .15s}
+.fshow-item-close:hover{background:rgba(0,0,0,.05)}
+.fshow-item-desc{font-size:14px;color:var(--text2);line-height:1.65}
 .fshow-item-desc strong{color:var(--text);font-weight:700}
 .fshow-media{position:sticky;top:24px;border-radius:24px;overflow:hidden;background:#F5F5F7;min-height:420px;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center}
 .fshow-media-inner{width:100%;height:100%;opacity:1;transition:opacity .3s ease}
@@ -404,6 +405,22 @@ table.matrix tr:hover td{background:#fafaf7}
 </div>
 
 <div class="wrap">
+  <!-- ════════ VITRINE FONCTIONNALITÉS (style Apple) ════════ -->
+  <div class="section" id="featureShowcase">
+    <div id="fshowHeader"></div>
+    <div class="fshow-grid">
+      <div class="fshow-nav-row">
+        <div class="fshow-nav-arrows">
+          <button type="button" class="fshow-nav-btn" onclick="fshowStep(-1)" title="Précédent">▲</button>
+          <button type="button" class="fshow-nav-btn" onclick="fshowStep(1)" title="Suivant">▼</button>
+        </div>
+        <div class="fshow-list" id="fshowList"></div>
+      </div>
+      <div class="fshow-media" id="fshowMedia"></div>
+    </div>
+    <div style="margin-top:14px" id="addFshowBtnWrap"></div>
+  </div>
+
   <!-- ════════ FONCTIONNALITÉS ════════ -->
   <div class="section" id="features">
     <div class="section-hdr-row">
@@ -443,22 +460,6 @@ table.matrix tr:hover td{background:#fafaf7}
     </div>
     <div class="feature-table" id="addonModulesTable"></div>
     <div style="margin-top:10px;padding:0 2px" id="addAddonBtnWrap"></div>
-  </div>
-
-  <!-- ════════ VITRINE FONCTIONNALITÉS (style Apple) ════════ -->
-  <div class="section" id="featureShowcase">
-    <div id="fshowHeader"></div>
-    <div class="fshow-grid">
-      <div class="fshow-nav-row">
-        <div class="fshow-nav-arrows">
-          <button type="button" class="fshow-nav-btn" onclick="fshowStep(-1)" title="Précédent">▲</button>
-          <button type="button" class="fshow-nav-btn" onclick="fshowStep(1)" title="Suivant">▼</button>
-        </div>
-        <div class="fshow-list" id="fshowList"></div>
-      </div>
-      <div class="fshow-media" id="fshowMedia"></div>
-    </div>
-    <div style="margin-top:14px" id="addFshowBtnWrap"></div>
   </div>
 
   <!-- ════════ TABLEAU MATRICE ════════ -->
@@ -1022,8 +1023,16 @@ function renderFeatureShowcase(){
   const mediaEl = document.getElementById('fshowMedia');
   if(!listEl || !mediaEl) return;
   const items = fshowGetItems();
-  if(fshowOpenIndex >= items.length) fshowOpenIndex = 0;
+  if(fshowOpenIndex >= items.length) fshowOpenIndex = items.length ? 0 : -1;
+  renderFeatureShowcaseList();
+  fshowRenderMedia(false);
+  if(editMode) attachFshowDragHandlers();
+}
 
+function renderFeatureShowcaseList(){
+  const listEl = document.getElementById('fshowList');
+  if(!listEl) return;
+  const items = fshowGetItems();
   listEl.innerHTML = items.map((it, i) => `
     <div class="feature-row" data-mi="${i}" ${editMode?'draggable="true"':''} style="${editMode?'':'display:contents'}">
     ${editMode ? `
@@ -1039,14 +1048,18 @@ function renderFeatureShowcase(){
         </div>
       </div>
     ` : `
-      <div class="fshow-item${i===fshowOpenIndex?' open':''}" style="width:100%">
-        <div class="fshow-item-hdr" onclick="fshowToggle(${i})">
-          <span class="fshow-item-icon">+</span>
-          <span>${esc(it.title||'')}</span>
-        </div>
-        <div class="fshow-item-body">
-          <div class="fshow-item-desc">${formatPointText(it.desc||'')}</div>
-        </div>
+      <div class="fshow-item" style="width:100%">
+        ${i===fshowOpenIndex ? `
+          <div class="fshow-item-open-body">
+            <button type="button" class="fshow-item-close" onclick="fshowClose()" title="Fermer">✕</button>
+            <div class="fshow-item-desc">${formatPointText(it.desc||'')}</div>
+          </div>
+        ` : `
+          <div class="fshow-item-hdr" onclick="fshowToggle(${i})">
+            <span class="fshow-item-icon">+</span>
+            <span>${esc(it.title||'')}</span>
+          </div>
+        `}
       </div>
     `}
     </div>
@@ -1059,7 +1072,6 @@ function renderFeatureShowcase(){
     </div>
   ` : '';
 
-  fshowRenderMedia(false);
   if(editMode) attachFshowDragHandlers();
 }
 
@@ -1088,18 +1100,19 @@ function fshowRenderMedia(animate){
 function fshowToggle(i){
   if(editMode) return;
   fshowOpenIndex = i;
-  document.querySelectorAll('#fshowList .fshow-item').forEach((el, idx)=>{
-    el.classList.toggle('open', idx===i);
-  });
+  renderFeatureShowcaseList();
   fshowRenderMedia(true);
+}
+function fshowClose(){
+  fshowOpenIndex = -1;
+  renderFeatureShowcaseList();
 }
 function fshowStep(delta){
   const items = fshowGetItems();
   if(!items.length) return;
-  fshowOpenIndex = (fshowOpenIndex + delta + items.length) % items.length;
-  document.querySelectorAll('#fshowList .fshow-item').forEach((el, idx)=>{
-    el.classList.toggle('open', idx===fshowOpenIndex);
-  });
+  const cur = fshowOpenIndex < 0 ? 0 : fshowOpenIndex;
+  fshowOpenIndex = (cur + delta + items.length) % items.length;
+  renderFeatureShowcaseList();
   fshowRenderMedia(true);
 }
 function addFshowItem(title){
