@@ -42,8 +42,11 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .section{padding:48px 0}
 .section-label{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:8px}
 .section-label-pill{display:inline-block;background:#F0F0F2;color:var(--text3);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-radius:20px;margin-bottom:18px}
-.section-title{font-family:'Inter',sans-serif;font-size:clamp(28px,3.6vw,40px);font-weight:600;color:var(--text);margin-bottom:10px;letter-spacing:-.02em}
+.section-title{font-family:'Inter',sans-serif;font-size:clamp(28px,3.6vw,40px);font-weight:600;color:var(--text);margin-bottom:10px;letter-spacing:-.02em;white-space:pre-wrap}
+.section-title-gradient{background:linear-gradient(90deg,#0b84ff 0%,#8b5cf6 35%,#ec4899 65%,#f97316 100%);-webkit-background-clip:text;background-clip:text;color:transparent;display:inline-block}
+.section-title-plain{color:var(--text);display:inline-block}
 .section-sub{font-size:16px;color:var(--text2);max-width:600px;line-height:1.6}
+.section-sub-hero{font-size:clamp(17px,2vw,22px);font-weight:500;color:var(--text2);max-width:680px;line-height:1.5}
 .section-hdr-row{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:24px}
 
 /* ── TAG PILLS ── */
@@ -1020,20 +1023,29 @@ function deleteCategory(ci){
 }
 
 // ══════════════════════════════════════════
+// ══════════════════════════════════════════
 // OFFERS SECTION HEADER (editable title/subtitle)
 // ══════════════════════════════════════════
+// First line of a hero title gets the Apple-style color gradient; any further
+// lines (typed as line breaks in admin) render as plain bold text below it.
+function heroTitleHtml(title){
+  const lines = (title||'').split('\n');
+  return lines.map((line, i) =>
+    `<span class="${i===0?'section-title-gradient':'section-title-plain'}">${esc(line)}</span>`
+  ).join('<br>');
+}
 function renderOffersHeader(){
   const el = document.getElementById('offersHeader');
   const h = DATA.offersHeader || DEFAULT_DATA.offersHeader;
   el.innerHTML = editMode ? `
     <input class="feature-name-input" style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding:0;width:100%;text-align:center" value="${esc(h.label||'')}" placeholder="Label (pastille, ex: Vos offres packagées)" onchange="DATA.offersHeader.label=this.value;save();renderOffersHeader()">
-    <input class="feature-name-input" style="font-size:clamp(22px,3vw,28px);font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:8px;padding:0;width:100%;text-align:center" value="${esc(h.title)}" placeholder="Titre de la section" onchange="DATA.offersHeader.title=this.value;save();renderOffersHeader()">
+    <textarea class="feature-name-input" style="font-size:clamp(22px,3vw,28px);font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:8px;padding:0;width:100%;text-align:center;resize:vertical;min-height:40px;font-family:'Inter',sans-serif" placeholder="Titre de la section (Entrée = ligne suivante en noir)" onchange="DATA.offersHeader.title=this.value;save();renderOffersHeader()">${esc(h.title)}</textarea>
     <textarea style="width:100%;max-width:none;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text2);resize:vertical;min-height:44px;outline:none;margin-bottom:24px;text-align:center" placeholder="Sous-titre de la section" onchange="DATA.offersHeader.subtitle=this.value;save()">${esc(h.subtitle||'')}</textarea>
   ` : `
     <div style="text-align:center">
       ${h.label?`<div class="section-label-pill">${esc(h.label)}</div>`:''}
-      <h2 class="section-title">${esc(h.title)}</h2>
-      <p class="section-sub" style="margin:0 auto 24px;max-width:none;white-space:pre-wrap">${esc(h.subtitle||'')}</p>
+      <h2 class="section-title">${heroTitleHtml(h.title)}</h2>
+      <p class="section-sub-hero" style="margin:0 auto 24px;white-space:pre-wrap">${esc(h.subtitle||'')}</p>
     </div>
   `;
 }
@@ -1043,14 +1055,14 @@ function renderAppleCardsHeader(){
   const h = DATA.appleCardsHeader || DEFAULT_DATA.appleCardsHeader;
   el.innerHTML = editMode ? `
     <input class="feature-name-input" style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding:0;width:100%;text-align:center" value="${esc(h.label||'')}" placeholder="Label (pastille, ex: MODE AGENCE)" onchange="DATA.appleCardsHeader.label=this.value;save();renderAppleCardsHeader()">
-    <input class="feature-name-input" style="font-size:clamp(22px,3vw,28px);font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:8px;padding:0;width:100%;text-align:center" value="${esc(h.title||'')}" placeholder="Titre" onchange="DATA.appleCardsHeader.title=this.value;save();renderAppleCardsHeader()">
+    <textarea class="feature-name-input" style="font-size:clamp(22px,3vw,28px);font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:8px;padding:0;width:100%;text-align:center;resize:vertical;min-height:40px;font-family:'Inter',sans-serif" placeholder="Titre (Entrée = ligne suivante en noir)" onchange="DATA.appleCardsHeader.title=this.value;save();renderAppleCardsHeader()">${esc(h.title||'')}</textarea>
     <textarea style="width:100%;max-width:none;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text2);resize:vertical;min-height:44px;outline:none;margin-bottom:12px;text-align:center" placeholder="Sous-titre" onchange="DATA.appleCardsHeader.subtitle=this.value;save()">${esc(h.subtitle||'')}</textarea>
     <input type="text" value="${esc(h.cta||'')}" placeholder="Sur devis" style="width:150px;margin:0 auto 24px;display:block;font-size:12px;font-weight:600;color:var(--pro);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center" onchange="DATA.appleCardsHeader.cta=this.value;save()">
   ` : `
     <div style="text-align:center">
       ${h.label?`<div class="section-label-pill">${esc(h.label)}</div>`:''}
-      <h2 class="section-title">${esc(h.title||'')}</h2>
-      <p class="section-sub" style="margin:0 auto 12px;max-width:none;white-space:pre-wrap">${esc(h.subtitle||'')}</p>
+      <h2 class="section-title">${heroTitleHtml(h.title)}</h2>
+      <p class="section-sub-hero" style="margin:0 auto 12px">${esc(h.subtitle||'')}</p>
       ${h.cta?`<div style="color:var(--pro);font-size:12px;font-weight:600;margin-bottom:24px">${esc(h.cta)}</div>`:''}
     </div>
   `;
