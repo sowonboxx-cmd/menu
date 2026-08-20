@@ -186,29 +186,28 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .media-embed iframe{width:100%;aspect-ratio:16/9;display:block;border:0}
 .apple-card-hidden{opacity:.5}
 /* ── Feature showcase (Apple-style expandable list + dynamic image) ── */
-.fshow-card{background:#F5F5F7;border-radius:24px;overflow:hidden;position:relative;display:grid;grid-template-columns:440px 1fr;min-height:420px}
-@media(max-width:900px){.fshow-card{grid-template-columns:1fr}}
-.fshow-card-close{position:absolute;top:20px;right:20px;width:30px;height:30px;border-radius:50%;border:1.5px solid var(--text3);background:#fff;display:none;align-items:center;justify-content:center;font-size:14px;line-height:1;color:var(--text3);cursor:pointer;transition:background .15s;z-index:5}
-.fshow-card-close:hover{background:rgba(0,0,0,.05)}
-.fshow-nav-row{display:flex;gap:10px;align-items:center;padding:28px 8px 28px 28px}
+.fshow-card{position:relative;display:grid;grid-template-columns:440px 1fr;gap:48px;align-items:start}
+@media(max-width:900px){.fshow-card{grid-template-columns:1fr;gap:20px}}
+.fshow-nav-row{display:flex;gap:10px;align-items:center}
 .fshow-nav-arrows{display:none;flex-direction:column;gap:8px;flex:none}
 .fshow-nav-arrows.show{display:flex}
-.fshow-nav-btn{width:28px;height:28px;border-radius:50%;border:none;background:#E8E8EA;color:var(--text3);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;transition:background .15s}
-.fshow-nav-btn:hover{background:#DCDCDE}
-.fshow-list{display:flex;flex-direction:column;flex:1;min-width:0}
-.fshow-item{position:relative;border-top:1px solid rgba(0,0,0,.08)}
-.fshow-item:first-child{border-top:none}
-.fshow-item-hdr{display:flex;align-items:center;gap:14px;padding:16px 4px;cursor:pointer;font-weight:700;font-size:16px;color:var(--text);user-select:none}
+.fshow-nav-btn{width:28px;height:28px;border-radius:50%;border:none;background:#F0F0F2;color:var(--text3);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;transition:background .15s}
+.fshow-nav-btn:hover{background:#E4E4E7}
+.fshow-list{display:flex;flex-direction:column;gap:10px;flex:1;min-width:0}
+.fshow-item{position:relative;background:#F0F0F2;border-radius:26px;overflow:hidden}
+.fshow-item-hdr{display:flex;align-items:center;gap:14px;padding:20px 22px;cursor:pointer;font-weight:700;font-size:16px;color:var(--text);user-select:none}
 .fshow-item-icon{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--text3);display:flex;align-items:center;justify-content:center;flex:none;font-size:14px;line-height:1;color:var(--text3)}
-.fshow-item-open-body{padding:16px 30px 20px 4px}
-.fshow-item-desc{font-size:14px;color:var(--text2);line-height:1.65}
-.fshow-item-desc strong{color:var(--text);font-weight:700}
-.fshow-media{overflow:hidden;display:flex;align-items:center;justify-content:center;min-height:420px}
+.fshow-item-open-body{padding:22px 50px 22px 22px;position:relative}
+.fshow-item-close{position:absolute;top:16px;right:16px;width:28px;height:28px;border-radius:50%;border:none;background:rgba(0,0,0,.06);display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1;color:var(--text2);cursor:pointer;transition:background .15s}
+.fshow-item-close:hover{background:rgba(0,0,0,.12)}
+.fshow-item-desc{font-size:15px;color:var(--text);line-height:1.6}
+.fshow-item-desc strong{font-weight:700}
+.fshow-media{position:relative;overflow:hidden;border-radius:24px;background:#F5F5F7;aspect-ratio:1.895/1;align-self:start}
 .fshow-media-inner{width:100%;height:100%;opacity:1;transition:opacity .3s ease;display:flex;align-items:center;justify-content:center}
 .fshow-media-inner.fading{opacity:0}
 .fshow-media img,.fshow-media video{width:100%;height:100%;object-fit:cover;display:block}
 .fshow-media-empty{font-size:13px;color:var(--text3);font-style:italic}
-@media(max-width:900px){.fshow-media{min-height:260px;order:-1}}
+@media(max-width:900px){.fshow-media{order:-1}}
 .offers-grid .offer-card.agence{grid-column:1/-1}
 .offers-grid .offer-card.services{grid-column:1/-1}
 .offer-card-wrap{display:flex;flex-direction:column}
@@ -410,7 +409,6 @@ table.matrix tr:hover td{background:#fafaf7}
   <div class="section" id="featureShowcase">
     <div id="fshowHeader"></div>
     <div class="fshow-card" id="fshowCard">
-      <button type="button" class="fshow-card-close" id="fshowCloseBtn" onclick="fshowClose()" title="Fermer">✕</button>
       <div class="fshow-nav-row">
         <div class="fshow-nav-arrows" id="fshowArrows">
           <button type="button" class="fshow-nav-btn" onclick="fshowStep(-1)" title="Précédent">▲</button>
@@ -1036,10 +1034,8 @@ function renderFeatureShowcase(){
 // Only visible once the person has clicked into a feature (matches Apple's own behavior).
 function fshowUpdateChrome(){
   const arrows = document.getElementById('fshowArrows');
-  const closeBtn = document.getElementById('fshowCloseBtn');
   const isOpen = !editMode && fshowOpenIndex >= 0;
   if(arrows) arrows.classList.toggle('show', isOpen);
-  if(closeBtn) closeBtn.style.display = isOpen ? 'flex' : 'none';
 }
 
 function renderFeatureShowcaseList(){
@@ -1064,6 +1060,7 @@ function renderFeatureShowcaseList(){
       <div class="fshow-item" style="width:100%">
         ${i===fshowOpenIndex ? `
           <div class="fshow-item-open-body">
+            <button type="button" class="fshow-item-close" onclick="fshowClose()" title="Fermer">✕</button>
             <div class="fshow-item-desc">${formatPointText(it.desc||'')}</div>
           </div>
         ` : `
