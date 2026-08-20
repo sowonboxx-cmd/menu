@@ -44,7 +44,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .section-label-pill{display:inline-block;background:#F0F0F2;color:var(--text3);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-radius:20px;margin-bottom:18px}
 .section-title{font-family:'Inter',sans-serif;font-size:clamp(28px,3.6vw,40px);font-weight:600;color:var(--text);margin-bottom:10px;letter-spacing:-.02em;white-space:pre-wrap}
 .section-title-gradient{background:linear-gradient(90deg,#0b84ff 0%,#8b5cf6 35%,#ec4899 65%,#f97316 100%);-webkit-background-clip:text;background-clip:text;color:transparent;display:inline-block}
-.section-title-plain{color:var(--text);display:inline-block}
+.section-title-plain{color:#1D1D1F;display:inline-block}
 .section-sub{font-size:16px;color:var(--text2);max-width:600px;line-height:1.6}
 .section-sub-hero{font-size:clamp(17px,2vw,22px);font-weight:500;color:var(--text2);max-width:680px;line-height:1.5}
 .section-hdr-row{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:24px}
@@ -185,6 +185,28 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .media-embed video{width:100%;display:block;object-fit:cover}
 .media-embed iframe{width:100%;aspect-ratio:16/9;display:block;border:0}
 .apple-card-hidden{opacity:.5}
+/* ── Feature showcase (Apple-style expandable list + dynamic image) ── */
+.fshow-grid{display:grid;grid-template-columns:440px 1fr;gap:48px;align-items:start}
+@media(max-width:900px){.fshow-grid{grid-template-columns:1fr}}
+.fshow-nav-row{display:flex;gap:10px;align-items:flex-start}
+.fshow-nav-arrows{display:flex;flex-direction:column;gap:8px;padding-top:2px;flex:none}
+.fshow-nav-btn{width:28px;height:28px;border-radius:50%;border:none;background:#F0F0F2;color:var(--text3);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;transition:background .15s}
+.fshow-nav-btn:hover{background:#E4E4E7}
+.fshow-list{display:flex;flex-direction:column;gap:10px;flex:1;min-width:0}
+.fshow-item{background:#F5F5F7;border-radius:20px;overflow:hidden}
+.fshow-item-hdr{display:flex;align-items:center;gap:14px;padding:18px 20px;cursor:pointer;font-weight:700;font-size:16px;color:var(--text);user-select:none}
+.fshow-item-icon{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--text3);display:flex;align-items:center;justify-content:center;flex:none;font-size:14px;line-height:1;color:var(--text3);transition:transform .2s ease}
+.fshow-item.open .fshow-item-icon{transform:rotate(45deg)}
+.fshow-item-body{max-height:0;overflow:hidden;transition:max-height .35s ease}
+.fshow-item.open .fshow-item-body{max-height:400px}
+.fshow-item-desc{font-size:14px;color:var(--text2);line-height:1.65;padding:0 20px 20px 60px}
+.fshow-item-desc strong{color:var(--text);font-weight:700}
+.fshow-media{position:sticky;top:24px;border-radius:24px;overflow:hidden;background:#F5F5F7;min-height:420px;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center}
+.fshow-media-inner{width:100%;height:100%;opacity:1;transition:opacity .3s ease}
+.fshow-media-inner.fading{opacity:0}
+.fshow-media img,.fshow-media video{width:100%;height:100%;object-fit:cover;display:block}
+.fshow-media-empty{font-size:13px;color:var(--text3);font-style:italic}
+@media(max-width:900px){.fshow-media{position:static;margin-bottom:20px;aspect-ratio:16/10;order:-1}}
 .offers-grid .offer-card.agence{grid-column:1/-1}
 .offers-grid .offer-card.services{grid-column:1/-1}
 .offer-card-wrap{display:flex;flex-direction:column}
@@ -423,6 +445,22 @@ table.matrix tr:hover td{background:#fafaf7}
     <div style="margin-top:10px;padding:0 2px" id="addAddonBtnWrap"></div>
   </div>
 
+  <!-- ════════ VITRINE FONCTIONNALITÉS (style Apple) ════════ -->
+  <div class="section" id="featureShowcase">
+    <div id="fshowHeader"></div>
+    <div class="fshow-grid">
+      <div class="fshow-nav-row">
+        <div class="fshow-nav-arrows">
+          <button type="button" class="fshow-nav-btn" onclick="fshowStep(-1)" title="Précédent">▲</button>
+          <button type="button" class="fshow-nav-btn" onclick="fshowStep(1)" title="Suivant">▼</button>
+        </div>
+        <div class="fshow-list" id="fshowList"></div>
+      </div>
+      <div class="fshow-media" id="fshowMedia"></div>
+    </div>
+    <div style="margin-top:14px" id="addFshowBtnWrap"></div>
+  </div>
+
   <!-- ════════ TABLEAU MATRICE ════════ -->
 
 
@@ -465,6 +503,14 @@ const DEFAULT_DATA = {
     { name:'Menu immersif', price:0, setup:0 },
     { name:'Fidélisation', price:0, setup:0 },
   ],
+  featureShowcase: {
+    label:'Détail', title:'Découvrez le module.', subtitle:'', titleStyle:'gradient',
+    items: [
+      { title:'Menu immersif', desc:'**Menu immersif.** Une expérience visuelle et interactive pour présenter chaque plat, pensée pour donner envie dès le premier regard.', image:'' },
+      { title:'Fidélisation', desc:'**Fidélisation.** Récompensez vos clients réguliers et donnez-leur une raison de revenir, automatiquement.', image:'' },
+      { title:'Réservation', desc:'**Réservation.** Un système complet pour ne plus jamais manquer une table, avec confirmations et gestion des annulations automatiques.', image:'' },
+    ]
+  },
   cardColors: {},
   offersHeader: { label:'Vos offres packagées', title:'Trois offres. Tout compris.', subtitle:'Gérez, développez et fidélisez votre restaurant depuis votre téléphone.', cta:'Sur devis' },
   appleCardsHeader: { label:'AGENCE', title:'On s\'occupe du reste', subtitle:'L\'humain là où l\'IA s\'arrête', cta:'Sur devis' },
@@ -580,6 +626,8 @@ function migrateData(){
   if(!DATA.installationTooltipTitle) DATA.installationTooltipTitle = DEFAULT_DATA.installationTooltipTitle;
   if(!DATA.installationTooltipDesc) DATA.installationTooltipDesc = DEFAULT_DATA.installationTooltipDesc;
   if(!DATA.addonModules) DATA.addonModules = JSON.parse(JSON.stringify(DEFAULT_DATA.addonModules));
+  if(!DATA.featureShowcase) DATA.featureShowcase = JSON.parse(JSON.stringify(DEFAULT_DATA.featureShowcase));
+  if(!DATA.featureShowcase.items) DATA.featureShowcase.items = [];
   // Correction: Apéro stays a full offer tier (not a module) — undo the previous move if it
   // already ran.
   if(!DATA._aperoRestoredAsOfferV1){
@@ -943,6 +991,169 @@ function deleteAddonModule(mi){
   renderAll();
 }
 
+// ══════════════════════════════════════════
+// VITRINE FONCTIONNALITÉS (style Apple : liste à accordéon + image dynamique)
+// ══════════════════════════════════════════
+let fshowOpenIndex = 0;
+
+function renderFeatureShowcaseHeader(){
+  const el = document.getElementById('fshowHeader');
+  if(!el) return;
+  const h = DATA.featureShowcase || DEFAULT_DATA.featureShowcase;
+  el.innerHTML = editMode ? `
+    <input class="feature-name-input" style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding:0;width:100%" value="${esc(h.label||'')}" placeholder="Label (pastille, ex: Détail)" onchange="DATA.featureShowcase.label=this.value;save();renderFeatureShowcaseHeader()">
+    <textarea class="feature-name-input" style="font-size:clamp(22px,3vw,28px);font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:8px;padding:0;width:100%;resize:vertical;min-height:40px;font-family:'Inter',sans-serif" placeholder="Titre de la section" onchange="DATA.featureShowcase.title=this.value;save();renderFeatureShowcaseHeader()">${esc(h.title||'')}</textarea>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <button type="button" onclick="DATA.featureShowcase.titleStyle='gradient';save();renderFeatureShowcaseHeader()" style="font-size:11px;font-weight:600;padding:6px 12px;border-radius:20px;cursor:pointer;border:1px solid ${(h.titleStyle||'gradient')==='gradient'?'transparent':'var(--border)'};background:${(h.titleStyle||'gradient')==='gradient'?'linear-gradient(90deg,#0b84ff,#8b5cf6,#ec4899,#f97316)':'#fff'};color:${(h.titleStyle||'gradient')==='gradient'?'#fff':'var(--text3)'}">Arc-en-ciel</button>
+      <button type="button" onclick="DATA.featureShowcase.titleStyle='plain';save();renderFeatureShowcaseHeader()" style="font-size:11px;font-weight:600;padding:6px 12px;border-radius:20px;cursor:pointer;border:1px solid ${h.titleStyle==='plain'?'#1D1D1F':'var(--border)'};background:${h.titleStyle==='plain'?'#1D1D1F':'#fff'};color:${h.titleStyle==='plain'?'#fff':'var(--text3)'}">Normal (#1D1D1F)</button>
+    </div>
+    <textarea style="width:100%;max-width:none;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text2);resize:vertical;min-height:44px;outline:none;margin-bottom:20px" placeholder="Sous-titre (optionnel)" onchange="DATA.featureShowcase.subtitle=this.value;save()">${esc(h.subtitle||'')}</textarea>
+  ` : `
+    ${h.label?`<div class="section-label-pill">${esc(h.label)}</div>`:''}
+    <h2 class="section-title">${heroTitleHtml(h.title, h.titleStyle)}</h2>
+    ${h.subtitle?`<p class="section-sub-hero" style="margin-bottom:24px;white-space:pre-wrap">${esc(h.subtitle)}</p>`:'<div style="margin-bottom:24px"></div>'}
+  `;
+}
+
+function fshowGetItems(){ return (DATA.featureShowcase && DATA.featureShowcase.items) || []; }
+
+function renderFeatureShowcase(){
+  const listEl = document.getElementById('fshowList');
+  const mediaEl = document.getElementById('fshowMedia');
+  if(!listEl || !mediaEl) return;
+  const items = fshowGetItems();
+  if(fshowOpenIndex >= items.length) fshowOpenIndex = 0;
+
+  listEl.innerHTML = items.map((it, i) => `
+    <div class="feature-row" data-mi="${i}" ${editMode?'draggable="true"':''} style="${editMode?'':'display:contents'}">
+    ${editMode ? `
+      <div class="fshow-item" style="width:100%">
+        <div style="display:flex;align-items:center;gap:10px;padding:14px 16px">
+          <span class="feature-drag" style="cursor:grab">⠿</span>
+          <input class="feature-name-input" style="flex:1;font-weight:700" value="${esc(it.title||'')}" placeholder="Titre (ex: Menu immersif)" onchange="DATA.featureShowcase.items[${i}].title=this.value;save();renderFeatureShowcase()">
+          <button class="feature-del" onclick="deleteFshowItem(${i})">✕</button>
+        </div>
+        <div style="padding:0 16px 16px 16px;display:flex;flex-direction:column;gap:8px">
+          <textarea placeholder="Description (**gras** pour le début en gras, comme Apple)" style="font-size:12px;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;width:100%;resize:vertical;min-height:70px;font-family:'Inter',sans-serif" onchange="DATA.featureShowcase.items[${i}].desc=this.value;save();renderFeatureShowcase()">${esc(it.desc||'')}</textarea>
+          <input type="text" value="${esc(it.image||'')}" placeholder="URL image ou vidéo (YouTube, Vimeo, .mp4…)" style="font-size:11px;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;width:100%" onchange="DATA.featureShowcase.items[${i}].image=this.value;save();renderFeatureShowcase()">
+        </div>
+      </div>
+    ` : `
+      <div class="fshow-item${i===fshowOpenIndex?' open':''}" style="width:100%">
+        <div class="fshow-item-hdr" onclick="fshowToggle(${i})">
+          <span class="fshow-item-icon">+</span>
+          <span>${esc(it.title||'')}</span>
+        </div>
+        <div class="fshow-item-body">
+          <div class="fshow-item-desc">${formatPointText(it.desc||'')}</div>
+        </div>
+      </div>
+    `}
+    </div>
+  `).join('') || `<div style="padding:16px;font-size:12px;color:var(--text3);font-style:italic">Aucune fonctionnalité pour l'instant</div>`;
+
+  document.getElementById('addFshowBtnWrap').innerHTML = editMode ? `
+    <div class="add-feature-row">
+      <input type="text" id="addFshowInput" placeholder="+ Nouvelle fonctionnalité…" onkeydown="if(event.key==='Enter'){event.preventDefault();addFshowItem(this.value);this.value='';this.focus()}">
+      <button class="btn-icon-only" style="background:var(--navy);width:32px;height:32px" onclick="const inp=document.getElementById('addFshowInput');addFshowItem(inp.value);inp.value='';inp.focus()" title="Ajouter">+</button>
+    </div>
+  ` : '';
+
+  fshowRenderMedia(false);
+  if(editMode) attachFshowDragHandlers();
+}
+
+function fshowRenderMedia(animate){
+  const mediaEl = document.getElementById('fshowMedia');
+  if(!mediaEl) return;
+  const items = fshowGetItems();
+  const it = items[fshowOpenIndex];
+  const html = (it && it.image) ? mediaEmbedHtml(it.image) : `<div class="fshow-media-empty">Aucune image ou vidéo pour cette fonctionnalité</div>`;
+  if(!animate){
+    mediaEl.innerHTML = `<div class="fshow-media-inner">${html}</div>`;
+    return;
+  }
+  const inner = mediaEl.querySelector('.fshow-media-inner');
+  if(!inner){ mediaEl.innerHTML = `<div class="fshow-media-inner">${html}</div>`; return; }
+  inner.classList.add('fading');
+  setTimeout(()=>{
+    mediaEl.innerHTML = `<div class="fshow-media-inner fading">${html}</div>`;
+    requestAnimationFrame(()=>{
+      const newInner = mediaEl.querySelector('.fshow-media-inner');
+      if(newInner) newInner.classList.remove('fading');
+    });
+  }, 220);
+}
+
+function fshowToggle(i){
+  if(editMode) return;
+  fshowOpenIndex = i;
+  document.querySelectorAll('#fshowList .fshow-item').forEach((el, idx)=>{
+    el.classList.toggle('open', idx===i);
+  });
+  fshowRenderMedia(true);
+}
+function fshowStep(delta){
+  const items = fshowGetItems();
+  if(!items.length) return;
+  fshowOpenIndex = (fshowOpenIndex + delta + items.length) % items.length;
+  document.querySelectorAll('#fshowList .fshow-item').forEach((el, idx)=>{
+    el.classList.toggle('open', idx===fshowOpenIndex);
+  });
+  fshowRenderMedia(true);
+}
+function addFshowItem(title){
+  title = (title||'').trim();
+  if(!title) return;
+  if(!DATA.featureShowcase.items) DATA.featureShowcase.items = [];
+  DATA.featureShowcase.items.push({ title:title, desc:'', image:'' });
+  save();
+  renderFeatureShowcase();
+  showToast('✓ Fonctionnalité ajoutée');
+}
+function deleteFshowItem(i){
+  if(!confirm('Supprimer cette fonctionnalité ?')) return;
+  DATA.featureShowcase.items.splice(i,1);
+  save();
+  renderFeatureShowcase();
+}
+function attachFshowDragHandlers(){
+  const rows = document.querySelectorAll('#fshowList .feature-row[draggable="true"]');
+  rows.forEach(row=>{
+    row.addEventListener('dragstart', fshowDragStart);
+    row.addEventListener('dragover', fshowDragOver);
+    row.addEventListener('dragend', fshowDragEnd);
+    row.addEventListener('drop', fshowDrop);
+  });
+}
+let fshowDragSrc = null;
+function fshowDragStart(e){
+  fshowDragSrc = parseInt(this.dataset.mi);
+  this.style.opacity = '0.4';
+  e.dataTransfer.effectAllowed = 'move';
+}
+function fshowDragEnd(){
+  this.style.opacity = '';
+  document.querySelectorAll('#fshowList .feature-row').forEach(r=>r.style.borderTop='');
+}
+function fshowDragOver(e){
+  e.preventDefault();
+  if(fshowDragSrc===null) return;
+  this.style.borderTop = '2px solid var(--navy)';
+}
+function fshowDrop(e){
+  e.preventDefault();
+  this.style.borderTop = '';
+  const mi = parseInt(this.dataset.mi);
+  if(fshowDragSrc===null || fshowDragSrc===mi) return;
+  const items = DATA.featureShowcase.items;
+  const [moved] = items.splice(fshowDragSrc, 1);
+  items.splice(mi, 0, moved);
+  fshowDragSrc = null;
+  save();
+  renderFeatureShowcase();
+}
+
 function tagLabel(tag){
   if(DATA.offerMeta[tag] && DATA.offerMeta[tag].name) return DATA.offerMeta[tag].name;
   return {apero:'Apéro',base:'Entrée',pro:'Réservation',premium:'Dessert',agence:'Agence',services:'Prestation'}[tag];
@@ -1028,10 +1239,10 @@ function deleteCategory(ci){
 // ══════════════════════════════════════════
 // First line of a hero title gets the Apple-style color gradient; any further
 // lines (typed as line breaks in admin) render as plain bold text below it.
-function heroTitleHtml(title){
+function heroTitleHtml(title, style){
   const lines = (title||'').split('\n');
   return lines.map((line, i) =>
-    `<span class="${i===0?'section-title-gradient':'section-title-plain'}">${esc(line)}</span>`
+    `<span class="${i===0 && style!=='plain' ?'section-title-gradient':'section-title-plain'}">${esc(line)}</span>`
   ).join('<br>');
 }
 function renderOffersHeader(){
@@ -1040,11 +1251,15 @@ function renderOffersHeader(){
   el.innerHTML = editMode ? `
     <input class="feature-name-input" style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding:0;width:100%;text-align:center" value="${esc(h.label||'')}" placeholder="Label (pastille, ex: Vos offres packagées)" onchange="DATA.offersHeader.label=this.value;save();renderOffersHeader()">
     <textarea class="feature-name-input" style="font-size:clamp(22px,3vw,28px);font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:8px;padding:0;width:100%;text-align:center;resize:vertical;min-height:40px;font-family:'Inter',sans-serif" placeholder="Titre de la section (Entrée = ligne suivante en noir)" onchange="DATA.offersHeader.title=this.value;save();renderOffersHeader()">${esc(h.title)}</textarea>
+    <div style="display:flex;justify-content:center;gap:8px;margin-bottom:16px">
+      <button type="button" onclick="DATA.offersHeader.titleStyle='gradient';save();renderOffersHeader()" style="font-size:11px;font-weight:600;padding:6px 12px;border-radius:20px;cursor:pointer;border:1px solid ${(h.titleStyle||'gradient')==='gradient'?'transparent':'var(--border)'};background:${(h.titleStyle||'gradient')==='gradient'?'linear-gradient(90deg,#0b84ff,#8b5cf6,#ec4899,#f97316)':'#fff'};color:${(h.titleStyle||'gradient')==='gradient'?'#fff':'var(--text3)'}">Arc-en-ciel</button>
+      <button type="button" onclick="DATA.offersHeader.titleStyle='plain';save();renderOffersHeader()" style="font-size:11px;font-weight:600;padding:6px 12px;border-radius:20px;cursor:pointer;border:1px solid ${h.titleStyle==='plain'?'#1D1D1F':'var(--border)'};background:${h.titleStyle==='plain'?'#1D1D1F':'#fff'};color:${h.titleStyle==='plain'?'#fff':'var(--text3)'}">Normal (#1D1D1F)</button>
+    </div>
     <textarea style="width:100%;max-width:none;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text2);resize:vertical;min-height:44px;outline:none;margin-bottom:24px;text-align:center" placeholder="Sous-titre de la section" onchange="DATA.offersHeader.subtitle=this.value;save()">${esc(h.subtitle||'')}</textarea>
   ` : `
     <div style="text-align:center">
       ${h.label?`<div class="section-label-pill">${esc(h.label)}</div>`:''}
-      <h2 class="section-title">${heroTitleHtml(h.title)}</h2>
+      <h2 class="section-title">${heroTitleHtml(h.title, h.titleStyle)}</h2>
       <p class="section-sub-hero" style="margin:0 auto 24px;white-space:pre-wrap">${esc(h.subtitle||'')}</p>
     </div>
   `;
@@ -1056,12 +1271,16 @@ function renderAppleCardsHeader(){
   el.innerHTML = editMode ? `
     <input class="feature-name-input" style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding:0;width:100%;text-align:center" value="${esc(h.label||'')}" placeholder="Label (pastille, ex: MODE AGENCE)" onchange="DATA.appleCardsHeader.label=this.value;save();renderAppleCardsHeader()">
     <textarea class="feature-name-input" style="font-size:clamp(22px,3vw,28px);font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:8px;padding:0;width:100%;text-align:center;resize:vertical;min-height:40px;font-family:'Inter',sans-serif" placeholder="Titre (Entrée = ligne suivante en noir)" onchange="DATA.appleCardsHeader.title=this.value;save();renderAppleCardsHeader()">${esc(h.title||'')}</textarea>
+    <div style="display:flex;justify-content:center;gap:8px;margin-bottom:16px">
+      <button type="button" onclick="DATA.appleCardsHeader.titleStyle='gradient';save();renderAppleCardsHeader()" style="font-size:11px;font-weight:600;padding:6px 12px;border-radius:20px;cursor:pointer;border:1px solid ${(h.titleStyle||'gradient')==='gradient'?'transparent':'var(--border)'};background:${(h.titleStyle||'gradient')==='gradient'?'linear-gradient(90deg,#0b84ff,#8b5cf6,#ec4899,#f97316)':'#fff'};color:${(h.titleStyle||'gradient')==='gradient'?'#fff':'var(--text3)'}">Arc-en-ciel</button>
+      <button type="button" onclick="DATA.appleCardsHeader.titleStyle='plain';save();renderAppleCardsHeader()" style="font-size:11px;font-weight:600;padding:6px 12px;border-radius:20px;cursor:pointer;border:1px solid ${h.titleStyle==='plain'?'#1D1D1F':'var(--border)'};background:${h.titleStyle==='plain'?'#1D1D1F':'#fff'};color:${h.titleStyle==='plain'?'#fff':'var(--text3)'}">Normal (#1D1D1F)</button>
+    </div>
     <textarea style="width:100%;max-width:none;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text2);resize:vertical;min-height:44px;outline:none;margin-bottom:12px;text-align:center" placeholder="Sous-titre" onchange="DATA.appleCardsHeader.subtitle=this.value;save()">${esc(h.subtitle||'')}</textarea>
     <input type="text" value="${esc(h.cta||'')}" placeholder="Sur devis" style="width:150px;margin:0 auto 24px;display:block;font-size:12px;font-weight:600;color:var(--pro);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center" onchange="DATA.appleCardsHeader.cta=this.value;save()">
   ` : `
     <div style="text-align:center">
       ${h.label?`<div class="section-label-pill">${esc(h.label)}</div>`:''}
-      <h2 class="section-title">${heroTitleHtml(h.title)}</h2>
+      <h2 class="section-title">${heroTitleHtml(h.title, h.titleStyle)}</h2>
       <p class="section-sub-hero" style="margin:0 auto 12px">${esc(h.subtitle||'')}</p>
       ${h.cta?`<div style="color:var(--pro);font-size:12px;font-weight:600;margin-bottom:24px">${esc(h.cta)}</div>`:''}
     </div>
@@ -1245,13 +1464,19 @@ function renderOffers(){
           <textarea placeholder="Description infobulle (unique à cette offre)" style="font-size:11px;color:var(--text2);border:1px solid var(--border);border-radius:6px;outline:none;background:#fff;padding:5px 8px;width:100%;resize:vertical;min-height:36px;font-family:'Inter',sans-serif" onchange="DATA.offerMeta['${tag}'].installDesc=this.value;save();renderOffers()">${esc(meta.installDesc||'')}</textarea>
         </div>
       ` : ''}
-      <button class="offer-cta ${tag==='apero'?'apero':''}" type="button">Choisir cette offre</button>
+      <button class="offer-cta" type="button" style="background:${meta.ctaColor || (tag==='apero' ? '#232323' : '#2F6FE0')}">${esc(meta.ctaText || 'Choisir cette offre')}</button>
       ${editable ? `
         <div style="display:flex;align-items:center;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
           <input type="color" value="${accent}" style="width:32px;height:28px;border:1px solid var(--border);border-radius:6px;padding:2px;background:#fff;cursor:pointer" oninput="this.closest('.offer-card').querySelectorAll('.ov2-icon')[0].style.background=hexToRgba(this.value,0.12)" onchange="DATA.cardColors['${tag}']=this.value;save();renderOffers()">
           <span style="font-size:11px;color:var(--text3)">Couleur d'accent</span>
           ${DATA.cardColors[tag]?`<button type="button" style="font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;text-decoration:underline;margin-left:auto" onclick="delete DATA.cardColors['${tag}'];save();renderOffers()">Réinitialiser</button>`:''}
         </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
+          <input type="color" value="${meta.ctaColor || (tag==='apero' ? '#232323' : '#2F6FE0')}" style="width:32px;height:28px;border:1px solid var(--border);border-radius:6px;padding:2px;background:#fff;cursor:pointer" onchange="DATA.offerMeta['${tag}'].ctaColor=this.value;save();renderOffers()">
+          <span style="font-size:11px;color:var(--text3)">Couleur du bouton</span>
+          ${meta.ctaColor?`<button type="button" style="font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;text-decoration:underline;margin-left:auto" onclick="delete DATA.offerMeta['${tag}'].ctaColor;save();renderOffers()">Réinitialiser</button>`:''}
+        </div>
+        <input type="text" value="${esc(meta.ctaText || '')}" placeholder="Texte du bouton (ex: Choisir cette offre)" style="font-size:12px;color:var(--text);border:1px solid var(--border);border-radius:6px;outline:none;background:#fff;padding:6px 8px;width:100%;margin-top:10px" onchange="DATA.offerMeta['${tag}'].ctaText=this.value;save();renderOffers()">
       ` : ''}
     </div>
     ${(!editable && meta.setup>0) ? `
@@ -1699,6 +1924,8 @@ function renderAll(){
   renderMatrix();
   renderAppleCardsHeader();
   renderAppleCards();
+  renderFeatureShowcaseHeader();
+  renderFeatureShowcase();
   if(typeof renderSimulator === 'function') renderSimulator();
 }
 
