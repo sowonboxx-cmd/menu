@@ -53,9 +53,10 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .hero-subtitle{font-size:18px;color:rgba(255,255,255,.88);margin-bottom:26px;line-height:1.5;white-space:pre-wrap}
 .hero-cta{display:inline-flex;align-items:center;padding:14px 30px;border-radius:999px;background:#2F6FE0;color:#fff;font-size:16px;font-weight:700;border:none;cursor:pointer;transition:opacity .15s}
 .hero-cta:hover{opacity:.88}
-.hero-buy-bar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:16px;background:rgba(22,22,22,.55);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-radius:16px;padding:14px 18px;max-width:420px}
+.hero-buy-bar{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:16px;background:rgba(22,22,22,.55);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:18px 100px}
 .hero-buy-price{color:#fff;font-size:14px;font-weight:600;white-space:nowrap}
 @media(max-width:768px){
+  .hero-buy-bar{padding:16px 32px}
   .hero-buy-bar .hero-cta{font-size:13.6px;padding:11.9px 25.5px}
 }
 .mobile-menu-btn{display:none;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:transparent;border:none;color:#fff;cursor:pointer}
@@ -591,7 +592,7 @@ const DEFAULT_DATA = {
     title: 'Gérez votre restaurant\ndepuis votre téléphone.',
     subtitle: '',
     cta: 'Découvrir',
-    priceText: 'À partir de 49 € /mois',
+    priceText: 'À partir de 49 € / mois',
     image: ''
   },
   installationLabel: 'Installation & prise en main',
@@ -736,6 +737,7 @@ function migrateData(){
   if(DATA.heroBanner.brandName===undefined) DATA.heroBanner.brandName = DEFAULT_DATA.heroBanner.brandName;
   if(DATA.heroBanner.brandIcon===undefined) DATA.heroBanner.brandIcon = '';
   if(DATA.heroBanner.priceText===undefined) DATA.heroBanner.priceText = DEFAULT_DATA.heroBanner.priceText;
+  if(DATA.heroBanner.priceText==='À partir de 49 € /mois') DATA.heroBanner.priceText = 'À partir de 49 € / mois';
   if(DATA.heroBanner.cta==='En savoir plus') DATA.heroBanner.cta = 'Découvrir';
   // One-time: featureShowcase moves from a single flat item list to multiple named tabs,
   // each with its own item list, sharing the same dynamic accordion+image component.
@@ -1184,13 +1186,13 @@ function renderHeroBanner(){
         ` : ''}
         ${h.title?`<div class="hero-title">${esc(h.title)}</div>`:''}
         ${h.subtitle?`<div class="hero-subtitle">${esc(h.subtitle)}</div>`:''}
-        ${h.cta ? `
-          <div class="hero-buy-bar">
-            ${h.priceText?`<span class="hero-buy-price">${esc(h.priceText)}</span>`:'<span></span>'}
-            <button class="hero-cta" type="button">${esc(h.cta)}</button>
-          </div>
-        ` : ''}
       </div>
+      ${h.cta ? `
+        <div class="hero-buy-bar">
+          ${h.priceText?`<span class="hero-buy-price">${esc(h.priceText)}</span>`:'<span></span>'}
+          <button class="hero-cta" type="button">${esc(h.cta)}</button>
+        </div>
+      ` : ''}
     </div>
   `;
 }
