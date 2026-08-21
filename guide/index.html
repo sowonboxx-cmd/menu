@@ -44,8 +44,8 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .hero-banner-media img,.hero-banner-media video{width:100%;height:100%;object-fit:cover;display:block}
 .hero-banner-overlay{position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.6) 0%,rgba(0,0,0,.25) 55%,rgba(0,0,0,.05) 100%)}
 .hero-banner-content{position:relative;z-index:2;padding:0 100px 130px;color:#fff;max-width:800px}
-.hero-brand{display:flex;align-items:center;gap:10px;margin-bottom:22px}
-.hero-brand img,.hero-brand svg{width:37px;height:37px;flex:none}
+.hero-brand{display:flex;align-items:center;gap:10px;margin-bottom:5px}
+.hero-brand img,.hero-brand svg{width:22px;height:22px;flex:none}
 .hero-brand-name{font-size:23px;font-weight:400;letter-spacing:.02em;text-transform:uppercase;color:#fff}
 .hero-brand-name strong{font-weight:800}
 .hero-title{font-family:'Inter',sans-serif;font-size:clamp(28px,4.15vw,46px);font-weight:600;line-height:1.22;margin-bottom:16px;white-space:pre-wrap;letter-spacing:-.01em}
@@ -59,7 +59,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
   .hero-banner-content{padding:0 32px 64px}
   .hero-subtitle{font-size:15px}
   .hero-brand-name{font-size:18px}
-  .hero-brand img,.hero-brand svg{width:29px;height:29px}
+  .hero-brand img,.hero-brand svg{width:20px;height:20px}
 }
 
 /* ── LAYOUT ── */
@@ -443,24 +443,6 @@ table.matrix tr:hover td{background:#fafaf7}
 <!-- ════════ HERO BANNER (style Apple) ════════ -->
 <div id="heroBannerSection"></div>
 
-<!-- ════════ OFFRES AUTO-GÉNÉRÉES (Apéro / Entrée / Plat / Dessert) — fond gris plein largeur ════════ -->
-<div class="apple-section-bg" style="margin-top:0">
-  <div class="wrap">
-    <div id="offersHeader"></div>
-    <div class="offers-grid" id="offersAutoTop"></div>
-    <div class="offers-trust-bar" id="offersTrustBar"></div>
-  </div>
-</div>
-
-<!-- ════════ CARTES STYLE APPLE (fond gris plein largeur) ════════ -->
-<div class="apple-section-bg">
-  <div class="wrap">
-    <div id="appleCardsHeader"></div>
-    <div class="apple-cards-grid" id="appleCardsGrid"></div>
-    <div class="apple-cards-dots" id="appleCardsDots"></div>
-  </div>
-</div>
-
 <div class="wrap">
   <!-- ════════ VITRINE FONCTIONNALITÉS (style Apple) ════════ -->
   <div class="section" id="featureShowcase">
@@ -481,6 +463,27 @@ table.matrix tr:hover td{background:#fafaf7}
     </div>
     <div style="margin-top:14px" id="addFshowBtnWrap"></div>
   </div>
+</div>
+
+<!-- ════════ OFFRES AUTO-GÉNÉRÉES (Apéro / Entrée / Plat / Dessert) — fond gris plein largeur ════════ -->
+<div class="apple-section-bg" style="margin-top:0">
+  <div class="wrap">
+    <div id="offersHeader"></div>
+    <div class="offers-grid" id="offersAutoTop"></div>
+    <div class="offers-trust-bar" id="offersTrustBar"></div>
+  </div>
+</div>
+
+<!-- ════════ CARTES STYLE APPLE (fond gris plein largeur) ════════ -->
+<div class="apple-section-bg">
+  <div class="wrap">
+    <div id="appleCardsHeader"></div>
+    <div class="apple-cards-grid" id="appleCardsGrid"></div>
+    <div class="apple-cards-dots" id="appleCardsDots"></div>
+  </div>
+</div>
+
+<div class="wrap">
 
   <!-- ════════ FONCTIONNALITÉS ════════ -->
   <div class="section" id="features">
@@ -1175,7 +1178,10 @@ function renderFeatureShowcaseHeader(){
   const el = document.getElementById('fshowHeader');
   if(!el) return;
   const h = DATA.featureShowcase || DEFAULT_DATA.featureShowcase;
+  const align = h.align || 'left';
   el.innerHTML = editMode ? `
+    ${iconEditorHtml(h.icon, h.iconSize, 'DATA.featureShowcase', 'renderFeatureShowcaseHeader')}
+    ${alignEditorHtml(h.align||'left', 'DATA.featureShowcase', 'renderFeatureShowcaseHeader')}
     <input class="feature-name-input" style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding:0;width:100%" value="${esc(h.label||'')}" placeholder="Label (pastille, ex: Détail)" onchange="DATA.featureShowcase.label=this.value;save();renderFeatureShowcaseHeader()">
     <textarea class="feature-name-input" style="font-size:clamp(22px,3vw,28px);font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:8px;padding:0;width:100%;resize:vertical;min-height:40px;font-family:'Inter',sans-serif" placeholder="Titre de la section" onchange="DATA.featureShowcase.title=this.value;save();renderFeatureShowcaseHeader()">${esc(h.title||'')}</textarea>
     <div style="display:flex;gap:8px;margin-bottom:16px">
@@ -1184,9 +1190,12 @@ function renderFeatureShowcaseHeader(){
     </div>
     <textarea style="width:100%;max-width:none;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text2);resize:vertical;min-height:44px;outline:none;margin-bottom:20px" placeholder="Sous-titre (optionnel)" onchange="DATA.featureShowcase.subtitle=this.value;save()">${esc(h.subtitle||'')}</textarea>
   ` : `
-    ${h.label?`<div class="section-label-pill">${esc(h.label)}</div>`:''}
-    <h2 class="section-title">${heroTitleHtml(h.title, h.titleStyle)}</h2>
-    ${h.subtitle?`<p class="section-sub-hero" style="margin-bottom:24px;white-space:pre-wrap">${esc(h.subtitle)}</p>`:'<div style="margin-bottom:24px"></div>'}
+    <div style="text-align:${align}">
+      ${iconDisplayHtml(h.icon, h.iconSize)}
+      ${h.label?`<div class="section-label-pill">${esc(h.label)}</div>`:''}
+      <h2 class="section-title">${heroTitleHtml(h.title, h.titleStyle)}</h2>
+      ${h.subtitle?`<p class="section-sub-hero" style="margin:0 ${align==='left'?'0':'auto'} 24px;white-space:pre-wrap">${esc(h.subtitle)}</p>`:'<div style="margin-bottom:24px"></div>'}
+    </div>
   `;
 }
 
@@ -1523,6 +1532,31 @@ function deleteCategory(ci){
 // ══════════════════════════════════════════
 // First line of a hero title gets the Apple-style color gradient; any further
 // lines (typed as line breaks in admin) render as plain bold text below it.
+// Reusable "optional icon" + "text alignment" controls, shared by the section headers
+// (offers, apple cards, feature showcase) so behaviour/markup stays consistent everywhere.
+function iconEditorHtml(icon, iconSize, dataPath, renderFn){
+  return `
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+      <input type="text" value="${esc(icon||'')}" placeholder="URL icône (optionnel, uploadez le vôtre, 22px max)" style="flex:1;font-size:11px;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:6px 8px" onchange="${dataPath}.icon=this.value;save();${renderFn}()">
+      <input type="number" value="${iconSize||22}" min="8" max="22" style="width:54px;font-size:11px;border:1px solid var(--border);border-radius:6px;padding:6px 4px;text-align:center" title="Taille en px (22 max)" onchange="${dataPath}.iconSize=Math.max(8,Math.min(22,parseInt(this.value)||22));save();${renderFn}()">
+    </div>
+  `;
+}
+function alignEditorHtml(align, dataPath, renderFn){
+  const a = align || 'center';
+  return `
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button type="button" onclick="${dataPath}.align='center';save();${renderFn}()" style="font-size:11px;font-weight:600;padding:6px 12px;border-radius:20px;cursor:pointer;border:1px solid ${a==='center'?'#1D1D1F':'var(--border)'};background:${a==='center'?'#1D1D1F':'#fff'};color:${a==='center'?'#fff':'var(--text3)'}">Centré</button>
+      <button type="button" onclick="${dataPath}.align='left';save();${renderFn}()" style="font-size:11px;font-weight:600;padding:6px 12px;border-radius:20px;cursor:pointer;border:1px solid ${a==='left'?'#1D1D1F':'var(--border)'};background:${a==='left'?'#1D1D1F':'#fff'};color:${a==='left'?'#fff':'var(--text3)'}">Aligné à gauche</button>
+    </div>
+  `;
+}
+function iconDisplayHtml(icon, size){
+  if(!icon) return '';
+  const s = Math.max(8, Math.min(22, size||22));
+  return `<img src="${esc(icon)}" style="width:${s}px;height:${s}px;object-fit:contain;margin-bottom:10px;display:inline-block">`;
+}
+
 function heroTitleHtml(title, style){
   const lines = (title||'').split('\n');
   return lines.map((line, i) =>
@@ -1532,7 +1566,10 @@ function heroTitleHtml(title, style){
 function renderOffersHeader(){
   const el = document.getElementById('offersHeader');
   const h = DATA.offersHeader || DEFAULT_DATA.offersHeader;
+  const align = h.align || 'center';
   el.innerHTML = editMode ? `
+    ${iconEditorHtml(h.icon, h.iconSize, 'DATA.offersHeader', 'renderOffersHeader')}
+    ${alignEditorHtml(h.align, 'DATA.offersHeader', 'renderOffersHeader')}
     <input class="feature-name-input" style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding:0;width:100%;text-align:center" value="${esc(h.label||'')}" placeholder="Label (pastille, ex: Vos offres packagées)" onchange="DATA.offersHeader.label=this.value;save();renderOffersHeader()">
     <textarea class="feature-name-input" style="font-size:clamp(22px,3vw,28px);font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:8px;padding:0;width:100%;text-align:center;resize:vertical;min-height:40px;font-family:'Inter',sans-serif" placeholder="Titre de la section (Entrée = ligne suivante en noir)" onchange="DATA.offersHeader.title=this.value;save();renderOffersHeader()">${esc(h.title)}</textarea>
     <div style="display:flex;justify-content:center;gap:8px;margin-bottom:16px">
@@ -1541,10 +1578,11 @@ function renderOffersHeader(){
     </div>
     <textarea style="width:100%;max-width:none;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text2);resize:vertical;min-height:44px;outline:none;margin-bottom:24px;text-align:center" placeholder="Sous-titre de la section" onchange="DATA.offersHeader.subtitle=this.value;save()">${esc(h.subtitle||'')}</textarea>
   ` : `
-    <div style="text-align:center">
+    <div style="text-align:${align}">
+      ${iconDisplayHtml(h.icon, h.iconSize)}
       ${h.label?`<div class="section-label-pill">${esc(h.label)}</div>`:''}
       <h2 class="section-title">${heroTitleHtml(h.title, h.titleStyle)}</h2>
-      <p class="section-sub-hero" style="margin:0 auto 24px;white-space:pre-wrap">${esc(h.subtitle||'')}</p>
+      <p class="section-sub-hero" style="margin:0 ${align==='left'?'0':'auto'} 24px;white-space:pre-wrap">${esc(h.subtitle||'')}</p>
     </div>
   `;
 }
@@ -1552,7 +1590,10 @@ function renderOffersHeader(){
 function renderAppleCardsHeader(){
   const el = document.getElementById('appleCardsHeader');
   const h = DATA.appleCardsHeader || DEFAULT_DATA.appleCardsHeader;
+  const align = h.align || 'center';
   el.innerHTML = editMode ? `
+    ${iconEditorHtml(h.icon, h.iconSize, 'DATA.appleCardsHeader', 'renderAppleCardsHeader')}
+    ${alignEditorHtml(h.align, 'DATA.appleCardsHeader', 'renderAppleCardsHeader')}
     <input class="feature-name-input" style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding:0;width:100%;text-align:center" value="${esc(h.label||'')}" placeholder="Label (pastille, ex: MODE AGENCE)" onchange="DATA.appleCardsHeader.label=this.value;save();renderAppleCardsHeader()">
     <textarea class="feature-name-input" style="font-size:clamp(22px,3vw,28px);font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:8px;padding:0;width:100%;text-align:center;resize:vertical;min-height:40px;font-family:'Inter',sans-serif" placeholder="Titre (Entrée = ligne suivante en noir)" onchange="DATA.appleCardsHeader.title=this.value;save();renderAppleCardsHeader()">${esc(h.title||'')}</textarea>
     <div style="display:flex;justify-content:center;gap:8px;margin-bottom:16px">
@@ -1562,10 +1603,11 @@ function renderAppleCardsHeader(){
     <textarea style="width:100%;max-width:none;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text2);resize:vertical;min-height:44px;outline:none;margin-bottom:12px;text-align:center" placeholder="Sous-titre" onchange="DATA.appleCardsHeader.subtitle=this.value;save()">${esc(h.subtitle||'')}</textarea>
     <input type="text" value="${esc(h.cta||'')}" placeholder="Sur devis" style="width:150px;margin:0 auto 24px;display:block;font-size:12px;font-weight:600;color:var(--pro);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center" onchange="DATA.appleCardsHeader.cta=this.value;save()">
   ` : `
-    <div style="text-align:center">
+    <div style="text-align:${align}">
+      ${iconDisplayHtml(h.icon, h.iconSize)}
       ${h.label?`<div class="section-label-pill">${esc(h.label)}</div>`:''}
       <h2 class="section-title">${heroTitleHtml(h.title, h.titleStyle)}</h2>
-      <p class="section-sub-hero" style="margin:0 auto 12px">${esc(h.subtitle||'')}</p>
+      <p class="section-sub-hero" style="margin:0 ${align==='left'?'0':'auto'} 12px">${esc(h.subtitle||'')}</p>
       ${h.cta?`<div style="color:var(--pro);font-size:12px;font-weight:600;margin-bottom:24px">${esc(h.cta)}</div>`:''}
     </div>
   `;
