@@ -53,15 +53,10 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .hero-subtitle{font-size:18px;color:rgba(255,255,255,.88);margin-bottom:26px;line-height:1.5;white-space:pre-wrap}
 .hero-cta{display:inline-flex;align-items:center;padding:14px 30px;border-radius:999px;background:#2F6FE0;color:#fff;font-size:16px;font-weight:700;border:none;cursor:pointer;transition:opacity .15s}
 .hero-cta:hover{opacity:.88}
-.hero-mobile-cta-row{display:flex;align-items:center;gap:10px;margin-top:6px}
-.hero-mobile-tagline{display:none}
+.hero-buy-bar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:16px;background:rgba(22,22,22,.55);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-radius:16px;padding:14px 18px;max-width:420px}
+.hero-buy-price{color:#fff;font-size:14px;font-weight:600;white-space:nowrap}
 @media(max-width:768px){
-  .hero-cta-desktop{display:none}
-  .hero-mobile-tagline{display:inline;font-family:'Segoe Script','Bradley Hand','Comic Sans MS',cursive;color:#FFD60A;font-size:16px;white-space:nowrap}
-  .hero-mobile-cta-row .hero-cta{font-size:13.6px;padding:11.9px 25.5px}
-}
-@media(min-width:769px){
-  .hero-cta-mobile{display:none}
+  .hero-buy-bar .hero-cta{font-size:13.6px;padding:11.9px 25.5px}
 }
 .mobile-menu-btn{display:none;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:transparent;border:none;color:#fff;cursor:pointer}
 .mobile-nav-overlay{position:fixed;inset:0;background:#161616;z-index:999;display:none;flex-direction:column;padding:24px;overflow-y:auto}
@@ -595,7 +590,8 @@ const DEFAULT_DATA = {
     brandIcon: '',
     title: 'Gérez votre restaurant\ndepuis votre téléphone.',
     subtitle: '',
-    cta: 'En savoir plus',
+    cta: 'Découvrir',
+    priceText: 'À partir de 49 € /mois',
     image: ''
   },
   installationLabel: 'Installation & prise en main',
@@ -739,6 +735,8 @@ function migrateData(){
   if(!DATA.heroBanner.navItems) DATA.heroBanner.navItems = JSON.parse(JSON.stringify(DEFAULT_DATA.heroBanner.navItems));
   if(DATA.heroBanner.brandName===undefined) DATA.heroBanner.brandName = DEFAULT_DATA.heroBanner.brandName;
   if(DATA.heroBanner.brandIcon===undefined) DATA.heroBanner.brandIcon = '';
+  if(DATA.heroBanner.priceText===undefined) DATA.heroBanner.priceText = DEFAULT_DATA.heroBanner.priceText;
+  if(DATA.heroBanner.cta==='En savoir plus') DATA.heroBanner.cta = 'Découvrir';
   // One-time: featureShowcase moves from a single flat item list to multiple named tabs,
   // each with its own item list, sharing the same dynamic accordion+image component.
   if(!DATA.featureShowcase.tabs){
@@ -1157,7 +1155,10 @@ function renderHeroBanner(){
           </div>
           <textarea placeholder="Titre (Entrée = retour à la ligne)" style="font-size:15px;font-weight:700;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 10px;width:100%;resize:vertical;min-height:50px;font-family:'Inter',sans-serif" onchange="DATA.heroBanner.title=this.value;save()">${esc(h.title||'')}</textarea>
           <textarea placeholder="Sous-titre (optionnel)" style="font-size:13px;color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;width:100%;resize:vertical;min-height:44px;font-family:'Inter',sans-serif" onchange="DATA.heroBanner.subtitle=this.value;save()">${esc(h.subtitle||'')}</textarea>
-          <input type="text" value="${esc(h.cta||'')}" placeholder="Texte du bouton (ex: En savoir plus)" style="font-size:13px;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 10px;width:280px" onchange="DATA.heroBanner.cta=this.value;save();renderHeroBanner()">
+          <div style="display:flex;gap:8px">
+            <input type="text" value="${esc(h.priceText||'')}" placeholder="Texte prix (ex: À partir de 49 € /mois)" style="font-size:13px;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 10px;flex:1" onchange="DATA.heroBanner.priceText=this.value;save();renderHeroBanner()">
+            <input type="text" value="${esc(h.cta||'')}" placeholder="Texte du bouton (ex: Découvrir)" style="font-size:13px;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 10px;width:200px" onchange="DATA.heroBanner.cta=this.value;save();renderHeroBanner()">
+          </div>
         </div>
       </div>
     `;
@@ -1184,8 +1185,8 @@ function renderHeroBanner(){
         ${h.title?`<div class="hero-title">${esc(h.title)}</div>`:''}
         ${h.subtitle?`<div class="hero-subtitle">${esc(h.subtitle)}</div>`:''}
         ${h.cta ? `
-          <div class="hero-mobile-cta-row">
-            <span class="hero-mobile-tagline">Tout simplement</span>
+          <div class="hero-buy-bar">
+            ${h.priceText?`<span class="hero-buy-price">${esc(h.priceText)}</span>`:'<span></span>'}
             <button class="hero-cta" type="button">${esc(h.cta)}</button>
           </div>
         ` : ''}
