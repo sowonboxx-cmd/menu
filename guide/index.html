@@ -40,7 +40,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 /* ── Hero banner (Apple-style public nav + full-bleed hero image) ── */
 .hero-nav-items{display:flex;gap:22px;flex-wrap:wrap;min-width:0}
 .hero-nav-item{color:rgba(255,255,255,.78);font-size:12.5px;font-weight:500;white-space:nowrap}
-.hero-banner{position:relative;width:100%;height:100vh;height:100svh;min-height:520px;display:flex;align-items:flex-end;overflow:hidden;background:#0b1830}
+.hero-banner{position:relative;width:100%;height:100vh;height:100svh;height:100dvh;min-height:520px;display:flex;align-items:flex-end;overflow:hidden;background:#0b1830}
 .hero-banner-media{position:absolute;inset:0;width:100%;height:100%}
 .hero-banner-media img,.hero-banner-media video{width:100%;height:100%;object-fit:cover;display:block}
 .hero-banner-overlay{position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.6) 0%,rgba(0,0,0,.25) 55%,rgba(0,0,0,.05) 100%)}
@@ -80,7 +80,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
   .mobile-nav-overlay{display:none !important}
 }
 @media(max-width:768px){
-  .hero-banner{height:92vh;height:92svh;min-height:520px}
+  .hero-banner{height:100vh;height:100svh;height:100dvh;min-height:520px}
 }
 
 /* ── LAYOUT ── */
@@ -259,7 +259,20 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .fshow-media-inner.fading-in{opacity:0;transform:translateX(14px)}
 .fshow-media img,.fshow-media video{width:100%;height:100%;object-fit:cover;display:block}
 .fshow-media-empty{font-size:13px;color:var(--text3);font-style:italic}
-.fshow-tabbar{position:relative;display:inline-flex;flex-wrap:wrap;gap:2px;background:#EDEDF0;border-radius:999px;padding:5px}
+.fshow-tabbar-wrap{position:relative;display:inline-block;max-width:100%}
+.fshow-tabbar{position:relative;display:inline-flex;flex-wrap:wrap;gap:2px;background:#EDEDF0;border-radius:999px;padding:5px;max-width:100%}
+.fshow-tab-arrow{display:none}
+@media(max-width:640px){
+  .fshow-tabbar-wrap{display:block;width:100%}
+  .fshow-tabbar{display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;width:100%}
+  .fshow-tabbar::-webkit-scrollbar{display:none}
+  .fshow-tab{flex:none}
+  .fshow-tab-arrow{display:flex;position:absolute;top:5px;bottom:5px;width:30px;align-items:center;justify-content:center;background:#EDEDF0;border:none;cursor:pointer;color:var(--text2);z-index:2;padding:0}
+  .fshow-tab-arrow.hidden{display:none}
+  .fshow-tab-arrow-left{left:0;border-radius:999px 0 0 999px}
+  .fshow-tab-arrow-right{right:0;border-radius:0 999px 999px 0}
+  .fshow-tab-arrow svg{width:13px;height:13px}
+}
 .fshow-tab-indicator{position:absolute;top:5px;bottom:5px;left:5px;width:0;background:#1D1D1F;border-radius:999px;transition:left .32s cubic-bezier(.4,0,.2,1),width .32s cubic-bezier(.4,0,.2,1);z-index:0}
 .fshow-tab{position:relative;z-index:1;border:none;background:transparent;color:var(--text2);font-size:14px;font-weight:500;padding:9px 18px;border-radius:999px;cursor:pointer;transition:color .15s;white-space:nowrap}
 .fshow-tab.active{background:transparent;color:#fff;font-weight:500}
@@ -1288,13 +1301,45 @@ function renderFshowTabs(){
   const align = (DATA.featureShowcase && DATA.featureShowcase.align) || 'left';
   el.innerHTML = `
     <div style="text-align:${align}">
-      <div class="fshow-tabbar" id="fshowTabbarInner">
-        <div class="fshow-tab-indicator" id="fshowTabIndicator"></div>
-        ${tabs.map((t,i)=>`<button type="button" class="fshow-tab${i===fshowActiveTabIndex?' active':''}" data-i="${i}" onclick="fshowSwitchTab(${i})">${esc(t.name)}</button>`).join('')}
+      <div class="fshow-tabbar-wrap">
+        <button type="button" class="fshow-tab-arrow fshow-tab-arrow-left hidden" id="fshowTabArrowLeft" onclick="fshowScrollTabs(-1)" title="Précédent">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"></polyline></svg>
+        </button>
+        <div class="fshow-tabbar" id="fshowTabbarInner">
+          <div class="fshow-tab-indicator" id="fshowTabIndicator"></div>
+          ${tabs.map((t,i)=>`<button type="button" class="fshow-tab${i===fshowActiveTabIndex?' active':''}" data-i="${i}" onclick="fshowSwitchTab(${i})">${esc(t.name)}</button>`).join('')}
+        </div>
+        <button type="button" class="fshow-tab-arrow fshow-tab-arrow-right hidden" id="fshowTabArrowRight" onclick="fshowScrollTabs(1)" title="Suivant">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>
+        </button>
       </div>
     </div>
   `;
   requestAnimationFrame(fshowPositionIndicator);
+  fshowSetupTabScroll();
+}
+function fshowSetupTabScroll(){
+  const bar = document.getElementById('fshowTabbarInner');
+  if(!bar) return;
+  fshowUpdateTabArrows();
+  if(!bar._scrollBound){
+    bar._scrollBound = true;
+    bar.addEventListener('scroll', fshowUpdateTabArrows, { passive:true });
+    window.addEventListener('resize', fshowUpdateTabArrows);
+  }
+}
+function fshowUpdateTabArrows(){
+  const bar = document.getElementById('fshowTabbarInner');
+  const left = document.getElementById('fshowTabArrowLeft');
+  const right = document.getElementById('fshowTabArrowRight');
+  if(!bar || !left || !right) return;
+  left.classList.toggle('hidden', bar.scrollLeft <= 2);
+  right.classList.toggle('hidden', bar.scrollLeft + bar.clientWidth >= bar.scrollWidth - 2);
+}
+function fshowScrollTabs(dir){
+  const bar = document.getElementById('fshowTabbarInner');
+  if(!bar) return;
+  bar.scrollBy({ left: dir * 140, behavior: 'smooth' });
 }
 function fshowPositionIndicator(){
   const bar = document.getElementById('fshowTabbarInner');
@@ -1317,6 +1362,9 @@ function fshowSwitchTab(i){
       btn.classList.toggle('active', parseInt(btn.dataset.i)===i);
     });
     fshowPositionIndicator();
+    const activeBtn = document.querySelector('#fshowTabbarInner .fshow-tab.active');
+    if(activeBtn && activeBtn.scrollIntoView) activeBtn.scrollIntoView({ behavior:'smooth', inline:'center', block:'nearest' });
+    setTimeout(fshowUpdateTabArrows, 350);
   }
   renderFeatureShowcaseList();
   fshowUpdateChrome();
