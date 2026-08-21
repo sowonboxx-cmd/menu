@@ -20,7 +20,7 @@ html{scroll-behavior:smooth}
 body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);line-height:1.5;padding-bottom:60px;font-weight:400}
 
 /* ── TOPBAR ── */
-.topbar{background:var(--navy);height:54px;display:flex;align-items:center;position:sticky;top:0;z-index:200}
+.topbar{background:#161616;height:54px;display:flex;align-items:center;position:sticky;top:0;z-index:200}
 .topbar-brand{font-family:'Inter',sans-serif;font-size:16px;font-weight:700;color:#fff;letter-spacing:-.01em}
 .topbar-actions{display:flex;gap:8px;align-items:center}
 .sync-status{font-size:10px;color:rgba(255,255,255,.5);display:flex;align-items:center;gap:5px}
@@ -37,26 +37,29 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .feature-row.search-hidden{display:none}
 .feature-cat.search-hidden{display:none}
 /* ── Hero banner (Apple-style public nav + full-bleed hero image) ── */
-.hero-navbar{background:var(--navy);padding:16px 0}
-.hero-navbar-inner{display:flex;align-items:center;gap:40px}
-.hero-nav-items{display:flex;gap:26px;flex-wrap:wrap;flex:1}
-.hero-nav-item{color:rgba(255,255,255,.78);font-size:13px;font-weight:500;white-space:nowrap}
+.hero-nav-items{display:flex;gap:22px;flex-wrap:wrap;min-width:0}
+.hero-nav-item{color:rgba(255,255,255,.78);font-size:12.5px;font-weight:500;white-space:nowrap}
 .hero-banner{position:relative;width:100%;height:100vh;min-height:520px;display:flex;align-items:flex-end;overflow:hidden;background:#0b1830}
 .hero-banner-media{position:absolute;inset:0;width:100%;height:100%}
 .hero-banner-media img,.hero-banner-media video{width:100%;height:100%;object-fit:cover;display:block}
 .hero-banner-overlay{position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.6) 0%,rgba(0,0,0,.25) 55%,rgba(0,0,0,.05) 100%)}
-.hero-banner-content{position:relative;z-index:2;padding:0 60px 80px;color:#fff;max-width:640px}
-.hero-title{font-size:clamp(28px,4.2vw,46px);font-weight:800;line-height:1.15;margin-bottom:16px;white-space:pre-wrap;letter-spacing:-.01em}
+.hero-banner-content{position:relative;z-index:2;padding:0 60px 80px;color:#fff;max-width:760px}
+.hero-brand{display:flex;align-items:center;gap:10px;margin-bottom:22px}
+.hero-brand img,.hero-brand svg{width:32px;height:32px;flex:none}
+.hero-brand-name{font-size:20px;font-weight:400;letter-spacing:.02em;text-transform:uppercase;color:#fff}
+.hero-brand-name strong{font-weight:800}
+.hero-title{font-family:'Inter',sans-serif;font-size:clamp(24px,3.6vw,40px);font-weight:600;line-height:1.22;margin-bottom:16px;white-space:pre-wrap;letter-spacing:-.01em}
 .hero-subtitle{font-size:18px;color:rgba(255,255,255,.88);margin-bottom:26px;line-height:1.5;white-space:pre-wrap}
 .hero-cta{display:inline-flex;align-items:center;padding:12px 26px;border-radius:999px;background:#2F6FE0;color:#fff;font-size:14px;font-weight:700;border:none;cursor:pointer;transition:opacity .15s}
 .hero-cta:hover{opacity:.88}
 @media(max-width:768px){
-  .hero-navbar-inner{gap:20px}
-  .hero-nav-items{gap:16px;overflow-x:auto;scrollbar-width:none}
+  .hero-nav-items{gap:14px;overflow-x:auto;scrollbar-width:none;max-width:200px}
   .hero-nav-items::-webkit-scrollbar{display:none}
   .hero-banner{height:78vh;min-height:420px}
   .hero-banner-content{padding:0 24px 48px}
   .hero-subtitle{font-size:15px}
+  .hero-brand-name{font-size:16px}
+  .hero-brand img,.hero-brand svg{width:26px;height:26px}
 }
 
 /* ── LAYOUT ── */
@@ -383,8 +386,8 @@ table.matrix tr:hover td{background:#fafaf7}
 </div>
 
 <div class="topbar">
-  <div class="wrap" style="display:flex;align-items:center;justify-content:space-between;width:100%">
-    <div class="topbar-brand" style="display:flex;align-items:center;gap:9px">
+  <div class="wrap" style="display:flex;align-items:center;gap:32px;width:100%">
+    <div class="topbar-brand" style="display:flex;align-items:center;gap:9px;flex:none">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff" aria-label="Logo">
         <circle cx="8" cy="9.5" r="4.3"/>
         <circle cx="16" cy="9.5" r="4.3"/>
@@ -392,6 +395,7 @@ table.matrix tr:hover td{background:#fafaf7}
         <rect x="7.3" y="9" width="9.4" height="12" rx="1.2"/>
       </svg>
     </div>
+    <div id="topbarNavWrap" style="flex:1;min-width:0"></div>
     <div class="topbar-actions">
       <div class="sync-status" onclick="promptToken()" style="cursor:pointer" title="Cliquer pour configurer le token GitHub"><span class="sync-dot"></span> Local uniquement</div>
       <button class="btn-icon-only" onclick="toggleSearch()" title="Rechercher une fonctionnalité">
@@ -535,6 +539,8 @@ table.matrix tr:hover td{background:#fafaf7}
 const DEFAULT_DATA = {
   heroBanner: {
     navItems: ['Site internet','Réservation','Avis Google','Aperçu du menu','Module','Fidélisation'],
+    brandName: 'Food Master',
+    brandIcon: '',
     title: 'Gérez votre restaurant\ndepuis votre téléphone.',
     subtitle: '',
     cta: 'En savoir plus',
@@ -673,6 +679,8 @@ function migrateData(){
   if(!DATA.featureShowcase) DATA.featureShowcase = JSON.parse(JSON.stringify(DEFAULT_DATA.featureShowcase));
   if(!DATA.heroBanner) DATA.heroBanner = JSON.parse(JSON.stringify(DEFAULT_DATA.heroBanner));
   if(!DATA.heroBanner.navItems) DATA.heroBanner.navItems = JSON.parse(JSON.stringify(DEFAULT_DATA.heroBanner.navItems));
+  if(DATA.heroBanner.brandName===undefined) DATA.heroBanner.brandName = DEFAULT_DATA.heroBanner.brandName;
+  if(DATA.heroBanner.brandIcon===undefined) DATA.heroBanner.brandIcon = '';
   if(!DATA.featureShowcase.items) DATA.featureShowcase.items = [];
   // Correction: Apéro stays a full offer tier (not a module) — undo the previous move if it
   // already ran.
@@ -1049,33 +1057,38 @@ const LOGO_SVG = `<svg width="26" height="26" viewBox="0 0 24 24" fill="#fff" ar
 
 function renderHeroBanner(){
   const el = document.getElementById('heroBannerSection');
-  if(!el) return;
+  const navWrap = document.getElementById('topbarNavWrap');
+  if(!el || !navWrap) return;
   const h = DATA.heroBanner || DEFAULT_DATA.heroBanner;
   const navItems = h.navItems || [];
 
+  // Nav items live in the merged top bar (view: plain text, edit: editable pills)
+  navWrap.innerHTML = editMode ? `
+    <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+      ${navItems.map((n,i)=>`
+        <div style="display:flex;align-items:center;gap:3px;background:rgba(255,255,255,.08);border-radius:7px;padding:3px 3px 3px 8px">
+          <input value="${esc(n)}" style="background:transparent;border:none;outline:none;color:#fff;font-size:12px;width:${Math.max(50,n.length*7)}px" onchange="DATA.heroBanner.navItems[${i}]=this.value;save();renderHeroBanner()">
+          <button onclick="deleteHeroNavItem(${i})" style="background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:11px;padding:2px 4px">✕</button>
+        </div>
+      `).join('')}
+      <input type="text" id="addHeroNavInput" placeholder="+ Menu…" style="background:rgba(255,255,255,.08);border:1px dashed rgba(255,255,255,.3);border-radius:7px;outline:none;color:#fff;font-size:12px;padding:4px 9px" onkeydown="if(event.key==='Enter'){event.preventDefault();addHeroNavItem(this.value);this.value=''}">
+    </div>
+  ` : `
+    <div class="hero-nav-items">
+      ${navItems.map(n=>`<span class="hero-nav-item">${esc(n)}</span>`).join('')}
+    </div>
+  `;
+
+  // Hero image + overlay content (brand lockup, title, subtitle, CTA)
   if(editMode){
     el.innerHTML = `
-      <div class="hero-navbar">
-        <div class="wrap hero-navbar-inner">
-          ${LOGO_SVG}
-          <div style="display:flex;flex-direction:column;gap:8px;flex:1">
-            <div style="display:flex;flex-wrap:wrap;gap:8px" id="heroNavItemsEdit">
-              ${navItems.map((n,i)=>`
-                <div style="display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.08);border-radius:8px;padding:4px 4px 4px 8px">
-                  <input value="${esc(n)}" style="background:transparent;border:none;outline:none;color:#fff;font-size:13px;width:${Math.max(60,n.length*8)}px" onchange="DATA.heroBanner.navItems[${i}]=this.value;save();renderHeroBanner()">
-                  <button onclick="deleteHeroNavItem(${i})" style="background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:12px;padding:2px 4px">✕</button>
-                </div>
-              `).join('')}
-              <div style="display:flex;align-items:center;gap:4px">
-                <input type="text" id="addHeroNavInput" placeholder="+ Ajouter un menu…" style="background:rgba(255,255,255,.08);border:1px dashed rgba(255,255,255,.3);border-radius:8px;outline:none;color:#fff;font-size:13px;padding:5px 10px" onkeydown="if(event.key==='Enter'){event.preventDefault();addHeroNavItem(this.value);this.value=''}">
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
       <div style="background:#F5F5F7;padding:20px 0">
         <div class="wrap" style="display:flex;flex-direction:column;gap:10px">
           <input type="text" value="${esc(h.image||'')}" placeholder="URL image ou vidéo de fond (hero, plein écran)" style="font-size:12px;color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;width:100%" onchange="DATA.heroBanner.image=this.value;save();renderHeroBanner()">
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="text" value="${esc(h.brandIcon||'')}" placeholder="URL icône du logiciel (à uploader)" style="font-size:12px;color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;flex:1" onchange="DATA.heroBanner.brandIcon=this.value;save();renderHeroBanner()">
+            <input type="text" value="${esc(h.brandName||'')}" placeholder="Nom du logiciel (ex: Food Master)" style="font-size:12px;color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;flex:1" onchange="DATA.heroBanner.brandName=this.value;save();renderHeroBanner()">
+          </div>
           <textarea placeholder="Titre (Entrée = retour à la ligne)" style="font-size:15px;font-weight:700;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 10px;width:100%;resize:vertical;min-height:50px;font-family:'Inter',sans-serif" onchange="DATA.heroBanner.title=this.value;save()">${esc(h.title||'')}</textarea>
           <textarea placeholder="Sous-titre (optionnel)" style="font-size:13px;color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;width:100%;resize:vertical;min-height:44px;font-family:'Inter',sans-serif" onchange="DATA.heroBanner.subtitle=this.value;save()">${esc(h.subtitle||'')}</textarea>
           <input type="text" value="${esc(h.cta||'')}" placeholder="Texte du bouton (ex: En savoir plus)" style="font-size:13px;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 10px;width:280px" onchange="DATA.heroBanner.cta=this.value;save();renderHeroBanner()">
@@ -1085,19 +1098,23 @@ function renderHeroBanner(){
     return;
   }
 
+  const brandName = h.brandName || '';
+  const brandWords = brandName.split(' ');
+  const brandHtml = brandWords.length > 1
+    ? `<strong>${esc(brandWords[0])}</strong> ${esc(brandWords.slice(1).join(' '))}`
+    : esc(brandName);
+
   el.innerHTML = `
-    <div class="hero-navbar">
-      <div class="wrap hero-navbar-inner">
-        ${LOGO_SVG}
-        <div class="hero-nav-items">
-          ${navItems.map(n=>`<span class="hero-nav-item">${esc(n)}</span>`).join('')}
-        </div>
-      </div>
-    </div>
     <div class="hero-banner">
       <div class="hero-banner-media">${h.image ? mediaEmbedHtml(h.image) : ''}</div>
       <div class="hero-banner-overlay"></div>
       <div class="hero-banner-content">
+        ${brandName ? `
+          <div class="hero-brand">
+            ${h.brandIcon ? `<img src="${esc(h.brandIcon)}" alt="">` : LOGO_SVG}
+            <span class="hero-brand-name">${brandHtml}</span>
+          </div>
+        ` : ''}
         ${h.title?`<div class="hero-title">${esc(h.title)}</div>`:''}
         ${h.subtitle?`<div class="hero-subtitle">${esc(h.subtitle)}</div>`:''}
         ${h.cta?`<button class="hero-cta" type="button">${esc(h.cta)}</button>`:''}
