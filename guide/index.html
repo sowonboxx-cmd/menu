@@ -52,14 +52,30 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .hero-subtitle{font-size:18px;color:rgba(255,255,255,.88);margin-bottom:26px;line-height:1.5;white-space:pre-wrap}
 .hero-cta{display:inline-flex;align-items:center;padding:14px 30px;border-radius:999px;background:#2F6FE0;color:#fff;font-size:16px;font-weight:700;border:none;cursor:pointer;transition:opacity .15s}
 .hero-cta:hover{opacity:.88}
+.mobile-menu-btn{display:none;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:transparent;border:none;color:#fff;cursor:pointer}
+.mobile-nav-overlay{position:fixed;inset:0;background:#161616;z-index:999;display:none;flex-direction:column;padding:24px;overflow-y:auto}
+.mobile-nav-overlay.open{display:flex}
+.mobile-nav-close{position:absolute;top:20px;right:20px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.08);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.mobile-nav-list{display:flex;flex-direction:column;gap:4px;margin-top:76px}
+.mobile-nav-item{color:#fff;font-size:30px;font-weight:700;padding:14px 4px;border-bottom:1px solid rgba(255,255,255,.1)}
 @media(max-width:768px){
   .hero-nav-items{gap:14px;overflow-x:auto;scrollbar-width:none;max-width:200px}
   .hero-nav-items::-webkit-scrollbar{display:none}
-  .hero-banner{height:78vh;min-height:420px}
   .hero-banner-content{padding:0 32px 64px}
   .hero-subtitle{font-size:15px}
   .hero-brand-name{font-size:18px}
   .hero-brand img,.hero-brand svg{width:20px;height:20px}
+}
+@media(max-width:768px){
+  .topbar{background:rgba(20,20,20,.28);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+  #topbarNavWrap .hero-nav-items{display:none}
+  .sync-status{display:none}
+  .mobile-menu-btn{display:flex}
+  .hero-banner{height:100vh;min-height:100vh}
+  .hero-cta{font-size:13.6px;padding:11.9px 25.5px}
+}
+@media(min-width:769px){
+  .mobile-nav-overlay{display:none !important}
 }
 
 /* ── LAYOUT ── */
@@ -405,12 +421,7 @@ table.matrix tr:hover td{background:#fafaf7}
 <div class="topbar">
   <div class="wrap" style="display:flex;align-items:center;gap:32px;width:100%">
     <div class="topbar-brand" style="display:flex;align-items:center;gap:9px;flex:none">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff" aria-label="Logo">
-        <circle cx="8" cy="9.5" r="4.3"/>
-        <circle cx="16" cy="9.5" r="4.3"/>
-        <circle cx="12" cy="7" r="5.4"/>
-        <rect x="7.3" y="9" width="9.4" height="12" rx="1.2"/>
-      </svg>
+      <img src="https://domainerosalina.com/wp-content/uploads/2026/08/chef_hatc.png" alt="Logo" style="width:24px;height:24px;object-fit:contain">
     </div>
     <div id="topbarNavWrap" style="flex:1;min-width:0"></div>
     <div class="topbar-actions">
@@ -421,8 +432,18 @@ table.matrix tr:hover td{background:#fafaf7}
       <button class="btn-icon-only" onclick="toggleEditMode()" id="editToggleBtn" title="Mode édition">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
       </button>
+      <button class="mobile-menu-btn" onclick="toggleMobileMenu()" title="Menu" id="mobileMenuBtn">
+        <svg width="20" height="14" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><line x1="2" y1="2" x2="22" y2="2"></line><line x1="2" y1="14" x2="22" y2="14"></line></svg>
+      </button>
     </div>
   </div>
+</div>
+
+<div id="mobileNavOverlay" class="mobile-nav-overlay">
+  <button class="mobile-nav-close" onclick="toggleMobileMenu()" title="Fermer">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
+  </button>
+  <div class="mobile-nav-list" id="mobileNavList"></div>
 </div>
 
 <div id="searchBar" style="display:none;background:#fff;border-bottom:1px solid var(--border);padding:10px 0;position:sticky;top:54px;z-index:10">
@@ -1091,7 +1112,7 @@ let fshowActiveTabIndex = 0;
 // ══════════════════════════════════════════
 // HERO BANNER (public-facing Apple-style nav + full-bleed hero)
 // ══════════════════════════════════════════
-const LOGO_SVG = `<svg width="26" height="26" viewBox="0 0 24 24" fill="#fff" aria-label="Logo"><circle cx="8" cy="9.5" r="4.3"/><circle cx="16" cy="9.5" r="4.3"/><circle cx="12" cy="7" r="5.4"/><rect x="7.3" y="9" width="9.4" height="12" rx="1.2"/></svg>`;
+const LOGO_SVG = `<img src="https://domainerosalina.com/wp-content/uploads/2026/08/chef_hatc.png" alt="Logo">`;
 
 function renderHeroBanner(){
   const el = document.getElementById('heroBannerSection');
@@ -1159,6 +1180,20 @@ function renderHeroBanner(){
       </div>
     </div>
   `;
+}
+function toggleMobileMenu(){
+  const overlay = document.getElementById('mobileNavOverlay');
+  if(!overlay) return;
+  const opening = !overlay.classList.contains('open');
+  if(opening) renderMobileNavList();
+  overlay.classList.toggle('open', opening);
+  document.body.style.overflow = opening ? 'hidden' : '';
+}
+function renderMobileNavList(){
+  const el = document.getElementById('mobileNavList');
+  if(!el) return;
+  const items = (DATA.heroBanner && DATA.heroBanner.navItems) || [];
+  el.innerHTML = items.map(n=>`<div class="mobile-nav-item">${esc(n)}</div>`).join('');
 }
 function addHeroNavItem(name){
   name = (name||'').trim();
