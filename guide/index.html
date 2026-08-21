@@ -226,9 +226,9 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .fshow-item-icon{width:24.7px;height:24.7px;border-radius:50%;border:1.5px solid var(--text3);display:flex;align-items:center;justify-content:center;flex:none;color:var(--text3);line-height:1;position:relative}
 .fshow-item-icon svg{width:14px;height:14px;display:block}
 .fshow-item-open-body{padding:20px 20px 20px 20px;position:relative}
-.fshow-card-close{position:absolute;top:18px;right:18px;width:28px;height:28px;border-radius:50%;border:none;background:rgba(0,0,0,.06);display:none;align-items:center;justify-content:center;color:var(--text2);cursor:pointer;transition:background .15s;z-index:10}
+.fshow-card-close{position:absolute;top:18px;right:18px;width:28px;height:28px;border-radius:50%;border:none;background:#E8E8EA;display:none;align-items:center;justify-content:center;color:#1D1D1F;cursor:pointer;transition:background .15s;z-index:10}
+.fshow-card-close:hover{background:#DCDCDE}
 .fshow-card-close.show{display:flex}
-.fshow-card-close:hover{background:rgba(0,0,0,.12)}
 .fshow-card-close svg{width:13px;height:13px}
 .fshow-item-desc{font-size:14px;color:var(--text);line-height:1.55}
 .fshow-item-desc strong{font-weight:700}
@@ -1181,7 +1181,7 @@ function renderFeatureShowcaseHeader(){
   const align = h.align || 'left';
   el.innerHTML = editMode ? `
     ${iconEditorHtml(h.icon, h.iconSize, 'DATA.featureShowcase', 'renderFeatureShowcaseHeader')}
-    ${alignEditorHtml(h.align||'left', 'DATA.featureShowcase', 'renderFeatureShowcaseHeader')}
+    ${alignEditorHtml(h.align||'left', 'DATA.featureShowcase', 'renderFeatureShowcaseHeader();renderFshowTabs();')}
     <input class="feature-name-input" style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding:0;width:100%" value="${esc(h.label||'')}" placeholder="Label (pastille, ex: Détail)" onchange="DATA.featureShowcase.label=this.value;save();renderFeatureShowcaseHeader()">
     <textarea class="feature-name-input" style="font-size:clamp(22px,3vw,28px);font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:8px;padding:0;width:100%;resize:vertical;min-height:40px;font-family:'Inter',sans-serif" placeholder="Titre de la section" onchange="DATA.featureShowcase.title=this.value;save();renderFeatureShowcaseHeader()">${esc(h.title||'')}</textarea>
     <div style="display:flex;gap:8px;margin-bottom:16px">
@@ -1227,10 +1227,13 @@ function renderFshowTabs(){
     return;
   }
 
+  const align = (DATA.featureShowcase && DATA.featureShowcase.align) || 'left';
   el.innerHTML = `
-    <div class="fshow-tabbar" id="fshowTabbarInner">
-      <div class="fshow-tab-indicator" id="fshowTabIndicator"></div>
-      ${tabs.map((t,i)=>`<button type="button" class="fshow-tab${i===fshowActiveTabIndex?' active':''}" data-i="${i}" onclick="fshowSwitchTab(${i})">${esc(t.name)}</button>`).join('')}
+    <div style="text-align:${align}">
+      <div class="fshow-tabbar" id="fshowTabbarInner">
+        <div class="fshow-tab-indicator" id="fshowTabIndicator"></div>
+        ${tabs.map((t,i)=>`<button type="button" class="fshow-tab${i===fshowActiveTabIndex?' active':''}" data-i="${i}" onclick="fshowSwitchTab(${i})">${esc(t.name)}</button>`).join('')}
+      </div>
     </div>
   `;
   requestAnimationFrame(fshowPositionIndicator);
@@ -1542,12 +1545,12 @@ function iconEditorHtml(icon, iconSize, dataPath, renderFn){
     </div>
   `;
 }
-function alignEditorHtml(align, dataPath, renderFn){
+function alignEditorHtml(align, dataPath, renderCall){
   const a = align || 'center';
   return `
     <div style="display:flex;gap:8px;margin-bottom:14px">
-      <button type="button" onclick="${dataPath}.align='center';save();${renderFn}()" style="font-size:11px;font-weight:600;padding:6px 12px;border-radius:20px;cursor:pointer;border:1px solid ${a==='center'?'#1D1D1F':'var(--border)'};background:${a==='center'?'#1D1D1F':'#fff'};color:${a==='center'?'#fff':'var(--text3)'}">Centré</button>
-      <button type="button" onclick="${dataPath}.align='left';save();${renderFn}()" style="font-size:11px;font-weight:600;padding:6px 12px;border-radius:20px;cursor:pointer;border:1px solid ${a==='left'?'#1D1D1F':'var(--border)'};background:${a==='left'?'#1D1D1F':'#fff'};color:${a==='left'?'#fff':'var(--text3)'}">Aligné à gauche</button>
+      <button type="button" onclick="${dataPath}.align='center';save();${renderCall}" style="font-size:11px;font-weight:600;padding:6px 12px;border-radius:20px;cursor:pointer;border:1px solid ${a==='center'?'#1D1D1F':'var(--border)'};background:${a==='center'?'#1D1D1F':'#fff'};color:${a==='center'?'#fff':'var(--text3)'}">Centré</button>
+      <button type="button" onclick="${dataPath}.align='left';save();${renderCall}" style="font-size:11px;font-weight:600;padding:6px 12px;border-radius:20px;cursor:pointer;border:1px solid ${a==='left'?'#1D1D1F':'var(--border)'};background:${a==='left'?'#1D1D1F':'#fff'};color:${a==='left'?'#fff':'var(--text3)'}">Aligné à gauche</button>
     </div>
   `;
 }
@@ -1569,7 +1572,7 @@ function renderOffersHeader(){
   const align = h.align || 'center';
   el.innerHTML = editMode ? `
     ${iconEditorHtml(h.icon, h.iconSize, 'DATA.offersHeader', 'renderOffersHeader')}
-    ${alignEditorHtml(h.align, 'DATA.offersHeader', 'renderOffersHeader')}
+    ${alignEditorHtml(h.align, 'DATA.offersHeader', 'renderOffersHeader();')}
     <input class="feature-name-input" style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding:0;width:100%;text-align:center" value="${esc(h.label||'')}" placeholder="Label (pastille, ex: Vos offres packagées)" onchange="DATA.offersHeader.label=this.value;save();renderOffersHeader()">
     <textarea class="feature-name-input" style="font-size:clamp(22px,3vw,28px);font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:8px;padding:0;width:100%;text-align:center;resize:vertical;min-height:40px;font-family:'Inter',sans-serif" placeholder="Titre de la section (Entrée = ligne suivante en noir)" onchange="DATA.offersHeader.title=this.value;save();renderOffersHeader()">${esc(h.title)}</textarea>
     <div style="display:flex;justify-content:center;gap:8px;margin-bottom:16px">
@@ -1593,7 +1596,7 @@ function renderAppleCardsHeader(){
   const align = h.align || 'center';
   el.innerHTML = editMode ? `
     ${iconEditorHtml(h.icon, h.iconSize, 'DATA.appleCardsHeader', 'renderAppleCardsHeader')}
-    ${alignEditorHtml(h.align, 'DATA.appleCardsHeader', 'renderAppleCardsHeader')}
+    ${alignEditorHtml(h.align, 'DATA.appleCardsHeader', 'renderAppleCardsHeader();')}
     <input class="feature-name-input" style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding:0;width:100%;text-align:center" value="${esc(h.label||'')}" placeholder="Label (pastille, ex: MODE AGENCE)" onchange="DATA.appleCardsHeader.label=this.value;save();renderAppleCardsHeader()">
     <textarea class="feature-name-input" style="font-size:clamp(22px,3vw,28px);font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:8px;padding:0;width:100%;text-align:center;resize:vertical;min-height:40px;font-family:'Inter',sans-serif" placeholder="Titre (Entrée = ligne suivante en noir)" onchange="DATA.appleCardsHeader.title=this.value;save();renderAppleCardsHeader()">${esc(h.title||'')}</textarea>
     <div style="display:flex;justify-content:center;gap:8px;margin-bottom:16px">
