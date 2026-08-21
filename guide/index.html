@@ -233,9 +233,10 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .ov2-price-old{font-size:15px;font-weight:600;color:var(--text3);text-decoration:line-through}
 .ov2-install{font-size:12.5px;color:var(--text3);margin-bottom:20px}
 /* ── Banner-style offer cards (mockup redesign) ── */
-.ov2-banner{height:76px;margin:-5px -28px 18px;border-radius:20px 20px 0 0;display:flex;align-items:center;padding:0 20px}
+.ov2-banner{height:56px;margin:-5px -28px 18px;border-radius:20px 20px 0 0;display:flex;align-items:center;padding:0 20px}
 .ov2-top-row-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%}
-.ov2-name-banner{font-size:17px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:var(--text)}
+.ov2-name-banner{font-size:17px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:#fff}
+.ov2-price-pill-below{margin:2px 0 14px;align-self:flex-start}
 .ov2-banner.apero{background:linear-gradient(135deg,#d7f56b 0%,#a3e04a 45%,#f6f9a8 100%)}
 .ov2-banner.base{background:linear-gradient(135deg,#bfe3ff 0%,#79c2f7 45%,#e4f6ff 100%)}
 .ov2-banner.pro{background:linear-gradient(135deg,#d7f56b 0%,#a3e04a 45%,#f6f9a8 100%)}
@@ -1440,14 +1441,14 @@ function renderOffers(){
     <div class="offer-card ${tag}">
       <div class="ov2-banner ${tag}">
         ${!editable ? `
-          <div class="ov2-top-row-banner">
-            <span class="ov2-name-banner">${esc(meta.name)}</span>
-            <span class="ov2-price-pill">${meta.price>0?`${meta.price.toFixed(0)} €<span>/mois</span>`:'Sur devis'}</span>
-          </div>
+          <span class="ov2-name-banner" style="color:${meta.nameColor || '#fff'}">${esc(meta.name)}</span>
         ` : ''}
       </div>
       ${editable
-        ? `<input class="feature-name-input" value="${esc(meta.name)}" style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--text);padding:0;margin-bottom:10px;width:100%" onchange="DATA.offerMeta['${tag}'].name=this.value;save()">`
+        ? `<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+            <input class="feature-name-input" value="${esc(meta.name)}" style="flex:1;font-size:12px;font-weight:700;text-transform:uppercase;color:var(--text);padding:0" onchange="DATA.offerMeta['${tag}'].name=this.value;save()">
+            <input type="color" value="${meta.nameColor || '#ffffff'}" title="Couleur du titre sur la bannière" style="width:32px;height:28px;border:1px solid var(--border);border-radius:6px;padding:2px;background:#fff;cursor:pointer;flex:none" onchange="DATA.offerMeta['${tag}'].nameColor=this.value;save();renderOffers()">
+          </div>`
         : ''
       }
       ${editable ? `
@@ -1465,8 +1466,12 @@ function renderOffers(){
       }
       ${editable
         ? `<textarea class="feature-name-input" placeholder="Sous-titre (optionnel)" style="font-size:12px;color:var(--text2);padding:0;margin-bottom:14px;width:100%;resize:vertical;min-height:30px;font-family:'Inter',sans-serif" onchange="DATA.offerMeta['${tag}'].subtitle=this.value;save()">${esc(meta.subtitle||'')}</textarea>`
-        : `<div class="ov2-subtitle2">${esc(meta.subtitle||'')}</div><div class="ov2-top-divider"></div>`
+        : `<div class="ov2-subtitle2">${esc(meta.subtitle||'')}</div>`
       }
+      ${!editable ? `
+        <span class="ov2-price-pill ov2-price-pill-below">${meta.price>0?`${meta.price.toFixed(0)} €<span>/mois</span>`:'Sur devis'}</span>
+        <div class="ov2-top-divider"></div>
+      ` : ''}
       ${editable ? `
         <div style="font-size:11px;color:var(--text3);margin-bottom:14px">${includedLabel} (auto)</div>
       ` : `
