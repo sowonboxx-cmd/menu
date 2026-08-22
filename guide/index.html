@@ -207,6 +207,17 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 
 /* ── AUTO-GENERATED OFFERS TABLE ── */
 .offers-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.offers-stack-spacer{position:relative}
+.offers-stack-sticky{position:static}
+@media(max-width:768px){
+  body:not(.edit-mode) .offers-stack-spacer{height:calc(100vh + 120vh)}
+  body:not(.edit-mode) .offers-stack-sticky{position:sticky;top:6px}
+  body:not(.edit-mode) #offersStackSticky .wrap{position:relative}
+  body:not(.edit-mode) .offers-grid{display:block;position:relative}
+  body:not(.edit-mode) .offer-card-wrap{position:absolute;top:0;left:0;width:100%;will-change:transform}
+  body:not(.edit-mode) .offer-card-wrap:first-child{position:relative}
+  body:not(.edit-mode) .offers-trust-bar{position:absolute;left:20px;right:20px;top:0;will-change:transform}
+}
 .apple-section-bg{background:#F5F5F7;padding:56px 0;width:100%}
 .offers-section-panel{background:#F5F5F7;border-radius:32px;padding:48px 40px}
 @media(max-width:640px){.offers-section-panel{padding:32px 20px}}
@@ -293,6 +304,11 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .offer-card-wrap{display:flex;flex-direction:column}
 .offer-card{border-radius:20px;background:#fff;padding:5px 28px 32px;position:relative;display:flex;flex-direction:column;flex:1}
 .ov2-info-outside{margin-top:14px;text-align:center;font-size:13px;color:var(--text3)}
+.ov2-info-mobile{display:none;margin-top:14px;text-align:center;font-size:13px;color:var(--text3)}
+@media(max-width:768px){
+  body:not(.edit-mode) .ov2-info-outside{display:none}
+  body:not(.edit-mode) .ov2-info-mobile{display:block}
+}
 .offer-card.base{background:#fff}
 .offer-card.pro{background:#fff}
 .offer-card.premium{background:#fff}
@@ -312,7 +328,24 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .ov2-price-old{font-size:15px;font-weight:600;color:var(--text3);text-decoration:line-through}
 .ov2-install{font-size:12.5px;color:var(--text3);margin-bottom:20px}
 /* ── Banner-style offer cards (mockup redesign) ── */
-.ov2-banner{height:56px;margin:-5px -28px 18px;border-radius:20px 20px 0 0;display:flex;align-items:center;padding:0 20px}
+.ov2-banner{height:56px;margin:-5px -28px 18px;border-radius:20px 20px 0 0;display:flex;align-items:center;padding:0 20px;position:relative}
+@media(max-width:768px){
+  body:not(.edit-mode) .ov2-banner.apero::after,
+  body:not(.edit-mode) .ov2-banner.base::after{
+    content:'';
+    position:absolute;
+    left:0;right:0;top:100%;
+    height:22px;
+    background:inherit;
+    pointer-events:none;
+    opacity:0;
+    transition:opacity .15s ease;
+  }
+  body:not(.edit-mode) .offer-card-wrap.stack-touching .ov2-banner.apero::after,
+  body:not(.edit-mode) .offer-card-wrap.stack-touching .ov2-banner.base::after{
+    opacity:1;
+  }
+}
 .ov2-top-row-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%}
 .ov2-name-banner{font-size:17px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:#fff}
 .ov2-price-pill-below{margin:2px 0 25px;align-self:flex-start}
@@ -509,11 +542,15 @@ table.matrix tr:hover td{background:#fafaf7}
 </div>
 
 <!-- ════════ OFFRES AUTO-GÉNÉRÉES (Apéro / Entrée / Plat / Dessert) — fond gris plein largeur ════════ -->
-<div class="apple-section-bg" style="margin-top:0">
-  <div class="wrap">
-    <div id="offersHeader"></div>
-    <div class="offers-grid" id="offersAutoTop"></div>
-    <div class="offers-trust-bar" id="offersTrustBar"></div>
+<div class="apple-section-bg" style="margin-top:0" id="offersStackOuter">
+  <div class="offers-stack-spacer" id="offersStackSpacer">
+    <div class="offers-stack-sticky" id="offersStackSticky">
+      <div class="wrap">
+        <div id="offersHeader"></div>
+        <div class="offers-grid" id="offersAutoTop"></div>
+        <div class="offers-trust-bar" id="offersTrustBar"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -981,6 +1018,7 @@ function promptToken(){
 
 function toggleEditMode(){
   editMode = !editMode;
+  document.body.classList.toggle('edit-mode', editMode);
   document.getElementById('editBanner').classList.toggle('show', editMode);
   const btn = document.getElementById('editToggleBtn');
   btn.textContent = editMode ? '✓' : '✎';
@@ -1176,6 +1214,10 @@ function updateHeroMobilePreview(val){
   const label = document.getElementById('heroMobilePosLabel');
   if(label) label.textContent = val;
 }
+function scrollToNextSection(){
+  const target = document.getElementById('featureShowcase') || document.getElementById('heroBannerSection').nextElementSibling;
+  if(target) target.scrollIntoView({ behavior:'smooth', block:'start' });
+}
 function renderHeroBanner(){
   const el = document.getElementById('heroBannerSection');
   const navWrap = document.getElementById('topbarNavWrap');
@@ -1261,14 +1303,14 @@ function renderHeroBanner(){
         ${h.cta ? `
           <div class="hero-buy-bar-inline">
             ${h.priceText?`<span class="hero-buy-price">${esc(h.priceText)}</span>`:'<span></span>'}
-            <button class="hero-cta" type="button">${esc(h.cta)}</button>
+            <button class="hero-cta" type="button" onclick="scrollToNextSection()">${esc(h.cta)}</button>
           </div>
         ` : ''}
       </div>
       ${h.cta ? `
         <div class="hero-buy-bar-fixed">
           ${h.priceText?`<span class="hero-buy-price">${esc(h.priceText)}</span>`:'<span></span>'}
-          <button class="hero-cta" type="button">${esc(h.cta)}</button>
+          <button class="hero-cta" type="button" onclick="scrollToNextSection()">${esc(h.cta)}</button>
         </div>
       ` : ''}
     </div>
@@ -1963,6 +2005,14 @@ function renderOffers(){
         </div>
       ` : ''}
       <button class="offer-cta" type="button" style="background:${meta.ctaColor || (tag==='apero' ? '#232323' : '#2F6FE0')}">${esc(meta.ctaText || 'Choisir cette offre')}</button>
+      ${(!editable && meta.setup>0) ? `
+        <div class="ov2-info-mobile">
+          <span class="ov2-install-wrap" onclick="this.classList.toggle('active');event.stopPropagation()">
+            <span class="ov2-install-text">${esc(DATA.installationLabel)} : ${meta.setup.toLocaleString('fr-FR')} €</span>
+            <span class="ov2-install-tooltip"><strong>${esc(meta.installTitle||'Mise en service unique')}</strong>${esc(meta.installDesc||'')}</span>
+          </span>
+        </div>
+      ` : ''}
       ${editable ? `
         <div style="display:flex;align-items:center;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
           <input type="color" value="${accent}" style="width:32px;height:28px;border:1px solid var(--border);border-radius:6px;padding:2px;background:#fff;cursor:pointer" oninput="this.closest('.offer-card').querySelectorAll('.ov2-icon')[0].style.background=hexToRgba(this.value,0.12)" onchange="DATA.cardColors['${tag}']=this.value;save();renderOffers()">
@@ -1996,6 +2046,74 @@ function renderOffers(){
       document.querySelectorAll('.ov2-install-wrap.active').forEach(function(w){ w.classList.remove('active'); });
     });
   }
+  initMobileOfferStack();
+}
+
+// ── Mobile-only "Salient Tether"-style stacked offer cards ──
+// The header ("C'est vous le chef…") stays pinned while, one at a time, each
+// offer card slides up to rest just below the previous card's colored banner
+// (so that banner stays peeking out above it), then the whole stack scrolls away.
+function initMobileOfferStack(){
+  const BANNER_H = 56;
+  const GAP = 16; // breathing room between cards before they interlock
+
+  function onScroll(){
+    const spacer = document.getElementById('offersStackSpacer');
+    const sticky = document.getElementById('offersStackSticky');
+    const cardsWrap = document.getElementById('offersAutoTop');
+    const trustBar = document.getElementById('offersTrustBar');
+    if(!spacer || !sticky || !cardsWrap) return;
+    const cards = Array.from(cardsWrap.querySelectorAll('.offer-card-wrap'));
+    if(cards.length < 2) return;
+    if(window.innerWidth > 768 || editMode){
+      cards.forEach(c=>{ c.style.transform=''; c.style.zIndex=''; c.classList.remove('stack-touching'); });
+      if(trustBar) trustBar.style.transform = '';
+      spacer.style.height = '';
+      return;
+    }
+    const segment = Math.round(window.innerHeight * 0.6);
+    // Spacer only needs to be as tall as the sticky content itself PLUS the extra scroll
+    // distance used to drive the staged animation — no more, so nothing after it waits
+    // through a dead scroll gap once the last card has finished stacking.
+    const stickyH = sticky.offsetHeight || window.innerHeight;
+    spacer.style.height = (stickyH + (cards.length-1)*segment) + 'px';
+    const rect = spacer.getBoundingClientRect();
+    const scrolled = -rect.top + 6; // 6px = sticky top offset
+
+    // pos[i] = current top offset (px) of card i. Card 0 never moves.
+    const cardH = cards.map(c => c.offsetHeight || window.innerHeight*0.6);
+    const pos = [0];
+    for(let i=1;i<cards.length;i++){
+      const segStart = (i-1)*segment;
+      if(scrolled < segStart){
+        // Not its turn yet — it just follows whatever is directly above it, keeping
+        // the same breathing gap, so it "comes along for the ride" rather than
+        // sitting still while a gap opens up beneath the card that's moving.
+        pos[i] = pos[i-1] + cardH[i-1] + GAP;
+      } else {
+        const progress = Math.max(0, Math.min(1, (scrolled - segStart) / segment));
+        const startY = pos[i-1] + cardH[i-1] + GAP; // pos[i-1] is already final by now
+        const endY = i * BANNER_H; // settles just below the previous card's banner
+        pos[i] = startY - (startY - endY) * progress;
+        cards[i-1].classList.toggle('stack-touching', progress >= 0.97);
+      }
+      cards[i].style.transform = `translateY(${pos[i]}px)`;
+      cards[i].style.zIndex = String(10 + i);
+    }
+    // The trust bar behaves like one more card that always simply follows the last
+    // real card at a constant gap — it never interlocks/overlaps anything itself.
+    if(trustBar){
+      const last = cards.length - 1;
+      const trustY = pos[last] + cardH[last] + GAP;
+      trustBar.style.transform = `translateY(${trustY}px)`;
+    }
+  }
+  if(!window._offerStackBound){
+    window._offerStackBound = true;
+    window.addEventListener('scroll', onScroll, { passive:true });
+    window.addEventListener('resize', onScroll);
+  }
+  requestAnimationFrame(onScroll);
 }
 
 function renderOffersTrustBar(){
