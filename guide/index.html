@@ -210,12 +210,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .offers-stack-spacer{position:relative}
 .offers-stack-sticky{position:static}
 @media(max-width:768px){
-  body:not(.edit-mode) .offers-stack-spacer{height:calc(100vh + 120vh)}
-  body:not(.edit-mode) .offers-stack-sticky{position:sticky;top:6px}
-  body:not(.edit-mode) #offersStackSticky .wrap{position:relative}
-  body:not(.edit-mode) .offers-grid{display:block;position:relative}
-  body:not(.edit-mode) .offer-card-wrap{position:absolute;top:0;left:0;width:100%;will-change:transform}
-  body:not(.edit-mode) .offer-card-wrap:first-child{position:relative}
+  .offers-grid{display:grid;grid-template-columns:1fr;gap:20px}
 }
 .apple-section-bg{background:#F5F5F7;padding:56px 0;width:100%}
 .offers-section-panel{background:#F5F5F7;border-radius:32px;padding:48px 40px}
@@ -244,6 +239,11 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .media-embed{width:100%;height:100%;position:relative;aspect-ratio:16/9}
 .media-embed img,.media-embed video{width:100%;height:100%;display:block;object-fit:cover}
 .media-embed iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.immersive-media{overflow:hidden}
+.immersive-media iframe{pointer-events:none}
+.immersive-playpause{position:absolute;bottom:16px;right:16px;width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:5;transition:background .15s}
+.immersive-playpause:hover{background:rgba(0,0,0,.62)}
+.immersive-playpause svg{width:17px;height:17px}
 .apple-card-hidden{opacity:.5}
 /* ── Feature showcase (Apple-style expandable list + dynamic image) ── */
 .fshow-card{position:relative;display:grid;grid-template-columns:440px 1fr;background:#F5F5F7;border-radius:24px;overflow:hidden;aspect-ratio:1.895/1}
@@ -302,12 +302,8 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .offers-grid .offer-card.services{grid-column:1/-1}
 .offer-card-wrap{display:flex;flex-direction:column}
 .offer-card{border-radius:20px;background:#fff;padding:5px 28px 32px;position:relative;display:flex;flex-direction:column;flex:1}
-.ov2-info-outside{margin-top:14px;text-align:center;font-size:13px;color:var(--text3)}
-.ov2-info-mobile{display:none;margin-top:14px;text-align:center;font-size:13px;color:var(--text3)}
-@media(max-width:768px){
-  body:not(.edit-mode) .ov2-info-outside{display:none}
-  body:not(.edit-mode) .ov2-info-mobile{display:block}
-}
+.ov2-info-outside{display:none}
+.ov2-info-mobile{display:block;margin-top:14px;text-align:center;font-size:13px;color:var(--text3)}
 .offer-card.base{background:#fff}
 .offer-card.pro{background:#fff}
 .offer-card.premium{background:#fff}
@@ -328,23 +324,6 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .ov2-install{font-size:12.5px;color:var(--text3);margin-bottom:20px}
 /* ── Banner-style offer cards (mockup redesign) ── */
 .ov2-banner{height:56px;margin:-5px -28px 18px;border-radius:20px 20px 0 0;display:flex;align-items:center;padding:0 20px;position:relative}
-@media(max-width:768px){
-  body:not(.edit-mode) .ov2-banner.apero::after,
-  body:not(.edit-mode) .ov2-banner.base::after{
-    content:'';
-    position:absolute;
-    left:0;right:0;top:100%;
-    height:22px;
-    background:inherit;
-    pointer-events:none;
-    opacity:0;
-    transition:opacity .15s ease;
-  }
-  body:not(.edit-mode) .offer-card-wrap.stack-touching .ov2-banner.apero::after,
-  body:not(.edit-mode) .offer-card-wrap.stack-touching .ov2-banner.base::after{
-    opacity:1;
-  }
-}
 .ov2-top-row-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%}
 .ov2-name-banner{font-size:17px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:#fff}
 .ov2-price-pill-below{margin:2px 0 25px;align-self:flex-start}
@@ -1561,7 +1540,7 @@ function fshowRenderMedia(animate){
   const items = fshowGetItems();
   // Nothing expanded yet → show the first item's image as a neutral default (Apple does the same).
   const it = fshowOpenIndex >= 0 ? items[fshowOpenIndex] : items[0];
-  const html = (it && it.image) ? mediaEmbedHtml(it.image) : `<div class="fshow-media-empty">Aucune image ou vidéo pour cette fonctionnalité</div>`;
+  const html = (it && it.image) ? immersiveMediaEmbedHtml(it.image) : `<div class="fshow-media-empty">Aucune image ou vidéo pour cette fonctionnalité</div>`;
   if(!animate){
     mediaEl.innerHTML = `<div class="fshow-media-inner">${html}</div>`;
     return;
@@ -2048,87 +2027,20 @@ function renderOffers(){
   initMobileOfferStack();
 }
 
-// ── Mobile-only "Salient Tether"-style stacked offer cards ──
-// The header ("C'est vous le chef…") stays pinned while, one at a time, each
-// offer card slides up to rest just below the previous card's colored banner
-// (so that banner stays peeking out above it), then the whole stack scrolls away.
-let _offerStackState = { cardEls:[], cardH:[], segment:0, active:false, rafId:null };
-function offerStackRecalc(){
-  const s = _offerStackState;
-  const spacer = document.getElementById('offersStackSpacer');
-  const sticky = document.getElementById('offersStackSticky');
-  const cardsWrap = document.getElementById('offersAutoTop');
-  const headerEl = document.getElementById('offersHeader');
-  if(!spacer || !sticky || !cardsWrap){ s.active = false; return; }
-  s.cardEls = Array.from(cardsWrap.querySelectorAll('.offer-card-wrap'));
-  if(s.cardEls.length < 2 || window.innerWidth > 768 || editMode){
-    s.cardEls.forEach(c=>{ c.style.transform=''; c.style.zIndex=''; c.classList.remove('stack-touching'); });
-    cardsWrap.style.height = '';
-    spacer.style.height = '';
-    s.active = false;
-    return;
-  }
-  s.active = true;
-  const GAP = 16;
-  s.segment = Math.round(window.innerHeight * 0.6);
-  s.cardH = s.cardEls.map(c => c.offsetHeight || window.innerHeight*0.6);
-  const headerH = headerEl ? (headerEl.offsetHeight || 0) : 0;
-  // At rest (before any scrolling into the pin), every card sits fully spread out with
-  // a breathing gap below the one before it — that's the tallest the grid ever needs
-  // to be, so it's what the pin duration below is measured against.
-  const spreadH = s.cardH.reduce((sum, h) => sum + h, 0) + (s.cardEls.length - 1) * GAP;
-  cardsWrap.style.height = spreadH + 'px';
-  // Measuring + writing height happens here ONLY (on init/resize), never inside the
-  // scroll handler itself — mixing that with per-scroll reads is what caused the jank.
-  spacer.style.height = (headerH + spreadH + (s.cardEls.length-1)*s.segment) + 'px';
-}
-function offerStackOnScroll(){
-  const s = _offerStackState;
-  if(s.rafId) return; // coalesce to at most one update per animation frame
-  s.rafId = requestAnimationFrame(()=>{
-    s.rafId = null;
-    if(!s.active) return;
-    const spacer = document.getElementById('offersStackSpacer');
-    const cardsWrap = document.getElementById('offersAutoTop');
-    if(!spacer || !cardsWrap) return;
-    const BANNER_H = 56, GAP = 16;
-    const rect = spacer.getBoundingClientRect();
-    const scrolled = -rect.top + 6; // 6px = sticky top offset
-    const pos = [0]; // card 0 never moves
-    for(let i=1;i<s.cardEls.length;i++){
-      const segStart = (i-1)*s.segment;
-      if(scrolled < segStart){
-        // Not its turn yet — it just follows whatever is directly above it, keeping
-        // the same breathing gap, so it "comes along for the ride" rather than
-        // sitting still while a gap opens up beneath the card that's moving.
-        pos[i] = pos[i-1] + s.cardH[i-1] + GAP;
-      } else {
-        const progress = Math.max(0, Math.min(1, (scrolled - segStart) / s.segment));
-        const startY = pos[i-1] + s.cardH[i-1] + GAP; // pos[i-1] is already final by now
-        const endY = i * BANNER_H; // settles just below the previous card's banner
-        pos[i] = startY - (startY - endY) * progress;
-        s.cardEls[i-1].classList.toggle('stack-touching', progress >= 0.97);
-      }
-      s.cardEls[i].style.transform = `translateY(${pos[i]}px)`;
-      s.cardEls[i].style.zIndex = String(10 + i);
-    }
-    // Rather than separately tracking the trust bar's position with its own transform
-    // (which can drift out of sync with the cards and end up hidden or overlapped),
-    // the offers-grid box itself is kept exactly as tall as wherever the last card
-    // currently reaches. The trust bar just sits in normal flow right after it, so it
-    // always follows automatically — and nothing later on the page can creep up
-    // underneath the cards, because the grid never stops reserving their real height.
-    const lastIdx = s.cardEls.length - 1;
-    cardsWrap.style.height = (pos[lastIdx] + s.cardH[lastIdx]) + 'px';
-  });
-}
+// Mobile card-stacking scroll effect removed (too glitchy / impractical on real
+// devices) — offer cards now just stack normally like any other section, on every
+// screen size. This is left as a no-op so nothing else that calls it needs to change.
 function initMobileOfferStack(){
-  offerStackRecalc();
-  offerStackOnScroll();
-  if(!window._offerStackBound){
-    window._offerStackBound = true;
-    window.addEventListener('scroll', offerStackOnScroll, { passive:true });
-    window.addEventListener('resize', function(){ offerStackRecalc(); offerStackOnScroll(); });
+  const spacer = document.getElementById('offersStackSpacer');
+  const cardsWrap = document.getElementById('offersAutoTop');
+  if(spacer) spacer.style.height = '';
+  if(cardsWrap){
+    cardsWrap.style.height = '';
+    Array.from(cardsWrap.querySelectorAll('.offer-card-wrap')).forEach(c=>{
+      c.style.transform = '';
+      c.style.zIndex = '';
+      c.classList.remove('stack-touching');
+    });
   }
 }
 
@@ -2462,6 +2374,71 @@ function mediaEmbedHtml(url, className){
     return `<div class="media-embed${cls}"><video src="${esc(url)}" controls playsinline preload="metadata"></video></div>`;
   }
   return `<div class="media-embed${cls}"><img src="${esc(url)}" alt=""></div>`;
+}
+// Used only by the "Vos clients vous trouvent…" feature showcase: the video plays
+// immediately, blended straight into the existing background, with no native
+// controls, no progress bar and no fade — just a single minimal play/pause button.
+let _immersiveMediaSeq = 0;
+function immersiveMediaEmbedHtml(url){
+  url = (url||'').trim();
+  if(!url) return '';
+  const uid = 'im' + (++_immersiveMediaSeq);
+  const playPauseBtn = `
+    <button type="button" class="immersive-playpause" onclick="toggleImmersiveMedia('${uid}', event)" aria-label="Lecture / Pause">
+      <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      <svg class="icon-pause" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+    </button>`;
+  const yt = url.match(/(?:youtube\.com\/watch\?v=|youtube\.com\/shorts\/|youtu\.be\/)([\w-]+)/);
+  if(yt){
+    const id = yt[1];
+    return `<div class="media-embed immersive-media" data-kind="youtube" id="wrap-${uid}">
+      <iframe id="${uid}" src="https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${id}&modestbranding=1&rel=0&playsinline=1&enablejsapi=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen loading="lazy"></iframe>
+      ${playPauseBtn}
+    </div>`;
+  }
+  const vimeo = url.match(/vimeo\.com\/(\d+)/);
+  if(vimeo){
+    const id = vimeo[1];
+    return `<div class="media-embed immersive-media" data-kind="vimeo" id="wrap-${uid}">
+      <iframe id="${uid}" src="https://player.vimeo.com/video/${id}?autoplay=1&muted=1&loop=1&background=1&playsinline=1" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen loading="lazy"></iframe>
+      ${playPauseBtn}
+    </div>`;
+  }
+  if(/\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(url)){
+    return `<div class="media-embed immersive-media" data-kind="video" id="wrap-${uid}">
+      <video id="${uid}" src="${esc(url)}" autoplay muted loop playsinline preload="auto"></video>
+      ${playPauseBtn}
+    </div>`;
+  }
+  return `<div class="media-embed"><img src="${esc(url)}" alt=""></div>`;
+}
+function toggleImmersiveMedia(uid, event){
+  event.stopPropagation();
+  const btn = event.currentTarget;
+  const wrap = document.getElementById('wrap-' + uid);
+  if(!wrap) return;
+  const kind = wrap.dataset.kind;
+  const playIcon = btn.querySelector('.icon-play');
+  const pauseIcon = btn.querySelector('.icon-pause');
+  const wasPlaying = btn.dataset.playing !== 'false'; // autoplay starts "playing"
+  if(kind === 'video'){
+    const video = document.getElementById(uid);
+    if(!video) return;
+    if(wasPlaying) video.pause(); else video.play();
+  } else {
+    const iframe = document.getElementById(uid);
+    if(!iframe || !iframe.contentWindow) return;
+    if(kind === 'youtube'){
+      const cmd = wasPlaying ? 'pauseVideo' : 'playVideo';
+      iframe.contentWindow.postMessage(JSON.stringify({ event:'command', func:cmd, args:[] }), '*');
+    } else if(kind === 'vimeo'){
+      const cmd = wasPlaying ? 'pause' : 'play';
+      iframe.contentWindow.postMessage(JSON.stringify({ method:cmd }), '*');
+    }
+  }
+  btn.dataset.playing = wasPlaying ? 'false' : 'true';
+  playIcon.style.display = wasPlaying ? 'block' : 'none';
+  pauseIcon.style.display = wasPlaying ? 'none' : 'block';
 }
 function hexToRgba(hex, alpha){
   const h = hex.replace('#','');
