@@ -216,7 +216,6 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
   body:not(.edit-mode) .offers-grid{display:block;position:relative}
   body:not(.edit-mode) .offer-card-wrap{position:absolute;top:0;left:0;width:100%;will-change:transform}
   body:not(.edit-mode) .offer-card-wrap:first-child{position:relative}
-  body:not(.edit-mode) .offers-trust-bar{position:absolute;left:20px;right:20px;top:0;will-change:transform}
 }
 .apple-section-bg{background:#F5F5F7;padding:56px 0;width:100%}
 .offers-section-panel{background:#F5F5F7;border-radius:32px;padding:48px 40px}
@@ -2053,67 +2052,84 @@ function renderOffers(){
 // The header ("C'est vous le chef…") stays pinned while, one at a time, each
 // offer card slides up to rest just below the previous card's colored banner
 // (so that banner stays peeking out above it), then the whole stack scrolls away.
-function initMobileOfferStack(){
-  const BANNER_H = 56;
-  const GAP = 16; // breathing room between cards before they interlock
-
-  function onScroll(){
+let _offerStackState = { cardEls:[], cardH:[], segment:0, active:false, rafId:null };
+function offerStackRecalc(){
+  const s = _offerStackState;
+  const spacer = document.getElementById('offersStackSpacer');
+  const sticky = document.getElementById('offersStackSticky');
+  const cardsWrap = document.getElementById('offersAutoTop');
+  const headerEl = document.getElementById('offersHeader');
+  if(!spacer || !sticky || !cardsWrap){ s.active = false; return; }
+  s.cardEls = Array.from(cardsWrap.querySelectorAll('.offer-card-wrap'));
+  if(s.cardEls.length < 2 || window.innerWidth > 768 || editMode){
+    s.cardEls.forEach(c=>{ c.style.transform=''; c.style.zIndex=''; c.classList.remove('stack-touching'); });
+    cardsWrap.style.height = '';
+    spacer.style.height = '';
+    s.active = false;
+    return;
+  }
+  s.active = true;
+  const GAP = 16;
+  s.segment = Math.round(window.innerHeight * 0.6);
+  s.cardH = s.cardEls.map(c => c.offsetHeight || window.innerHeight*0.6);
+  const headerH = headerEl ? (headerEl.offsetHeight || 0) : 0;
+  // At rest (before any scrolling into the pin), every card sits fully spread out with
+  // a breathing gap below the one before it — that's the tallest the grid ever needs
+  // to be, so it's what the pin duration below is measured against.
+  const spreadH = s.cardH.reduce((sum, h) => sum + h, 0) + (s.cardEls.length - 1) * GAP;
+  cardsWrap.style.height = spreadH + 'px';
+  // Measuring + writing height happens here ONLY (on init/resize), never inside the
+  // scroll handler itself — mixing that with per-scroll reads is what caused the jank.
+  spacer.style.height = (headerH + spreadH + (s.cardEls.length-1)*s.segment) + 'px';
+}
+function offerStackOnScroll(){
+  const s = _offerStackState;
+  if(s.rafId) return; // coalesce to at most one update per animation frame
+  s.rafId = requestAnimationFrame(()=>{
+    s.rafId = null;
+    if(!s.active) return;
     const spacer = document.getElementById('offersStackSpacer');
-    const sticky = document.getElementById('offersStackSticky');
     const cardsWrap = document.getElementById('offersAutoTop');
-    const trustBar = document.getElementById('offersTrustBar');
-    if(!spacer || !sticky || !cardsWrap) return;
-    const cards = Array.from(cardsWrap.querySelectorAll('.offer-card-wrap'));
-    if(cards.length < 2) return;
-    if(window.innerWidth > 768 || editMode){
-      cards.forEach(c=>{ c.style.transform=''; c.style.zIndex=''; c.classList.remove('stack-touching'); });
-      if(trustBar) trustBar.style.transform = '';
-      spacer.style.height = '';
-      return;
-    }
-    const segment = Math.round(window.innerHeight * 0.6);
-    // Spacer only needs to be as tall as the sticky content itself PLUS the extra scroll
-    // distance used to drive the staged animation — no more, so nothing after it waits
-    // through a dead scroll gap once the last card has finished stacking.
-    const stickyH = sticky.offsetHeight || window.innerHeight;
-    spacer.style.height = (stickyH + (cards.length-1)*segment) + 'px';
+    if(!spacer || !cardsWrap) return;
+    const BANNER_H = 56, GAP = 16;
     const rect = spacer.getBoundingClientRect();
     const scrolled = -rect.top + 6; // 6px = sticky top offset
-
-    // pos[i] = current top offset (px) of card i. Card 0 never moves.
-    const cardH = cards.map(c => c.offsetHeight || window.innerHeight*0.6);
-    const pos = [0];
-    for(let i=1;i<cards.length;i++){
-      const segStart = (i-1)*segment;
+    const pos = [0]; // card 0 never moves
+    for(let i=1;i<s.cardEls.length;i++){
+      const segStart = (i-1)*s.segment;
       if(scrolled < segStart){
         // Not its turn yet — it just follows whatever is directly above it, keeping
         // the same breathing gap, so it "comes along for the ride" rather than
         // sitting still while a gap opens up beneath the card that's moving.
-        pos[i] = pos[i-1] + cardH[i-1] + GAP;
+        pos[i] = pos[i-1] + s.cardH[i-1] + GAP;
       } else {
-        const progress = Math.max(0, Math.min(1, (scrolled - segStart) / segment));
-        const startY = pos[i-1] + cardH[i-1] + GAP; // pos[i-1] is already final by now
+        const progress = Math.max(0, Math.min(1, (scrolled - segStart) / s.segment));
+        const startY = pos[i-1] + s.cardH[i-1] + GAP; // pos[i-1] is already final by now
         const endY = i * BANNER_H; // settles just below the previous card's banner
         pos[i] = startY - (startY - endY) * progress;
-        cards[i-1].classList.toggle('stack-touching', progress >= 0.97);
+        s.cardEls[i-1].classList.toggle('stack-touching', progress >= 0.97);
       }
-      cards[i].style.transform = `translateY(${pos[i]}px)`;
-      cards[i].style.zIndex = String(10 + i);
+      s.cardEls[i].style.transform = `translateY(${pos[i]}px)`;
+      s.cardEls[i].style.zIndex = String(10 + i);
     }
-    // The trust bar behaves like one more card that always simply follows the last
-    // real card at a constant gap — it never interlocks/overlaps anything itself.
-    if(trustBar){
-      const last = cards.length - 1;
-      const trustY = pos[last] + cardH[last] + GAP;
-      trustBar.style.transform = `translateY(${trustY}px)`;
-    }
-  }
+    // Rather than separately tracking the trust bar's position with its own transform
+    // (which can drift out of sync with the cards and end up hidden or overlapped),
+    // the offers-grid box itself is kept exactly as tall as wherever the last card
+    // currently reaches. The trust bar just sits in normal flow right after it, so it
+    // always follows automatically — and nothing later on the page can creep up
+    // underneath the cards, because the grid never stops reserving their real height.
+    const lastIdx = s.cardEls.length - 1;
+    cardsWrap.style.height = (pos[lastIdx] + s.cardH[lastIdx]) + 'px';
+  });
+}
+function initMobileOfferStack(){
+  offerStackRecalc();
+  offerStackOnScroll();
   if(!window._offerStackBound){
     window._offerStackBound = true;
-    window.addEventListener('scroll', onScroll, { passive:true });
-    window.addEventListener('resize', onScroll);
+    window.addEventListener('scroll', offerStackOnScroll, { passive:true });
+    window.addEventListener('resize', function(){ offerStackRecalc(); offerStackOnScroll(); });
   }
-  requestAnimationFrame(onScroll);
 }
 
 function renderOffersTrustBar(){
