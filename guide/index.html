@@ -78,7 +78,6 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
   .hero-subtitle{font-size:15px}
   .hero-brand-name{font-size:18px}
   .hero-brand img,.hero-brand svg{width:20px;height:20px}
-  .hero-banner-media img,.hero-banner-media video{object-position:20% center}
 }
 @media(min-width:769px){
   .mobile-nav-overlay{display:none !important}
@@ -617,7 +616,8 @@ const DEFAULT_DATA = {
     subtitle: '',
     cta: 'Découvrir',
     priceText: 'À partir de 49 € / mois',
-    image: ''
+    image: '',
+    mobileImagePosition: 20
   },
   installationLabel: 'Installation & prise en main',
   installationTooltipTitle: 'Mise en service unique',
@@ -758,6 +758,7 @@ function migrateData(){
   if(!DATA.featureShowcase) DATA.featureShowcase = JSON.parse(JSON.stringify(DEFAULT_DATA.featureShowcase));
   if(!DATA.siteBrand) DATA.siteBrand = JSON.parse(JSON.stringify(DEFAULT_DATA.siteBrand));
   if(!DATA.heroBanner) DATA.heroBanner = JSON.parse(JSON.stringify(DEFAULT_DATA.heroBanner));
+  if(DATA.heroBanner.mobileImagePosition===undefined) DATA.heroBanner.mobileImagePosition = DEFAULT_DATA.heroBanner.mobileImagePosition;
   if(!DATA.heroBanner.navItems) DATA.heroBanner.navItems = JSON.parse(JSON.stringify(DEFAULT_DATA.heroBanner.navItems));
   if(DATA.heroBanner.brandName===undefined) DATA.heroBanner.brandName = DEFAULT_DATA.heroBanner.brandName;
   if(DATA.heroBanner.brandIcon===undefined) DATA.heroBanner.brandIcon = '';
@@ -1159,12 +1160,30 @@ function renderSiteBrand(){
       : esc(b.title||'');
   }
 }
+function applyHeroMobileImgPos(){
+  const pos = (DATA.heroBanner && DATA.heroBanner.mobileImagePosition!=null) ? DATA.heroBanner.mobileImagePosition : 20;
+  let styleEl = document.getElementById('heroMobileImgPosStyle');
+  if(!styleEl){
+    styleEl = document.createElement('style');
+    styleEl.id = 'heroMobileImgPosStyle';
+    document.head.appendChild(styleEl);
+  }
+  styleEl.textContent = `@media(max-width:768px){ .hero-banner-media img,.hero-banner-media video{ object-position: ${pos}% center; } }`;
+}
+function updateHeroMobilePreview(val){
+  const img = document.getElementById('heroMobilePreviewImg');
+  if(img) img.style.objectPosition = val + '% center';
+  const label = document.getElementById('heroMobilePosLabel');
+  if(label) label.textContent = val;
+}
 function renderHeroBanner(){
   const el = document.getElementById('heroBannerSection');
   const navWrap = document.getElementById('topbarNavWrap');
   if(!el || !navWrap) return;
   const h = DATA.heroBanner || DEFAULT_DATA.heroBanner;
   const navItems = h.navItems || [];
+  const mobPos = h.mobileImagePosition!=null ? h.mobileImagePosition : 20;
+  applyHeroMobileImgPos();
 
   // Nav items live in the merged top bar (view: plain text, edit: editable pills)
   navWrap.innerHTML = editMode ? `
@@ -1194,6 +1213,16 @@ function renderHeroBanner(){
             <input type="text" value="${esc(sb.title||'')}" placeholder="Titre du site (affiché à côté de l'icône)" style="font-size:12px;color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;flex:1" onchange="DATA.siteBrand.title=this.value;save();renderSiteBrand()">
           </div>
           <input type="text" value="${esc(h.image||'')}" placeholder="URL image ou vidéo de fond (hero, plein écran)" style="font-size:12px;color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;width:100%" onchange="DATA.heroBanner.image=this.value;save();renderHeroBanner()">
+          <div style="display:flex;gap:16px;align-items:center;background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 14px">
+            <div style="flex:1;min-width:0">
+              <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:8px">Position de l'image sur mobile <strong id="heroMobilePosLabel">${mobPos}</strong>%</label>
+              <input type="range" min="0" max="100" value="${mobPos}" style="width:100%" oninput="updateHeroMobilePreview(this.value)" onchange="DATA.heroBanner.mobileImagePosition=parseInt(this.value);save();applyHeroMobileImgPos()">
+              <div style="font-size:10.5px;color:var(--text3);margin-top:4px">0 = bord gauche de l'image visible • 100 = bord droit visible</div>
+            </div>
+            <div style="width:96px;height:172px;border-radius:14px;overflow:hidden;border:3px solid #1D1D1F;background:#0b1830;flex:none;position:relative">
+              ${h.image ? `<img id="heroMobilePreviewImg" src="${esc(h.image)}" style="width:100%;height:100%;object-fit:cover;object-position:${mobPos}% center;display:block">` : `<div style="color:rgba(255,255,255,.5);font-size:10px;text-align:center;padding:10px">Aperçu mobile</div>`}
+            </div>
+          </div>
           <div style="display:flex;gap:8px;align-items:center">
             <input type="text" value="${esc(h.brandIcon||'')}" placeholder="URL icône du logiciel (à uploader)" style="font-size:12px;color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;flex:1" onchange="DATA.heroBanner.brandIcon=this.value;save();renderHeroBanner()">
             <input type="text" value="${esc(h.brandName||'')}" placeholder="Nom du logiciel (ex: Food Master)" style="font-size:12px;color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;flex:1" onchange="DATA.heroBanner.brandName=this.value;save();renderHeroBanner()">
