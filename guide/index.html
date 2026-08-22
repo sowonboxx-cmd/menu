@@ -23,6 +23,8 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 /* ── TOPBAR ── */
 .topbar{background:#000000;height:54px;display:flex;align-items:center;position:sticky;top:0;z-index:200}
 .topbar-brand{font-family:'Inter',sans-serif;font-size:16px;font-weight:700;color:#fff;letter-spacing:-.01em}
+.topbar-site-name{font-size:14px;font-weight:400;letter-spacing:.01em;text-transform:uppercase;color:#fff}
+.topbar-site-name strong{font-weight:800}
 .topbar-actions{display:flex;gap:8px;align-items:center}
 .sync-status{font-size:10px;color:rgba(255,255,255,.5);display:flex;align-items:center;gap:5px}
 .sync-dot{width:6px;height:6px;border-radius:50%;background:#4ade80}
@@ -441,6 +443,7 @@ table.matrix tr:hover td{background:#fafaf7}
   <div class="wrap" style="display:flex;align-items:center;gap:32px;width:100%">
     <div class="topbar-brand" style="display:flex;align-items:center;gap:9px;flex:none">
       <img src="https://domainerosalina.com/wp-content/uploads/2026/08/chef_hatc.png" alt="Logo" style="width:24px;height:24px;object-fit:contain" id="topbarLogo">
+      <span id="topbarSiteName" class="topbar-site-name"></span>
     </div>
     <div id="topbarNavWrap" style="flex:1;min-width:0"></div>
     <div class="topbar-actions">
@@ -1147,6 +1150,13 @@ function renderSiteBrand(){
   const logo = document.getElementById('topbarLogo');
   if(logo && b.icon) logo.src = b.icon;
   if(b.title) document.title = b.title;
+  const nameEl = document.getElementById('topbarSiteName');
+  if(nameEl){
+    const words = (b.title||'').split(' ');
+    nameEl.innerHTML = words.length > 1
+      ? `<strong>${esc(words[0])}</strong> ${esc(words.slice(1).join(' '))}`
+      : esc(b.title||'');
+  }
 }
 function renderHeroBanner(){
   const el = document.getElementById('heroBannerSection');
@@ -1180,7 +1190,7 @@ function renderHeroBanner(){
         <div class="wrap" style="display:flex;flex-direction:column;gap:10px">
           <div style="display:flex;gap:8px;align-items:center;padding-bottom:10px;border-bottom:1px dashed var(--border)">
             <input type="text" value="${esc(sb.icon||'')}" placeholder="Icône du site (logo tout en haut + onglet navigateur)" style="font-size:12px;color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;flex:1" onchange="DATA.siteBrand.icon=this.value;save();renderSiteBrand()">
-            <input type="text" value="${esc(sb.title||'')}" placeholder="Titre du site (onglet navigateur)" style="font-size:12px;color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;flex:1" onchange="DATA.siteBrand.title=this.value;save();renderSiteBrand()">
+            <input type="text" value="${esc(sb.title||'')}" placeholder="Titre du site (affiché à côté de l'icône)" style="font-size:12px;color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;flex:1" onchange="DATA.siteBrand.title=this.value;save();renderSiteBrand()">
           </div>
           <input type="text" value="${esc(h.image||'')}" placeholder="URL image ou vidéo de fond (hero, plein écran)" style="font-size:12px;color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;width:100%" onchange="DATA.heroBanner.image=this.value;save();renderHeroBanner()">
           <div style="display:flex;gap:8px;align-items:center">
