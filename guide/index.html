@@ -574,6 +574,7 @@ table.matrix tr:hover td{background:#fafaf7}
       <span class="matrix-acc-arrow" id="featureArrow" style="transform:rotate(-90deg)">▾</span>
     </div>
     <div id="featureBody" style="display:none">
+      <div id="tagColumnsManager"></div>
       <div class="feature-table" id="featureTable"></div>
       <div style="margin-top:10px;padding:0 2px" id="addCatBtnWrap"></div>
     </div>
@@ -727,6 +728,7 @@ const DEFAULT_DATA = {
       { name: 'Création de Reels', tags:['services'], options:[{label:'Standard', price:0}] },
     ]},
   ],
+  tagOrder: ['apero','base','pro','premium','agence','services'],
   offerMeta: {
     apero:   { name:'Apéro',     title:'On s\'occupe de tout',   subtitle:'', desc:'', price:99, setup:750, icon:'', features:['','','',''], installTitle:'Mise en service unique', installDesc:'Création, configuration et lancement de votre présence en ligne.' },
     base:    { name:'Entrée',    title:'Vous êtes les chefs',           subtitle:'',             desc:'La solution d\'entrée pour digitaliser votre carte, générer votre QR code et rester à jour en temps réel.', price:199, setup:800, icon:'', features:['Site web & menu à jour','Modification en 10 secondes','QR code & Google Business','Menu du jour & export PDF'], installTitle:'Mise en service unique', installDesc:'Création, configuration et lancement de votre menu digital.' },
@@ -780,6 +782,7 @@ function migrateData(){
   if(!DATA.addonModules) DATA.addonModules = JSON.parse(JSON.stringify(DEFAULT_DATA.addonModules));
   if(!DATA.featureShowcase) DATA.featureShowcase = JSON.parse(JSON.stringify(DEFAULT_DATA.featureShowcase));
   if(!DATA.siteBrand) DATA.siteBrand = JSON.parse(JSON.stringify(DEFAULT_DATA.siteBrand));
+  if(!DATA.tagOrder) DATA.tagOrder = JSON.parse(JSON.stringify(DEFAULT_DATA.tagOrder));
   if(!DATA.heroBanner) DATA.heroBanner = JSON.parse(JSON.stringify(DEFAULT_DATA.heroBanner));
   if(DATA.heroBanner.mobileImagePosition===undefined) DATA.heroBanner.mobileImagePosition = DEFAULT_DATA.heroBanner.mobileImagePosition;
   if(!DATA.heroBanner.navItems) DATA.heroBanner.navItems = JSON.parse(JSON.stringify(DEFAULT_DATA.heroBanner.navItems));
@@ -1016,7 +1019,25 @@ function toggleEditMode(){
 // ══════════════════════════════════════════
 // FEATURES TABLE
 // ══════════════════════════════════════════
+function renderTagColumnsManager(){
+  const el = document.getElementById('tagColumnsManager');
+  if(!el) return;
+  if(!editMode){ el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px;padding:12px;background:var(--bg);border-radius:10px">
+      <span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-right:4px">Offres (colonnes) :</span>
+      ${DATA.tagOrder.map(tag => `
+        <div style="display:flex;align-items:center;gap:4px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:4px 4px 4px 10px">
+          <input value="${esc(tagLabel(tag))}" style="border:none;outline:none;font-size:12px;font-weight:600;width:${Math.max(60,tagLabel(tag).length*8)}px" onchange="renameTagColumn('${tag}',this.value)">
+          <button onclick="deleteTagColumn('${tag}')" title="Supprimer cette offre" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:2px 6px">✕</button>
+        </div>
+      `).join('')}
+      <input type="text" id="addTagColumnInput" placeholder="+ Nouvelle offre…" style="border:1px dashed var(--border);border-radius:8px;padding:6px 10px;font-size:12px;outline:none" onkeydown="if(event.key==='Enter'){event.preventDefault();addTagColumn(this.value);this.value=''}">
+    </div>
+  `;
+}
 function renderFeatures(){
+  renderTagColumnsManager();
   const el = document.getElementById('featureTable');
   el.innerHTML = DATA.categories.map((cat, ci) => `
     <div class="feature-cat open" data-ci="${ci}">
@@ -1035,7 +1056,7 @@ function renderFeatures(){
             }
             <button class="feature-info-btn${item.desc?' has-content':''}" type="button" onclick="openInfoModal(event,${ci},${ii})" title="Description détaillée">i</button>
             <div class="feature-tags">
-              ${['apero','base','pro','premium','agence','services'].map(tag => `
+              ${DATA.tagOrder.map(tag => `
                 <button class="feature-tag-btn ${tag}${item.tags.includes(tag)?' on':''}" onclick="${editMode?`toggleTag(${ci},${ii},'${tag}')`:''}" ${editMode?'':'disabled style="cursor:default"'}>${tagLabel(tag)}</button>
               `).join('')}
             </div>
@@ -1645,6 +1666,36 @@ function tagLabel(tag){
   if(DATA.offerMeta[tag] && DATA.offerMeta[tag].name) return DATA.offerMeta[tag].name;
   return {apero:'Apéro',base:'Entrée',pro:'Réservation',premium:'Dessert',agence:'Agence',services:'Prestation'}[tag];
 }
+function renameTagColumn(tag, value){
+  if(!DATA.offerMeta[tag]) DATA.offerMeta[tag] = {};
+  DATA.offerMeta[tag].name = value;
+  save();
+  renderFeatures();
+  renderMatrix();
+}
+function deleteTagColumn(tag){
+  if(!confirm(`Supprimer la colonne "${tagLabel(tag)}" ? Elle sera retirée de toutes les fonctionnalités.`)) return;
+  DATA.tagOrder = DATA.tagOrder.filter(t=>t!==tag);
+  DATA.categories.forEach(cat=>{
+    cat.items.forEach(item=>{
+      if(item.tags) item.tags = item.tags.filter(t=>t!==tag);
+    });
+  });
+  save();
+  renderFeatures();
+  renderMatrix();
+  renderOffers();
+}
+function addTagColumn(name){
+  name = (name||'').trim();
+  if(!name) return;
+  const key = 'tag_' + Date.now();
+  DATA.tagOrder.push(key);
+  DATA.offerMeta[key] = { name: name };
+  save();
+  renderFeatures();
+  renderMatrix();
+}
 
 let infoModalTarget = null; // {ci, ii}
 
@@ -2076,18 +2127,35 @@ function renderOffersTrustBar(){
 // ══════════════════════════════════════════
 function renderMatrix(){
   const el = document.getElementById('matrixTable');
-  const allItems = DATA.categories.flatMap(c=>c.items.map(i=>({...i, cat:c.name})));
-  let html = `<thead><tr><th>Fonctionnalité</th>${['apero','base','pro','premium','agence','services'].map(tag=>`<th class="center">${esc(tagLabel(tag))}</th>`).join('')}</tr></thead><tbody>`;
+  const allItems = [];
+  DATA.categories.forEach((c, ci) => c.items.forEach((i, ii) => allItems.push({ ...i, cat: c.name, ci, ii })));
+  const colCount = DATA.tagOrder.length + (editMode ? 2 : 1);
+  let html = `<thead><tr><th>Fonctionnalité</th>${DATA.tagOrder.map(tag=>`<th class="center">${
+    editMode
+      ? `<div style="display:flex;align-items:center;justify-content:center;gap:3px"><input value="${esc(tagLabel(tag))}" style="border:none;outline:none;background:transparent;font-size:11px;font-weight:700;text-align:center;width:${Math.max(50,tagLabel(tag).length*7)}px" onchange="renameTagColumn('${tag}',this.value)"><button onclick="deleteTagColumn('${tag}')" title="Supprimer" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;padding:2px">✕</button></div>`
+      : esc(tagLabel(tag))
+  }</th>`).join('')}${editMode?'<th></th>':''}</tr></thead><tbody>`;
   let lastCat = null;
   allItems.forEach(item=>{
     if(item.cat !== lastCat){
-      html += `<tr><td colspan="7" style="background:var(--bg);font-weight:700;font-size:11px;color:var(--navy)">${esc(item.cat)}</td></tr>`;
+      html += `<tr><td colspan="${colCount}" style="background:var(--bg);font-weight:700;font-size:11px;color:var(--navy)">${esc(item.cat)}</td></tr>`;
       lastCat = item.cat;
     }
-    html += `<tr><td>${esc(item.name)}${item.price?` <span style="color:var(--text3);font-size:10px">(+${item.price}€)</span>`:''}</td>`;
-    ['apero','base','pro','premium','agence','services'].forEach(tag=>{
-      html += `<td class="center">${item.tags.includes(tag)?'<span class="matrix-check">✓</span>':'<span class="matrix-dash">–</span>'}</td>`;
+    html += `<tr><td>
+      ${editMode ? `<input class="feature-name-input" style="width:100%;padding:2px 0" value="${esc(item.name)}" onchange="DATA.categories[${item.ci}].items[${item.ii}].name=this.value;save();renderMatrix()">` : esc(item.name)}
+      ${item.price?` <span style="color:var(--text3);font-size:10px">(+${item.price}€)</span>`:''}
+    </td>`;
+    DATA.tagOrder.forEach(tag=>{
+      const on = item.tags.includes(tag);
+      if(editMode){
+        html += `<td class="center"><button onclick="toggleTag(${item.ci},${item.ii},'${tag}')" style="background:none;border:none;cursor:pointer;font-size:14px;padding:4px 8px">${on?'<span class="matrix-check">✓</span>':'<span class="matrix-dash">–</span>'}</button></td>`;
+      } else {
+        html += `<td class="center">${on?'<span class="matrix-check">✓</span>':'<span class="matrix-dash">–</span>'}</td>`;
+      }
     });
+    if(editMode){
+      html += `<td class="center"><button class="feature-info-btn${item.desc?' has-content':''}" type="button" onclick="openInfoModal(event,${item.ci},${item.ii})" title="Description détaillée">i</button></td>`;
+    }
     html += '</tr>';
   });
   html += '</tbody>';
