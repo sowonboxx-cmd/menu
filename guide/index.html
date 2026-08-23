@@ -1421,7 +1421,8 @@ function renderFshowTabs(){
     el.innerHTML = `
       <div class="fshow-tabbar-edit">
         ${tabs.map((t,i)=>`
-          <div class="fshow-tab-edit-pill${i===fshowActiveTabIndex?' active':''}">
+          <div class="fshow-tab-edit-pill${i===fshowActiveTabIndex?' active':''}" draggable="true" ondragstart="fshowTabDragStart(event,${i})" ondragover="event.preventDefault()" ondrop="fshowTabDrop(event,${i})">
+            <span class="feature-drag" style="cursor:grab;font-size:11px" title="Glisser pour réordonner">⠿</span>
             <input value="${esc(t.name)}" style="width:${Math.max(70,t.name.length*8)}px" onclick="fshowSwitchTab(${i})" onchange="DATA.featureShowcase.tabs[${i}].name=this.value;save();renderFshowTabs()">
             ${tabs.length>1 ? `<button onclick="deleteFshowTab(${i})" title="Supprimer cet onglet">✕</button>` : ''}
           </div>
@@ -1483,6 +1484,21 @@ function fshowPositionIndicator(){
   if(!active) return;
   indicator.style.left = active.offsetLeft + 'px';
   indicator.style.width = active.offsetWidth + 'px';
+}
+let _fshowTabDragSrc = null;
+function fshowTabDragStart(e, i){ _fshowTabDragSrc = i; }
+function fshowTabDrop(e, i){
+  e.preventDefault();
+  if(_fshowTabDragSrc===null || _fshowTabDragSrc===i) return;
+  const tabs = DATA.featureShowcase.tabs;
+  const wasActive = fshowActiveTabIndex;
+  const activeTabRef = tabs[wasActive];
+  const [moved] = tabs.splice(_fshowTabDragSrc, 1);
+  tabs.splice(i, 0, moved);
+  fshowActiveTabIndex = tabs.indexOf(activeTabRef);
+  _fshowTabDragSrc = null;
+  save();
+  renderFshowTabs();
 }
 function fshowSwitchTab(i){
   fshowActiveTabIndex = i;
