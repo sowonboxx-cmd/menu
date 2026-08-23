@@ -226,11 +226,25 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .section-band-gray .matrix-wrap,.section-band-gray .feature-table,.section-band-gray .offers-trust-bar{background:#fff}
 .section-band-white .offer-card,.section-band-white .apple-card,.section-band-white .fshow-card,
 .section-band-white .matrix-wrap,.section-band-white .feature-table,.section-band-white .offers-trust-bar{background:#F5F5F7}
-.section-drag-handle{position:absolute;top:10px;left:10px;z-index:20;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.95);border:1px solid var(--border);border-radius:20px;padding:5px 10px 5px 6px;cursor:grab;box-shadow:0 2px 8px rgba(0,0,0,.08);font-size:11px;color:var(--text2)}
-.section-bg-toggle{display:flex;border-radius:20px;overflow:hidden;border:1px solid var(--border);margin-left:4px}
-.section-bg-toggle button{border:none;background:#fff;width:20px;height:20px;cursor:pointer;padding:0}
+.section-hidden-admin{opacity:.45;outline:2px dashed var(--text3);outline-offset:-2px}
+.section-bg-toggle{display:flex;border-radius:20px;overflow:hidden;border:1px solid var(--border)}
+.section-bg-toggle button{border:none;background:#fff;width:16px;height:16px;cursor:pointer;padding:0}
 .section-bg-toggle button.sbt-gray{background:#F5F5F7}
 .section-bg-toggle button.active{box-shadow:inset 0 0 0 2px var(--navy)}
+/* ── Section sidebar (mini table-of-contents, edit mode only) ── */
+body.has-section-sidebar{padding-left:220px}
+#sectionSidebar{position:fixed;top:54px;left:0;width:220px;height:calc(100vh - 54px);overflow-y:auto;background:#fff;border-right:1px solid var(--border);z-index:150;padding:16px 12px;font-family:'Inter',sans-serif}
+.section-sidebar-title{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding:0 4px}
+.section-sidebar-item{display:flex;align-items:center;gap:6px;padding:8px 6px;border-radius:8px;margin-bottom:2px;background:#fff;transition:background .12s}
+.section-sidebar-item:hover{background:var(--bg)}
+.section-sidebar-item.is-hidden{opacity:.5}
+.section-sidebar-drag{cursor:grab;color:var(--text3);font-size:11px;flex:none}
+.section-sidebar-name{flex:1;font-size:12px;color:var(--text);cursor:pointer;line-height:1.3;min-width:0}
+.section-sidebar-icon-btn{background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;padding:2px 4px;flex:none;display:flex;align-items:center}
+.section-sidebar-icon-btn:hover{color:var(--text)}
+.section-sidebar-removed{margin-top:16px;padding-top:12px;border-top:1px solid var(--border)}
+.section-sidebar-removed-title{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;padding:0 4px}
+.section-sidebar-restore{display:block;width:100%;text-align:left;background:none;border:1px dashed var(--border);border-radius:8px;padding:6px 8px;font-size:11px;color:var(--gold);cursor:pointer;margin-bottom:4px}
 .offers-section-panel{background:#F5F5F7;border-radius:32px;padding:48px 40px}
 @media(max-width:640px){.offers-section-panel{padding:32px 20px}}
 /* ── "Allez encore plus loin" ── */
@@ -238,7 +252,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 @media(max-width:900px){.gofurther-grid{grid-template-columns:1fr}}
 .gofurther-card{position:relative;border-radius:32px;padding:44px 40px;min-height:420px;overflow:hidden;display:flex;flex-direction:column}
 .gofurther-card-label{font-size:14px;font-weight:700;margin-bottom:14px}
-.gofurther-card-title{font-size:28px;font-weight:800;color:#1D1D1F;line-height:1.2;margin-bottom:14px;white-space:pre-wrap;letter-spacing:-.01em;max-width:75%}
+.gofurther-card-title{font-size:28px;font-weight:700;color:#1D1D1F;line-height:1.2;margin-bottom:14px;white-space:pre-wrap;letter-spacing:-.01em;max-width:75%}
 .gofurther-card-desc{font-size:15px;color:#4B5563;line-height:1.55;margin-bottom:auto;max-width:56%}
 .gofurther-card-bottom{display:flex;align-items:center;gap:12px;margin-top:24px}
 .gofurther-price-pill{display:inline-flex;align-items:baseline;gap:4px;background:#2F6FE0;color:#fff;font-size:18px;font-weight:800;padding:12px 20px;border-radius:999px}
@@ -783,6 +797,7 @@ const DEFAULT_DATA = {
   tagOrder: ['apero','base','pro','premium','agence','services'],
   sectionOrder: ['featureShowcase','offers','appleCards','addonModules','prestation','simulator','matrix','goFurther'],
   sectionBg: { featureShowcase:'white', offers:'gray', appleCards:'gray', addonModules:'white', prestation:'white', simulator:'white', matrix:'white', goFurther:'white' },
+  sectionHidden: { featureShowcase:false, offers:false, appleCards:false, addonModules:false, prestation:false, simulator:false, matrix:false, goFurther:false },
   goFurther: {
     title: 'Allez encore plus loin',
     titleStyle: 'gradient',
@@ -848,6 +863,8 @@ function migrateData(){
   if(!DATA.siteBrand) DATA.siteBrand = JSON.parse(JSON.stringify(DEFAULT_DATA.siteBrand));
   if(!DATA.tagOrder) DATA.tagOrder = JSON.parse(JSON.stringify(DEFAULT_DATA.tagOrder));
   if(!DATA.sectionOrder) DATA.sectionOrder = JSON.parse(JSON.stringify(DEFAULT_DATA.sectionOrder));
+  if(!DATA.sectionHidden) DATA.sectionHidden = JSON.parse(JSON.stringify(DEFAULT_DATA.sectionHidden));
+  Object.keys(DEFAULT_DATA.sectionHidden).forEach(k=>{ if(DATA.sectionHidden[k]===undefined) DATA.sectionHidden[k] = false; });
   if(!DATA.goFurther) DATA.goFurther = JSON.parse(JSON.stringify(DEFAULT_DATA.goFurther));
   if(!DATA.sectionBg) DATA.sectionBg = JSON.parse(JSON.stringify(DEFAULT_DATA.sectionBg));
   // Keep sectionOrder in sync if new keys were added since this DATA was saved
@@ -2913,6 +2930,16 @@ function toggleFeatures(){
   if(acc) acc.classList.toggle('open', !open);
 }
 
+const SECTION_LABELS = {
+  featureShowcase: 'Vos clients vous trouvent',
+  offers: 'Trois offres',
+  appleCards: 'Aux petits oignons',
+  addonModules: 'Modules complémentaires',
+  prestation: 'Prestations',
+  simulator: 'Simulateur',
+  matrix: 'Comparer les offres',
+  goFurther: 'Allez encore plus loin'
+};
 function applySectionLayout(){
   const container = document.getElementById('reorderableSections');
   if(!container) return;
@@ -2925,49 +2952,102 @@ function applySectionLayout(){
   container.querySelectorAll(':scope > .reorderable-section').forEach(el=>{
     const key = el.dataset.key;
     const bg = DATA.sectionBg[key] || 'white';
+    const hidden = !!DATA.sectionHidden[key];
     el.classList.remove('section-band-gray','section-band-white');
     el.classList.add(bg==='gray' ? 'section-band-gray' : 'section-band-white');
-    let handle = el.querySelector(':scope > .section-drag-handle');
-    if(editMode){
-      if(!handle){
-        handle = document.createElement('div');
-        handle.className = 'section-drag-handle';
-        handle.draggable = true;
-        handle.innerHTML = `⠿ <span class="section-bg-toggle">
-          <button type="button" class="sbt-white" title="Fond blanc"></button>
-          <button type="button" class="sbt-gray" title="Fond gris"></button>
-        </span>`;
-        handle.querySelector('.sbt-white').addEventListener('click', ()=>setSectionBg(key,'white'));
-        handle.querySelector('.sbt-gray').addEventListener('click', ()=>setSectionBg(key,'gray'));
-        handle.addEventListener('dragstart', ()=>{ _sectionDragSrc = key; });
-        handle.addEventListener('dragover', (e)=>e.preventDefault());
-        handle.addEventListener('drop', (e)=>{
-          e.preventDefault();
-          if(!_sectionDragSrc || _sectionDragSrc===key) return;
-          const from = DATA.sectionOrder.indexOf(_sectionDragSrc);
-          const to = DATA.sectionOrder.indexOf(key);
-          DATA.sectionOrder.splice(from,1);
-          DATA.sectionOrder.splice(to,0,_sectionDragSrc);
-          _sectionDragSrc = null;
-          save();
-          applySectionLayout();
-        });
-        el.insertBefore(handle, el.firstChild);
-      }
-      const wBtn = handle.querySelector('.sbt-white');
-      const gBtn = handle.querySelector('.sbt-gray');
-      if(wBtn) wBtn.classList.toggle('active', bg==='white');
-      if(gBtn) gBtn.classList.toggle('active', bg==='gray');
-    } else if(handle){
-      handle.remove();
-    }
+    el.classList.toggle('section-hidden-admin', hidden && editMode);
+    el.style.display = (hidden && !editMode) ? 'none' : '';
   });
+  renderSectionSidebar();
 }
 let _sectionDragSrc = null;
 function setSectionBg(key, val){
   DATA.sectionBg[key] = val;
   save();
   applySectionLayout();
+}
+function toggleSectionHidden(key){
+  DATA.sectionHidden[key] = !DATA.sectionHidden[key];
+  save();
+  applySectionLayout();
+}
+function deleteSection(key){
+  if(!confirm(`Retirer la section "${SECTION_LABELS[key]||key}" de la page ? Tu pourras la remettre à tout moment depuis "+ Sections retirées" en bas du sommaire.`)) return;
+  DATA.sectionOrder = DATA.sectionOrder.filter(k=>k!==key);
+  save();
+  applySectionLayout();
+}
+function restoreSection(key){
+  DATA.sectionOrder.push(key);
+  save();
+  applySectionLayout();
+}
+function scrollToSection(key){
+  const el = document.querySelector(`.reorderable-section[data-key="${key}"]`);
+  if(el) el.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+function renderSectionSidebar(){
+  let sidebar = document.getElementById('sectionSidebar');
+  if(!editMode){
+    if(sidebar) sidebar.remove();
+    document.body.classList.remove('has-section-sidebar');
+    return;
+  }
+  document.body.classList.add('has-section-sidebar');
+  if(!sidebar){
+    sidebar = document.createElement('div');
+    sidebar.id = 'sectionSidebar';
+    document.body.appendChild(sidebar);
+  }
+  const removedKeys = Object.keys(SECTION_LABELS).filter(k=>!DATA.sectionOrder.includes(k));
+  sidebar.innerHTML = `
+    <div class="section-sidebar-title">Sommaire des sections</div>
+    <div id="sectionSidebarList"></div>
+    ${removedKeys.length ? `
+      <div class="section-sidebar-removed">
+        <div class="section-sidebar-removed-title">+ Sections retirées</div>
+        ${removedKeys.map(k=>`
+          <button type="button" class="section-sidebar-restore" onclick="restoreSection('${k}')">+ ${esc(SECTION_LABELS[k]||k)}</button>
+        `).join('')}
+      </div>
+    ` : ''}
+  `;
+  const list = document.getElementById('sectionSidebarList');
+  list.innerHTML = DATA.sectionOrder.map(key=>{
+    const bg = DATA.sectionBg[key] || 'white';
+    const hidden = !!DATA.sectionHidden[key];
+    return `
+      <div class="section-sidebar-item${hidden?' is-hidden':''}" draggable="true" data-key="${key}">
+        <span class="section-sidebar-drag" title="Glisser pour réordonner">⠿</span>
+        <span class="section-sidebar-name" onclick="scrollToSection('${key}')" title="Aller à cette section">${esc(SECTION_LABELS[key]||key)}</span>
+        <span class="section-bg-toggle" title="Fond de la section">
+          <button type="button" class="sbt-white${bg==='white'?' active':''}" onclick="setSectionBg('${key}','white')" title="Fond blanc"></button>
+          <button type="button" class="sbt-gray${bg==='gray'?' active':''}" onclick="setSectionBg('${key}','gray')" title="Fond gris"></button>
+        </span>
+        <button type="button" class="section-sidebar-icon-btn" onclick="toggleSectionHidden('${key}')" title="${hidden?'Afficher sur le site':'Masquer sur le site'}">${hidden
+          ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>'
+          : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>'
+        }</button>
+        <button type="button" class="section-sidebar-icon-btn" onclick="deleteSection('${key}')" title="Retirer cette section">✕</button>
+      </div>
+    `;
+  }).join('');
+  list.querySelectorAll('.section-sidebar-item').forEach(item=>{
+    item.addEventListener('dragstart', ()=>{ _sectionDragSrc = item.dataset.key; });
+    item.addEventListener('dragover', (e)=>e.preventDefault());
+    item.addEventListener('drop', (e)=>{
+      e.preventDefault();
+      const targetKey = item.dataset.key;
+      if(!_sectionDragSrc || _sectionDragSrc===targetKey) return;
+      const from = DATA.sectionOrder.indexOf(_sectionDragSrc);
+      const to = DATA.sectionOrder.indexOf(targetKey);
+      DATA.sectionOrder.splice(from,1);
+      DATA.sectionOrder.splice(to,0,_sectionDragSrc);
+      _sectionDragSrc = null;
+      save();
+      applySectionLayout();
+    });
+  });
 }
 function renderAll(){
   renderSiteBrand();
