@@ -138,6 +138,9 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .feature-info{flex:none;display:flex;align-items:center}
 .feature-info-btn{width:14px;height:14px;border-radius:50%;border:1.2px solid var(--text3);color:var(--text3);background:none;font-size:9px;font-weight:700;font-style:italic;font-family:Georgia,serif;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:all .15s;flex:none}
 .feature-info-btn:hover,.feature-info-btn.has-content{border-color:var(--navy);color:var(--navy)}
+.feature-info-wrap{position:relative;display:inline-flex;cursor:help;flex:none}
+.feature-info-tooltip{position:absolute;bottom:calc(100% + 10px);left:50%;background:#1f2430;color:#fff;width:260px;max-width:80vw;padding:12px 14px;border-radius:10px;font-size:12px;line-height:1.45;text-align:left;box-shadow:0 10px 26px rgba(0,0,0,.2);opacity:0;visibility:hidden;transform:translate(-50%,4px);transition:opacity .15s,transform .15s;z-index:30;white-space:pre-line}
+.feature-info-wrap:hover .feature-info-tooltip{opacity:1;visibility:visible;transform:translate(-50%,0)}
 /* ── SIMULATOR ── */
 /* ── SIMULATOR ── */
 .sim-wrap{display:grid;grid-template-columns:200px 1fr;gap:20px;align-items:start}
@@ -407,6 +410,8 @@ table.matrix td{padding:9px 14px;border-bottom:1px solid #f0ece6}
 table.matrix td.center{text-align:center}
 table.matrix tr:last-child td{border-bottom:none}
 table.matrix tr:hover td{background:#fafaf7}
+.matrix-item-name-cell{display:flex;align-items:center;gap:6px}
+.matrix-item-name{flex:none;white-space:nowrap;display:inline-block}
 .matrix-check{display:inline-flex;align-items:center;justify-content:center;width:19.8px;height:19.8px;border-radius:50%;background:#4BAE4F;color:#fff}
 .matrix-check svg{width:10.8px;height:10.8px}
 .matrix-dash{display:inline-flex;align-items:center;justify-content:center;width:19.8px;height:19.8px;border-radius:50%;background:#EDEDF0;color:#C4C4C8}
@@ -1077,7 +1082,7 @@ function renderPrestationRow(ci, ii, item){
       <div style="display:flex;align-items:center;gap:8px;width:100%">
         <span class="feature-drag">⠿</span>
         <input class="feature-name-input" value="${esc(item.name)}" onchange="DATA.categories[${ci}].items[${ii}].name=this.value;save()">
-        <button class="feature-info-btn${item.desc?' has-content':''}" type="button" onclick="openInfoModal(event,${ci},${ii})" title="${item.desc ? esc(item.desc.replace(/\*\*/g,'')) : 'Ajouter une description'}">i</button>
+        ${featureInfoHtml(ci, ii, item)}
         <button class="feature-del" onclick="deleteFeature(${ci},${ii})">✕</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;width:100%;padding-left:22px">
@@ -1095,7 +1100,7 @@ function renderPrestationRow(ci, ii, item){
   return `
     <div class="feature-row" data-ci="${ci}" data-ii="${ii}" style="align-items:center">
       <div class="feature-name-input" style="cursor:default;flex:1">${esc(item.name)}</div>
-      <button class="feature-info-btn${item.desc?' has-content':''}" type="button" onclick="openInfoModal(event,${ci},${ii})" title="${item.desc ? esc(item.desc.replace(/\*\*/g,'')) : 'Ajouter une description'}">i</button>
+      ${featureInfoHtml(ci, ii, item)}
       <select class="prestation-select" style="font-size:12px;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-family:'Inter',sans-serif;background:#fff">
         ${opts.map(o=>`<option>${esc(o.label)} — ${(o.price||0).toLocaleString('fr-FR')} €</option>`).join('')}
       </select>
@@ -2140,13 +2145,13 @@ function renderMatrix(){
     const collapsed = !!cat.matrixCollapsed;
     html += `<tr class="matrix-cat-row" data-ci="${ci}">
       <td colspan="${colCount}" style="background:var(--bg);padding:8px 14px">
-        <div style="display:flex;align-items:center;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px;width:100%">
           <button onclick="toggleMatrixCategory(${ci})" style="background:none;border:none;cursor:pointer;color:var(--navy);display:flex;padding:0;transform:rotate(${collapsed?'-90deg':'0deg'});transition:transform .15s">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
           </button>
           ${editMode ? `<span class="feature-drag" style="cursor:grab" draggable="true" ondragstart="matrixCatDragStart(event,${ci})" ondragover="event.preventDefault()" ondrop="matrixCatDrop(event,${ci})">⠿</span>` : ''}
           ${editMode
-            ? `<input class="feature-name-input" style="font-weight:700;font-size:11px;color:var(--navy);padding:0" value="${esc(cat.name)}" onchange="DATA.categories[${ci}].name=this.value;save();renderMatrix()">`
+            ? `<input class="feature-name-input" style="font-weight:700;font-size:11px;color:var(--navy);padding:0;flex:1;min-width:0" value="${esc(cat.name)}" onchange="DATA.categories[${ci}].name=this.value;save();renderMatrix()">`
             : `<span style="font-weight:700;font-size:11px;color:var(--navy)">${esc(cat.name)}</span>`}
           ${editMode ? `<button class="feature-del" onclick="deleteCategory(${ci})" title="Supprimer cette catégorie">✕</button>` : ''}
         </div>
@@ -2154,10 +2159,11 @@ function renderMatrix(){
     </tr>`;
     if(!collapsed){
       cat.items.forEach((item, ii)=>{
-        html += `<tr><td>
-          <div style="display:flex;align-items:center;gap:6px">
-            ${editMode ? `<input class="feature-name-input" style="flex:1;padding:2px 0" value="${esc(item.name)}" onchange="DATA.categories[${ci}].items[${ii}].name=this.value;save();renderMatrix()">` : `<span>${esc(item.name)}</span>`}
-            <button class="feature-info-btn${item.desc?' has-content':''}" type="button" onclick="openInfoModal(event,${ci},${ii})" title="${item.desc ? esc(item.desc.replace(/\*\*/g,'')) : 'Ajouter une description'}">i</button>
+        html += `<tr class="matrix-item-row" data-ci="${ci}" data-ii="${ii}" ${editMode?'draggable="true" ondragstart="matrixItemDragStart(event,'+ci+','+ii+')" ondragover="event.preventDefault()" ondrop="matrixItemDrop(event,'+ci+','+ii+')"':''}><td>
+          <div class="matrix-item-name-cell">
+            ${editMode ? `<span class="feature-drag" style="cursor:grab">⠿</span>` : ''}
+            <span class="matrix-item-name">${editMode ? `<input class="feature-name-input" style="padding:2px 0;width:100%" value="${esc(item.name)}" onchange="DATA.categories[${ci}].items[${ii}].name=this.value;save();renderMatrix()">` : `<span>${esc(item.name)}</span>`}</span>
+            ${featureInfoHtml(ci, ii, item)}
             ${item.price?`<span style="color:var(--text3);font-size:10px">(+${item.price}€)</span>`:''}
           </div>
         </td>`;
@@ -2197,6 +2203,38 @@ function renderMatrix(){
   addCatEl.innerHTML = editMode
     ? `<button class="btn btn-ghost" style="background:#fff;border:1px dashed var(--gold);color:var(--gold)" onclick="addCategory()">+ Nouvelle catégorie</button>`
     : '';
+
+  // Align every "i" info button at the same horizontal spot: measure the widest
+  // feature name in the table (via an off-screen probe, since an <input>'s own
+  // box doesn't naturally size to its text) and give them all that same width.
+  requestAnimationFrame(()=>{
+    const names = el.querySelectorAll('.matrix-item-name');
+    if(!names.length) return;
+    const probe = document.createElement('span');
+    probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font-size:13px;font-weight:500;font-family:Inter,sans-serif';
+    document.body.appendChild(probe);
+    let maxW = 0;
+    names.forEach(n=>{
+      const input = n.querySelector('input');
+      probe.textContent = input ? input.value : n.textContent;
+      maxW = Math.max(maxW, probe.getBoundingClientRect().width);
+    });
+    probe.remove();
+    maxW = Math.ceil(maxW) + 6;
+    names.forEach(n=>{ n.style.width = maxW + 'px'; });
+  });
+}
+let _matrixItemDragSrc = null;
+function matrixItemDragStart(e, ci, ii){ _matrixItemDragSrc = { ci, ii }; }
+function matrixItemDrop(e, ci, ii){
+  e.preventDefault();
+  if(!_matrixItemDragSrc || _matrixItemDragSrc.ci !== ci || _matrixItemDragSrc.ii === ii) { _matrixItemDragSrc = null; return; }
+  const items = DATA.categories[ci].items;
+  const [moved] = items.splice(_matrixItemDragSrc.ii, 1);
+  items.splice(ii, 0, moved);
+  _matrixItemDragSrc = null;
+  save();
+  renderMatrix();
 }
 function toggleMatrixCategory(ci){
   DATA.categories[ci].matrixCollapsed = !DATA.categories[ci].matrixCollapsed;
@@ -2582,6 +2620,16 @@ function formatPointText(s){
   t = t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
   t = t.replace(/\n/g,'<br>');
   return t;
+}
+function featureInfoHtml(ci, ii, item){
+  if(editMode){
+    return `<button class="feature-info-btn${item.desc?' has-content':''}" type="button" onclick="openInfoModal(event,${ci},${ii})" title="${item.desc ? esc(item.desc.replace(/\*\*/g,'')) : 'Ajouter une description'}">i</button>`;
+  }
+  if(!item.desc) return '<span class="feature-info-spacer" style="display:inline-block;width:14px;flex:none"></span>';
+  return `<span class="feature-info-wrap">
+    <span class="feature-info-btn has-content">i</span>
+    <span class="feature-info-tooltip">${formatPointText(item.desc)}</span>
+  </span>`;
 }
 function categoriesEditorHtml(categories, tag){
   return `
