@@ -24,7 +24,7 @@ html,body{touch-action:manipulation}
    Desktop only — on mobile this made everything feel too large/zoomed
    in on an already-small screen, so it's scoped to bigger viewports. */
 @media(min-width:641px){ html{zoom:1.1} }
-:root{--restoFont:'Cormorant Garamond';--navy:#10285E;--gold:#C6A24A;--bg:#F4F0EA;--white:#fff;--border:rgba(0,0,0,0.08);--text:#1a1a1a;--text2:#666;--text3:#aaa;--r:10px;--rs:6px;--subtitleColor:rgba(255,255,255,0.45);--tabInactiveColor:rgba(255,255,255,0.4)}
+:root{--restoFont:'Cormorant Garamond';--coverHeadlineFont:'Inter';--navy:#10285E;--gold:#C6A24A;--bg:#F4F0EA;--white:#fff;--border:rgba(0,0,0,0.08);--text:#1a1a1a;--text2:#666;--text3:#aaa;--r:10px;--rs:6px;--subtitleColor:rgba(255,255,255,0.45);--tabInactiveColor:rgba(255,255,255,0.4)}
 body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-size:14px}
 
 /* ── LIGHTBOX ── */
@@ -330,7 +330,7 @@ body.home-cover-showing{overflow:hidden}
    badge that "flashed" too much against a photo background. */
 .home-cover-sched{display:flex;justify-content:center;margin-top:10px}
 .home-cover-sched .sched-pin-frame{background:rgba(0,0,0,.55);border-color:rgba(255,255,255,.3)}
-.home-cover-sched .resto-badge-inline span{color:#fff!important}
+.home-cover-sched .resto-badge-inline span{color:#fff!important;font-size:14px!important}
 .home-cover-fade-group{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;transition:opacity .22s ease}
 .home-cover-fade-group.fading-out{opacity:0}
 /* Only the headline+CTAs get pushed to the bottom — the schedule badge
@@ -341,10 +341,12 @@ body.home-cover-showing{overflow:hidden}
 /* The extra bottom padding above is meant for desktop only — reverted
    to the original value on mobile. */
 @media(max-width:640px){ .home-cover-content{padding:0 24px 40px} }
-.home-cover-headline{font-family:'Inter',sans-serif;font-weight:500;font-size:52px;line-height:1.2;margin-bottom:24px;text-shadow:0 2px 12px rgba(0,0,0,.35)}
+.home-cover-headline{font-family:var(--coverHeadlineFont,'Inter'),sans-serif;font-weight:500;font-size:52px;line-height:1.2;margin-bottom:24px;text-shadow:0 2px 12px rgba(0,0,0,.35)}
 @media(max-width:640px){ .home-cover-headline{font-size:30px;margin-bottom:18px} }
 .home-cover-ctas{display:flex;gap:20px;justify-content:center;flex-wrap:wrap}
 .home-cover-cta{display:inline-flex;align-items:center;justify-content:center;padding:14px 30px;border-radius:11px;font-family:'Jost',sans-serif;font-size:14px;font-weight:700;letter-spacing:.02em;text-decoration:none;cursor:pointer;border:none;transition:opacity .15s}
+/* Mobile-only: both CTAs 10% smaller than the desktop size above. */
+@media(max-width:640px){ .home-cover-cta{padding:12.6px 27px;font-size:12.6px;border-radius:9.9px} }
 .home-cover-cta:hover{opacity:.88}
 .home-cover-cta-menu{background:#fff;color:#000}
 .home-cover-cta-reserve{background:#3E63DD;color:#fff}
@@ -648,7 +650,7 @@ let DATA = {
   icones: { main: '', secondary: '' },
   showHeaderLogo: true,
   homeTab: { active:false, photo:'', video:'' },
-  homeCover: { active:false, image:'', video:'', mediaChoice:'image', mobilePos:50, headline:'', statusBarColor:'#000000', cta1Label:'Voir le menu', cta1Url:'', cta2Label:'Réserver', cta2Url:'' },
+  homeCover: { active:false, image:'', video:'', mediaChoice:'image', mobilePos:50, headline:'', headlineFont:'Inter', statusBarColor:'#000000', cta1Label:'Voir le menu', cta1Url:'', cta2Label:'Réserver', cta2Url:'' },
   schedule: [
     { day:'Lundi',    services:[] },
     { day:'Mardi',    services:[{label:'Soir',open:17,close:2}] },
@@ -1601,7 +1603,7 @@ function renderScheduleInline(suffix){
   return `<div class="sched-pin-frame">
     <div class="resto-badge-inline" id="schedBadge${suffix}" onclick="toggleSchedPopup(event,'${suffix}')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
       <span class="resto-dot ${dotClass}"></span>
-      <span style="font-size:14px;color:var(--text2);font-family:Jost,sans-serif">${label}</span>
+      <span style="font-size:11px;color:var(--text2);font-family:Jost,sans-serif">${label}</span>
       ${pinIconHtml}
       <div class="resto-popup" id="schedPopup${suffix}">
         ${addrText?`<div class="resto-popup-title">Adresse</div>${addrHtml}`:''}
@@ -1751,7 +1753,7 @@ function updateHomeCoverMobilePreview(pos){
 // headline text, and the two CTA buttons (label + link each, so either
 // can point anywhere — a custom URL, not just "scroll to menu").
 function renderAdminHomeCover(){
-  const hc=DATA.homeCover||(DATA.homeCover={active:false,image:'',video:'',mediaChoice:'image',mobilePos:50,headline:'',statusBarColor:'#000000',cta1Label:'Voir le menu',cta1Url:'',cta2Label:'Réserver',cta2Url:''});
+  const hc=DATA.homeCover||(DATA.homeCover={active:false,image:'',video:'',mediaChoice:'image',mobilePos:50,headline:'',headlineFont:'Inter',statusBarColor:'#000000',cta1Label:'Voir le menu',cta1Url:'',cta2Label:'Réserver',cta2Url:''});
   const mobPos=hc.mobilePos!=null?hc.mobilePos:50;
   return `<div class="admin-section"><div class="admin-sect-title">Page de couverture</div><div class="admin-sect-body">
     <label class="admin-toggle"><input type="checkbox" ${hc.active?'checked':''} onchange="DATA.homeCover.active=this.checked;if(this.checked)homeCoverDismissedThisSession=false;renderAll();renderAdminSection('__cover')"><label>Activer la page de couverture (avant le site)</label></label>
@@ -1788,6 +1790,16 @@ function renderAdminHomeCover(){
     <div class="af"><label class="al">Texte (centré, en bas de l'écran)</label>
       <textarea class="ai" rows="2" style="resize:vertical" placeholder="Ex: Fraîcheur et tradition, au cœur de Paris" oninput="DATA.homeCover.headline=this.value;renderAll()">${escAttr(hc.headline||'')}</textarea>
       <div style="font-size:10px;color:var(--text3);margin-top:4px">Entrée = retour à la ligne, si tu veux le répartir sur deux lignes.</div>
+    </div>
+    <div class="af"><label class="al">Police du titre</label>
+      <select class="ai" id="coverFontSelect" style="font-size:13px" onchange="setCoverHeadlineFont(this.value)">
+        ${FONT_LIST.map(f=>`<option value="${f}" style="font-family:'${f}',sans-serif" ${(hc.headlineFont||'Inter')===f?'selected':''}>${f}</option>`).join('')}
+      </select>
+      <button type="button" class="aadd" style="margin-top:6px" onclick="showFontGallery('setCoverHeadlineFont')">Voir toutes les polices</button>
+      <div style="margin-top:8px;padding:10px;border:1px solid var(--border);border-radius:6px;background:#fafaf7" id="coverFontPreviewBox">
+        <div style="font-size:20px;font-family:'${hc.headlineFont||'Inter'}',sans-serif;font-weight:500;color:var(--navy)">${escapeHtmlLocal(hc.headline||'Votre texte ici')}</div>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px">Police du texte affiché au-dessus des boutons (indépendante de la police du menu).</div>
     </div>
     <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-family:Jost,sans-serif;margin:12px 0 6px;border-top:1px solid var(--border);padding-top:12px">1er bouton</div>
     <div class="af" style="display:flex;gap:8px">
@@ -4377,6 +4389,7 @@ function applyRestaurantBranding(){
   // even though DATA.restoFont was saved correctly. Re-apply it here since
   // this runs on every renderAll() and at init.
   if(DATA.restoFont) document.documentElement.style.setProperty('--restoFont', "'"+DATA.restoFont+"'");
+  if(DATA.homeCover && DATA.homeCover.headlineFont) document.documentElement.style.setProperty('--coverHeadlineFont', "'"+DATA.homeCover.headlineFont+"'");
   const name=getRestaurantName();
   const logo=getRestaurantLogo();
   const logoEl=document.querySelector('.logo-img');
@@ -4526,7 +4539,8 @@ const FONT_LIST = ["Jost", "Montserrat", "Oswald", "Raleway", "Poppins", "Merriw
 // popup that loads every font at once and shows the restaurant's own
 // name (or "Restaurant" as a fallback) set in each of them side by
 // side, so they can actually be compared at a glance.
-function showFontGallery(){
+function showFontGallery(setterName){
+  setterName = setterName || 'setRestoFont';
   // Google Fonts supports combining every family into one request —
   // load them all in a single <link> rather than 50 separate ones.
   if(!document.querySelector('link[data-font-gallery]')){
@@ -4537,7 +4551,7 @@ function showFontGallery(){
     document.head.appendChild(l);
   }
   const sampleText = (DATA.restaurantName||'Restaurant');
-  const rows = FONT_LIST.map(f=>`<div class="font-gallery-row" onclick="setRestoFont('${f.replace(/'/g,"\\'")}');closeFontGallery()">
+  const rows = FONT_LIST.map(f=>`<div class="font-gallery-row" onclick="${setterName}('${f.replace(/'/g,"\\'")}');closeFontGallery()">
     <div class="font-gallery-name">${f}</div>
     <div class="font-gallery-sample" style="font-family:'${f}',serif">${escapeHtmlLocal(sampleText)}</div>
   </div>`).join('');
@@ -4571,6 +4585,24 @@ function setRestoFont(font){
   // Update preview
   const box=document.getElementById('fontPreviewBox');
   if(box) box.querySelectorAll('div').forEach(el=>el.style.fontFamily="'"+font+"',serif");
+  renderAll();
+}
+// Same idea as setRestoFont() above, but for the text shown above the
+// cover's CTAs — a separate choice on purpose, so changing the menu's
+// font doesn't also change this one.
+function setCoverHeadlineFont(font){
+  if(!DATA.homeCover) DATA.homeCover={};
+  DATA.homeCover.headlineFont = font;
+  document.documentElement.style.setProperty('--coverHeadlineFont', "'"+font+"'");
+  if(font && !document.querySelector('link[data-font="'+font+'"]')){
+    const l=document.createElement('link');
+    l.rel='stylesheet';
+    l.dataset.font=font;
+    l.href='https://fonts.googleapis.com/css2?family='+encodeURIComponent(font)+':wght@400;700&display=swap';
+    document.head.appendChild(l);
+  }
+  const box2=document.getElementById('coverFontPreviewBox');
+  if(box2) box2.querySelectorAll('div').forEach(el=>el.style.fontFamily="'"+font+"',sans-serif");
   renderAll();
 }
 
