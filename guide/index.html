@@ -2532,8 +2532,17 @@ function renderMatrix(){
     document.body.appendChild(probe);
     let maxW = 0;
     names.forEach(n=>{
-      const input = n.querySelector('input');
-      probe.textContent = input ? input.value : n.textContent;
+      const input = n.querySelector('input, textarea');
+      let nameText;
+      if(input){
+        nameText = input.value;
+      } else {
+        const textSpan = n.querySelector('.matrix-name-text');
+        // Never fall back to n.textContent here: it would also pick up the hidden
+        // tooltip's description text nested inside, wildly inflating the width.
+        nameText = textSpan ? textSpan.textContent : '';
+      }
+      probe.textContent = nameText;
       maxW = Math.max(maxW, probe.getBoundingClientRect().width);
     });
     probe.remove();
