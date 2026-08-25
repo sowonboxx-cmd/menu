@@ -1382,9 +1382,20 @@ function homeSocialBarHtml(){
 
 function renderNav(){
   const nav=document.getElementById('nav'); nav.innerHTML='';
-  DATA.tabs.filter(tab=>tab.visible!==false).forEach(tab=>{
+  const visibleTabs=DATA.tabs.filter(tab=>tab.visible!==false);
+  visibleTabs.forEach(tab=>{
     const el=document.createElement('div');
-    el.className='nav-tab'+(tab.id===currentTabId?' active':'');
+    // BUG FIX: this used to set the .active class immediately at
+    // creation time — but since every tab is a brand-new DOM node on
+    // every renderNav() call, there was no "before" state for the CSS
+    // color transition to animate from, so the label just snapped
+    // straight to navy the instant it was inserted. Against the still-
+    // navy header (before the white pill has slid underneath it), that
+    // read as invisible text that only "popped in" once the pill
+    // physically arrived. Starting every tab inactive/grey and adding
+    // .active a frame later (once actually painted) gives the browser a
+    // real starting state, so the label now fades in step with the pill.
+    el.className='nav-tab';
     el.textContent=t(tab.label);
     el.addEventListener('click',()=>{
       if(tab.id==='__home' && DATA.homeTab&&DATA.homeTab.siteUrl){
@@ -1404,12 +1415,21 @@ function renderNav(){
   indicator.className='nav-indicator';
   indicator.id='navIndicator';
   nav.appendChild(indicator);
-  const activeTabEl=nav.querySelector('.nav-tab.active');
-  if(activeTabEl){
-    indicator.style.left=activeTabEl.offsetLeft+'px';
-    indicator.style.width=activeTabEl.offsetWidth+'px';
-  }
-  // Scroll nav: show active + 2 full + half of 3rd on each side (Twitter-style)
+  requestAnimationFrame(()=>{
+    const tabs=Array.from(nav.querySelectorAll('.nav-tab'));
+    const activeIdx=visibleTabs.findIndex(tb=>tb.id===currentTabId);
+    const activeTabEl=activeIdx>=0?tabs[activeIdx]:null;
+    if(activeTabEl){
+      activeTabEl.classList.add('active');
+      indicator.style.left=activeTabEl.offsetLeft+'px';
+      indicator.style.width=activeTabEl.offsetWidth+'px';
+    }
+    scrollNavToActive();
+  });
+}
+// Scroll nav: show active + 2 full + half of 3rd on each side (Twitter-style)
+function scrollNavToActive(){
+  const nav=document.getElementById('nav');
   setTimeout(()=>{
     const activeEl=nav.querySelector('.nav-tab.active');
     if(!activeEl) return;
@@ -2174,17 +2194,19 @@ function toggleSchedPopup(e){
   const rect=badge.getBoundingClientRect();
   const pw=268;
   const vw=window.innerWidth;
-  let left;
-  if(vw<=640){
-    // BUG FIX: on mobile the badge sits near the left edge, so aligning
-    // the popup to its right edge pinned it awkwardly to the left of the
-    // screen. Center it in the viewport instead.
-    left=(vw-pw)/2;
-  } else {
-    left=rect.right-pw;
-    if(left<12) left=12;
-    if(left+pw>vw-12) left=vw-pw-12;
-  }
+  // BUG FIX: this used to align to the schedule badge's own right edge
+  // on desktop (fine back when the badge was the rightmost element in
+  // this row) and just center the popup on mobile — but now that the
+  // "RÉSERVER" button sits to the right of the badge on every screen
+  // size, both approaches left the popup visibly offset from the true
+  // right edge of that whole button row. Anchor to the reserve button's
+  // right edge instead, on both mobile and desktop, so the popup lines
+  // up with the actual rightmost point people see.
+  const reserveBtn=document.querySelector('.header-reserve-btn');
+  const anchorRight=reserveBtn?reserveBtn.getBoundingClientRect().right:rect.right;
+  let left=anchorRight-pw;
+  if(left<12) left=12;
+  if(left+pw>vw-12) left=vw-pw-12;
   // Open downward below the badge
   const top=rect.bottom+8;
   p.style.left=left+'px';
