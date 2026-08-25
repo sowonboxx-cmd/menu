@@ -322,7 +322,7 @@ body.home-cover-showing{overflow:hidden}
    time, so the handoff to the real header's own name (once the cover
    is gone) doesn't read as anything moving. */
 .home-cover-top{position:relative;z-index:3;padding:20px 20px 0;text-align:center;flex:none}
-.home-cover-name{color:#fff;font-family:var(--restoFont,'Cormorant Garamond'),serif;font-weight:700;font-size:24px;letter-spacing:.04em}
+.home-cover-name{color:#fff;font-family:var(--restoFont,'Cormorant Garamond'),serif;font-weight:700;font-size:35px;letter-spacing:.04em}
 /* Semi-transparent — visible, but no longer the small solid-white
    badge that "flashed" too much against a photo background. */
 .home-cover-sched{display:flex;justify-content:center;margin-top:10px}
@@ -334,14 +334,14 @@ body.home-cover-showing{overflow:hidden}
    (also in this fade group, since it fades away with everything else)
    stays at its natural position right under the name at the top. */
 .home-cover-content{margin-top:auto}
-.home-cover-content{padding:0 24px 40px;text-align:center;color:#fff}
+.home-cover-content{padding:0 24px 90px;text-align:center;color:#fff}
 .home-cover-headline{font-family:'Inter',sans-serif;font-weight:500;font-size:52px;line-height:1.2;margin-bottom:24px;text-shadow:0 2px 12px rgba(0,0,0,.35)}
 @media(max-width:640px){ .home-cover-headline{font-size:30px;margin-bottom:18px} }
 .home-cover-cta-frame{display:inline-flex;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.15);border-radius:999px;padding:10px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .home-cover-ctas{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
-.home-cover-cta{display:inline-flex;align-items:center;justify-content:center;padding:14px 30px;border-radius:999px;font-family:'Jost',sans-serif;font-size:14px;font-weight:700;letter-spacing:.02em;text-decoration:none;cursor:pointer;border:none;transition:opacity .15s}
+.home-cover-cta{display:inline-flex;align-items:center;justify-content:center;padding:14px 30px;border-radius:29px;font-family:'Jost',sans-serif;font-size:14px;font-weight:700;letter-spacing:.02em;text-decoration:none;cursor:pointer;border:none;transition:opacity .15s}
 .home-cover-cta:hover{opacity:.88}
-.home-cover-cta-menu{background:#3E63DD;color:#fff}
+.home-cover-cta-menu{background:#fff;color:#000}
 .home-cover-cta-reserve{background:#3E63DD;color:#fff}
 .home-photo-wrap{border-radius:var(--r);overflow:hidden;border:1px solid #EBEBEB}
 .video-mute-btn{position:absolute;bottom:10px;right:10px;width:34px;height:34px;border-radius:11px;background:rgba(30,20,15,.72);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;transition:background .15s}
@@ -1596,7 +1596,7 @@ function renderScheduleInline(suffix){
   return `<div class="sched-pin-frame">
     <div class="resto-badge-inline" id="schedBadge${suffix}" onclick="toggleSchedPopup(event,'${suffix}')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
       <span class="resto-dot ${dotClass}"></span>
-      <span style="font-size:11px;color:var(--text2);font-family:Jost,sans-serif">${label}</span>
+      <span style="font-size:14px;color:var(--text2);font-family:Jost,sans-serif">${label}</span>
       ${pinIconHtml}
       <div class="resto-popup" id="schedPopup${suffix}">
         ${addrText?`<div class="resto-popup-title">Adresse</div>${addrHtml}`:''}
@@ -2426,22 +2426,28 @@ function toggleSchedPopup(e,suffix){
   const badge=document.getElementById('schedBadge'+suffix);
   if(p.classList.contains('visible')){ p.classList.remove('visible'); return; }
   const rect=badge.getBoundingClientRect();
-  const pw=268;
+  // Read the popup's own real rendered width (it's visibility:hidden, not
+  // display:none, so it's already laid out and measurable) rather than
+  // guessing a constant — the popup's min/max-width means its actual
+  // width varies with content, and a fixed guess drifted off the badge's
+  // true center.
+  const pw=p.offsetWidth||260;
   const vw=window.innerWidth;
   // Centered directly under the button itself (its horizontal midpoint),
   // clamped so it never runs off either edge of the viewport.
   let left=rect.left+rect.width/2-pw/2;
   left=Math.max(12, Math.min(left, vw-pw-12));
-  const top=rect.bottom+(vw<=640?20:8);
+  const top=rect.bottom+10+(vw<=640?20:8);
   p.style.left=left+'px';
   p.style.top=top+'px';
   p.style.transform='none';
   p.classList.add('visible');
 }
-// Close schedule popup on outside click
+// Close schedule popup on outside click — closes whichever one is open
+// (there can be a plain one and a "Cover" one; only ever one visible
+// at a time, but this closes it regardless of which).
 document.addEventListener('click', function(){
-  const p=document.getElementById('schedPopup');
-  if(p) p.classList.remove('visible');
+  document.querySelectorAll('.resto-popup.visible').forEach(function(p){ p.classList.remove('visible'); });
 });
 
 // ═══════════════════════════════════════════
