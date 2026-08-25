@@ -20,8 +20,10 @@
 html,body{touch-action:manipulation}
 /* Whole site scaled up 10% — everything (text, spacing, icons) grows
    proportionally together, rather than bumping just a base font-size
-   which would leave fixed-px elements (icons, some paddings) behind. */
-html{zoom:1.1}
+   which would leave fixed-px elements (icons, some paddings) behind.
+   Desktop only — on mobile this made everything feel too large/zoomed
+   in on an already-small screen, so it's scoped to bigger viewports. */
+@media(min-width:641px){ html{zoom:1.1} }
 :root{--restoFont:'Cormorant Garamond';--navy:#10285E;--gold:#C6A24A;--bg:#F4F0EA;--white:#fff;--border:rgba(0,0,0,0.08);--text:#1a1a1a;--text2:#666;--text3:#aaa;--r:10px;--rs:6px;--subtitleColor:rgba(255,255,255,0.45);--tabInactiveColor:rgba(255,255,255,0.4)}
 body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-size:14px}
 
@@ -192,6 +194,8 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .featured-item-body{padding:8px 10px 10px}
 .featured-item-name{font-family:'Open Sans',sans-serif;font-size:12px;font-weight:600;color:var(--navy);line-height:1.2}
 .featured-item-price{font-size:11px;font-weight:500;color:var(--gold);margin-top:3px}
+.featured-top-row{display:flex;justify-content:space-between;align-items:flex-start;gap:6px}
+.featured-item-price-inline{font-size:10px;font-weight:500;color:var(--gold);white-space:nowrap;flex-shrink:0;margin-top:1px}
 
 /* ── CARD ── */
 .card{background:#fff;border-radius:var(--r);border:1px solid var(--border)}
@@ -212,7 +216,6 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .badge-icon{width:18px;height:18px;object-fit:contain;display:inline-block}
 .dish-desc{font-size:12px;font-family:'Open Sans',sans-serif;font-weight:300;color:var(--text2);line-height:1.55;margin-top:2px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .dish-price{font-size:13px;font-weight:500;color:var(--gold);margin-top:6px;white-space:nowrap;flex-shrink:0}
-.dish-price-inline{font-size:12px;font-weight:500;color:var(--gold);white-space:nowrap;flex-shrink:0;margin-top:1px}
 .dish-img{width:80px;height:80px;border-radius:8px;object-fit:cover;flex:none;background:#ece8e1;cursor:pointer;transition:opacity .15s}
 .dish-img:hover{opacity:.82}
 
@@ -1958,7 +1961,7 @@ function renderTabContent(tab,lbOffset){
           <span style="color:var(--gold)">★</span> Nos incontournables <span style="color:var(--gold)">★</span>
         </div>
         <div class="featured-grid">`;
-        pinDishes2.forEach((d,idx)=>{ html+=`<div class="featured-item" style="cursor:pointer" onclick="openPinLb(${idx})">${d.img?`<img class="featured-item-img" src="${d.img}" alt="" loading="lazy">`:'<div class="featured-item-img"></div>'}<div class="featured-item-body"><div class="featured-item-name">${t(d.name)}</div><div class="featured-item-price">${dishPriceDisplay(d)}</div></div></div>`; });
+        pinDishes2.forEach((d,idx)=>{ html+=`<div class="featured-item" style="cursor:pointer" onclick="openPinLb(${idx})">${d.img?`<img class="featured-item-img" src="${d.img}" alt="" loading="lazy">`:'<div class="featured-item-img"></div>'}<div class="featured-item-body">${d.priceType==='dual'?`<div class="featured-item-name">${t(d.name)}</div><div class="featured-item-price">${dishPriceDisplay(d)}</div>`:`<div class="featured-top-row"><div class="featured-item-name">${t(d.name)}</div>${dishPriceDisplay(d)?`<span class="featured-item-price-inline">${dishPriceDisplay(d)}</span>`:''}</div>`}</div></div>`; });
         html+=`</div></div>`;
       } else {
         // list view
@@ -1998,7 +2001,7 @@ function renderTabContent(tab,lbOffset){
     const pinDishes=pins.map(p=>{ const r=resolvePin(p); return r?{...r.dish}:null; }).filter(Boolean);
     if(pinDishes.length>0&&(DATA.pinnedShowFirst!==false)){
       html+=`<div class="featured-card"><div class="featured-label">⭐ Nos incontournables</div><div class="featured-grid">`;
-      pinDishes.slice(0,4).forEach((d,idx)=>{ html+=`<div class="featured-item" style="cursor:pointer" onclick="openPinLb(${idx})">${d.img?`<img class="featured-item-img" src="${d.img}" alt="" loading="lazy">`:'<div class="featured-item-img"></div>'}<div class="featured-item-body"><div class="featured-item-name">${t(d.name)}</div><div class="featured-item-price">${dishPriceDisplay(d)}</div></div></div>`; });
+      pinDishes.slice(0,4).forEach((d,idx)=>{ html+=`<div class="featured-item" style="cursor:pointer" onclick="openPinLb(${idx})">${d.img?`<img class="featured-item-img" src="${d.img}" alt="" loading="lazy">`:'<div class="featured-item-img"></div>'}<div class="featured-item-body">${d.priceType==='dual'?`<div class="featured-item-name">${t(d.name)}</div><div class="featured-item-price">${dishPriceDisplay(d)}</div>`:`<div class="featured-top-row"><div class="featured-item-name">${t(d.name)}</div>${dishPriceDisplay(d)?`<span class="featured-item-price-inline">${dishPriceDisplay(d)}</span>`:''}</div>`}</div></div>`; });
       html+=`</div></div>`;
     }
   }
@@ -2102,13 +2105,7 @@ function renderTabContent(tab,lbOffset){
           const badges=badgeIconsHtml(d);
           const _cid=tab.cards.indexOf(card); const _did=card.dishes.indexOf(d);
           const priceHtml=dishPriceDisplay(d);
-          // Multi-price dishes (huîtres "Les 6 / Les 12") don't fit a
-          // compact top-right slot — those keep the price on its own
-          // line below the description, same as before this change.
-          const dishTextInner=d.priceType==='dual'
-            ? `<div class="dish-name-row"><span class="dish-name">${t(d.name)}</span>${badges?`<span class="dish-badges">${badges}</span>`:''}</div><div class="dish-desc">${t(d.desc)}</div><div class="dish-price">${priceHtml}</div>`
-            : `<div class="dish-name-row" style="justify-content:space-between"><span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span class="dish-name">${t(d.name)}</span>${badges?`<span class="dish-badges">${badges}</span>`:''}</span>${priceHtml?`<span class="dish-price-inline">${priceHtml}</span>`:''}</div><div class="dish-desc">${t(d.desc)}</div>`;
-          html+=`<div class="dish-row${d.img?' dish-row-clickable':''}" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${_cid}" data-di="${_did}"${d.img?` data-lbidx="${idx}"`:''}${di===0?' style="padding-top:0"':''}><div class="dish-text">${dishTextInner}</div>${d.img?`<span class="img-wrap"><img class="dish-img" src="${d.img}" alt="" loading="lazy"></span>`:''}</div>`;
+          html+=`<div class="dish-row${d.img?' dish-row-clickable':''}" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${_cid}" data-di="${_did}"${d.img?` data-lbidx="${idx}"`:''}${di===0?' style="padding-top:0"':''}><div class="dish-text"><div class="dish-name-row"><span class="dish-name">${t(d.name)}</span>${badges?`<span class="dish-badges">${badges}</span>`:''}</div><div class="dish-desc">${t(d.desc)}</div><div class="dish-price">${priceHtml}</div></div>${d.img?`<span class="img-wrap"><img class="dish-img" src="${d.img}" alt="" loading="lazy"></span>`:''}</div>`;
         });
         if(editMode) html+=`<button type="button" class="aadd" onclick="addDish(${DATA.tabs.indexOf(tab)},${_ciE})">+ Ajouter un plat</button>`;
       }
