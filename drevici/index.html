@@ -9,7 +9,7 @@
 <meta name="theme-color" id="themeColorMeta" content="#10285E">
 <title>Menu</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500&family=Open+Sans:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 /* NOTE: the viewport meta tag already sets user-scalable=no, but modern
@@ -314,6 +314,9 @@ body.home-cover-showing{overflow:hidden}
 @media(min-width:641px){ .home-cover{zoom:0.9090909} }
 .home-cover-media{position:absolute;inset:0;width:100%;height:100%}
 .home-cover-media img{width:100%;height:100%;object-fit:cover;display:block}
+.home-cover-media video{width:100%;height:100%;object-fit:cover;display:block}
+.home-cover-media .cover-embed-wrap{position:absolute;inset:0;overflow:hidden}
+.home-cover-media .cover-video-embed{position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100%;min-width:177.78vh;transform:translate(-50%,-50%);border:none;pointer-events:none}
 .home-cover-overlay{position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.65) 0%,rgba(0,0,0,.15) 45%,rgba(0,0,0,.35) 100%)}
 /* Name is NOT part of the fade group below — it stays put the whole
    time, so the handoff to the real header's own name (once the cover
@@ -323,7 +326,7 @@ body.home-cover-showing{overflow:hidden}
 /* Semi-transparent — visible, but no longer the small solid-white
    badge that "flashed" too much against a photo background. */
 .home-cover-sched{display:flex;justify-content:center;margin-top:10px}
-.home-cover-sched .sched-pin-frame{background:rgba(255,255,255,.4);border-color:rgba(255,255,255,.5)}
+.home-cover-sched .sched-pin-frame{background:rgba(0,0,0,.55);border-color:rgba(255,255,255,.3)}
 .home-cover-sched .resto-badge-inline span{color:#fff!important}
 .home-cover-fade-group{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;transition:opacity .22s ease}
 .home-cover-fade-group.fading-out{opacity:0}
@@ -332,12 +335,14 @@ body.home-cover-showing{overflow:hidden}
    stays at its natural position right under the name at the top. */
 .home-cover-content{margin-top:auto}
 .home-cover-content{padding:0 24px 40px;text-align:center;color:#fff}
-.home-cover-headline{font-family:'Jost',sans-serif;font-weight:500;font-size:52px;line-height:1.2;margin-bottom:24px;text-shadow:0 2px 12px rgba(0,0,0,.35)}
+.home-cover-headline{font-family:'Inter',sans-serif;font-weight:500;font-size:52px;line-height:1.2;margin-bottom:24px;text-shadow:0 2px 12px rgba(0,0,0,.35)}
 @media(max-width:640px){ .home-cover-headline{font-size:30px;margin-bottom:18px} }
-.home-cover-ctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-.home-cover-cta{display:inline-flex;align-items:center;justify-content:center;padding:14px 28px;border-radius:8px;font-family:'Jost',sans-serif;font-size:13px;font-weight:500;letter-spacing:.06em;text-decoration:none;cursor:pointer;border:none;min-width:160px}
-.home-cover-cta-menu{background:#2b2b2b;color:#fff}
-.home-cover-cta-reserve{background:var(--navy);color:#fff}
+.home-cover-cta-frame{display:inline-flex;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.15);border-radius:999px;padding:10px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.home-cover-ctas{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.home-cover-cta{display:inline-flex;align-items:center;justify-content:center;padding:14px 30px;border-radius:999px;font-family:'Jost',sans-serif;font-size:14px;font-weight:700;letter-spacing:.02em;text-decoration:none;cursor:pointer;border:none;transition:opacity .15s}
+.home-cover-cta:hover{opacity:.88}
+.home-cover-cta-menu{background:#3E63DD;color:#fff}
+.home-cover-cta-reserve{background:#3E63DD;color:#fff}
 .home-photo-wrap{border-radius:var(--r);overflow:hidden;border:1px solid #EBEBEB}
 .video-mute-btn{position:absolute;bottom:10px;right:10px;width:34px;height:34px;border-radius:11px;background:rgba(30,20,15,.72);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;transition:background .15s}
 .video-mute-btn:hover{background:rgba(30,20,15,.9)}
@@ -638,7 +643,7 @@ let DATA = {
   icones: { main: '', secondary: '' },
   showHeaderLogo: true,
   homeTab: { active:false, photo:'', video:'' },
-  homeCover: { active:false, image:'', mobilePos:50, headline:'', statusBarColor:'#000000', cta1Label:'Voir le menu', cta1Url:'', cta2Label:'Réserver', cta2Url:'' },
+  homeCover: { active:false, image:'', video:'', mediaChoice:'image', mobilePos:50, headline:'', statusBarColor:'#000000', cta1Label:'Voir le menu', cta1Url:'', cta2Label:'Réserver', cta2Url:'' },
   schedule: [
     { day:'Lundi',    services:[] },
     { day:'Mardi',    services:[{label:'Soir',open:17,close:2}] },
@@ -1651,6 +1656,29 @@ function variantsPriceInfo(variants){
 // moves, since the real header's own name is already sitting in a
 // similar spot the instant the cover is gone.
 let homeCoverDismissedThisSession=false;
+// Builds the cover's background media: a photo (default) or, if the
+// admin picked "Vidéo" and set a URL, a silent looping background video —
+// a direct file plays natively, YouTube/Vimeo play via their own
+// background-embed params (no controls/UI, no mute button here since a
+// full-screen hero video is meant to be ambient, unlike the home tab's
+// content video which the visitor actually watches).
+function renderHomeCoverMediaHtml(hc){
+  if(hc.mediaChoice==='video' && hc.video){
+    const videoUrl=hc.video;
+    const ytMatch=videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
+    const vimeoMatch=videoUrl.match(/vimeo\.com\/([\d]+)/);
+    const isDirectFile=/\.(mp4|webm|mov)(\?|$)/i.test(videoUrl);
+    if(isDirectFile && !ytMatch && !vimeoMatch){
+      return `<video src="${escAttr(videoUrl)}" autoplay muted loop playsinline></video>`;
+    }
+    let embedUrl='';
+    if(ytMatch) embedUrl=`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&loop=1&playlist=${ytMatch[1]}&controls=0&rel=0&modestbranding=1&showinfo=0`;
+    else if(vimeoMatch) embedUrl=`https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1&muted=1&loop=1&background=1`;
+    else embedUrl=videoUrl;
+    if(embedUrl) return `<div class="cover-embed-wrap"><iframe class="cover-video-embed" src="${embedUrl}" allow="autoplay; encrypted-media" loading="lazy"></iframe></div>`;
+  }
+  return hc.image?`<img src="${escAttr(hc.image)}" alt="">`:'';
+}
 function renderHomeCover(){
   const el=document.getElementById('homeCoverContainer');
   const hc=DATA.homeCover||{};
@@ -1660,7 +1688,7 @@ function renderHomeCover(){
   const cta2Url=hc.cta2Url||'';
   const headlineHtml=escapeHtmlLocal(hc.headline||'').replace(/\n/g,'<br>');
   el.innerHTML=`<div class="home-cover" id="homeCoverEl">
-    <div class="home-cover-media">${hc.image?`<img src="${escAttr(hc.image)}" alt="">`:''}</div>
+    <div class="home-cover-media">${renderHomeCoverMediaHtml(hc)}</div>
     <div class="home-cover-overlay"></div>
     <div class="home-cover-top">
       <div class="home-cover-name">${escapeHtmlLocal(getRestaurantName())}</div>
@@ -1669,11 +1697,13 @@ function renderHomeCover(){
       <div class="home-cover-sched">${renderScheduleInline('Cover')}</div>
       <div class="home-cover-content">
         <div class="home-cover-headline">${headlineHtml}</div>
-        <div class="home-cover-ctas">
-          ${cta1Url
-            ? `<a class="home-cover-cta home-cover-cta-menu" href="${escAttr(cta1Url)}">${escapeHtmlLocal(hc.cta1Label||'Voir le menu')}</a>`
-            : `<button type="button" class="home-cover-cta home-cover-cta-menu" onclick="dismissHomeCover()">${escapeHtmlLocal(hc.cta1Label||'Voir le menu')}</button>`}
-          <a class="home-cover-cta home-cover-cta-reserve" href="${escAttr(cta2Url)}">${escapeHtmlLocal(hc.cta2Label||'Réserver')}</a>
+        <div class="home-cover-cta-frame">
+          <div class="home-cover-ctas">
+            ${cta1Url
+              ? `<a class="home-cover-cta home-cover-cta-menu" href="${escAttr(cta1Url)}">${escapeHtmlLocal(hc.cta1Label||'Voir le menu')}</a>`
+              : `<button type="button" class="home-cover-cta home-cover-cta-menu" onclick="dismissHomeCover()">${escapeHtmlLocal(hc.cta1Label||'Voir le menu')}</button>`}
+            <a class="home-cover-cta home-cover-cta-reserve" href="${escAttr(cta2Url)}">${escapeHtmlLocal(hc.cta2Label||'Réserver')}</a>
+          </div>
         </div>
       </div>
     </div>
@@ -1702,7 +1732,7 @@ function dismissHomeCover(){
 function applyHomeCoverMobilePos(pos){
   let styleEl=document.getElementById('homeCoverMobilePosStyle');
   if(!styleEl){ styleEl=document.createElement('style'); styleEl.id='homeCoverMobilePosStyle'; document.head.appendChild(styleEl); }
-  styleEl.textContent=`@media(max-width:640px){ .home-cover-media img{ object-position:${pos}% center; } }`;
+  styleEl.textContent=`@media(max-width:640px){ .home-cover-media img, .home-cover-media video{ object-position:${pos}% center; } }`;
 }
 function updateHomeCoverMobilePreview(pos){
   const label=document.getElementById('homeCoverMobilePosLabel');
@@ -1718,12 +1748,23 @@ function updateHomeCoverMobilePreview(pos){
 // headline text, and the two CTA buttons (label + link each, so either
 // can point anywhere — a custom URL, not just "scroll to menu").
 function renderAdminHomeCover(){
-  const hc=DATA.homeCover||(DATA.homeCover={active:false,image:'',mobilePos:50,headline:'',statusBarColor:'#000000',cta1Label:'Voir le menu',cta1Url:'',cta2Label:'Réserver',cta2Url:''});
+  const hc=DATA.homeCover||(DATA.homeCover={active:false,image:'',video:'',mediaChoice:'image',mobilePos:50,headline:'',statusBarColor:'#000000',cta1Label:'Voir le menu',cta1Url:'',cta2Label:'Réserver',cta2Url:''});
   const mobPos=hc.mobilePos!=null?hc.mobilePos:50;
   return `<div class="admin-section"><div class="admin-sect-title">Page de couverture</div><div class="admin-sect-body">
     <label class="admin-toggle"><input type="checkbox" ${hc.active?'checked':''} onchange="DATA.homeCover.active=this.checked;if(this.checked)homeCoverDismissedThisSession=false;renderAll();renderAdminSection('__cover')"><label>Activer la page de couverture (avant le site)</label></label>
+    <div class="af"><label class="al">Média de fond</label>
+      <div style="display:flex;gap:16px;margin-top:2px">
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="coverMediaChoice" value="image" ${hc.mediaChoice!=='video'?'checked':''} onchange="DATA.homeCover.mediaChoice='image';renderAll();renderAdminSection('__cover')"> Photo</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="coverMediaChoice" value="video" ${hc.mediaChoice==='video'?'checked':''} onchange="DATA.homeCover.mediaChoice='video';renderAll();renderAdminSection('__cover')"> Vidéo</label>
+      </div>
+      <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-top:4px">Les deux liens ci-dessous restent enregistrés même si l'un des deux n'est pas affiché.</div>
+    </div>
     <div class="af"><label class="al">Image de fond (plein écran)</label>
       <input class="ai" value="${escAttr(hc.image||'')}" placeholder="https://... .jpg ou .webp" oninput="DATA.homeCover.image=this.value.trim();renderAll();renderAdminSection('__cover')">
+    </div>
+    <div class="af"><label class="al">Vidéo de fond (URL YouTube, Vimeo, ou lien direct .mp4)</label>
+      <input class="ai" value="${escAttr(hc.video||'')}" placeholder="https://youtube.com/watch?v=... ou https://vimeo.com/..." oninput="DATA.homeCover.video=this.value.trim();renderAll();renderAdminSection('__cover')">
+      <div style="font-size:10px;color:var(--text3);margin-top:4px">Lecture automatique, en boucle, sans son.</div>
     </div>
     <div class="af" style="display:flex;gap:16px;align-items:center;background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 14px">
       <div style="flex:1;min-width:0">
