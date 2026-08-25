@@ -341,7 +341,8 @@ body.edit-mode .fshow-nav-row{align-items:flex-start}
 .fshow-tab.active{background:transparent;color:#fff;font-weight:500}
 .fshow-tab:hover:not(.active){color:var(--text)}
 .fshow-tabbar-edit{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.fshow-tab-edit-pill{display:flex;align-items:center;gap:4px;background:#EDEDF0;border-radius:999px;padding:5px 5px 5px 14px}
+.fshow-tab-edit-pill{display:flex;align-items:center;gap:4px;background:#EDEDF0;border-radius:999px;padding:5px 5px 5px 14px;cursor:pointer}
+.fshow-tab-name-input{border:none;background:transparent;outline:none;font-size:13px;font-weight:600;color:var(--text);font-family:'Inter',sans-serif;resize:none;overflow:hidden;line-height:1.3;padding:2px 0}
 .fshow-tab-edit-pill.active{background:#1D1D1F}
 .fshow-tab-edit-pill.active input{color:#fff}
 .fshow-tab-edit-pill input{background:transparent;border:none;outline:none;font-size:13px;color:var(--text);font-weight:600}
@@ -462,6 +463,24 @@ table.matrix tr:hover td{background:#fafaf7}
 .matrix-check svg{width:10.8px;height:10.8px}
 .matrix-dash{display:inline-flex;align-items:center;justify-content:center;width:19.8px;height:19.8px;border-radius:50%;background:#EDEDF0;color:#C4C4C8}
 .matrix-dash svg{width:9px;height:9px}
+.tag-col-abbr{display:none;position:relative;cursor:pointer}
+.tag-col-abbr-tooltip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,4px);background:#1f2430;color:#fff;font-size:11px;font-weight:600;text-transform:none;letter-spacing:0;padding:6px 10px;border-radius:8px;white-space:nowrap;opacity:0;visibility:hidden;transition:opacity .15s,transform .15s;z-index:30}
+.tag-col-abbr.active .tag-col-abbr-tooltip{opacity:1;visibility:visible;transform:translate(-50%,0)}
+.matrix-name-underline{position:relative}
+.matrix-name-tooltip{position:absolute;bottom:calc(100% + 8px);left:0;background:#1f2430;color:#fff;width:220px;max-width:70vw;padding:10px 12px;border-radius:10px;font-size:12px;line-height:1.4;box-shadow:0 10px 26px rgba(0,0,0,.2);opacity:0;visibility:hidden;transform:translateY(4px);transition:opacity .15s,transform .15s;z-index:30;white-space:pre-line;text-align:left}
+.matrix-name-underline.active .matrix-name-tooltip{opacity:1;visibility:visible;transform:translateY(0)}
+@media(max-width:768px){
+  table.matrix{min-width:0;font-size:11px}
+  table.matrix th,table.matrix td{padding:8px 3px}
+  table.matrix th:first-child,table.matrix td:first-child{padding-left:8px}
+  .tag-col-full{display:none}
+  .tag-col-abbr{display:inline-flex}
+  .matrix-item-name{width:auto!important}
+  .matrix-item-name .matrix-name-text{max-width:26vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:inline-block;vertical-align:bottom}
+  body:not(.edit-mode) .matrix-name-underline{border-bottom:1px dashed var(--text3);cursor:pointer}
+  body:not(.edit-mode) .feature-info-wrap,body:not(.edit-mode) .feature-info-spacer{display:none}
+  .matrix-check,.matrix-dash{width:16px;height:16px}
+}
 
 /* ── STRATEGIE COMMERCIALE (accordion) ── */
 .strategy-list{display:flex;flex-direction:column;gap:10px}
@@ -1496,10 +1515,10 @@ function renderFshowTabs(){
     el.innerHTML = `
       <div class="fshow-tabbar-edit">
         ${tabs.map((t,i)=>`
-          <div class="fshow-tab-edit-pill${i===fshowActiveTabIndex?' active':''}" draggable="true" ondragstart="fshowTabDragStart(event,${i})" ondragover="event.preventDefault()" ondrop="fshowTabDrop(event,${i})">
+          <div class="fshow-tab-edit-pill${i===fshowActiveTabIndex?' active':''}" draggable="true" ondragstart="fshowTabDragStart(event,${i})" ondragover="event.preventDefault()" ondrop="fshowTabDrop(event,${i})" onclick="fshowSwitchTab(${i})">
             <span class="feature-drag" style="cursor:grab;font-size:11px" title="Glisser pour réordonner">⠿</span>
-            <input value="${esc(t.name)}" style="width:${Math.max(70,t.name.length*8)}px" onclick="fshowSwitchTab(${i})" onchange="DATA.featureShowcase.tabs[${i}].name=this.value;save();renderFshowTabs()">
-            ${tabs.length>1 ? `<button onclick="deleteFshowTab(${i})" title="Supprimer cet onglet">✕</button>` : ''}
+            <textarea rows="1" class="fshow-tab-name-input" style="width:${Math.max(70,t.name.length*8)}px" onclick="event.stopPropagation()" oninput="autoGrowTextarea(this)" onkeydown="enterToCommitKeydown(event)" onchange="DATA.featureShowcase.tabs[${i}].name=this.value;save();renderFshowTabs()">${esc(t.name)}</textarea>
+            ${tabs.length>1 ? `<button onclick="event.stopPropagation();deleteFshowTab(${i})" title="Supprimer cet onglet">✕</button>` : ''}
           </div>
         `).join('')}
         <input type="text" id="addFshowTabInput" placeholder="+ Nouvel onglet…" style="background:#EDEDF0;border:1px dashed var(--border);border-radius:999px;outline:none;color:var(--text);font-size:13px;padding:9px 16px" onkeydown="if(event.key==='Enter'){event.preventDefault();addFshowTab(this.value);this.value=''}">
@@ -1575,6 +1594,19 @@ function fshowTabDrop(e, i){
   save();
   renderFshowTabs();
 }
+// Shared helper: in single-row rename fields that were converted from <input> to
+// <textarea> so Shift+Enter can insert a real line break, plain Enter commits
+// (blurs, triggering onchange) instead of adding a blank line.
+function enterToCommitKeydown(e){
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    e.target.blur();
+  }
+}
+function autoGrowTextarea(el){
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
 function fshowSwitchTab(i){
   fshowActiveTabIndex = i;
   fshowOpenIndex = -1;
@@ -1647,7 +1679,7 @@ function renderFeatureShowcaseList(){
       <div class="fshow-item" style="width:100%">
         <div style="display:flex;align-items:center;gap:10px;padding:14px 16px">
           <span class="feature-drag" style="cursor:grab">⠿</span>
-          <input class="feature-name-input" style="flex:1;font-weight:700" value="${esc(it.title||'')}" placeholder="Titre (ex: Menu immersif)" onchange="DATA.featureShowcase.tabs[fshowActiveTabIndex].items[${i}].title=this.value;save();renderFeatureShowcase()">
+          <textarea rows="1" class="feature-name-input" style="flex:1;font-weight:700;resize:none;overflow:hidden" placeholder="Titre (ex: Menu immersif)" oninput="autoGrowTextarea(this)" onkeydown="enterToCommitKeydown(event)" onchange="DATA.featureShowcase.tabs[fshowActiveTabIndex].items[${i}].title=this.value;save();renderFeatureShowcase()">${esc(it.title||'')}</textarea>
           <button class="feature-del" onclick="deleteFshowItem(${i})">✕</button>
         </div>
         <div style="padding:0 16px 16px 16px;display:flex;flex-direction:column;gap:8px">
@@ -2412,7 +2444,7 @@ function renderMatrix(){
   let html = `<thead><tr><th>Fonctionnalité</th>${DATA.tagOrder.map(tag=>`<th class="center">${
     editMode
       ? `<div style="display:flex;align-items:center;justify-content:center;gap:3px"><input value="${esc(tagLabel(tag))}" style="border:none;outline:none;background:transparent;font-size:11px;font-weight:700;text-align:center;width:${Math.max(50,tagLabel(tag).length*7)}px" onchange="renameTagColumn('${tag}',this.value)"><button onclick="deleteTagColumn('${tag}')" title="Supprimer" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;padding:2px">✕</button></div>`
-      : esc(tagLabel(tag))
+      : `<span class="tag-col-full">${esc(tagLabel(tag))}</span><span class="tag-col-abbr" onclick="toggleTagAbbrTooltip(event,this)">${esc((tagLabel(tag)||'?').trim().charAt(0).toUpperCase())}<span class="tag-col-abbr-tooltip">${esc(tagLabel(tag))}</span></span>`
   }</th>`).join('')}${editMode?`<th class="center" style="white-space:nowrap"><input type="text" id="addTagColumnInput" placeholder="+ offre…" style="border:1px dashed var(--border);border-radius:6px;padding:4px 8px;font-size:10px;width:80px;outline:none;text-transform:none;font-weight:500" onkeydown="if(event.key==='Enter'){event.preventDefault();addTagColumn(this.value);this.value=''}"></th>`:''}</tr></thead><tbody>`;
   DATA.categories.forEach((cat, ci) => {
     if(cat.prestation) return; // Prestation lives in its own standalone block now.
@@ -2426,17 +2458,22 @@ function renderMatrix(){
           ${editMode ? `<span class="feature-drag" style="cursor:grab" draggable="true" ondragstart="matrixCatDragStart(event,${ci})" ondragover="event.preventDefault()" ondrop="matrixCatDrop(event,${ci})">⠿</span>` : ''}
           ${editMode
             ? `<input class="feature-name-input" style="font-weight:700;font-size:11px;color:var(--navy);padding:0;flex:1;min-width:0" value="${esc(cat.name)}" onchange="DATA.categories[${ci}].name=this.value;save();renderMatrix()">`
-            : `<span style="font-weight:700;font-size:11px;color:var(--navy)">${esc(cat.name)}</span>`}
+            : `<span style="font-weight:700;font-size:11px;color:var(--navy);cursor:pointer" onclick="toggleMatrixCategory(${ci})">${esc(cat.name)}</span>`}
           ${editMode ? `<button class="feature-del" onclick="deleteCategory(${ci})" title="Supprimer cette catégorie">✕</button>` : ''}
         </div>
       </td>
     </tr>`;
     if(!collapsed){
       cat.items.forEach((item, ii)=>{
+        const nameHtml = editMode
+          ? `<input class="feature-name-input" style="padding:2px 0;width:100%" value="${esc(item.name)}" onchange="DATA.categories[${ci}].items[${ii}].name=this.value;save();renderMatrix()">`
+          : (item.desc
+              ? `<span class="matrix-name-underline" onclick="toggleMatrixNameTooltip(event,this)"><span class="matrix-name-text">${esc(item.name)}</span><span class="matrix-name-tooltip">${formatPointText(item.desc)}</span></span>`
+              : `<span class="matrix-name-text">${esc(item.name)}</span>`);
         html += `<tr class="matrix-item-row" data-ci="${ci}" data-ii="${ii}" ${editMode?'draggable="true" ondragstart="matrixItemDragStart(event,'+ci+','+ii+')" ondragover="event.preventDefault()" ondrop="matrixItemDrop(event,'+ci+','+ii+')"':''}><td>
           <div class="matrix-item-name-cell">
             ${editMode ? `<span class="feature-drag" style="cursor:grab">⠿</span>` : ''}
-            <span class="matrix-item-name">${editMode ? `<input class="feature-name-input" style="padding:2px 0;width:100%" value="${esc(item.name)}" onchange="DATA.categories[${ci}].items[${ii}].name=this.value;save();renderMatrix()">` : `<span>${esc(item.name)}</span>`}</span>
+            <span class="matrix-item-name">${nameHtml}</span>
             ${featureInfoHtml(ci, ii, item)}
             ${item.price?`<span style="color:var(--text3);font-size:10px">(+${item.price}€)</span>`:''}
           </div>
@@ -2509,6 +2546,24 @@ function matrixItemDrop(e, ci, ii){
   _matrixItemDragSrc = null;
   save();
   renderMatrix();
+}
+function toggleMatrixNameTooltip(e, el){
+  e.stopPropagation();
+  const wasActive = el.classList.contains('active');
+  document.querySelectorAll('.matrix-name-underline.active, .tag-col-abbr.active').forEach(x=>x.classList.remove('active'));
+  if(!wasActive) el.classList.add('active');
+}
+function toggleTagAbbrTooltip(e, el){
+  e.stopPropagation();
+  const wasActive = el.classList.contains('active');
+  document.querySelectorAll('.matrix-name-underline.active, .tag-col-abbr.active').forEach(x=>x.classList.remove('active'));
+  if(!wasActive) el.classList.add('active');
+}
+if(!window._matrixTooltipCloseBound){
+  window._matrixTooltipCloseBound = true;
+  document.addEventListener('click', function(){
+    document.querySelectorAll('.matrix-name-underline.active, .tag-col-abbr.active').forEach(x=>x.classList.remove('active'));
+  });
 }
 function toggleMatrixCategory(ci){
   DATA.categories[ci].matrixCollapsed = !DATA.categories[ci].matrixCollapsed;
