@@ -4388,8 +4388,17 @@ function applyRestaurantBranding(){
   // only in that same browser tab and was lost on any other device/reload
   // even though DATA.restoFont was saved correctly. Re-apply it here since
   // this runs on every renderAll() and at init.
-  if(DATA.restoFont) document.documentElement.style.setProperty('--restoFont', "'"+DATA.restoFont+"'");
-  if(DATA.homeCover && DATA.homeCover.headlineFont) document.documentElement.style.setProperty('--coverHeadlineFont', "'"+DATA.homeCover.headlineFont+"'");
+  // BUG FIX #2: setting the CSS var alone isn't enough — the var was
+  // right, but the actual Google Font file was only ever requested
+  // inside setRestoFont()/setCoverHeadlineFont(), i.e. only when someone
+  // interactively picked it in THAT browser tab. Any other visitor (any
+  // phone, any fresh reload, including the admin's own reload) never
+  // downloaded the font at all and silently fell back to the browser
+  // default — the var pointed at a font that was never fetched. Both
+  // setters now call the same ensureFontLoaded() this does, so the file
+  // is requested here too, unconditionally, on every load.
+  if(DATA.restoFont){ document.documentElement.style.setProperty('--restoFont', "'"+DATA.restoFont+"'"); ensureFontLoaded(DATA.restoFont); }
+  if(DATA.homeCover && DATA.homeCover.headlineFont){ document.documentElement.style.setProperty('--coverHeadlineFont', "'"+DATA.homeCover.headlineFont+"'"); ensureFontLoaded(DATA.homeCover.headlineFont, '400;500;700'); }
   const name=getRestaurantName();
   const logo=getRestaurantLogo();
   const logoEl=document.querySelector('.logo-img');
@@ -4571,17 +4580,25 @@ function closeFontGallery(){
   if(el) el.remove();
   document.body.style.overflow='';
 }
+// Requests a Google Font's actual stylesheet if it isn't already on the
+// page — shared by setRestoFont()/setCoverHeadlineFont() (interactive
+// picks) AND by applyRestaurantBranding() (every load/render), which is
+// what makes the font actually show up for a visitor who never
+// interacted with the picker themselves.
+function ensureFontLoaded(font, weights){
+  if(!font) return;
+  weights = weights || '400;700';
+  if(document.querySelector('link[data-font="'+font+'"]')) return;
+  const l=document.createElement('link');
+  l.rel='stylesheet';
+  l.dataset.font=font;
+  l.href='https://fonts.googleapis.com/css2?family='+encodeURIComponent(font)+':wght@'+weights+'&display=swap';
+  document.head.appendChild(l);
+}
 function setRestoFont(font){
   DATA.restoFont = font;
   document.documentElement.style.setProperty('--restoFont', "'"+font+"'");
-  // Load font from Google if not already loaded
-  if(font && !document.querySelector('link[data-font="'+font+'"]')){
-    const l=document.createElement('link');
-    l.rel='stylesheet';
-    l.dataset.font=font;
-    l.href='https://fonts.googleapis.com/css2?family='+encodeURIComponent(font)+':wght@400;700&display=swap';
-    document.head.appendChild(l);
-  }
+  ensureFontLoaded(font);
   // Update preview
   const box=document.getElementById('fontPreviewBox');
   if(box) box.querySelectorAll('div').forEach(el=>el.style.fontFamily="'"+font+"',serif");
@@ -4594,13 +4611,7 @@ function setCoverHeadlineFont(font){
   if(!DATA.homeCover) DATA.homeCover={};
   DATA.homeCover.headlineFont = font;
   document.documentElement.style.setProperty('--coverHeadlineFont', "'"+font+"'");
-  if(font && !document.querySelector('link[data-font="'+font+'"]')){
-    const l=document.createElement('link');
-    l.rel='stylesheet';
-    l.dataset.font=font;
-    l.href='https://fonts.googleapis.com/css2?family='+encodeURIComponent(font)+':wght@400;500;700&display=swap';
-    document.head.appendChild(l);
-  }
+  ensureFontLoaded(font, '400;500;700');
   const box2=document.getElementById('coverFontPreviewBox');
   if(box2) box2.querySelectorAll('div').forEach(el=>el.style.fontFamily="'"+font+"',sans-serif");
   renderAll();
