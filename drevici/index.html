@@ -323,10 +323,14 @@ body.home-cover-showing{overflow:hidden}
 /* Semi-transparent — visible, but no longer the small solid-white
    badge that "flashed" too much against a photo background. */
 .home-cover-sched{display:flex;justify-content:center;margin-top:10px}
-.home-cover-sched .sched-pin-frame{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.3)}
+.home-cover-sched .sched-pin-frame{background:rgba(255,255,255,.4);border-color:rgba(255,255,255,.5)}
 .home-cover-sched .resto-badge-inline span{color:#fff!important}
-.home-cover-fade-group{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;justify-content:flex-end;transition:opacity .22s ease}
+.home-cover-fade-group{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;transition:opacity .22s ease}
 .home-cover-fade-group.fading-out{opacity:0}
+/* Only the headline+CTAs get pushed to the bottom — the schedule badge
+   (also in this fade group, since it fades away with everything else)
+   stays at its natural position right under the name at the top. */
+.home-cover-content{margin-top:auto}
 .home-cover-content{padding:0 24px 40px;text-align:center;color:#fff}
 .home-cover-headline{font-family:'Jost',sans-serif;font-weight:500;font-size:52px;line-height:1.2;margin-bottom:24px;text-shadow:0 2px 12px rgba(0,0,0,.35)}
 @media(max-width:640px){ .home-cover-headline{font-size:30px;margin-bottom:18px} }
@@ -711,6 +715,19 @@ let DATA = {
     }
   ]
 };
+
+// Set the status-bar (theme-color) tint as early as physically possible —
+// before nav/tabs/anything else renders. iOS Safari in particular reads
+// this meta tag mainly at initial paint; updating it later via JS (as
+// renderHomeCover() also does, for when the cover is toggled on/off
+// live) is unreliable once the tab has already painted once. Doing it
+// here, synchronously, right as DATA becomes available and before any
+// other script runs, gives it the best chance of taking effect from
+// the very first frame instead of flashing the site's own navy first.
+if(DATA.homeCover && DATA.homeCover.active){
+  const _tm=document.getElementById('themeColorMeta');
+  if(_tm) _tm.setAttribute('content', DATA.homeCover.statusBarColor||'#000000');
+}
 
 let lang='fr', view=(DATA.defaultView||'grid'), currentTabId=(decodeURIComponent((location.hash||'').replace(/^#/,''))||sessionStorage.getItem('lastTabId')||'huitres');
 let lbImages=[], lbIdx=0;
