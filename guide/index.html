@@ -344,7 +344,7 @@ body.edit-mode .fshow-nav-row{align-items:flex-start}
 .fshow-tab-edit-pill{display:flex;align-items:center;gap:4px;background:#EDEDF0;border-radius:999px;padding:5px 5px 5px 14px;cursor:pointer}
 .fshow-tab-name-input{border:none;background:transparent;outline:none;font-size:13px;font-weight:600;color:var(--text);font-family:'Inter',sans-serif;resize:none;overflow:hidden;line-height:1.3;padding:2px 0}
 .fshow-tab-edit-pill.active{background:#1D1D1F}
-.fshow-tab-edit-pill.active input{color:#fff}
+.fshow-tab-edit-pill.active input,.fshow-tab-edit-pill.active textarea,.fshow-tab-edit-pill.active .fshow-tab-name-input{color:#fff}
 .fshow-tab-edit-pill input{background:transparent;border:none;outline:none;font-size:13px;color:var(--text);font-weight:600}
 .fshow-tab-edit-pill button{background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;padding:4px 6px}
 .fshow-tab-edit-pill.active button{color:rgba(255,255,255,.6)}
@@ -450,7 +450,7 @@ body.edit-mode .fshow-nav-row{align-items:flex-start}
 .feature-accordion.open{border-radius:var(--rs) var(--rs) 0 0;border-bottom:none}
 #featureBody{border:1px solid var(--border);border-top:none;border-radius:0 0 var(--rs) var(--rs);overflow:hidden;margin-bottom:16px}
 .matrix-acc-arrow{transition:transform .2s;font-size:12px;color:var(--text3)}
-table.matrix{width:100%;border-collapse:separate;border-spacing:0;min-width:700px;font-size:12px}
+table.matrix{width:100%;border-collapse:separate;border-spacing:0;min-width:700px;font-size:13px}
 table.matrix th{padding:10px 14px;text-align:left;background:var(--bg);border-bottom:2px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);position:sticky;top:54px;z-index:3}
 table.matrix th.center{text-align:center}
 table.matrix td{padding:9px 14px;border-bottom:1px solid #f0ece6}
@@ -475,8 +475,7 @@ table.matrix tr:hover td{background:#fafaf7}
   table.matrix th:first-child,table.matrix td:first-child{padding-left:8px}
   .tag-col-full{display:none}
   .tag-col-abbr{display:inline-flex}
-  .matrix-item-name{width:auto!important}
-  .matrix-item-name .matrix-name-text{max-width:26vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:inline-block;vertical-align:bottom}
+  .matrix-item-name{width:auto!important;white-space:normal!important}
   body:not(.edit-mode) .matrix-name-underline{border-bottom:1px dashed var(--text3);cursor:pointer}
   body:not(.edit-mode) .feature-info-wrap,body:not(.edit-mode) .feature-info-spacer{display:none}
   .matrix-check,.matrix-dash{width:16px;height:16px}
@@ -1048,6 +1047,13 @@ function migrateData(){
     }
     while(m.points.length<3) m.points.push({text:''});
   });
+  // One-time default: every category starts open in "Comparer les offres" except
+  // "Système", which starts collapsed (click it to see its details).
+  if(!DATA._systemeCollapsedDefaultApplied){
+    const sysCat = (DATA.categories||[]).find(c => (c.name||'').trim().toLowerCase() === 'système' || (c.name||'').trim().toLowerCase() === 'systeme');
+    if(sysCat) sysCat.matrixCollapsed = true;
+    DATA._systemeCollapsedDefaultApplied = true;
+  }
 }
 migrateData();
 let editMode = false;
@@ -2457,8 +2463,8 @@ function renderMatrix(){
           </button>
           ${editMode ? `<span class="feature-drag" style="cursor:grab" draggable="true" ondragstart="matrixCatDragStart(event,${ci})" ondragover="event.preventDefault()" ondrop="matrixCatDrop(event,${ci})">⠿</span>` : ''}
           ${editMode
-            ? `<input class="feature-name-input" style="font-weight:700;font-size:11px;color:var(--navy);padding:0;flex:1;min-width:0" value="${esc(cat.name)}" onchange="DATA.categories[${ci}].name=this.value;save();renderMatrix()">`
-            : `<span style="font-weight:700;font-size:11px;color:var(--navy);cursor:pointer" onclick="toggleMatrixCategory(${ci})">${esc(cat.name)}</span>`}
+            ? `<input class="feature-name-input" style="font-weight:700;font-size:13px;color:var(--navy);padding:0;flex:1;min-width:0" value="${esc(cat.name)}" onchange="DATA.categories[${ci}].name=this.value;save();renderMatrix()">`
+            : `<span style="font-weight:700;font-size:13px;color:var(--navy);cursor:pointer" onclick="toggleMatrixCategory(${ci})">${esc(cat.name)}</span>`}
           ${editMode ? `<button class="feature-del" onclick="deleteCategory(${ci})" title="Supprimer cette catégorie">✕</button>` : ''}
         </div>
       </td>
