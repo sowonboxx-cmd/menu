@@ -303,15 +303,33 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 /* ── HOME TAB ── */
 .home-photo{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:var(--r);display:block}
 /* ── Page de couverture (plein écran, avant le site) ── */
-.home-cover{position:relative;width:100%;height:100vh;height:100svh;height:100dvh;overflow:hidden;background:#0b0b0b}
+/* ── Page de couverture (calque plein écran par-dessus le site déjà chargé) ── */
+body.home-cover-showing{overflow:hidden}
+.home-cover{position:fixed;inset:0;z-index:500;width:100%;height:100vh;height:100svh;height:100dvh;overflow:hidden;background:#0b0b0b;display:flex;flex-direction:column}
+/* Cancels out the desktop-only 10% site-wide zoom (see html{zoom:1.1}
+   below) specifically for this overlay, so its fixed 100vh sizing means
+   exactly one real screen — without this, the zoomed rendering would
+   push the CTAs below the fold, forcing a scroll the cover is meant to
+   avoid entirely. */
+@media(min-width:641px){ .home-cover{zoom:0.9090909} }
 .home-cover-media{position:absolute;inset:0;width:100%;height:100%}
 .home-cover-media img{width:100%;height:100%;object-fit:cover;display:block}
 .home-cover-overlay{position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.65) 0%,rgba(0,0,0,.15) 45%,rgba(0,0,0,.35) 100%)}
-.home-cover-top{position:absolute;top:0;left:0;right:0;z-index:2;display:flex;align-items:center;justify-content:center;padding:20px 20px 0;min-height:56px}
-.home-cover-name{color:#fff;font-family:var(--restoFont,'Cormorant Garamond'),serif;font-weight:700;font-size:24px;text-align:center;letter-spacing:.04em}
-.home-cover-sched{position:absolute;right:20px;top:20px}
-.home-cover-content{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:0 24px 48px;text-align:center;color:#fff}
-.home-cover-headline{font-family:'Jost',sans-serif;font-weight:500;font-size:clamp(22px,5vw,34px);line-height:1.25;margin-bottom:22px;text-shadow:0 2px 12px rgba(0,0,0,.35)}
+/* Name is NOT part of the fade group below — it stays put the whole
+   time, so the handoff to the real header's own name (once the cover
+   is gone) doesn't read as anything moving. */
+.home-cover-top{position:relative;z-index:3;padding:20px 20px 0;text-align:center;flex:none}
+.home-cover-name{color:#fff;font-family:var(--restoFont,'Cormorant Garamond'),serif;font-weight:700;font-size:24px;letter-spacing:.04em}
+/* Semi-transparent — visible, but no longer the small solid-white
+   badge that "flashed" too much against a photo background. */
+.home-cover-sched{display:flex;justify-content:center;margin-top:10px}
+.home-cover-sched .sched-pin-frame{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.3)}
+.home-cover-sched .resto-badge-inline span{color:#fff!important}
+.home-cover-fade-group{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;justify-content:flex-end;transition:opacity .22s ease}
+.home-cover-fade-group.fading-out{opacity:0}
+.home-cover-content{padding:0 24px 40px;text-align:center;color:#fff}
+.home-cover-headline{font-family:'Jost',sans-serif;font-weight:500;font-size:52px;line-height:1.2;margin-bottom:24px;text-shadow:0 2px 12px rgba(0,0,0,.35)}
+@media(max-width:640px){ .home-cover-headline{font-size:30px;margin-bottom:18px} }
 .home-cover-ctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
 .home-cover-cta{display:inline-flex;align-items:center;justify-content:center;padding:14px 28px;border-radius:8px;font-family:'Jost',sans-serif;font-size:13px;font-weight:500;letter-spacing:.06em;text-decoration:none;cursor:pointer;border:none;min-width:160px}
 .home-cover-cta-menu{background:#2b2b2b;color:#fff}
@@ -616,7 +634,7 @@ let DATA = {
   icones: { main: '', secondary: '' },
   showHeaderLogo: true,
   homeTab: { active:false, photo:'', video:'' },
-  homeCover: { active:false, image:'', mobilePos:50, cta1Label:'Voir le menu', cta1Url:'', cta2Label:'Réserver', cta2Url:'' },
+  homeCover: { active:false, image:'', mobilePos:50, headline:'', statusBarColor:'#000000', cta1Label:'Voir le menu', cta1Url:'', cta2Label:'Réserver', cta2Url:'' },
   schedule: [
     { day:'Lundi',    services:[] },
     { day:'Mardi',    services:[{label:'Soir',open:17,close:2}] },
@@ -1373,10 +1391,15 @@ function renderAll(){
     if(first) currentTabId=first.id;
   }
   syncHashToCurrentTab();
-  collectLbImages(); renderNav(); renderTabs(); renderViewBar(); renderHomeCover();
+  collectLbImages(); renderNav(); renderTabs(); renderViewBar();
   const subEl=document.getElementById('heroSubEl');
   if(subEl){ const st=DATA.hero?t(DATA.hero):''; subEl.textContent=st; subEl.style.display=st?'block':'none'; }
   applyRestaurantBranding();
+  // Rendered last, deliberately: applyRestaurantBranding() sets the
+  // status-bar meta to the site's own navy — if the cover is active it
+  // needs the final say, overriding that with its own configured color,
+  // or every render (not just the first) would silently revert it.
+  renderHomeCover();
 }
 
 // BUG FIX: this used to populate a sticky #globalSocialBar shown on
@@ -1601,44 +1624,60 @@ function variantsPriceInfo(variants){
   }).join(' · ')};
 }
 
-// ── Page de couverture plein écran (avant le site) ──
-// Renders into #homeCoverContainer, sitting above the whole normal site.
-// "Voir le menu" scrolls straight past it to reveal the real header/nav/
-// content underneath — same page, no navigation. A tiny standalone
-// feature, kept deliberately simple: background image (with its own
-// mobile crop position, same idea as the home tab's own photo/video
-// choice), the restaurant name, the existing schedule badge+popup
-// (its own instance, separate ids from the header's), and two
-// admin-editable CTA buttons (label + link each).
+// ── Page de couverture (calque plein écran par-dessus le site déjà chargé) ──
+// Renders into #homeCoverContainer as a position:fixed overlay — the
+// real header/nav/content underneath is already fully rendered on its
+// default tab the whole time, simply hidden behind this opaque layer.
+// "Voir le menu" fades OUT the image/badge/headline/CTAs (quick, ~0.2s)
+// then removes the cover outright — no scrolling, no navigation, and
+// the restaurant name (not part of that fade group) never visibly
+// moves, since the real header's own name is already sitting in a
+// similar spot the instant the cover is gone.
+let homeCoverDismissedThisSession=false;
 function renderHomeCover(){
   const el=document.getElementById('homeCoverContainer');
   const hc=DATA.homeCover||{};
-  if(!hc.active){ el.innerHTML=''; return; }
+  if(!hc.active||homeCoverDismissedThisSession){ el.innerHTML=''; document.body.classList.remove('home-cover-showing'); return; }
   applyHomeCoverMobilePos(hc.mobilePos!=null?hc.mobilePos:50);
   const cta1Url=hc.cta1Url||'';
   const cta2Url=hc.cta2Url||'';
+  const headlineHtml=escapeHtmlLocal(hc.headline||'').replace(/\n/g,'<br>');
   el.innerHTML=`<div class="home-cover" id="homeCoverEl">
     <div class="home-cover-media">${hc.image?`<img src="${escAttr(hc.image)}" alt="">`:''}</div>
     <div class="home-cover-overlay"></div>
     <div class="home-cover-top">
       <div class="home-cover-name">${escapeHtmlLocal(getRestaurantName())}</div>
-      <div class="home-cover-sched">${renderScheduleInline('Cover')}</div>
     </div>
-    <div class="home-cover-content">
-      <div class="home-cover-headline">${escapeHtmlLocal(hc.headline||'')}</div>
-      <div class="home-cover-ctas">
-        ${cta1Url
-          ? `<a class="home-cover-cta home-cover-cta-menu" href="${escAttr(cta1Url)}">${escapeHtmlLocal(hc.cta1Label||'Voir le menu')}</a>`
-          : `<button type="button" class="home-cover-cta home-cover-cta-menu" onclick="scrollPastHomeCover()">${escapeHtmlLocal(hc.cta1Label||'Voir le menu')}</button>`}
-        <a class="home-cover-cta home-cover-cta-reserve" href="${escAttr(cta2Url)}">${escapeHtmlLocal(hc.cta2Label||'Réserver')}</a>
+    <div class="home-cover-fade-group" id="homeCoverFadeGroup">
+      <div class="home-cover-sched">${renderScheduleInline('Cover')}</div>
+      <div class="home-cover-content">
+        <div class="home-cover-headline">${headlineHtml}</div>
+        <div class="home-cover-ctas">
+          ${cta1Url
+            ? `<a class="home-cover-cta home-cover-cta-menu" href="${escAttr(cta1Url)}">${escapeHtmlLocal(hc.cta1Label||'Voir le menu')}</a>`
+            : `<button type="button" class="home-cover-cta home-cover-cta-menu" onclick="dismissHomeCover()">${escapeHtmlLocal(hc.cta1Label||'Voir le menu')}</button>`}
+          <a class="home-cover-cta home-cover-cta-reserve" href="${escAttr(cta2Url)}">${escapeHtmlLocal(hc.cta2Label||'Réserver')}</a>
+        </div>
       </div>
     </div>
   </div>`;
+  document.body.classList.add('home-cover-showing');
+  const themeMeta=document.getElementById('themeColorMeta');
+  if(themeMeta) themeMeta.setAttribute('content', hc.statusBarColor||'#000000');
 }
-function scrollPastHomeCover(){
-  const cover=document.getElementById('homeCoverEl');
-  const target=cover?cover.parentElement.nextElementSibling:null;
-  if(target) target.scrollIntoView({behavior:'smooth',block:'start'});
+function dismissHomeCover(){
+  homeCoverDismissedThisSession=true;
+  const group=document.getElementById('homeCoverFadeGroup');
+  if(group) group.classList.add('fading-out');
+  setTimeout(()=>{
+    const el=document.getElementById('homeCoverContainer');
+    if(el) el.innerHTML='';
+    document.body.classList.remove('home-cover-showing');
+    // Hand the status bar color back to the site's own brand color, now
+    // that the real header (which was underneath the whole time) is
+    // what's showing.
+    applyBrandColors();
+  },220);
 }
 // Mirrors clampHomePhotoRatio's spirit but for the cover's mobile crop:
 // a plain object-position shift, injected as a scoped <style> so it only
@@ -1662,10 +1701,10 @@ function updateHomeCoverMobilePreview(pos){
 // headline text, and the two CTA buttons (label + link each, so either
 // can point anywhere — a custom URL, not just "scroll to menu").
 function renderAdminHomeCover(){
-  const hc=DATA.homeCover||(DATA.homeCover={active:false,image:'',mobilePos:50,headline:'',cta1Label:'Voir le menu',cta1Url:'',cta2Label:'Réserver',cta2Url:''});
+  const hc=DATA.homeCover||(DATA.homeCover={active:false,image:'',mobilePos:50,headline:'',statusBarColor:'#000000',cta1Label:'Voir le menu',cta1Url:'',cta2Label:'Réserver',cta2Url:''});
   const mobPos=hc.mobilePos!=null?hc.mobilePos:50;
   return `<div class="admin-section"><div class="admin-sect-title">Page de couverture</div><div class="admin-sect-body">
-    <label class="admin-toggle"><input type="checkbox" ${hc.active?'checked':''} onchange="DATA.homeCover.active=this.checked;renderAll();renderAdminSection('__cover')"><label>Activer la page de couverture (avant le site)</label></label>
+    <label class="admin-toggle"><input type="checkbox" ${hc.active?'checked':''} onchange="DATA.homeCover.active=this.checked;if(this.checked)homeCoverDismissedThisSession=false;renderAll();renderAdminSection('__cover')"><label>Activer la page de couverture (avant le site)</label></label>
     <div class="af"><label class="al">Image de fond (plein écran)</label>
       <input class="ai" value="${escAttr(hc.image||'')}" placeholder="https://... .jpg ou .webp" oninput="DATA.homeCover.image=this.value.trim();renderAll();renderAdminSection('__cover')">
     </div>
@@ -1679,13 +1718,20 @@ function renderAdminHomeCover(){
         ${hc.image?`<img id="homeCoverMobilePreviewImg" src="${escAttr(hc.image)}" style="width:100%;height:100%;object-fit:cover;object-position:${mobPos}% center;display:block">`:`<div style="color:rgba(255,255,255,.5);font-size:10px;text-align:center;padding:10px">Aperçu mobile</div>`}
       </div>
     </div>
+    <div class="af"><label class="al">Couleur de la barre du haut sur mobile (batterie, heure, notch)</label>
+      <div style="display:flex;align-items:center;gap:8px">
+        <input type="color" value="${hc.statusBarColor||'#000000'}" style="width:44px;height:32px;border:1px solid var(--border);border-radius:6px;padding:2px;cursor:pointer" onchange="DATA.homeCover.statusBarColor=this.value;renderAll()">
+        <span style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif">Noir par défaut — à adapter si l'image ou la vidéo ne s'y prête pas.</span>
+      </div>
+    </div>
     <div class="af"><label class="al">Texte (centré, en bas de l'écran)</label>
       <textarea class="ai" rows="2" style="resize:vertical" placeholder="Ex: Fraîcheur et tradition, au cœur de Paris" oninput="DATA.homeCover.headline=this.value;renderAll()">${escAttr(hc.headline||'')}</textarea>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px">Entrée = retour à la ligne, si tu veux le répartir sur deux lignes.</div>
     </div>
     <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-family:Jost,sans-serif;margin:12px 0 6px;border-top:1px solid var(--border);padding-top:12px">1er bouton</div>
     <div class="af" style="display:flex;gap:8px">
       <input class="ai" value="${escAttr(hc.cta1Label||'')}" placeholder="Texte (ex: Voir le menu)" oninput="DATA.homeCover.cta1Label=this.value;renderAll()">
-      <input class="ai" value="${escAttr(hc.cta1Url||'')}" placeholder="Lien (vide = fait défiler vers le menu)" oninput="DATA.homeCover.cta1Url=this.value.trim();renderAll()">
+      <input class="ai" value="${escAttr(hc.cta1Url||'')}" placeholder="Lien (vide = fait apparaître le menu ici même)" oninput="DATA.homeCover.cta1Url=this.value.trim();renderAll()">
     </div>
     <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-family:Jost,sans-serif;margin:12px 0 6px">2e bouton</div>
     <div class="af" style="display:flex;gap:8px">
@@ -4717,8 +4763,8 @@ function openFirstAdminSection(){
 // blank moment, then let the GitHub check reconcile in the background —
 // this only visibly changes anything if newer edits were published from
 // elsewhere since this file was last deployed.
-renderAll();
 applyRestaurantBranding();
+renderAll();
 { const dBtn=document.getElementById('calAdminBtnDesktop'); if(dBtn) dBtn.href=RESA_ADMIN_URL;
   const mBtn=document.getElementById('calAdminBtnMobile'); if(mBtn) mBtn.href=RESA_ADMIN_URL; }
 // BUG FIX: the "Lecture / Modifier / Réglages" bar (.mode-links-bar) was
@@ -4758,8 +4804,8 @@ const _preFetchSnapshot=JSON.stringify(DATA);
 loadFromSupabase().then(()=>{
   if(JSON.stringify(DATA)!==_preFetchSnapshot){
     view=DATA.defaultView||'grid';
-    renderAll();
     applyRestaurantBranding();
+    renderAll();
   }
 });
 </script>
