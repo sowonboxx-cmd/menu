@@ -64,7 +64,7 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 /* ── HEADER ── */
 .header{background:var(--navy);padding:14px 0 0}
 .header .container{display:flex;flex-direction:column;align-items:center}
-.header-top{width:100%;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.header-top{width:100%;display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
 .header-top-left{display:flex;align-items:center;gap:6px}
 .header-top-right{display:flex;align-items:center;gap:6px;visibility:hidden}
 body.is-admin .header-top-right, body.admin-entry-visible .header-top-right{visibility:visible}
@@ -143,7 +143,7 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .view-bar-inner{max-width:680px;margin:0 auto;padding:9px 16px;display:flex;align-items:center;justify-content:space-between}
 .view-tab-label{font-size:10px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);font-family:'Jost',sans-serif}
 .view-btns{display:flex;gap:4px}
-.header-reserve-btn{display:inline-flex;align-items:center;background:var(--navy);color:#fff;font-size:11px;font-family:Jost,sans-serif;padding:5px 14px;border-radius:6px;text-decoration:none;white-space:nowrap;transition:opacity .15s}
+.header-reserve-btn{display:inline-flex;align-items:center;background:var(--navy);color:#fff;font-size:11px;font-weight:500;font-family:Jost,sans-serif;padding:5px 14px;border-radius:6px;text-decoration:none;white-space:nowrap;transition:opacity .15s}
 .header-reserve-btn:hover{opacity:.85}
 .view-btn{width:30px;height:30px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:#fff;color:var(--text3);display:flex;align-items:center;justify-content:center;transition:all .15s}
 .sched-pin-frame{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:6px;background:#fff;padding:5px 10px}
@@ -555,15 +555,7 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
         <span class="view-tab-label" id="viewLabel" style="padding-left:16px"></span>
         <div style="display:flex;align-items:center;gap:10px">
           <div id="schedWidgetInline"></div>
-          <a class="header-reserve-btn" href="https://sowonboxx-cmd.github.io/menu/drevici/resa">Réserver</a>
-          <div class="view-btns" id="viewBtnsWrap" style="min-width:72px;justify-content:flex-end;">
-            <button class="view-btn active" id="btnList" onclick="setView('list')" aria-label="Liste">
-              <svg viewBox="0 0 16 16"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
-            </button>
-            <button class="view-btn" id="btnGrid" onclick="setView('grid')" aria-label="Grille">
-              <svg viewBox="0 0 16 16"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
-            </button>
-          </div>
+          <a class="header-reserve-btn" href="https://sowonboxx-cmd.github.io/menu/drevici/resa">RÉSERVER</a>
         </div>
       </div>
     </div>
@@ -685,7 +677,7 @@ let DATA = {
   ]
 };
 
-let lang='fr', view='grid', currentTabId=(decodeURIComponent((location.hash||'').replace(/^#/,''))||sessionStorage.getItem('lastTabId')||'huitres');
+let lang='fr', view=(DATA.defaultView||'grid'), currentTabId=(decodeURIComponent((location.hash||'').replace(/^#/,''))||sessionStorage.getItem('lastTabId')||'huitres');
 let lbImages=[], lbIdx=0;
 let editMode=false, editCtx=null;
 let confirmCallback=null;
@@ -1465,10 +1457,6 @@ function renderNav(){
 function renderViewBar(){
   const tab=DATA.tabs.find(tb=>tb.id===currentTabId);
   document.getElementById('viewLabel').textContent=tab?t(tab.label):'';
-  document.getElementById('btnList').classList.toggle('active',view==='list');
-  document.getElementById('btnGrid').classList.toggle('active',view==='grid');
-  // All tabs show list/grid
-  document.getElementById('viewBtnsWrap').style.visibility='visible';
   // Inline schedule in subheader
   const wi=document.getElementById('schedWidgetInline');
   if(wi) wi.innerHTML=renderScheduleInline();
@@ -4366,6 +4354,13 @@ function renderSocialAdminSection(){
     </div>
     <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-top:4px;line-height:1.5">Les liens s'affichent sous la présentation si le champ est rempli.</div>
     <label class="admin-toggle" style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px"><input type="checkbox" ${DATA.showCurrency!==false?'checked':''} onchange="DATA.showCurrency=this.checked;renderAll()"><label>Afficher la devise (€)</label></label>
+    <div class="af" style="margin-top:14px"><label class="al">Affichage par défaut du menu</label>
+      <div style="display:flex;gap:16px;margin-top:2px">
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="defaultViewChoice" value="grid" ${(DATA.defaultView||'grid')==='grid'?'checked':''} onchange="DATA.defaultView='grid';view='grid';renderAll()"> Grille</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="defaultViewChoice" value="list" ${DATA.defaultView==='list'?'checked':''} onchange="DATA.defaultView='list';view='list';renderAll()"> Liste</label>
+      </div>
+      <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-top:4px">Les visiteurs ne peuvent plus choisir eux-mêmes — c'est cette vue qui s'affiche pour tout le monde.</div>
+    </div>
   </div></div>`;
 }
 
@@ -4606,6 +4601,7 @@ applyRestaurantBranding();
 const _preFetchSnapshot=JSON.stringify(DATA);
 loadFromSupabase().then(()=>{
   if(JSON.stringify(DATA)!==_preFetchSnapshot){
+    view=DATA.defaultView||'grid';
     renderAll();
     applyRestaurantBranding();
   }
