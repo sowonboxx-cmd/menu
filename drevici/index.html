@@ -2212,14 +2212,21 @@ function toggleSchedPopup(e){
   const rect=badge.getBoundingClientRect();
   const pw=268;
   const vw=window.innerWidth;
-  // Aligns with the schedule badge's OWN right edge — not the reserve
-  // button next to it — on both mobile and desktop.
-  let left=rect.right-pw;
-  if(left<12) left=12;
-  if(left+pw>vw-12) left=vw-pw-12;
-  // Open downward below the badge. A little extra room on mobile,
-  // where the popup otherwise sits almost flush against the button.
-  const top=rect.bottom+(vw<=640?14:8);
+  let left, top;
+  if(vw<=640){
+    // Mobile: centered horizontally on the screen — right-aligning to
+    // the badge never looked right here, this is simpler and reads
+    // better on a narrow screen. A bit more room below the button too.
+    left=(vw-pw)/2;
+    top=rect.bottom+20;
+  } else {
+    // Desktop: aligns with the schedule badge's own right edge — not
+    // the reserve button next to it.
+    left=rect.right-pw;
+    if(left<12) left=12;
+    if(left+pw>vw-12) left=vw-pw-12;
+    top=rect.bottom+8;
+  }
   p.style.left=left+'px';
   p.style.top=top+'px';
   p.style.transform='none';
