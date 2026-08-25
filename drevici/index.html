@@ -139,6 +139,7 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .nav-indicator{position:absolute;top:6px;bottom:6px;background:#fff;border-radius:var(--rs);pointer-events:none;transition:left .22s ease,width .22s ease;z-index:0}
 .nav-tab{flex:none;padding:11px 14px 10px;font-size:11px;font-weight:500;font-family:'Jost',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--tabInactiveColor,rgba(255,255,255,0.4));cursor:pointer;white-space:nowrap;transition:all .2s;position:relative;z-index:1}
 .nav-tab.active{color:var(--navy)}
+.nav-tab.nav-tab-swiping{color:var(--navy)}
 .view-bar{background:#fff;border-bottom:1px solid var(--border)}
 .view-bar-inner{max-width:680px;margin:0 auto;padding:9px 16px;display:flex;align-items:center;justify-content:space-between}
 .view-tab-label{font-size:10px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);font-family:'Jost',sans-serif}
@@ -1765,6 +1766,7 @@ function renderInfoBanner(ib){
   let tsX=0,tsY=0,isDragging=false,dragLocked=false,dir=0;
   let activeEl=null,neighborEl=null,containerEl=null,prevContainerStyle=null;
   let navIndicatorEl=null,navActiveLeft=0,navActiveWidth=0,navNeighborLeft=0,navNeighborWidth=0;
+  let navActiveTabElRef=null,navNeighborTabElRef=null;
   const THRESHOLD=0.12; // 12% of screen width to commit — light swipe enough
 
   function resetPanel(el){
@@ -1780,6 +1782,9 @@ function renderInfoBanner(ib){
     }
     resetPanel(activeEl);
     resetPanel(neighborEl);
+    if(navActiveTabElRef) navActiveTabElRef.classList.remove('nav-tab-swiping');
+    if(navNeighborTabElRef) navNeighborTabElRef.classList.remove('nav-tab-swiping');
+    navActiveTabElRef=null; navNeighborTabElRef=null;
     activeEl=null;neighborEl=null;containerEl=null;prevContainerStyle=null;dir=0;
     navIndicatorEl=null;
   }
@@ -1837,6 +1842,19 @@ function renderInfoBanner(ib){
         navIndicatorEl.style.transition='none';
         navActiveLeft=navActiveTabEl.offsetLeft; navActiveWidth=navActiveTabEl.offsetWidth;
         navNeighborLeft=navNeighborTabEl.offsetLeft; navNeighborWidth=navNeighborTabEl.offsetWidth;
+        // BUG FIX: only the tab that WAS active had navy (legible) text —
+        // the neighbor being swiped toward was still styled pale/dim
+        // (correct for sitting on the navy header, but that same pale
+        // text turns near-invisible once the white pill slides under it
+        // mid-drag). That read as "the label is blank, then it appears"
+        // once the swipe finished and a fresh render finally colored it
+        // navy. Color both tabs navy for the live drag — whichever one
+        // the pill currently covers is then already legible throughout,
+        // like a light passing over something already there rather than
+        // something being drawn in after the fact.
+        navActiveTabEl.classList.add('nav-tab-swiping');
+        navNeighborTabEl.classList.add('nav-tab-swiping');
+        navActiveTabElRef=navActiveTabEl; navNeighborTabElRef=navNeighborTabEl;
       } else {
         navIndicatorEl=null;
       }
@@ -2194,21 +2212,14 @@ function toggleSchedPopup(e){
   const rect=badge.getBoundingClientRect();
   const pw=268;
   const vw=window.innerWidth;
-  // BUG FIX: this used to align to the schedule badge's own right edge
-  // on desktop (fine back when the badge was the rightmost element in
-  // this row) and just center the popup on mobile — but now that the
-  // "RÉSERVER" button sits to the right of the badge on every screen
-  // size, both approaches left the popup visibly offset from the true
-  // right edge of that whole button row. Anchor to the reserve button's
-  // right edge instead, on both mobile and desktop, so the popup lines
-  // up with the actual rightmost point people see.
-  const reserveBtn=document.querySelector('.header-reserve-btn');
-  const anchorRight=reserveBtn?reserveBtn.getBoundingClientRect().right:rect.right;
-  let left=anchorRight-pw;
+  // Aligns with the schedule badge's OWN right edge — not the reserve
+  // button next to it — on both mobile and desktop.
+  let left=rect.right-pw;
   if(left<12) left=12;
   if(left+pw>vw-12) left=vw-pw-12;
-  // Open downward below the badge
-  const top=rect.bottom+8;
+  // Open downward below the badge. A little extra room on mobile,
+  // where the popup otherwise sits almost flush against the button.
+  const top=rect.bottom+(vw<=640?14:8);
   p.style.left=left+'px';
   p.style.top=top+'px';
   p.style.transform='none';
