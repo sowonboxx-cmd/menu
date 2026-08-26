@@ -4069,6 +4069,13 @@ function buildPdfCSS(cfg){
   return `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Open+Sans:wght@300;400;600&display=swap');
   *{box-sizing:border-box;margin:0;padding:0}
+  /* BUG FIX: without this, browsers print backgrounds/colors differently
+     from what's shown on screen by default (usually to save ink) — this
+     is exactly what made the live preview and the actual printed/PDF
+     output look different (background color, accent yellow, etc.). This
+     forces the print output to reproduce colors exactly as configured,
+     so the two always match — one standard recipe, no per-client tweaking. */
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
   .pdf-page{font-family:'Open Sans',sans-serif;color:#1a1a1a;background:${cfg.bgColor||'#FFFDF8'};width:${pageW}px;padding:${pad}px;margin:0 auto;position:relative}
   ${maritime?`.pdf-page::before{content:'';position:absolute;inset:14px;border:1.5px solid ${cfg.accentColor};opacity:.4;pointer-events:none}`:''}
   .pdf-header{text-align:center;margin-bottom:${isGbiz?40:28}px;position:relative}
@@ -4095,9 +4102,6 @@ function buildPdfCSS(cfg){
   .pdf-footer-text{font-size:${isGbiz?12:10}px;color:#999;letter-spacing:.04em;line-height:1.6}
   @media print{
     @page{size:A4;margin:14mm}
-    body{background:#fff!important}
-    .pdf-page{width:100%!important;padding:0!important;margin:0!important}
-    .pdf-page::before{display:none!important}
   }`;
 }
 
