@@ -562,7 +562,7 @@ body.home-cover-showing{overflow:hidden}
     <div class="container">
       <div class="header-top">
         <div class="header-top-left"></div>
-        <div class="logo-centered" style="display:flex;flex-direction:column;align-items:center;">
+        <div class="logo-centered" style="display:flex;flex-direction:column;align-items:center;cursor:pointer" onclick="returnToHomeCover()">
           <img class="logo-img" src="https://drevicioyster.com/wp-content/uploads/2026/06/Drevici-Oyster-white-HD.png" alt="Drevici Oyster" onerror="this.style.display='none'"/>
           <span class="logo-text" id="logoText">Drevici Oyster</span>
           <span class="header-sub" id="heroSubEl" style="margin-bottom:0"></span>
@@ -639,7 +639,7 @@ let DATA = {
   corpoTemplates: [],
   icones: { main: '', secondary: '' },
   homeTab: { active:false, photo:'', video:'' },
-  homeCover: { active:false, mediaType:'photo', image:'', mobilePos:50, mobileImage:'', video:'', headline:'', headlineFont:'Jost', statusBarColor:'#000000', cta1Label:'Voir le menu', cta1Url:'', cta2Label:'Réserver', cta2Url:'' },
+  homeCover: { active:true, mediaType:'photo', image:'', mobilePos:50, mobileImage:'', video:'', headline:'', headlineFont:'Jost', statusBarColor:'#000000', cta1Label:'Voir le menu', cta1Url:'', cta2Label:'Réserver', cta2Url:'' },
   schedule: [
     { day:'Lundi',    services:[] },
     { day:'Mardi',    services:[{label:'Soir',open:17,close:2}] },
@@ -1726,6 +1726,15 @@ function dismissHomeCover(){
     applyBrandColors();
   },220);
 }
+// Clicking the restaurant name/logo, once past the cover and browsing
+// the actual menu, brings the cover back — "home" in the usual sense
+// of a logo click, now that the cover (not a menu tab) is what "Page
+// d'accueil" actually means.
+function returnToHomeCover(){
+  if(!DATA.homeCover||!DATA.homeCover.active) return;
+  homeCoverDismissedThisSession=false;
+  renderHomeCover();
+}
 // Mirrors clampHomePhotoRatio's spirit but for the cover's mobile crop:
 // a plain object-position shift, injected as a scoped <style> so it only
 // applies under the mobile breakpoint, same technique as the reference.
@@ -1768,7 +1777,6 @@ function renderAdminHomeCover(){
   const mobPos=hc.mobilePos!=null?hc.mobilePos:50;
   const isVideo=hc.mediaType==='video';
   return `<div class="admin-section"><div class="admin-sect-title">Page d'accueil</div><div class="admin-sect-body">
-    <label class="admin-toggle"><input type="checkbox" ${hc.active?'checked':''} onchange="DATA.homeCover.active=this.checked;if(this.checked)homeCoverDismissedThisSession=false;renderAll();renderAdminSection('__cover');scheduleCoverAutoSave()"><label>Activer la page de couverture (avant le site)</label></label>
     <div class="af"><label class="al">Média de fond</label>
       <div style="display:flex;gap:16px;margin-top:2px">
         <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="coverMediaType" value="photo" ${!isVideo?'checked':''} onchange="DATA.homeCover.mediaType='photo';renderAll();renderAdminSection('__cover');scheduleCoverAutoSave()"> Photo</label>
@@ -1780,9 +1788,8 @@ function renderAdminHomeCover(){
       <input class="ai" value="${escAttr(hc.video||'')}" placeholder="https://youtube.com/watch?v=... ou https://vimeo.com/..." oninput="DATA.homeCover.video=this.value.trim();renderAll();scheduleCoverAutoSave()">
     </div>
     ` : `
-    <div class="af"><label class="al">Image de fond (plein écran)</label>
-      <input class="ai" value="${escAttr(hc.image||'')}" placeholder="https://... .jpg ou .webp" oninput="DATA.homeCover.image=this.value.trim();renderAll();renderAdminSection('__cover');scheduleCoverAutoSave()">
-    </div>
+    <div class="af"><label class="al">Image de fond (plein écran)</label></div>
+    ${imgFieldHtml(hc.image||'', "DATA.homeCover.image=this.value.trim();renderAll();renderAdminSection('__cover');scheduleCoverAutoSave()", 'https://... .jpg ou .webp', null)}
     <div class="af" style="display:flex;gap:16px;align-items:center;background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 14px">
       <div style="flex:1;min-width:0">
         <label class="al">Position de l'image sur mobile <strong id="homeCoverMobilePosLabel">${mobPos}</strong>%</label>
@@ -1793,10 +1800,9 @@ function renderAdminHomeCover(){
         ${hc.image?`<img id="homeCoverMobilePreviewImg" src="${escAttr(hc.image)}" style="width:100%;height:100%;object-fit:cover;object-position:${mobPos}% center;display:block">`:`<div style="color:rgba(255,255,255,.5);font-size:10px;text-align:center;padding:10px">Aperçu mobile</div>`}
       </div>
     </div>
-    <div class="af"><label class="al">Photo uniquement pour mobile (optionnel)</label>
-      <input class="ai" value="${escAttr(hc.mobileImage||'')}" placeholder="https://... — laissez vide pour utiliser la même image que sur desktop" oninput="DATA.homeCover.mobileImage=this.value.trim();renderAll();scheduleCoverAutoSave()">
-      <div style="font-size:10.5px;color:var(--text3);margin-top:4px">Si renseignée, remplace l'image de fond ci-dessus uniquement sur mobile — le desktop garde toujours l'image principale.</div>
-    </div>
+    <div class="af"><label class="al">Photo uniquement pour mobile (optionnel)</label></div>
+    ${imgFieldHtml(hc.mobileImage||'', "DATA.homeCover.mobileImage=this.value.trim();renderAll();scheduleCoverAutoSave()", 'https://... — laissez vide pour utiliser la même image que sur desktop', null)}
+    <div style="font-size:10.5px;color:var(--text3);margin-top:-8px;margin-bottom:4px">Si renseignée, remplace l'image de fond ci-dessus uniquement sur mobile — le desktop garde toujours l'image principale.</div>
     `}
     <div class="af"><label class="al">Couleur de la barre du haut sur mobile (batterie, heure, notch)</label>
       <div style="display:flex;align-items:center;gap:8px">
@@ -2866,7 +2872,7 @@ function updateDualPrice(ti,ci,di){
 
 function renderFirstTabExtrasSection(){
   let h='';
-  h+=`<div class="admin-section"><div class="admin-sect-title">Présentation</div><div class="admin-sect-body">
+  h+=`<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Présentation</div><div class="admin-sect-body">
     <label class="admin-toggle"><input type="checkbox" ${DATA.intro.active?'checked':''} onchange="DATA.intro.active=this.checked;renderAll();renderAdminSection('__global')"><label>Afficher la présentation</label></label>
     `+biInput('Texte de présentation', DATA.intro.text.fr||'', DATA.intro.text[adminLang]||'', `DATA.intro.text[adminLang]=this.value;renderAll()`, true)+`
   </div></div>`;
@@ -3395,6 +3401,11 @@ async function loadFromSupabase(){
     // reviving a tab the person can no longer see or turn off.
     if(DATA.homeTab) DATA.homeTab.active=false;
     DATA.tabs=DATA.tabs.filter(t=>t.id!=='__home');
+    // The "Page d'accueil" cover is now a mandatory default — there's no
+    // more admin toggle for it, so force it on regardless of an earlier
+    // session's saved value (e.g. from before this checkbox was removed).
+    if(!DATA.homeCover) DATA.homeCover={};
+    DATA.homeCover.active=true;
     migrateTabIds();
     { const hashTid=tabIdFromHash();
       currentTabId=(hashTid && DATA.tabs.some(tb=>tb.id===hashTid && tb.visible!==false)) ? hashTid : (DATA.tabs[0]?.id||'huitres');
@@ -4405,7 +4416,7 @@ function applyRestaurantBranding(){
 function restaurantSettingHtml(){
   const name=getRestaurantName();
   const logo=getRestaurantLogo();
-  return `<div class="admin-section collapsible"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Mon établissement</div><div class="admin-sect-body">
+  return `<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Mon établissement</div><div class="admin-sect-body">
     <div class="af"><label class="al">Nom de l'établissement</label>
       <input class="ai" value="${name}" placeholder="Nom du restaurant" oninput="setRestaurantName(this.value);document.getElementById('logoText').textContent=this.value||'Mon Restaurant'">
     </div>
