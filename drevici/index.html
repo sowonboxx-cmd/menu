@@ -607,17 +607,20 @@ body.home-cover-showing{overflow:hidden}
   <div class="sticky-reserve">
     <div class="container">
       <div class="mode-links-bar">
+        <button class="mode-link" onclick="openAdminSection('__print')" title="Impression du menu">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="1.3" width="8" height="4" rx="0.5"/><rect x="2" y="5.3" width="12" height="6" rx="1"/><rect x="4" y="9" width="8" height="5.7" rx="0.5"/></svg>
+        </button>
         <a class="mode-link" id="calAdminBtnMobile" href="#" title="Réservations">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1.5"/><line x1="2" y1="6.5" x2="14" y2="6.5"/><line x1="5" y1="1.5" x2="5" y2="4"/><line x1="11" y1="1.5" x2="11" y2="4"/></svg>
         </a>
-        <button class="mode-link mode-link-read active" id="modeLinkRead" title="Mode lecture" onclick="setEditMode(false)">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg>
-        </button>
         <button class="mode-link mode-link-edit" id="modeLinkEdit" title="Mode modification" onclick="setEditMode(true)">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2l3 3-8 8H3v-3l8-8z"/><line x1="9" y1="4" x2="12" y2="7"/></svg>
         </button>
         <button class="mode-link mode-link-settings" onclick="openAdmin()" title="Paramètres">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 1.5l-.4 1.6a4.5 4.5 0 0 0-1.1.6L3.4 3l-1.9 3.2 1.2 1.2a4.6 4.6 0 0 0 0 1.2L1.5 9.8 3.4 13l1.6-.7c.34.24.7.43 1.1.6l.4 1.6h3.8l.4-1.6c.4-.17.76-.36 1.1-.6l1.6.7 1.9-3.2-1.2-1.2c.05-.4.05-.8 0-1.2l1.2-1.2L12.6 3l-1.6.7a4.5 4.5 0 0 0-1.1-.6L9.5 1.5z"/><circle cx="8" cy="8" r="2"/></svg>
+        </button>
+        <button class="mode-link" onclick="openAdminSection('__social')" title="Réseaux sociaux">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="4.5" width="13" height="9" rx="1.5"/><path d="M5.5 4.5l1-2h3l1 2"/><circle cx="8" cy="9" r="2.3"/></svg>
         </button>
       </div>
     </div>
@@ -1769,6 +1772,15 @@ function scheduleAutoSave(){
   if(_autoSaveTimer) clearTimeout(_autoSaveTimer);
   _autoSaveTimer=setTimeout(()=>{ publishToSupabase(); }, 900);
 }
+// Deletions (a tab, a dish, a section...) get saved immediately instead
+// of through the usual debounce — someone who just deleted something is
+// prone to closing the panel or navigating away right after, and the
+// normal ~900ms delay risked losing exactly the change they most wanted
+// kept: the deletion itself.
+function publishNow(){
+  if(_autoSaveTimer){ clearTimeout(_autoSaveTimer); _autoSaveTimer=null; }
+  publishToSupabase();
+}
 // Kept as an alias: the cover section's fields already call this by
 // name in their own handlers — no need to touch each of them.
 function scheduleCoverAutoSave(){ scheduleAutoSave(); }
@@ -2699,6 +2711,24 @@ function openAdmin(){
   if(targetTab){adminCurrentTab=currentTabId;document.getElementById('adminTabDd').value=currentTabId;}
   renderAdminSection(adminCurrentTab);
 }
+// Quick-access shortcuts (bottom nav bar's print/social icons): open the
+// admin panel landing directly on a given section, instead of wherever
+// it was last left.
+function openAdminSection(tid){
+  document.getElementById('adminOverlay').classList.add('open');
+  document.getElementById('adminPanel').classList.add('open');
+  if(!supaSession){
+    document.getElementById('adminTabDd').style.display='none';
+    document.getElementById('adminLangDd').style.display='none';
+    document.getElementById('adminBody').innerHTML=adminLoginOnlyHtml();
+    return;
+  }
+  document.getElementById('adminTabDd').style.display='';
+  document.getElementById('adminLangDd').style.display='';
+  renderAdminTabDd();
+  adminGoTab(tid);
+  const dd=document.getElementById('adminTabDd'); if(dd) dd.value=tid;
+}
 function adminLoginOnlyHtml(){
   return `<div class="admin-section" style="border:none">
     <div class="admin-sect-body" style="padding-top:8px">
@@ -3048,7 +3078,7 @@ function renderAdminTab(ti){
 
   // Cards
   tab.cards.forEach((card,ci)=>{
-    h+=`<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer"><span>Section — ${t(card.label)}</span><button class="adel" style="font-size:12px;padding:1px 5px;flex:none;opacity:.6;margin-left:auto;margin-right:20px" onclick="event.stopPropagation();askConfirm('Supprimer cette section ?',()=>{DATA.tabs[${ti}].cards.splice(${ci},1);renderAll();renderAdminSection(DATA.tabs[${ti}].id)})">✕</button></div><div class="admin-sect-body">`;
+    h+=`<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer"><span>Section — ${t(card.label)}</span><button class="adel" style="font-size:12px;padding:1px 5px;flex:none;opacity:.6;margin-left:auto;margin-right:20px" onclick="event.stopPropagation();askConfirm('Supprimer cette section ?',()=>{DATA.tabs[${ti}].cards.splice(${ci},1);renderAll();renderAdminSection(DATA.tabs[${ti}].id);publishNow()})">✕</button></div><div class="admin-sect-body">`;
     h+=`<div class="admin-card">`;
     h+=biInput('Titre de section', card.label.fr||'', card.label[adminLang]||'', `DATA.tabs[${ti}].cards[${ci}].label[adminLang]=this.value;renderAll()`);
     h+=``;
@@ -3134,10 +3164,10 @@ function renderAdminTab(ti){
 }
 
 // ── ADMIN MUTATIONS ──
-function delTab(ti){ DATA.tabs.splice(ti,1); if(DATA.tabs.length>0)adminCurrentTab=DATA.tabs[0].id; else adminCurrentTab='__global'; renderAll(); renderAdminTabDd(); renderAdminSection(adminCurrentTab); showToast('Tab supprimée'); }
-function delDish(ti,ci,di){ DATA.tabs[ti].cards[ci].dishes.splice(di,1); renderAll(); renderAdminSection(DATA.tabs[ti].id); }
-function delVariant(ti,ci,vi){ DATA.tabs[ti].cards[ci].variants.splice(vi,1); renderAll(); renderAdminSection(DATA.tabs[ti].id); }
-function delBev(ti,ci,ii){ DATA.tabs[ti].cards[ci].items.splice(ii,1); renderAll(); renderAdminSection(DATA.tabs[ti].id); }
+function delTab(ti){ DATA.tabs.splice(ti,1); if(DATA.tabs.length>0)adminCurrentTab=DATA.tabs[0].id; else adminCurrentTab='__global'; renderAll(); renderAdminTabDd(); renderAdminSection(adminCurrentTab); showToast('Tab supprimée'); publishNow(); }
+function delDish(ti,ci,di){ DATA.tabs[ti].cards[ci].dishes.splice(di,1); renderAll(); renderAdminSection(DATA.tabs[ti].id); publishNow(); }
+function delVariant(ti,ci,vi){ DATA.tabs[ti].cards[ci].variants.splice(vi,1); renderAll(); renderAdminSection(DATA.tabs[ti].id); publishNow(); }
+function delBev(ti,ci,ii){ DATA.tabs[ti].cards[ci].items.splice(ii,1); renderAll(); renderAdminSection(DATA.tabs[ti].id); publishNow(); }
 function addDish(ti,ci){
   DATA.tabs[ti].cards[ci].dishes.push({_pid:genPid(),name:{fr:'',en:''},desc:{fr:'',en:''},price:'',img:'',spicy:false,vegan:false});
   renderAll();
@@ -3984,7 +4014,8 @@ function pdfCfg(){
     footerAddress: d.footerAddress || (DATA.address ? [DATA.address.street,DATA.address.zip,DATA.address.city].filter(Boolean).join(', ') : '') || '',
     footerPhone: d.footerPhone || (DATA.address&&DATA.address.phone) || '',
     footerShowDate: d.footerShowDate !== false,
-    format: d.format || 'a4'                     // 'a4' | 'gbiz'
+    format: d.format || 'a4',                    // 'a4' | 'gbiz'
+    paperSize: d.paperSize || 'a4'                // 'a4' | 'a5' — only applies when format is 'a4' (the print/PDF format)
   };
 }
 function setPdfCfg(key, val){
@@ -4062,9 +4093,17 @@ function buildPdfMenuHTML(cfg){
 // CSS for a given config + format
 function buildPdfCSS(cfg){
   const isGbiz = cfg.format === 'gbiz';
-  // A4 ~ 794px wide @96dpi; Google Business 3064x5447 → we render preview at scaled width
-  const pageW = isGbiz ? 612 : 700;   // preview px width (gbiz is portrait 9:16-ish)
-  const pad = isGbiz ? 70 : 40;
+  const isA5 = !isGbiz && cfg.paperSize === 'a5';
+  // A4 ~ 794px wide @96dpi; Google Business 3064x5447 → we render preview at scaled width.
+  // A5 is exactly half of A4 (cut along the long edge) — scaling every
+  // A4 dimension down by the same ratio keeps proportions (and the
+  // design itself) identical, just smaller, rather than needing a
+  // separate set of hand-tuned numbers to keep in sync.
+  const A5_SCALE = 0.72;
+  const scale = isGbiz ? 1 : (isA5 ? A5_SCALE : 1);
+  const px = v => Math.round(v*scale*100)/100;
+  const pageW = isGbiz ? 612 : px(700);   // preview px width (gbiz is portrait 9:16-ish)
+  const pad = isGbiz ? 70 : px(40);
   const maritime = cfg.template === 'maritime';
   return `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Open+Sans:wght@300;400;600&display=swap');
@@ -4077,31 +4116,31 @@ function buildPdfCSS(cfg){
      so the two always match — one standard recipe, no per-client tweaking. */
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
   .pdf-page{font-family:'Open Sans',sans-serif;color:#1a1a1a;background:${cfg.bgColor||'#FFFDF8'};width:${pageW}px;padding:${pad}px;margin:0 auto;position:relative}
-  ${maritime?`.pdf-page::before{content:'';position:absolute;inset:14px;border:1.5px solid ${cfg.accentColor};opacity:.4;pointer-events:none}`:''}
-  .pdf-header{text-align:center;margin-bottom:${isGbiz?40:28}px;position:relative}
-  .pdf-logo-text{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--navy,#10285E);margin:0 auto 12px;display:block;text-align:center}
-.pdf-logo{max-width:${isGbiz?160:120}px;max-height:${isGbiz?110:80}px;object-fit:contain;margin:0 auto 12px;display:block}
-  .pdf-title{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?44:32}px;font-weight:700;color:${cfg.titleColor};line-height:1.1}
-  .pdf-sub{font-size:${isGbiz?13:11}px;letter-spacing:.16em;text-transform:uppercase;color:#999;margin-top:6px}
-  .pdf-deco-divider{width:${isGbiz?120:90}px;margin:14px auto 0;color:${cfg.accentColor}}
+  ${maritime?`.pdf-page::before{content:'';position:absolute;inset:${px(14)}px;border:1.5px solid ${cfg.accentColor};opacity:.4;pointer-events:none}`:''}
+  .pdf-header{text-align:center;margin-bottom:${isGbiz?40:px(28)}px;position:relative}
+  .pdf-logo-text{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?22:px(22)}px;font-weight:700;color:var(--navy,#10285E);margin:0 auto 12px;display:block;text-align:center}
+.pdf-logo{max-width:${isGbiz?160:px(120)}px;max-height:${isGbiz?110:px(80)}px;object-fit:contain;margin:0 auto 12px;display:block}
+  .pdf-title{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?44:px(32)}px;font-weight:700;color:${cfg.titleColor};line-height:1.1}
+  .pdf-sub{font-size:${isGbiz?13:px(11)}px;letter-spacing:.16em;text-transform:uppercase;color:#999;margin-top:6px}
+  .pdf-deco-divider{width:${isGbiz?120:px(90)}px;margin:14px auto 0;color:${cfg.accentColor}}
   .pdf-deco-divider svg{width:100%;height:auto;display:block}
-  .pdf-section{margin-bottom:${isGbiz?30:22}px;break-inside:avoid;page-break-inside:avoid}
-  .pdf-cat{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?26:20}px;font-weight:600;color:${cfg.titleColor};margin:${isGbiz?28:20}px 0 ${isGbiz?16:12}px;padding-bottom:6px;border-bottom:1.5px solid ${maritime?cfg.accentColor:'#e2e2e2'};display:flex;align-items:center;gap:10px}
-  .pdf-cat-icon{display:inline-block;width:${isGbiz?28:22}px;height:${isGbiz?28:22}px;color:${cfg.accentColor};flex:none}
+  .pdf-section{margin-bottom:${isGbiz?30:px(22)}px;break-inside:avoid;page-break-inside:avoid}
+  .pdf-cat{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?26:px(20)}px;font-weight:600;color:${cfg.titleColor};margin:${isGbiz?28:px(20)}px 0 ${isGbiz?16:px(12)}px;padding-bottom:6px;border-bottom:1.5px solid ${maritime?cfg.accentColor:'#e2e2e2'};display:flex;align-items:center;gap:10px}
+  .pdf-cat-icon{display:inline-block;width:${isGbiz?28:px(22)}px;height:${isGbiz?28:px(22)}px;color:${cfg.accentColor};flex:none}
   .pdf-cat-icon svg{width:100%;height:100%;display:block}
-  .pdf-subcat{font-size:${isGbiz?13:11}px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:${cfg.accentColor};margin:${isGbiz?18:14}px 0 ${isGbiz?10:8}px}
-  .pdf-dish{margin-bottom:${isGbiz?13:10}px;break-inside:avoid;page-break-inside:avoid}
+  .pdf-subcat{font-size:${isGbiz?13:px(11)}px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:${cfg.accentColor};margin:${isGbiz?18:px(14)}px 0 ${isGbiz?10:px(8)}px}
+  .pdf-dish{margin-bottom:${isGbiz?13:px(10)}px;break-inside:avoid;page-break-inside:avoid}
   .pdf-dish-line{display:flex;align-items:baseline;gap:6px}
-  .pdf-dish-name{font-size:${isGbiz?16:13}px;font-weight:600;white-space:nowrap}
+  .pdf-dish-name{font-size:${isGbiz?16:px(13)}px;font-weight:600;white-space:nowrap}
   .pdf-dots{flex:1;border-bottom:1px dotted #ccc;transform:translateY(-3px);min-width:18px}
-  .pdf-dish-price{font-size:${isGbiz?16:13}px;font-weight:600;color:${cfg.accentColor};white-space:nowrap;flex:none}
-  .pdf-dish-desc{font-size:${isGbiz?12:10.5}px;font-weight:300;color:#777;margin-top:2px;line-height:1.4;max-width:88%}
-  .pdf-footer{margin-top:${isGbiz?44:30}px;padding-top:${isGbiz?20:14}px;border-top:1px solid ${maritime?cfg.accentColor:'#e2e2e2'};text-align:center}
-  .pdf-deco-anchor{width:${isGbiz?40:30}px;margin:0 auto ${isGbiz?12:8}px;color:${cfg.accentColor}}
+  .pdf-dish-price{font-size:${isGbiz?16:px(13)}px;font-weight:600;color:${cfg.accentColor};white-space:nowrap;flex:none}
+  .pdf-dish-desc{font-size:${isGbiz?12:px(10.5)}px;font-weight:300;color:#777;margin-top:2px;line-height:1.4;max-width:88%}
+  .pdf-footer{margin-top:${isGbiz?44:px(30)}px;padding-top:${isGbiz?20:px(14)}px;border-top:1px solid ${maritime?cfg.accentColor:'#e2e2e2'};text-align:center}
+  .pdf-deco-anchor{width:${isGbiz?40:px(30)}px;margin:0 auto ${isGbiz?12:px(8)}px;color:${cfg.accentColor}}
   .pdf-deco-anchor svg{width:100%;height:auto;display:block}
-  .pdf-footer-text{font-size:${isGbiz?12:10}px;color:#999;letter-spacing:.04em;line-height:1.6}
+  .pdf-footer-text{font-size:${isGbiz?12:px(10)}px;color:#999;letter-spacing:.04em;line-height:1.6}
   @media print{
-    @page{size:A4;margin:14mm}
+    @page{size:${isA5?'A5':'A4'};margin:${isA5?'10mm':'14mm'}}
   }`;
 }
 
@@ -4251,6 +4290,14 @@ function renderPrintBody(){
 
     ${(ic.main||ic.secondary)?`<label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showIcons!==false?'checked':''} onchange="setPdfCfg('showIcons',this.checked)"><label>Afficher les icônes décoratives</label></label>
     <div style="font-size:10px;color:var(--text3);margin-top:3px">Si le logo est affiché, l'icône principale est masquée automatiquement.</div>`:''}
+
+    <div class="af" style="margin-top:10px"><label class="al">Format papier</label>
+      <div style="display:flex;gap:16px;margin-top:2px">
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="pdfPaperSize" value="a4" ${cfg.paperSize!=='a5'?'checked':''} onchange="setPdfCfg('paperSize','a4')"> A4</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="pdfPaperSize" value="a5" ${cfg.paperSize==='a5'?'checked':''} onchange="setPdfCfg('paperSize','a5')"> A5</label>
+      </div>
+      <div style="font-size:10.5px;color:var(--text3);margin-top:4px">A5 (moitié d'A4) — pratique pour un petit menu de table.</div>
+    </div>
 
     <div class="af" style="margin-top:14px"><label class="al">Aperçu live</label>
       <iframe id="pdfPreviewFrame" style="width:100%;height:420px;border:1px solid var(--border);border-radius:8px;background:#e8e8e8"></iframe>
