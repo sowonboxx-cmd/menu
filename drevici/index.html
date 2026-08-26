@@ -333,7 +333,7 @@ body.home-cover-showing{overflow:hidden}
    stays at its natural position right under the name at the top. */
 .home-cover-content{margin-top:auto}
 .home-cover-content{padding:0 24px 40px;text-align:center;color:#fff}
-.home-cover-headline{font-family:'Jost',sans-serif;font-weight:500;font-size:52px;line-height:1.2;margin-bottom:24px;text-shadow:0 2px 12px rgba(0,0,0,.35)}
+.home-cover-headline{font-weight:500;font-size:52px;line-height:1.2;margin-bottom:24px;text-shadow:0 2px 12px rgba(0,0,0,.35)}
 @media(max-width:640px){ .home-cover-headline{font-size:30px;margin-bottom:18px} }
 .home-cover-ctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
 .home-cover-cta{display:inline-flex;align-items:center;justify-content:center;padding:14px 28px;border-radius:8px;font-family:'Jost',sans-serif;font-size:13px;font-weight:500;letter-spacing:.06em;text-decoration:none;cursor:pointer;border:none;min-width:160px}
@@ -639,7 +639,7 @@ let DATA = {
   icones: { main: '', secondary: '' },
   showHeaderLogo: true,
   homeTab: { active:false, photo:'', video:'' },
-  homeCover: { active:false, mediaType:'photo', image:'', mobilePos:50, mobileImage:'', video:'', headline:'', statusBarColor:'#000000', cta1Label:'Voir le menu', cta1Url:'', cta2Label:'Réserver', cta2Url:'' },
+  homeCover: { active:false, mediaType:'photo', image:'', mobilePos:50, mobileImage:'', video:'', headline:'', headlineFont:'Jost', statusBarColor:'#000000', cta1Label:'Voir le menu', cta1Url:'', cta2Label:'Réserver', cta2Url:'' },
   schedule: [
     { day:'Lundi',    services:[] },
     { day:'Mardi',    services:[{label:'Soir',open:17,close:2}] },
@@ -1694,7 +1694,7 @@ function renderHomeCover(){
     <div class="home-cover-fade-group" id="homeCoverFadeGroup">
       <div class="home-cover-sched">${renderScheduleInline('Cover')}</div>
       <div class="home-cover-content">
-        <div class="home-cover-headline">${headlineHtml}</div>
+        <div class="home-cover-headline" style="font-family:'${escAttr(hc.headlineFont||'Jost')}',sans-serif">${headlineHtml}</div>
         <div class="home-cover-ctas">
           ${cta1Url
             ? `<a class="home-cover-cta home-cover-cta-menu" href="${escAttr(cta1Url)}">${escapeHtmlLocal(hc.cta1Label||'Voir le menu')}</a>`
@@ -1797,6 +1797,13 @@ function renderAdminHomeCover(){
     <div class="af"><label class="al">Texte (centré, en bas de l'écran)</label>
       <textarea class="ai" rows="2" style="resize:vertical" placeholder="Ex: Fraîcheur et tradition, au cœur de Paris" oninput="DATA.homeCover.headline=this.value;renderAll();scheduleCoverAutoSave()">${escAttr(hc.headline||'')}</textarea>
       <div style="font-size:10px;color:var(--text3);margin-top:4px">Entrée = retour à la ligne, si tu veux le répartir sur deux lignes.</div>
+    </div>
+    <div class="af"><label class="al">Police de ce texte</label>
+      <select class="ai" style="font-size:13px" onchange="setCoverHeadlineFont(this.value)">
+        ${FONT_LIST.map(f=>`<option value="${f}" style="font-family:'${f}',sans-serif" ${(hc.headlineFont||'Jost')===f?'selected':''}>${f}</option>`).join('')}
+      </select>
+      <button type="button" class="aadd" style="margin-top:6px" onclick="showFontGallery('cover')">Voir toutes les polices</button>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px">La même, que le fond soit une photo ou une vidéo — indépendante de la police générale du site.</div>
     </div>
     <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-family:Jost,sans-serif;margin:12px 0 6px;border-top:1px solid var(--border);padding-top:12px">1er bouton</div>
     <div class="af" style="display:flex;gap:8px">
@@ -4391,6 +4398,21 @@ function applyRestaurantBranding(){
   // even though DATA.restoFont was saved correctly. Re-apply it here since
   // this runs on every renderAll() and at init.
   if(DATA.restoFont) document.documentElement.style.setProperty('--restoFont', "'"+DATA.restoFont+"'");
+  // BUG FIX (part 2): setting the CSS var alone means nothing if a
+  // regular visitor's browser never actually downloaded that font's
+  // file — only the admin's own tab did, at the moment they picked it
+  // (see setRestoFont/setCoverHeadlineFont). Anyone else just silently
+  // fell back to a generic font. Load both chosen fonts here too, on
+  // every visit, not only when explicitly picked in this session.
+  [DATA.restoFont, DATA.homeCover&&DATA.homeCover.headlineFont].forEach(font=>{
+    if(font && !document.querySelector('link[data-font="'+font+'"]')){
+      const l=document.createElement('link');
+      l.rel='stylesheet';
+      l.dataset.font=font;
+      l.href='https://fonts.googleapis.com/css2?family='+encodeURIComponent(font)+':wght@400;700&display=swap';
+      document.head.appendChild(l);
+    }
+  });
   const name=getRestaurantName();
   const logo=getRestaurantLogo();
   const logoEl=document.querySelector('.logo-img');
@@ -4540,7 +4562,8 @@ const FONT_LIST = ["Jost", "Montserrat", "Oswald", "Raleway", "Poppins", "Merriw
 // popup that loads every font at once and shows the restaurant's own
 // name (or "Restaurant" as a fallback) set in each of them side by
 // side, so they can actually be compared at a glance.
-function showFontGallery(){
+function showFontGallery(target){
+  target=target||'resto';
   // Google Fonts supports combining every family into one request —
   // load them all in a single <link> rather than 50 separate ones.
   if(!document.querySelector('link[data-font-gallery]')){
@@ -4551,7 +4574,8 @@ function showFontGallery(){
     document.head.appendChild(l);
   }
   const sampleText = (DATA.restaurantName||'Restaurant');
-  const rows = FONT_LIST.map(f=>`<div class="font-gallery-row" onclick="setRestoFont('${f.replace(/'/g,"\\'")}');closeFontGallery()">
+  const setterFn = target==='cover' ? 'setCoverHeadlineFont' : 'setRestoFont';
+  const rows = FONT_LIST.map(f=>`<div class="font-gallery-row" onclick="${setterFn}('${f.replace(/'/g,"\\'")}');closeFontGallery()">
     <div class="font-gallery-name">${f}</div>
     <div class="font-gallery-sample" style="font-family:'${f}',serif">${escapeHtmlLocal(sampleText)}</div>
   </div>`).join('');
@@ -4586,6 +4610,24 @@ function setRestoFont(font){
   const box=document.getElementById('fontPreviewBox');
   if(box) box.querySelectorAll('div').forEach(el=>el.style.fontFamily="'"+font+"',serif");
   renderAll();
+}
+// Independent from the site-wide font (setRestoFont/DATA.restoFont) —
+// this one only affects the cover's own headline text, which stays the
+// same regardless of whether Photo or Vidéo is picked as the background
+// media (it's not tied to either mode).
+function setCoverHeadlineFont(font){
+  if(!DATA.homeCover) DATA.homeCover={};
+  DATA.homeCover.headlineFont=font;
+  if(font && !document.querySelector('link[data-font="'+font+'"]')){
+    const l=document.createElement('link');
+    l.rel='stylesheet';
+    l.dataset.font=font;
+    l.href='https://fonts.googleapis.com/css2?family='+encodeURIComponent(font)+':wght@400;700&display=swap';
+    document.head.appendChild(l);
+  }
+  renderAll();
+  renderAdminSection('__cover');
+  scheduleCoverAutoSave();
 }
 
 function fetchCityFromZip(zip){
