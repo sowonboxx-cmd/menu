@@ -638,7 +638,6 @@ let DATA = {
   restaurantLogo: '',
   corpoTemplates: [],
   icones: { main: '', secondary: '' },
-  showHeaderLogo: true,
   homeTab: { active:false, photo:'', video:'' },
   homeCover: { active:false, mediaType:'photo', image:'', mobilePos:50, mobileImage:'', video:'', headline:'', headlineFont:'Jost', statusBarColor:'#000000', cta1Label:'Voir le menu', cta1Url:'', cta2Label:'Réserver', cta2Url:'' },
   schedule: [
@@ -1419,6 +1418,10 @@ function renderAll(){
   // needs the final say, overriding that with its own configured color,
   // or every render (not just the first) would silently revert it.
   renderHomeCover();
+  // Auto-save: only when an actual admin is actively editing — never
+  // for a regular visitor just browsing tabs, who has no session and
+  // would otherwise see a stray "connecte-toi pour publier" toast.
+  if(supaSession && editMode) scheduleAutoSave();
 }
 
 // BUG FIX: this used to populate a sticky #globalSocialBar shown on
@@ -1744,21 +1747,27 @@ function updateHomeCoverMobilePreview(pos){
 // mobile crop position (with the same live phone-shaped preview), the
 // headline text, and the two CTA buttons (label + link each, so either
 // can point anywhere — a custom URL, not just "scroll to menu").
-let _coverAutoSaveTimer=null;
-// The cover feature auto-publishes on every edit (debounced ~900ms after
-// the last change) instead of waiting for the normal "Publier" button —
-// requested specifically for this section, since it's easy to forget to
-// publish after a quick tweak here. The rest of the admin panel keeps
-// the normal manual-publish workflow; this isn't a site-wide change.
-function scheduleCoverAutoSave(){
-  if(_coverAutoSaveTimer) clearTimeout(_coverAutoSaveTimer);
-  _coverAutoSaveTimer=setTimeout(()=>{ publishToSupabase(); }, 900);
+let _autoSaveTimer=null;
+// The whole admin panel auto-publishes on every edit now (debounced
+// ~900ms after the last change) instead of requiring the "Publier"
+// button — it's too easy to forget to click it. Hooked into renderAll()
+// itself (see below) rather than added to every individual field's
+// handler, since virtually every admin edit already calls renderAll()
+// right after mutating DATA — this way nothing gets missed. Gated on
+// supaSession && editMode so a regular visitor's own tab-switching
+// never triggers a publish attempt or shows them an admin toast.
+function scheduleAutoSave(){
+  if(_autoSaveTimer) clearTimeout(_autoSaveTimer);
+  _autoSaveTimer=setTimeout(()=>{ publishToSupabase(); }, 900);
 }
+// Kept as an alias: the cover section's fields already call this by
+// name in their own handlers — no need to touch each of them.
+function scheduleCoverAutoSave(){ scheduleAutoSave(); }
 function renderAdminHomeCover(){
   const hc=DATA.homeCover||(DATA.homeCover={active:false,mediaType:'photo',image:'',mobilePos:50,mobileImage:'',video:'',headline:'',statusBarColor:'#000000',cta1Label:'Voir le menu',cta1Url:'',cta2Label:'Réserver',cta2Url:''});
   const mobPos=hc.mobilePos!=null?hc.mobilePos:50;
   const isVideo=hc.mediaType==='video';
-  return `<div class="admin-section"><div class="admin-sect-title">Page de couverture</div><div class="admin-sect-body">
+  return `<div class="admin-section"><div class="admin-sect-title">Page d'accueil</div><div class="admin-sect-body">
     <label class="admin-toggle"><input type="checkbox" ${hc.active?'checked':''} onchange="DATA.homeCover.active=this.checked;if(this.checked)homeCoverDismissedThisSession=false;renderAll();renderAdminSection('__cover');scheduleCoverAutoSave()"><label>Activer la page de couverture (avant le site)</label></label>
     <div class="af"><label class="al">Média de fond</label>
       <div style="display:flex;gap:16px;margin-top:2px">
@@ -2702,8 +2711,7 @@ function renderAdminTabDd(){
   const dd=document.getElementById('adminTabDd');
   const tabOpts=DATA.tabs.filter(tb=>tb.id!=='__home').map(tb=>`<option value="${tb.id}"${tb.id===adminCurrentTab?' selected':''}>${t(tb.label)}</option>`).join('');
   dd.innerHTML='<option value="__global">Informations générales</option>'
-    +'<option value="__home">Accueil</option>'
-    +'<option value="__cover">Page de couverture</option>'
+    +'<option value="__cover">Page d\'accueil</option>'
     +tabOpts
     +'<option value="__addtab_plats">+ Nouvelle tab (plats)</option>'
     +'<option value="__addtab_boissons">+ Nouvelle tab (boissons)</option>'
@@ -2769,8 +2777,6 @@ function renderAdminSection(tid, _skipScroll){
   adminCurrentTab=tid;
   if(tid==='__global'){
     body.innerHTML=renderAdminGlobal()+adminSaveBar();
-  } else if(tid==='__home'){
-    body.innerHTML=renderAdminHomeTab()+adminSaveBar();
   } else if(tid==='__social'){
     body.innerHTML=renderSocialSection()+adminSaveBar();
   } else if(tid==='__reorder'){
@@ -2858,45 +2864,16 @@ function updateDualPrice(ti,ci,di){
   renderAll();
 }
 
-function renderAdminHomeTab(){
+function renderFirstTabExtrasSection(){
   let h='';
-  const soc=DATA.social||{};
-  // Onglet Accueil
-  h+=`<div class="admin-section"><div class="admin-sect-title">Onglet Accueil</div><div class="admin-sect-body">
-    <label class="admin-toggle"><input type="checkbox" ${(DATA.homeTab&&DATA.homeTab.active)?'checked':''} onchange="if(!DATA.homeTab)DATA.homeTab={};DATA.homeTab.active=this.checked;toggleHomeTab();renderAll();renderAdminTabDd();renderAdminSection('__home')"><label>Activer l'onglet Accueil (en premier)</label></label>
-    <div class="af"><label class="al">Média affiché</label>
-      <div style="display:flex;gap:16px;margin-top:2px">
-        <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="homeMediaChoice" value="photo" ${(!DATA.homeTab||DATA.homeTab.mediaChoice!=='video')?'checked':''} onchange="if(!DATA.homeTab)DATA.homeTab={};DATA.homeTab.mediaChoice='photo';renderAll()"> Photo</label>
-        <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="homeMediaChoice" value="video" ${(DATA.homeTab&&DATA.homeTab.mediaChoice==='video')?'checked':''} onchange="if(!DATA.homeTab)DATA.homeTab={};DATA.homeTab.mediaChoice='video';renderAll()"> Vidéo</label>
-      </div>
-      <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-top:4px">Les deux liens ci-dessous restent enregistrés même si l'un des deux n'est pas affiché — pratique pour alterner sans avoir à retaper l'URL à chaque fois.</div>
-    </div>
-    <div class="af"><label class="al">Photo principale (4:3)</label>
-      <input class="ai" value="${(DATA.homeTab&&DATA.homeTab.photo)||''}" placeholder="https://... .jpg ou .webp"
-        oninput="if(!DATA.homeTab)DATA.homeTab={};DATA.homeTab.photo=this.value.trim();renderAll()">
-      <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-top:4px">Format recommandé : 4:3, min 800px.</div>
-    </div>
-    <div class="af"><label class="al">Vidéo (URL YouTube, Vimeo, ou lien direct .mp4)</label>
-      <input class="ai" value="${(DATA.homeTab&&DATA.homeTab.video)||''}" placeholder="https://youtube.com/watch?v=... ou https://vimeo.com/..."
-        oninput="if(!DATA.homeTab)DATA.homeTab={};DATA.homeTab.video=this.value.trim();renderAll()">
-      <div class="af" style="margin-top:8px;margin-bottom:0"><label class="al" style="font-size:11px">Format de la vidéo</label>
-        <select class="ai" onchange="if(!DATA.homeTab)DATA.homeTab={};DATA.homeTab.videoRatio=this.value;renderAll()">
-          <option value="16/9" ${(!DATA.homeTab||!DATA.homeTab.videoRatio||DATA.homeTab.videoRatio==='16/9')?'selected':''}>16:9 (paysage)</option>
-          <option value="1/1" ${(DATA.homeTab&&DATA.homeTab.videoRatio==='1/1')?'selected':''}>1:1 (carré)</option>
-          <option value="9/16" ${(DATA.homeTab&&DATA.homeTab.videoRatio==='9/16')?'selected':''}>9:16 (vertical / story)</option>
-        </select>
-      </div>
-    </div>
-  </div></div>`;
-  // Présentation
   h+=`<div class="admin-section"><div class="admin-sect-title">Présentation</div><div class="admin-sect-body">
-    <label class="admin-toggle"><input type="checkbox" ${DATA.intro.active?'checked':''} onchange="DATA.intro.active=this.checked;renderAll();renderAdminSection('__home')"><label>Afficher la présentation</label></label>
+    <label class="admin-toggle"><input type="checkbox" ${DATA.intro.active?'checked':''} onchange="DATA.intro.active=this.checked;renderAll();renderAdminSection('__global')"><label>Afficher la présentation</label></label>
     `+biInput('Texte de présentation', DATA.intro.text.fr||'', DATA.intro.text[adminLang]||'', `DATA.intro.text[adminLang]=this.value;renderAll()`, true)+`
   </div></div>`;
   // Plats à la une (accueil uniquement)
   h+=`<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Plats à la une</div><div class="admin-sect-body">
     <label class="admin-toggle" style="margin-bottom:10px"><input type="checkbox" ${DATA.pinnedShowHome!==false?'checked':''} onchange="DATA.pinnedShowHome=this.checked;renderAll()"><label>Activer</label></label>
-    <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:10px">Les plats épinglés s'affichent uniquement dans la page Accueil.</div>`;
+    <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:10px">Les plats épinglés s'affichent en haut du premier onglet du menu.</div>`;
   // Pinned first (draggable to reorder)
   const pinnedList = DATA.pinnedDishes||[];
   if(pinnedList.length>0){
@@ -3411,11 +3388,13 @@ async function loadFromSupabase(){
     Object.assign(DATA, json);
     if(Array.isArray(DATA.tabs) && DATA.tabs.length>0) DATA.tabs[0].isHome=true;
     if(Array.isArray(DATA.specials)) DATA.specials=DATA.specials.filter(s=>s.id!=='midi'&&s.id!=='soir');
-    // Restore home tab if it was active
-    if(DATA.homeTab&&DATA.homeTab.active){
-      const hasHome=DATA.tabs.some(t=>t.id==='__home');
-      if(!hasHome) DATA.tabs.unshift({id:'__home',label:{fr:'Accueil',en:'Home',es:'Inicio',it:'Casa',kr:'홈',jp:'ホーム'},cards:[]});
-    }
+    // The old "Accueil" tab (photo/video + pinned dishes) has been
+    // retired — replaced by the full-screen "Page d'accueil" cover.
+    // There's no more admin UI to manage it, so force it off regardless
+    // of what an earlier session had saved, rather than silently
+    // reviving a tab the person can no longer see or turn off.
+    if(DATA.homeTab) DATA.homeTab.active=false;
+    DATA.tabs=DATA.tabs.filter(t=>t.id!=='__home');
     migrateTabIds();
     { const hashTid=tabIdFromHash();
       currentTabId=(hashTid && DATA.tabs.some(tb=>tb.id===hashTid && tb.visible!==false)) ? hashTid : (DATA.tabs[0]?.id||'huitres');
@@ -4412,12 +4391,14 @@ function applyRestaurantBranding(){
     }
   });
   const name=getRestaurantName();
-  const logo=getRestaurantLogo();
   const logoEl=document.querySelector('.logo-img');
   const textEl=document.getElementById('logoText');
-  const showHdrLogo = DATA.showHeaderLogo !== false;
-  if(logo&&logoEl&&showHdrLogo){ logoEl.src=logo; logoEl.style.display='block'; if(textEl) textEl.style.display='none'; }
-  else { if(logoEl) logoEl.style.display='none'; if(textEl){ textEl.style.display='block'; textEl.textContent=name||'Mon Restaurant'; } }
+  // The menu's own header always shows the restaurant name as styled
+  // text (in the chosen font) — never the uploaded logo image. That
+  // logo is still used elsewhere (PDF export, social templates), just
+  // not here.
+  if(logoEl) logoEl.style.display='none';
+  if(textEl){ textEl.style.display='block'; textEl.textContent=name||'Mon Restaurant'; }
   document.title=(name||'Menu')+' — Menu';
 }
 
@@ -4428,7 +4409,7 @@ function restaurantSettingHtml(){
     <div class="af"><label class="al">Nom de l'établissement</label>
       <input class="ai" value="${name}" placeholder="Nom du restaurant" oninput="setRestaurantName(this.value);document.getElementById('logoText').textContent=this.value||'Mon Restaurant'">
     </div>
-    <div class="af"><label class="al">Police du menu</label>
+    <div class="af"><label class="al">Police du logo</label>
       <select class="ai" id="restoFontSelect" style="font-size:13px" onchange="setRestoFont(this.value)">
         ${FONT_LIST.map(f=>`<option value="${f}" style="font-family:'${f}',sans-serif" ${(DATA.restoFont||'')===f?'selected':''}>${f}</option>`).join('')}
       </select>
@@ -4445,7 +4426,6 @@ function restaurantSettingHtml(){
       <input class="ai" value="${logo}" placeholder="ou coller une URL https://..." oninput="setRestaurantLogo(this.value.trim());applyRestaurantBranding()">
       <div style="font-size:10px;color:var(--text3);font-family:Jost,sans-serif;margin-top:4px">Format recommandé : PNG transparent, hauteur 50–70px, largeur max 200px (ratio conseillé 3:1 à 5:1).</div>
     </div>
-    <label class="admin-toggle" style="margin-top:6px"><input type="checkbox" ${DATA.showHeaderLogo!==false?'checked':''} onchange="DATA.showHeaderLogo=this.checked;applyRestaurantBranding();renderAll()"><label>Afficher le logo dans le bandeau</label></label>
     
     <div class="af"><label class="al" style="font-size:12px;font-weight:600;margin-top:12px;display:block;border-top:1px solid var(--border);padding-top:12px">Adresse & contact</label></div>
     <div class="af"><label class="al">Rue</label>
@@ -4471,11 +4451,11 @@ function restaurantSettingHtml(){
 
 function renderBrandColorsSection(){
   const bc=DATA.brandColors||{primary:'#10285E',accent:'#C6A24A',bg:'#F7F5F0'};
-  const labels={primary:'Couleurs principales',accent:'Couleur accent',bg:'Couleur de fond',subtitle:'Sous-titre',tabInactive:'Titres des tabs (non sélectionnés)'};
-  const defaults={primary:'#10285E',accent:'#C6A24A',bg:'#F7F5F0',subtitle:'#E6E6E6',tabInactive:'#B3B3B3'};
-  let h='<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Couleurs principales</div><div class="admin-sect-body">';
+  const labels={primary:'Couleur principale',accent:'Couleur accent',bg:'Couleur de fond',tabInactive:'Titres des tabs (non sélectionnés)'};
+  const defaults={primary:'#10285E',accent:'#C6A24A',bg:'#F7F5F0',tabInactive:'#B3B3B3'};
+  let h='<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Couleur principale</div><div class="admin-sect-body">';
   h+='<div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.5">Utilisées dans l\'app et les templates réseaux. Sauvegarder pour appliquer.</div>';
-  ['primary','accent','bg','subtitle','tabInactive'].forEach(key=>{
+  ['primary','accent','bg','tabInactive'].forEach(key=>{
     const val=bc[key]||defaults[key];
     h+='<div class="af"><label class="al">'+labels[key]+'</label>'
       +'<div style="display:flex;align-items:center;gap:8px">'
@@ -4505,31 +4485,12 @@ function renderCorpoTemplatesSection(){
   return h;
 }
 
-function renderIconesDecorativesSection(){
-  const ic = DATA.icones||{};
-  let h = '<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Icônes décoratives</div><div class="admin-sect-body">';
-  h += '<div style="font-size:11px;color:var(--text3);margin-bottom:12px;line-height:1.5">Optionnelles. L\'ic\u00f4ne principale : sous le logo dans le PDF. Ic\u00f4ne secondaire : \u00e0 c\u00f4t\u00e9 des titres.</div>';
-  // Principale
-  h += '<div class="af"><label class="al" style="font-weight:600">Icône principale (PNG HD ou SVG, format 1:1)</label>';
-  if(ic.main) h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><img src="'+ic.main+'" style="width:60px;height:60px;object-fit:contain;border:1px solid var(--border);border-radius:8px;padding:6px;background:#fff" onerror="this.remove()"><button class="adel" onclick="if(!DATA.icones)DATA.icones={};DATA.icones.main=\'\';renderAdminSection(adminCurrentTab)" title="Supprimer">✕</button></div>';
-  h += imgFieldHtml(ic.main||'','if(!DATA.icones)DATA.icones={};DATA.icones.main=this.value;renderAll()','URL ou upload PNG/SVG',null);
-  h += '</div>';
-  // Secondaire
-  h += '<div class="af"><label class="al" style="font-weight:600">Icône secondaire</label>';
-  if(ic.secondary) h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><img src="'+ic.secondary+'" style="width:40px;height:40px;object-fit:contain;border:1px solid var(--border);border-radius:6px;padding:4px;background:#fff" onerror="this.remove()"><button class="adel" onclick="if(!DATA.icones)DATA.icones={};DATA.icones.secondary=\'\';renderAdminSection(adminCurrentTab)" title="Supprimer">✕</button></div>';
-  h += imgFieldHtml(ic.secondary||'','if(!DATA.icones)DATA.icones={};DATA.icones.secondary=this.value;renderAll()','URL ou upload PNG/SVG',null);
-  h += '</div>';
-  h += '</div></div>';
-  return h;
-}
-
 function applyBrandColors(){
   const bc=DATA.brandColors||{};
   const root=document.documentElement;
   if(bc.primary) root.style.setProperty('--navy',bc.primary);
   if(bc.accent)  root.style.setProperty('--gold',bc.accent);
   if(bc.bg)      root.style.setProperty('--bg',bc.bg);
-  if(bc.subtitle)    root.style.setProperty('--subtitleColor',bc.subtitle);
   if(bc.tabInactive) root.style.setProperty('--tabInactiveColor',bc.tabInactive);
   // Keep the browser/status-bar tint (iOS/Android) in sync with the header
   // color so it never falls back to showing --bg above the header. Read
@@ -4707,7 +4668,7 @@ async function doAdminSignIn(){
 
 // Patch renderAdminGlobal to prepend the admin login/publish section
 const _origGlobal=renderAdminGlobal;
-renderAdminGlobal=function(){ return ghSectionHtml()+restaurantSettingHtml()+renderScheduleAdmin()+renderBrandColorsSection()+renderIconesDecorativesSection()+renderSocialAdminSection()+_origGlobal(); };
+renderAdminGlobal=function(){ return ghSectionHtml()+restaurantSettingHtml()+renderScheduleAdmin()+renderBrandColorsSection()+renderSocialAdminSection()+renderFirstTabExtrasSection()+_origGlobal(); };
 
 // ═══════════════════════════════════════════
 // ADMIN COLLAPSE
