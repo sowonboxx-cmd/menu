@@ -4165,13 +4165,21 @@ function exportA4Print(cfg){
   const css = buildPdfCSS(cfg);
   const menu = buildPdfMenuHTML(cfg);
   const restName = getRestaurantName() || 'Menu';
-  const win = window.open('','_blank');
-  win.document.write(`<!DOCTYPE html><html><head>
+  const doc = `<!DOCTYPE html><html><head>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Lovelo:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><meta charset="UTF-8"><title>${restName}</title><style>${css}</style></head><body><div class="pdf-page">${menu}</div></body></html>`);
-  win.document.close();
-  setTimeout(()=>win.print(), 600);
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Lovelo:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><meta charset="UTF-8"><title>${restName}</title><style>${css}</style></head><body><div class="pdf-page">${menu}</div></body></html>`;
+  // BUG FIX: this used to open a blank window and fill it via
+  // document.write() — increasingly restricted by modern browsers
+  // (Safari in particular), which can silently leave the new tab blank
+  // or refuse the popup outright. A Blob URL opened directly gives the
+  // new tab a real, complete document from the start — no write-after-
+  // open step for the browser to interfere with.
+  const blob = new Blob([doc], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, '_blank');
+  if(!win){ showToast('⚠️ Le navigateur a bloqué la fenêtre — autorise les pop-ups pour ce site'); return; }
+  setTimeout(()=>{ win.print(); URL.revokeObjectURL(url); }, 600);
 }
 
 function exportGbizImage(cfg){
@@ -4244,7 +4252,7 @@ function renderPrintBody(){
       <iframe id="pdfPreviewFrame" style="width:100%;height:420px;border:1px solid var(--border);border-radius:8px;background:#e8e8e8"></iframe>
     </div>
 
-    <button class="aadd" style="width:100%;padding:11px;margin-top:6px" onclick="exportA4Print(pdfCfg())">🖨 Générer PDF / Imprimer</button>`;
+    <button class="aadd" style="width:100%;padding:11px;margin-top:6px" onclick="exportA4Print(pdfCfg())">Imprimer le menu</button>`;
 }
 // Kept for compatibility (renderExportSection still calls it); wraps the body in its own section.
 function renderPdfStyleSection(){
