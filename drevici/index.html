@@ -313,32 +313,33 @@ body.home-cover-showing{overflow:hidden}
    avoid entirely. */
 @media(min-width:641px){ .home-cover{zoom:0.9090909} }
 .home-cover-media{position:absolute;inset:0;width:100%;height:100%}
-.home-cover-media picture{display:block;width:100%;height:100%}
 .home-cover-media img,.home-cover-media video{width:100%;height:100%;object-fit:cover;display:block}
 .home-cover-overlay{position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.65) 0%,rgba(0,0,0,.15) 45%,rgba(0,0,0,.35) 100%)}
 /* Name is NOT part of the fade group below — it stays put the whole
    time, so the handoff to the real header's own name (once the cover
    is gone) doesn't read as anything moving. */
 .home-cover-top{position:relative;z-index:3;padding:20px 20px 0;text-align:center;flex:none}
-.home-cover-name{color:#fff;font-family:var(--restoFont,'Cormorant Garamond'),serif;font-weight:700;font-size:24px;letter-spacing:.04em}
-/* Semi-transparent — visible, but no longer the small solid-white
-   badge that "flashed" too much against a photo background. */
+.home-cover-name{color:#fff;font-family:var(--restoFont,'Cormorant Garamond'),serif;font-weight:700;font-size:35px;letter-spacing:.04em}
+@media(max-width:640px){ .home-cover-name{font-size:24px} }
 .home-cover-sched{display:flex;justify-content:center;margin-top:10px}
-.home-cover-sched .sched-pin-frame{background:rgba(255,255,255,.4);border-color:rgba(255,255,255,.5)}
-.home-cover-sched .resto-badge-inline span{color:#fff!important}
+.home-cover-sched .sched-pin-frame{background:rgba(0,0,0,.55);border-color:rgba(255,255,255,.3)}
+.home-cover-sched .resto-badge-inline span{color:#fff!important;font-size:14px!important}
 .home-cover-fade-group{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;transition:opacity .22s ease}
 .home-cover-fade-group.fading-out{opacity:0}
 /* Only the headline+CTAs get pushed to the bottom — the schedule badge
    (also in this fade group, since it fades away with everything else)
    stays at its natural position right under the name at the top. */
 .home-cover-content{margin-top:auto}
-.home-cover-content{padding:0 24px 40px;text-align:center;color:#fff}
-.home-cover-headline{font-weight:500;font-size:52px;line-height:1.2;margin-bottom:24px;text-shadow:0 2px 12px rgba(0,0,0,.35)}
+.home-cover-content{padding:0 24px 90px;text-align:center;color:#fff}
+@media(max-width:640px){ .home-cover-content{padding:0 24px 40px} }
+.home-cover-headline{font-family:var(--coverHeadlineFont,'Inter'),sans-serif;font-weight:500;font-size:52px;line-height:1.2;margin-bottom:24px;text-shadow:0 2px 12px rgba(0,0,0,.35)}
 @media(max-width:640px){ .home-cover-headline{font-size:30px;margin-bottom:18px} }
-.home-cover-ctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-.home-cover-cta{display:inline-flex;align-items:center;justify-content:center;padding:14px 28px;border-radius:8px;font-family:'Jost',sans-serif;font-size:13px;font-weight:500;letter-spacing:.06em;text-decoration:none;cursor:pointer;border:none;min-width:160px}
-.home-cover-cta-menu{background:#2b2b2b;color:#fff}
-.home-cover-cta-reserve{background:var(--navy);color:#fff}
+.home-cover-ctas{display:flex;gap:20px;justify-content:center;flex-wrap:wrap}
+.home-cover-cta{display:inline-flex;align-items:center;justify-content:center;padding:14px 30px;border-radius:11px;font-family:'Jost',sans-serif;font-size:14px;font-weight:700;letter-spacing:.02em;text-decoration:none;cursor:pointer;border:none;transition:opacity .15s}
+@media(max-width:640px){ .home-cover-cta{padding:12.6px 27px;font-size:12.6px;border-radius:9.9px} }
+.home-cover-cta:hover{opacity:.88}
+.home-cover-cta-menu{background:transparent;color:#fff;border:1.5px solid #fff}
+.home-cover-cta-reserve{background:#fff;color:#000}
 .home-photo-wrap{border-radius:var(--r);overflow:hidden;border:1px solid #EBEBEB}
 .video-mute-btn{position:absolute;bottom:10px;right:10px;width:34px;height:34px;border-radius:11px;background:rgba(30,20,15,.72);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;transition:background .15s}
 .video-mute-btn:hover{background:rgba(30,20,15,.9)}
@@ -2446,23 +2447,20 @@ function toggleSchedPopup(e,suffix){
   const badge=document.getElementById('schedBadge'+suffix);
   if(p.classList.contains('visible')){ p.classList.remove('visible'); return; }
   const rect=badge.getBoundingClientRect();
-  const pw=268;
+  // Read the popup's own real rendered width (it's visibility:hidden, not
+  // display:none, so it's already laid out and measurable) rather than
+  // guessing a constant — the popup's min/max-width means its actual
+  // width varies with content, and a fixed guess drifted off the badge's
+  // true center.
+  const pw=p.offsetWidth||260;
   const vw=window.innerWidth;
-  let left, top;
-  if(vw<=640){
-    // Mobile: centered horizontally on the screen — right-aligning to
-    // the badge never looked right here, this is simpler and reads
-    // better on a narrow screen. A bit more room below the button too.
-    left=(vw-pw)/2;
-    top=rect.bottom+20;
-  } else {
-    // Desktop: aligns with the schedule badge's own right edge — not
-    // the reserve button next to it.
-    left=rect.right-pw;
-    if(left<12) left=12;
-    if(left+pw>vw-12) left=vw-pw-12;
-    top=rect.bottom+8;
-  }
+  // Centered directly under the button itself (its horizontal midpoint),
+  // clamped so it never runs off either edge of the viewport. Works the
+  // same for the header's own badge and the cover's separate instance —
+  // no more special-casing per screen size or per neighboring button.
+  let left=rect.left+rect.width/2-pw/2;
+  left=Math.max(12, Math.min(left, vw-pw-12));
+  const top=rect.bottom+10+(vw<=640?20:8);
   p.style.left=left+'px';
   p.style.top=top+'px';
   p.style.transform='none';
