@@ -1594,7 +1594,7 @@ function renderScheduleInline(suffix){
   </span>` : '';
   const phone = addr.phone;
   const phoneHtml = phone
-    ? `<div style="margin-top:10px;display:flex;align-items:baseline;gap:5px;flex-wrap:wrap"><span class="resto-popup-title" style="margin-bottom:0;color:var(--gold)">Tel&nbsp;:</span><a href="tel:${escAttr(phone.replace(/\s+/g,''))}" style="color:rgba(255,255,255,.75);text-decoration:none;font-size:14px">${escapeHtmlLocal(phone)}</a></div>`
+    ? `<div style="margin-top:10px;display:flex;align-items:baseline;gap:5px;flex-wrap:wrap"><span class="resto-popup-title" style="margin-bottom:0;color:${suffix==='Cover'?'var(--gold)':'#fff'}">Tel&nbsp;:</span><a href="tel:${escAttr(phone.replace(/\s+/g,''))}" style="color:rgba(255,255,255,.75);text-decoration:none;font-size:14px">${escapeHtmlLocal(phone)}</a></div>`
     : '';
   return `<div class="sched-pin-frame">
     <div class="resto-badge-inline" id="schedBadge${suffix}" onclick="toggleSchedPopup(event,'${suffix}')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
@@ -2424,54 +2424,15 @@ function renderTabContent(tab,lbOffset){
   return html;
 }
 
-// ═══════════════════════════════════════════
-// SCHEDULE WIDGET
-// ═══════════════════════════════════════════
-function renderScheduleWidget(){
-  const sch = DATA.schedule||[];
-  const now = new Date();
-  let today = now.getDay();
-  let hour = now.getHours() + now.getMinutes()/60;
-  if(hour < 6){ today=(today+6)%7; hour+=24; }
-  const dayIdx = today===0 ? 6 : today-1;
-  const dayData = sch[dayIdx]||{};
-  const svcs = dayData.services||[];
-  // Compat: old format {open,close}
-  const allSvcs = svcs.length===0&&dayData.open!=null ? [{label:'',open:dayData.open,close:dayData.close}] : svcs;
-  let state='closed', label="Fermé aujourd'hui";
-  for(const s of allSvcs){
-    if(s.open==null) continue;
-    const effClose=s.close<=s.open?s.close+24:s.close;
-    if(hour>=s.open&&hour<effClose){ state='open'; label="Ouvert jusqu'à "+s.close+'h'+(s.label?' · '+s.label:''); break; }
-    if(hour<s.open){ state='soon'; label='Ouvre à '+s.open+'h'+(s.label?' · '+s.label:''); }
-  }
-
-  const rows = sch.map((d,i)=>{
-    const isToday=(i===dayIdx);
-    const svs=(d.services||[]).length>0?d.services:(d.open!=null?[{label:'',open:d.open,close:d.close}]:[]);
-    const h=svs.length===0?'Fermé':svs.map(s=>s.open+'h – '+(s.close%24)+'h'+(s.label?' ('+s.label+')':'')).join(', ');
-    return `<div class="resto-popup-row${isToday?' today':''}"><span class="rday">${d.day}</span><span>${h}</span></div>`;
-  }).join('');
-
-  return `<div class="home-schedule-row">
-    <span class="home-schedule-label">Horaires</span>
-    <div class="resto-badge" id="schedBadge" onclick="toggleSchedPopup(event)">
-      <span class="resto-dot ${state}"></span>
-      <span>${label}</span>
-      <div class="resto-popup" id="schedPopup">
-        <div class="resto-popup-arrow"></div>
-        <div class="resto-popup-title" style="color:${state==='open'?'#22c55e':state==='soon'?'#f97316':'#ef4444'}">Horaires d'ouverture</div>
-        ${rows}
-      </div>
-    </div>
-  </div>`;
-}
-
 function toggleSchedPopup(e,suffix){
   suffix=suffix||'';
   e.stopPropagation();
   const p=document.getElementById('schedPopup'+suffix);
-  const badge=document.getElementById('schedBadge'+suffix);
+  // Use the element that was actually clicked rather than re-querying by
+  // id — guarantees we measure the real, currently-visible badge (the
+  // one the person's finger/cursor is on), with zero chance of a stale
+  // or mismatched element being picked up some other way.
+  const badge=e.currentTarget;
   if(p.classList.contains('visible')){ p.classList.remove('visible'); return; }
   const rect=badge.getBoundingClientRect();
   // Read the popup's own real rendered width (it's visibility:hidden, not
