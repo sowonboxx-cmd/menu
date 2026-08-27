@@ -628,6 +628,30 @@ table.matrix tr:hover td{background:#fafaf7}
 </div>
 </div>
 
+<div class="reorderable-section" data-key="photosVideos">
+<div class="wrap">
+  <!-- ════════ PHOTOS ET VIDÉOS (duplicata du module Apple tabs+détail) ════════ -->
+  <div class="section" id="photosVideosSection">
+    <div id="fshow2Header"></div>
+    <div id="fshow2Tabs" style="margin-bottom:20px"></div>
+    <div class="fshow-card" id="fshow2Card">
+      <button type="button" class="fshow-card-close" id="fshow2CloseBtn" onclick="fshow2Close()" title="Fermer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
+      </button>
+      <div class="fshow-nav-row">
+        <div class="fshow-nav-arrows" id="fshow2Arrows">
+          <button type="button" class="fshow-nav-btn" onclick="fshow2Step(-1)" title="Précédent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"></polyline></svg></button>
+          <button type="button" class="fshow-nav-btn" onclick="fshow2Step(1)" title="Suivant"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
+        </div>
+        <div class="fshow-list" id="fshow2List"></div>
+      </div>
+      <div class="fshow-media" id="fshow2Media"></div>
+    </div>
+    <div style="margin-top:14px" id="addFshow2BtnWrap"></div>
+  </div>
+</div>
+</div>
+
 <div class="reorderable-section" data-key="addonModules">
 <div class="wrap">
   <!-- ════════ MODULES COMPLÉMENTAIRES ════════ -->
@@ -767,8 +791,19 @@ const DEFAULT_DATA = {
     { icon:'', label:'Vis-à-vis', title:'', subtitle:'', bullets:['','',''], image:'' },
     { icon:'', label:'', title:'', subtitle:'', bullets:['','',''], image:'' },
     { icon:'', label:'', title:'', subtitle:'', bullets:['','',''], image:'' },
-    { icon:'', label:'Création de contenu', title:'Chaque plat raconte une histoire', subtitle:'Photos, vidéos et Reels qui mettent votre cuisine en valeur.', bullets:['Shooting photo','Reels','Direction artistique'], image:'' },
   ],
+  photosVideos: {
+    label: 'Détail',
+    title: 'Photos et vidéos',
+    titleStyle: 'gradient',
+    subtitle: '',
+    align: 'left',
+    tabs: [
+      { name: 'Création de contenu', items: [
+        { title: 'Chaque plat raconte une histoire', desc: 'Photos, vidéos et Reels qui mettent votre cuisine en valeur.', image: '' }
+      ]}
+    ]
+  },
   categories: [
     { name: 'Menu digital', items: [
       { name: 'Menu digital multi-langue (6 langues)', tags:['base','pro','premium'], price:0 },
@@ -824,9 +859,9 @@ const DEFAULT_DATA = {
     ]},
   ],
   tagOrder: ['apero','base','pro','premium','agence','services'],
-  sectionOrder: ['featureShowcase','offers','appleCards','addonModules','prestation','simulator','matrix','goFurther','agencyHero'],
-  sectionBg: { featureShowcase:'white', offers:'gray', appleCards:'gray', addonModules:'white', prestation:'white', simulator:'white', matrix:'white', goFurther:'white', agencyHero:'white' },
-  sectionHidden: { featureShowcase:false, offers:false, appleCards:false, addonModules:false, prestation:false, simulator:false, matrix:false, goFurther:false, agencyHero:false },
+  sectionOrder: ['featureShowcase','offers','appleCards','photosVideos','addonModules','prestation','simulator','matrix','goFurther','agencyHero'],
+  sectionBg: { featureShowcase:'white', offers:'gray', appleCards:'gray', photosVideos:'white', addonModules:'white', prestation:'white', simulator:'white', matrix:'white', goFurther:'white', agencyHero:'white' },
+  sectionHidden: { featureShowcase:false, offers:false, appleCards:false, photosVideos:false, addonModules:false, prestation:false, simulator:false, matrix:false, goFurther:false, agencyHero:false },
   agencyHero: {
     label: 'Agence',
     title: 'Tensai Agency',
@@ -905,6 +940,8 @@ function migrateData(){
   if(!DATA.sectionHidden) DATA.sectionHidden = JSON.parse(JSON.stringify(DEFAULT_DATA.sectionHidden));
   Object.keys(DEFAULT_DATA.sectionHidden).forEach(k=>{ if(DATA.sectionHidden[k]===undefined) DATA.sectionHidden[k] = false; });
   if(!DATA.goFurther) DATA.goFurther = JSON.parse(JSON.stringify(DEFAULT_DATA.goFurther));
+  if(!DATA.photosVideos) DATA.photosVideos = JSON.parse(JSON.stringify(DEFAULT_DATA.photosVideos));
+  if(!DATA.customSections) DATA.customSections = {};
   if(!DATA.agencyHero) DATA.agencyHero = JSON.parse(JSON.stringify(DEFAULT_DATA.agencyHero));
   if(!DATA.sectionBg) DATA.sectionBg = JSON.parse(JSON.stringify(DEFAULT_DATA.sectionBg));
   // Keep sectionOrder in sync if new keys were added since this DATA was saved
@@ -1819,6 +1856,336 @@ function fshowDrop(e){
   renderFeatureShowcase();
 }
 
+let fshow2OpenIndex = -1;
+let fshow2ActiveTabIndex = 0;
+function renderPhotosVideosHeader(){
+  const el = document.getElementById('fshow2Header');
+  if(!el) return;
+  const h = DATA.photosVideos || DEFAULT_DATA.featureShowcase;
+  const align = h.align || 'left';
+  el.innerHTML = editMode ? `
+    ${iconEditorHtml(h.icon, h.iconSize, 'DATA.photosVideos', 'renderPhotosVideosHeader')}
+    ${alignEditorHtml(h.align||'left', 'DATA.photosVideos', 'renderPhotosVideosHeader();renderFshow2Tabs();')}
+    <input class="feature-name-input" style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding:0;width:100%" value="${esc(h.label||'')}" placeholder="Label (pastille, ex: Détail)" onchange="DATA.photosVideos.label=this.value;save();renderPhotosVideosHeader()">
+    <textarea class="feature-name-input" style="font-size:clamp(22px,3vw,28px);font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:8px;padding:0;width:100%;resize:vertical;min-height:40px;font-family:'Inter',sans-serif" placeholder="Titre de la section" onchange="DATA.photosVideos.title=this.value;save();renderPhotosVideosHeader()">${esc(h.title||'')}</textarea>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <button type="button" onclick="DATA.photosVideos.titleStyle='gradient';save();renderPhotosVideosHeader()" style="font-size:11px;font-weight:600;padding:6px 12px;border-radius:20px;cursor:pointer;border:1px solid ${(h.titleStyle||'gradient')==='gradient'?'transparent':'var(--border)'};background:${(h.titleStyle||'gradient')==='gradient'?'linear-gradient(90deg,#0b84ff,#8b5cf6,#ec4899,#f97316)':'#fff'};color:${(h.titleStyle||'gradient')==='gradient'?'#fff':'var(--text3)'}">Arc-en-ciel</button>
+      <button type="button" onclick="DATA.photosVideos.titleStyle='plain';save();renderPhotosVideosHeader()" style="font-size:11px;font-weight:600;padding:6px 12px;border-radius:20px;cursor:pointer;border:1px solid ${h.titleStyle==='plain'?'#1D1D1F':'var(--border)'};background:${h.titleStyle==='plain'?'#1D1D1F':'#fff'};color:${h.titleStyle==='plain'?'#fff':'var(--text3)'}">Normal (#1D1D1F)</button>
+    </div>
+    <textarea style="width:100%;max-width:none;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text2);resize:vertical;min-height:44px;outline:none;margin-bottom:20px" placeholder="Sous-titre (optionnel)" onchange="DATA.photosVideos.subtitle=this.value;save()">${esc(h.subtitle||'')}</textarea>
+  ` : `
+    <div style="text-align:${align}">
+      ${iconDisplayHtml(h.icon, h.iconSize)}
+      ${h.label?`<div class="section-label-pill">${esc(h.label)}</div>`:''}
+      <h2 class="section-title">${heroTitleHtml(h.title, h.titleStyle)}</h2>
+      ${h.subtitle?`<p class="section-sub-hero" style="margin:0 ${align==='left'?'0':'auto'} 24px;white-space:pre-wrap">${esc(h.subtitle)}</p>`:'<div style="margin-bottom:24px"></div>'}
+    </div>
+  `;
+}
+
+function fshow2GetTabs(){ return (DATA.photosVideos && DATA.photosVideos.tabs) || []; }
+function fshow2GetItems(){
+  const tabs = fshow2GetTabs();
+  if(fshow2ActiveTabIndex >= tabs.length) fshow2ActiveTabIndex = 0;
+  return (tabs[fshow2ActiveTabIndex] && tabs[fshow2ActiveTabIndex].items) || [];
+}
+
+function renderFshow2Tabs(){
+  const el = document.getElementById('fshow2Tabs');
+  if(!el) return;
+  const tabs = fshow2GetTabs();
+  if(fshow2ActiveTabIndex >= tabs.length) fshow2ActiveTabIndex = 0;
+
+  if(editMode){
+    el.innerHTML = `
+      <div class="fshow-tabbar-edit">
+        ${tabs.map((t,i)=>`
+          <div class="fshow-tab-edit-pill${i===fshow2ActiveTabIndex?' active':''}" draggable="true" ondragstart="fshow2TabDragStart(event,${i})" ondragover="event.preventDefault()" ondrop="fshow2TabDrop(event,${i})" onclick="fshow2SwitchTab(${i})">
+            <span class="feature-drag" style="cursor:grab;font-size:11px" title="Glisser pour réordonner">⠿</span>
+            <textarea rows="1" class="fshow-tab-name-input" style="width:${Math.max(70,t.name.length*8)}px" onclick="event.stopPropagation()" oninput="autoGrowTextarea(this)" onkeydown="enterToCommitKeydown(event)" onchange="DATA.photosVideos.tabs[${i}].name=this.value;save();renderFshow2Tabs()">${esc(t.name)}</textarea>
+            ${tabs.length>1 ? `<button onclick="event.stopPropagation();deleteFshow2Tab(${i})" title="Supprimer cet onglet">✕</button>` : ''}
+          </div>
+        `).join('')}
+        <input type="text" id="addFshowTabInput" placeholder="+ Nouvel onglet…" style="background:#EDEDF0;border:1px dashed var(--border);border-radius:999px;outline:none;color:var(--text);font-size:13px;padding:9px 16px" onkeydown="if(event.key==='Enter'){event.preventDefault();addFshow2Tab(this.value);this.value=''}">
+      </div>
+    `;
+    return;
+  }
+
+  const align = (DATA.photosVideos && DATA.photosVideos.align) || 'left';
+  el.innerHTML = `
+    <div style="text-align:${align}">
+      <div class="fshow-tabbar-wrap">
+        <button type="button" class="fshow-tab-arrow fshow-tab-arrow-left hidden" id="fshow2TabArrowLeft" onclick="fshow2ScrollTabs(-1)" title="Précédent">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"></polyline></svg>
+        </button>
+        <div class="fshow-tabbar" id="fshow2TabbarInner">
+          <div class="fshow-tab-indicator" id="fshow2TabIndicator"></div>
+          ${tabs.map((t,i)=>`<button type="button" class="fshow-tab${i===fshow2ActiveTabIndex?' active':''}" data-i="${i}" onclick="fshow2SwitchTab(${i})">${esc(t.name)}</button>`).join('')}
+        </div>
+        <button type="button" class="fshow-tab-arrow fshow-tab-arrow-right hidden" id="fshow2TabArrowRight" onclick="fshow2ScrollTabs(1)" title="Suivant">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>
+        </button>
+      </div>
+    </div>
+  `;
+  requestAnimationFrame(fshow2PositionIndicator);
+  fshow2SetupTabScroll();
+}
+function fshow2SetupTabScroll(){
+  const bar = document.getElementById('fshow2TabbarInner');
+  if(!bar) return;
+  fshow2UpdateTabArrows();
+  if(!bar._scrollBound){
+    bar._scrollBound = true;
+    bar.addEventListener('scroll', fshow2UpdateTabArrows, { passive:true });
+    window.addEventListener('resize', fshow2UpdateTabArrows);
+  }
+}
+function fshow2UpdateTabArrows(){
+  const bar = document.getElementById('fshow2TabbarInner');
+  const left = document.getElementById('fshow2TabArrowLeft');
+  const right = document.getElementById('fshow2TabArrowRight');
+  if(!bar || !left || !right) return;
+  left.classList.toggle('hidden', bar.scrollLeft <= 2);
+  right.classList.toggle('hidden', bar.scrollLeft + bar.clientWidth >= bar.scrollWidth - 2);
+}
+function fshow2ScrollTabs(dir){
+  const bar = document.getElementById('fshow2TabbarInner');
+  if(!bar) return;
+  bar.scrollBy({ left: dir * 140, behavior: 'smooth' });
+}
+function fshow2PositionIndicator(){
+  const bar = document.getElementById('fshow2TabbarInner');
+  const indicator = document.getElementById('fshow2TabIndicator');
+  if(!bar || !indicator) return;
+  const active = bar.querySelector('.fshow-tab.active');
+  if(!active) return;
+  indicator.style.left = active.offsetLeft + 'px';
+  indicator.style.width = active.offsetWidth + 'px';
+}
+let _fshow2TabDragSrc = null;
+function fshow2TabDragStart(e, i){ _fshow2TabDragSrc = i; }
+function fshow2TabDrop(e, i){
+  e.preventDefault();
+  if(_fshow2TabDragSrc===null || _fshow2TabDragSrc===i) return;
+  const tabs = DATA.photosVideos.tabs;
+  const wasActive = fshow2ActiveTabIndex;
+  const activeTabRef = tabs[wasActive];
+  const [moved] = tabs.splice(_fshow2TabDragSrc, 1);
+  tabs.splice(i, 0, moved);
+  fshow2ActiveTabIndex = tabs.indexOf(activeTabRef);
+  _fshow2TabDragSrc = null;
+  save();
+  renderFshow2Tabs();
+}
+function fshow2SwitchTab(i){
+  fshow2ActiveTabIndex = i;
+  fshow2OpenIndex = -1;
+  if(editMode){
+    renderFshow2Tabs();
+  } else {
+    // Update active classes + slide the indicator in place, instead of a full re-render,
+    // so the CSS transition on the indicator actually animates between positions.
+    document.querySelectorAll('#fshow2TabbarInner .fshow-tab').forEach(btn=>{
+      btn.classList.toggle('active', parseInt(btn.dataset.i)===i);
+    });
+    fshow2PositionIndicator();
+    const activeBtn = document.querySelector('#fshow2TabbarInner .fshow-tab.active');
+    if(activeBtn && activeBtn.scrollIntoView) activeBtn.scrollIntoView({ behavior:'smooth', inline:'center', block:'nearest' });
+    setTimeout(fshow2UpdateTabArrows, 350);
+  }
+  renderPhotosVideosList();
+  fshow2UpdateChrome();
+  fshow2RenderMedia(true);
+}
+function addFshow2Tab(name){
+  name = (name||'').trim();
+  if(!name) return;
+  DATA.photosVideos.tabs.push({ name:name, items:[] });
+  save();
+  fshow2ActiveTabIndex = DATA.photosVideos.tabs.length - 1;
+  renderFshow2Tabs();
+  renderPhotosVideosList();
+}
+function deleteFshow2Tab(i){
+  if(DATA.photosVideos.tabs.length<=1) return;
+  if(!confirm('Supprimer cet onglet et son contenu ?')) return;
+  DATA.photosVideos.tabs.splice(i,1);
+  if(fshow2ActiveTabIndex >= DATA.photosVideos.tabs.length) fshow2ActiveTabIndex = 0;
+  save();
+  renderFshow2Tabs();
+  renderPhotosVideosList();
+}
+
+function renderPhotosVideos(){
+  const listEl = document.getElementById('fshow2List');
+  const mediaEl = document.getElementById('fshow2Media');
+  if(!listEl || !mediaEl) return;
+  const items = fshow2GetItems();
+  if(fshow2OpenIndex >= items.length) fshow2OpenIndex = -1;
+  renderFshow2Tabs();
+  renderPhotosVideosList();
+  fshow2UpdateChrome();
+  fshow2RenderMedia(false);
+  if(editMode) attachFshow2DragHandlers();
+}
+
+// Shows/hides the nav arrows and the global close button based on whether an item is open.
+// Only visible once the person has clicked into a feature (matches Apple's own behavior).
+function fshow2UpdateChrome(){
+  const arrows = document.getElementById('fshow2Arrows');
+  const closeBtn = document.getElementById('fshow2CloseBtn');
+  const isOpen = !editMode && fshow2OpenIndex >= 0;
+  if(arrows) arrows.classList.toggle('show', isOpen);
+  if(closeBtn) closeBtn.classList.toggle('show', isOpen);
+}
+
+function renderPhotosVideosList(){
+  const listEl = document.getElementById('fshow2List');
+  if(!listEl) return;
+  const items = fshow2GetItems();
+  listEl.innerHTML = items.map((it, i) => `
+    <div class="feature-row" data-mi="${i}" ${editMode?'draggable="true"':''} style="${editMode?'':'display:contents'}">
+    ${editMode ? `
+      <div class="fshow-item" style="width:100%">
+        <div style="display:flex;align-items:center;gap:10px;padding:14px 16px">
+          <span class="feature-drag" style="cursor:grab">⠿</span>
+          <textarea rows="1" class="feature-name-input" style="flex:1;font-weight:700;resize:none;overflow:hidden" placeholder="Titre (ex: Menu immersif)" oninput="autoGrowTextarea(this)" onkeydown="enterToCommitKeydown(event)" onchange="DATA.photosVideos.tabs[fshow2ActiveTabIndex].items[${i}].title=this.value;save();renderPhotosVideos()">${esc(it.title||'')}</textarea>
+          <button class="feature-del" onclick="deleteFshow2Item(${i})">✕</button>
+        </div>
+        <div style="padding:0 16px 16px 16px;display:flex;flex-direction:column;gap:8px">
+          <textarea placeholder="Description (**gras** pour le début en gras, comme Apple)" style="font-size:12px;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;width:100%;resize:vertical;min-height:70px;font-family:'Inter',sans-serif" onchange="DATA.photosVideos.tabs[fshow2ActiveTabIndex].items[${i}].desc=this.value;save();renderPhotosVideos()">${esc(it.desc||'')}</textarea>
+          <input type="text" value="${esc(it.image||'')}" placeholder="URL image ou vidéo (YouTube, Vimeo, .mp4…)" style="font-size:11px;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;width:100%" onchange="DATA.photosVideos.tabs[fshow2ActiveTabIndex].items[${i}].image=this.value;save();renderPhotosVideos()">
+        </div>
+      </div>
+    ` : `
+      <div class="fshow-item" style="width:100%">
+        ${i===fshow2OpenIndex ? `
+          <div class="fshow-item-open-body">
+            <div class="fshow-item-desc">${formatPointText(it.desc||'')}</div>
+          </div>
+        ` : `
+          <div class="fshow-item-hdr" onclick="fshow2Toggle(${i})">
+            <span class="fshow-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></span>
+            <span>${esc(it.title||'')}</span>
+          </div>
+        `}
+      </div>
+    `}
+    </div>
+  `).join('') || `<div style="padding:16px;font-size:12px;color:var(--text3);font-style:italic">Aucune fonctionnalité pour l'instant</div>`;
+
+  document.getElementById('addFshow2BtnWrap').innerHTML = editMode ? `
+    <div class="add-feature-row">
+      <input type="text" id="addFshowInput" placeholder="+ Nouvelle fonctionnalité…" onkeydown="if(event.key==='Enter'){event.preventDefault();addFshow2Item(this.value);this.value='';this.focus()}">
+      <button class="btn-icon-only" style="background:var(--navy);width:32px;height:32px" onclick="const inp=document.getElementById('addFshowInput');addFshow2Item(inp.value);inp.value='';inp.focus()" title="Ajouter">+</button>
+    </div>
+  ` : '';
+
+  if(editMode) attachFshow2DragHandlers();
+}
+
+function fshow2RenderMedia(animate){
+  const mediaEl = document.getElementById('fshow2Media');
+  if(!mediaEl) return;
+  const items = fshow2GetItems();
+  // Nothing expanded yet → show the first item's image as a neutral default (Apple does the same).
+  const it = fshow2OpenIndex >= 0 ? items[fshow2OpenIndex] : items[0];
+  const html = (it && it.image) ? immersiveMediaEmbedHtml(it.image) : `<div class="fshow-media-empty">Aucune image ou vidéo pour cette fonctionnalité</div>`;
+  if(!animate){
+    mediaEl.innerHTML = `<div class="fshow-media-inner">${html}</div>`;
+    return;
+  }
+  const inner = mediaEl.querySelector('.fshow-media-inner');
+  if(!inner){ mediaEl.innerHTML = `<div class="fshow-media-inner">${html}</div>`; return; }
+  // Fade + a light rightward-to-leftward slide, for a subtle Apple-like dynamism.
+  inner.classList.add('fading-out');
+  setTimeout(()=>{
+    mediaEl.innerHTML = `<div class="fshow-media-inner fading-in">${html}</div>`;
+    requestAnimationFrame(()=>{
+      const newInner = mediaEl.querySelector('.fshow-media-inner');
+      if(newInner) newInner.classList.remove('fading-in');
+    });
+  }, 220);
+}
+
+function fshow2Toggle(i){
+  if(editMode) return;
+  fshow2OpenIndex = i;
+  renderPhotosVideosList();
+  fshow2UpdateChrome();
+  fshow2RenderMedia(true);
+}
+function fshow2Close(){
+  fshow2OpenIndex = -1;
+  renderPhotosVideosList();
+  fshow2UpdateChrome();
+  fshow2RenderMedia(true);
+}
+function fshow2Step(delta){
+  const items = fshow2GetItems();
+  if(!items.length) return;
+  const cur = fshow2OpenIndex < 0 ? 0 : fshow2OpenIndex;
+  fshow2OpenIndex = (cur + delta + items.length) % items.length;
+  renderPhotosVideosList();
+  fshow2UpdateChrome();
+  fshow2RenderMedia(true);
+}
+function addFshow2Item(title){
+  title = (title||'').trim();
+  if(!title) return;
+  const tab = DATA.photosVideos.tabs[fshow2ActiveTabIndex];
+  if(!tab.items) tab.items = [];
+  tab.items.push({ title:title, desc:'', image:'' });
+  save();
+  renderPhotosVideos();
+  showToast('✓ Fonctionnalité ajoutée');
+}
+function deleteFshow2Item(i){
+  if(!confirm('Supprimer cette fonctionnalité ?')) return;
+  DATA.photosVideos.tabs[fshow2ActiveTabIndex].items.splice(i,1);
+  save();
+  renderPhotosVideos();
+}
+function attachFshow2DragHandlers(){
+  const rows = document.querySelectorAll('#fshow2List .feature-row[draggable="true"]');
+  rows.forEach(row=>{
+    row.addEventListener('dragstart', fshow2DragStart);
+    row.addEventListener('dragover', fshow2DragOver);
+    row.addEventListener('dragend', fshow2DragEnd);
+    row.addEventListener('drop', fshow2Drop);
+  });
+}
+let fshow2DragSrc = null;
+function fshow2DragStart(e){
+  fshow2DragSrc = parseInt(this.dataset.mi);
+  this.style.opacity = '0.4';
+  e.dataTransfer.effectAllowed = 'move';
+}
+function fshow2DragEnd(){
+  this.style.opacity = '';
+  document.querySelectorAll('#fshow2List .feature-row').forEach(r=>r.style.borderTop='');
+}
+function fshow2DragOver(e){
+  e.preventDefault();
+  if(fshow2DragSrc===null) return;
+  this.style.borderTop = '2px solid var(--navy)';
+}
+function fshow2Drop(e){
+  e.preventDefault();
+  this.style.borderTop = '';
+  const mi = parseInt(this.dataset.mi);
+  if(fshow2DragSrc===null || fshow2DragSrc===mi) return;
+  const items = DATA.photosVideos.tabs[fshow2ActiveTabIndex].items;
+  const [moved] = items.splice(fshow2DragSrc, 1);
+  items.splice(mi, 0, moved);
+  fshow2DragSrc = null;
+  save();
+  renderPhotosVideos();
+}
+
+
 const MATRIX_CHECK_SVG = '<span class="matrix-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>';
 const MATRIX_DASH_SVG = '<span class="matrix-dash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg></span>';
 function tagLabel(tag){
@@ -2102,28 +2469,31 @@ function deleteGoFurtherCard(ci){
   renderGoFurther();
 }
 
-function renderAgencyHero(){
-  const band = document.getElementById('agencyHeroBand');
-  const el = document.getElementById('agencyHeroContent');
+function renderAgencyHero(key){
+  key = key || 'agencyHero';
+  const suffix = key === 'agencyHero' ? '' : '__' + key;
+  const band = document.getElementById('agencyHeroBand' + suffix);
+  const el = document.getElementById('agencyHeroContent' + suffix);
   if(!band || !el) return;
-  const h = DATA.agencyHero;
+  const h = DATA[key];
+  if(!h) return;
   band.style.background = `linear-gradient(180deg, ${h.gradientFrom||'#DCEEFB'} 0%, ${h.gradientTo||'#FFFFFF'} 100%)`;
   if(editMode){
     el.innerHTML = `
       <div style="max-width:560px;margin:0 auto">
-        <input type="text" class="feature-name-input" style="text-align:center;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);width:100%;margin-bottom:8px;padding:0" placeholder="Pastille" value="${esc(h.label||'')}" onchange="DATA.agencyHero.label=this.value;save();renderAgencyHero()">
-        <textarea class="feature-name-input" style="text-align:center;font-size:26px;font-weight:700;color:var(--text);width:100%;margin-bottom:8px;padding:0;resize:vertical;min-height:44px;font-family:'Inter',sans-serif" placeholder="Titre" onchange="DATA.agencyHero.title=this.value;save();renderAgencyHero()">${esc(h.title||'')}</textarea>
+        <input type="text" class="feature-name-input" style="text-align:center;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);width:100%;margin-bottom:8px;padding:0" placeholder="Pastille" value="${esc(h.label||'')}" onchange="DATA['${key}'].label=this.value;save();renderAgencyHero('${key}')">
+        <textarea class="feature-name-input" style="text-align:center;font-size:26px;font-weight:700;color:var(--text);width:100%;margin-bottom:8px;padding:0;resize:vertical;min-height:44px;font-family:'Inter',sans-serif" placeholder="Titre" onchange="DATA['${key}'].title=this.value;save();renderAgencyHero('${key}')">${esc(h.title||'')}</textarea>
         <div style="display:flex;justify-content:center;gap:8px;margin-bottom:14px">
-          <button type="button" onclick="DATA.agencyHero.titleStyle='gradient';save();renderAgencyHero()" style="font-size:11px;font-weight:600;padding:6px 12px;border-radius:20px;cursor:pointer;border:1px solid ${(h.titleStyle||'gradient')==='gradient'?'transparent':'var(--border)'};background:${(h.titleStyle||'gradient')==='gradient'?'linear-gradient(90deg,#0b84ff,#8b5cf6,#ec4899,#f97316)':'#fff'};color:${(h.titleStyle||'gradient')==='gradient'?'#fff':'var(--text3)'}">Arc-en-ciel</button>
-          <button type="button" onclick="DATA.agencyHero.titleStyle='plain';save();renderAgencyHero()" style="font-size:11px;font-weight:600;padding:6px 12px;border-radius:20px;cursor:pointer;border:1px solid ${h.titleStyle==='plain'?'#1D1D1F':'var(--border)'};background:${h.titleStyle==='plain'?'#1D1D1F':'#fff'};color:${h.titleStyle==='plain'?'#fff':'var(--text3)'}">Noir</button>
+          <button type="button" onclick="DATA['${key}'].titleStyle='gradient';save();renderAgencyHero('${key}')" style="font-size:11px;font-weight:600;padding:6px 12px;border-radius:20px;cursor:pointer;border:1px solid ${(h.titleStyle||'gradient')==='gradient'?'transparent':'var(--border)'};background:${(h.titleStyle||'gradient')==='gradient'?'linear-gradient(90deg,#0b84ff,#8b5cf6,#ec4899,#f97316)':'#fff'};color:${(h.titleStyle||'gradient')==='gradient'?'#fff':'var(--text3)'}">Arc-en-ciel</button>
+          <button type="button" onclick="DATA['${key}'].titleStyle='plain';save();renderAgencyHero('${key}')" style="font-size:11px;font-weight:600;padding:6px 12px;border-radius:20px;cursor:pointer;border:1px solid ${h.titleStyle==='plain'?'#1D1D1F':'var(--border)'};background:${h.titleStyle==='plain'?'#1D1D1F':'#fff'};color:${h.titleStyle==='plain'?'#fff':'var(--text3)'}">Noir</button>
         </div>
-        <textarea style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text2);resize:vertical;min-height:44px;outline:none;margin-bottom:14px;text-align:center" placeholder="Sous-titre" onchange="DATA.agencyHero.subtitle=this.value;save()">${esc(h.subtitle||'')}</textarea>
-        <input type="text" value="${esc(h.ctaText||'')}" placeholder="Texte du call-to-action (ex: Découvrir nos prestations)" style="width:100%;text-align:center;font-size:13px;font-weight:700;color:#2F6FE0;border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:14px" onchange="DATA.agencyHero.ctaText=this.value;save();renderAgencyHero()">
+        <textarea style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text2);resize:vertical;min-height:44px;outline:none;margin-bottom:14px;text-align:center" placeholder="Sous-titre" onchange="DATA['${key}'].subtitle=this.value;save()">${esc(h.subtitle||'')}</textarea>
+        <input type="text" value="${esc(h.ctaText||'')}" placeholder="Texte du call-to-action (ex: Découvrir nos prestations)" style="width:100%;text-align:center;font-size:13px;font-weight:700;color:#2F6FE0;border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:14px" onchange="DATA['${key}'].ctaText=this.value;save();renderAgencyHero('${key}')">
         <div style="display:flex;align-items:center;justify-content:center;gap:10px;font-size:12px;color:var(--text2)">
           <span>Dégradé :</span>
-          <input type="color" value="${h.gradientFrom||'#DCEEFB'}" onchange="DATA.agencyHero.gradientFrom=this.value;save();renderAgencyHero()" title="Couleur du haut">
+          <input type="color" value="${h.gradientFrom||'#DCEEFB'}" onchange="DATA['${key}'].gradientFrom=this.value;save();renderAgencyHero('${key}')" title="Couleur du haut">
           <span>→</span>
-          <input type="color" value="${h.gradientTo||'#FFFFFF'}" onchange="DATA.agencyHero.gradientTo=this.value;save();renderAgencyHero()" title="Couleur du bas">
+          <input type="color" value="${h.gradientTo||'#FFFFFF'}" onchange="DATA['${key}'].gradientTo=this.value;save();renderAgencyHero('${key}')" title="Couleur du bas">
         </div>
       </div>
     `;
@@ -2446,7 +2816,7 @@ function renderOffersTrustBar(){
 function renderMatrix(){
   renderMatrixLabel();
   const el = document.getElementById('matrixTable');
-  const colCount = DATA.tagOrder.length + 1;
+  const colCount = DATA.tagOrder.length + 1 + (editMode ? 1 : 0);
   let html = `<thead><tr><th>Fonctionnalité</th>${DATA.tagOrder.map(tag=>`<th class="center">${
     editMode
       ? `<div style="display:flex;align-items:center;justify-content:center;gap:3px"><input value="${esc(tagLabel(tag))}" style="border:none;outline:none;background:transparent;font-size:11px;font-weight:700;text-align:center;width:${Math.max(50,tagLabel(tag).length*7)}px" onchange="renameTagColumn('${tag}',this.value)"><button onclick="deleteTagColumn('${tag}')" title="Supprimer" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;padding:2px">✕</button></div>`
@@ -3061,6 +3431,7 @@ const SECTION_LABELS = {
   featureShowcase: 'Vos clients vous trouvent',
   offers: 'Trois offres',
   appleCards: 'Aux petits oignons',
+  photosVideos: 'Photos et vidéos',
   addonModules: 'Modules complémentaires',
   prestation: 'Prestations',
   simulator: 'Simulateur',
@@ -3068,6 +3439,60 @@ const SECTION_LABELS = {
   goFurther: 'Allez encore plus loin',
   agencyHero: 'Bannière Agence'
 };
+// Only section types with their own independent, self-contained data (no shared
+// categories/tags engine) can be safely duplicated into a genuinely separate,
+// editable copy. Each duplicate gets registered here too, under its new key.
+const SECTION_DUPLICATABLE_TYPES = { agencyHero: 'agencyHero' };
+function createCustomSectionDOM(key, type){
+  const container = document.getElementById('reorderableSections');
+  if(!container || document.querySelector(`.reorderable-section[data-key="${key}"]`)) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'reorderable-section';
+  wrap.dataset.key = key;
+  if(type === 'agencyHero'){
+    wrap.innerHTML = `
+      <div class="agency-hero-band" id="agencyHeroBand__${key}">
+        <div class="wrap" id="agencyHeroContent__${key}"></div>
+      </div>
+    `;
+  }
+  container.appendChild(wrap);
+}
+function renderCustomSection(key, type){
+  if(type === 'agencyHero') renderAgencyHero(key);
+}
+function initCustomSections(){
+  if(!DATA.customSections) return;
+  Object.keys(DATA.customSections).forEach(key=>{
+    const type = DATA.customSections[key].type;
+    SECTION_LABELS[key] = DATA.customSections[key].label;
+    SECTION_DUPLICATABLE_TYPES[key] = type;
+    createCustomSectionDOM(key, type);
+    renderCustomSection(key, type);
+  });
+}
+function duplicateSection(key){
+  const type = SECTION_DUPLICATABLE_TYPES[key];
+  if(!type){
+    alert("Cette section ne peut pas encore être dupliquée automatiquement — ses données sont partagées avec d'autres blocs de la page (comme les catégories ou les offres). Demande-moi de le faire manuellement si besoin, comme pour \"Photos et vidéos\".");
+    return;
+  }
+  const newKey = type + '_copy' + Date.now();
+  DATA[newKey] = JSON.parse(JSON.stringify(DATA[key]));
+  DATA.sectionOrder.push(newKey);
+  DATA.sectionBg[newKey] = DATA.sectionBg[key] || 'white';
+  DATA.sectionHidden[newKey] = false;
+  if(!DATA.customSections) DATA.customSections = {};
+  const label = (SECTION_LABELS[key] || key) + ' (copie)';
+  DATA.customSections[newKey] = { type, label };
+  SECTION_LABELS[newKey] = label;
+  SECTION_DUPLICATABLE_TYPES[newKey] = type;
+  createCustomSectionDOM(newKey, type);
+  save();
+  renderCustomSection(newKey, type);
+  applySectionLayout();
+  renderSectionSidebar();
+}
 function applySectionLayout(){
   const container = document.getElementById('reorderableSections');
   if(!container) return;
@@ -3156,6 +3581,9 @@ function renderSectionSidebar(){
           ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>'
           : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>'
         }</button>
+        <button type="button" class="section-sidebar-icon-btn" onclick="duplicateSection('${key}')" title="Dupliquer cette section">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        </button>
         <button type="button" class="section-sidebar-icon-btn" onclick="deleteSection('${key}')" title="Retirer cette section">✕</button>
       </div>
     `;
@@ -3189,9 +3617,12 @@ function renderAll(){
   renderAppleCards();
   renderFeatureShowcaseHeader();
   renderFeatureShowcase();
+  renderPhotosVideosHeader();
+  renderPhotosVideos();
   if(typeof renderSimulator === 'function') renderSimulator();
   renderGoFurther();
   renderAgencyHero();
+  initCustomSections();
   applySectionLayout();
 }
 
