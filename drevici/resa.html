@@ -199,9 +199,10 @@ body.has-admin-sticky .wrap{padding-bottom:88px}
        anything is a fully supported outcome: the customer just moves on
        and the restaurant seats them wherever. -->
   <div class="panel hidden" id="panelEspace">
-    <div class="space-title">Où souhaitez-vous être installé ?</div>
+    <div class="no-slots hidden" id="noPrevForEspaceMsg">Sélectionnez d'abord la date et le nombre de couverts.</div>
+    <div class="space-title" id="espaceTitle">Où souhaitez-vous être installé ?</div>
     <div class="space-grid" id="spaceGrid"></div>
-    <div class="space-skip" onclick="skipSpace()">Peu importe</div>
+    <div class="space-skip" id="espaceSkip" onclick="skipSpace()">Peu importe</div>
   </div>
 
   <!-- HORAIRE panel -->
@@ -477,9 +478,23 @@ async function loadSpaces() {
   }
   renderEspacePanel();
 }
+// BUG FIX: same "complete the steps in order" rule as Couverts/Horaire —
+// Espace was reachable and fully usable before a date+covers were even
+// chosen. Gated now: shows a "select these first" message until ready.
+// Once ready, it stays an optional step (picking one, or using "Peu
+// importe", are both valid ways to move on).
 function renderEspacePanel() {
   const grid = document.getElementById('spaceGrid');
+  const title = document.getElementById('espaceTitle');
+  const skip = document.getElementById('espaceSkip');
+  const msg = document.getElementById('noPrevForEspaceMsg');
   if (!grid) return;
+  const ready = !!(S.date && S.covers);
+  msg.classList.toggle('hidden', ready);
+  title.classList.toggle('hidden', !ready);
+  grid.classList.toggle('hidden', !ready);
+  skip.classList.toggle('hidden', !ready);
+  if (!ready) return;
   grid.innerHTML = '';
   SPACES.forEach(name => {
     const btn = document.createElement('button');
