@@ -142,6 +142,27 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 /* ── Toast ── */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:30px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:99;white-space:nowrap}
 .toast.show{opacity:1}
+
+/* ── Réglages / Espaces ── */
+.settings-section-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px}
+.settings-hint{font-size:12px;color:var(--text3);line-height:1.5;margin-bottom:16px}
+.spaces-list{display:flex;flex-direction:column;gap:8px;margin-bottom:18px}
+.space-row{display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:var(--rs);padding:6px 6px 6px 12px}
+.space-row input{flex:1;border:none;background:none;font-size:14px;font-family:inherit;color:var(--text);padding:6px 0;min-width:0}
+.space-row input:focus{outline:none}
+.space-order-btns{display:flex;flex-direction:column;flex:none}
+.space-order-btns button{background:none;border:none;color:var(--text3);cursor:pointer;font-size:10px;line-height:1;padding:3px 5px;font-family:inherit}
+.space-order-btns button:hover:not(:disabled){color:var(--navy)}
+.space-order-btns button:disabled{opacity:.25;cursor:not-allowed}
+.space-del-btn{background:none;border:none;color:var(--text3);cursor:pointer;padding:6px;display:flex;align-items:center;flex:none}
+.space-del-btn:hover{color:#c0392b}
+.spaces-empty{font-size:12px;color:var(--text3);padding:10px 0}
+.spaces-add{display:flex;gap:8px}
+.spaces-add input{flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:var(--rs);font-size:14px;font-family:inherit;-webkit-appearance:none}
+.spaces-add input:focus{outline:none;border-color:var(--navy)}
+.spaces-add-btn{padding:10px 16px;background:var(--navy);color:#fff;border:none;border-radius:var(--rs);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.spaces-add-btn:hover{background:#0a1a3e}
+.spaces-add-btn:disabled{opacity:.5;cursor:not-allowed}
 </style>
 </head>
 <body>
@@ -190,6 +211,7 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
       <div class="view-tab active" id="viewTabUpcoming" onclick="switchView('upcoming')">À venir</div>
       <div class="view-tab" id="viewTabWeek" onclick="switchView('week')">Semaine</div>
       <div class="view-tab" id="viewTabMonth" onclick="switchView('month')">Mois</div>
+      <div class="view-tab" id="viewTabSettings" onclick="switchView('settings')">Réglages</div>
     </div>
 
     <div id="upcomingPanel">
@@ -213,6 +235,22 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
         <button class="cal-arr" onclick="chMonth(1)">›</button>
       </div>
       <div class="cal-grid" id="monthGrid"></div>
+    </div>
+
+    <!-- RÉGLAGES panel — lets the restaurant customize the "Espace"
+         step shown to customers on resa.html (Intérieur/Extérieur/
+         Terrasse/Bar by default). Reorder with the arrows, rename
+         in place, remove with the trash icon, or add a new one. An
+         empty list is a valid choice — the Espace step then just
+         won't show any options and customers skip straight through. -->
+    <div class="cal-panel hidden" id="settingsPanel">
+      <div class="settings-section-title">Espaces</div>
+      <div class="settings-hint">Ces options s'affichent aux clients lors de la réservation, à l'étape "Espace" (facultative pour eux). Réordonnez avec les flèches, renommez directement, ou supprimez celles que vous n'utilisez pas.</div>
+      <div class="spaces-list" id="spacesList"></div>
+      <div class="spaces-add">
+        <input id="newSpaceName" type="text" placeholder="Nouvel espace (ex : Véranda)" maxlength="40" onkeydown="if(event.key==='Enter') addSpace()">
+        <button class="spaces-add-btn" id="addSpaceBtn" onclick="addSpace()">Ajouter</button>
+      </div>
     </div>
 
   </div>
@@ -272,6 +310,7 @@ let BLOCKED = new Set();
 
 const ICON_PERSON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
 const ICON_LOCK  = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+const ICON_TRASH = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
 
 /* ── Auth ── */
 async function tryLogin() {
@@ -314,7 +353,7 @@ function enterDashboard() {
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('dashContent').classList.remove('hidden');
   document.getElementById('homeBtn').href = MENU_URL;
-  Promise.all([loadReservations(), loadBlockedDates()]).then(() => {
+  Promise.all([loadReservations(), loadBlockedDates(), loadSpaces()]).then(() => {
     renderWeek();
     renderMonth();
   });
@@ -358,14 +397,132 @@ async function loadBlockedDates() {
   }
 }
 
-/* ── View tabs (À venir / Semaine / Mois) ── */
+/* ── Réglages: Espaces ──
+   Configurable list a customer picks from at resa.html's optional
+   "Espace" step (Intérieur/Extérieur/Terrasse/Bar by default until a
+   restaurant customizes it here). Same restaurant_spaces table,
+   RLS-gated to this CLIENT_SLUG's admins only — see setup-espaces.sql. */
+let SPACES = [];
+async function loadSpaces() {
+  if (!sb) return;
+  try {
+    const { data, error } = await sb
+      .from('restaurant_spaces')
+      .select('*')
+      .eq('client_slug', CLIENT_SLUG)
+      .order('sort_order', { ascending: true });
+    if (error) throw error;
+    SPACES = data || [];
+    renderSpacesList();
+  } catch (err) {
+    console.warn('Spaces load failed:', err.message);
+  }
+}
+function renderSpacesList() {
+  const list = document.getElementById('spacesList');
+  if (!list) return;
+  list.innerHTML = '';
+  if (SPACES.length === 0) {
+    list.innerHTML = `<div class="spaces-empty">Aucun espace configuré — l'étape "Espace" ne proposera aucun choix aux clients tant que vous n'en ajoutez pas.</div>`;
+    return;
+  }
+  SPACES.forEach((s, i) => {
+    const row = document.createElement('div');
+    row.className = 'space-row';
+    row.innerHTML = `
+      <div class="space-order-btns">
+        <button ${i === 0 ? 'disabled' : ''} onclick="moveSpace('${escapeAttr(s.id)}',-1)" title="Monter">▲</button>
+        <button ${i === SPACES.length - 1 ? 'disabled' : ''} onclick="moveSpace('${escapeAttr(s.id)}',1)" title="Descendre">▼</button>
+      </div>
+      <input type="text" value="${escapeAttr(s.name)}" maxlength="40" onchange="renameSpace('${escapeAttr(s.id)}', this.value)">
+      <button class="space-del-btn" onclick="deleteSpace('${escapeAttr(s.id)}')" title="Supprimer">${ICON_TRASH}</button>
+    `;
+    list.appendChild(row);
+  });
+}
+async function addSpace() {
+  const input = document.getElementById('newSpaceName');
+  const name = input.value.trim();
+  if (!name || !sb) return;
+  const btn = document.getElementById('addSpaceBtn');
+  btn.disabled = true;
+  try {
+    const nextOrder = SPACES.length ? Math.max(...SPACES.map(s => s.sort_order || 0)) + 1 : 0;
+    const { data, error } = await sb
+      .from('restaurant_spaces')
+      .insert({ client_slug: CLIENT_SLUG, name, sort_order: nextOrder })
+      .select()
+      .single();
+    if (error) throw error;
+    SPACES.push(data);
+    input.value = '';
+    renderSpacesList();
+    showToast('Espace ajouté');
+  } catch (err) {
+    showToast('Ajout impossible : ' + err.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+async function renameSpace(id, newName) {
+  const name = newName.trim();
+  const sIdx = SPACES.findIndex(s => s.id === id);
+  if (sIdx === -1) return;
+  if (!name) { renderSpacesList(); return; } // reject blank, restore previous value
+  try {
+    const { error } = await sb.from('restaurant_spaces').update({ name }).eq('id', id);
+    if (error) throw error;
+    SPACES[sIdx].name = name;
+    showToast('Espace renommé');
+  } catch (err) {
+    showToast('Renommage impossible : ' + err.message);
+    renderSpacesList();
+  }
+}
+async function deleteSpace(id) {
+  const s = SPACES.find(x => x.id === id);
+  if (!s || !confirm(`Supprimer l'espace "${s.name}" ?`)) return;
+  try {
+    const { error } = await sb.from('restaurant_spaces').delete().eq('id', id);
+    if (error) throw error;
+    SPACES = SPACES.filter(x => x.id !== id);
+    renderSpacesList();
+    showToast('Espace supprimé');
+  } catch (err) {
+    showToast('Suppression impossible : ' + err.message);
+  }
+}
+async function moveSpace(id, dir) {
+  const i = SPACES.findIndex(s => s.id === id);
+  const j = i + dir;
+  if (i === -1 || j < 0 || j >= SPACES.length) return;
+  // Swap sort_order values between the two neighbors and persist both —
+  // simplest way to keep order stable without renumbering everything.
+  const a = SPACES[i], b = SPACES[j];
+  const aOrder = a.sort_order, bOrder = b.sort_order;
+  [SPACES[i], SPACES[j]] = [SPACES[j], SPACES[i]];
+  renderSpacesList();
+  try {
+    const { error: e1 } = await sb.from('restaurant_spaces').update({ sort_order: bOrder }).eq('id', a.id);
+    const { error: e2 } = await sb.from('restaurant_spaces').update({ sort_order: aOrder }).eq('id', b.id);
+    if (e1 || e2) throw (e1 || e2);
+    a.sort_order = bOrder; b.sort_order = aOrder;
+  } catch (err) {
+    showToast('Réordonnancement impossible : ' + err.message);
+    loadSpaces(); // resync with the server on failure
+  }
+}
+
+/* ── View tabs (À venir / Semaine / Mois / Réglages) ── */
 function switchView(v) {
   document.getElementById('viewTabUpcoming').classList.toggle('active', v === 'upcoming');
   document.getElementById('viewTabWeek').classList.toggle('active', v === 'week');
   document.getElementById('viewTabMonth').classList.toggle('active', v === 'month');
+  document.getElementById('viewTabSettings').classList.toggle('active', v === 'settings');
   document.getElementById('upcomingPanel').classList.toggle('hidden', v !== 'upcoming');
   document.getElementById('weekPanel').classList.toggle('hidden', v !== 'week');
   document.getElementById('monthPanel').classList.toggle('hidden', v !== 'month');
+  document.getElementById('settingsPanel').classList.toggle('hidden', v !== 'settings');
 }
 
 /* ── Week view ── */
@@ -561,6 +718,7 @@ function reservationDetailHtml(r) {
     <div class="modal-row"><span class="modal-label">Date</span><span class="modal-value">${escapeHtml(r.date_label || '')}</span></div>
     <div class="modal-row"><span class="modal-label">Heure</span><span class="modal-value">${escapeHtml(r.slot || '')}</span></div>
     <div class="modal-row"><span class="modal-label">Couverts</span><span class="modal-value">${escapeHtml(String(r.covers || ''))}</span></div>
+    ${r.espace ? `<div class="modal-row"><span class="modal-label">Espace</span><span class="modal-value">${escapeHtml(r.espace)}</span></div>` : ''}
     ${r.note && r.note !== 'Aucune' ? `<div class="modal-row"><span class="modal-label">Note</span><span class="modal-value">${escapeHtml(r.note)}</span></div>` : ''}
     <button class="modal-del" onclick="deleteReservation('${escapeAttr(r.ref)}');closeModal()">Supprimer cette réservation</button>
   `;

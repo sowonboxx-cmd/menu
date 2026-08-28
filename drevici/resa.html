@@ -69,6 +69,17 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 .custom-cov{margin-top:14px;display:none;align-items:center;gap:10px;flex-wrap:wrap}
 .custom-cov.show{display:flex}
 .custom-cov label{font-size:12px;color:var(--text2)}
+
+/* Espace (indoor/outdoor/terrace/bar) — optional step, same visual
+   language as Couverts but text labels instead of digits, and no
+   gating: skipping it is a normal, supported outcome. */
+.space-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.space-btn{border-radius:var(--rs);border:1px solid var(--border);background:#fff;font-size:14px;font-weight:600;color:var(--text);cursor:pointer;padding:18px 10px;text-align:center;transition:all .12s}
+.space-btn:hover{border-color:var(--navy);color:var(--navy)}
+.space-btn.sel{background:var(--navy);color:#fff!important;border-color:var(--navy)}
+.space-skip{margin-top:16px;text-align:center;font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.space-skip:hover{color:var(--navy)}
+.space-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:14px;text-align:center}
 .cov-input{width:70px;padding:9px 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:14px;font-family:inherit;text-align:center;-webkit-appearance:none}
 .cov-input:focus{outline:none;border-color:var(--navy)}
 .cov-confirm{padding:9px 16px;background:var(--navy);color:#fff;border:none;border-radius:var(--rs);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
@@ -144,6 +155,7 @@ body.has-admin-sticky .wrap{padding-bottom:88px}
   <div class="seg-bar" id="segBar">
     <div class="seg active" id="segDate" onclick="selectTab('date')">Date</div>
     <div class="seg" id="segCovers" onclick="selectTab('couverts')">Couverts</div>
+    <div class="seg" id="segEspace" onclick="selectTab('espace')">Espace</div>
     <div class="seg" id="segSlot" onclick="selectTab('horaire')">Horaire</div>
     <div class="seg" id="segRecap" onclick="selectTab('recap')">Récap</div>
   </div>
@@ -181,6 +193,17 @@ body.has-admin-sticky .wrap{padding-bottom:88px}
     <div class="cov-note">Pour les groupes de plus de 10 personnes, contactez-nous directement au <a href="https://www.google.com/search?client=opera&q=drevicioyster&sourceid=opera&ie=UTF-8&oe=UTF-8#">09 74 64 05 87</a> ou par email à <a href="mailto:benji@oceanprosarl.com">benji@oceanprosarl.com</a>.</div>
   </div>
 
+  <!-- ESPACE panel — optional, never gates the flow. Options come from
+       Supabase (restaurant_spaces, configurable per-client in the admin
+       Réglages), falling back to a sensible default set. Not clicking
+       anything is a fully supported outcome: the customer just moves on
+       and the restaurant seats them wherever. -->
+  <div class="panel hidden" id="panelEspace">
+    <div class="space-title">Où souhaitez-vous être installé ?</div>
+    <div class="space-grid" id="spaceGrid"></div>
+    <div class="space-skip" onclick="skipSpace()">Peu importe</div>
+  </div>
+
   <!-- HORAIRE panel -->
   <div class="panel hidden" id="panelSlot">
     <div class="slots" id="slDinner"></div>
@@ -198,6 +221,7 @@ body.has-admin-sticky .wrap{padding-bottom:88px}
       <div class="step-recap-title">Votre réservation :</div>
       <div class="step-recap-row" id="recapDateRow" onclick="selectTab('date')"><span id="recapDate">—</span></div>
       <div class="step-recap-row" id="recapCovRow" onclick="selectTab('couverts')"><span id="recapCov">—</span></div>
+      <div class="step-recap-row hidden" id="recapEspaceRow" onclick="selectTab('espace')"><span id="recapEspace">—</span></div>
       <div class="step-recap-row" id="recapSlotRow" onclick="selectTab('horaire')"><span id="recapSlot">—</span></div>
 
       <div class="panel-label" style="margin-top:22px">Vos informations</div>
@@ -299,7 +323,7 @@ const FULL_SLOTS  = [];
 
 let activeTab = 'date'; // 'date' | 'couverts' | 'horaire'
 
-const S = { covers: null, date: null, slot: null };
+const S = { covers: null, date: null, slot: null, space: null };
 let curM = new Date().getMonth();
 let curY = new Date().getFullYear();
 const today = new Date();
@@ -332,7 +356,7 @@ const DAY_S   = ['Lun.','Mar.','Mer.','Jeu.','Ven.','Sam.','Dim.'];
    Auto-advance (called after a selection) only moves to the next
    segment if it doesn't already have a value, so re-editing a
    completed step never gets yanked away from you. */
-const SEG_IDS = { date: 'segDate', couverts: 'segCovers', horaire: 'segSlot', recap: 'segRecap' };
+const SEG_IDS = { date: 'segDate', couverts: 'segCovers', espace: 'segEspace', horaire: 'segSlot', recap: 'segRecap' };
 function selectTab(name) {
   activeTab = name;
   Object.keys(SEG_IDS).forEach(n => {
@@ -340,9 +364,12 @@ function selectTab(name) {
   });
   document.getElementById('panelDate').classList.toggle('hidden', name !== 'date');
   document.getElementById('panelCovers').classList.toggle('hidden', name !== 'couverts');
+  document.getElementById('panelEspace').classList.toggle('hidden', name !== 'espace');
   document.getElementById('panelSlot').classList.toggle('hidden', name !== 'horaire');
   document.getElementById('panelRecap').classList.toggle('hidden', name !== 'recap');
   if (name === 'couverts') renderCoversPanel();
+  if (name === 'espace') renderEspacePanel();
+  if (name === 'horaire') renderSlots();
   if (name === 'recap') renderRecapPanel();
 }
 // BUG FIX: the Couverts tab was reachable (and its picker fully usable)
@@ -365,8 +392,12 @@ function autoAdvance(from) {
   // 'recap' has no fill state of its own — it's always the fallback
   // destination once date/couverts/horaire are all set, which is
   // exactly what we want once the last of the three gets picked.
-  const order = ['date','couverts','horaire','recap'];
-  const filled = { date: !!S.date, couverts: !!S.covers, horaire: !!S.slot, recap: false };
+  // 'espace' is optional and never blocks: it's included in the order so
+  // auto-advance stops there once (to offer the choice), but picking it
+  // is not required for anything downstream — Horaire/Récap gating only
+  // ever checks date/couverts/slot.
+  const order = ['date','couverts','espace','horaire','recap'];
+  const filled = { date: !!S.date, couverts: !!S.covers, espace: !!S.space, horaire: !!S.slot, recap: false };
   const idx = order.indexOf(from);
   for (let i = idx + 1; i < order.length; i++) {
     if (!filled[order[i]]) { selectTab(order[i]); return; }
@@ -381,6 +412,8 @@ function updateSegLabels() {
     ? S.covers + (S.covers === 1 ? ' pers.' : ' pers.')
     : 'Couverts';
   document.getElementById('segCovers').classList.toggle('filled', !!S.covers);
+  document.getElementById('segEspace').textContent = S.space || 'Espace';
+  document.getElementById('segEspace').classList.toggle('filled', !!S.space);
   document.getElementById('segSlot').textContent = S.slot || 'Horaire';
   document.getElementById('segSlot').classList.toggle('filled', !!S.slot);
   // Re-apply active state after relabeling (textContent wipe doesn't
@@ -415,6 +448,62 @@ function confirmCustomCover() {
     renderRecapPanel();
     autoAdvance('couverts');
   }
+}
+
+/* ── Espace (indoor/outdoor/terrace/bar) ──
+   Configurable per-client in the admin Réglages (restaurant_spaces
+   table, RLS-gated so only that client_slug's admins can edit it) —
+   this is just the fallback shown until/unless a restaurant has
+   customized their own list. Never gates the flow: skipping is fine. */
+const SPACES_DEFAULT = ['Intérieur','Extérieur','Terrasse','Bar'];
+let SPACES = SPACES_DEFAULT.slice();
+async function loadSpaces() {
+  if (!supabaseClient) return;
+  try {
+    const { data, error } = await supabaseClient
+      .from('restaurant_spaces')
+      .select('name')
+      .eq('client_slug', CLIENT_SLUG)
+      .order('sort_order', { ascending: true });
+    if (error) throw error;
+    // A configured-but-empty list is a valid choice (a restaurant that
+    // removed every option because they don't want this step to show
+    // any choices) — only fall back to defaults when the table hasn't
+    // been touched for this client at all (no rows returned = null/undefined
+    // from a table that may not even exist yet, caught below anyway).
+    if (data) SPACES = data.map(r => r.name);
+  } catch (e) {
+    console.warn('Spaces load failed, using defaults:', e.message);
+  }
+  renderEspacePanel();
+}
+function renderEspacePanel() {
+  const grid = document.getElementById('spaceGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  SPACES.forEach(name => {
+    const btn = document.createElement('button');
+    btn.className = 'space-btn';
+    btn.textContent = name;
+    if (S.space === name) btn.classList.add('sel');
+    btn.onclick = () => pickSpace(name, btn);
+    grid.appendChild(btn);
+  });
+}
+function pickSpace(name, el) {
+  S.space = name;
+  document.querySelectorAll('.space-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+  updateSegLabels();
+  renderRecapPanel();
+  autoAdvance('espace');
+}
+function skipSpace() {
+  S.space = null;
+  document.querySelectorAll('.space-btn').forEach(b => b.classList.remove('sel'));
+  updateSegLabels();
+  renderRecapPanel();
+  autoAdvance('espace');
 }
 
 /* ── Calendar ── */
@@ -456,10 +545,22 @@ function pickDate(d, el) {
 }
 
 /* ── Slots ── */
+// BUG FIX: Horaire only checked S.date, so it was reachable and fully
+// usable (pick a time) before a number of covers had been chosen — the
+// same "complete the steps in order" rule already enforced on Couverts
+// (which requires a date first) wasn't applied here for covers. Now
+// gated on both, with a message that reflects whichever is still missing.
 function renderSlots() {
   const row = document.getElementById('slDinner');
   const noMsg = document.getElementById('noSlotsMsg');
-  if (!S.date) { row.innerHTML = ''; noMsg.classList.remove('hidden'); return; }
+  if (!S.date || !S.covers) {
+    row.innerHTML = '';
+    noMsg.textContent = !S.date
+      ? "Sélectionnez d'abord une date pour voir les créneaux disponibles."
+      : "Sélectionnez d'abord le nombre de couverts pour voir les créneaux disponibles.";
+    noMsg.classList.remove('hidden');
+    return;
+  }
   noMsg.classList.add('hidden');
   row.innerHTML = '';
   DINNER.forEach(t => {
@@ -506,6 +607,8 @@ function fillSummary() {
   const d = S.date; const dow = DAY_FUL[(d.getDay() + 6) % 7];
   document.getElementById('recapDate').textContent = dow + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()];
   document.getElementById('recapCov').textContent  = S.covers + (S.covers === 1 ? ' personne' : ' personne(s)');
+  document.getElementById('recapEspaceRow').classList.toggle('hidden', !S.space);
+  if (S.space) document.getElementById('recapEspace').textContent = S.space;
   document.getElementById('recapSlot').textContent = S.slot;
 }
 
@@ -530,6 +633,7 @@ function sendResa() {
                     ? document.getElementById('fTelCode').value + ' ' + document.getElementById('fTel').value.trim()
                     : 'Non renseigné',
     covers:       S.covers + (S.covers === 1 ? ' couvert' : ' couverts'),
+    espace:       S.space || 'Peu importe',
     location:     LOCATION_NAME,
     date:         dow + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(),
     date_iso:     d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'),
@@ -552,6 +656,7 @@ function sendResa() {
       date_iso: params.date_iso,
       slot: params.slot,
       covers: S.covers,
+      espace: S.space,
       location: params.location,
       note: params.note,
     }).then(({ error }) => { if (error) console.warn('Supabase insert failed:', error); });
@@ -580,6 +685,7 @@ function showSuccess(email, ref) {
   document.getElementById('segBar').classList.add('hidden');
   document.getElementById('panelDate').classList.add('hidden');
   document.getElementById('panelCovers').classList.add('hidden');
+  document.getElementById('panelEspace').classList.add('hidden');
   document.getElementById('panelSlot').classList.add('hidden');
   document.getElementById('panelRecap').classList.add('hidden');
   document.getElementById('okEmail').textContent = email;
@@ -597,6 +703,7 @@ updateSegLabels();
 // (nothing blocked yet), this just narrows it down a moment later if the
 // admin has locked any days.
 loadBlockedDates().then(() => renderCal());
+loadSpaces();
 
 // Admin-only sticky button: never shown to a regular customer, only
 // when the admin opens this page with ?admin=1 in the URL.
