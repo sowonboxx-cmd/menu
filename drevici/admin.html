@@ -13,7 +13,8 @@
 /* Same design tokens as resa.html, for a consistent look. */
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--restoFont:'Cormorant Garamond';--navy:#10285E;--gold:#C6A24A;--bg:#F4F0EA;--white:#fff;--border:rgba(0,0,0,0.08);--text:#1a1a1a;--text2:#666;--text3:#aaa;--r:10px;--rs:6px;--red:#B31217}
-body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-size:14px;color:var(--text)}
+html{touch-action:manipulation}
+body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-size:14px;color:var(--text);touch-action:manipulation}
 .container{max-width:1100px;margin:0 auto;padding:0 16px}
 .hidden{display:none!important}
 
@@ -129,7 +130,8 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
 /* ── Reservation detail modal ── */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
 .modal-card{background:#fff;border-radius:14px;max-width:400px;width:100%;padding:24px;position:relative;max-height:85vh;overflow-y:auto}
-.modal-close{position:absolute;top:14px;right:16px;background:none;border:none;font-size:20px;color:var(--text3);cursor:pointer}
+.modal-close{background:none;border:none;font-size:22px;line-height:1;color:var(--text3);cursor:pointer;padding:2px 4px}
+.modal-ref-actions{display:flex;align-items:center;gap:8px;flex:none}
 .modal-ref{font-family:'Inter',sans-serif;font-weight:700;color:var(--navy);font-size:18px;margin-bottom:2px;letter-spacing:.02em}
 .modal-ref-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .attend-check-lg{flex:none;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;border:1.5px solid var(--border);background:#fff;color:var(--text2);font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit}
@@ -242,15 +244,9 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
   <div class="header">
     <div class="container">
       <div class="header-top">
-        <a href="#" class="home-btn" id="homeBtn" title="Voir le menu" aria-label="Voir le menu">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
-        </a>
         <a href="resa.html" class="logo-link">
           <span class="logo-text">Drevici Oyster</span>
         </a>
-        <button class="logout-btn" onclick="confirmLogout()" title="Déconnexion" aria-label="Déconnexion">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8v1H4v-1z"/></svg>
-        </button>
       </div>
       <div class="header-sub">Réservations — Administration</div>
     </div>
@@ -348,7 +344,6 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
 
 <div class="modal-overlay hidden" id="detailModal" onclick="if(event.target===this) closeModal()">
   <div class="modal-card">
-    <button class="modal-close" onclick="closeModal()">×</button>
     <div id="modalBody"></div>
   </div>
 </div>
@@ -449,7 +444,6 @@ function confirmLogout() {
 function enterDashboard() {
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('dashContent').classList.remove('hidden');
-  document.getElementById('homeBtn').href = MENU_URL;
   Promise.all([loadReservations(), loadBlockedDates(), loadSpaces(), loadTables(), loadWaitlist(), loadServices()]).then(() => {
     renderWeek();
     renderMonth();
@@ -1054,8 +1048,9 @@ async function assignWaitlistTable(waitlistId, tableId) {
   const w = WAITLIST.find(x => x.id === waitlistId);
   if (!w) return;
   try {
-    const { error } = await sb.from('restaurant_waitlist').update({ table_id: tableId || null }).eq('id', waitlistId);
+    const { data, error } = await sb.from('restaurant_waitlist').update({ table_id: tableId || null }).eq('id', waitlistId).select();
     if (error) throw error;
+    if (!data || data.length === 0) throw new Error("Écriture bloquée côté base (policy manquante ?)");
     w.table_id = tableId || null;
     showToast(tableId ? 'Table affectée' : 'Affectation retirée');
   } catch (err) {
@@ -1067,8 +1062,9 @@ async function assignReservationTable(ref, tableId) {
   const r = ALL.find(x => x.ref === ref);
   if (!r) return;
   try {
-    const { error } = await sb.from('restaurant_reservations').update({ table_id: tableId || null }).eq('ref', ref).eq('client_slug', CLIENT_SLUG);
+    const { data, error } = await sb.from('restaurant_reservations').update({ table_id: tableId || null }).eq('ref', ref).eq('client_slug', CLIENT_SLUG).select();
     if (error) throw error;
+    if (!data || data.length === 0) throw new Error("Écriture bloquée côté base (policy manquante ?)");
     r.table_id = tableId || null;
     showToast(tableId ? 'Table affectée' : 'Affectation retirée');
   } catch (err) {
@@ -1319,7 +1315,7 @@ function renderUpcoming() {
    (openDayModal, week/month view clicks): several of these blocks
    stacked and separated by a divider, scrollable within the same
    modal, in chronological order. ── */
-function reservationDetailHtml(r) {
+function reservationDetailHtml(r, showClose) {
   const createdDate = r.created_at ? new Date(r.created_at).toLocaleDateString('fr-FR') : '';
   const phoneDigits = (r.phone || '').replace(/[^\d+]/g, '');
   const phoneHtml = r.phone
@@ -1329,7 +1325,10 @@ function reservationDetailHtml(r) {
   return `
     <div class="modal-ref-row">
       <div class="modal-ref">${escapeHtml(r.ref || '')}</div>
-      <button class="attend-check-lg${r.attended ? ' checked' : ''}" onclick="toggleAttended('${escapeAttr(r.ref)}')" title="${r.attended ? 'Marquer comme non venu' : 'Marquer comme venu'}">${ICON_CHECK}<span>${r.attended ? 'Venu' : 'Marquer venu'}</span></button>
+      <div class="modal-ref-actions">
+        <button class="attend-check-lg${r.attended ? ' checked' : ''}" onclick="toggleAttended('${escapeAttr(r.ref)}')" title="${r.attended ? 'Marquer comme non venu' : 'Marquer comme venu'}">${ICON_CHECK}<span>${r.attended ? 'Venu' : 'Marquer venu'}</span></button>
+        ${showClose ? `<button class="modal-close" onclick="closeModal()">×</button>` : ''}
+      </div>
     </div>
     <div class="modal-created">Enregistrée le ${escapeHtml(createdDate)}</div>
     <div class="modal-row"><span class="modal-label">Client</span><span class="modal-value">${escapeHtml(r.from_name || '')}</span></div>
@@ -1349,7 +1348,7 @@ function openDetailModal(ref) {
   const r = ALL.find(x => x.ref === ref);
   if (!r) return;
   CURRENT_MODAL = { type: 'single', ref };
-  document.getElementById('modalBody').innerHTML = reservationDetailHtml(r);
+  document.getElementById('modalBody').innerHTML = reservationDetailHtml(r, true);
   document.getElementById('detailModal').classList.remove('hidden');
 }
 function openDayModal(iso) {
@@ -1357,7 +1356,7 @@ function openDayModal(iso) {
   if (rows.length === 0) return;
   CURRENT_MODAL = { type: 'day', iso };
   document.getElementById('modalBody').innerHTML = rows
-    .map(reservationDetailHtml)
+    .map((r, i) => reservationDetailHtml(r, i === 0))
     .join('<hr style="border:none;border-top:1px solid var(--border);margin:16px 0">');
   document.getElementById('detailModal').classList.remove('hidden');
 }
@@ -1373,8 +1372,14 @@ async function toggleAttended(ref) {
   if (!r) return;
   const next = !r.attended;
   try {
-    const { error } = await sb.from('restaurant_reservations').update({ attended: next }).eq('ref', ref).eq('client_slug', CLIENT_SLUG);
+    const { data, error } = await sb.from('restaurant_reservations').update({ attended: next }).eq('ref', ref).eq('client_slug', CLIENT_SLUG).select();
     if (error) throw error;
+    // BUG FIX: without .select(), Supabase returns no error even when
+    // RLS silently matches zero rows — the toggle looked like it worked
+    // (local state updated, checkmark turned green) but nothing was
+    // actually saved, so a reload reverted it. Checking the returned
+    // rows catches that case and surfaces a real error instead.
+    if (!data || data.length === 0) throw new Error("Écriture bloquée côté base (policy manquante ?)");
     r.attended = next;
     renderUpcoming();
     renderWeek();
@@ -1414,6 +1419,21 @@ function escapeHtml(v) {
 function escapeAttr(v) {
   return String(v).replace(/'/g, "\\'");
 }
+
+// LOCK ZOOM: the viewport meta's user-scalable=no/maximum-scale=1 is
+// ignored by modern iOS Safari for accessibility reasons, so pinch and
+// double-tap zoom still worked despite it. Belt-and-suspenders fix:
+// block the pinch gesture events directly, and stop the double-tap
+// zoom too (touch-action:manipulation in CSS handles most of that,
+// this catches the rest).
+document.addEventListener('gesturestart', e => e.preventDefault());
+document.addEventListener('gesturechange', e => e.preventDefault());
+let _lastTouchEnd = 0;
+document.addEventListener('touchend', e => {
+  const now = Date.now();
+  if (now - _lastTouchEnd <= 300) e.preventDefault();
+  _lastTouchEnd = now;
+}, { passive: false });
 
 checkExistingSession();
 </script>
