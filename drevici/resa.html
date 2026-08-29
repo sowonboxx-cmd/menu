@@ -365,6 +365,11 @@ const SUPABASE_ANON_KEY = 'sb_publishable_9PaqDuXnWV3aOCBPk9ImmQ_4YgYTU9n';
 // client_slug='drevici' (menu), one with client_slug='drevici-paris'
 // (this location's reservations).
 const CLIENT_SLUG = 'drevici-paris';
+
+// Liste d'attente désactivée pour l'instant (peut-être en v2) — le
+// backend/table restent intacts, juste l'entrée point client masquée.
+// Un seul flag à repasser à true pour tout réactiver.
+const WAITLIST_ENABLED = false;
 const supabaseClient = (SUPABASE_URL !== 'COLLE_ICI_SUPABASE_URL' && window.supabase)
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
@@ -630,7 +635,7 @@ function renderSlots() {
     return;
   }
   noMsg.classList.add('hidden');
-  waitlistCta.classList.remove('hidden');
+  waitlistCta.classList.toggle('hidden', !WAITLIST_ENABLED);
   row.innerHTML = '';
   DINNER.forEach(t => {
     const btn = document.createElement('button'); btn.className = 'sl-btn';
