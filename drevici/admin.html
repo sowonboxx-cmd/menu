@@ -48,6 +48,11 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
 /* ── Stat cards ── */
 /* ── View tabs (À venir / Semaine / Mois) — same segmented pill as resa.html ── */
 .view-tabs{display:flex;background:var(--navy);border-radius:50px;padding:4px;gap:4px;margin-bottom:14px}
+.top-tabs-wrap{position:relative}
+.view-tab.more-tab{flex:0 0 auto;padding:11px 16px;font-size:16px;line-height:1}
+.more-menu{position:absolute;top:calc(100% - 10px);right:0;background:#fff;border:1px solid var(--border);border-radius:var(--rs);box-shadow:0 6px 18px rgba(0,0,0,.12);padding:6px;z-index:20;min-width:180px}
+.more-menu-item{padding:10px 12px;font-size:13px;font-weight:600;color:var(--text);border-radius:var(--rs);cursor:pointer;white-space:nowrap}
+.more-menu-item:hover{background:var(--bg)}
 .view-tabs.sub-tabs{background:none;padding:0;margin-bottom:16px;gap:0;border-bottom:1px solid var(--border)}
 .view-tabs.sub-tabs .view-tab{background:none;border:none;border-radius:0;color:var(--text2);padding:10px 4px;position:relative}
 .view-tabs.sub-tabs .view-tab.active{color:var(--navy);font-weight:700}
@@ -337,11 +342,16 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
 
   <div class="wrap">
 
-    <div class="view-tabs" id="topTabs">
-      <div class="view-tab active" id="viewTabCalendrier" onclick="switchTopView('calendrier')">Calendrier</div>
-      <div class="view-tab" id="viewTabEspaces" onclick="switchTopView('espaces')">Espaces</div>
-      <div class="view-tab" id="viewTabStats" onclick="switchTopView('stats')">Stats</div>
-      <div class="view-tab" id="viewTabBoost" onclick="switchTopView('boost')">Table Boost</div>
+    <div class="top-tabs-wrap">
+      <div class="view-tabs" id="topTabs">
+        <div class="view-tab active" id="viewTabCalendrier" onclick="switchTopView('calendrier')">Calendrier</div>
+        <div class="view-tab" id="viewTabStats" onclick="switchTopView('stats')">Statistiques</div>
+        <div class="view-tab" id="viewTabBoost" onclick="switchTopView('boost')">Table Boost</div>
+        <div class="view-tab more-tab" id="moreMenuBtn" onclick="toggleMoreMenu(event)">⋯</div>
+      </div>
+      <div class="more-menu hidden" id="moreMenu">
+        <div class="more-menu-item" onclick="selectMoreMenuItem('espaces')">Gérer les espaces</div>
+      </div>
     </div>
 
     <!-- CALENDRIER — top-level screen, with its own 4 sub-tabs -->
@@ -1219,15 +1229,34 @@ async function deleteWaitlistEntry(id) {
 function switchTopView(v) {
   document.getElementById('viewTabCalendrier').classList.toggle('active', v === 'calendrier');
   document.getElementById('viewTabStats').classList.toggle('active', v === 'stats');
-  document.getElementById('viewTabEspaces').classList.toggle('active', v === 'espaces');
   document.getElementById('viewTabBoost').classList.toggle('active', v === 'boost');
+  // "Espaces" no longer has its own visible tab — it lives behind the
+  // "⋯" menu. Highlight that button instead so there's still a visual
+  // cue for which section you're in.
+  document.getElementById('moreMenuBtn').classList.toggle('active', v === 'espaces');
   document.getElementById('calendrierScreen').classList.toggle('hidden', v !== 'calendrier');
   document.getElementById('statsScreen').classList.toggle('hidden', v !== 'stats');
   if (v === 'stats') renderStats();
   document.getElementById('espacesScreen').classList.toggle('hidden', v !== 'espaces');
   document.getElementById('boostScreen').classList.toggle('hidden', v !== 'boost');
   if (v === 'boost') renderTableBoost();
+  closeMoreMenu();
 }
+function toggleMoreMenu(e) {
+  e.stopPropagation();
+  document.getElementById('moreMenu').classList.toggle('hidden');
+}
+function closeMoreMenu() {
+  document.getElementById('moreMenu').classList.add('hidden');
+}
+function selectMoreMenuItem(v) {
+  switchTopView(v);
+}
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('moreMenu');
+  const btn = document.getElementById('moreMenuBtn');
+  if (menu && !menu.classList.contains('hidden') && !menu.contains(e.target) && e.target !== btn) closeMoreMenu();
+});
 
 /* ── Calendrier sub-tabs (À venir / Semaine / Mois) ── */
 function switchView(v) {
@@ -1264,7 +1293,7 @@ function renderWeek() {
   const last = days[6];
   document.getElementById('weekLabel').textContent =
     `${weekStart.getDate()} ${MONTHS_S[weekStart.getMonth()]} – ${last.getDate()} ${MONTHS_S[last.getMonth()]}`;
-  const todayIso = new Date().toISOString().slice(0,10);
+  const todayIso = toIso(new Date());
   const weekStartIso = toIso(weekStart), weekEndIso = toIso(last);
   const weekCount = activeReservations().filter(r => r.date_iso >= weekStartIso && r.date_iso <= weekEndIso).length;
   const badgeW = document.getElementById('badgeWeek');
@@ -1303,7 +1332,7 @@ function renderMonth() {
   let start = first.getDay()-1; if (start<0) start=6;
   for (let i=0;i<start;i++) { const e = document.createElement('div'); e.className='cal-d empty'; grid.appendChild(e); }
   const daysIn = new Date(monthCur.getFullYear(), monthCur.getMonth()+1, 0).getDate();
-  const todayIso = new Date().toISOString().slice(0,10);
+  const todayIso = toIso(new Date());
   const monthStartIso = toIso(first), monthEndIso = toIso(new Date(monthCur.getFullYear(), monthCur.getMonth(), daysIn));
   const monthCount = activeReservations().filter(r => r.date_iso >= monthStartIso && r.date_iso <= monthEndIso).length;
   const badgeM = document.getElementById('badgeMonth');
@@ -1344,6 +1373,9 @@ async function toggleLock(iso) {
     }
     renderWeek();
     renderMonth();
+    // Refresh Table Boost too if it happens to be visible — it reads
+    // the same BLOCKED set to grey out / lock affected days.
+    if (!document.getElementById('boostScreen').classList.contains('hidden')) renderTableBoost();
   } catch (err) {
     showToast('Erreur : ' + err.message);
   }
@@ -1399,7 +1431,10 @@ function switchStatsView(p) {
 }
 function getPeriodRange(period) {
   const now = new Date();
-  const toIso = d => d.toISOString().slice(0, 10);
+  // BUG FIX: was using UTC (d.toISOString()) here, shadowing the correct
+  // local-date toIso() defined elsewhere in this file — caused week/month/
+  // year period boundaries to be off by a day for part of the night in
+  // France's timezone. Reuse the shared, correct local-date toIso().
   if (period === 'total') return null;
   if (period === 'week') {
     const dow = (now.getDay() + 6) % 7; // Monday = 0
@@ -1473,7 +1508,7 @@ function computePeriodStats(rawRows) {
   const rows = real.filter(r => (r.status || 'confirmed') === 'confirmed');
 
   const totalCovers = rows.reduce((s, r) => s + (parseInt(r.covers) || 0), 0);
-  const todayIso = new Date().toISOString().slice(0, 10);
+  const todayIso = toIso(new Date());
   const past = rows.filter(r => r.date_iso < todayIso);
   const noShows = past.filter(r => !r.attended);
 
@@ -1737,7 +1772,7 @@ function reservationEntryHtml(r) {
 function renderUpcoming() {
   const body = document.getElementById('upcomingList');
   const emptyMsg = document.getElementById('emptyMsg');
-  const todayIso = new Date().toISOString().slice(0, 10);
+  const todayIso = toIso(new Date());
   const allUpcoming = activeReservations()
     .filter(r => r.date_iso >= todayIso)
     .sort((a, b) => (a.date_iso + (a.slot||'')).localeCompare(b.date_iso + (b.slot||'')));
