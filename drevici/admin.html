@@ -137,6 +137,13 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
 .stat-delta.up{color:#2e8b3d}
 .stat-delta.down{color:#B31217}
 .stat-delta.neutral{color:var(--text3)}
+.fillrate-section{margin-top:22px;padding-top:20px;border-top:1px solid var(--border)}
+.fillrate-title{text-align:center;font-size:13px;font-weight:400;color:var(--text2);margin-bottom:14px}
+.fillrate-day-list{display:flex;flex-direction:column;gap:6px}
+.fillrate-day-row{position:relative;display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border:1px solid var(--border);border-radius:var(--rs);overflow:hidden;background:#fff}
+.fillrate-day-bar{position:absolute;left:0;top:0;bottom:0;background:rgba(16,40,94,.08);z-index:0;transition:width .2s}
+.fillrate-day-name{position:relative;z-index:1;font-size:13px;font-weight:600;color:var(--text)}
+.fillrate-day-value{position:relative;z-index:1;font-size:13px;font-weight:700;color:var(--navy)}
 
 /* ── Reservation detail modal ── */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
@@ -1397,13 +1404,52 @@ function computePeriodStats(rawRows) {
 
   return {
     count: real.length, totalCovers, fillRate, noShows: noShows.length, cancelled: cancelled.length,
-    topDay,
+    topDay, confirmedRows: rows,
   };
+}
+
+// Taux de remplissage par jour de la semaine, dans la période active
+// (Total/Semaine/Mois/Année) — même formule que le taux global, juste
+// regroupée par jour plutôt qu'agrégée sur toute la période.
+function computeFillRateByDay(rows) {
+  const dayNames = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+  const totalSeats = TABLES.reduce((s, t) => s + (t.seats || 0), 0);
+  const coversByDay = {}, datesByDay = {};
+  rows.forEach(r => {
+    if (!r.date_iso) return;
+    const idx = (new Date(r.date_iso + 'T12:00:00').getDay() + 6) % 7; // 0=Lundi..6=Dimanche
+    const name = dayNames[idx];
+    coversByDay[name] = (coversByDay[name] || 0) + (parseInt(r.covers) || 0);
+    (datesByDay[name] || (datesByDay[name] = new Set())).add(r.date_iso);
+  });
+  return dayNames.map(name => {
+    const covers = coversByDay[name] || 0;
+    const daysCount = datesByDay[name] ? datesByDay[name].size : 0;
+    const rate = (totalSeats > 0 && daysCount > 0) ? Math.round((covers / (totalSeats * daysCount)) * 100) : null;
+    return { name, rate };
+  });
+}
+function fillRateByDayHtml(rows) {
+  const days = computeFillRateByDay(rows);
+  const rowsHtml = days.map(d => `
+    <div class="fillrate-day-row">
+      <div class="fillrate-day-bar" style="width:${d.rate === null ? 0 : Math.min(d.rate, 100)}%"></div>
+      <span class="fillrate-day-name">${d.name}</span>
+      <span class="fillrate-day-value">${d.rate === null ? '—' : d.rate + '%'}</span>
+    </div>
+  `).join('');
+  return `
+    <div class="fillrate-section">
+      <div class="fillrate-title">Taux de remplissage</div>
+      <div class="fillrate-day-list">${rowsHtml}</div>
+    </div>
+  `;
 }
 
 // Six indicateurs à plat, sans catégories/titres — Réservations et
 // Jour le plus demandé côte à côte, puis Couverts/Remplissage/
-// Annulations/No-shows en dessous.
+// Annulations/No-shows en dessous. Suivi d'une section séparée qui
+// détaille le taux de remplissage jour par jour pour la période active.
 function renderStats() {
   const body = document.getElementById('statsBody');
   if (!body) return;
@@ -1422,7 +1468,7 @@ function renderStats() {
     deltaCardHtml(cur.noShows, 'No-shows', cur.noShows, prev ? prev.noShows : null),
   ].join('');
 
-  body.innerHTML = `<div class="stats-grid">${cards}</div>`;
+  body.innerHTML = `<div class="stats-grid">${cards}</div>` + fillRateByDayHtml(cur.confirmedRows);
 }
 
 function reservationEntryHtml(r) {
