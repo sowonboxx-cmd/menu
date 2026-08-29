@@ -146,17 +146,43 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
 .fillrate-day-value{position:relative;z-index:1;font-size:13px;font-weight:700;color:var(--navy)}
 
 /* ── Table Boost ── */
-.boost-hero{background:var(--navy);border-radius:var(--r);padding:22px 20px;margin-bottom:20px}
+.boost-block{background:#fff;border-radius:var(--r);overflow:hidden;margin-top:20px}
+.boost-block:first-child{margin-top:0}
+.boost-block-body{padding:18px}
+.boost-hero{background:var(--navy);padding:22px 20px}
 .boost-hero-title{color:#fff;font-size:17px;font-weight:700;line-height:1.3;margin-bottom:8px}
 .boost-hero-sub{color:rgba(255,255,255,.75);font-size:12.5px;line-height:1.5}
 .boost-overview-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px}
 .boost-section-title{font-size:14px;font-weight:700;color:var(--text);margin:22px 0 10px}
-.boost-block{background:#fff;border-radius:var(--r);padding:18px;margin-top:20px}
-#boostCreateBtn{margin-top:16px}
 .boost-tip{background:#EEF1F8;border-radius:var(--r);padding:14px;margin-top:16px;font-size:12px;color:var(--text2);line-height:1.5}
-.boost-carousel{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 8px;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
-.boost-carousel::-webkit-scrollbar{height:4px}
-.boost-day-card{flex:0 0 92px;scroll-snap-align:start;box-sizing:border-box;border:1.5px solid var(--border);border-radius:var(--r);padding:12px 8px;text-align:center;cursor:pointer;background:#fff;transition:border-color .15s}
+
+/* Call-to-action: green, a bit of lift/glow so it reads as "click me"
+   without needing an icon. */
+.btn-boost-cta{display:block;width:100%;background:linear-gradient(135deg,#2eb85c,#1f9645);color:#fff;font-size:15px;font-weight:700;padding:16px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;box-shadow:0 6px 16px rgba(46,184,92,.35);transition:transform .15s,box-shadow .15s;margin-top:20px}
+.btn-boost-cta:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(46,184,92,.45)}
+.btn-boost-cta:active{transform:translateY(0);box-shadow:0 4px 10px rgba(46,184,92,.35)}
+
+/* Today: one long, detailed card spanning the full width. */
+.boost-today-card{border:1.5px solid var(--border);border-radius:var(--r);padding:16px;cursor:pointer;margin-bottom:10px;transition:border-color .15s}
+.boost-today-card.selected{border-color:var(--navy)}
+.boost-today-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.boost-today-day{font-size:15px;font-weight:700;color:var(--text)}
+.boost-today-rate{font-size:28px;font-weight:700;line-height:1}
+.boost-today-rate.good{color:#2e8b3d}
+.boost-today-rate.watch{color:#B8590A}
+.boost-today-rate.boost{color:#B31217}
+.boost-today-rate.unknown{color:var(--text3)}
+.boost-today-status{font-size:12px;font-weight:600;margin-top:2px}
+.boost-today-status.good{color:#2e8b3d}
+.boost-today-status.watch{color:#B8590A}
+.boost-today-status.boost{color:#B31217}
+.boost-today-status.unknown{color:var(--text3)}
+.boost-today-details{font-size:11.5px;color:var(--text3);margin-top:8px}
+
+/* The other 6 days: a compact 3×2 grid, everything visible at a
+   glance, no scrolling needed. */
+.boost-week-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.boost-day-card{box-sizing:border-box;border:1.5px solid var(--border);border-radius:var(--r);padding:12px 6px;text-align:center;cursor:pointer;background:#fff;transition:border-color .15s}
 .boost-day-card.selected{border-color:var(--navy)}
 .boost-day-name{font-size:11px;font-weight:600;color:var(--text2)}
 .boost-day-date{font-size:10.5px;color:var(--text3);margin-bottom:8px}
@@ -171,6 +197,7 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
 .boost-day-status.boost{color:#B31217}
 .boost-day-status.unknown{color:var(--text3)}
 .boost-day-sub{font-size:9.5px;color:var(--text3);margin-top:6px;line-height:1.3}
+
 .offer-picker{display:flex;flex-direction:column;gap:8px;margin:6px 0 4px}
 .offer-picker button{display:block;width:100%;padding:12px;border-radius:var(--rs);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;border:1px solid var(--border);background:#fff;color:var(--text)}
 .offer-picker button:hover{border-color:#B8590A;color:#B8590A}
@@ -396,19 +423,26 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
          message pour pourquoi, en attendant "Créer une offre"
          enregistre juste l'offre choisie sans produire de visuel. -->
     <div class="cal-panel hidden" id="boostScreen">
-      <div class="boost-hero">
-        <div class="boost-hero-title">Remplissez vos tables.<br>Boostez votre CA.</div>
-        <div class="boost-hero-sub">Anticipez les jours creux et lancez une offre en quelques secondes.</div>
+      <div class="boost-block">
+        <div class="boost-hero">
+          <div class="boost-hero-title">Remplissez vos tables.<br>Boostez votre CA.</div>
+          <div class="boost-hero-sub">Anticipez les jours creux et lancez une offre en quelques secondes.</div>
+        </div>
+        <div class="boost-block-body">
+          <div class="boost-overview-title" id="boostOverviewTitle">Aujourd'hui</div>
+          <div class="stats-grid" id="boostOverviewGrid"></div>
+        </div>
       </div>
-
-      <div class="boost-overview-title" id="boostOverviewTitle">Aujourd'hui</div>
-      <div class="stats-grid" id="boostOverviewGrid"></div>
 
       <div class="boost-block">
-        <div class="boost-section-title" style="margin-top:0">Remplissage prévisionnel</div>
-        <div class="boost-carousel" id="boostCarousel"></div>
+        <div class="boost-block-body">
+          <div class="boost-section-title" style="margin-top:0">Remplissage prévisionnel</div>
+          <div id="boostTodayCard"></div>
+          <div class="boost-week-grid" id="boostWeekGrid"></div>
+        </div>
       </div>
-      <button class="btn-main" id="boostCreateBtn" onclick="openOfferModal()">Créer une offre</button>
+
+      <button class="btn-boost-cta" id="boostCreateBtn" onclick="openOfferModal()">Créer une offre</button>
       <div class="boost-tip hidden" id="boostTip"></div>
     </div>
 
@@ -1592,13 +1626,32 @@ function selectBoostDay(dateIso) {
   renderTableBoost();
 }
 function renderTableBoost() {
-  const carousel = document.getElementById('boostCarousel');
-  if (!carousel) return;
+  const todayCardEl = document.getElementById('boostTodayCard');
+  const weekGridEl = document.getElementById('boostWeekGrid');
+  if (!todayCardEl) return;
   const days = nextBoostDays(7);
-  if (!BOOST_SELECTED_DATE) BOOST_SELECTED_DATE = toIso(days[0]);
   const todayIso = toIso(days[0]);
+  if (!BOOST_SELECTED_DATE) BOOST_SELECTED_DATE = todayIso;
 
-  carousel.innerHTML = days.map(d => {
+  // Aujourd'hui : une carte longue, pleine largeur, avec plus de détail.
+  const todayData = computeDayBoostData(todayIso);
+  const todaySelected = BOOST_SELECTED_DATE === todayIso;
+  const detailsParts = [];
+  if (todayData.coversAvailable !== null) detailsParts.push(`${todayData.coversAvailable} couverts disponibles`);
+  if (todayData.tables.total > 0) detailsParts.push(`${todayData.tables.available} tables disponibles sur ${todayData.tables.total}`);
+  todayCardEl.innerHTML = `
+    <div class="boost-today-card${todaySelected ? ' selected' : ''}" onclick="selectBoostDay('${todayIso}')">
+      <div class="boost-today-top">
+        <div class="boost-today-day">${DAY_FUL[(days[0].getDay()+6)%7]} ${days[0].getDate()} ${MONTHS_S[days[0].getMonth()]}</div>
+        <div class="boost-today-rate ${todayData.tier}">${todayData.fillRate === null ? '—' : todayData.fillRate + '%'}</div>
+      </div>
+      <div class="boost-today-status ${todayData.tier}">${TIER_LABEL[todayData.tier]}</div>
+      <div class="boost-today-details">${detailsParts.join(' · ')}</div>
+    </div>
+  `;
+
+  // Les 6 jours suivants : grille compacte 3×2, tout visible sans scroller.
+  weekGridEl.innerHTML = days.slice(1).map(d => {
     const iso = toIso(d);
     const data = computeDayBoostData(iso);
     const selected = iso === BOOST_SELECTED_DATE;
@@ -1613,14 +1666,14 @@ function renderTableBoost() {
     `;
   }).join('');
 
-  const sel = computeDayBoostData(BOOST_SELECTED_DATE);
+  // L'aperçu du haut reflète toujours aujourd'hui (fixe), pas le jour
+  // sélectionné pour la création d'offre.
   document.getElementById('boostOverviewTitle').textContent = "Aujourd'hui";
-
   document.getElementById('boostOverviewGrid').innerHTML = [
-    plainCardHtml(sel.count, sel.count > 1 ? 'Réservations' : 'Réservation'),
-    plainCardHtml(sel.covers, sel.covers > 1 ? 'Personnes' : 'Personne'),
-    plainCardHtml(sel.tables.available, 'Tables disponibles', `sur ${sel.tables.total}` + (sel.tables.unassigned > 0 ? ' (estimation)' : '')),
-    plainCardHtml(sel.fillRate === null ? '—' : sel.fillRate + '%', 'Taux de remplissage'),
+    plainCardHtml(todayData.count, todayData.count > 1 ? 'Réservations' : 'Réservation'),
+    plainCardHtml(todayData.covers, todayData.covers > 1 ? 'Personnes' : 'Personne'),
+    plainCardHtml(todayData.tables.available, 'Tables disponibles', `sur ${todayData.tables.total}` + (todayData.tables.unassigned > 0 ? ' (estimation)' : '')),
+    plainCardHtml(todayData.fillRate === null ? '—' : todayData.fillRate + '%', 'Taux de remplissage'),
   ].join('');
 
   // Petit conseil : le jour de la semaine historiquement le moins
