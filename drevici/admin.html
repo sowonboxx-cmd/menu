@@ -122,10 +122,17 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
 }
 .empty-msg{text-align:center;padding:48px 20px;color:var(--text3);font-size:14px}
 .empty-icon{font-size:32px;margin-bottom:10px}
+.stats-category{margin-bottom:22px}
+.stats-cat-title{font-size:13px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px}
 .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .stat-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:16px;text-align:center}
-.stat-value{font-size:24px;font-weight:700;color:var(--navy)}
+.stat-value{font-size:24px;font-weight:700;color:var(--navy);word-break:break-word}
 .stat-label{font-size:11.5px;color:var(--text2);margin-top:4px}
+.stat-sublabel{font-size:10.5px;color:var(--text3);margin-top:6px;line-height:1.4}
+.stat-delta{font-size:10.5px;font-weight:600;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.stat-delta.up{color:#2e8b3d}
+.stat-delta.down{color:#B31217}
+.stat-delta.neutral{color:var(--text3)}
 
 /* ── Reservation detail modal ── */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
@@ -146,6 +153,13 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
 .table-assign-select{font-size:12.5px;font-weight:600;color:var(--text);font-family:inherit;border:1px solid var(--border);border-radius:var(--rs);padding:5px 7px;background:#fff}
 .modal-value a{color:var(--navy);text-decoration:none}
 .modal-del{width:100%;margin-top:18px;padding:11px;background:none;border:1px solid #f5c6c2;color:#c0392b;border-radius:var(--rs);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.reason-card{text-align:center}
+.reason-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px}
+.reason-hint{font-size:12px;color:var(--text2);margin-bottom:18px;line-height:1.5}
+.reason-btn{display:block;width:100%;padding:12px;border-radius:var(--rs);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;border:1px solid var(--border);background:#fff;color:var(--text);margin-bottom:8px}
+.reason-btn:hover{border-color:var(--navy);color:var(--navy)}
+.reason-btn.secondary{border:none;color:var(--text3);margin-bottom:0}
+.reason-btn.secondary:hover{color:var(--text2)}
 .modal-del:hover{background:#faf0ef}
 
 /* Mobile: compact stat row (cards use the same .resa-card style as
@@ -308,7 +322,13 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
          only meaningful once the date has passed — future reservations
          aren't counted as no-shows just for not being checked yet. -->
     <div class="cal-panel hidden" id="statsScreen">
-      <div class="stats-grid" id="statsGrid"></div>
+      <div class="view-tabs sub-tabs">
+        <div class="view-tab active" id="statsTabTotal" onclick="switchStatsView('total')">Total</div>
+        <div class="view-tab" id="statsTabWeek" onclick="switchStatsView('week')">Semaine</div>
+        <div class="view-tab" id="statsTabMonth" onclick="switchStatsView('month')">Mois</div>
+        <div class="view-tab" id="statsTabYear" onclick="switchStatsView('year')">Année</div>
+      </div>
+      <div id="statsBody"></div>
     </div>
 
     <!-- ESPACES — top-level screen: lets the restaurant customize the
@@ -345,6 +365,20 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
 <div class="modal-overlay hidden" id="detailModal" onclick="if(event.target===this) closeModal()">
   <div class="modal-card">
     <div id="modalBody"></div>
+  </div>
+</div>
+
+<!-- Reason picker shown before actually removing a reservation from the
+     calendar — keeps the row (as 'cancelled' or 'removed') instead of
+     deleting it outright, so Statistiques can count real cancellations
+     without tests/mistakes skewing the numbers. -->
+<div class="modal-overlay hidden" id="deleteReasonModal" onclick="if(event.target===this) closeDeleteReasonModal()">
+  <div class="modal-card reason-card">
+    <div class="reason-title">Supprimer cette réservation</div>
+    <div class="reason-hint">Pour quelle raison ? Ça ne sert qu'aux statistiques — le client n'en voit jamais rien.</div>
+    <button class="reason-btn" onclick="confirmDeleteReservation('cancelled')">Annulation</button>
+    <button class="reason-btn" onclick="confirmDeleteReservation('removed')">Autre (test, erreur de saisie…)</button>
+    <button class="reason-btn secondary" onclick="closeDeleteReasonModal()">Annuler</button>
   </div>
 </div>
 
@@ -397,6 +431,13 @@ const sb = (SUPABASE_URL !== 'COLLE_ICI_SUPABASE_URL' && window.supabase)
   : null;
 
 let ALL = [];
+// "Active" = not cancelled/removed. Used everywhere the calendar shows
+// live bookings (upcoming/week/month/day modal) — cancelled and
+// removed reservations stay in ALL (for stats) but disappear from the
+// operational views, since they're no longer real bookings to honor.
+function activeReservations() {
+  return ALL.filter(r => (r.status || 'confirmed') === 'confirmed');
+}
 let BLOCKED = new Set();
 
 const ICON_PERSON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
@@ -1139,7 +1180,7 @@ function renderWeek() {
     const iso = toIso(d);
     const isToday = iso === todayIso;
     const isLocked = BLOCKED.has(iso);
-    const covers = ALL.filter(r => r.date_iso === iso).reduce((s,r) => s + (parseInt(r.covers)||0), 0);
+    const covers = activeReservations().filter(r => r.date_iso === iso).reduce((s,r) => s + (parseInt(r.covers)||0), 0);
     const row = document.createElement('div');
     row.className = 'week-day' + (isToday ? ' today' : '');
     row.innerHTML = `
@@ -1174,7 +1215,7 @@ function renderMonth() {
     const isToday = iso === todayIso;
     const isBlocked = BLOCKED.has(iso);
     const isClosed = CLOSED_DAYS.includes(dt.getDay());
-    const covers = ALL.filter(r => r.date_iso === iso).reduce((s,r) => s + (parseInt(r.covers)||0), 0);
+    const covers = activeReservations().filter(r => r.date_iso === iso).reduce((s,r) => s + (parseInt(r.covers)||0), 0);
     const hasResa = covers > 0;
     const cell = document.createElement('div');
     cell.className = 'cal-d'
@@ -1231,34 +1272,203 @@ function splitDateYear(dateLabel) {
   return { main: dateLabel.slice(0, idx), year: dateLabel.slice(idx + 1) };
 }
 
-/* ── Statistiques — computed from ALL, no extra query. A reservation
-   only counts toward "venus"/"no-shows" once its date has passed;
-   future ones are just excluded from that ratio (nothing to judge yet). */
-function renderStats() {
-  const grid = document.getElementById('statsGrid');
-  if (!grid) return;
-  const todayIso = new Date().toISOString().slice(0, 10);
-  const past = ALL.filter(r => r.date_iso < todayIso);
-  const upcoming = ALL.filter(r => r.date_iso >= todayIso);
-  const attended = past.filter(r => r.attended);
-  const noShows = past.filter(r => !r.attended);
-  const totalCovers = ALL.reduce((s, r) => s + (parseInt(r.covers) || 0), 0);
-  const rate = past.length ? Math.round((attended.length / past.length) * 100) : null;
+/* ── Statistiques ──
+   Everything below is computed client-side from ALL (reservations
+   already loaded), no extra query. Structured like Calendrier: sub-
+   tabs Total/Semaine/Mois/Année pick the reporting period; within
+   each, stats are grouped by category (Réservations, Couverts &
+   remplissage, Horaires, Clients) rather than mixed together, so a
+   restaurateur can scan one concern at a time. Every quantitative
+   card shows a delta vs the equivalent previous period — Total has no
+   "previous" (there's no all-time-before-all-time), so it just shows
+   raw numbers.
 
-  const cards = [
-    { label: 'Réservations totales', value: ALL.length },
-    { label: 'À venir', value: upcoming.length },
-    { label: 'Couverts cumulés', value: totalCovers },
-    { label: 'Venus (passées)', value: attended.length },
-    { label: 'No-shows (passées)', value: noShows.length },
-    { label: 'Taux de présence', value: rate === null ? '—' : rate + '%' },
-  ];
-  grid.innerHTML = cards.map(c => `
-    <div class="stat-card">
-      <div class="stat-value">${c.value}</div>
-      <div class="stat-label">${c.label}</div>
-    </div>
-  `).join('');
+   KNOWN GAP: "Annulations" isn't computable yet. Deleting a
+   reservation removes the row entirely (no trace of why), so there's
+   currently no way to tell a cancellation apart from any other
+   deletion, or to count them at all once the row is gone. That needs
+   a small schema change (a soft "cancelled" status instead of a hard
+   delete) before this card can show a real number — flagged here
+   rather than showing a fake 0. */
+let STATS_PERIOD = 'total';
+function switchStatsView(p) {
+  STATS_PERIOD = p;
+  ['total','week','month','year'].forEach(k =>
+    document.getElementById('statsTab' + k[0].toUpperCase() + k.slice(1)).classList.toggle('active', k === p)
+  );
+  renderStats();
+}
+function getPeriodRange(period) {
+  const now = new Date();
+  const toIso = d => d.toISOString().slice(0, 10);
+  if (period === 'total') return null;
+  if (period === 'week') {
+    const dow = (now.getDay() + 6) % 7; // Monday = 0
+    const monday = new Date(now); monday.setHours(0,0,0,0); monday.setDate(now.getDate() - dow);
+    const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
+    const prevMonday = new Date(monday); prevMonday.setDate(monday.getDate() - 7);
+    const prevSunday = new Date(monday); prevSunday.setDate(monday.getDate() - 1);
+    return { start: toIso(monday), end: toIso(sunday), prevStart: toIso(prevMonday), prevEnd: toIso(prevSunday), prevLabel: 'la semaine précédente' };
+  }
+  if (period === 'month') {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+    return { start: toIso(start), end: toIso(end), prevStart: toIso(prevStart), prevEnd: toIso(prevEnd), prevLabel: 'le mois précédent' };
+  }
+  // year
+  const start = new Date(now.getFullYear(), 0, 1);
+  const end = new Date(now.getFullYear(), 11, 31);
+  const prevStart = new Date(now.getFullYear() - 1, 0, 1);
+  const prevEnd = new Date(now.getFullYear() - 1, 11, 31);
+  return { start: toIso(start), end: toIso(end), prevStart: toIso(prevStart), prevEnd: toIso(prevEnd), prevLabel: "l'année précédente" };
+}
+function inRange(iso, start, end) { return iso >= start && iso <= end; }
+function clientKey(r) { return (r.from_email || r.phone || r.from_name || '').trim().toLowerCase(); }
+
+// One quantitative card: current value + delta vs previous period.
+// previous === null means "no comparison available" (e.g. Total tab).
+function deltaCardHtml(value, label, current, previous) {
+  let deltaHtml = '';
+  if (previous !== null) {
+    if (previous === 0 && current === 0) {
+      deltaHtml = `<div class="stat-delta neutral">— vs période précédente</div>`;
+    } else if (previous === 0) {
+      deltaHtml = `<div class="stat-delta up">▲ nouveau vs période précédente</div>`;
+    } else {
+      const pct = Math.round(((current - previous) / previous) * 100);
+      const cls = pct > 0 ? 'up' : pct < 0 ? 'down' : 'neutral';
+      const arrow = pct > 0 ? '▲' : pct < 0 ? '▼' : '—';
+      deltaHtml = `<div class="stat-delta ${cls}">${arrow} ${pct > 0 ? '+' : ''}${pct}% vs période précédente</div>`;
+    }
+  }
+  return `<div class="stat-card"><div class="stat-value">${value}</div><div class="stat-label">${label}</div>${deltaHtml}</div>`;
+}
+// A card with no numeric comparison (a name/label result, e.g. "Samedi").
+function plainCardHtml(value, label, sublabel) {
+  return `<div class="stat-card"><div class="stat-value">${value}</div><div class="stat-label">${label}</div>${sublabel ? `<div class="stat-sublabel">${sublabel}</div>` : ''}</div>`;
+}
+function statsCategoryHtml(title, cardsHtml) {
+  return `<div class="stats-category"><div class="stats-cat-title">${title}</div><div class="stats-grid">${cardsHtml}</div></div>`;
+}
+
+function computePeriodStats(rawRows) {
+  // 'removed' (test/erreur de saisie) never counts anywhere — as if it
+  // never existed. 'cancelled' counts toward the total and toward
+  // Annulations, but not toward covers/fillRate/no-shows/horaires/
+  // clients, since that reservation never actually happened in service.
+  const real = rawRows.filter(r => (r.status || 'confirmed') !== 'removed');
+  const cancelled = real.filter(r => r.status === 'cancelled');
+  const rows = real.filter(r => (r.status || 'confirmed') === 'confirmed');
+
+  const totalCovers = rows.reduce((s, r) => s + (parseInt(r.covers) || 0), 0);
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const past = rows.filter(r => r.date_iso < todayIso);
+  const noShows = past.filter(r => !r.attended);
+
+  // Capacité : somme des places sur toutes les tables configurées.
+  // Sans tables configurées, le taux de remplissage n'a pas de sens —
+  // on l'affiche à "—" plutôt que d'inventer un chiffre.
+  const totalSeats = TABLES.reduce((s, t) => s + (t.seats || 0), 0);
+  const daysInPeriod = new Set(rows.map(r => r.date_iso)).size || 1;
+  const fillRate = totalSeats > 0 ? Math.round((totalCovers / (totalSeats * daysInPeriod)) * 100) : null;
+
+  // Jour de la semaine le plus demandé (par nombre de réservations).
+  const dayNames = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+  const byDay = {};
+  rows.forEach(r => {
+    if (!r.date_iso) return;
+    const d = dayNames[new Date(r.date_iso + 'T12:00:00').getDay()];
+    byDay[d] = (byDay[d] || 0) + 1;
+  });
+  const topDay = Object.entries(byDay).sort((a,b) => b[1]-a[1])[0];
+
+  // Service le plus rempli (par couverts), à partir des Services
+  // configurés dans Espaces — vide si aucun service n'est défini.
+  const byService = SERVICES.map(s => ({
+    name: s.name,
+    covers: rows.filter(r => r.slot >= s.start_time && r.slot < s.end_time).reduce((sum, r) => sum + (parseInt(r.covers) || 0), 0)
+  }));
+  const topService = byService.sort((a,b) => b.covers - a.covers)[0];
+
+  // Créneaux régulièrement vides : parmi tous les horaires possibles
+  // (DINNER), ceux qui n'ont eu aucune réservation sur la période.
+  const bookedSlots = new Set(rows.map(r => r.slot));
+  const emptySlots = DINNER.filter(t => !bookedSlots.has(t));
+
+  // Clients : nouveau = sa toute première réservation (tous temps
+  // confondus) tombe dans cette période. Récurrent = a au moins une
+  // autre réservation en dehors de cette période (il est déjà venu).
+  const allConfirmed = activeReservations();
+  const firstResaByClient = {};
+  allConfirmed.forEach(r => {
+    const k = clientKey(r);
+    if (!k) return;
+    if (!firstResaByClient[k] || r.date_iso < firstResaByClient[k]) firstResaByClient[k] = r.date_iso;
+  });
+  const periodClientKeys = new Set(rows.map(clientKey).filter(Boolean));
+  const rowsOutsidePeriodByClient = {};
+  allConfirmed.forEach(r => {
+    const k = clientKey(r);
+    if (k && !rows.includes(r)) rowsOutsidePeriodByClient[k] = true;
+  });
+  let newClients = 0, returningClients = 0;
+  periodClientKeys.forEach(k => {
+    if (rowsOutsidePeriodByClient[k]) returningClients++;
+    else newClients++;
+  });
+  const avgCovers = rows.length ? (totalCovers / rows.length) : 0;
+  const avgFrequency = periodClientKeys.size ? (rows.length / periodClientKeys.size) : 0;
+
+  return {
+    count: real.length, totalCovers, fillRate, noShows: noShows.length, cancelled: cancelled.length,
+    topDay, topService, emptySlots,
+    newClients, returningClients, uniqueClients: periodClientKeys.size,
+    avgCovers, avgFrequency,
+  };
+}
+
+function renderStats() {
+  const body = document.getElementById('statsBody');
+  if (!body) return;
+  const range = getPeriodRange(STATS_PERIOD);
+  const rows = range ? ALL.filter(r => inRange(r.date_iso, range.start, range.end)) : ALL;
+  const prevRows = range ? ALL.filter(r => inRange(r.date_iso, range.prevStart, range.prevEnd)) : null;
+  const cur = computePeriodStats(rows);
+  const prev = prevRows ? computePeriodStats(prevRows) : null;
+
+  const reservationsCat = statsCategoryHtml('Réservations', [
+    deltaCardHtml(cur.count, 'Réservations', cur.count, prev ? prev.count : null),
+  ].join(''));
+
+  const couvertsCat = statsCategoryHtml('Couverts & remplissage', [
+    deltaCardHtml(cur.totalCovers, 'Couverts', cur.totalCovers, prev ? prev.totalCovers : null),
+    deltaCardHtml(cur.fillRate === null ? '—' : cur.fillRate + '%', 'Taux de remplissage', cur.fillRate || 0, prev ? (prev.fillRate || 0) : null),
+    deltaCardHtml(cur.cancelled, 'Annulations', cur.cancelled, prev ? prev.cancelled : null),
+    deltaCardHtml(cur.noShows, 'No-shows', cur.noShows, prev ? prev.noShows : null),
+  ].join(''));
+
+  const horairesCat = statsCategoryHtml('Analyse des horaires', [
+    plainCardHtml(cur.topDay ? cur.topDay[0] : '—', 'Jour le plus demandé', cur.topDay ? `${cur.topDay[1]} réservation${cur.topDay[1] > 1 ? 's' : ''}` : ''),
+    plainCardHtml(cur.topService && cur.topService.covers > 0 ? cur.topService.name : '—', 'Service le plus rempli', cur.topService && cur.topService.covers > 0 ? `${cur.topService.covers} couverts` : (SERVICES.length ? '' : 'Aucun service configuré')),
+    plainCardHtml(cur.emptySlots.length, 'Créneaux vides', cur.emptySlots.length ? cur.emptySlots.slice(0,4).join(', ') + (cur.emptySlots.length > 4 ? '…' : '') : 'Tous les créneaux ont été réservés'),
+  ].join(''));
+
+  const clientsCat = STATS_PERIOD === 'total'
+    ? statsCategoryHtml('Clients', [
+        plainCardHtml(cur.uniqueClients, 'Clients uniques'),
+        deltaCardHtml(cur.avgCovers.toFixed(1), 'Pers. / réservation', cur.avgCovers, null),
+        deltaCardHtml(cur.avgFrequency.toFixed(1), 'Réservations / client', cur.avgFrequency, null),
+      ].join(''))
+    : statsCategoryHtml('Clients', [
+        deltaCardHtml(cur.newClients, 'Nouveaux clients', cur.newClients, prev ? prev.newClients : null),
+        deltaCardHtml(cur.returningClients, 'Clients récurrents', cur.returningClients, prev ? prev.returningClients : null),
+        deltaCardHtml(cur.avgCovers.toFixed(1), 'Pers. / réservation', cur.avgCovers, prev ? prev.avgCovers : null),
+        deltaCardHtml(cur.avgFrequency.toFixed(1), 'Réservations / client', cur.avgFrequency, prev ? prev.avgFrequency : null),
+      ].join(''));
+
+  body.innerHTML = reservationsCat + couvertsCat + horairesCat + clientsCat;
 }
 
 function reservationEntryHtml(r) {
@@ -1279,7 +1489,7 @@ function renderUpcoming() {
   const body = document.getElementById('upcomingList');
   const emptyMsg = document.getElementById('emptyMsg');
   const todayIso = new Date().toISOString().slice(0, 10);
-  const upcoming = ALL
+  const upcoming = activeReservations()
     .filter(r => r.date_iso >= todayIso)
     .sort((a, b) => (a.date_iso + (a.slot||'')).localeCompare(b.date_iso + (b.slot||'')))
     .slice(0, 7);
@@ -1352,7 +1562,7 @@ function openDetailModal(ref) {
   document.getElementById('detailModal').classList.remove('hidden');
 }
 function openDayModal(iso) {
-  const rows = ALL.filter(r => r.date_iso === iso).sort((a,b) => (a.slot||'').localeCompare(b.slot||''));
+  const rows = activeReservations().filter(r => r.date_iso === iso).sort((a,b) => (a.slot||'').localeCompare(b.slot||''));
   if (rows.length === 0) return;
   CURRENT_MODAL = { type: 'day', iso };
   document.getElementById('modalBody').innerHTML = rows
@@ -1390,17 +1600,34 @@ async function toggleAttended(ref) {
     showToast('Mise à jour impossible : ' + err.message);
   }
 }
-async function deleteReservation(ref) {
-  if (!confirm('Supprimer la réservation ' + ref + ' ?')) return;
+let PENDING_DELETE_REF = null;
+function deleteReservation(ref) {
+  // Doesn't delete anything by itself anymore — asks why first, since
+  // the row needs to survive (as 'cancelled' or 'removed') for the
+  // Statistiques screen to count it correctly, or to ignore it
+  // entirely if it was just a test/mistake.
+  PENDING_DELETE_REF = ref;
+  document.getElementById('deleteReasonModal').classList.remove('hidden');
+}
+function closeDeleteReasonModal() {
+  PENDING_DELETE_REF = null;
+  document.getElementById('deleteReasonModal').classList.add('hidden');
+}
+async function confirmDeleteReservation(reason) {
+  const ref = PENDING_DELETE_REF;
+  if (!ref) return;
+  closeDeleteReasonModal();
   try {
-    const { error } = await sb.from('restaurant_reservations').delete().eq('ref', ref).eq('client_slug', CLIENT_SLUG);
+    const { data, error } = await sb.from('restaurant_reservations').update({ status: reason }).eq('ref', ref).eq('client_slug', CLIENT_SLUG).select();
     if (error) throw error;
-    ALL = ALL.filter(r => r.ref !== ref);
+    if (!data || data.length === 0) throw new Error("Écriture bloquée côté base (policy manquante ?)");
+    const r = ALL.find(x => x.ref === ref);
+    if (r) r.status = reason;
     renderUpcoming();
     renderWeek();
     renderMonth();
     renderStats();
-    showToast('Réservation supprimée');
+    showToast(reason === 'cancelled' ? 'Réservation annulée' : 'Réservation supprimée');
   } catch (err) {
     showToast('Suppression impossible : ' + err.message);
   }
