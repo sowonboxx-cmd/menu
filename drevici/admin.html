@@ -1366,8 +1366,9 @@ function statsCategoryHtml(title, cardsHtml) {
 function computePeriodStats(rawRows) {
   // 'removed' (test/erreur de saisie) never counts anywhere — as if it
   // never existed. 'cancelled' counts toward the total and toward
-  // Annulations, but not toward covers/fillRate/no-shows/horaires/
-  // clients, since that reservation never actually happened in service.
+  // Annulations, but not toward couverts/remplissage/no-shows/jour le
+  // plus demandé, since that reservation never actually happened in
+  // service.
   const real = rawRows.filter(r => (r.status || 'confirmed') !== 'removed');
   const cancelled = real.filter(r => r.status === 'cancelled');
   const rows = real.filter(r => (r.status || 'confirmed') === 'confirmed');
@@ -1376,7 +1377,6 @@ function computePeriodStats(rawRows) {
   const todayIso = new Date().toISOString().slice(0, 10);
   const past = rows.filter(r => r.date_iso < todayIso);
   const noShows = past.filter(r => !r.attended);
-  const upcoming = rows.filter(r => r.date_iso >= todayIso).length;
 
   // Capacité : somme des places sur toutes les tables configurées.
   // Sans tables configurées, le taux de remplissage n'a pas de sens —
@@ -1395,25 +1395,15 @@ function computePeriodStats(rawRows) {
   });
   const topDay = Object.entries(byDay).sort((a,b) => b[1]-a[1])[0];
 
-  // Service le plus rempli (par couverts), à partir des Services
-  // configurés dans Espaces — vide si aucun service n'est défini.
-  const byService = SERVICES.map(s => ({
-    name: s.name,
-    covers: rows.filter(r => r.slot >= s.start_time && r.slot < s.end_time).reduce((sum, r) => sum + (parseInt(r.covers) || 0), 0)
-  }));
-  const topService = byService.sort((a,b) => b.covers - a.covers)[0];
-
-  // Créneaux régulièrement vides : parmi tous les horaires possibles
-  // (DINNER), ceux qui n'ont eu aucune réservation sur la période.
-  const bookedSlots = new Set(rows.map(r => r.slot));
-  const emptySlots = DINNER.filter(t => !bookedSlots.has(t));
-
   return {
-    count: real.length, totalCovers, fillRate, noShows: noShows.length, cancelled: cancelled.length, upcoming,
-    topDay, topService, emptySlots,
+    count: real.length, totalCovers, fillRate, noShows: noShows.length, cancelled: cancelled.length,
+    topDay,
   };
 }
 
+// Six indicateurs à plat, sans catégories/titres — Réservations et
+// Jour le plus demandé côte à côte, puis Couverts/Remplissage/
+// Annulations/No-shows en dessous.
 function renderStats() {
   const body = document.getElementById('statsBody');
   if (!body) return;
@@ -1423,25 +1413,16 @@ function renderStats() {
   const cur = computePeriodStats(rows);
   const prev = prevRows ? computePeriodStats(prevRows) : null;
 
-  const reservationsCat = statsCategoryHtml('Réservations', [
+  const cards = [
     deltaCardHtml(cur.count, 'Réservations', cur.count, prev ? prev.count : null),
-    plainCardHtml(cur.upcoming, 'Réservations à venir'),
-  ].join(''));
-
-  const couvertsCat = statsCategoryHtml('Couverts & remplissage', [
+    plainCardHtml(cur.topDay ? cur.topDay[0] : '—', 'Jour le plus demandé', cur.topDay ? `${cur.topDay[1]} réservation${cur.topDay[1] > 1 ? 's' : ''}` : ''),
     deltaCardHtml(cur.totalCovers, 'Couverts', cur.totalCovers, prev ? prev.totalCovers : null),
     deltaCardHtml(cur.fillRate === null ? '—' : cur.fillRate + '%', 'Taux de remplissage', cur.fillRate || 0, prev ? (prev.fillRate || 0) : null),
     deltaCardHtml(cur.cancelled, 'Annulations', cur.cancelled, prev ? prev.cancelled : null),
     deltaCardHtml(cur.noShows, 'No-shows', cur.noShows, prev ? prev.noShows : null),
-  ].join(''));
+  ].join('');
 
-  const horairesCat = statsCategoryHtml('Analyse des horaires', [
-    plainCardHtml(cur.topDay ? cur.topDay[0] : '—', 'Jour le plus demandé', cur.topDay ? `${cur.topDay[1]} réservation${cur.topDay[1] > 1 ? 's' : ''}` : ''),
-    plainCardHtml(cur.topService && cur.topService.covers > 0 ? cur.topService.name : '—', 'Service le plus rempli', cur.topService && cur.topService.covers > 0 ? `${cur.topService.covers} couverts` : (SERVICES.length ? '' : 'Aucun service configuré')),
-    plainCardHtml(cur.emptySlots.length, 'Créneaux vides', cur.emptySlots.length ? cur.emptySlots.slice(0,4).join(', ') + (cur.emptySlots.length > 4 ? '…' : '') : 'Tous les créneaux ont été réservés'),
-  ].join(''));
-
-  body.innerHTML = reservationsCat + couvertsCat + horairesCat;
+  body.innerHTML = `<div class="stats-grid">${cards}</div>`;
 }
 
 function reservationEntryHtml(r) {
