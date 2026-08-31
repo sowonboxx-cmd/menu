@@ -223,7 +223,25 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
 .reason-btn:hover{border-color:var(--navy);color:var(--navy)}
 .reason-btn.secondary{border:none;color:var(--text3);margin-bottom:0}
 .reason-btn.secondary:hover{color:var(--text2)}
+.reason-btn.primary{background:var(--navy);color:#fff;border-color:var(--navy)}
+.reason-btn.primary:hover{background:#0a1a3e;color:#fff}
+.reason-btn.primary:disabled{background:var(--border);border-color:var(--border);color:var(--text3);cursor:not-allowed}
 .modal-del:hover{background:#faf0ef}
+
+/* Attribution dynamique de table(s) */
+.service-toggle-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.service-toggle-btn{padding:9px 14px;border-radius:20px;border:1px solid var(--border);background:#fff;color:var(--text2);font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit}
+.service-toggle-btn.active{background:var(--navy);border-color:var(--navy);color:#fff}
+.table-check-list{display:flex;flex-direction:column;gap:8px;max-height:240px;overflow-y:auto;margin-bottom:12px}
+.table-check-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--rs);cursor:pointer}
+.table-check-row input{flex:none;width:16px;height:16px}
+.table-check-name{flex:1;font-size:13px;font-weight:600;color:var(--text)}
+.table-check-seats{font-size:12px;color:var(--text2);flex:none}
+.table-check-row.occupied{background:#F2F2F2;cursor:not-allowed}
+.table-check-row.occupied .table-check-name,.table-check-row.occupied .table-check-seats{color:var(--text3)}
+.table-assign-counter{text-align:center;font-size:13px;font-weight:700;color:var(--navy);padding:10px 0;border-top:1px solid var(--border);margin-bottom:14px}
+.table-assign-error{font-size:12px;color:#B31217;margin-bottom:12px;text-align:center}
+.table-assign-link{color:var(--navy);font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 
 /* Mobile: compact stat row (cards use the same .resa-card style as
    desktop now — no separate table/grid treatment needed anymore). */
@@ -482,6 +500,23 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
   </div>
 </div>
 
+<!-- Attribution dynamique de table(s) : sélection multiple par
+     cases à cocher, filtrée par service (midi/soir/etc), pour couvrir
+     le nombre de couverts demandé — remplace l'ancien menu déroulant
+     à sélection unique qui ne vérifiait ni capacité ni disponibilité. -->
+<div class="modal-overlay hidden" id="tableAssignModal" onclick="if(event.target===this) closeTableAssignModal()">
+  <div class="modal-card" style="text-align:left">
+    <div class="reason-title">Attribuer une table</div>
+    <div class="reason-hint" id="tableAssignInfo"></div>
+    <div class="service-toggle-row" id="serviceToggleRow"></div>
+    <div class="table-check-list" id="tableCheckList"></div>
+    <div class="table-assign-counter" id="tableAssignCounter"></div>
+    <div class="table-assign-error hidden" id="tableAssignError">Sélection insuffisante pour couvrir les couverts demandés.</div>
+    <button class="reason-btn primary" id="tableAssignConfirmBtn" onclick="confirmTableAssign()" disabled>Attribuer la table</button>
+    <button class="reason-btn secondary" onclick="closeTableAssignModal()">Annuler</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -627,7 +662,7 @@ function renderNotifBell() {
   const badge = document.getElementById('notifBadge');
   if (!badge) return;
   const todayIso = toIso(new Date());
-  const count = activeReservations().filter(r => r.date_iso >= todayIso && !r.table_id).length;
+  const count = activeReservations().filter(r => r.date_iso >= todayIso && (!r.table_ids || r.table_ids.length === 0)).length;
   badge.textContent = count;
   badge.classList.toggle('hidden', count === 0);
 }
@@ -1212,20 +1247,10 @@ async function assignWaitlistTable(waitlistId, tableId) {
     renderWaitlist();
   }
 }
-async function assignReservationTable(ref, tableId) {
-  const r = ALL.find(x => x.ref === ref);
-  if (!r) return;
-  try {
-    const { data, error } = await sb.from('restaurant_reservations').update({ table_id: tableId || null }).eq('ref', ref).eq('client_slug', CLIENT_SLUG).select();
-    if (error) throw error;
-    if (!data || data.length === 0) throw new Error("Écriture bloquée côté base (policy manquante ?)");
-    r.table_id = tableId || null;
-    showToast(tableId ? 'Table affectée' : 'Affectation retirée');
-    renderNotifBell();
-  } catch (err) {
-    showToast('Affectation impossible : ' + err.message);
-  }
-}
+// NOTE: assignReservationTable (single-table assign via table_id) was
+// removed — superseded by the multi-table checkbox flow above
+// (confirmTableAssign / table_ids), which fixed the bug where a
+// 16-cover group could get assigned to a single 10-seat table.
 async function deleteWaitlistEntry(id) {
   if (!confirm("Supprimer cette demande de la liste d'attente ?")) return;
   try {
@@ -1651,8 +1676,9 @@ let BOOST_SELECTED_DATE = null;
 // certaines réservations n'ont pas encore de table assignée.
 function computeTableAvailability(dateIso) {
   const dayRes = activeReservations().filter(r => r.date_iso === dateIso);
-  const occupied = new Set(dayRes.filter(r => r.table_id).map(r => r.table_id));
-  const unassigned = dayRes.filter(r => !r.table_id).length;
+  const occupied = new Set();
+  dayRes.forEach(r => (r.table_ids || []).forEach(id => occupied.add(id)));
+  const unassigned = dayRes.filter(r => !r.table_ids || r.table_ids.length === 0).length;
   return { total: TABLES.length, available: Math.max(TABLES.length - occupied.size, 0), unassigned };
 }
 function computeDayBoostData(dateIso) {
@@ -1825,7 +1851,7 @@ function renderUpcoming() {
   if (badge) badge.textContent = allUpcoming.length || '';
 
   banner.classList.toggle('hidden', !UPCOMING_ONLY_UNASSIGNED);
-  const filtered = UPCOMING_ONLY_UNASSIGNED ? allUpcoming.filter(r => !r.table_id) : allUpcoming;
+  const filtered = UPCOMING_ONLY_UNASSIGNED ? allUpcoming.filter(r => !r.table_ids || r.table_ids.length === 0) : allUpcoming;
   // Vue par défaut : les 7 prochaines pour rester un simple aperçu. Vue
   // filtrée (depuis la cloche) : tout afficher, c'est une liste à
   // traiter, pas un aperçu.
@@ -1864,6 +1890,150 @@ function renderUpcoming() {
    (openDayModal, week/month view clicks): several of these blocks
    stacked and separated by a divider, scrollable within the same
    modal, in chronological order. ── */
+// Résumé affiché quand la fiche n'est pas en édition — clic pour ouvrir
+// le sélecteur multi-table. Vide si l'espace n'a pas de tables
+// configurées (rien à attribuer).
+function reservationTableFieldHtml(r) {
+  if (!r.espace) return '';
+  const space = findSpaceByName(r.espace);
+  const spaceTables = space ? tablesForSpace(space.id) : [];
+  if (!spaceTables.length) return '';
+  const ids = r.table_ids || [];
+  const assigned = spaceTables.filter(t => ids.includes(t.id));
+  const summary = assigned.length
+    ? assigned.map(t => tableLabel(t, spaceTables)).join(' + ')
+    : '— Non affectée —';
+  return `<div class="modal-row"><span class="modal-label">Table</span><span class="modal-value">
+      <a class="table-assign-link" onclick="openTableAssignModal('${escapeAttr(r.ref)}')">${escapeHtml(summary)}</a>
+    </span></div>`;
+}
+
+/* ── Attribution dynamique de table(s) ──
+   Remplace l'ancien menu déroulant à sélection unique, qui ne
+   vérifiait ni la capacité réelle ni la disponibilité croisée — d'où
+   des groupes de 16 assignés à une table de 10. Le restaurateur coche
+   librement les tables libres jusqu'à couvrir les couverts demandés,
+   par service (une table prise au service du midi est libre le soir).
+   Pas de gestion de chevauchement entre services en V1 : un service =
+   un créneau propre, sans segments qui se recoupent. */
+let TABLE_ASSIGN_REF = null;
+let TABLE_ASSIGN_SERVICE = null;
+let TABLE_ASSIGN_SELECTED = new Set();
+
+function findServiceForSlot(slot) {
+  if (!slot || !SERVICES.length) return null;
+  return SERVICES.find(s => slot >= s.start_time && slot < s.end_time) || null;
+}
+// Tables déjà prises sur ce service précis, par une AUTRE réservation
+// active (jamais la réservation en cours d'édition elle-même).
+function tablesOccupiedForService(dateIso, service, excludeRef) {
+  const occupied = new Set();
+  if (!service) return occupied;
+  activeReservations().forEach(r => {
+    if (r.ref === excludeRef) return;
+    if (r.date_iso !== dateIso) return;
+    if (!(r.slot >= service.start_time && r.slot < service.end_time)) return;
+    (r.table_ids || []).forEach(id => occupied.add(id));
+  });
+  return occupied;
+}
+function openTableAssignModal(ref) {
+  const r = ALL.find(x => x.ref === ref);
+  if (!r) return;
+  TABLE_ASSIGN_REF = ref;
+  TABLE_ASSIGN_SELECTED = new Set(r.table_ids || []);
+  TABLE_ASSIGN_SERVICE = findServiceForSlot(r.slot) || SERVICES[0] || null;
+  document.getElementById('tableAssignInfo').textContent =
+    `Réservation : ${r.covers} couverts — ${r.date_label || r.date_iso}`;
+  renderServiceToggle();
+  renderTableCheckList();
+  document.getElementById('tableAssignModal').classList.remove('hidden');
+}
+function closeTableAssignModal() {
+  document.getElementById('tableAssignModal').classList.add('hidden');
+  TABLE_ASSIGN_REF = null;
+}
+function renderServiceToggle() {
+  const row = document.getElementById('serviceToggleRow');
+  if (!SERVICES.length) {
+    row.innerHTML = `<div class="spaces-empty">Aucun service configuré — configurez-en dans Espaces.</div>`;
+    return;
+  }
+  row.innerHTML = SERVICES.map(s => `
+    <button class="service-toggle-btn${TABLE_ASSIGN_SERVICE && TABLE_ASSIGN_SERVICE.id === s.id ? ' active' : ''}" onclick="switchTableAssignService('${escapeAttr(s.id)}')">${escapeHtml(s.name)}</button>
+  `).join('');
+}
+// Changer de service réinitialise la sélection en cours et recalcule
+// les disponibilités depuis zéro — un service est un créneau propre,
+// une sélection faite pour le midi n'a aucun sens le soir.
+function switchTableAssignService(serviceId) {
+  TABLE_ASSIGN_SERVICE = SERVICES.find(s => s.id === serviceId) || null;
+  TABLE_ASSIGN_SELECTED = new Set();
+  renderServiceToggle();
+  renderTableCheckList();
+}
+function renderTableCheckList() {
+  const r = ALL.find(x => x.ref === TABLE_ASSIGN_REF);
+  if (!r) return;
+  const list = document.getElementById('tableCheckList');
+  const space = findSpaceByName(r.espace);
+  const tables = space ? tablesForSpace(space.id) : [];
+  const occupied = tablesOccupiedForService(r.date_iso, TABLE_ASSIGN_SERVICE, r.ref);
+  list.innerHTML = tables.map(t => {
+    const selected = TABLE_ASSIGN_SELECTED.has(t.id);
+    const isOccupied = occupied.has(t.id) && !selected;
+    return `
+      <label class="table-check-row${isOccupied ? ' occupied' : ''}">
+        <input type="checkbox" ${selected ? 'checked' : ''} ${isOccupied ? 'disabled' : ''} onchange="toggleTableAssignSelection('${escapeAttr(t.id)}', this.checked)">
+        <span class="table-check-name">${escapeHtml(tableLabel(t, tables))}</span>
+        <span class="table-check-seats">${isOccupied ? 'Occupée' : t.seats + ' ' + pluralize(t.seats, 'place')}</span>
+      </label>
+    `;
+  }).join('');
+  updateTableAssignCounter();
+}
+function toggleTableAssignSelection(tableId, checked) {
+  if (checked) TABLE_ASSIGN_SELECTED.add(tableId); else TABLE_ASSIGN_SELECTED.delete(tableId);
+  updateTableAssignCounter();
+}
+function selectedTablesTotal(r) {
+  const space = findSpaceByName(r.espace);
+  const tables = space ? tablesForSpace(space.id) : [];
+  return tables.filter(t => TABLE_ASSIGN_SELECTED.has(t.id)).reduce((s, t) => s + (t.seats || 0), 0);
+}
+function updateTableAssignCounter() {
+  const r = ALL.find(x => x.ref === TABLE_ASSIGN_REF);
+  if (!r) return;
+  const total = selectedTablesTotal(r);
+  document.getElementById('tableAssignCounter').textContent = `${total} / ${r.covers} couverts`;
+  document.getElementById('tableAssignConfirmBtn').disabled = total < r.covers;
+  document.getElementById('tableAssignError').classList.add('hidden');
+}
+async function confirmTableAssign() {
+  const r = ALL.find(x => x.ref === TABLE_ASSIGN_REF);
+  if (!r) return;
+  const total = selectedTablesTotal(r);
+  if (total < r.covers) {
+    // Message affiché seulement au clic si la sélection est
+    // insuffisante — pas d'alerte permanente pendant qu'on coche.
+    document.getElementById('tableAssignError').classList.remove('hidden');
+    return;
+  }
+  const ids = [...TABLE_ASSIGN_SELECTED];
+  try {
+    const { data, error } = await sb.from('restaurant_reservations').update({ table_ids: ids }).eq('ref', r.ref).eq('client_slug', CLIENT_SLUG).select();
+    if (error) throw error;
+    if (!data || data.length === 0) throw new Error("Écriture bloquée côté base (policy manquante ?)");
+    r.table_ids = ids;
+    closeTableAssignModal();
+    refreshModalIfOpen();
+    renderNotifBell();
+    showToast(ids.length > 1 ? 'Tables attribuées' : 'Table attribuée');
+  } catch (err) {
+    showToast('Attribution impossible : ' + err.message);
+  }
+}
+
 function reservationDetailHtml(r, showClose) {
   const createdDate = r.created_at ? new Date(r.created_at).toLocaleDateString('fr-FR') : '';
   const phoneDigits = (r.phone || '').replace(/[^\d+]/g, '');
@@ -1887,7 +2057,7 @@ function reservationDetailHtml(r, showClose) {
     <div class="modal-row"><span class="modal-label">Heure</span><span class="modal-value">${escapeHtml(r.slot || '')}</span></div>
     <div class="modal-row"><span class="modal-label">Couverts</span><span class="modal-value">${escapeHtml(String(r.covers || ''))}</span></div>
     ${r.espace ? `<div class="modal-row"><span class="modal-label">Espace</span><span class="modal-value">${escapeHtml(r.espace)}</span></div>` : ''}
-    ${tableAssignRowHtml(r.espace, r.table_id, r.ref, 'assignReservationTable')}
+    ${reservationTableFieldHtml(r)}
     ${r.note && r.note !== 'Aucune' ? `<div class="modal-row"><span class="modal-label">Note</span><span class="modal-value">${escapeHtml(r.note)}</span></div>` : ''}
     <button class="modal-del" onclick="deleteReservation('${escapeAttr(r.ref)}');closeModal()">Supprimer cette réservation</button>
   `;
