@@ -152,7 +152,7 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
 
 /* ── Table Boost ── */
 .boost-hero-standalone{background:var(--navy);border-radius:var(--r);padding:22px 20px}
-.boost-hero-title{color:#fff;font-size:17px;font-weight:700;line-height:1.3;margin-bottom:8px}
+.boost-hero-title{color:#fff;font-size:14.5px;font-weight:700;line-height:1.3;margin-bottom:8px}
 .boost-hero-sub{color:rgba(255,255,255,.75);font-size:12.5px;line-height:1.5}
 .boost-block{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-top:20px}
 .boost-overview-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px}
@@ -336,7 +336,7 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
           <span class="logo-text">Drevici Oyster</span>
         </a>
       </div>
-      <div class="header-sub">Réservations — Administration</div>
+      <div class="header-sub">Tableau de bord</div>
     </div>
   </div>
 
@@ -344,9 +344,9 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
 
     <div class="top-tabs-wrap">
       <div class="view-tabs" id="topTabs">
-        <div class="view-tab active" id="viewTabCalendrier" onclick="switchTopView('calendrier')">Calendrier</div>
-        <div class="view-tab" id="viewTabStats" onclick="switchTopView('stats')">Statistiques</div>
+        <div class="view-tab active" id="viewTabCalendrier" onclick="switchTopView('calendrier')">Réservations</div>
         <div class="view-tab" id="viewTabBoost" onclick="switchTopView('boost')">Table Boost</div>
+        <div class="view-tab" id="viewTabStats" onclick="switchTopView('stats')">Statistiques</div>
         <div class="view-tab more-tab" id="moreMenuBtn" onclick="toggleMoreMenu(event)">⋯</div>
       </div>
       <div class="more-menu hidden" id="moreMenu">
@@ -435,8 +435,8 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
          enregistre juste l'offre choisie sans produire de visuel. -->
     <div class="hidden" id="boostScreen">
       <div class="boost-hero-standalone">
-        <div class="boost-hero-title">Remplissez vos tables.<br>Boostez votre CA.</div>
-        <div class="boost-hero-sub">Sélectionnez le jour et lancez une offre en quelques secondes.</div>
+        <div class="boost-hero-title">Remplissez vos tables. Boostez votre CA.</div>
+        <div class="boost-hero-sub">Lancez une offre en quelques secondes.</div>
       </div>
 
       <div class="boost-block">
@@ -464,6 +464,7 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
     <div class="reason-title">Supprimer cette réservation</div>
     <div class="reason-hint">Pour quelle raison ? Ça ne sert qu'aux statistiques — le client n'en voit jamais rien.</div>
     <button class="reason-btn" onclick="confirmDeleteReservation('cancelled')">Annulation</button>
+    <button class="reason-btn" onclick="confirmDeleteReservation('noshow')">No-show</button>
     <button class="reason-btn" onclick="confirmDeleteReservation('removed')">Autre (test, erreur de saisie…)</button>
     <button class="reason-btn secondary" onclick="closeDeleteReasonModal()">Annuler</button>
   </div>
@@ -1499,18 +1500,23 @@ function statsCategoryHtml(title, cardsHtml) {
 
 function computePeriodStats(rawRows) {
   // 'removed' (test/erreur de saisie) never counts anywhere — as if it
-  // never existed. 'cancelled' counts toward the total and toward
-  // Annulations, but not toward couverts/remplissage/no-shows/jour le
+  // never existed. 'cancelled' and 'noshow' count toward the total and
+  // toward their own stat, but not toward couverts/remplissage/jour le
   // plus demandé, since that reservation never actually happened in
   // service.
   const real = rawRows.filter(r => (r.status || 'confirmed') !== 'removed');
   const cancelled = real.filter(r => r.status === 'cancelled');
+  const explicitNoShows = real.filter(r => r.status === 'noshow');
   const rows = real.filter(r => (r.status || 'confirmed') === 'confirmed');
 
   const totalCovers = rows.reduce((s, r) => s + (parseInt(r.covers) || 0), 0);
   const todayIso = toIso(new Date());
   const past = rows.filter(r => r.date_iso < todayIso);
-  const noShows = past.filter(r => !r.attended);
+  // No-shows = celles marquées explicitement "No-show" à la suppression,
+  // PLUS celles restées cochées "non venu" pour une date déjà passée
+  // (détection automatique, pour ceux qui ne suppriment jamais rien).
+  const implicitNoShows = past.filter(r => !r.attended);
+  const noShows = implicitNoShows.length + explicitNoShows.length;
 
   // Capacité : somme des places sur toutes les tables configurées.
   // Sans tables configurées, le taux de remplissage n'a pas de sens —
@@ -1530,7 +1536,7 @@ function computePeriodStats(rawRows) {
   const topDay = Object.entries(byDay).sort((a,b) => b[1]-a[1])[0];
 
   return {
-    count: real.length, totalCovers, fillRate, noShows: noShows.length, cancelled: cancelled.length,
+    count: real.length, totalCovers, fillRate, noShows, cancelled: cancelled.length,
     topDay, confirmedRows: rows,
   };
 }
@@ -1913,7 +1919,7 @@ async function confirmDeleteReservation(reason) {
     renderWeek();
     renderMonth();
     renderStats();
-    showToast(reason === 'cancelled' ? 'Réservation annulée' : 'Réservation supprimée');
+    showToast(reason === 'cancelled' ? 'Réservation annulée' : reason === 'noshow' ? 'Marqué comme no-show' : 'Réservation supprimée');
   } catch (err) {
     showToast('Suppression impossible : ' + err.message);
   }
