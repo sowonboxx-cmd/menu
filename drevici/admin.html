@@ -40,7 +40,7 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
 .header-sub{font-size:10px;font-weight:300;color:#FFFFFF;letter-spacing:.14em;text-transform:uppercase;text-align:center;margin-top:6px}
 .logout-btn{position:absolute;right:16px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(255,255,255,.6);cursor:pointer;font-family:inherit;display:flex;align-items:center;padding:4px}
 .logout-btn:hover{color:#fff}
-.notif-bell{position:absolute;right:16px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.85);display:flex;align-items:center;justify-content:center}
+.notif-bell{position:absolute;right:16px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.85);display:flex;align-items:center;justify-content:center;cursor:pointer}
 .notif-badge{position:absolute;top:-6px;right:-8px;background:#B31217;color:#fff;font-size:10px;font-weight:700;border-radius:10px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 4px;line-height:1}
 .home-btn{position:absolute;left:16px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(255,255,255,.6);cursor:pointer;font-family:inherit;display:flex;align-items:center;padding:4px;text-decoration:none}
 .home-btn:hover{color:#fff}
@@ -132,6 +132,8 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
   .resa-card-indays{margin-top:0}
 }
 .empty-msg{text-align:center;padding:48px 20px;color:var(--text3);font-size:14px}
+.upcoming-filter-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#EEF1F8;border-radius:var(--rs);padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:var(--text2)}
+.upcoming-filter-banner a{color:var(--navy);font-weight:600;cursor:pointer;text-decoration:underline;white-space:nowrap}
 .empty-icon{font-size:32px;margin-bottom:10px}
 .stats-category{margin-bottom:22px}
 .stats-cat-title{font-size:13px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px}
@@ -144,7 +146,8 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
 .stat-delta.up{color:#2e8b3d}
 .stat-delta.down{color:#B31217}
 .stat-delta.neutral{color:var(--text3)}
-.fillrate-section{margin-top:22px}
+.stats-block{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-top:20px}
+.stats-block:first-child{margin-top:0}
 .fillrate-title{text-align:center;font-size:13px;font-weight:600;color:var(--text);margin-bottom:14px}
 .fillrate-day-list{display:flex;flex-direction:column;gap:6px}
 .fillrate-day-row{position:relative;display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border:1px solid var(--border);border-radius:var(--rs);overflow:hidden;background:#fff}
@@ -156,7 +159,7 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
 .boost-hero-standalone{background:var(--navy);border-radius:var(--r);padding:22px 20px}
 .boost-hero-title{color:#fff;font-size:14.5px;font-weight:700;line-height:1.3;margin-bottom:8px}
 .boost-hero-sub{color:rgba(255,255,255,.75);font-size:12.5px;line-height:1.5}
-.boost-block{background:linear-gradient(180deg,#DCEEFB 0%,#FFFFFF 65%);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-top:20px}
+.boost-block{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-top:20px}
 .boost-overview-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px}
 .boost-section-title{font-size:14px;font-weight:700;color:var(--text);margin:22px 0 10px}
 .boost-hint{font-size:12px;color:var(--text2);margin-bottom:14px}
@@ -321,7 +324,7 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
         <a href="#" class="logo-link" id="logoLink">
           <span class="logo-text">Drevici Oyster</span>
         </a>
-        <div class="notif-bell" id="notifBell" title="Réservations sans table affectée">
+        <div class="notif-bell" id="notifBell" title="Réservations sans table affectée" onclick="showUnassignedReservations()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           <span class="notif-badge hidden" id="notifBadge">0</span>
         </div>
@@ -347,12 +350,16 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
     <!-- CALENDRIER — top-level screen, with its own 4 sub-tabs -->
     <div id="calendrierScreen">
       <div class="view-tabs sub-tabs">
-        <div class="view-tab active" id="viewTabUpcoming" onclick="switchView('upcoming')">À venir<span class="tab-badge" id="badgeUpcoming"></span></div>
-        <div class="view-tab" id="viewTabWeek" onclick="switchView('week')">Semaine<span class="tab-badge" id="badgeWeek"></span></div>
-        <div class="view-tab" id="viewTabMonth" onclick="switchView('month')">Mois<span class="tab-badge" id="badgeMonth"></span></div>
+        <div class="view-tab active" id="viewTabUpcoming" onclick="UPCOMING_ONLY_UNASSIGNED=false;switchView('upcoming');renderUpcoming()">À venir<span class="tab-badge" id="badgeUpcoming"></span></div>
+        <div class="view-tab" id="viewTabWeek" onclick="UPCOMING_ONLY_UNASSIGNED=false;switchView('week')">Semaine<span class="tab-badge" id="badgeWeek"></span></div>
+        <div class="view-tab" id="viewTabMonth" onclick="UPCOMING_ONLY_UNASSIGNED=false;switchView('month')">Mois<span class="tab-badge" id="badgeMonth"></span></div>
       </div>
 
       <div id="upcomingPanel">
+        <div class="upcoming-filter-banner hidden" id="upcomingFilterBanner">
+          <span>Réservations sans table affectée</span>
+          <a onclick="UPCOMING_ONLY_UNASSIGNED=false;renderUpcoming()">Tout afficher</a>
+        </div>
         <div class="resa-list" id="upcomingList"></div>
         <div class="empty-msg hidden" id="emptyMsg"></div>
       </div>
@@ -380,14 +387,17 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
          reservations already loaded (ALL), no extra query. "Venu" is
          only meaningful once the date has passed — future reservations
          aren't counted as no-shows just for not being checked yet. -->
-    <div class="cal-panel hidden" id="statsScreen">
-      <div class="view-tabs sub-tabs">
-        <div class="view-tab active" id="statsTabTotal" onclick="switchStatsView('total')">Total</div>
-        <div class="view-tab" id="statsTabWeek" onclick="switchStatsView('week')">Semaine</div>
-        <div class="view-tab" id="statsTabMonth" onclick="switchStatsView('month')">Mois</div>
-        <div class="view-tab" id="statsTabYear" onclick="switchStatsView('year')">Année</div>
+    <div class="hidden" id="statsScreen">
+      <div class="stats-block">
+        <div class="view-tabs sub-tabs">
+          <div class="view-tab active" id="statsTabTotal" onclick="switchStatsView('total')">Total</div>
+          <div class="view-tab" id="statsTabWeek" onclick="switchStatsView('week')">Semaine</div>
+          <div class="view-tab" id="statsTabMonth" onclick="switchStatsView('month')">Mois</div>
+          <div class="view-tab" id="statsTabYear" onclick="switchStatsView('year')">Année</div>
+        </div>
+        <div id="statsBody"></div>
       </div>
-      <div id="statsBody"></div>
+      <div class="stats-block" id="fillRateBlock"></div>
     </div>
 
     <!-- ESPACES — top-level screen: lets the restaurant customize the
@@ -1581,10 +1591,8 @@ function fillRateByDayHtml(rows) {
     </div>
   `).join('');
   return `
-    <div class="fillrate-section">
-      <div class="fillrate-title">Taux de remplissage par jour</div>
-      <div class="fillrate-day-list">${rowsHtml}</div>
-    </div>
+    <div class="fillrate-title">Taux de remplissage par jour</div>
+    <div class="fillrate-day-list">${rowsHtml}</div>
   `;
 }
 
@@ -1613,7 +1621,9 @@ function renderStats() {
     plainCardHtml(cur.leastDay ? cur.leastDay[0] : '—', 'Jour le moins demandé', cur.leastDay ? `${cur.leastDay[1]} réservation${cur.leastDay[1] > 1 ? 's' : ''}` : ''),
   ].join('');
 
-  body.innerHTML = `<div class="stats-grid">${mainCards}</div><div class="stats-grid" style="margin-top:10px">${dayCards}</div>` + fillRateByDayHtml(cur.confirmedRows);
+  body.innerHTML = `<div class="stats-grid">${mainCards}</div><div class="stats-grid" style="margin-top:10px">${dayCards}</div>`;
+  const fillRateBlock = document.getElementById('fillRateBlock');
+  if (fillRateBlock) fillRateBlock.innerHTML = fillRateByDayHtml(cur.confirmedRows);
 }
 
 /* ── Table Boost ──
@@ -1796,20 +1806,36 @@ function reservationEntryHtml(r) {
 
 /* ── "À venir" — next 7 reservations, grouped by date so a shared date
    isn't repeated per person; each person still opens their own popup. ── */
+let UPCOMING_ONLY_UNASSIGNED = false;
+function showUnassignedReservations() {
+  UPCOMING_ONLY_UNASSIGNED = true;
+  switchTopView('calendrier');
+  switchView('upcoming');
+  renderUpcoming();
+}
 function renderUpcoming() {
   const body = document.getElementById('upcomingList');
   const emptyMsg = document.getElementById('emptyMsg');
+  const banner = document.getElementById('upcomingFilterBanner');
   const todayIso = toIso(new Date());
   const allUpcoming = activeReservations()
     .filter(r => r.date_iso >= todayIso)
     .sort((a, b) => (a.date_iso + (a.slot||'')).localeCompare(b.date_iso + (b.slot||'')));
   const badge = document.getElementById('badgeUpcoming');
   if (badge) badge.textContent = allUpcoming.length || '';
-  const upcoming = allUpcoming.slice(0, 7);
+
+  banner.classList.toggle('hidden', !UPCOMING_ONLY_UNASSIGNED);
+  const filtered = UPCOMING_ONLY_UNASSIGNED ? allUpcoming.filter(r => !r.table_id) : allUpcoming;
+  // Vue par défaut : les 7 prochaines pour rester un simple aperçu. Vue
+  // filtrée (depuis la cloche) : tout afficher, c'est une liste à
+  // traiter, pas un aperçu.
+  const upcoming = UPCOMING_ONLY_UNASSIGNED ? filtered : filtered.slice(0, 7);
   body.innerHTML = '';
   emptyMsg.classList.toggle('hidden', upcoming.length > 0);
   if (upcoming.length === 0) {
-    emptyMsg.innerHTML = `<div class="empty-icon">🦪</div>Aucune réservation à venir.`;
+    emptyMsg.innerHTML = UPCOMING_ONLY_UNASSIGNED
+      ? `<div class="empty-icon">🦪</div>Toutes les réservations à venir ont une table affectée.`
+      : `<div class="empty-icon">🦪</div>Aucune réservation à venir.`;
     return;
   }
   const groups = [];
