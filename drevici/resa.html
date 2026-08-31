@@ -487,6 +487,7 @@ function pickCover(el, n) {
   document.getElementById('customCovers').classList.remove('show');
   updateSegLabels();
   renderRecapPanel();
+  renderSlots(); // capacité restante dépend du nombre de couverts
   autoAdvance('couverts');
 }
 function showCustomCover(el) {
@@ -502,6 +503,7 @@ function confirmCustomCover() {
     document.getElementById('cvPlus').textContent = n + ' pers.';
     updateSegLabels();
     renderRecapPanel();
+    renderSlots();
     autoAdvance('couverts');
   }
 }
@@ -513,12 +515,15 @@ function confirmCustomCover() {
    customized their own list. Never gates the flow: skipping is fine. */
 const SPACES_DEFAULT = ['Intérieur','Extérieur','Terrasse','Bar'];
 let SPACES = SPACES_DEFAULT.slice();
+let SPACE_ROWS = []; // {id, name} — needed to look up a space's tables for capacity checks
+let TABLES = [];
+let SERVICES = [];
 async function loadSpaces() {
   if (!supabaseClient) return;
   try {
     const { data, error } = await supabaseClient
       .from('restaurant_spaces')
-      .select('name')
+      .select('id,name')
       .eq('client_slug', CLIENT_SLUG)
       .order('sort_order', { ascending: true });
     if (error) throw error;
@@ -527,11 +532,41 @@ async function loadSpaces() {
     // any choices) — only fall back to defaults when the table hasn't
     // been touched for this client at all (no rows returned = null/undefined
     // from a table that may not even exist yet, caught below anyway).
-    if (data) SPACES = data.map(r => r.name);
+    if (data) { SPACE_ROWS = data; SPACES = data.map(r => r.name); }
   } catch (e) {
     console.warn('Spaces load failed, using defaults:', e.message);
   }
   renderEspacePanel();
+}
+// Capacité par espace + services : lecture publique, aucune donnée
+// personnelle dans ces deux tables (juste tables/places et horaires),
+// donc pas de souci de confidentialité à les charger côté client.
+async function loadTables() {
+  if (!supabaseClient) return;
+  try {
+    const { data, error } = await supabaseClient
+      .from('restaurant_tables')
+      .select('id,space_id,seats')
+      .eq('client_slug', CLIENT_SLUG);
+    if (error) throw error;
+    TABLES = data || [];
+  } catch (e) {
+    console.warn('Tables load failed:', e.message);
+  }
+}
+async function loadServices() {
+  if (!supabaseClient) return;
+  try {
+    const { data, error } = await supabaseClient
+      .from('restaurant_services')
+      .select('id,name,start_time,end_time')
+      .eq('client_slug', CLIENT_SLUG)
+      .order('sort_order', { ascending: true });
+    if (error) throw error;
+    SERVICES = data || [];
+  } catch (e) {
+    console.warn('Services load failed:', e.message);
+  }
 }
 // BUG FIX: same "complete the steps in order" rule as Couverts/Horaire —
 // Espace was reachable and fully usable before a date+covers were even
@@ -566,6 +601,7 @@ function pickSpace(name, el) {
   el.classList.add('sel');
   updateSegLabels();
   renderRecapPanel();
+  renderSlots(); // la capacité restante dépend de l'espace choisi
   autoAdvance('espace');
 }
 function skipSpace() {
@@ -573,6 +609,7 @@ function skipSpace() {
   document.querySelectorAll('.space-btn').forEach(b => b.classList.remove('sel'));
   updateSegLabels();
   renderRecapPanel();
+  renderSlots();
   autoAdvance('espace');
 }
 
@@ -620,7 +657,43 @@ function pickDate(d, el) {
 // same "complete the steps in order" rule already enforced on Couverts
 // (which requires a date first) wasn't applied here for covers. Now
 // gated on both, with a message that reflects whichever is still missing.
-function renderSlots() {
+//
+// Capacité réelle : grise les créneaux d'un service dont la capacité
+// de l'espace choisi est déjà dépassée par les couverts déjà réservés.
+// Le calcul passe par une fonction Postgres dédiée (get_service_covers)
+// qui ne renvoie qu'un total agrégé — jamais les réservations elles-
+// mêmes (noms, emails, téléphones des autres clients) — voir
+// setup-service-covers-rpc.sql. Ne bloque jamais si la configuration
+// est incomplète (pas de tables/services, "peu importe" en espace) :
+// mieux vaut laisser passer que bloquer à tort sur une donnée absente.
+let _slotsRenderToken = 0;
+async function computeFullSlotsForCurrentSelection() {
+  const full = new Set();
+  if (!S.space || !SERVICES.length || !TABLES.length || !SPACE_ROWS.length) return full;
+  const spaceRow = SPACE_ROWS.find(s => s.name === S.space);
+  if (!spaceRow) return full;
+  const capacity = TABLES.filter(t => t.space_id === spaceRow.id).reduce((sum, t) => sum + (t.seats || 0), 0);
+  if (capacity === 0) return full;
+  const dateIso = toIso(S.date);
+  for (const svc of SERVICES) {
+    let booked = 0;
+    try {
+      const { data, error } = await supabaseClient.rpc('get_service_covers', {
+        p_client_slug: CLIENT_SLUG, p_date_iso: dateIso, p_start_time: svc.start_time, p_end_time: svc.end_time,
+      });
+      if (error) throw error;
+      booked = data || 0;
+    } catch (e) {
+      console.warn('Capacity check failed for service', svc.name, e.message);
+      continue; // n'affecte que ce service si l'appel échoue, ne bloque pas tout
+    }
+    if (capacity - booked < S.covers) {
+      DINNER.forEach(t => { if (t >= svc.start_time && t < svc.end_time) full.add(t); });
+    }
+  }
+  return full;
+}
+async function renderSlots() {
   const row = document.getElementById('slDinner');
   const noMsg = document.getElementById('noSlotsMsg');
   const waitlistCta = document.getElementById('waitlistCta');
@@ -636,10 +709,15 @@ function renderSlots() {
   }
   noMsg.classList.add('hidden');
   waitlistCta.classList.toggle('hidden', !WAITLIST_ENABLED);
+
+  const token = ++_slotsRenderToken;
+  const dynamicFull = await computeFullSlotsForCurrentSelection();
+  if (token !== _slotsRenderToken) return; // une sélection plus récente a déjà pris le relais
+
   row.innerHTML = '';
   DINNER.forEach(t => {
     const btn = document.createElement('button'); btn.className = 'sl-btn';
-    const isFull = FULL_SLOTS.includes(t);
+    const isFull = FULL_SLOTS.includes(t) || dynamicFull.has(t);
     if (isFull) { btn.classList.add('full'); btn.textContent = t; btn.disabled = true; }
     else { btn.textContent = t; if (S.slot === t) btn.classList.add('sel'); btn.onclick = () => pickSlot(t, btn); }
     row.appendChild(btn);
