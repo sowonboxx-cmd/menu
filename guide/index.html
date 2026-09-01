@@ -238,6 +238,10 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 /* ── Section sidebar (mini table-of-contents, edit mode only) ── */
 body.has-section-sidebar{padding-left:220px}
 #sectionSidebar{position:fixed;top:54px;left:0;width:220px;height:calc(100vh - 54px);overflow-y:auto;background:#fff;border-right:1px solid var(--border);z-index:150;padding:16px 12px;font-family:'Inter',sans-serif}
+@media(max-width:768px){
+  body.has-section-sidebar{padding-left:0}
+  #sectionSidebar{display:none}
+}
 .section-sidebar-title{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding:0 4px}
 .section-sidebar-item{display:flex;align-items:center;gap:6px;padding:8px 6px;border-radius:8px;margin-bottom:2px;background:#fff;transition:background .12s}
 .section-sidebar-item:hover{background:var(--bg)}
@@ -2220,6 +2224,23 @@ function deleteTagColumn(tag){
   renderMatrix();
   renderOffers();
 }
+let _tagColumnDragSrc = null;
+function tagColumnDragStart(e, tag){ _tagColumnDragSrc = tag; }
+function tagColumnDrop(e, tag){
+  e.preventDefault();
+  if(!_tagColumnDragSrc || _tagColumnDragSrc === tag) return;
+  const order = DATA.tagOrder;
+  const from = order.indexOf(_tagColumnDragSrc);
+  const to = order.indexOf(tag);
+  if(from === -1 || to === -1) return;
+  order.splice(from, 1);
+  order.splice(to, 0, _tagColumnDragSrc);
+  _tagColumnDragSrc = null;
+  save();
+  renderFeatures();
+  renderMatrix();
+  renderOffers();
+}
 function addTagColumn(name){
   name = (name||'').trim();
   if(!name) return;
@@ -2825,9 +2846,9 @@ function renderMatrix(){
   renderMatrixLabel();
   const el = document.getElementById('matrixTable');
   const colCount = DATA.tagOrder.length + 1 + (editMode ? 1 : 0);
-  let html = `<thead><tr><th>Fonctionnalité</th>${DATA.tagOrder.map(tag=>`<th class="center">${
+  let html = `<thead><tr><th>Fonctionnalité</th>${DATA.tagOrder.map(tag=>`<th class="center" ${editMode?`draggable="true" ondragstart="tagColumnDragStart(event,'${tag}')" ondragover="event.preventDefault()" ondrop="tagColumnDrop(event,'${tag}')" style="cursor:grab"`:''}>${
     editMode
-      ? `<div style="display:flex;align-items:center;justify-content:center;gap:3px"><input value="${esc(tagLabel(tag))}" style="border:none;outline:none;background:transparent;font-size:11px;font-weight:700;text-align:center;width:${Math.max(50,tagLabel(tag).length*7)}px" onchange="renameTagColumn('${tag}',this.value)"><button onclick="deleteTagColumn('${tag}')" title="Supprimer" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;padding:2px">✕</button></div>`
+      ? `<div style="display:flex;align-items:center;justify-content:center;gap:3px"><span class="feature-drag" style="cursor:grab" title="Glisser pour réordonner">⠿</span><input value="${esc(tagLabel(tag))}" style="border:none;outline:none;background:transparent;font-size:11px;font-weight:700;text-align:center;width:${Math.max(50,tagLabel(tag).length*7)}px" onchange="renameTagColumn('${tag}',this.value)"><button onclick="deleteTagColumn('${tag}')" title="Supprimer" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;padding:2px">✕</button></div>`
       : `<span class="tag-col-full">${esc(tagLabel(tag))}</span><span class="tag-col-abbr" onclick="toggleTagAbbrTooltip(event,this)">${esc((tagLabel(tag)||'?').trim().charAt(0).toUpperCase())}<span class="tag-col-abbr-tooltip">${esc(tagLabel(tag))}</span></span>`
   }</th>`).join('')}${editMode?`<th class="center" style="white-space:nowrap"><input type="text" id="addTagColumnInput" placeholder="+ offre…" style="border:1px dashed var(--border);border-radius:6px;padding:4px 8px;font-size:10px;width:80px;outline:none;text-transform:none;font-weight:500" onkeydown="if(event.key==='Enter'){event.preventDefault();addTagColumn(this.value);this.value=''}"></th>`:''}</tr></thead><tbody>`;
   DATA.categories.forEach((cat, ci) => {
