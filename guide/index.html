@@ -841,6 +841,7 @@ const DEFAULT_DATA = {
     ]
   },
   cardColors: {},
+  offersCardOrder: ['apero','base','premium'],
   offersHeader: { label:'Vos offres packagées', title:'Trois offres. Tout compris.', subtitle:'Gérez, développez et fidélisez votre restaurant depuis votre téléphone.', cta:'Sur devis' },
   appleCardsHeader: { label:'AGENCE', title:'On s\'occupe du reste', subtitle:'L\'humain là où l\'IA s\'arrête', cta:'Sur devis' },
   appleCards: [
@@ -987,6 +988,7 @@ function saveSha(v){ if(v) localStorage.setItem('gh_sha_guide',v); else localSto
 
 let DATA = JSON.parse(localStorage.getItem('tensai_guide_data') || JSON.stringify(DEFAULT_DATA));
 function migrateData(){
+  if(!DATA.offersCardOrder) DATA.offersCardOrder = JSON.parse(JSON.stringify(DEFAULT_DATA.offersCardOrder));
   // Matrix cells: migrate old boolean tags[] into the new 3-state cellData model
   // (included / limited / unavailable), each cell able to carry its own display
   // value + mobile badge text + tooltip detail.
@@ -2840,14 +2842,55 @@ function setupAppleCardsScrollSync(){
 // ══════════════════════════════════════════
 const DEFAULT_ACCENT = {apero:'#C9932E', base:'#7C5CD6', pro:'#2F6FE0', premium:'#D2566B'};
 
+const DEFAULT_BANNER_COLOR = {apero:'#8FB09A', base:'#7E9BAD', pro:'#8FB09A', premium:'#D99CA6'};
+function addOfferCard(){
+  const key = 'offer_' + Date.now();
+  DATA.offerMeta[key] = { name:'Nouvelle offre', title:'', subtitle:'', price:0, oldPrice:0, features:[], setup:0, nameColor:'#ffffff', bannerColor:'#7E9BAD', priceStyle:'blue', ctaText:'Choisir cette offre' };
+  DATA.offersCardOrder.push(key);
+  save();
+  renderOffers();
+}
+function deleteOfferCard(tag){
+  if(!confirm('Supprimer définitivement cette offre ?')) return;
+  DATA.offersCardOrder = DATA.offersCardOrder.filter(t=>t!==tag);
+  save();
+  renderOffers();
+}
+function toggleOfferCardHidden(tag){
+  if(!DATA.offerMeta[tag]) return;
+  DATA.offerMeta[tag].hidden = !DATA.offerMeta[tag].hidden;
+  save();
+  renderOffers();
+}
+let _offerCardDragSrc = null;
+function offerCardDragStart(e, tag){ _offerCardDragSrc = tag; }
+function offerCardDrop(e, tag){
+  e.preventDefault();
+  if(!_offerCardDragSrc || _offerCardDragSrc === tag) return;
+  const order = DATA.offersCardOrder;
+  const from = order.indexOf(_offerCardDragSrc);
+  const to = order.indexOf(tag);
+  if(from === -1 || to === -1) return;
+  order.splice(from, 1);
+  order.splice(to, 0, _offerCardDragSrc);
+  _offerCardDragSrc = null;
+  save();
+  renderOffers();
+}
 function renderOffers(){
-  const order = ['apero','base','premium'];
+  const order = editMode ? DATA.offersCardOrder : DATA.offersCardOrder.filter(tag=>!(DATA.offerMeta[tag]||{}).hidden);
 
   const cardsHtml = order.map((tag, idx)=>{
     const meta = DATA.offerMeta[tag];
+    if(!meta) return '';
     const editable = editMode;
-    const accent = DATA.cardColors[tag] || DEFAULT_ACCENT[tag];
+    const accent = DATA.cardColors[tag] || DEFAULT_ACCENT[tag] || '#7E9BAD';
     const accentTint = hexToRgba(accent, 0.12);
+    const bannerColor = meta.bannerColor || DEFAULT_BANNER_COLOR[tag] || '#7E9BAD';
+    const priceStyle = meta.priceStyle || 'blue';
+    const pricePillStyle = priceStyle === 'header'
+      ? `background:${hexToRgba(bannerColor,0.14)};color:${bannerColor};border-color:${hexToRgba(bannerColor,0.4)}`
+      : '';
     const prevTag = idx>0 ? order[idx-1] : null;
     const prevName = prevTag ? DATA.offerMeta[prevTag].name : null;
     const feats = meta.features||[];
@@ -2860,13 +2903,28 @@ function renderOffers(){
     const includedLabel = prevName ? `Toute l'offre ${esc(cap(prevName))} et :` : 'Ce que vous avez :';
 
     return `
-    <div class="offer-card-wrap">
+    <div class="offer-card-wrap" ${editable?`draggable="true" ondragstart="offerCardDragStart(event,'${tag}')" ondragover="event.preventDefault()" ondrop="offerCardDrop(event,'${tag}')"`:''}>
     <div class="offer-card ${tag}">
-      <div class="ov2-banner ${tag}">
+      ${editable ? `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <span class="feature-drag" style="cursor:grab" title="Glisser pour réordonner">⠿</span>
+          <button type="button" onclick="toggleOfferCardHidden('${tag}')" style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;letter-spacing:.03em;border:1px solid ${meta.hidden?'var(--border)':'var(--pro)'};color:${meta.hidden?'var(--text3)':'var(--pro)'};background:${meta.hidden?'#f5f5f5':'var(--tint-pro)'};border-radius:20px;padding:4px 10px;cursor:pointer;white-space:nowrap">
+            ${meta.hidden ? '◯ Masquée' : '● Visible'}
+          </button>
+          <button type="button" class="feature-del" style="margin-left:auto" onclick="deleteOfferCard('${tag}')" title="Supprimer cette offre">✕</button>
+        </div>
+      ` : ''}
+      <div class="ov2-banner ${tag}" style="background:${bannerColor}">
         ${!editable ? `
           <span class="ov2-name-banner" style="color:${meta.nameColor || '#fff'}">${esc(meta.name)}</span>
         ` : ''}
       </div>
+      ${editable ? `
+        <div style="display:flex;align-items:center;gap:8px;margin:10px 0">
+          <input type="color" value="${bannerColor}" title="Couleur du header/bannière" style="width:32px;height:28px;border:1px solid var(--border);border-radius:6px;padding:2px;background:#fff;cursor:pointer" onchange="DATA.offerMeta['${tag}'].bannerColor=this.value;save();renderOffers()">
+          <span style="font-size:11px;color:var(--text3)">Couleur du header</span>
+        </div>
+      ` : ''}
       ${editable
         ? `<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
             <input class="feature-name-input" value="${esc(meta.name)}" style="flex:1;font-size:12px;font-weight:700;text-transform:uppercase;color:var(--text);padding:0" onchange="DATA.offerMeta['${tag}'].name=this.value;save()">
@@ -2892,7 +2950,7 @@ function renderOffers(){
         : `<div class="ov2-subtitle2">${esc(meta.subtitle||'')}</div>`
       }
       ${!editable ? `
-        <span class="ov2-price-pill ov2-price-pill-below">${meta.price>0?`${meta.price.toFixed(0)} €<span>/mois</span>`:'Sur devis'}</span>
+        <span class="ov2-price-pill ov2-price-pill-below" style="${pricePillStyle}">${meta.price>0?`${meta.price.toFixed(0)} €<span>/mois</span>`:'Sur devis'}</span>
         <div class="ov2-top-divider"></div>
       ` : ''}
       ${editable ? `
@@ -2945,6 +3003,11 @@ function renderOffers(){
           ${meta.ctaColor?`<button type="button" style="font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;text-decoration:underline;margin-left:auto" onclick="delete DATA.offerMeta['${tag}'].ctaColor;save();renderOffers()">Réinitialiser</button>`:''}
         </div>
         <input type="text" value="${esc(meta.ctaText || '')}" placeholder="Texte du bouton (ex: Choisir cette offre)" style="font-size:12px;color:var(--text);border:1px solid var(--border);border-radius:6px;outline:none;background:#fff;padding:6px 8px;width:100%;margin-top:10px" onchange="DATA.offerMeta['${tag}'].ctaText=this.value;save();renderOffers()">
+        <div style="display:flex;align-items:center;gap:8px;margin-top:14px">
+          <span style="font-size:11px;color:var(--text3)">Pastille de prix :</span>
+          <button type="button" onclick="DATA.offerMeta['${tag}'].priceStyle='blue';save();renderOffers()" style="font-size:11px;font-weight:600;padding:5px 10px;border-radius:16px;cursor:pointer;border:1px solid ${priceStyle==='blue'?'#2F6FE0':'var(--border)'};background:${priceStyle==='blue'?'#EAF3FE':'#fff'};color:${priceStyle==='blue'?'#2F6FE0':'var(--text3)'}">Bleu classique</button>
+          <button type="button" onclick="DATA.offerMeta['${tag}'].priceStyle='header';save();renderOffers()" style="font-size:11px;font-weight:600;padding:5px 10px;border-radius:16px;cursor:pointer;border:1px solid ${priceStyle==='header'?bannerColor:'var(--border)'};background:${priceStyle==='header'?hexToRgba(bannerColor,0.14):'#fff'};color:${priceStyle==='header'?bannerColor:'var(--text3)'}">Couleur du header</button>
+        </div>
       ` : ''}
     </div>
     ${(!editable && meta.setup>0) ? `
@@ -2959,6 +3022,14 @@ function renderOffers(){
   });
 
   document.getElementById('offersAutoTop').innerHTML = cardsHtml.join('');
+  let addBtnWrap = document.getElementById('addOfferCardBtnWrap');
+  if(!addBtnWrap){
+    addBtnWrap = document.createElement('div');
+    addBtnWrap.id = 'addOfferCardBtnWrap';
+    addBtnWrap.style.marginTop = '14px';
+    document.getElementById('offersAutoTop').after(addBtnWrap);
+  }
+  addBtnWrap.innerHTML = editMode ? `<button class="btn btn-ghost" style="background:#fff;border:1px dashed var(--gold);color:var(--gold)" onclick="addOfferCard()">+ Nouvelle offre</button>` : '';
   renderOffersTrustBar();
   if(!window._ov2TooltipCloseBound){
     window._ov2TooltipCloseBound = true;
