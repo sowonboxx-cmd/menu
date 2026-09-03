@@ -479,21 +479,17 @@ table.matrix tr:hover td{background:#fafaf7}
 .matrix-name-underline{position:relative}
 .matrix-name-tooltip{position:absolute;bottom:calc(100% + 8px);left:0;background:#1f2430;color:#fff;width:220px;max-width:70vw;padding:10px 12px;border-radius:10px;font-size:12px;line-height:1.4;box-shadow:0 10px 26px rgba(0,0,0,.2);opacity:0;visibility:hidden;transform:translateY(4px);transition:opacity .15s,transform .15s;z-index:30;white-space:pre-line;text-align:left}
 /* ── Matrix 3-state cells: included (✓) / limited (🟠+, needs a tooltip) / unavailable (—) ── */
-.matrix-cell-val-mobile{display:none}
-.matrix-cell-val-desktop{font-size:12px;font-weight:700}
-.matrix-cell-included-val .matrix-cell-val-desktop{color:#1F8B3B}
+.matrix-cell-badge{display:inline-flex;align-items:center;justify-content:center;width:19.8px;height:19.8px;border-radius:50%;font-size:11px;font-weight:800}
+.matrix-cell-included-val .matrix-cell-badge{background:#4BAE4F;color:#fff}
 .matrix-cell-limited{position:relative;display:inline-flex;cursor:pointer}
-.matrix-cell-limited .matrix-cell-val-desktop{color:#B8621B;border-bottom:1px dashed #B8621B}
+.matrix-cell-limited .matrix-cell-badge{background:#F5A428;color:#fff}
 .matrix-cell-tooltip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,4px);background:#1f2430;color:#fff;width:230px;max-width:70vw;padding:10px 12px;border-radius:10px;font-size:12px;line-height:1.4;box-shadow:0 10px 26px rgba(0,0,0,.2);opacity:0;visibility:hidden;transition:opacity .15s,transform .15s;z-index:30;white-space:pre-line;text-align:left}
 .matrix-cell-limited:hover .matrix-cell-tooltip,.matrix-cell-limited.active .matrix-cell-tooltip{opacity:1;visibility:visible;transform:translate(-50%,0)}
 .matrix-legend{display:flex;flex-wrap:wrap;gap:16px;align-items:center;padding:10px 14px;font-size:12px;color:var(--text2);border-bottom:1px solid var(--border);background:#fff}
 .matrix-legend-item{display:flex;align-items:center;gap:6px;white-space:nowrap}
 .matrix-legend-swatch{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;flex:none;color:#fff;font-size:10px;font-weight:800}
 @media(max-width:768px){
-  .matrix-cell-val-desktop{display:none}
-  .matrix-cell-val-mobile{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;font-size:9.5px;font-weight:800}
-  .matrix-cell-included-val .matrix-cell-val-mobile{background:#4BAE4F;color:#fff}
-  .matrix-cell-limited .matrix-cell-val-mobile{background:#F5A428;color:#fff}
+  .matrix-cell-badge{width:16px;height:16px;font-size:9.5px}
   .matrix-legend{font-size:10.5px;gap:10px;padding:8px 10px}
 }
 .matrix-name-underline.active .matrix-name-tooltip{opacity:1;visibility:visible;transform:translateY(0)}
@@ -2305,21 +2301,16 @@ function getCellData(item, tag){
 }
 function matrixCellViewHtml(cell){
   if(cell.state === 'limited'){
-    const desktopVal = cell.value || '+';
-    const mobileVal = cell.mobileValue || (cell.value||'').replace(/[^0-9∞]/g,'').slice(0,3) || '+';
+    const badgeVal = cell.mobileValue || (cell.value||'').replace(/[^0-9∞]/g,'').slice(0,3) || '+';
     return `<span class="matrix-cell-limited" onclick="toggleMatrixCellTooltip(event,this)">
-      <span class="matrix-cell-val-desktop">${esc(desktopVal)}</span>
-      <span class="matrix-cell-val-mobile">${esc(mobileVal)}</span>
+      <span class="matrix-cell-badge">${esc(badgeVal)}</span>
       <span class="matrix-cell-tooltip">${cell.tooltip ? formatPointText(cell.tooltip) : 'Détail à venir.'}</span>
     </span>`;
   }
   if(cell.state === 'included'){
     if(cell.value && cell.value.trim()){
-      const mobileVal = cell.mobileValue || cell.value;
-      return `<span class="matrix-cell-included-val">
-        <span class="matrix-cell-val-desktop">${esc(cell.value)}</span>
-        <span class="matrix-cell-val-mobile">${esc(mobileVal)}</span>
-      </span>`;
+      const badgeVal = cell.mobileValue || cell.value;
+      return `<span class="matrix-cell-included-val"><span class="matrix-cell-badge">${esc(badgeVal)}</span></span>`;
     }
     return MATRIX_CHECK_SVG;
   }
@@ -2328,12 +2319,11 @@ function matrixCellViewHtml(cell){
 function matrixCellEditHtml(ci, ii, tag, cell){
   let inner;
   if(cell.state === 'limited'){
-    const desktopVal = cell.value || '+';
-    const mobileVal = cell.mobileValue || desktopVal;
-    inner = `<span class="matrix-cell-val-desktop" style="color:#B8621B;font-weight:700">${esc(desktopVal)}</span><span class="matrix-cell-val-mobile" style="color:#B8621B;font-weight:700">${esc(mobileVal)}</span>`;
+    const badgeVal = cell.mobileValue || (cell.value||'').replace(/[^0-9∞]/g,'').slice(0,3) || '+';
+    inner = `<span class="matrix-cell-badge" style="background:#F5A428;color:#fff">${esc(badgeVal)}</span>`;
   } else if(cell.state === 'included'){
     inner = (cell.value && cell.value.trim())
-      ? `<span class="matrix-cell-val-desktop" style="color:#1F8B3B;font-weight:700">${esc(cell.value)}</span><span class="matrix-cell-val-mobile" style="color:#1F8B3B;font-weight:700">${esc(cell.mobileValue||cell.value)}</span>`
+      ? `<span class="matrix-cell-badge" style="background:#4BAE4F;color:#fff">${esc(cell.mobileValue||cell.value)}</span>`
       : MATRIX_CHECK_SVG;
   } else {
     inner = MATRIX_DASH_SVG;
