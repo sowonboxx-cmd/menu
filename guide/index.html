@@ -203,6 +203,8 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 /* Modal */
 #infoModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:20px}
 #infoModal.open{display:flex}
+#cellModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:20px}
+#cellModal.open{display:flex}
 .info-modal-box{background:#fff;border-radius:12px;width:100%;max-width:480px;padding:24px;box-shadow:0 8px 40px rgba(0,0,0,.2);display:flex;flex-direction:column;gap:12px}
 .info-modal-title{font-size:13px;font-weight:700;color:var(--navy);line-height:1.4}
 .info-modal-textarea{width:100%;border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text);resize:vertical;min-height:120px;outline:none;line-height:1.6}
@@ -476,6 +478,24 @@ table.matrix tr:hover td{background:#fafaf7}
 .tag-col-abbr.active .tag-col-abbr-tooltip{opacity:1;visibility:visible;transform:translate(-50%,0)}
 .matrix-name-underline{position:relative}
 .matrix-name-tooltip{position:absolute;bottom:calc(100% + 8px);left:0;background:#1f2430;color:#fff;width:220px;max-width:70vw;padding:10px 12px;border-radius:10px;font-size:12px;line-height:1.4;box-shadow:0 10px 26px rgba(0,0,0,.2);opacity:0;visibility:hidden;transform:translateY(4px);transition:opacity .15s,transform .15s;z-index:30;white-space:pre-line;text-align:left}
+/* ── Matrix 3-state cells: included (✓) / limited (🟠+, needs a tooltip) / unavailable (—) ── */
+.matrix-cell-val-mobile{display:none}
+.matrix-cell-val-desktop{font-size:12px;font-weight:700}
+.matrix-cell-included-val .matrix-cell-val-desktop{color:#1F8B3B}
+.matrix-cell-limited{position:relative;display:inline-flex;cursor:pointer}
+.matrix-cell-limited .matrix-cell-val-desktop{color:#B8621B;border-bottom:1px dashed #B8621B}
+.matrix-cell-tooltip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,4px);background:#1f2430;color:#fff;width:230px;max-width:70vw;padding:10px 12px;border-radius:10px;font-size:12px;line-height:1.4;box-shadow:0 10px 26px rgba(0,0,0,.2);opacity:0;visibility:hidden;transition:opacity .15s,transform .15s;z-index:30;white-space:pre-line;text-align:left}
+.matrix-cell-limited:hover .matrix-cell-tooltip,.matrix-cell-limited.active .matrix-cell-tooltip{opacity:1;visibility:visible;transform:translate(-50%,0)}
+.matrix-legend{display:flex;flex-wrap:wrap;gap:16px;align-items:center;padding:10px 14px;font-size:12px;color:var(--text2);border-bottom:1px solid var(--border);background:#fff}
+.matrix-legend-item{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.matrix-legend-swatch{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;flex:none;color:#fff;font-size:10px;font-weight:800}
+@media(max-width:768px){
+  .matrix-cell-val-desktop{display:none}
+  .matrix-cell-val-mobile{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;font-size:9.5px;font-weight:800}
+  .matrix-cell-included-val .matrix-cell-val-mobile{background:#4BAE4F;color:#fff}
+  .matrix-cell-limited .matrix-cell-val-mobile{background:#F5A428;color:#fff}
+  .matrix-legend{font-size:10.5px;gap:10px;padding:8px 10px}
+}
 .matrix-name-underline.active .matrix-name-tooltip{opacity:1;visibility:visible;transform:translateY(0)}
 @media(max-width:768px){
   table.matrix{min-width:0;font-size:11px}
@@ -533,6 +553,34 @@ table.matrix tr:hover td{background:#fafaf7}
     <div class="info-modal-actions">
       <button class="btn btn-ghost" style="background:#f0ece6;color:var(--text2);border:none" onclick="closeInfoModal()">Fermer</button>
       <button class="btn btn-gold" id="infoModalSaveBtn" style="display:none" onclick="saveInfoModal()">✓ Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MATRIX CELL MODAL (état 3 niveaux : inclus / limité / indisponible) -->
+<div id="cellModal" onclick="if(event.target===this)closeCellModal()">
+  <div class="info-modal-box">
+    <div class="info-modal-title" id="cellModalTitle">Détail de la case</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
+      <label style="font-size:12px;color:var(--text2)">Valeur affichée (desktop) — ex : "2/mois", "Illimité"
+        <input type="text" id="cellModalValue" style="width:100%;margin-top:4px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;outline:none">
+      </label>
+      <label style="font-size:12px;color:var(--text2)">Badge mobile — ex : "2", "∞" (laisser vide pour reprendre la valeur desktop)
+        <input type="text" id="cellModalMobileValue" style="width:100%;margin-top:4px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;outline:none">
+      </label>
+      <label style="font-size:12px;color:var(--text2)">Détail affiché dans la bulle ⓘ (prix, quota, condition…)
+        <textarea id="cellModalTooltip" class="info-modal-textarea" style="margin-top:4px" placeholder="Ex : 2 modifications gratuites/mois, puis 39€ par modification supplémentaire."></textarea>
+      </label>
+    </div>
+    <div class="info-modal-actions" style="justify-content:space-between">
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" style="background:#f0ece6;color:var(--text2);border:none;font-size:12px" onclick="setCellState('unavailable')">— Indisponible</button>
+        <button class="btn btn-ghost" style="background:#f0ece6;color:var(--text2);border:none;font-size:12px" onclick="setCellState('included')">✓ Inclus (sans limite)</button>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" style="background:#f0ece6;color:var(--text2);border:none" onclick="closeCellModal()">Fermer</button>
+        <button class="btn btn-gold" onclick="saveCellModal()">✓ Enregistrer</button>
+      </div>
     </div>
   </div>
 </div>
@@ -709,6 +757,11 @@ table.matrix tr:hover td{background:#fafaf7}
       <span class="matrix-acc-arrow" id="matrixArrow">▾</span>
     </div>
     <div id="matrixBody" style="display:none;border:1px solid var(--border);border-top:none;border-radius:0 0 var(--rs) var(--rs)">
+      <div class="matrix-legend">
+        <span class="matrix-legend-item"><span class="matrix-legend-swatch" style="background:#4BAE4F">✓</span> Inclus</span>
+        <span class="matrix-legend-item"><span class="matrix-legend-swatch" style="background:#F5A428">+</span> En option / limité (voir détail)</span>
+        <span class="matrix-legend-item"><span class="matrix-legend-swatch" style="background:#EDEDF0;color:#C4C4C8">—</span> Non disponible</span>
+      </div>
       <div class="matrix-wrap" style="border:none;border-radius:0">
         <table class="matrix" id="matrixTable"></table>
       </div>
@@ -817,6 +870,12 @@ const DEFAULT_DATA = {
       { name: 'Menu digital multi-langue (6 langues)', tags:['base','pro','premium'], price:0 },
       { name: 'QR code dynamique', tags:['base','pro','premium'], price:0 },
       { name: 'Mise à jour en temps réel', tags:['base','pro','premium'], price:0 },
+      { name: 'Modifications de menu', tags:['apero','base','pro','premium'], price:0, cellData: {
+        apero:   { state:'limited',  value:'2/mois', mobileValue:'2', tooltip:'2 modifications gratuites/mois, puis 39€ par modification supplémentaire.' },
+        base:    { state:'limited',  value:'3/mois', mobileValue:'3', tooltip:'3 modifications gratuites/mois, puis 25€ par modification supplémentaire.' },
+        pro:     { state:'included', value:'Illimité', mobileValue:'∞', tooltip:'' },
+        premium: { state:'included', value:'Illimité', mobileValue:'∞', tooltip:'' }
+      }},
       { name: 'Export PDF imprimable', tags:['base','pro','premium'], price:0 },
       { name: 'Image Google Business (1 clic)', tags:['base','pro','premium'], price:0 },
       { name: 'Horaires & informations pratiques', tags:['base','pro','premium'], price:0 },
@@ -932,6 +991,20 @@ function saveSha(v){ if(v) localStorage.setItem('gh_sha_guide',v); else localSto
 
 let DATA = JSON.parse(localStorage.getItem('tensai_guide_data') || JSON.stringify(DEFAULT_DATA));
 function migrateData(){
+  // Matrix cells: migrate old boolean tags[] into the new 3-state cellData model
+  // (included / limited / unavailable), each cell able to carry its own display
+  // value + mobile badge text + tooltip detail.
+  (DATA.categories||[]).forEach(cat=>{
+    (cat.items||[]).forEach(item=>{
+      if(!item.cellData){
+        item.cellData = {};
+        const oldTags = item.tags || [];
+        (DATA.tagOrder||[]).forEach(tag=>{
+          item.cellData[tag] = { state: oldTags.includes(tag) ? 'included' : 'unavailable', value:'', mobileValue:'', tooltip:'' };
+        });
+      }
+    });
+  });
   if(!DATA.offersHeader) DATA.offersHeader = DEFAULT_DATA.offersHeader;
   if(DATA.offersHeader && DATA.offersHeader.label===undefined) DATA.offersHeader.label = DEFAULT_DATA.offersHeader.label;
   if(DATA.offersHeader && DATA.offersHeader.cta===undefined) DATA.offersHeader.cta = DEFAULT_DATA.offersHeader.cta;
@@ -2217,12 +2290,115 @@ function deleteTagColumn(tag){
   DATA.categories.forEach(cat=>{
     cat.items.forEach(item=>{
       if(item.tags) item.tags = item.tags.filter(t=>t!==tag);
+      if(item.cellData) delete item.cellData[tag];
     });
   });
   save();
   renderFeatures();
   renderMatrix();
   renderOffers();
+}
+function getCellData(item, tag){
+  if(!item.cellData) item.cellData = {};
+  if(!item.cellData[tag]) item.cellData[tag] = { state:'unavailable', value:'', mobileValue:'', tooltip:'' };
+  return item.cellData[tag];
+}
+function matrixCellViewHtml(cell){
+  if(cell.state === 'limited'){
+    const desktopVal = cell.value || '+';
+    const mobileVal = cell.mobileValue || (cell.value||'').replace(/[^0-9∞]/g,'').slice(0,3) || '+';
+    return `<span class="matrix-cell-limited" onclick="toggleMatrixCellTooltip(event,this)">
+      <span class="matrix-cell-val-desktop">${esc(desktopVal)}</span>
+      <span class="matrix-cell-val-mobile">${esc(mobileVal)}</span>
+      <span class="matrix-cell-tooltip">${cell.tooltip ? formatPointText(cell.tooltip) : 'Détail à venir.'}</span>
+    </span>`;
+  }
+  if(cell.state === 'included'){
+    if(cell.value && cell.value.trim()){
+      const mobileVal = cell.mobileValue || cell.value;
+      return `<span class="matrix-cell-included-val">
+        <span class="matrix-cell-val-desktop">${esc(cell.value)}</span>
+        <span class="matrix-cell-val-mobile">${esc(mobileVal)}</span>
+      </span>`;
+    }
+    return MATRIX_CHECK_SVG;
+  }
+  return MATRIX_DASH_SVG;
+}
+function matrixCellEditHtml(ci, ii, tag, cell){
+  let inner;
+  if(cell.state === 'limited'){
+    const desktopVal = cell.value || '+';
+    const mobileVal = cell.mobileValue || desktopVal;
+    inner = `<span class="matrix-cell-val-desktop" style="color:#B8621B;font-weight:700">${esc(desktopVal)}</span><span class="matrix-cell-val-mobile" style="color:#B8621B;font-weight:700">${esc(mobileVal)}</span>`;
+  } else if(cell.state === 'included'){
+    inner = (cell.value && cell.value.trim())
+      ? `<span class="matrix-cell-val-desktop" style="color:#1F8B3B;font-weight:700">${esc(cell.value)}</span><span class="matrix-cell-val-mobile" style="color:#1F8B3B;font-weight:700">${esc(cell.mobileValue||cell.value)}</span>`
+      : MATRIX_CHECK_SVG;
+  } else {
+    inner = MATRIX_DASH_SVG;
+  }
+  return `<button onclick="matrixCellClick(${ci},${ii},'${tag}')" style="background:none;border:none;cursor:pointer;padding:4px 8px" title="Cliquer pour changer l'état (inclus → limité → indisponible)">${inner}</button>`;
+}
+function matrixCellClick(ci, ii, tag){
+  const item = DATA.categories[ci].items[ii];
+  const cell = getCellData(item, tag);
+  if(cell.state === 'unavailable'){
+    cell.state = 'included';
+    save();
+    renderMatrix();
+  } else if(cell.state === 'included'){
+    cell.state = 'limited';
+    save();
+    renderMatrix();
+    openCellModal(ci, ii, tag);
+  } else {
+    openCellModal(ci, ii, tag);
+  }
+}
+let cellModalTarget = null; // {ci, ii, tag}
+function openCellModal(ci, ii, tag){
+  const item = DATA.categories[ci].items[ii];
+  const cell = getCellData(item, tag);
+  cellModalTarget = {ci, ii, tag};
+  document.getElementById('cellModalTitle').textContent = `${item.name} — ${tagLabel(tag)}`;
+  document.getElementById('cellModalValue').value = cell.value || '';
+  document.getElementById('cellModalMobileValue').value = cell.mobileValue || '';
+  document.getElementById('cellModalTooltip').value = cell.tooltip || '';
+  document.getElementById('cellModal').classList.add('open');
+}
+function closeCellModal(){
+  document.getElementById('cellModal').classList.remove('open');
+  cellModalTarget = null;
+}
+function saveCellModal(){
+  if(!cellModalTarget) return;
+  const {ci, ii, tag} = cellModalTarget;
+  const cell = getCellData(DATA.categories[ci].items[ii], tag);
+  cell.value = document.getElementById('cellModalValue').value;
+  cell.mobileValue = document.getElementById('cellModalMobileValue').value;
+  cell.tooltip = document.getElementById('cellModalTooltip').value;
+  cell.state = 'limited';
+  save();
+  closeCellModal();
+  renderMatrix();
+  showToast('✓ Case mise à jour');
+}
+function setCellState(state){
+  if(!cellModalTarget) return;
+  const {ci, ii, tag} = cellModalTarget;
+  const cell = getCellData(DATA.categories[ci].items[ii], tag);
+  cell.state = state;
+  if(state !== 'limited'){ cell.value=''; cell.mobileValue=''; cell.tooltip=''; }
+  save();
+  closeCellModal();
+  renderMatrix();
+}
+function toggleMatrixCellTooltip(e, el){
+  e.stopPropagation();
+  const wasActive = el.classList.contains('active');
+  document.querySelectorAll('.matrix-cell-limited.active, .matrix-name-underline.active, .tag-col-abbr.active').forEach(x=>x.classList.remove('active'));
+  if(!wasActive) el.classList.add('active');
 }
 let _tagColumnDragSrc = null;
 function tagColumnDragStart(e, tag){ _tagColumnDragSrc = tag; }
@@ -2302,7 +2478,7 @@ function addFeature(ci, name){
   if(DATA.categories[ci].prestation){
     DATA.categories[ci].items.push({name:name, tags:['services'], options:[{label:'Standard', price:0}]});
   } else {
-    DATA.categories[ci].items.push({name:name, tags:[], price:0});
+    DATA.categories[ci].items.push({name:name, tags:[], cellData:{}, price:0});
   }
   save();
   renderAll();
@@ -2884,11 +3060,11 @@ function renderMatrix(){
           </div>
         </td>`;
         DATA.tagOrder.forEach(tag=>{
-          const on = item.tags.includes(tag);
+          const cell = getCellData(item, tag);
           if(editMode){
-            html += `<td class="center"><button onclick="toggleTag(${ci},${ii},'${tag}')" style="background:none;border:none;cursor:pointer;padding:4px 8px">${on?MATRIX_CHECK_SVG:MATRIX_DASH_SVG}</button></td>`;
+            html += `<td class="center">${matrixCellEditHtml(ci, ii, tag, cell)}</td>`;
           } else {
-            html += `<td class="center">${on?MATRIX_CHECK_SVG:MATRIX_DASH_SVG}</td>`;
+            html += `<td class="center">${matrixCellViewHtml(cell)}</td>`;
           }
         });
         if(editMode){
