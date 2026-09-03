@@ -217,7 +217,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .add-cat-btn{display:flex;align-items:center;gap:6px;padding:10px 18px;font-size:11px;font-weight:600;color:var(--gold);cursor:pointer;border-top:1px dashed var(--border)}
 
 /* ── AUTO-GENERATED OFFERS TABLE ── */
-.offers-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.offers-grid{display:grid;grid-template-columns:repeat(var(--offers-cols,3),1fr);gap:16px}
 .offers-stack-spacer{position:relative}
 .offers-stack-sticky{position:static}
 @media(max-width:768px){
@@ -842,6 +842,7 @@ const DEFAULT_DATA = {
   },
   cardColors: {},
   offersCardOrder: ['apero','base','premium'],
+  offersColumnsPerRow: 3,
   offersHeader: { label:'Vos offres packagées', title:'Trois offres. Tout compris.', subtitle:'Gérez, développez et fidélisez votre restaurant depuis votre téléphone.', cta:'Sur devis' },
   appleCardsHeader: { label:'AGENCE', title:'On s\'occupe du reste', subtitle:'L\'humain là où l\'IA s\'arrête', cta:'Sur devis' },
   appleCards: [
@@ -989,6 +990,7 @@ function saveSha(v){ if(v) localStorage.setItem('gh_sha_guide',v); else localSto
 let DATA = JSON.parse(localStorage.getItem('tensai_guide_data') || JSON.stringify(DEFAULT_DATA));
 function migrateData(){
   if(!DATA.offersCardOrder) DATA.offersCardOrder = JSON.parse(JSON.stringify(DEFAULT_DATA.offersCardOrder));
+  if(!DATA.offersColumnsPerRow) DATA.offersColumnsPerRow = DEFAULT_DATA.offersColumnsPerRow;
   // Matrix cells: migrate old boolean tags[] into the new 3-state cellData model
   // (included / limited / unavailable), each cell able to carry its own display
   // value + mobile badge text + tooltip detail.
@@ -2843,6 +2845,11 @@ function setupAppleCardsScrollSync(){
 const DEFAULT_ACCENT = {apero:'#C9932E', base:'#7C5CD6', pro:'#2F6FE0', premium:'#D2566B'};
 
 const DEFAULT_BANNER_COLOR = {apero:'#8FB09A', base:'#7E9BAD', pro:'#8FB09A', premium:'#D99CA6'};
+function setOffersColumnsPerRow(n){
+  DATA.offersColumnsPerRow = n;
+  save();
+  renderOffers();
+}
 function addOfferCard(){
   const key = 'offer_' + Date.now();
   DATA.offerMeta[key] = { name:'Nouvelle offre', title:'', subtitle:'', price:0, oldPrice:0, features:[], setup:0, nameColor:'#ffffff', bannerColor:'#7E9BAD', priceStyle:'blue', ctaText:'Choisir cette offre' };
@@ -3022,6 +3029,7 @@ function renderOffers(){
   });
 
   document.getElementById('offersAutoTop').innerHTML = cardsHtml.join('');
+  document.getElementById('offersAutoTop').style.setProperty('--offers-cols', DATA.offersColumnsPerRow || 3);
   let addBtnWrap = document.getElementById('addOfferCardBtnWrap');
   if(!addBtnWrap){
     addBtnWrap = document.createElement('div');
@@ -3029,7 +3037,16 @@ function renderOffers(){
     addBtnWrap.style.marginTop = '14px';
     document.getElementById('offersAutoTop').after(addBtnWrap);
   }
-  addBtnWrap.innerHTML = editMode ? `<button class="btn btn-ghost" style="background:#fff;border:1px dashed var(--gold);color:var(--gold)" onclick="addOfferCard()">+ Nouvelle offre</button>` : '';
+  addBtnWrap.innerHTML = editMode ? `
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <button class="btn btn-ghost" style="background:#fff;border:1px dashed var(--gold);color:var(--gold)" onclick="addOfferCard()">+ Nouvelle offre</button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:11px;color:var(--text3)">Offres par ligne (desktop) :</span>
+        <button type="button" onclick="setOffersColumnsPerRow(3)" style="font-size:12px;font-weight:600;padding:6px 12px;border-radius:16px;cursor:pointer;border:1px solid ${(DATA.offersColumnsPerRow||3)===3?'#2F6FE0':'var(--border)'};background:${(DATA.offersColumnsPerRow||3)===3?'#EAF3FE':'#fff'};color:${(DATA.offersColumnsPerRow||3)===3?'#2F6FE0':'var(--text3)'}">3</button>
+        <button type="button" onclick="setOffersColumnsPerRow(4)" style="font-size:12px;font-weight:600;padding:6px 12px;border-radius:16px;cursor:pointer;border:1px solid ${DATA.offersColumnsPerRow===4?'#2F6FE0':'var(--border)'};background:${DATA.offersColumnsPerRow===4?'#EAF3FE':'#fff'};color:${DATA.offersColumnsPerRow===4?'#2F6FE0':'var(--text3)'}">4</button>
+      </div>
+    </div>
+  ` : '';
   renderOffersTrustBar();
   if(!window._ov2TooltipCloseBound){
     window._ov2TooltipCloseBound = true;
