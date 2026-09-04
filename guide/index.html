@@ -223,6 +223,14 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 @media(max-width:768px){
   .offers-grid{display:grid;grid-template-columns:1fr;gap:20px}
 }
+@media(max-width:640px){
+  body:not(.edit-mode) .offers-grid{display:flex;grid-template-columns:none;overflow-x:auto;scroll-snap-type:x mandatory;gap:14px;padding:2px 30px 10px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  body:not(.edit-mode) .offers-grid::-webkit-scrollbar{display:none}
+  body:not(.edit-mode) .offers-grid .offer-card-wrap{flex:0 0 84%;scroll-snap-align:center;min-width:0}
+  .offers-mobile-tabbar-wrap{display:none}
+  body:not(.edit-mode) .offers-mobile-tabbar-wrap{display:flex;justify-content:center;position:sticky;bottom:14px;z-index:20;margin-top:16px;pointer-events:none}
+  body:not(.edit-mode) .offers-mobile-tabbar-wrap .fshow-tabbar{pointer-events:auto;box-shadow:0 6px 24px rgba(0,0,0,.18)}
+}
 .apple-section-bg{background:#F5F5F7;padding:56px 0;width:100%}
 /* ── Reorderable page sections + gray/white background toggle ── */
 .reorderable-section{position:relative}
@@ -384,7 +392,7 @@ body.edit-mode .fshow-nav-row{align-items:flex-start}
 .ov2-price-old{font-size:15px;font-weight:600;color:var(--text3);text-decoration:line-through}
 .ov2-install{font-size:12.5px;color:var(--text3);margin-bottom:20px}
 /* ── Banner-style offer cards (mockup redesign) ── */
-.ov2-banner{height:56px;margin:-5px -28px 18px;border-radius:20px 20px 0 0;display:flex;align-items:center;padding:0 20px;position:relative}
+.ov2-banner{height:56px;margin:-5px -28px 18px;border-radius:20px 20px 0 0;display:flex;align-items:center;padding:0 28px;position:relative}
 .ov2-top-row-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%}
 .ov2-name-banner{font-size:17px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:#fff}
 .ov2-price-pill-below{margin:2px 0 25px;align-self:flex-start}
@@ -663,6 +671,7 @@ table.matrix tr:hover td{background:#fafaf7}
       <div class="wrap">
         <div id="offersHeader"></div>
         <div class="offers-grid" id="offersAutoTop"></div>
+        <div class="offers-mobile-tabbar-wrap" id="offersMobileTabbarWrap"></div>
         <div class="offers-trust-bar" id="offersTrustBar"></div>
       </div>
     </div>
@@ -2847,6 +2856,62 @@ function setupAppleCardsScrollSync(){
 const DEFAULT_ACCENT = {apero:'#C9932E', base:'#7C5CD6', pro:'#2F6FE0', premium:'#D2566B'};
 
 const DEFAULT_BANNER_COLOR = {apero:'#8FB09A', base:'#7E9BAD', pro:'#8FB09A', premium:'#D99CA6'};
+function renderOffersMobileTabbar(order){
+  const wrap = document.getElementById('offersMobileTabbarWrap');
+  if(!wrap) return;
+  if(editMode || window.innerWidth > 640 || order.length < 2){ wrap.innerHTML = ''; return; }
+  wrap.innerHTML = `
+    <div class="fshow-tabbar" id="offersMobileTabbarInner">
+      <div class="fshow-tab-indicator" id="offersMobileTabIndicator"></div>
+      ${order.map((tag,i)=>`<button type="button" class="fshow-tab${i===0?' active':''}" data-tag="${tag}" onclick="scrollOffersCarouselTo('${tag}')">${esc((DATA.offerMeta[tag]||{}).name||tag)}</button>`).join('')}
+    </div>
+  `;
+  requestAnimationFrame(positionOffersTabIndicator);
+  setupOffersCarouselSync(order);
+}
+function positionOffersTabIndicator(){
+  const inner = document.getElementById('offersMobileTabbarInner');
+  if(!inner) return;
+  const active = inner.querySelector('.fshow-tab.active');
+  const indicator = document.getElementById('offersMobileTabIndicator');
+  if(!active || !indicator) return;
+  indicator.style.width = active.offsetWidth + 'px';
+  indicator.style.left = active.offsetLeft + 'px';
+}
+function scrollOffersCarouselTo(tag){
+  const grid = document.getElementById('offersAutoTop');
+  if(!grid) return;
+  const card = grid.querySelector(`.offer-card-wrap[data-tag="${tag}"]`);
+  if(!card) return;
+  card.scrollIntoView({ behavior:'smooth', inline:'center', block:'nearest' });
+}
+let _offersCarouselScrollBound = false;
+function setupOffersCarouselSync(order){
+  const grid = document.getElementById('offersAutoTop');
+  if(!grid) return;
+  const onScroll = ()=>{
+    const cards = Array.from(grid.querySelectorAll('.offer-card-wrap'));
+    if(!cards.length) return;
+    const gridRect = grid.getBoundingClientRect();
+    const gridCenter = gridRect.left + gridRect.width/2;
+    let closest = cards[0], closestDist = Infinity;
+    cards.forEach(c=>{
+      const r = c.getBoundingClientRect();
+      const dist = Math.abs((r.left + r.width/2) - gridCenter);
+      if(dist < closestDist){ closestDist = dist; closest = c; }
+    });
+    const activeTag = closest.dataset.tag;
+    const inner = document.getElementById('offersMobileTabbarInner');
+    if(!inner) return;
+    inner.querySelectorAll('.fshow-tab').forEach(btn=>{
+      btn.classList.toggle('active', btn.dataset.tag === activeTag);
+    });
+    positionOffersTabIndicator();
+  };
+  grid._offersScrollHandler && grid.removeEventListener('scroll', grid._offersScrollHandler);
+  grid._offersScrollHandler = ()=>requestAnimationFrame(onScroll);
+  grid.addEventListener('scroll', grid._offersScrollHandler, { passive:true });
+}
 function setOffersColumnsPerRow(n){
   DATA.offersColumnsPerRow = n;
   save();
@@ -2912,7 +2977,7 @@ function renderOffers(){
     const includedLabel = prevName ? `Toute l'offre ${esc(cap(prevName))} et :` : 'Ce que vous avez :';
 
     return `
-    <div class="offer-card-wrap" ${editable?`draggable="true" ondragstart="offerCardDragStart(event,'${tag}')" ondragover="event.preventDefault()" ondrop="offerCardDrop(event,'${tag}')"`:''}>
+    <div class="offer-card-wrap" data-tag="${tag}" ${editable?`draggable="true" ondragstart="offerCardDragStart(event,'${tag}')" ondragover="event.preventDefault()" ondrop="offerCardDrop(event,'${tag}')"`:''}>
     <div class="offer-card ${tag}">
       ${editable ? `
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
@@ -3060,6 +3125,7 @@ function renderOffers(){
       </div>
     </div>
   ` : '';
+  renderOffersMobileTabbar(order);
   renderOffersTrustBar();
   if(!window._ov2TooltipCloseBound){
     window._ov2TooltipCloseBound = true;
