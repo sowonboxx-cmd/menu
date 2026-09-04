@@ -233,7 +233,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
   body:not(.edit-mode) .offer-card .ov2-banner{text-align:center;justify-content:center}
   body:not(.edit-mode) .ov2-price-pill-below{align-self:center}
   .offers-mobile-tabbar-wrap{display:none}
-  body:not(.edit-mode) .offers-mobile-tabbar-wrap{display:block;position:sticky;bottom:14px;z-index:20;margin-top:16px;padding:0 14px;pointer-events:none;box-sizing:border-box}
+  body:not(.edit-mode) .offers-mobile-tabbar-wrap{display:block;position:sticky;bottom:14px;z-index:20;margin-top:16px;pointer-events:none;box-sizing:border-box}
   body:not(.edit-mode) .offers-mobile-tabbar-wrap .fshow-tabbar{pointer-events:auto;box-shadow:none;display:flex;width:94%;box-sizing:border-box}
   body:not(.edit-mode) .offers-mobile-tabbar-wrap .fshow-tab{flex:1;text-align:center}
   body:not(.edit-mode) .offers-mobile-tabbar-wrap .fshow-tab{text-transform:lowercase}
@@ -2915,10 +2915,24 @@ function setupOffersCarouselSync(order){
       btn.classList.toggle('active', btn.dataset.tag === activeTag);
     });
     positionOffersTabIndicator();
+    // Scroll-snap's actual rest position drifts slightly from card to card (a browser
+    // quirk, not something we can fix by tweaking the snap CSS), so instead of trusting
+    // a fixed width/position for the bar, we measure the currently-active card directly
+    // and match the bar's real left edge + width to it every time — guaranteed pixel
+    // alignment no matter which card is showing.
+    const wrap = document.getElementById('offersMobileTabbarWrap');
+    const tabbar = document.getElementById('offersMobileTabbarInner');
+    if(wrap && tabbar){
+      const cardRect = closest.getBoundingClientRect();
+      const wrapRect = wrap.getBoundingClientRect();
+      tabbar.style.width = cardRect.width + 'px';
+      tabbar.style.marginLeft = (cardRect.left - wrapRect.left) + 'px';
+    }
   };
   grid._offersScrollHandler && grid.removeEventListener('scroll', grid._offersScrollHandler);
   grid._offersScrollHandler = ()=>requestAnimationFrame(onScroll);
   grid.addEventListener('scroll', grid._offersScrollHandler, { passive:true });
+  requestAnimationFrame(onScroll);
 }
 function setOffersColumnsPerRow(n){
   DATA.offersColumnsPerRow = n;
