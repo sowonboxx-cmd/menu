@@ -97,7 +97,8 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
   background:#fff; border:1px solid var(--line); width:34px; height:34px; border-radius:50%;
   font-size:16px; color:var(--navy); display:flex; align-items:center; justify-content:center;
 }
-.month-nav h2{margin:0; font-size:22px; font-weight:600; min-width:200px; text-align:center;}
+.month-nav h2{margin:0; font-size:22px; font-weight:600; min-width:200px; text-align:center; cursor:pointer;}
+.month-nav h2:hover{color:var(--gold);}
 
 /* Grid view */
 .grid-view{
@@ -113,6 +114,7 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
 }
 .cal-cell:nth-child(7n){border-right:none;}
 .cal-cell.out{background:#FBFAF7; color:#c2c6d1;}
+.cal-cell.drop-target{background:#EDF0F8; outline:2px dashed var(--navy); outline-offset:-2px;}
 .cal-cell .num{font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:5px;}
 .cal-cell.today .num{
   background:var(--navy); color:#fff; width:20px; height:20px; border-radius:50%;
@@ -120,9 +122,10 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
 }
 .entry-chip{
   font-size:11px; padding:3px 6px; border-radius:5px; margin-bottom:3px;
-  display:flex; align-items:center; gap:4px; cursor:pointer; line-height:1.25;
+  display:flex; align-items:center; gap:4px; cursor:grab; line-height:1.25;
   border-left:3px solid transparent;
 }
+.entry-chip.dragging{opacity:.35;}
 .entry-chip span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 
 /* List view */
@@ -249,6 +252,22 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
 .add-link-row button{
   background:var(--navy); color:#fff; border:none; border-radius:9px; padding:0 14px; font-size:13px; font-weight:600;
 }
+.todo-list{display:flex; flex-direction:column; gap:6px; margin-bottom:10px;}
+.todo-row{
+  display:flex; align-items:center; gap:9px; background:#fff; border:1px solid var(--line);
+  border-radius:9px; padding:8px 10px;
+}
+.todo-row input[type=checkbox]{width:17px; height:17px; flex-shrink:0; accent-color:var(--navy); cursor:pointer;}
+.todo-row .todo-text{flex:1; font-size:13.5px; color:var(--navy-ink); word-break:break-word;}
+.todo-row.done .todo-text{text-decoration:line-through; color:var(--muted);}
+.todo-row button.del{background:none; border:none; color:#c2626a; font-size:15px; line-height:1;}
+.add-todo-row{display:flex; gap:8px;}
+.add-todo-row input[type=text]{flex:1; border:1px solid var(--line); border-radius:9px; padding:10px 12px; font-size:14px; font-family:inherit;}
+.add-todo-row button{
+  background:var(--navy); color:#fff; border:none; border-radius:9px; padding:0 14px; font-size:13px; font-weight:600;
+}
+.view-todos{display:flex; flex-direction:column; gap:6px;}
+.view-todos .todo-row{cursor:pointer;}
 .panel-foot{
   padding:16px 20px; border-top:1px solid var(--line); display:flex; gap:10px; background:var(--cream);
 }
@@ -365,7 +384,7 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
   <main>
     <div class="month-nav">
       <button id="prev-month">‹</button>
-      <h2 id="month-label"></h2>
+      <h2 id="month-label" title="Revenir au mois actuel"></h2>
       <button id="next-month">›</button>
     </div>
 
@@ -424,14 +443,19 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
         <small id="f-date-hint" style="display:none;">Pas de date pour « À prévoir ».</small>
       </div>
       <div class="field">
-        <label>Statut</label>
-        <select id="f-status">
-          <option value="idea">Idée</option>
-          <option value="todo">À tourner</option>
-          <option value="ready">Prêt</option>
-          <option value="done">Publié</option>
-        </select>
+        <label>Date de fin (optionnel)</label>
+        <input type="date" id="f-end-date">
+        <small>Pour un événement sur plusieurs jours.</small>
       </div>
+    </div>
+    <div class="field">
+      <label>Statut</label>
+      <select id="f-status">
+        <option value="idea">Idée</option>
+        <option value="todo">À tourner</option>
+        <option value="ready">Prêt</option>
+        <option value="done">Publié</option>
+      </select>
     </div>
     <div class="field">
       <label>Titre</label>
@@ -458,6 +482,14 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
         <input type="url" id="f-link-input" placeholder="https://…">
         <input type="text" id="f-link-title-input" placeholder="Légende (ex : format à copier)">
         <button id="f-link-add">Ajouter</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>To-do</label>
+      <div class="todo-list" id="f-todos"></div>
+      <div class="add-todo-row">
+        <input type="text" id="f-todo-input" placeholder="Ajouter une tâche…">
+        <button id="f-todo-add">Ajouter</button>
       </div>
     </div>
   </div>
@@ -723,6 +755,19 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
   function parseISO(s){
     var p = s.split("-"); return new Date(+p[0], +p[1]-1, +p[2]);
   }
+  function datesInRange(startIso, endIso){
+    if(!endIso || endIso <= startIso) return [startIso];
+    var out = [];
+    var cur = parseISO(startIso);
+    var end = parseISO(endIso);
+    var guard = 0;
+    while(cur <= end && guard < 60){
+      out.push(fmtISO(cur));
+      cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate()+1);
+      guard++;
+    }
+    return out;
+  }
   function filteredEntries(){
     return entries.filter(function(e){ return currentFilter === "all" || e.type === currentFilter; });
   }
@@ -758,7 +803,10 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     var byDate = {};
     filteredEntries().forEach(function(e){
       if(!e.date) return;
-      (byDate[e.date] = byDate[e.date] || []).push(e);
+      var rangeDates = datesInRange(e.date, e.endDate);
+      rangeDates.forEach(function(iso){
+        (byDate[iso] = byDate[iso] || []).push(e);
+      });
     });
 
     cells.forEach(function(c){
@@ -800,8 +848,41 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
           chip.style.borderLeftColor = t.color;
           chip.style.color = shadeColor(t.color, -0.35);
           chip.innerHTML = "<span>" + escapeHtml(e.title) + "</span>";
+          chip.draggable = true;
           chip.addEventListener("click", function(){ openViewPanel(e.id); });
+          chip.addEventListener("dragstart", function(ev){
+            ev.dataTransfer.setData("text/plain", e.id);
+            ev.dataTransfer.effectAllowed = "move";
+            setTimeout(function(){ chip.classList.add("dragging"); }, 0);
+          });
+          chip.addEventListener("dragend", function(){ chip.classList.remove("dragging"); });
           div.appendChild(chip);
+        });
+        div.addEventListener("dragover", function(ev){
+          ev.preventDefault();
+          div.classList.add("drop-target");
+        });
+        div.addEventListener("dragleave", function(){
+          div.classList.remove("drop-target");
+        });
+        div.addEventListener("drop", function(ev){
+          ev.preventDefault();
+          div.classList.remove("drop-target");
+          var draggedId = ev.dataTransfer.getData("text/plain");
+          if(!draggedId) return;
+          var dragged = entries.find(function(x){ return x.id === draggedId; });
+          if(!dragged || !dragged.date) return;
+          var oldStart = parseISO(dragged.date);
+          var deltaDays = Math.round((c.date - oldStart) / 86400000);
+          if(deltaDays === 0) return;
+          dragged.date = iso;
+          if(dragged.endDate){
+            var newEnd = new Date(parseISO(dragged.endDate).getTime() + deltaDays*86400000);
+            dragged.endDate = fmtISO(newEnd);
+          }
+          saveLocal();
+          render();
+          pushToCloud(true);
         });
       }
       grid.appendChild(div);
@@ -811,10 +892,15 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
   function makeListCard(e, showDate){
     var t = getType(e.type);
     var d = showDate ? parseISO(e.date) : null;
+    var endLabel = "";
+    if(d && e.endDate && e.endDate > e.date){
+      var ed = parseISO(e.endDate);
+      endLabel = '<div class="m" style="margin-top:2px;">→ ' + ed.getDate() + ' ' + MONTHS_FR[ed.getMonth()].slice(0,3) + '</div>';
+    }
     var card = document.createElement("div");
     card.className = "list-card";
     card.innerHTML =
-      (d ? '<div class="list-date"><div class="d">' + d.getDate() + '</div><div class="m">' + MONTHS_FR[d.getMonth()].slice(0,3) + '</div></div>' : '') +
+      (d ? '<div class="list-date"><div class="d">' + d.getDate() + '</div><div class="m">' + MONTHS_FR[d.getMonth()].slice(0,3) + '</div>' + endLabel + '</div>' : '') +
       '<div class="list-body">' +
         '<p class="title">' + escapeHtml(e.title) + '</p>' +
         (e.desc ? '<div class="sub">' + escapeHtml(e.desc.slice(0,90)) + (e.desc.length>90?'…':'') + '</div>' : '') +
@@ -830,7 +916,15 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     container.innerHTML = "";
     var all = filteredEntries();
     var undated = all.filter(function(e){ return !e.date; });
-    var dated = all.filter(function(e){ return !!e.date; }).sort(function(a,b){ return a.date.localeCompare(b.date); });
+
+    var monthStart = new Date(cursorDate.getFullYear(), cursorDate.getMonth(), 1);
+    var monthEnd = new Date(cursorDate.getFullYear(), cursorDate.getMonth()+1, 0);
+    var dated = all.filter(function(e){
+      if(!e.date) return false;
+      var s = parseISO(e.date);
+      var en = (e.endDate && e.endDate > e.date) ? parseISO(e.endDate) : s;
+      return s <= monthEnd && en >= monthStart;
+    }).sort(function(a,b){ return a.date.localeCompare(b.date); });
 
     if(undated.length === 0 && dated.length === 0){
       container.innerHTML = '<div class="empty"><div class="serif">Rien à afficher</div>Ajoute un événement ou un post pour commencer.</div>';
@@ -847,23 +941,15 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
       container.appendChild(uWrap);
     }
 
-    var groups = {};
-    var order = [];
-    dated.forEach(function(e){
-      var d = parseISO(e.date);
-      var key = MONTHS_FR[d.getMonth()] + " " + d.getFullYear();
-      if(!groups[key]){ groups[key] = []; order.push(key); }
-      groups[key].push(e);
-    });
-    order.forEach(function(key){
-      var monthWrap = document.createElement("div");
-      monthWrap.className = "list-month";
-      var h = document.createElement("h3");
-      h.textContent = key;
-      monthWrap.appendChild(h);
-      groups[key].forEach(function(e){ monthWrap.appendChild(makeListCard(e, true)); });
-      container.appendChild(monthWrap);
-    });
+    if(dated.length){
+      var dWrap = document.createElement("div");
+      dWrap.className = "list-month";
+      var dh = document.createElement("h3");
+      dh.textContent = MONTHS_FR[cursorDate.getMonth()] + " " + cursorDate.getFullYear();
+      dWrap.appendChild(dh);
+      dated.forEach(function(e){ dWrap.appendChild(makeListCard(e, true)); });
+      container.appendChild(dWrap);
+    }
   }
 
   function escapeHtml(s){
@@ -877,6 +963,7 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
   var overlay = document.getElementById("overlay");
   var settingsPanel = document.getElementById("settings-panel");
   var tempLinks = [];
+  var tempTodos = [];
 
   // ---------------- View panel (read-only) ----------------
   var viewPanel = document.getElementById("view-panel");
@@ -891,6 +978,10 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     if(e.date){
       var d = parseISO(e.date);
       dateLabel = d.getDate() + " " + MONTHS_FR[d.getMonth()].toLowerCase() + " " + d.getFullYear();
+      if(e.endDate && e.endDate > e.date){
+        var ed = parseISO(e.endDate);
+        dateLabel += " → " + ed.getDate() + " " + MONTHS_FR[ed.getMonth()].toLowerCase() + " " + ed.getFullYear();
+      }
     } else {
       dateLabel = "À prévoir";
     }
@@ -936,7 +1027,37 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     }
     html += '</div>';
 
+    html += '<div class="view-section"><span class="vs-label">To-do</span>';
+    if(e.todos && e.todos.length){
+      html += '<div class="view-todos" id="view-todos-wrap">';
+      e.todos.forEach(function(td, idx){
+        html += '<div class="todo-row' + (td.done ? ' done' : '') + '" data-idx="' + idx + '">' +
+          '<input type="checkbox" ' + (td.done ? "checked" : "") + '>' +
+          '<span class="todo-text">' + escapeHtml(td.text) + '</span>' +
+        '</div>';
+      });
+      html += '</div>';
+    } else {
+      html += '<p class="view-empty">Aucune tâche pour l’instant.</p>';
+    }
+    html += '</div>';
+
     body.innerHTML = html;
+
+    var todosWrap = document.getElementById("view-todos-wrap");
+    if(todosWrap){
+      todosWrap.querySelectorAll(".todo-row").forEach(function(row){
+        row.addEventListener("click", function(ev){
+          var idx = +row.dataset.idx;
+          var td = e.todos[idx];
+          td.done = !td.done;
+          row.classList.toggle("done", td.done);
+          row.querySelector('input[type=checkbox]').checked = td.done;
+          saveLocal();
+          pushToCloud(true);
+        });
+      });
+    }
 
     var copyBtn = document.getElementById("view-copy-caption");
     if(copyBtn){
@@ -1015,15 +1136,18 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     var e = id ? entries.find(function(x){ return x.id === id; }) : null;
     document.getElementById("panel-title").textContent = e ? "Modifier l'élément" : "Nouvel élément";
     document.getElementById("f-date").value = e ? e.date : fmtISO(new Date());
+    document.getElementById("f-end-date").value = e && e.endDate ? e.endDate : "";
     document.getElementById("f-title").value = e ? e.title : "";
     document.getElementById("f-caption").value = e ? (e.caption||"") : "";
     document.getElementById("f-desc").value = e ? (e.desc||"") : "";
     document.getElementById("f-status").value = e ? e.status : "idea";
     tempLinks = e && e.links ? e.links.slice() : [];
+    tempTodos = e && e.todos ? e.todos.slice() : [];
     renderTypePills();
     var defaultType = types[1] ? types[1].id : (types[0] ? types[0].id : "instagram");
     setTypeVal(e ? e.type : defaultType);
     renderLinks();
+    renderTodosEdit();
     document.getElementById("btn-delete").style.display = e ? "block" : "none";
     overlay.classList.add("show");
     panel.classList.add("show");
@@ -1051,12 +1175,16 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     document.getElementById("f-type").dataset.current = v;
     var dateInput = document.getElementById("f-date");
     var dateHint = document.getElementById("f-date-hint");
+    var endDateInput = document.getElementById("f-end-date");
     if(v === "avenir"){
       dateInput.value = "";
       dateInput.disabled = true;
+      endDateInput.value = "";
+      endDateInput.disabled = true;
       if(dateHint) dateHint.style.display = "block";
     } else {
       dateInput.disabled = false;
+      endDateInput.disabled = false;
       if(dateHint) dateHint.style.display = "none";
       if(!dateInput.value) dateInput.value = fmtISO(new Date());
     }
@@ -1092,6 +1220,32 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     if(val){ tempLinks.push({url:val, title:titleInput.value.trim()}); input.value = ""; titleInput.value = ""; renderLinks(); }
   });
 
+  function renderTodosEdit(){
+    var wrap = document.getElementById("f-todos");
+    wrap.innerHTML = "";
+    tempTodos.forEach(function(td, idx){
+      var row = document.createElement("div");
+      row.className = "todo-row" + (td.done ? " done" : "");
+      row.innerHTML =
+        '<input type="checkbox" ' + (td.done ? "checked" : "") + '>' +
+        '<span class="todo-text">' + escapeHtml(td.text) + '</span>' +
+        '<button class="del">✕</button>';
+      row.querySelector('input[type=checkbox]').addEventListener("change", function(ev){
+        td.done = ev.target.checked;
+        row.classList.toggle("done", td.done);
+      });
+      row.querySelector(".del").addEventListener("click", function(){
+        tempTodos.splice(idx,1); renderTodosEdit();
+      });
+      wrap.appendChild(row);
+    });
+  }
+  document.getElementById("f-todo-add").addEventListener("click", function(){
+    var input = document.getElementById("f-todo-input");
+    var val = input.value.trim();
+    if(val){ tempTodos.push({id:"td"+Date.now()+Math.floor(Math.random()*1000), text:val, done:false}); input.value = ""; renderTodosEdit(); }
+  });
+
   document.getElementById("panel-close").addEventListener("click", closePanel);
   overlay.addEventListener("click", function(){ closePanel(); closeSettings(); closeViewPanel(); closeDayPanel(); });
 
@@ -1099,12 +1253,15 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     var data = {
       type: document.getElementById("f-type").dataset.current || "instagram",
       date: document.getElementById("f-date").value,
+      endDate: document.getElementById("f-end-date").value,
       status: document.getElementById("f-status").value,
       title: document.getElementById("f-title").value.trim() || "Sans titre",
       caption: document.getElementById("f-caption").value,
       desc: document.getElementById("f-desc").value,
-      links: tempLinks.slice()
+      links: tempLinks.slice(),
+      todos: tempTodos.slice()
     };
+    if(data.endDate && data.date && data.endDate < data.date){ data.endDate = ""; }
     if(editingId){
       var e = entries.find(function(x){ return x.id === editingId; });
       Object.assign(e, data);
@@ -1258,6 +1415,11 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
   });
   document.getElementById("next-month").addEventListener("click", function(){
     cursorDate = new Date(cursorDate.getFullYear(), cursorDate.getMonth()+1, 1);
+    render();
+  });
+  document.getElementById("month-label").addEventListener("click", function(){
+    var now = new Date();
+    cursorDate = new Date(now.getFullYear(), now.getMonth(), 1);
     render();
   });
 
