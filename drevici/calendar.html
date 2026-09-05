@@ -495,8 +495,8 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     </div>
   </div>
   <div class="panel-foot">
-    <button class="btn-secondary" id="btn-pull">Recharger depuis le cloud</button>
-    <button class="btn-primary" id="btn-push">Enregistrer & synchroniser</button>
+    <button class="btn-secondary" id="btn-pull">Sync</button>
+    <button class="btn-primary" id="btn-push">Enregistrer</button>
   </div>
 </div>
 
@@ -593,12 +593,15 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     app.classList.add("show");
     renderFilters();
     render();
+    if(isCloudConfigured()) pullFromCloud(true);
   }
 
   // ---------------- Cloud sync (via Cloudflare Worker) ----------------
-  function pullFromCloud(){
-    if(!cfg.workerUrl || !cfg.appToken){
-      alert("Renseigne d'abord l'URL du Worker et le token d'équipe dans les réglages.");
+  function isCloudConfigured(){ return !!(cfg.workerUrl && cfg.appToken); }
+
+  function pullFromCloud(silent){
+    if(!isCloudConfigured()){
+      if(!silent) alert("Renseigne d'abord l'URL du Worker et le token d'équipe dans les réglages.");
       return;
     }
     setSyncStatus("Chargement depuis le cloud…");
@@ -621,9 +624,9 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     });
   }
 
-  function pushToCloud(){
-    if(!cfg.workerUrl || !cfg.appToken){
-      alert("Renseigne d'abord l'URL du Worker et le token d'équipe dans les réglages.");
+  function pushToCloud(silent){
+    if(!isCloudConfigured()){
+      if(!silent) alert("Renseigne d'abord l'URL du Worker et le token d'équipe dans les réglages.");
       return;
     }
     setSyncStatus("Enregistrement…");
@@ -889,6 +892,7 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     saveLocal();
     render();
     closeViewPanel();
+    pushToCloud(true);
   });
 
   // ---------------- Day panel (mobile calendar tap) ----------------
@@ -1017,6 +1021,7 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     saveLocal();
     render();
     closePanel();
+    pushToCloud(true);
   });
 
   document.getElementById("btn-delete").addEventListener("click", function(){
@@ -1026,6 +1031,7 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     saveLocal();
     render();
     closePanel();
+    pushToCloud(true);
   });
 
   document.querySelectorAll(".copy-icon-btn").forEach(function(btn){
@@ -1087,12 +1093,14 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
       row.querySelector('input[type=color]').addEventListener("input", function(ev){
         t.color = ev.target.value;
         saveTypes(); renderFilters(); render();
+        pushToCloud(true);
       });
       row.querySelector(".del").addEventListener("click", function(){
         if(types.length <= 1){ alert("Il faut garder au moins un type."); return; }
         if(!confirm("Supprimer le type \"" + t.label + "\" ?")) return;
         types = types.filter(function(x){ return x.id !== t.id; });
         saveTypes(); renderTypesList(); renderFilters(); render();
+        pushToCloud(true);
       });
       wrap.appendChild(row);
     });
@@ -1112,6 +1120,7 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     renderTypesList();
     renderFilters();
     render();
+    pushToCloud(true);
   });
 
   function openSettings(){
