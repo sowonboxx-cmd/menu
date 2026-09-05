@@ -87,6 +87,9 @@ a{color:inherit;}
 }
 .chip .dot{width:7px; height:7px; border-radius:50%;}
 .chip.active{border-color:var(--navy); color:var(--navy); background:#EDF0F8;}
+.chip-alltime{font-weight:800; letter-spacing:.03em;}
+.chip-alltime.active{border-color:var(--gold); color:#7a5e15; background:#FBF3DE;}
+.chip-count{opacity:.65; font-weight:600;}
 
 main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
 
@@ -95,10 +98,14 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
 }
 .month-nav button{
   background:#fff; border:1px solid var(--line); width:34px; height:34px; border-radius:50%;
-  font-size:16px; color:var(--navy); display:flex; align-items:center; justify-content:center;
+  font-size:16px; color:var(--navy); display:flex; align-items:center; justify-content:center; flex-shrink:0;
 }
-.month-nav h2{margin:0; font-size:22px; font-weight:600; min-width:200px; text-align:center; cursor:pointer;}
+.month-nav-center{display:flex; flex-direction:column; align-items:center; gap:4px; min-width:200px;}
+.month-nav h2{margin:0; font-size:22px; font-weight:600; text-align:center; cursor:pointer;}
 .month-nav h2:hover{color:var(--gold);}
+.month-count-badge{
+  font-size:11px; font-weight:700; padding:2px 9px; border-radius:20px;
+}
 
 /* Grid view */
 .grid-view{
@@ -161,10 +168,6 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
   font-size:9.5px; font-weight:700; padding:2px 8px; border-radius:20px; text-transform:uppercase; letter-spacing:.03em;
 }
 .status-dot{width:7px; height:7px; border-radius:50%; flex-shrink:0;}
-.status-idea{background:#c2c6d1;}
-.status-todo{background:var(--coral);}
-.status-ready{background:var(--gold);}
-.status-done{background:#3f8f5e;}
 .list-body .title{font-weight:600; font-size:14.5px; margin:0;}
 .list-body .sub{font-size:12.5px; color:var(--muted); margin-top:2px;}
 .chevron{color:#c2c6d1; flex-shrink:0;}
@@ -294,6 +297,11 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
 .view-meta{display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap;}
 .view-date{font-size:12.5px; color:var(--muted); font-weight:600;}
 .view-title{margin:0 0 20px; font-size:21px; font-weight:600; line-height:1.3;}
+.view-location{
+  display:flex; align-items:center; gap:6px; font-size:13px; color:var(--navy);
+  text-decoration:none; margin:-14px 0 20px; font-weight:600;
+}
+.view-location:hover{text-decoration:underline;}
 .view-section{margin-bottom:20px;}
 .view-section .vs-label{
   display:block; font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase;
@@ -343,7 +351,7 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
   main{padding:16px 12px 100px;}
   .panel{width:100%;}
   .topbar-inner{padding:12px 12px; flex-wrap:nowrap;}
-  .topbar .logo-sub{display:none;}
+  .topbar .logo-sub{font-size:9.5px;}
   .topbar .logo-text{font-size:16px;}
   .btn-add{padding:8px 10px;}
   .btn-add .add-label{display:none;}
@@ -400,7 +408,10 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
   <main>
     <div class="month-nav">
       <button id="prev-month">‹</button>
-      <h2 id="month-label" title="Revenir au mois actuel"></h2>
+      <div class="month-nav-center">
+        <h2 id="month-label" title="Revenir au mois actuel"></h2>
+        <div id="month-count-badge" class="month-count-badge" style="display:none;"></div>
+      </div>
       <button id="next-month">›</button>
     </div>
 
@@ -423,8 +434,8 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
   </div>
   <div class="panel-body" id="view-body"></div>
   <div class="panel-foot">
-    <button class="btn-primary" id="view-edit">Modifier</button>
     <button class="btn-secondary" id="view-delete">Supprimer</button>
+    <button class="btn-primary" id="view-edit">Modifier</button>
   </div>
 </div>
 
@@ -464,18 +475,17 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
         <small>Pour un événement sur plusieurs jours.</small>
       </div>
     </div>
-    <div class="field" style="display:none;">
+    <div class="field">
       <label>Statut</label>
-      <select id="f-status">
-        <option value="idea">Idée</option>
-        <option value="todo">À tourner</option>
-        <option value="ready">Prêt</option>
-        <option value="done">Publié</option>
-      </select>
+      <div class="pill-group" id="f-status-pills"></div>
     </div>
     <div class="field">
       <label>Titre</label>
       <input type="text" id="f-title" placeholder="Ex : Reels — panier d'huîtres du matin">
+    </div>
+    <div class="field">
+      <label>Google Maps</label>
+      <input type="url" id="f-location" placeholder="Coller le lien de partage Google Maps…">
     </div>
     <div class="field" id="f-caption-wrap">
       <label>Caption</label>
@@ -532,6 +542,15 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
       </div>
     </div>
     <div class="field">
+      <label>Statuts</label>
+      <div class="types-list" id="statuses-list"></div>
+      <div class="add-type-row">
+        <input type="text" id="status-name-input" placeholder="Nom du statut (ex : En attente)">
+        <input type="color" id="status-color-input" value="#5B7A8C">
+        <button id="status-add-btn">Ajouter</button>
+      </div>
+    </div>
+    <div class="field">
       <label>URL du Worker</label>
       <input type="text" id="s-worker-url" placeholder="https://drevici-edito-sync.tonuser.workers.dev/data">
       <small>L'adresse de ton Worker Cloudflare. Le vrai token GitHub reste caché côté serveur, jamais dans ce navigateur.</small>
@@ -557,6 +576,7 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
   var LS_CFG = "drevici_edito_cfg";
   var LS_AUTH = "drevici_edito_auth";
   var LS_TYPES = "drevici_edito_types";
+  var LS_STATUSES = "drevici_edito_statuses";
 
   // ---------------- Seed data (first draft) ----------------
   var SEED = [
@@ -628,19 +648,30 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     return added;
   }
   var STATUS_LABEL = {idea:"Idée", todo:"À tourner", ready:"Prêt", done:"Publié"};
+  var DEFAULT_STATUSES = [
+    {id:"idea", label:"Idée", color:"#9AA3B5"},
+    {id:"todo", label:"À tourner", color:"#C6603F"},
+    {id:"ready", label:"Prêt", color:"#B8923D"},
+    {id:"done", label:"Publié", color:"#3f8f5e"}
+  ];
   var MONTHS_FR = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
 
   // ---------------- State ----------------
   var entries = [];
   var types = [];
+  var statuses = [];
   var cfg = {workerUrl:"", appToken:""};
   var currentView = "grid";
   var currentFilter = "all";
+  var allTimeMode = false;
   var cursorDate = new Date(2026,8,1); // Sept 2026
   var editingId = null;
 
   function getType(id){
     return types.find(function(t){ return t.id === id; }) || {id:id, label:id, color:"#9AA3B5"};
+  }
+  function getStatus(id){
+    return statuses.find(function(s){ return s.id === id; }) || {id:id, label:id||"Idée", color:"#9AA3B5"};
   }
   function slugify(s){
     return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"") || "type";
@@ -673,6 +704,10 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
       var rawTypes = localStorage.getItem(LS_TYPES);
       types = rawTypes ? JSON.parse(rawTypes) : DEFAULT_TYPES.slice();
     }catch(e){ types = DEFAULT_TYPES.slice(); }
+    try{
+      var rawStatuses = localStorage.getItem(LS_STATUSES);
+      statuses = rawStatuses ? JSON.parse(rawStatuses) : DEFAULT_STATUSES.slice();
+    }catch(e){ statuses = DEFAULT_STATUSES.slice(); }
   }
   function saveLocal(){
     localStorage.setItem(LS_DATA, JSON.stringify(entries));
@@ -682,6 +717,9 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
   }
   function saveTypes(){
     localStorage.setItem(LS_TYPES, JSON.stringify(types));
+  }
+  function saveStatuses(){
+    localStorage.setItem(LS_STATUSES, JSON.stringify(statuses));
   }
 
   // ---------------- App init ----------------
@@ -715,15 +753,19 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
       if(!res.ok) throw new Error(res.data.error || ("Erreur " + res.status));
       entries = res.data.entries || [];
       if(res.data.types && res.data.types.length) types = res.data.types;
+      if(res.data.statuses && res.data.statuses.length) statuses = res.data.statuses;
       saveLocal();
       saveTypes();
+      saveStatuses();
       render();
       renderTypesList();
+      renderStatusesList();
       renderFilters();
       setSyncStatus("Synchronisé — dernière lecture réussie.");
       if(runLaunchImport()){
         render();
         renderTypesList();
+        renderStatusesList();
         renderFilters();
         pushToCloud(true);
       }
@@ -741,7 +783,7 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     fetch(cfg.workerUrl, {
       method:"PUT",
       headers:{ "Content-Type":"application/json", "X-App-Token": cfg.appToken },
-      body: JSON.stringify({ entries: entries, types: types })
+      body: JSON.stringify({ entries: entries, types: types, statuses: statuses })
     }).then(function(r){
       return r.json().then(function(data){ return {ok:r.ok, status:r.status, data:data}; });
     }).then(function(res){
@@ -788,8 +830,48 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
   }
   function isMobile(){ return window.innerWidth <= 780; }
 
+  function countForMonthAndType(typeId, year, month){
+    var monthStart = new Date(year, month, 1);
+    var monthEnd = new Date(year, month+1, 0);
+    return entries.filter(function(e){
+      if(e.type !== typeId || !e.date) return false;
+      var s = parseISO(e.date);
+      var en = (e.endDate && e.endDate > e.date) ? parseISO(e.endDate) : s;
+      return s <= monthEnd && en >= monthStart;
+    }).length;
+  }
+
   function render(){
-    document.getElementById("month-label").textContent = MONTHS_FR[cursorDate.getMonth()] + " " + cursorDate.getFullYear();
+    var prevBtn = document.getElementById("prev-month");
+    var nextBtn = document.getElementById("next-month");
+    var badge = document.getElementById("month-count-badge");
+    var label = document.getElementById("month-label");
+
+    if(currentView === "list" && allTimeMode){
+      label.textContent = "Tous les événements";
+      prevBtn.style.visibility = "hidden";
+      nextBtn.style.visibility = "hidden";
+      badge.style.display = "none";
+    } else {
+      label.textContent = MONTHS_FR[cursorDate.getMonth()] + " " + cursorDate.getFullYear();
+      prevBtn.style.visibility = "visible";
+      nextBtn.style.visibility = "visible";
+      if(currentFilter !== "all"){
+        var t = getType(currentFilter);
+        var count = countForMonthAndType(currentFilter, cursorDate.getFullYear(), cursorDate.getMonth());
+        if(count > 0){
+          badge.style.display = "inline-block";
+          badge.textContent = count;
+          badge.style.background = hexToRgba(t.color, 0.16);
+          badge.style.color = shadeColor(t.color, -0.35);
+        } else {
+          badge.style.display = "none";
+        }
+      } else {
+        badge.style.display = "none";
+      }
+    }
+
     if(currentView === "grid") renderGrid(); else renderList();
   }
 
@@ -926,6 +1008,7 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
       var ed = parseISO(e.endDate);
       endLabel = '<div class="m" style="margin-top:2px;">→ ' + ed.getDate() + ' ' + MONTHS_FR[ed.getMonth()].slice(0,3) + '</div>';
     }
+    var st = getStatus(e.status);
     var card = document.createElement("div");
     card.className = "list-card";
     card.innerHTML =
@@ -933,7 +1016,7 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
       '<div class="list-body">' +
         '<p class="title">' + escapeHtml(e.title) + '</p>' +
         (e.desc ? '<div class="sub">' + escapeHtml(e.desc.slice(0,90)) + (e.desc.length>90?'…':'') + '</div>' : '') +
-        '<div class="row1"><span class="tag" style="background:' + hexToRgba(t.color,0.16) + ';color:' + shadeColor(t.color,-0.35) + '">' + escapeHtml(t.label) + '</span><span class="status-dot status-' + e.status + '"></span><span style="font-size:11px;color:var(--muted)">' + STATUS_LABEL[e.status] + '</span></div>' +
+        '<div class="row1"><span class="tag" style="background:' + hexToRgba(t.color,0.16) + ';color:' + shadeColor(t.color,-0.35) + '">' + escapeHtml(t.label) + '</span><span class="status-dot" style="background:' + st.color + '"></span><span style="font-size:11px;color:var(--muted)">' + escapeHtml(st.label) + '</span></div>' +
       '</div>' +
       '<div class="chevron">›</div>';
     card.addEventListener("click", function(){ openViewPanel(e.id); });
@@ -945,6 +1028,45 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     container.innerHTML = "";
     var all = filteredEntries();
     var undated = all.filter(function(e){ return !e.date; });
+
+    if(allTimeMode){
+      var datedAll = all.filter(function(e){ return !!e.date; }).sort(function(a,b){ return a.date.localeCompare(b.date); });
+      var showUndatedAll = (currentFilter === "avenir") && undated.length > 0;
+
+      if(!showUndatedAll && datedAll.length === 0){
+        container.innerHTML = '<div class="empty"><div class="serif">Rien à afficher</div>Ajoute un événement ou un post pour commencer.</div>';
+        return;
+      }
+
+      var groups = {};
+      var order = [];
+      datedAll.forEach(function(e){
+        var d = parseISO(e.date);
+        var key = d.getFullYear() + "-" + String(d.getMonth()).padStart(2,"0");
+        if(!groups[key]){ groups[key] = {label: MONTHS_FR[d.getMonth()] + " " + d.getFullYear(), items:[]}; order.push(key); }
+        groups[key].items.push(e);
+      });
+      order.forEach(function(key){
+        var monthWrap = document.createElement("div");
+        monthWrap.className = "list-month";
+        var h = document.createElement("h3");
+        h.textContent = groups[key].label;
+        monthWrap.appendChild(h);
+        groups[key].items.forEach(function(e){ monthWrap.appendChild(makeListCard(e, true)); });
+        container.appendChild(monthWrap);
+      });
+
+      if(showUndatedAll){
+        var uWrapAll = document.createElement("div");
+        uWrapAll.className = "list-month";
+        var uhAll = document.createElement("h3");
+        uhAll.textContent = "À prévoir";
+        uWrapAll.appendChild(uhAll);
+        undated.forEach(function(e){ uWrapAll.appendChild(makeListCard(e, false)); });
+        container.appendChild(uWrapAll);
+      }
+      return;
+    }
 
     var monthStart = new Date(cursorDate.getFullYear(), cursorDate.getMonth(), 1);
     var monthEnd = new Date(cursorDate.getFullYear(), cursorDate.getMonth()+1, 0);
@@ -971,7 +1093,9 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
       });
     }
 
-    if(undated.length === 0 && monthEntries.length === 0){
+    var showUndated = (currentFilter === "avenir") && undated.length > 0;
+
+    if(!showUndated && monthEntries.length === 0){
       container.innerHTML = '<div class="empty"><div class="serif">Rien à afficher</div>Ajoute un événement ou un post pour commencer.</div>';
       return;
     }
@@ -1003,7 +1127,7 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
       container.appendChild(toggleWrap);
     }
 
-    if(undated.length){
+    if(showUndated){
       var uWrap = document.createElement("div");
       uWrap.className = "list-month";
       var uh = document.createElement("h3");
@@ -1050,14 +1174,19 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
 
     document.getElementById("view-title-label").textContent = t.label;
 
+    var st = getStatus(e.status);
     var body = document.getElementById("view-body");
     var html = '';
     html += '<div class="view-meta">';
     html += '<span class="tag" style="background:' + hexToRgba(t.color,0.16) + ';color:' + shadeColor(t.color,-0.35) + '">' + escapeHtml(t.label) + '</span>';
-    html += '<span class="status-dot status-' + e.status + '"></span><span style="font-size:11px;color:var(--muted)">' + STATUS_LABEL[e.status] + '</span>';
+    html += '<span class="status-dot" style="background:' + st.color + '"></span><span style="font-size:11px;color:var(--muted)">' + escapeHtml(st.label) + '</span>';
     html += '<span class="view-date">' + dateLabel + '</span>';
     html += '</div>';
     html += '<h3 class="view-title">' + escapeHtml(e.title) + '</h3>';
+
+    if(e.location){
+      html += '<a class="view-location" href="' + escapeHtml(e.location) + '" target="_blank" rel="noopener">📍 <span>Voir sur Google Maps</span></a>';
+    }
 
     html += '<div class="view-section"><span class="vs-label">Description / commentaire</span>';
     html += e.desc ? '<p class="view-text">' + escapeHtml(e.desc) + '</p>' : '<p class="view-empty">Aucune description pour l’instant.</p>';
@@ -1170,12 +1299,13 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     body.innerHTML = "";
     dayEntries.forEach(function(e){
       var t = getType(e.type);
+      var st = getStatus(e.status);
       var card = document.createElement("div");
       card.className = "list-card";
       card.innerHTML =
         '<div class="list-body">' +
           '<p class="title">' + escapeHtml(e.title) + '</p>' +
-          '<div class="row1"><span class="tag" style="background:' + hexToRgba(t.color,0.16) + ';color:' + shadeColor(t.color,-0.35) + '">' + escapeHtml(t.label) + '</span><span class="status-dot status-' + e.status + '"></span><span style="font-size:11px;color:var(--muted)">' + STATUS_LABEL[e.status] + '</span></div>' +
+          '<div class="row1"><span class="tag" style="background:' + hexToRgba(t.color,0.16) + ';color:' + shadeColor(t.color,-0.35) + '">' + escapeHtml(t.label) + '</span><span class="status-dot" style="background:' + st.color + '"></span><span style="font-size:11px;color:var(--muted)">' + escapeHtml(st.label) + '</span></div>' +
         '</div>' +
         '<div class="chevron">›</div>';
       card.addEventListener("click", function(){
@@ -1200,14 +1330,17 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     document.getElementById("f-date").value = e ? e.date : fmtISO(new Date());
     document.getElementById("f-end-date").value = e && e.endDate ? e.endDate : "";
     document.getElementById("f-title").value = e ? e.title : "";
+    document.getElementById("f-location").value = e ? (e.location||"") : "";
     document.getElementById("f-caption").value = e ? (e.caption||"") : "";
     document.getElementById("f-desc").value = e ? (e.desc||"") : "";
-    document.getElementById("f-status").value = e ? e.status : "idea";
     tempLinks = e && e.links ? e.links.slice() : [];
     tempTodos = e && e.todos ? e.todos.slice() : [];
     renderTypePills();
     var defaultType = types[1] ? types[1].id : (types[0] ? types[0].id : "instagram");
     setTypeVal(e ? e.type : defaultType);
+    renderStatusPills();
+    var defaultStatus = statuses[0] ? statuses[0].id : "idea";
+    setStatusVal(e ? e.status : defaultStatus);
     renderLinks();
     renderTodosEdit();
     document.getElementById("btn-delete").style.display = e ? "block" : "none";
@@ -1230,6 +1363,26 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
       wrap.appendChild(b);
     });
   }
+  function renderStatusPills(){
+    var wrap = document.getElementById("f-status-pills");
+    wrap.innerHTML = "";
+    statuses.forEach(function(s){
+      var b = document.createElement("button");
+      b.className = "pill-opt";
+      b.dataset.val = s.id;
+      b.textContent = s.label;
+      wrap.appendChild(b);
+    });
+  }
+  function setStatusVal(v){
+    document.querySelectorAll("#f-status-pills .pill-opt").forEach(function(b){
+      b.classList.toggle("active", b.dataset.val === v);
+    });
+    document.getElementById("f-status-pills").dataset.current = v;
+  }
+  document.getElementById("f-status-pills").addEventListener("click", function(ev){
+    if(ev.target.classList.contains("pill-opt")) setStatusVal(ev.target.dataset.val);
+  });
   function setTypeVal(v){
     document.querySelectorAll("#f-type .pill-opt").forEach(function(b){
       b.classList.toggle("active", b.dataset.val === v);
@@ -1317,8 +1470,9 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
       type: document.getElementById("f-type").dataset.current || "instagram",
       date: document.getElementById("f-date").value,
       endDate: document.getElementById("f-end-date").value,
-      status: document.getElementById("f-status").value,
+      status: document.getElementById("f-status-pills").dataset.current || "idea",
       title: document.getElementById("f-title").value.trim() || "Sans titre",
+      location: document.getElementById("f-location").value.trim(),
       caption: document.getElementById("f-caption").value,
       desc: document.getElementById("f-desc").value,
       links: tempLinks.slice(),
@@ -1371,21 +1525,40 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     var wrap = document.getElementById("filters");
     wrap.innerHTML = '<div class="filters-inner" id="filters-inner"></div>';
     var inner = document.getElementById("filters-inner");
+
+    var allTimeChip = document.createElement("button");
+    allTimeChip.className = "chip chip-alltime" + (allTimeMode ? " active" : "");
+    allTimeChip.textContent = "All";
+    allTimeChip.title = "Voir tous les événements, tous mois confondus (vue liste)";
+    allTimeChip.addEventListener("click", function(){
+      allTimeMode = !allTimeMode;
+      renderFilters();
+      render();
+    });
+    inner.appendChild(allTimeChip);
+
     var allChip = document.createElement("button");
     allChip.className = "chip" + (currentFilter === "all" ? " active" : "");
     allChip.dataset.filter = "all";
     allChip.textContent = "Tout";
     inner.appendChild(allChip);
+
     types.forEach(function(t){
       var chip = document.createElement("button");
       chip.className = "chip" + (currentFilter === t.id ? " active" : "");
       chip.dataset.filter = t.id;
-      chip.innerHTML = '<span class="dot" style="background:' + t.color + '"></span>' + escapeHtml(t.label);
+      var countHtml = "";
+      if(allTimeMode){
+        var count = entries.filter(function(e){ return e.type === t.id; }).length;
+        countHtml = ' <span class="chip-count">(' + count + ')</span>';
+      }
+      chip.innerHTML = '<span class="dot" style="background:' + t.color + '"></span>' + escapeHtml(t.label) + countHtml;
       inner.appendChild(chip);
     });
-    inner.querySelectorAll(".chip").forEach(function(chip){
+
+    inner.querySelectorAll(".chip:not(.chip-alltime)").forEach(function(chip){
       chip.addEventListener("click", function(){
-        inner.querySelectorAll(".chip").forEach(function(c){ c.classList.remove("active"); });
+        inner.querySelectorAll(".chip:not(.chip-alltime)").forEach(function(c){ c.classList.remove("active"); });
         chip.classList.add("active");
         currentFilter = chip.dataset.filter;
         render();
@@ -1449,10 +1622,65 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     pushToCloud(true);
   });
 
+  function renderStatusesList(){
+    var wrap = document.getElementById("statuses-list");
+    wrap.innerHTML = "";
+    statuses.forEach(function(s){
+      var row = document.createElement("div");
+      row.className = "type-row";
+      row.innerHTML =
+        '<input type="color" value="' + s.color + '">' +
+        '<input type="text" class="tname-input" value="' + escapeHtml(s.label) + '">' +
+        '<button class="del">✕</button>';
+      row.querySelector('input[type=color]').addEventListener("input", function(ev){
+        s.color = ev.target.value;
+        saveStatuses(); render();
+        pushToCloud(true);
+      });
+      var nameInput = row.querySelector('.tname-input');
+      function commitRename(){
+        var val = nameInput.value.trim();
+        if(!val || val === s.label) { nameInput.value = s.label; return; }
+        s.label = val;
+        saveStatuses(); render();
+        pushToCloud(true);
+      }
+      nameInput.addEventListener("blur", commitRename);
+      nameInput.addEventListener("keydown", function(ev){
+        if(ev.key === "Enter"){ nameInput.blur(); }
+      });
+      row.querySelector(".del").addEventListener("click", function(){
+        if(statuses.length <= 1){ alert("Il faut garder au moins un statut."); return; }
+        if(!confirm("Supprimer le statut \"" + s.label + "\" ?")) return;
+        statuses = statuses.filter(function(x){ return x.id !== s.id; });
+        saveStatuses(); renderStatusesList(); render();
+        pushToCloud(true);
+      });
+      wrap.appendChild(row);
+    });
+  }
+  document.getElementById("status-add-btn").addEventListener("click", function(){
+    var nameInput = document.getElementById("status-name-input");
+    var colorInput = document.getElementById("status-color-input");
+    var label = nameInput.value.trim();
+    if(!label) return;
+    var id = slugify(label);
+    var suffix = 1;
+    var base = id;
+    while(statuses.some(function(s){ return s.id === id; })){ id = base + "-" + (++suffix); }
+    statuses.push({id:id, label:label, color:colorInput.value});
+    saveStatuses();
+    nameInput.value = "";
+    renderStatusesList();
+    render();
+    pushToCloud(true);
+  });
+
   function openSettings(){
     document.getElementById("s-worker-url").value = cfg.workerUrl;
     document.getElementById("s-app-token").value = cfg.appToken;
     renderTypesList();
+    renderStatusesList();
     overlay.classList.add("show");
     settingsPanel.classList.add("show");
   }
