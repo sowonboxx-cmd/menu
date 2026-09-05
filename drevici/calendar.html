@@ -363,6 +363,7 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
   .sync-btn{width:30px; height:30px;}
 
   .list-body .sub{display:none;}
+  .list-body .title{white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 
   .cal-cell{height:56px; padding:5px 3px;}
   .cal-cell .num{font-size:12px; margin-bottom:4px;}
@@ -1023,6 +1024,17 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     return card;
   }
 
+  function groupByMonth(list){
+    var groups = {}, order = [];
+    list.forEach(function(e){
+      var d = parseISO(e.date);
+      var key = d.getFullYear() + "-" + String(d.getMonth()).padStart(2,"0");
+      if(!groups[key]){ groups[key] = {label: MONTHS_FR[d.getMonth()] + " " + d.getFullYear(), items:[]}; order.push(key); }
+      groups[key].items.push(e);
+    });
+    return order.map(function(key){ return groups[key]; });
+  }
+
   function renderList(){
     var container = document.getElementById("list-view");
     container.innerHTML = "";
@@ -1030,7 +1042,16 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     var undated = all.filter(function(e){ return !e.date; });
 
     if(allTimeMode){
+      var todayISOAll = fmtISO(new Date());
       var datedAll = all.filter(function(e){ return !!e.date; }).sort(function(a,b){ return a.date.localeCompare(b.date); });
+      var pastAll = datedAll.filter(function(e){
+        var endIso = (e.endDate && e.endDate > e.date) ? e.endDate : e.date;
+        return endIso < todayISOAll;
+      });
+      var upcomingAll = datedAll.filter(function(e){
+        var endIso = (e.endDate && e.endDate > e.date) ? e.endDate : e.date;
+        return endIso >= todayISOAll;
+      });
       var showUndatedAll = (currentFilter === "avenir") && undated.length > 0;
 
       if(!showUndatedAll && datedAll.length === 0){
@@ -1038,23 +1059,43 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
         return;
       }
 
-      var groups = {};
-      var order = [];
-      datedAll.forEach(function(e){
-        var d = parseISO(e.date);
-        var key = d.getFullYear() + "-" + String(d.getMonth()).padStart(2,"0");
-        if(!groups[key]){ groups[key] = {label: MONTHS_FR[d.getMonth()] + " " + d.getFullYear(), items:[]}; order.push(key); }
-        groups[key].items.push(e);
-      });
-      order.forEach(function(key){
+      groupByMonth(upcomingAll).forEach(function(g){
         var monthWrap = document.createElement("div");
         monthWrap.className = "list-month";
         var h = document.createElement("h3");
-        h.textContent = groups[key].label;
+        h.textContent = g.label;
         monthWrap.appendChild(h);
-        groups[key].items.forEach(function(e){ monthWrap.appendChild(makeListCard(e, true)); });
+        g.items.forEach(function(e){ monthWrap.appendChild(makeListCard(e, true)); });
         container.appendChild(monthWrap);
       });
+
+      if(pastAll.length){
+        var toggleWrapAll = document.createElement("div");
+        toggleWrapAll.className = "list-month prev-toggle-wrap";
+        var toggleBtnAll = document.createElement("button");
+        toggleBtnAll.className = "prev-toggle";
+        toggleBtnAll.innerHTML = '<span class="pt-arrow">▸</span> Événements précédents (' + pastAll.length + ')';
+        var pastWrapAll = document.createElement("div");
+        pastWrapAll.className = "prev-events-wrap";
+        pastWrapAll.style.display = "none";
+        groupByMonth(pastAll).forEach(function(g){
+          var mw = document.createElement("div");
+          mw.className = "list-month";
+          var h = document.createElement("h3");
+          h.textContent = g.label;
+          mw.appendChild(h);
+          g.items.forEach(function(e){ mw.appendChild(makeListCard(e, true)); });
+          pastWrapAll.appendChild(mw);
+        });
+        toggleBtnAll.addEventListener("click", function(){
+          var isOpen = pastWrapAll.style.display !== "none";
+          pastWrapAll.style.display = isOpen ? "none" : "block";
+          toggleBtnAll.querySelector(".pt-arrow").textContent = isOpen ? "▸" : "▾";
+        });
+        toggleWrapAll.appendChild(toggleBtnAll);
+        toggleWrapAll.appendChild(pastWrapAll);
+        container.appendChild(toggleWrapAll);
+      }
 
       if(showUndatedAll){
         var uWrapAll = document.createElement("div");
