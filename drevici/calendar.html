@@ -484,25 +484,18 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
       <small>Chaque type a sa propre couleur, utilisée pour les pastilles, filtres et badges.</small>
     </div>
     <div class="field">
-      <label>Token GitHub (Personal Access Token)</label>
-      <input type="text" id="s-token" placeholder="ghp_…">
-      <small>Stocké uniquement dans ce navigateur. Sert à lire/écrire le fichier JSON du calendrier sur GitHub.</small>
+      <label>URL du Worker</label>
+      <input type="text" id="s-worker-url" placeholder="https://drevici-edito-sync.tonuser.workers.dev/data">
+      <small>L'adresse de ton Worker Cloudflare. Le vrai token GitHub reste caché côté serveur, jamais dans ce navigateur.</small>
     </div>
     <div class="field">
-      <label>Propriétaire / Repo</label>
-      <input type="text" id="s-repo" placeholder="sowonboxx-cmd/menu">
-    </div>
-    <div class="field">
-      <label>Chemin du fichier</label>
-      <input type="text" id="s-path" placeholder="drevici/edito.json">
-    </div>
-    <div class="field">
-      <label>Branche</label>
-      <input type="text" id="s-branch" placeholder="main">
+      <label>Token d'équipe</label>
+      <input type="text" id="s-app-token" placeholder="Le token partagé à l'équipe">
+      <small>Ce token est propre à l'app (pas ton token GitHub). Chaque personne le colle une fois ici pour être synchronisée.</small>
     </div>
   </div>
   <div class="panel-foot">
-    <button class="btn-secondary" id="btn-pull">Recharger depuis GitHub</button>
+    <button class="btn-secondary" id="btn-pull">Recharger depuis le cloud</button>
     <button class="btn-primary" id="btn-push">Enregistrer & synchroniser</button>
   </div>
 </div>
@@ -543,12 +536,11 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
   // ---------------- State ----------------
   var entries = [];
   var types = [];
-  var cfg = {token:"", repo:"", path:"", branch:"main"};
+  var cfg = {workerUrl:"", appToken:""};
   var currentView = "grid";
   var currentFilter = "all";
   var cursorDate = new Date(2026,8,1); // Sept 2026
   var editingId = null;
-  var fileSha = null;
 
   function getType(id){
     return types.find(function(t){ return t.id === id; }) || {id:id, label:id, color:"#9AA3B5"};
@@ -603,28 +595,21 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     render();
   }
 
-  // ---------------- GitHub sync ----------------
-  function apiBase(){ return "https://api.github.com/repos/" + cfg.repo + "/contents/" + cfg.path; }
-
-  function pullFromGithub(){
-    if(!cfg.token || !cfg.repo || !cfg.path){
-      alert("Renseigne d'abord le token, le repo et le chemin du fichier dans les réglages.");
+  // ---------------- Cloud sync (via Cloudflare Worker) ----------------
+  function pullFromCloud(){
+    if(!cfg.workerUrl || !cfg.appToken){
+      alert("Renseigne d'abord l'URL du Worker et le token d'équipe dans les réglages.");
       return;
     }
-    setSyncStatus("Chargement depuis GitHub…");
-    fetch(apiBase() + "?ref=" + encodeURIComponent(cfg.branch||"main"), {
-      headers:{ "Authorization":"token " + cfg.token, "Accept":"application/vnd.github+json" }
+    setSyncStatus("Chargement depuis le cloud…");
+    fetch(cfg.workerUrl, {
+      headers:{ "X-App-Token": cfg.appToken }
     }).then(function(r){
-      if(r.status === 404){ setSyncStatus("Aucun fichier distant pour l'instant — la prochaine sauvegarde le créera."); return null; }
-      if(!r.ok) throw new Error("Erreur GitHub (" + r.status + ")");
-      return r.json();
-    }).then(function(data){
-      if(!data) return;
-      fileSha = data.sha;
-      var content = decodeURIComponent(escape(atob(data.content.replace(/\n/g,""))));
-      var parsed = JSON.parse(content);
-      entries = parsed.entries || [];
-      if(parsed.types && parsed.types.length) types = parsed.types;
+      return r.json().then(function(data){ return {ok:r.ok, status:r.status, data:data}; });
+    }).then(function(res){
+      if(!res.ok) throw new Error(res.data.error || ("Erreur " + res.status));
+      entries = res.data.entries || [];
+      if(res.data.types && res.data.types.length) types = res.data.types;
       saveLocal();
       saveTypes();
       render();
@@ -636,40 +621,21 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     });
   }
 
-  function pushToGithub(){
-    if(!cfg.token || !cfg.repo || !cfg.path){
-      alert("Renseigne d'abord le token, le repo et le chemin du fichier dans les réglages.");
+  function pushToCloud(){
+    if(!cfg.workerUrl || !cfg.appToken){
+      alert("Renseigne d'abord l'URL du Worker et le token d'équipe dans les réglages.");
       return;
     }
     setSyncStatus("Enregistrement…");
-    var payload = { entries: entries, types: types, updated_at: new Date().toISOString() };
-    var content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
-
-    function doPut(sha){
-      return fetch(apiBase(), {
-        method:"PUT",
-        headers:{ "Authorization":"token " + cfg.token, "Accept":"application/vnd.github+json", "Content-Type":"application/json" },
-        body: JSON.stringify({
-          message: "Mise à jour calendrier éditorial",
-          content: content,
-          sha: sha || undefined,
-          branch: cfg.branch || "main"
-        })
-      });
-    }
-
-    fetch(apiBase() + "?ref=" + encodeURIComponent(cfg.branch||"main"), {
-      headers:{ "Authorization":"token " + cfg.token, "Accept":"application/vnd.github+json" }
-    }).then(function(r){ return r.status === 404 ? null : r.json(); })
-    .then(function(existing){
-      var sha = existing ? existing.sha : null;
-      return doPut(sha);
+    fetch(cfg.workerUrl, {
+      method:"PUT",
+      headers:{ "Content-Type":"application/json", "X-App-Token": cfg.appToken },
+      body: JSON.stringify({ entries: entries, types: types })
     }).then(function(r){
-      if(!r.ok) return r.json().then(function(e){ throw new Error(e.message||("Erreur " + r.status)); });
-      return r.json();
-    }).then(function(data){
-      fileSha = data.content.sha;
-      setSyncStatus("Synchronisé avec GitHub.");
+      return r.json().then(function(data){ return {ok:r.ok, status:r.status, data:data}; });
+    }).then(function(res){
+      if(!res.ok) throw new Error(res.data.error || ("Erreur " + res.status));
+      setSyncStatus("Synchronisé avec le cloud.");
     }).catch(function(err){
       setSyncStatus("Échec : " + err.message);
     });
@@ -1149,10 +1115,8 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
   });
 
   function openSettings(){
-    document.getElementById("s-token").value = cfg.token;
-    document.getElementById("s-repo").value = cfg.repo;
-    document.getElementById("s-path").value = cfg.path;
-    document.getElementById("s-branch").value = cfg.branch;
+    document.getElementById("s-worker-url").value = cfg.workerUrl;
+    document.getElementById("s-app-token").value = cfg.appToken;
     renderTypesList();
     overlay.classList.add("show");
     settingsPanel.classList.add("show");
@@ -1162,20 +1126,16 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
   document.getElementById("settings-close").addEventListener("click", closeSettings);
 
   document.getElementById("btn-push").addEventListener("click", function(){
-    cfg.token = document.getElementById("s-token").value.trim();
-    cfg.repo = document.getElementById("s-repo").value.trim();
-    cfg.path = document.getElementById("s-path").value.trim();
-    cfg.branch = document.getElementById("s-branch").value.trim() || "main";
+    cfg.workerUrl = document.getElementById("s-worker-url").value.trim();
+    cfg.appToken = document.getElementById("s-app-token").value.trim();
     saveCfg();
-    pushToGithub();
+    pushToCloud();
   });
   document.getElementById("btn-pull").addEventListener("click", function(){
-    cfg.token = document.getElementById("s-token").value.trim();
-    cfg.repo = document.getElementById("s-repo").value.trim();
-    cfg.path = document.getElementById("s-path").value.trim();
-    cfg.branch = document.getElementById("s-branch").value.trim() || "main";
+    cfg.workerUrl = document.getElementById("s-worker-url").value.trim();
+    cfg.appToken = document.getElementById("s-app-token").value.trim();
     saveCfg();
-    pullFromGithub();
+    pullFromCloud();
   });
 
   // ---------------- View / nav ----------------
