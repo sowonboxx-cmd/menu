@@ -137,12 +137,13 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
 .list-month{}
 .list-month h3{margin:0 0 10px 2px; font-size:15px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.04em; font-family:'Inter',sans-serif;}
 .prev-toggle{
-  display:flex; align-items:center; gap:7px; background:none; border:none; padding:6px 2px 10px;
-  font-size:13px; font-weight:600; color:var(--muted); cursor:pointer; width:100%; text-align:left;
+  display:flex; align-items:center; justify-content:center; gap:7px; background:none; border:none; padding:10px 2px;
+  font-size:13px; font-weight:600; color:var(--muted); cursor:pointer; width:100%; text-align:center;
 }
 .prev-toggle:hover{color:var(--navy);}
 .pt-arrow{font-size:10px; display:inline-block; width:10px;}
-.prev-events-wrap{margin-bottom:2px;}
+.prev-events-wrap{margin-top:6px;}
+.prev-toggle-wrap{margin-top:4px;}
 .list-card{
   background:#fff; border:1px solid var(--line); border-radius:12px; padding:14px 16px;
   display:flex; gap:14px; align-items:center; margin-bottom:8px; cursor:pointer;
@@ -326,7 +327,11 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
   border-radius:9px; padding:8px 10px;
 }
 .type-row .swatch{width:16px; height:16px; border-radius:50%; flex-shrink:0;}
-.type-row .tname{flex:1; font-size:13.5px; font-weight:600;}
+.type-row .tname-input{
+  flex:1; font-size:13.5px; font-weight:600; font-family:inherit; color:var(--navy-ink);
+  border:none; background:none; padding:4px 2px; border-radius:5px; min-width:0;
+}
+.type-row .tname-input:focus{background:#F3F1EB; outline:none;}
 .type-row input[type=color]{width:28px; height:28px; padding:0; border:none; background:none; border-radius:50%; overflow:hidden; cursor:pointer;}
 .type-row button.del{background:none; border:none; color:#c2626a; font-size:15px; line-height:1;}
 .add-type-row{display:flex; gap:8px;}
@@ -525,7 +530,6 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
         <input type="color" id="type-color-input" value="#5B7A8C">
         <button id="type-add-btn">Ajouter</button>
       </div>
-      <small>Chaque type a sa propre couleur, utilisée pour les pastilles, filtres et badges.</small>
     </div>
     <div class="field">
       <label>URL du Worker</label>
@@ -944,7 +948,9 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
 
     var monthStart = new Date(cursorDate.getFullYear(), cursorDate.getMonth(), 1);
     var monthEnd = new Date(cursorDate.getFullYear(), cursorDate.getMonth()+1, 0);
-    var todayISO = fmtISO(new Date());
+    var now = new Date();
+    var todayISO = fmtISO(now);
+    var isCurrentMonth = (cursorDate.getFullYear() === now.getFullYear() && cursorDate.getMonth() === now.getMonth());
     var monthEntries = all.filter(function(e){
       if(!e.date) return false;
       var s = parseISO(e.date);
@@ -952,23 +958,34 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
       return s <= monthEnd && en >= monthStart;
     }).sort(function(a,b){ return a.date.localeCompare(b.date); });
 
-    var pastEntries = monthEntries.filter(function(e){
-      var endIso = (e.endDate && e.endDate > e.date) ? e.endDate : e.date;
-      return endIso < todayISO;
-    });
-    var upcomingEntries = monthEntries.filter(function(e){
-      var endIso = (e.endDate && e.endDate > e.date) ? e.endDate : e.date;
-      return endIso >= todayISO;
-    });
+    var pastEntries = [];
+    var upcomingEntries = monthEntries;
+    if(isCurrentMonth){
+      pastEntries = monthEntries.filter(function(e){
+        var endIso = (e.endDate && e.endDate > e.date) ? e.endDate : e.date;
+        return endIso < todayISO;
+      });
+      upcomingEntries = monthEntries.filter(function(e){
+        var endIso = (e.endDate && e.endDate > e.date) ? e.endDate : e.date;
+        return endIso >= todayISO;
+      });
+    }
 
     if(undated.length === 0 && monthEntries.length === 0){
       container.innerHTML = '<div class="empty"><div class="serif">Rien à afficher</div>Ajoute un événement ou un post pour commencer.</div>';
       return;
     }
 
+    if(upcomingEntries.length){
+      var dWrap = document.createElement("div");
+      dWrap.className = "list-month";
+      upcomingEntries.forEach(function(e){ dWrap.appendChild(makeListCard(e, true)); });
+      container.appendChild(dWrap);
+    }
+
     if(pastEntries.length){
       var toggleWrap = document.createElement("div");
-      toggleWrap.className = "list-month";
+      toggleWrap.className = "list-month prev-toggle-wrap";
       var toggleBtn = document.createElement("button");
       toggleBtn.className = "prev-toggle";
       toggleBtn.innerHTML = '<span class="pt-arrow">▸</span> Événements précédents (' + pastEntries.length + ')';
@@ -984,16 +1001,6 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
       toggleWrap.appendChild(toggleBtn);
       toggleWrap.appendChild(pastWrap);
       container.appendChild(toggleWrap);
-    }
-
-    if(upcomingEntries.length){
-      var dWrap = document.createElement("div");
-      dWrap.className = "list-month";
-      var dh = document.createElement("h3");
-      dh.textContent = MONTHS_FR[cursorDate.getMonth()] + " " + cursorDate.getFullYear();
-      dWrap.appendChild(dh);
-      upcomingEntries.forEach(function(e){ dWrap.appendChild(makeListCard(e, true)); });
-      container.appendChild(dWrap);
     }
 
     if(undated.length){
@@ -1395,12 +1402,24 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
       row.className = "type-row";
       row.innerHTML =
         '<input type="color" value="' + t.color + '">' +
-        '<span class="tname">' + escapeHtml(t.label) + '</span>' +
+        '<input type="text" class="tname-input" value="' + escapeHtml(t.label) + '">' +
         '<button class="del">✕</button>';
       row.querySelector('input[type=color]').addEventListener("input", function(ev){
         t.color = ev.target.value;
         saveTypes(); renderFilters(); render();
         pushToCloud(true);
+      });
+      var nameInput = row.querySelector('.tname-input');
+      function commitRename(){
+        var val = nameInput.value.trim();
+        if(!val || val === t.label) { nameInput.value = t.label; return; }
+        t.label = val;
+        saveTypes(); renderFilters(); render();
+        pushToCloud(true);
+      }
+      nameInput.addEventListener("blur", commitRename);
+      nameInput.addEventListener("keydown", function(ev){
+        if(ev.key === "Enter"){ nameInput.blur(); }
       });
       row.querySelector(".del").addEventListener("click", function(){
         if(types.length <= 1){ alert("Il faut garder au moins un type."); return; }
