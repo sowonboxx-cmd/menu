@@ -109,8 +109,8 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
 .dow-row div{padding:10px 4px; text-align:center; font-size:11px; font-weight:700; color:#c7d1e8; text-transform:uppercase; letter-spacing:.05em;}
 .cal-grid{display:grid; grid-template-columns:repeat(7,1fr);}
 .cal-cell{
-  min-height:104px; border-right:1px solid var(--line); border-bottom:1px solid var(--line);
-  padding:7px 6px; position:relative; background:#fff;
+  height:104px; border-right:1px solid var(--line); border-bottom:1px solid var(--line);
+  padding:7px 6px; position:relative; background:#fff; overflow:hidden; box-sizing:border-box;
 }
 .cal-cell:nth-child(7n){border-right:none;}
 .cal-cell.out{background:#FBFAF7; color:#c2c6d1;}
@@ -127,11 +127,22 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
 }
 .entry-chip.dragging{opacity:.35;}
 .entry-chip span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.entry-more{
+  font-size:11px; font-weight:700; color:var(--navy); background:#EDF0F8; border-radius:5px;
+  padding:3px 6px; text-align:center; cursor:pointer; letter-spacing:.08em;
+}
 
 /* List view */
 .list-view{display:flex; flex-direction:column; gap:26px;}
 .list-month{}
 .list-month h3{margin:0 0 10px 2px; font-size:15px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.04em; font-family:'Inter',sans-serif;}
+.prev-toggle{
+  display:flex; align-items:center; gap:7px; background:none; border:none; padding:6px 2px 10px;
+  font-size:13px; font-weight:600; color:var(--muted); cursor:pointer; width:100%; text-align:left;
+}
+.prev-toggle:hover{color:var(--navy);}
+.pt-arrow{font-size:10px; display:inline-block; width:10px;}
+.prev-events-wrap{margin-bottom:2px;}
 .list-card{
   background:#fff; border:1px solid var(--line); border-radius:12px; padding:14px 16px;
   display:flex; gap:14px; align-items:center; margin-bottom:8px; cursor:pointer;
@@ -340,7 +351,7 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
 
   .list-body .sub{display:none;}
 
-  .cal-cell{min-height:56px; padding:5px 3px;}
+  .cal-cell{height:56px; padding:5px 3px;}
   .cal-cell .num{font-size:12px; margin-bottom:4px;}
   .cal-cell.today .num{margin-left:auto; margin-right:auto;}
   .entry-chip{display:none;}
@@ -448,7 +459,7 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
         <small>Pour un événement sur plusieurs jours.</small>
       </div>
     </div>
-    <div class="field">
+    <div class="field" style="display:none;">
       <label>Statut</label>
       <select id="f-status">
         <option value="idea">Idée</option>
@@ -476,20 +487,20 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
       <textarea id="f-desc" placeholder="Notes de tournage, brief, ce qu'il faut rajouter…"></textarea>
     </div>
     <div class="field">
+      <label>To-do</label>
+      <div class="todo-list" id="f-todos"></div>
+      <div class="add-todo-row">
+        <input type="text" id="f-todo-input" placeholder="Ajouter une tâche…">
+        <button id="f-todo-add">Ajouter</button>
+      </div>
+    </div>
+    <div class="field">
       <label>Liens d'inspiration</label>
       <div class="links-list" id="f-links"></div>
       <div class="add-link-row">
         <input type="url" id="f-link-input" placeholder="https://…">
         <input type="text" id="f-link-title-input" placeholder="Légende (ex : format à copier)">
         <button id="f-link-add">Ajouter</button>
-      </div>
-    </div>
-    <div class="field">
-      <label>To-do</label>
-      <div class="todo-list" id="f-todos"></div>
-      <div class="add-todo-row">
-        <input type="text" id="f-todo-input" placeholder="Ajouter une tâche…">
-        <button id="f-todo-add">Ajouter</button>
       </div>
     </div>
   </div>
@@ -840,7 +851,10 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
           div.addEventListener("click", function(){ openDayPanel(iso, dayEntries); });
         }
       } else {
-        dayEntries.forEach(function(e){
+        var MAX_CHIPS = 3;
+        var visibleEntries = dayEntries.slice(0, MAX_CHIPS);
+        var hiddenCount = dayEntries.length - visibleEntries.length;
+        visibleEntries.forEach(function(e){
           var t = getType(e.type);
           var chip = document.createElement("div");
           chip.className = "entry-chip";
@@ -858,6 +872,17 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
           chip.addEventListener("dragend", function(){ chip.classList.remove("dragging"); });
           div.appendChild(chip);
         });
+        if(hiddenCount > 0){
+          var more = document.createElement("div");
+          more.className = "entry-more";
+          more.textContent = "···";
+          more.title = hiddenCount + " de plus";
+          more.addEventListener("click", function(ev){
+            ev.stopPropagation();
+            openDayPanel(iso, dayEntries);
+          });
+          div.appendChild(more);
+        }
         div.addEventListener("dragover", function(ev){
           ev.preventDefault();
           div.classList.add("drop-target");
@@ -919,16 +944,56 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
 
     var monthStart = new Date(cursorDate.getFullYear(), cursorDate.getMonth(), 1);
     var monthEnd = new Date(cursorDate.getFullYear(), cursorDate.getMonth()+1, 0);
-    var dated = all.filter(function(e){
+    var todayISO = fmtISO(new Date());
+    var monthEntries = all.filter(function(e){
       if(!e.date) return false;
       var s = parseISO(e.date);
       var en = (e.endDate && e.endDate > e.date) ? parseISO(e.endDate) : s;
       return s <= monthEnd && en >= monthStart;
     }).sort(function(a,b){ return a.date.localeCompare(b.date); });
 
-    if(undated.length === 0 && dated.length === 0){
+    var pastEntries = monthEntries.filter(function(e){
+      var endIso = (e.endDate && e.endDate > e.date) ? e.endDate : e.date;
+      return endIso < todayISO;
+    });
+    var upcomingEntries = monthEntries.filter(function(e){
+      var endIso = (e.endDate && e.endDate > e.date) ? e.endDate : e.date;
+      return endIso >= todayISO;
+    });
+
+    if(undated.length === 0 && monthEntries.length === 0){
       container.innerHTML = '<div class="empty"><div class="serif">Rien à afficher</div>Ajoute un événement ou un post pour commencer.</div>';
       return;
+    }
+
+    if(pastEntries.length){
+      var toggleWrap = document.createElement("div");
+      toggleWrap.className = "list-month";
+      var toggleBtn = document.createElement("button");
+      toggleBtn.className = "prev-toggle";
+      toggleBtn.innerHTML = '<span class="pt-arrow">▸</span> Événements précédents (' + pastEntries.length + ')';
+      var pastWrap = document.createElement("div");
+      pastWrap.className = "prev-events-wrap";
+      pastWrap.style.display = "none";
+      pastEntries.forEach(function(e){ pastWrap.appendChild(makeListCard(e, true)); });
+      toggleBtn.addEventListener("click", function(){
+        var isOpen = pastWrap.style.display !== "none";
+        pastWrap.style.display = isOpen ? "none" : "block";
+        toggleBtn.querySelector(".pt-arrow").textContent = isOpen ? "▸" : "▾";
+      });
+      toggleWrap.appendChild(toggleBtn);
+      toggleWrap.appendChild(pastWrap);
+      container.appendChild(toggleWrap);
+    }
+
+    if(upcomingEntries.length){
+      var dWrap = document.createElement("div");
+      dWrap.className = "list-month";
+      var dh = document.createElement("h3");
+      dh.textContent = MONTHS_FR[cursorDate.getMonth()] + " " + cursorDate.getFullYear();
+      dWrap.appendChild(dh);
+      upcomingEntries.forEach(function(e){ dWrap.appendChild(makeListCard(e, true)); });
+      container.appendChild(dWrap);
     }
 
     if(undated.length){
@@ -939,16 +1004,6 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
       uWrap.appendChild(uh);
       undated.forEach(function(e){ uWrap.appendChild(makeListCard(e, false)); });
       container.appendChild(uWrap);
-    }
-
-    if(dated.length){
-      var dWrap = document.createElement("div");
-      dWrap.className = "list-month";
-      var dh = document.createElement("h3");
-      dh.textContent = MONTHS_FR[cursorDate.getMonth()] + " " + cursorDate.getFullYear();
-      dWrap.appendChild(dh);
-      dated.forEach(function(e){ dWrap.appendChild(makeListCard(e, true)); });
-      container.appendChild(dWrap);
     }
   }
 
@@ -1235,6 +1290,7 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
         row.classList.toggle("done", td.done);
       });
       row.querySelector(".del").addEventListener("click", function(){
+        if(!confirm("Supprimer cette tâche ?")) return;
         tempTodos.splice(idx,1); renderTodosEdit();
       });
       wrap.appendChild(row);
