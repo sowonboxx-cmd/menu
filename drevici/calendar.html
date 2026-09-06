@@ -302,7 +302,6 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
 /* View (read-only) panel */
 .view-date-row{font-size:13px; color:var(--muted); font-weight:600; margin-bottom:12px;}
 .view-meta{display:flex; align-items:center; gap:10px; margin-bottom:20px; flex-wrap:wrap;}
-.view-meta-spacer{flex:1;}
 .view-location{
   display:flex; align-items:center; gap:6px; font-size:13px; color:var(--navy);
   text-decoration:none; margin:-14px 0 20px; font-weight:600;
@@ -463,12 +462,8 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
   </div>
   <div class="panel-body">
     <div class="field">
-      <label>Type</label>
-      <div class="pill-group" id="f-type">
-        <button class="pill-opt" data-val="event">Événement</button>
-        <button class="pill-opt" data-val="instagram">Instagram</button>
-        <button class="pill-opt" data-val="tiktok">TikTok</button>
-      </div>
+      <label>Titre</label>
+      <input type="text" id="f-title" placeholder="Ex : Reels — panier d'huîtres du matin">
     </div>
     <div class="field-row">
       <div class="field">
@@ -479,16 +474,19 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
       <div class="field">
         <label>Date de fin (optionnel)</label>
         <input type="date" id="f-end-date">
-        <small>Pour un événement sur plusieurs jours.</small>
+      </div>
+    </div>
+    <div class="field">
+      <label>Type</label>
+      <div class="pill-group" id="f-type">
+        <button class="pill-opt" data-val="event">Événement</button>
+        <button class="pill-opt" data-val="instagram">Instagram</button>
+        <button class="pill-opt" data-val="tiktok">TikTok</button>
       </div>
     </div>
     <div class="field">
       <label>Tag</label>
       <div class="pill-group" id="f-status-pills"></div>
-    </div>
-    <div class="field">
-      <label>Titre</label>
-      <input type="text" id="f-title" placeholder="Ex : Reels — panier d'huîtres du matin">
     </div>
     <div class="field">
       <label>Google Maps</label>
@@ -678,7 +676,8 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     return types.find(function(t){ return t.id === id; }) || {id:id, label:id, color:"#9AA3B5"};
   }
   function getStatus(id){
-    return statuses.find(function(s){ return s.id === id; }) || {id:id, label:id||"Idée", color:"#9AA3B5"};
+    if(!id) return null;
+    return statuses.find(function(s){ return s.id === id; }) || {id:id, label:id, color:"#9AA3B5"};
   }
   function slugify(s){
     return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"") || "type";
@@ -1047,6 +1046,7 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
       endLabel = '<div class="m" style="margin-top:2px;">→ ' + ed.getDate() + ' ' + MONTHS_FR[ed.getMonth()].slice(0,3) + '</div>';
     }
     var st = getStatus(e.status);
+    var statusHtml = st ? '<span class="status-dot" style="background:' + st.color + '"></span><span style="font-size:11px;color:var(--muted)">' + escapeHtml(st.label) + '</span>' : '';
     var card = document.createElement("div");
     card.className = "list-card";
     card.innerHTML =
@@ -1054,7 +1054,7 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
       '<div class="list-body">' +
         '<p class="title">' + escapeHtml(e.title) + '</p>' +
         (e.desc ? '<div class="sub">' + escapeHtml(e.desc.slice(0,90)) + (e.desc.length>90?'…':'') + '</div>' : '') +
-        '<div class="row1"><span class="tag" style="background:' + hexToRgba(t.color,0.16) + ';color:' + shadeColor(t.color,-0.35) + '">' + escapeHtml(t.label) + '</span><span class="status-dot" style="background:' + st.color + '"></span><span style="font-size:11px;color:var(--muted)">' + escapeHtml(st.label) + '</span></div>' +
+        '<div class="row1"><span class="tag" style="background:' + hexToRgba(t.color,0.16) + ';color:' + shadeColor(t.color,-0.35) + '">' + escapeHtml(t.label) + '</span>' + statusHtml + '</div>' +
       '</div>' +
       '<div class="chevron">›</div>';
     card.addEventListener("click", function(){ openViewPanel(e.id); });
@@ -1258,8 +1258,9 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     html += '<div class="view-date-row">' + dateLabel + '</div>';
     html += '<div class="view-meta">';
     html += '<span class="tag" style="background:' + hexToRgba(t.color,0.16) + ';color:' + shadeColor(t.color,-0.35) + '">' + escapeHtml(t.label) + '</span>';
-    html += '<span class="view-meta-spacer"></span>';
-    html += '<span class="tag" style="background:' + hexToRgba(st.color,0.16) + ';color:' + shadeColor(st.color,-0.35) + '">' + escapeHtml(st.label) + '</span>';
+    if(st){
+      html += '<span class="tag" style="background:' + hexToRgba(st.color,0.16) + ';color:' + shadeColor(st.color,-0.35) + '">' + escapeHtml(st.label) + '</span>';
+    }
     html += '</div>';
 
     if(e.location){
@@ -1378,12 +1379,13 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     dayEntries.forEach(function(e){
       var t = getType(e.type);
       var st = getStatus(e.status);
+      var statusHtml = st ? '<span class="status-dot" style="background:' + st.color + '"></span><span style="font-size:11px;color:var(--muted)">' + escapeHtml(st.label) + '</span>' : '';
       var card = document.createElement("div");
       card.className = "list-card";
       card.innerHTML =
         '<div class="list-body">' +
           '<p class="title">' + escapeHtml(e.title) + '</p>' +
-          '<div class="row1"><span class="tag" style="background:' + hexToRgba(t.color,0.16) + ';color:' + shadeColor(t.color,-0.35) + '">' + escapeHtml(t.label) + '</span><span class="status-dot" style="background:' + st.color + '"></span><span style="font-size:11px;color:var(--muted)">' + escapeHtml(st.label) + '</span></div>' +
+          '<div class="row1"><span class="tag" style="background:' + hexToRgba(t.color,0.16) + ';color:' + shadeColor(t.color,-0.35) + '">' + escapeHtml(t.label) + '</span>' + statusHtml + '</div>' +
         '</div>' +
         '<div class="chevron">›</div>';
       card.addEventListener("click", function(){
@@ -1456,10 +1458,15 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     document.querySelectorAll("#f-status-pills .pill-opt").forEach(function(b){
       b.classList.toggle("active", b.dataset.val === v);
     });
-    document.getElementById("f-status-pills").dataset.current = v;
+    document.getElementById("f-status-pills").dataset.current = v || "";
   }
   document.getElementById("f-status-pills").addEventListener("click", function(ev){
     if(ev.target.classList.contains("pill-opt")) setStatusVal(ev.target.dataset.val);
+  });
+  document.getElementById("f-status-pills").addEventListener("dblclick", function(ev){
+    if(ev.target.classList.contains("pill-opt") && ev.target.dataset.val === document.getElementById("f-status-pills").dataset.current){
+      setStatusVal("");
+    }
   });
   function setTypeVal(v){
     document.querySelectorAll("#f-type .pill-opt").forEach(function(b){
@@ -1548,7 +1555,7 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
       type: document.getElementById("f-type").dataset.current || "instagram",
       date: document.getElementById("f-date").value,
       endDate: document.getElementById("f-end-date").value,
-      status: document.getElementById("f-status-pills").dataset.current || "idea",
+      status: document.getElementById("f-status-pills").dataset.current || "",
       title: document.getElementById("f-title").value.trim() || "Sans titre",
       location: document.getElementById("f-location").value.trim(),
       caption: document.getElementById("f-caption").value,
