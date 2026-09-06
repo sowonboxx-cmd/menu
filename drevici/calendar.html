@@ -52,7 +52,9 @@ a{color:inherit;}
   max-width:1180px; margin:0 auto; padding:16px 20px;
   display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
 }
-.topbar .logo{display:flex; flex-direction:column; align-items:flex-start; gap:1px; min-width:0;}
+.topbar .logo{display:flex; flex-direction:column; align-items:flex-start; gap:1px; min-width:0; cursor:pointer; transition:opacity .15s;}
+.topbar .logo:hover{opacity:.8;}
+.topbar .logo.syncing{opacity:.5;}
 .topbar .logo-text{font-family:'Playfair Display',serif; font-weight:600; font-size:22px; letter-spacing:.02em; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 .topbar .logo-sub{font-family:'Inter',sans-serif; font-size:11px; color:#a9b7d6; text-transform:uppercase; letter-spacing:.08em; margin-top:2px;}
 .topbar-controls{display:flex; align-items:center; gap:12px; flex-shrink:0;}
@@ -382,7 +384,7 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
 <div id="app">
   <div class="topbar">
     <div class="topbar-inner">
-      <div class="logo">
+      <div class="logo" id="logo-sync-btn" title="Recharger et synchroniser">
         <div class="logo-text">Drevici Oyster</div>
         <div class="logo-sub">Calendrier éditorial</div>
       </div>
@@ -738,6 +740,17 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     }
   }
 
+  document.getElementById("logo-sync-btn").addEventListener("click", function(){
+    var logoEl = document.getElementById("logo-sync-btn");
+    if(!isCloudConfigured()){
+      alert("Renseigne d'abord l'URL du Worker et le token d'équipe dans les réglages.");
+      return;
+    }
+    logoEl.classList.add("syncing");
+    pullFromCloud(true);
+    setTimeout(function(){ logoEl.classList.remove("syncing"); }, 700);
+  });
+
   // ---------------- Cloud sync (via Cloudflare Worker) ----------------
   function isCloudConfigured(){ return !!(cfg.workerUrl && cfg.appToken); }
 
@@ -949,6 +962,9 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
           div.appendChild(dotsWrap);
           div.style.cursor = "pointer";
           div.addEventListener("click", function(){ openDayPanel(iso, dayEntries); });
+        } else {
+          div.style.cursor = "pointer";
+          div.addEventListener("click", function(){ openPanel(null, iso); });
         }
       } else {
         var MAX_CHIPS = 3;
@@ -983,6 +999,11 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
           });
           div.appendChild(more);
         }
+        div.style.cursor = "pointer";
+        div.addEventListener("click", function(ev){
+          if(ev.target.closest(".entry-chip, .entry-more")) return;
+          openPanel(null, iso);
+        });
         div.addEventListener("dragover", function(ev){
           ev.preventDefault();
           div.classList.add("drop-target");
@@ -1377,11 +1398,11 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
   }
   document.getElementById("day-close").addEventListener("click", closeDayPanel);
 
-  function openPanel(id){
+  function openPanel(id, presetDate){
     editingId = id || null;
     var e = id ? entries.find(function(x){ return x.id === id; }) : null;
     document.getElementById("panel-title").textContent = e ? "Modifier l'élément" : "Nouvel élément";
-    document.getElementById("f-date").value = e ? e.date : fmtISO(new Date());
+    document.getElementById("f-date").value = e ? e.date : (presetDate || fmtISO(new Date()));
     document.getElementById("f-end-date").value = e && e.endDate ? e.endDate : "";
     document.getElementById("f-title").value = e ? e.title : "";
     document.getElementById("f-location").value = e ? (e.location||"") : "";
