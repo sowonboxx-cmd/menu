@@ -228,9 +228,12 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
   background:var(--navy); color:#fff; padding:18px 20px; display:flex; align-items:center; gap:12px;
 }
 .panel-head button.close{
-  background:rgba(255,255,255,.12); border:none; color:#fff; width:30px; height:30px; border-radius:50%; font-size:15px;
+  background:rgba(255,255,255,.12); border:none; color:#fff; width:30px; height:30px; border-radius:50%; font-size:15px; flex-shrink:0;
 }
-.panel-head .ph-title{font-family:'Inter',sans-serif; font-size:16px; font-weight:700;}
+.panel-head .ph-title{
+  font-family:'Inter',sans-serif; font-size:16px; font-weight:700;
+  flex:1; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+}
 .panel-body{flex:1; overflow-y:auto; padding:20px;}
 .field{margin-bottom:18px;}
 .field label{
@@ -297,9 +300,9 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
 }
 
 /* View (read-only) panel */
-.view-meta{display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap;}
-.view-date{font-size:12.5px; color:var(--muted); font-weight:600;}
-.view-title{margin:0 0 20px; font-size:21px; font-weight:600; line-height:1.3;}
+.view-date-row{font-size:13px; color:var(--muted); font-weight:600; margin-bottom:12px;}
+.view-meta{display:flex; align-items:center; gap:10px; margin-bottom:20px; flex-wrap:wrap;}
+.view-meta-spacer{flex:1;}
 .view-location{
   display:flex; align-items:center; gap:6px; font-size:13px; color:var(--navy);
   text-decoration:none; margin:-14px 0 20px; font-weight:600;
@@ -480,7 +483,7 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
       </div>
     </div>
     <div class="field">
-      <label>Statut</label>
+      <label>Tag</label>
       <div class="pill-group" id="f-status-pills"></div>
     </div>
     <div class="field">
@@ -546,10 +549,10 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
       </div>
     </div>
     <div class="field">
-      <label>Statuts</label>
+      <label>Tags</label>
       <div class="types-list" id="statuses-list"></div>
       <div class="add-type-row">
-        <input type="text" id="status-name-input" placeholder="Nom du statut (ex : En attente)">
+        <input type="text" id="status-name-input" placeholder="Nom du tag (ex : En attente)">
         <input type="color" id="status-color-input" value="#5B7A8C">
         <button id="status-add-btn">Ajouter</button>
       </div>
@@ -1247,17 +1250,17 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
       dateLabel = "À prévoir";
     }
 
-    document.getElementById("view-title-label").textContent = t.label;
+    document.getElementById("view-title-label").textContent = e.title;
 
     var st = getStatus(e.status);
     var body = document.getElementById("view-body");
     var html = '';
+    html += '<div class="view-date-row">' + dateLabel + '</div>';
     html += '<div class="view-meta">';
     html += '<span class="tag" style="background:' + hexToRgba(t.color,0.16) + ';color:' + shadeColor(t.color,-0.35) + '">' + escapeHtml(t.label) + '</span>';
-    html += '<span class="status-dot" style="background:' + st.color + '"></span><span style="font-size:11px;color:var(--muted)">' + escapeHtml(st.label) + '</span>';
-    html += '<span class="view-date">' + dateLabel + '</span>';
+    html += '<span class="view-meta-spacer"></span>';
+    html += '<span class="tag" style="background:' + hexToRgba(st.color,0.16) + ';color:' + shadeColor(st.color,-0.35) + '">' + escapeHtml(st.label) + '</span>';
     html += '</div>';
-    html += '<h3 class="view-title">' + escapeHtml(e.title) + '</h3>';
 
     if(e.location){
       html += '<a class="view-location" href="' + escapeHtml(e.location) + '" target="_blank" rel="noopener">📍 <span>Voir sur Google Maps</span></a>';
@@ -1725,8 +1728,8 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
         if(ev.key === "Enter"){ nameInput.blur(); }
       });
       row.querySelector(".del").addEventListener("click", function(){
-        if(statuses.length <= 1){ alert("Il faut garder au moins un statut."); return; }
-        if(!confirm("Supprimer le statut \"" + s.label + "\" ?")) return;
+        if(statuses.length <= 1){ alert("Il faut garder au moins un tag."); return; }
+        if(!confirm("Supprimer le tag \"" + s.label + "\" ?")) return;
         statuses = statuses.filter(function(x){ return x.id !== s.id; });
         saveStatuses(); renderStatusesList(); render();
         pushToCloud(true);
