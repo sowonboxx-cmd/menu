@@ -71,6 +71,7 @@ a{color:inherit;}
   padding:9px 16px; font-size:13px; font-weight:700; white-space:nowrap;
   display:flex; align-items:center; gap:4px;
 }
+.btn-add:disabled{opacity:.45; cursor:not-allowed;}
 .btn-add .add-icon{font-size:16px; line-height:1;}
 
 .filters{
@@ -740,11 +741,19 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
   // ---------------- Cloud sync (via Cloudflare Worker) ----------------
   function isCloudConfigured(){ return !!(cfg.workerUrl && cfg.appToken); }
 
+  var pullInFlight = false;
+  function setAddButtonsDisabled(disabled){
+    var btnAdd = document.getElementById("btn-add");
+    if(btnAdd) btnAdd.disabled = disabled;
+  }
+
   function pullFromCloud(silent){
     if(!isCloudConfigured()){
       if(!silent) alert("Renseigne d'abord l'URL du Worker et le token d'équipe dans les réglages.");
       return;
     }
+    pullInFlight = true;
+    setAddButtonsDisabled(true);
     setSyncStatus("Chargement depuis le cloud…");
     fetch(cfg.workerUrl, {
       headers:{ "X-App-Token": cfg.appToken }
@@ -772,10 +781,14 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
       }
     }).catch(function(err){
       setSyncStatus("Échec : " + err.message);
+    }).finally(function(){
+      pullInFlight = false;
+      setAddButtonsDisabled(false);
     });
   }
 
   function pushToCloud(silent){
+    if(pullInFlight) return;
     if(!isCloudConfigured()){
       if(!silent) alert("Renseigne d'abord l'URL du Worker et le token d'équipe dans les réglages.");
       return;
