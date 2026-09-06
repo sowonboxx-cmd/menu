@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aperçu Story</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root{
+    --bg:#1c1c1e;
+    --panel:#242426;
+    --panel-border:#333335;
+    --text:#f2f2f2;
+    --text-dim:#9a9a9d;
+    --accent:#3E9DFF;
+    --danger:#ff5a5a;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    min-height:100vh;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding:32px 20px;
+  }
+  .workspace{
+    display:flex;
+    gap:36px;
+    align-items:flex-start;
+    flex-wrap:wrap;
+    justify-content:center;
+    max-width:920px;
+  }
+
+  /* ---------- PHONE ---------- */
+  .phone-wrap{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:14px;
+  }
+  .phone{
+    width:405px;
+    height:720px;
+    max-width:88vw;
+    max-height:calc(88vw * 16 / 9);
+    position:relative;
+    background:#0a0a0a;
+    border-radius:28px;
+    overflow:hidden;
+    box-shadow:0 30px 70px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.06);
+  }
+
+  .photo-layer{
+    position:absolute;
+    left:0; right:0;
+    top:6.3%;
+    bottom:11.75%;
+    overflow:hidden;
+    background:#151517;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .photo-layer img{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    object-position:50% var(--posY,50%);
+    transform:scale(var(--zoom,1));
+    transform-origin:center;
+  }
+  .photo-empty{
+    color:var(--text-dim);
+    font-size:13px;
+    text-align:center;
+    padding:0 30px;
+    line-height:1.5;
+  }
+
+  .safe-guide{
+    position:absolute;
+    left:0; right:0;
+    height:1px;
+    background:repeating-linear-gradient(90deg, var(--danger) 0 6px, transparent 6px 12px);
+    z-index:5;
+    pointer-events:none;
+    opacity:0;
+    transition:opacity .15s;
+  }
+  .safe-guide.on{opacity:.9;}
+  .safe-guide.top{top:6.3%;}
+  .safe-guide.bottom{bottom:11.75%;}
+
+  /* top chrome */
+  .top-chrome{
+    position:absolute;
+    top:0; left:0; right:0;
+    padding:14px 12px 0 12px;
+    z-index:10;
+    background:linear-gradient(to bottom, rgba(0,0,0,.35), transparent);
+  }
+  .progress-row{display:flex; gap:4px; margin-bottom:10px;}
+  .segment{flex:1; height:2.5px; border-radius:2px; background:rgba(255,255,255,.35); overflow:hidden;}
+  .segment.done{background:#fff;}
+  .segment.current{position:relative;}
+  .segment.current::after{
+    content:'';
+    position:absolute; left:0; top:0; bottom:0;
+    width:55%;
+    background:#fff;
+    border-radius:2px;
+  }
+  .header-row{display:flex; align-items:center; gap:8px;}
+  .avatar{
+    width:26px; height:26px; border-radius:50%;
+    background:#2a3a52 center/cover no-repeat;
+    border:1px solid rgba(255,255,255,.5);
+    flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-size:11px;
+    color:rgba(255,255,255,.6);
+    overflow:hidden;
+  }
+  .handle{font-weight:600; font-size:12.5px; letter-spacing:.2px; text-transform:uppercase;}
+  .timestamp{font-size:12.5px; color:rgba(255,255,255,.72); margin-left:2px;}
+  .spacer{flex:1;}
+  .icon-btn{color:#fff; opacity:.9;}
+
+  /* bottom chrome */
+  .link-pill{
+    position:absolute;
+    left:50%;
+    bottom:11.75%;
+    transform:translate(-50%, 60%);
+    background:rgba(20,20,20,.55);
+    backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
+    color:#fff;
+    padding:11px 18px;
+    border-radius:22px;
+    font-size:14px;
+    font-weight:600;
+    display:flex;
+    align-items:center;
+    gap:7px;
+    white-space:nowrap;
+    z-index:10;
+    max-width:80%;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .reply-bar{
+    position:absolute;
+    bottom:0; left:0; right:0;
+    height:11.75%;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:0 12px;
+    z-index:10;
+  }
+  .reply-input{
+    flex:1;
+    height:32px;
+    border:1px solid rgba(255,255,255,.55);
+    border-radius:18px;
+    display:flex;
+    align-items:center;
+    padding:0 12px;
+    font-size:11.5px;
+    color:rgba(255,255,255,.65);
+  }
+  .reply-bar svg{flex-shrink:0;}
+
+  /* ---------- CONTROLS ---------- */
+  .panel{
+    width:300px;
+    max-width:88vw;
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+  }
+  .panel h1{
+    font-size:15px;
+    margin:0 0 2px 0;
+    font-weight:600;
+  }
+  .panel .sub{
+    font-size:12.5px;
+    color:var(--text-dim);
+    margin:0 0 4px 0;
+    line-height:1.5;
+  }
+  .field{display:flex; flex-direction:column; gap:6px;}
+  .field label{font-size:12px; color:var(--text-dim);}
+  .field input[type=text]{
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    color:var(--text);
+    border-radius:8px;
+    padding:9px 10px;
+    font-size:13px;
+    font-family:inherit;
+  }
+  .row2{display:flex; gap:10px;}
+  .row2 .field{flex:1;}
+  .dropzone{
+    border:1.5px dashed var(--panel-border);
+    border-radius:10px;
+    padding:18px 10px;
+    text-align:center;
+    font-size:12.5px;
+    color:var(--text-dim);
+    cursor:pointer;
+    transition:border-color .15s, color .15s;
+  }
+  .dropzone.drag{border-color:var(--accent); color:var(--text);}
+  .dropzone input{display:none;}
+  .slider-row{display:flex; align-items:center; gap:10px;}
+  .slider-row input[type=range]{flex:1;}
+  .toggle-row{display:flex; align-items:center; justify-content:space-between; font-size:13px;}
+  .toggle-row .sub{margin:0;}
+  .switch{
+    position:relative; width:38px; height:22px; flex-shrink:0;
+  }
+  .switch input{opacity:0; width:0; height:0;}
+  .slider-el{
+    position:absolute; inset:0; background:#3a3a3c; border-radius:22px;
+    transition:.15s; cursor:pointer;
+  }
+  .slider-el::before{
+    content:''; position:absolute; width:18px; height:18px; left:2px; top:2px;
+    background:#fff; border-radius:50%; transition:.15s;
+  }
+  .switch input:checked + .slider-el{background:var(--accent);}
+  .switch input:checked + .slider-el::before{transform:translateX(16px);}
+  .avatar-picker{display:flex; align-items:center; gap:10px;}
+  .avatar-picker .mini{
+    width:36px;height:36px;border-radius:50%;
+    background:#2a3a52 center/cover no-repeat;
+    border:1px solid var(--panel-border);
+    flex-shrink:0;
+  }
+  .btn{
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    border-radius:9px;
+    padding:11px 14px;
+    font-size:13.5px;
+    font-weight:600;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .btn.secondary{
+    background:transparent;
+    border:1px solid var(--panel-border);
+    color:var(--text);
+  }
+  .btn-row{display:flex; gap:10px;}
+  .note{
+    font-size:11.5px;
+    color:var(--text-dim);
+    line-height:1.5;
+    border-top:1px solid var(--panel-border);
+    padding-top:14px;
+  }
+</style>
+</head>
+<body>
+
+<div class="workspace">
+
+  <div class="phone-wrap">
+    <div class="phone" id="phone">
+      <div class="photo-layer" id="photoLayer">
+        <div class="photo-empty" id="photoEmpty">Dépose une photo ici<br>ou utilise le panneau à droite</div>
+        <img id="photoImg" style="display:none;">
+      </div>
+
+      <div class="safe-guide top" id="guideTop"></div>
+      <div class="safe-guide bottom" id="guideBottom"></div>
+
+      <div class="top-chrome">
+        <div class="progress-row" id="progressRow"></div>
+        <div class="header-row">
+          <div class="avatar" id="avatar">🐚</div>
+          <div class="handle" id="handleText">Menu</div>
+          <div class="timestamp" id="dateText">14 février</div>
+          <div class="spacer"></div>
+          <div class="icon-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/></svg>
+          </div>
+          <div class="icon-btn">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="link-pill" id="linkPill">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11.5 4.5"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07l1.36-1.36"/></svg>
+        <span id="linkText">Book right now !</span>
+      </div>
+      <div class="reply-bar">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6"><rect x="3" y="6" width="14" height="14" rx="2"/><rect x="7" y="4" width="14" height="14" rx="2" fill="#0a0a0a"/></svg>
+        <div class="reply-input">Envoyer un message...</div>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6c.6-1.8-1.2-3.6-3-3L2.9 8.4c-1.9.6-2 3.3-.1 4l6.2 2.3c.4.1.7.4.8.8l2.3 6.2c.7 1.9 3.4 1.8 4-.1z"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn secondary" id="downloadBtn">Télécharger l'aperçu (PNG)</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div>
+      <h1>Aperçu de story</h1>
+      <p class="sub">Recrée le cadre Instagram (progression, profil, lien de commande) autour de ta photo, pour te projeter avant de publier.</p>
+    </div>
+
+    <div class="dropzone" id="dropzone">
+      📷 Clique ou dépose une photo ici
+      <input type="file" id="fileInput" accept="image/*">
+    </div>
+
+    <div class="field" id="posField" style="display:none">
+      <label>Position verticale de la photo</label>
+      <div class="slider-row">
+        <input type="range" id="posY" min="0" max="100" value="50">
+      </div>
+    </div>
+    <div class="field" id="zoomField" style="display:none">
+      <label>Zoom</label>
+      <div class="slider-row">
+        <input type="range" id="zoom" min="100" max="180" value="100">
+      </div>
+    </div>
+
+    <div class="toggle-row">
+      <p class="sub">Afficher les zones de sécurité</p>
+      <label class="switch">
+        <input type="checkbox" id="guideToggle" checked>
+        <span class="slider-el"></span>
+      </label>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label>Nom du compte</label>
+        <input type="text" id="handleInput" value="Menu">
+      </div>
+      <div class="field">
+        <label>Date affichée</label>
+        <input type="text" id="dateInput" value="14 février">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Texte du lien de commande</label>
+      <input type="text" id="linkInput" value="Book right now !">
+    </div>
+
+    <div class="avatar-picker">
+      <div class="mini" id="avatarPreview"></div>
+      <button class="btn secondary" id="avatarBtn" style="flex:1">Changer le logo</button>
+      <input type="file" id="avatarInput" accept="image/*" style="display:none">
+    </div>
+
+    <div class="note">
+      Zones grisées mesurées sur un vrai screenshot iPhone : environ <strong>6,3%</strong> du haut (progression + profil) et <strong>11,75%</strong> du bas (lien + barre de réponse) sont recouverts par l'interface Instagram, quelle que soit ta photo. Garde les éléments importants (visage, texte, logo) en dehors de ces bandes, avec un peu de marge en plus pour les autres appareils.
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const photoImg = document.getElementById('photoImg');
+  const photoEmpty = document.getElementById('photoEmpty');
+  const photoLayer = document.getElementById('photoLayer');
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const posY = document.getElementById('posY');
+  const zoom = document.getElementById('zoom');
+  const posField = document.getElementById('posField');
+  const zoomField = document.getElementById('zoomField');
+  const guideToggle = document.getElementById('guideToggle');
+  const guideTop = document.getElementById('guideTop');
+  const guideBottom = document.getElementById('guideBottom');
+  const handleInput = document.getElementById('handleInput');
+  const dateInput = document.getElementById('dateInput');
+  const linkInput = document.getElementById('linkInput');
+  const handleText = document.getElementById('handleText');
+  const dateText = document.getElementById('dateText');
+  const linkText = document.getElementById('linkText');
+  const avatar = document.getElementById('avatar');
+  const avatarPreview = document.getElementById('avatarPreview');
+  const avatarBtn = document.getElementById('avatarBtn');
+  const avatarInput = document.getElementById('avatarInput');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const progressRow = document.getElementById('progressRow');
+  const phone = document.getElementById('phone');
+
+  // build a default progress bar: 6 segments, 4th one "current"
+  const SEGMENT_COUNT = 6;
+  const CURRENT_INDEX = 3;
+  for(let i=0;i<SEGMENT_COUNT;i++){
+    const seg = document.createElement('div');
+    seg.className = 'segment' + (i < CURRENT_INDEX ? ' done' : (i === CURRENT_INDEX ? ' current' : ''));
+    progressRow.appendChild(seg);
+  }
+
+  function loadImageFile(file, targetImg, onDone){
+    if(!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      targetImg.src = e.target.result;
+      if(onDone) onDone(e.target.result);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  fileInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    loadImageFile(file, photoImg, () => {
+      photoImg.style.display = 'block';
+      photoEmpty.style.display = 'none';
+      posField.style.display = 'flex';
+      zoomField.style.display = 'flex';
+    });
+  });
+
+  dropzone.addEventListener('click', () => fileInput.click());
+  ['dragover','dragenter'].forEach(ev => dropzone.addEventListener(ev, e => {
+    e.preventDefault(); dropzone.classList.add('drag');
+  }));
+  ['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, e => {
+    e.preventDefault(); dropzone.classList.remove('drag');
+  }));
+  dropzone.addEventListener('drop', e => {
+    const file = e.dataTransfer.files[0];
+    fileInput.files = e.dataTransfer.files;
+    loadImageFile(file, photoImg, () => {
+      photoImg.style.display = 'block';
+      photoEmpty.style.display = 'none';
+      posField.style.display = 'flex';
+      zoomField.style.display = 'flex';
+    });
+  });
+  // also allow dropping directly on the phone photo area
+  ['dragover','dragenter'].forEach(ev => photoLayer.addEventListener(ev, e => e.preventDefault()));
+  photoLayer.addEventListener('drop', e => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    loadImageFile(file, photoImg, () => {
+      photoImg.style.display = 'block';
+      photoEmpty.style.display = 'none';
+      posField.style.display = 'flex';
+      zoomField.style.display = 'flex';
+    });
+  });
+
+  posY.addEventListener('input', () => {
+    photoLayer.style.setProperty('--posY', posY.value + '%');
+  });
+  zoom.addEventListener('input', () => {
+    photoLayer.style.setProperty('--zoom', (zoom.value/100));
+  });
+
+  guideToggle.addEventListener('change', () => {
+    guideTop.classList.toggle('on', guideToggle.checked);
+    guideBottom.classList.toggle('on', guideToggle.checked);
+  });
+  guideTop.classList.add('on');
+  guideBottom.classList.add('on');
+
+  handleInput.addEventListener('input', () => handleText.textContent = handleInput.value || 'Menu');
+  dateInput.addEventListener('input', () => dateText.textContent = dateInput.value);
+  linkInput.addEventListener('input', () => linkText.textContent = linkInput.value || 'Book right now !');
+
+  avatarBtn.addEventListener('click', () => avatarInput.click());
+  avatarInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    loadImageFile(file, {set src(v){ avatar.style.backgroundImage = 'url(' + v + ')'; avatar.textContent=''; avatarPreview.style.backgroundImage = 'url(' + v + ')'; }});
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    downloadBtn.textContent = 'Génération...';
+    html2canvas(phone, {backgroundColor:null, scale:3}).then(canvas => {
+      const link = document.createElement('a');
+      link.download = 'story-preview.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      downloadBtn.textContent = "Télécharger l'aperçu (PNG)";
+    });
+  });
+</script>
+</body>
+</html>
