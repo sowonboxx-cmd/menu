@@ -260,6 +260,54 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
 .field-row{display:flex; gap:10px;}
 .field-row .field{flex:1;}
 .copybox{position:relative;}
+
+/* Custom date+time picker */
+.dt-field{
+  position:relative; display:flex; align-items:center; gap:8px;
+  border:1px solid var(--line); border-radius:9px; padding:10px 12px; background:#fff; cursor:pointer;
+}
+.dt-field.disabled{opacity:.5; pointer-events:none;}
+.dt-field input{
+  border:none; outline:none; background:none; padding:0; font-size:14px; font-family:inherit;
+  color:var(--navy-ink); flex:1; min-width:0; cursor:pointer;
+}
+.dt-icon{color:var(--muted); flex-shrink:0;}
+.dt-popover{
+  display:none; position:fixed; z-index:500; width:290px; max-width:92vw;
+  background:var(--cream); border-radius:14px; box-shadow:0 18px 50px rgba(11,27,58,.3);
+  padding:14px; border:1px solid var(--line);
+}
+.dt-pop-header{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+.dt-pop-month{font-size:14px; font-weight:700; color:var(--navy-ink);}
+.dt-nav-btn{
+  background:#fff; border:1px solid var(--line); width:26px; height:26px; border-radius:50%;
+  font-size:13px; color:var(--navy); display:flex; align-items:center; justify-content:center;
+}
+.dt-pop-dow{display:grid; grid-template-columns:repeat(7,1fr); margin-bottom:2px;}
+.dt-pop-dow div{text-align:center; font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase;}
+.dt-pop-days{display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-bottom:12px;}
+.dt-day{
+  aspect-ratio:1; border:none; background:none; border-radius:7px; font-size:12.5px; color:var(--navy-ink);
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+}
+.dt-day:hover{background:#EDF0F8;}
+.dt-day.out{color:#c9cdd7;}
+.dt-day.today{box-shadow:inset 0 0 0 1.5px var(--navy);}
+.dt-day.selected{background:var(--navy); color:#fff; font-weight:700;}
+.dt-pop-times{
+  display:grid; grid-template-columns:repeat(4,1fr); gap:5px; max-height:130px; overflow-y:auto;
+  margin-bottom:12px; padding-right:2px;
+}
+.dt-time-slot{
+  border:1px solid var(--line); background:#fff; border-radius:7px; font-size:11px; padding:6px 3px;
+  color:var(--navy-ink); cursor:pointer; text-align:center;
+}
+.dt-time-slot:hover{border-color:var(--navy);}
+.dt-time-slot.selected{background:var(--navy); color:#fff; border-color:var(--navy); font-weight:700;}
+.dt-pop-actions{display:flex; align-items:center; justify-content:space-between; padding-top:8px; border-top:1px solid var(--line);}
+.dt-clear-btn, .dt-confirm-btn{background:none; border:none; font-size:13px; font-weight:700; padding:6px 4px;}
+.dt-clear-btn{color:#c2626a;}
+.dt-confirm-btn{color:var(--navy);}
 .copy-icon-btn{
   position:absolute; top:8px; right:8px; background:var(--navy); color:#fff; border:none;
   width:28px; height:28px; border-radius:7px; display:flex; align-items:center; justify-content:center;
@@ -479,12 +527,18 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     <div class="field-row">
       <div class="field">
         <label>Date</label>
-        <input type="date" id="f-date">
+        <div class="dt-field" id="f-date-field">
+          <input type="text" id="f-date-display" placeholder="jj/mm/aaaa" readonly>
+          <svg class="dt-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+        </div>
         <small id="f-date-hint" style="display:none;">Pas de date pour « À prévoir ».</small>
       </div>
       <div class="field">
         <label>Date de fin (optionnel)</label>
-        <input type="date" id="f-end-date">
+        <div class="dt-field" id="f-end-date-field">
+          <input type="text" id="f-end-date-display" placeholder="jj/mm/aaaa" readonly>
+          <svg class="dt-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+        </div>
       </div>
     </div>
     <div class="field">
@@ -1151,12 +1205,14 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
   function makeListCard(e, showDate){
     var t = getType(e.type);
     var d = showDate ? parseISO(e.date) : null;
-    var endLabel = "";
     var durationBadge = "";
-    if(d && e.endDate && e.endDate > e.date){
-      var ed = parseISO(e.endDate);
-      endLabel = '<div class="m" style="margin-top:2px;">→ ' + ed.getDate() + ' ' + MONTHS_FR[ed.getMonth()].slice(0,3) + '</div>';
-      durationBadge = '<span class="duration-badge">' + shortDateLabel(e.date) + ' – ' + shortDateLabel(e.endDate) + '</span>';
+    var isMultiDay = d && e.endDate && e.endDate > e.date;
+    if(isMultiDay){
+      var startPart = shortDateLabel(e.date) + (e.startTime ? ", " + e.startTime : "");
+      var endPart = shortDateLabel(e.endDate) + (e.endTime ? ", " + e.endTime : "");
+      durationBadge = '<span class="duration-badge">' + startPart + ' – ' + endPart + '</span>';
+    } else if(e.startTime){
+      durationBadge = '<span class="duration-badge">' + e.startTime + (e.endTime ? ' – ' + e.endTime : '') + '</span>';
     }
     var st = getStatus(e.status);
     var statusHtml = st ? '<span class="status-dot" style="background:' + st.color + '"></span><span style="font-size:11px;color:var(--muted)">' + escapeHtml(st.label) + '</span>' : '';
@@ -1164,7 +1220,7 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     var card = document.createElement("div");
     card.className = "list-card";
     card.innerHTML =
-      (d ? '<div class="list-date">' + wdHtml + '<div class="d">' + d.getDate() + '</div><div class="m">' + MONTHS_FR[d.getMonth()].slice(0,3) + '</div>' + endLabel + '</div>' : '') +
+      (d ? '<div class="list-date">' + wdHtml + '<div class="d">' + d.getDate() + '</div><div class="m">' + MONTHS_FR[d.getMonth()].slice(0,3) + '</div></div>' : '') +
       '<div class="list-body">' +
         '<p class="title">' + escapeHtml(e.title) + '</p>' +
         (e.desc ? '<div class="sub">' + escapeHtml(e.desc.slice(0,90)) + (e.desc.length>90?'…':'') + '</div>' : '') +
@@ -1336,6 +1392,182 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     });
   }
 
+  // ---------------- Custom date+time picker ----------------
+  var formStartDate = "", formStartTime = "";
+  var formEndDate = "", formEndTime = "";
+  var dtPopover = null;
+  var dtActiveField = null; // 'start' | 'end'
+  var dtViewMonth = new Date();
+  var dtSelDate = "";
+  var dtSelTime = "";
+
+  function updateDtDisplay(inputId, iso, time){
+    var input = document.getElementById(inputId);
+    if(!iso){ input.value = ""; return; }
+    var d = parseISO(iso);
+    var label = String(d.getDate()).padStart(2,"0") + "/" + String(d.getMonth()+1).padStart(2,"0") + "/" + d.getFullYear();
+    if(time) label += " " + time;
+    input.value = label;
+  }
+
+  function commitDtSelection(){
+    if(dtActiveField === "start"){
+      formStartDate = dtSelDate; formStartTime = dtSelTime;
+      updateDtDisplay("f-date-display", formStartDate, formStartTime);
+    } else if(dtActiveField === "end"){
+      formEndDate = dtSelDate; formEndTime = dtSelTime;
+      updateDtDisplay("f-end-date-display", formEndDate, formEndTime);
+    }
+  }
+
+  function renderDtDays(){
+    var monthLabel = dtPopover.querySelector("#dt-pop-month-label");
+    monthLabel.textContent = MONTHS_FR[dtViewMonth.getMonth()] + " " + dtViewMonth.getFullYear();
+    var daysWrap = dtPopover.querySelector("#dt-pop-days");
+    daysWrap.innerHTML = "";
+    var year = dtViewMonth.getFullYear(), month = dtViewMonth.getMonth();
+    var first = new Date(year, month, 1);
+    var startOffset = (first.getDay() + 6) % 7;
+    var daysInMonth = new Date(year, month+1, 0).getDate();
+    var daysInPrev = new Date(year, month, 0).getDate();
+    var todayISO = fmtISO(new Date());
+    var cellsArr = [];
+    for(var i=startOffset-1; i>=0; i--){ cellsArr.push({day:daysInPrev-i, out:true, date:new Date(year, month-1, daysInPrev-i)}); }
+    for(var d=1; d<=daysInMonth; d++){ cellsArr.push({day:d, out:false, date:new Date(year, month, d)}); }
+    var remain = (7 - (cellsArr.length % 7)) % 7;
+    for(var j=1; j<=remain; j++){ cellsArr.push({day:j, out:true, date:new Date(year, month+1, j)}); }
+    cellsArr.forEach(function(c){
+      var iso = fmtISO(c.date);
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "dt-day" + (c.out ? " out" : "") + (iso === todayISO ? " today" : "") + (iso === dtSelDate ? " selected" : "");
+      btn.textContent = c.day;
+      btn.addEventListener("click", function(ev){
+        ev.stopPropagation();
+        dtSelDate = iso;
+        commitDtSelection();
+        renderDtDays();
+      });
+      daysWrap.appendChild(btn);
+    });
+  }
+
+  function renderDtTimes(){
+    var timesWrap = dtPopover.querySelector("#dt-pop-times");
+    timesWrap.innerHTML = "";
+    for(var slot=0; slot<48; slot++){
+      (function(slot){
+        var hh = String(Math.floor(slot/2)).padStart(2,"0");
+        var mm = (slot % 2 === 0) ? "00" : "30";
+        var val = hh + ":" + mm;
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "dt-time-slot" + (val === dtSelTime ? " selected" : "");
+        btn.textContent = val;
+        btn.addEventListener("click", function(ev){
+          ev.stopPropagation();
+          dtSelTime = val;
+          commitDtSelection();
+          renderDtTimes();
+        });
+        timesWrap.appendChild(btn);
+      })(slot);
+    }
+  }
+
+  function positionDtPopover(triggerEl){
+    var rect = triggerEl.getBoundingClientRect();
+    dtPopover.style.top = (rect.bottom + 6) + "px";
+    dtPopover.style.left = rect.left + "px";
+    dtPopover.style.display = "block";
+    requestAnimationFrame(function(){
+      var popRect = dtPopover.getBoundingClientRect();
+      var left = rect.left;
+      if(popRect.right > window.innerWidth - 10) left = window.innerWidth - popRect.width - 10;
+      if(left < 10) left = 10;
+      dtPopover.style.left = left + "px";
+      if(popRect.bottom > window.innerHeight - 10){
+        dtPopover.style.top = Math.max(10, rect.top - popRect.height - 6) + "px";
+      }
+    });
+  }
+
+  function dtOutsideHandler(ev){
+    if(dtPopover && dtPopover.style.display !== "none" && !dtPopover.contains(ev.target)){
+      closeDtPopover();
+    }
+  }
+  function closeDtPopover(){
+    if(dtPopover) dtPopover.style.display = "none";
+    document.removeEventListener("mousedown", dtOutsideHandler);
+    dtActiveField = null;
+  }
+
+  function ensureDtPopover(){
+    if(dtPopover) return dtPopover;
+    dtPopover = document.createElement("div");
+    dtPopover.className = "dt-popover";
+    dtPopover.innerHTML =
+      '<div class="dt-pop-header">' +
+        '<button type="button" class="dt-nav-btn" id="dt-prev-month">‹</button>' +
+        '<div class="dt-pop-month" id="dt-pop-month-label"></div>' +
+        '<button type="button" class="dt-nav-btn" id="dt-next-month">›</button>' +
+      '</div>' +
+      '<div class="dt-pop-dow"><div>L</div><div>M</div><div>M</div><div>J</div><div>V</div><div>S</div><div>D</div></div>' +
+      '<div class="dt-pop-days" id="dt-pop-days"></div>' +
+      '<div class="dt-pop-times" id="dt-pop-times"></div>' +
+      '<div class="dt-pop-actions">' +
+        '<button type="button" class="dt-clear-btn" id="dt-clear-btn">Effacer</button>' +
+        '<button type="button" class="dt-confirm-btn" id="dt-confirm-btn">Valider</button>' +
+      '</div>';
+    document.body.appendChild(dtPopover);
+    dtPopover.addEventListener("mousedown", function(ev){ ev.stopPropagation(); });
+    dtPopover.querySelector("#dt-prev-month").addEventListener("click", function(ev){
+      ev.stopPropagation();
+      dtViewMonth = new Date(dtViewMonth.getFullYear(), dtViewMonth.getMonth()-1, 1);
+      renderDtDays();
+    });
+    dtPopover.querySelector("#dt-next-month").addEventListener("click", function(ev){
+      ev.stopPropagation();
+      dtViewMonth = new Date(dtViewMonth.getFullYear(), dtViewMonth.getMonth()+1, 1);
+      renderDtDays();
+    });
+    dtPopover.querySelector("#dt-clear-btn").addEventListener("click", function(ev){
+      ev.stopPropagation();
+      dtSelDate = ""; dtSelTime = "";
+      commitDtSelection();
+      renderDtDays();
+      renderDtTimes();
+    });
+    dtPopover.querySelector("#dt-confirm-btn").addEventListener("click", function(ev){
+      ev.stopPropagation();
+      closeDtPopover();
+    });
+    return dtPopover;
+  }
+
+  function openDtPopover(fieldKey, triggerEl){
+    ensureDtPopover();
+    dtActiveField = fieldKey;
+    var cur = fieldKey === "start" ? {date:formStartDate, time:formStartTime} : {date:formEndDate, time:formEndTime};
+    dtSelDate = cur.date;
+    dtSelTime = cur.time;
+    dtViewMonth = dtSelDate ? parseISO(dtSelDate) : new Date();
+    renderDtDays();
+    renderDtTimes();
+    positionDtPopover(triggerEl);
+    setTimeout(function(){ document.addEventListener("mousedown", dtOutsideHandler); }, 0);
+  }
+
+  document.getElementById("f-date-field").addEventListener("click", function(ev){
+    ev.stopPropagation();
+    openDtPopover("start", document.getElementById("f-date-field"));
+  });
+  document.getElementById("f-end-date-field").addEventListener("click", function(ev){
+    ev.stopPropagation();
+    openDtPopover("end", document.getElementById("f-end-date-field"));
+  });
+
   // ---------------- Panel (create/edit) ----------------
   var panel = document.getElementById("panel");
   var overlay = document.getElementById("overlay");
@@ -1356,9 +1588,13 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     if(e.date){
       var d = parseISO(e.date);
       dateLabel = d.getDate() + " " + MONTHS_FR[d.getMonth()].toLowerCase() + " " + d.getFullYear();
+      if(e.startTime) dateLabel += ", " + e.startTime;
       if(e.endDate && e.endDate > e.date){
         var ed = parseISO(e.endDate);
         dateLabel += " → " + ed.getDate() + " " + MONTHS_FR[ed.getMonth()].toLowerCase() + " " + ed.getFullYear();
+        if(e.endTime) dateLabel += ", " + e.endTime;
+      } else if(e.endTime){
+        dateLabel += " – " + e.endTime;
       }
     } else {
       dateLabel = "À prévoir";
@@ -1521,8 +1757,13 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     editingId = id || null;
     var e = id ? entries.find(function(x){ return x.id === id; }) : null;
     document.getElementById("panel-title").textContent = e ? "Modifier l'élément" : "Nouvel élément";
-    document.getElementById("f-date").value = e ? e.date : (presetDate || fmtISO(new Date()));
-    document.getElementById("f-end-date").value = e && e.endDate ? e.endDate : "";
+    closeDtPopover();
+    formStartDate = e ? e.date : (presetDate || "");
+    formStartTime = e ? (e.startTime || "") : "";
+    formEndDate = e && e.endDate ? e.endDate : "";
+    formEndTime = e && e.endTime ? e.endTime : "";
+    updateDtDisplay("f-date-display", formStartDate, formStartTime);
+    updateDtDisplay("f-end-date-display", formEndDate, formEndTime);
     document.getElementById("f-title").value = e ? e.title : "";
     document.getElementById("f-location").value = e ? (e.location||"") : "";
     document.getElementById("f-caption").value = e ? (e.caption||"") : "";
@@ -1545,6 +1786,7 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     panel.classList.remove("show");
     overlay.classList.remove("show");
     editingId = null;
+    closeDtPopover();
   }
   function renderTypePills(){
     var wrap = document.getElementById("f-type");
@@ -1587,20 +1829,22 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
       b.classList.toggle("active", b.dataset.val === v);
     });
     document.getElementById("f-type").dataset.current = v;
-    var dateInput = document.getElementById("f-date");
+    var dateField = document.getElementById("f-date-field");
     var dateHint = document.getElementById("f-date-hint");
-    var endDateInput = document.getElementById("f-end-date");
+    var endDateField = document.getElementById("f-end-date-field");
     if(v === "avenir"){
-      dateInput.value = "";
-      dateInput.disabled = true;
-      endDateInput.value = "";
-      endDateInput.disabled = true;
+      closeDtPopover();
+      formStartDate = ""; formStartTime = "";
+      formEndDate = ""; formEndTime = "";
+      updateDtDisplay("f-date-display", "", "");
+      updateDtDisplay("f-end-date-display", "", "");
+      dateField.classList.add("disabled");
+      endDateField.classList.add("disabled");
       if(dateHint) dateHint.style.display = "block";
     } else {
-      dateInput.disabled = false;
-      endDateInput.disabled = false;
+      dateField.classList.remove("disabled");
+      endDateField.classList.remove("disabled");
       if(dateHint) dateHint.style.display = "none";
-      if(!dateInput.value) dateInput.value = fmtISO(new Date());
     }
   }
   document.getElementById("f-type").addEventListener("click", function(ev){
@@ -1667,8 +1911,10 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
   document.getElementById("btn-save").addEventListener("click", function(){
     var data = {
       type: document.getElementById("f-type").dataset.current || "instagram",
-      date: document.getElementById("f-date").value,
-      endDate: document.getElementById("f-end-date").value,
+      date: formStartDate,
+      endDate: formEndDate,
+      startTime: formStartTime,
+      endTime: formEndTime,
       status: document.getElementById("f-status-pills").dataset.current || "",
       title: document.getElementById("f-title").value.trim() || "Sans titre",
       location: document.getElementById("f-location").value.trim(),
@@ -1677,7 +1923,8 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
       links: tempLinks.slice(),
       todos: tempTodos.slice()
     };
-    if(data.endDate && data.date && data.endDate < data.date){ data.endDate = ""; }
+    if(data.endDate && data.date && data.endDate < data.date){ data.endDate = ""; data.endTime = ""; }
+    closeDtPopover();
     if(editingId){
       var e = entries.find(function(x){ return x.id === editingId; });
       Object.assign(e, data);
