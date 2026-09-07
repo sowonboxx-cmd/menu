@@ -383,6 +383,17 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
 }
 .view-link span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;}
 .view-empty{color:var(--muted); font-size:13px; font-style:italic; margin:0;}
+.view-link-image{background:#fff; border:1px solid var(--line); border-radius:12px; overflow:hidden;}
+.view-link-thumb{
+  display:block; width:100%; height:200px; object-fit:cover; cursor:zoom-in; background:#EDEBE3;
+}
+.view-link-caption{padding:8px 12px; font-size:12.5px; color:var(--navy-ink); font-weight:600;}
+.img-lightbox{
+  display:none; position:fixed; inset:0; background:rgba(11,27,58,.88); z-index:600;
+  align-items:center; justify-content:center; padding:24px; cursor:zoom-out;
+}
+.img-lightbox.show{display:flex;}
+.img-lightbox img{max-width:100%; max-height:100%; border-radius:8px; box-shadow:0 20px 60px rgba(0,0,0,.4);}
 
 /* GitHub sync settings */
 .sync-btn{
@@ -1636,10 +1647,17 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     html += '<div class="view-section"><span class="vs-label">Liens d\'inspiration</span>';
     if(e.links && e.links.length){
       html += '<div class="view-links">';
-      e.links.forEach(function(l){
+      e.links.forEach(function(l, linkIdx){
         l = normLink(l);
         var shown = l.title ? l.title : l.url;
-        html += '<a class="view-link" href="' + escapeHtml(l.url) + '" target="_blank" rel="noopener">🔗 <span>' + escapeHtml(shown) + '</span></a>';
+        if(isImageUrl(l.url)){
+          html += '<div class="view-link-image">' +
+            '<img src="' + escapeHtml(l.url) + '" alt="" class="view-link-thumb" data-idx="' + linkIdx + '" loading="lazy">' +
+            (l.title ? '<div class="view-link-caption">' + escapeHtml(l.title) + '</div>' : '') +
+          '</div>';
+        } else {
+          html += '<a class="view-link" href="' + escapeHtml(l.url) + '" target="_blank" rel="noopener">🔗 <span>' + escapeHtml(shown) + '</span></a>';
+        }
       });
       html += '</div>';
     } else {
@@ -1663,6 +1681,12 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
     html += '</div>';
 
     body.innerHTML = html;
+
+    body.querySelectorAll(".view-link-thumb").forEach(function(img){
+      img.addEventListener("click", function(){
+        openImageLightbox(img.getAttribute("src"));
+      });
+    });
 
     var todosWrap = document.getElementById("view-todos-wrap");
     if(todosWrap){
@@ -1853,6 +1877,23 @@ main{max-width:1180px; margin:0 auto; padding:22px 20px 100px;}
 
   function normLink(l){
     return (typeof l === "string") ? {url:l, title:""} : {url:l.url||"", title:l.title||""};
+  }
+  function isImageUrl(url){
+    if(!url) return false;
+    var clean = url.split("?")[0].split("#")[0];
+    return /\.(png|jpe?g|gif|webp|avif|svg)$/i.test(clean);
+  }
+  var imgLightbox = null;
+  function openImageLightbox(src){
+    if(!imgLightbox){
+      imgLightbox = document.createElement("div");
+      imgLightbox.className = "img-lightbox";
+      imgLightbox.innerHTML = '<img id="img-lightbox-img" src="" alt="">';
+      document.body.appendChild(imgLightbox);
+      imgLightbox.addEventListener("click", function(){ imgLightbox.classList.remove("show"); });
+    }
+    document.getElementById("img-lightbox-img").src = src;
+    imgLightbox.classList.add("show");
   }
   function renderLinks(){
     var wrap = document.getElementById("f-links");
