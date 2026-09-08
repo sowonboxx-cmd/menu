@@ -3619,12 +3619,16 @@ const SUPABASE_URL      = 'https://fdbzzkzfipzabryfanun.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_9PaqDuXnWV3aOCBPk9ImmQ_4YgYTU9n';
 // Detect client slug from URL: /menu/monrestaurant → 'monrestaurant'
 const _pathParts = window.location.pathname.replace(/\/+$/,'').replace(/^\/+/,'').split('/');
+// Tolerate URLs that include the filename itself (e.g. '.../baguette/index.html')
+// instead of just the folder ('.../baguette/') — strip a trailing .html segment
+// before reading the slug, so both forms resolve to the same CLIENT_SLUG.
+if (_pathParts.length && /\.html$/i.test(_pathParts[_pathParts.length-1])) _pathParts.pop();
 const CLIENT_SLUG = _pathParts[_pathParts.length - 1] || 'default';
 // Reservations admin dashboard for this restaurant (admin.html) — a
 // per-deployment value, since the reservation module lives in its own
 // folder/slug (e.g. 'monrestaurant-paris'), separate from this menu's own
 // CLIENT_SLUG. Adjust per restaurant when reusing this template.
-const RESA_ADMIN_URL = 'COLLE_ICI_URL_ADMIN_RESERVATIONS';
+const RESA_ADMIN_URL = 'admin.html';
 
 const supabaseClient = (SUPABASE_URL !== 'COLLE_ICI_SUPABASE_URL' && window.supabase)
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
