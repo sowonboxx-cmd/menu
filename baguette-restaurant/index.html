@@ -4641,6 +4641,19 @@ function renderExportSection(){
 
 async function publishToSupabase(){
   if(!supaSession){ showToast('⚠️ Connecte-toi pour publier'); renderAdminSection('__global'); return; }
+  // DEMO MODE: no real Supabase project connected for this deployment —
+  // simulate a successful publish instead of attempting (and failing)
+  // a real network call. Remove this block once a real backend is
+  // configured for this client.
+  if(!supabaseClient){
+    const btn=document.getElementById('mainPublishBtn');
+    if(btn){ btn.textContent='⏳ Publication…'; btn.disabled=true; }
+    setTimeout(()=>{
+      showToast('✅ Publié ! (démo — rien n\'est réellement sauvegardé)');
+      if(btn){ btn.textContent='Publier'; btn.disabled=false; }
+    }, 500);
+    return;
+  }
   // NOTE: this used to target a second, redundant "Publier" button
   // (🚀, inside the collapsible "Connexion admin" section) — removed
   // since every admin tab already ends with its own adminSaveBar()
@@ -5187,6 +5200,15 @@ renderAll();
   const wantsAdminEntry = new URLSearchParams(location.search).get('admin')==='1';
   await checkAdminSession(); // sets supaSession + toggles is-admin if a session exists
   if(wantsAdminEntry) document.body.classList.add('admin-entry-visible');
+  // DEMO MODE: no real Supabase project connected for this deployment —
+  // simulate an already-logged-in admin so prospects can explore every
+  // admin feature (edit, print, social, calendar, settings) directly,
+  // with no login step. Remove this block once a real backend is
+  // configured for this client.
+  if(!supabaseClient){
+    supaSession = { user: { email: 'demo@apercu.local' } };
+    document.body.classList.add('is-admin');
+  }
 })();
 // BUG FIX: the reconciliation re-render below used to run unconditionally,
 // even when the fetched data was byte-for-byte identical to what's already
