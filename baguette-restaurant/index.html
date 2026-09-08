@@ -3615,8 +3615,8 @@ function onDrop(e,ti,ci,di){
 // Same Supabase project/keys as the reservation system (resa.html /
 // admin.html) — and crucially the SAME restaurant_admins table, so one
 // login works for both the menu editor and the reservations dashboard.
-const SUPABASE_URL      = 'COLLE_ICI_SUPABASE_URL';
-const SUPABASE_ANON_KEY = 'COLLE_ICI_SUPABASE_ANON_KEY';
+const SUPABASE_URL      = 'https://fdbzzkzfipzabryfanun.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_9PaqDuXnWV3aOCBPk9ImmQ_4YgYTU9n';
 // Detect client slug from URL: /menu/monrestaurant → 'monrestaurant'
 const _pathParts = window.location.pathname.replace(/\/+$/,'').replace(/^\/+/,'').split('/');
 const CLIENT_SLUG = _pathParts[_pathParts.length - 1] || 'default';
@@ -4641,19 +4641,6 @@ function renderExportSection(){
 
 async function publishToSupabase(){
   if(!supaSession){ showToast('⚠️ Connecte-toi pour publier'); renderAdminSection('__global'); return; }
-  // DEMO MODE: no real Supabase project connected for this deployment —
-  // simulate a successful publish instead of attempting (and failing)
-  // a real network call. Remove this block once a real backend is
-  // configured for this client.
-  if(!supabaseClient){
-    const btn=document.getElementById('mainPublishBtn');
-    if(btn){ btn.textContent='⏳ Publication…'; btn.disabled=true; }
-    setTimeout(()=>{
-      showToast('✅ Publié ! (démo — rien n\'est réellement sauvegardé)');
-      if(btn){ btn.textContent='Publier'; btn.disabled=false; }
-    }, 500);
-    return;
-  }
   // NOTE: this used to target a second, redundant "Publier" button
   // (🚀, inside the collapsible "Connexion admin" section) — removed
   // since every admin tab already ends with its own adminSaveBar()
@@ -5200,15 +5187,6 @@ renderAll();
   const wantsAdminEntry = new URLSearchParams(location.search).get('admin')==='1';
   await checkAdminSession(); // sets supaSession + toggles is-admin if a session exists
   if(wantsAdminEntry) document.body.classList.add('admin-entry-visible');
-  // DEMO MODE: no real Supabase project connected for this deployment —
-  // simulate an already-logged-in admin so prospects can explore every
-  // admin feature (edit, print, social, calendar, settings) directly,
-  // with no login step. Remove this block once a real backend is
-  // configured for this client.
-  if(!supabaseClient){
-    supaSession = { user: { email: 'demo@apercu.local' } };
-    document.body.classList.add('is-admin');
-  }
 })();
 // BUG FIX: the reconciliation re-render below used to run unconditionally,
 // even when the fetched data was byte-for-byte identical to what's already
