@@ -691,13 +691,13 @@ let DATA = {
       "services": [
         {
           "label": "",
-          "open": "12:00",
-          "close": "13:30"
+          "open": 12,
+          "close": 13.5
         },
         {
           "label": "",
-          "open": "19:00",
-          "close": "22:00"
+          "open": 19,
+          "close": 22
         }
       ]
     },
@@ -706,13 +706,13 @@ let DATA = {
       "services": [
         {
           "label": "",
-          "open": "12:00",
-          "close": "13:30"
+          "open": 12,
+          "close": 13.5
         },
         {
           "label": "",
-          "open": "19:00",
-          "close": "22:00"
+          "open": 19,
+          "close": 22
         }
       ]
     },
@@ -721,13 +721,13 @@ let DATA = {
       "services": [
         {
           "label": "",
-          "open": "12:00",
-          "close": "13:30"
+          "open": 12,
+          "close": 13.5
         },
         {
           "label": "",
-          "open": "19:00",
-          "close": "22:00"
+          "open": 19,
+          "close": 22
         }
       ]
     },
@@ -736,13 +736,13 @@ let DATA = {
       "services": [
         {
           "label": "",
-          "open": "12:00",
-          "close": "13:30"
+          "open": 12,
+          "close": 13.5
         },
         {
           "label": "",
-          "open": "19:00",
-          "close": "22:00"
+          "open": 19,
+          "close": 22
         }
       ]
     },
@@ -751,13 +751,13 @@ let DATA = {
       "services": [
         {
           "label": "",
-          "open": "12:00",
-          "close": "13:30"
+          "open": 12,
+          "close": 13.5
         },
         {
           "label": "",
-          "open": "19:00",
-          "close": "22:00"
+          "open": 19,
+          "close": 22
         }
       ]
     },
@@ -1848,7 +1848,7 @@ function renderScheduleInline(suffix){
   // math above works, but displaying that raw number reads as "24h" —
   // normalize with a plain modulo so midnight shows "0h00" instead
   // (post-midnight hours like 2am still show as "2h", unchanged).
-  const fmtCloseHour = c => { if(c==null) return ''; const h=c%24; return h===0?'0h00':h+'h'; };
+  const fmtCloseHour = c => { if(c==null) return ''; const h=c%24; const hInt=Math.floor(h); const mins=Math.round((h-hInt)*60); if(hInt===0&&mins===0) return '0h00'; return mins===0?hInt+'h':hInt+'h'+String(mins).padStart(2,'0'); };
   const sch=DATA.schedule||[];
   const now=new Date();
   let today=now.getDay(); let hour=now.getHours()+now.getMinutes()/60;
@@ -1862,14 +1862,14 @@ function renderScheduleInline(suffix){
     if(s.open==null) continue;
     const effectiveClose=s.close<=s.open?s.close+24:s.close;
     if(hour>=s.open&&hour<effectiveClose){state='open';label="Ouvert jusqu'à "+fmtCloseHour(s.close);break;}
-    if(hour<s.open){state='soon';label='Ouvre à '+s.open+'h';}
+    if(hour<s.open){state='soon';label='Ouvre à '+fmtCloseHour(s.open);}
   }
   const dotClass=state==='open'?'open':state==='soon'?'soon':'closed';
   const rows=sch.map((d,i)=>{
     const isToday=(i===dayIdx);
     const svs=(d.services||[]).length>0?d.services:(d.open!=null?[{label:'',open:d.open,close:d.close}]:[]);
     const h=svs.length===0?'Fermé':svs.map(s=>{
-      const o=s.open!=null?s.open+'h':'';
+      const o=s.open!=null?fmtCloseHour(s.open):'';
       const c=s.close!=null?fmtCloseHour(s.close):'';
       return o&&c?o+' – '+c:(s.label||'Fermé');
     }).join(', ');
