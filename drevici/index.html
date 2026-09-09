@@ -3993,54 +3993,65 @@ function setPdfCfg(key, val){
 
 // Build the inner menu HTML (shared by preview + export)
 function buildPdfMenuHTML(cfg){
+  const b = buildPdfBlocks(cfg);
+  return b.headerHtml + b.contentBlocks.map(x=>x.html).join('') + b.footerHtml;
+}
+
+// Split the menu into atomic pieces (header / each dish-or-item / footer)
+// instead of one giant HTML string — needed so paginatePdfPages() can
+// measure and distribute them across real physical pages. Every dish/
+// variant/bev-item is its own block (never split internally); a
+// category's own <h2> travels with its first dish so a category never
+// starts a page with just a lonely heading and nothing under it.
+function buildPdfBlocks(cfg){
   const restName = getRestaurantName() || 'Menu';
   // Logo: PDF-specific upload > restaurant logo already stored > nothing
   const logoUrl = (DATA.pdfStyle && DATA.pdfStyle.logoData) || getRestaurantLogo() || '';
-  let h = '';
-
-  // Header
   const icData = DATA.icones||{};
   const showMainIc = cfg.showIcons!==false && icData.main && !cfg.showLogo;
   const showSecIc  = cfg.showIcons!==false && !!icData.secondary;
-  h += `<div class="pdf-header">`;
-  if(cfg.showLogo && logoUrl) h += `<img src="${logoUrl}" class="pdf-logo" onerror="this.style.display='none'">`;
-  else if(cfg.showLogo && !logoUrl) h += `<div class="pdf-logo-text">${getRestaurantName()||''}</div>`;
-  h += `<h1 class="pdf-title">${restName}</h1>`;
-  if(DATA.heroActive && DATA.hero) h += `<div class="pdf-sub">${t(DATA.hero)}</div>`;
-  if(showMainIc) h += `<img src="${icData.main}" style="width:48px;height:48px;object-fit:contain;margin:10px auto 0;display:block" onerror="this.style.display='none'">`;
-  h += `</div>`;
+  const showLogoImg = cfg.showLogo && logoUrl;
 
-  // Tabs / sections
+  let headerHtml = `<div class="pdf-header">`;
+  if(showLogoImg) headerHtml += `<img src="${logoUrl}" class="pdf-logo" onerror="this.style.display='none'">`;
+  else if(cfg.showLogo && !logoUrl) headerHtml += `<div class="pdf-logo-text">${getRestaurantName()||''}</div>`;
+  // Logo takes priority over the text title once one is actually shown
+  // (image + repeated name right under it read as redundant) — the
+  // title stays as the fallback for restaurants with no logo at all.
+  if(!showLogoImg) headerHtml += `<h1 class="pdf-title">${restName}</h1>`;
+  if(DATA.heroActive && DATA.hero) headerHtml += `<div class="pdf-sub">${t(DATA.hero)}</div>`;
+  if(showMainIc) headerHtml += `<img src="${icData.main}" style="width:48px;height:48px;object-fit:contain;margin:10px auto 0;display:block" onerror="this.style.display='none'">`;
+  headerHtml += `</div>`;
+
+  const contentBlocks = [];
+  const dots = cfg.showDots!==false ? '<span class="pdf-dots"></span>' : '<span class="pdf-dots-off"></span>';
   DATA.tabs.filter(tb=>tb.id!=='__home' && tb.visible!==false).forEach(tb=>{
-    const breakBefore = tb.pdfPageBreakBefore ? 'page-break-before:always;break-before:page;' : '';
-    h += `<div class="pdf-section" style="${breakBefore}">`;
-    h += `<h2 class="pdf-cat">`;
-    if(showSecIc) h += `<img src="${icData.secondary}" style="width:16px;height:16px;object-fit:contain;vertical-align:middle;margin-right:6px" onerror="this.remove()">`;
-    h += `${t(tb.label)}</h2>`;
+    let pendingHeader = `<h2 class="pdf-cat">${showSecIc?`<img src="${icData.secondary}" style="width:16px;height:16px;object-fit:contain;vertical-align:middle;margin-right:6px" onerror="this.remove()">`:''}${t(tb.label)}</h2>`;
+    let firstBlockOfTab = true;
     tb.cards.forEach(card=>{
-      if(t(card.label) && tb.cards.length>1) h += `<h3 class="pdf-subcat">${t(card.label)}</h3>`;
-      const rows = [];
-      const dots = cfg.showDots!==false ? '<span class="pdf-dots"></span>' : '<span class="pdf-dots-off"></span>';
-      if(card.dishes){
-        card.dishes.filter(d=>!d.hidden).forEach(d=>{
-          rows.push(`<div class="pdf-dish"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(d.name)||''}</span>${dots}<span class="pdf-dish-price">${d.price||''}</span></div>${t(d.desc)?`<div class="pdf-dish-desc">${t(d.desc)}</div>`:''}</div>`);
-        });
-      } else if(card.type==='variants'){
-        (card.variants||[]).filter(v=>!v.hidden).forEach(v=>{
-          rows.push(`<div class="pdf-dish"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(v.name)||''}</span>${dots}<span class="pdf-dish-price">${v.price||''}</span></div></div>`);
-        });
-      } else if(card.type==='bevs'){
-        (card.items||[]).filter(item=>!item.hidden).forEach(item=>{
+      let pendingSubcat = (t(card.label) && tb.cards.length>1) ? `<h3 class="pdf-subcat">${t(card.label)}</h3>` : '';
+      const items = card.dishes ? card.dishes.filter(d=>!d.hidden).map(d=>
+          `<div class="pdf-dish"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(d.name)||''}</span>${dots}<span class="pdf-dish-price">${d.price||''}</span></div>${t(d.desc)?`<div class="pdf-dish-desc">${t(d.desc)}</div>`:''}</div>`)
+        : card.type==='variants' ? (card.variants||[]).filter(v=>!v.hidden).map(v=>
+          `<div class="pdf-dish"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(v.name)||''}</span>${dots}<span class="pdf-dish-price">${v.price||''}</span></div></div>`)
+        : card.type==='bevs' ? (card.items||[]).filter(item=>!item.hidden).map(item=>{
           const sizes=(item.sizes||[]).map(s=>bevSizeLabel(s)+' — '+s.price+'€').join(' · ');
-          rows.push(`<div class="pdf-dish"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(item.name)||''}</span>${dots}<span class="pdf-dish-price">${sizes||item.price||''}</span></div>${t(item.desc)?`<div class="pdf-dish-desc">${t(item.desc)}</div>`:''}</div>`);
-        });
-      }
-      h += rows.join('');
+          return `<div class="pdf-dish"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(item.name)||''}</span>${dots}<span class="pdf-dish-price">${sizes||item.price||''}</span></div>${t(item.desc)?`<div class="pdf-dish-desc">${t(item.desc)}</div>`:''}</div>`;
+        }) : [];
+      items.forEach((itemHtml, i)=>{
+        let html = itemHtml;
+        if(i===0){ html = pendingSubcat + html; pendingSubcat = ''; }
+        let forceBreak = false;
+        if(firstBlockOfTab){
+          html = pendingHeader + html;
+          forceBreak = !!tb.pdfPageBreakBefore;
+          firstBlockOfTab = false;
+        }
+        contentBlocks.push({ html, forceBreak });
+      });
     });
-    h += `</div>`;
   });
 
-  // Footer
   const footerBits = [];
   if(cfg.footerAddress) footerBits.push(cfg.footerAddress);
   if(cfg.footerPhone) footerBits.push(cfg.footerPhone);
@@ -4049,13 +4060,72 @@ function buildPdfMenuHTML(cfg){
     const now = new Date();
     footerBits.push('Mis à jour le ' + now.toLocaleDateString('fr-FR'));
   }
-  if(footerBits.length){
-    h += `<div class="pdf-footer">`;
-    h += `<div class="pdf-footer-text">${footerBits.join('  ·  ')}</div>`;
-    h += `</div>`;
-  }
-  return h;
+  const footerHtml = footerBits.length
+    ? `<div class="pdf-footer"><div class="pdf-footer-text">${footerBits.join('  ·  ')}</div></div>`
+    : '';
+
+  return { headerHtml, contentBlocks, footerHtml };
 }
+
+// BUG FIX: the page frame (.pdf-page::before) was drawn once around one
+// giant div holding the whole menu, then the browser's native print
+// engine sliced that div across as many physical sheets as needed. A
+// single border drawn around content 3x taller than one page only ever
+// shows its top edge on page 1, its bottom edge on the last page, and
+// NEITHER on any page in between — exactly the "incomplete frame"
+// symptom. Fix: actually paginate in JS — measure real rendered heights
+// (same fonts, same CSS, same everything) and split content into
+// several independent .pdf-page divs, each already sized to fit one
+// physical sheet. Each one gets its own complete, independent border.
+function paginatePdfPages(cfg){
+  if(cfg.format === 'gbiz') return [buildPdfMenuHTML(cfg)]; // one tall image, not print-paginated
+  const isA5 = cfg.paperSize === 'a5';
+  const A5_SCALE = 0.72;
+  const scale = isA5 ? A5_SCALE : 1;
+  const pageW = Math.round(700*scale); // matches buildPdfCSS's own pageW for this same cfg
+  const printableWidthMm = isA5 ? 85 : 182;   // page width minus the two @page margins
+  const printableHeightMm = isA5 ? 128 : 269; // page height minus the two @page margins
+  const pxPerMm = pageW / printableWidthMm;
+  // 6% safety margin: fonts/DPI vary slightly by browser/OS, so aim a
+  // bit under the true limit rather than risk the browser's own print
+  // engine still needing to split a page we thought would fit.
+  const maxPageHeightPx = Math.floor(printableHeightMm * pxPerMm * 0.94);
+
+  const { headerHtml, contentBlocks, footerHtml } = buildPdfBlocks(cfg);
+
+  const holder = document.createElement('div');
+  holder.style.cssText = 'position:fixed;left:-99999px;top:0;visibility:hidden;';
+  holder.innerHTML = `<style>${buildPdfCSS(cfg)}</style><div class="pdf-page" id="__pdfMeasure" style="height:auto"></div>`;
+  document.body.appendChild(holder);
+  const measureEl = holder.querySelector('#__pdfMeasure');
+  const heightOf = html => { measureEl.innerHTML = html; return measureEl.offsetHeight; };
+
+  const pages = [];
+  let current = headerHtml;
+  contentBlocks.forEach(block=>{
+    const candidate = current + block.html;
+    const mustBreak = block.forceBreak && current !== headerHtml && current !== '';
+    if(!mustBreak && heightOf(candidate) <= maxPageHeightPx){
+      current = candidate;
+    } else {
+      pages.push(current);
+      current = block.html; // new page starts with just this block (no repeated header)
+    }
+  });
+  // Footer: append to the last page if it fits, otherwise its own page.
+  const withFooter = current + footerHtml;
+  if(footerHtml && heightOf(withFooter) > maxPageHeightPx){
+    pages.push(current);
+    current = footerHtml;
+  } else {
+    current = withFooter;
+  }
+  pages.push(current);
+
+  document.body.removeChild(holder);
+  return pages;
+}
+
 
 // CSS for a given config + format
 function buildPdfCSS(cfg){
@@ -4168,12 +4238,15 @@ function doPdfExport(){
 
 function exportA4Print(cfg){
   const css = buildPdfCSS(cfg);
-  const menu = buildPdfMenuHTML(cfg);
+  const pages = paginatePdfPages(cfg);
   const restName = getRestaurantName() || 'Menu';
+  const pagesHtml = pages.map((pageContent, i)=>
+    `<div class="pdf-page"${i<pages.length-1?' style="page-break-after:always;break-after:page"':''}>${pageContent}</div>`
+  ).join('');
   const doc = `<!DOCTYPE html><html><head>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Lovelo:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><meta charset="UTF-8"><title>${restName}</title><style>${css}</style></head><body><div class="pdf-page">${menu}</div></body></html>`;
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Lovelo:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><meta charset="UTF-8"><title>${restName}</title><style>${css}</style></head><body>${pagesHtml}</body></html>`;
   // BUG FIX: this used to open a blank window and fill it via
   // document.write() — increasingly restricted by modern browsers
   // (Safari in particular), which can silently leave the new tab blank
@@ -4480,6 +4553,7 @@ function restaurantSettingHtml(){
       <label class="aadd" style="display:block;width:100%;text-align:center;padding:9px;cursor:pointer;margin-bottom:8px">📁 Uploader un logo (PNG, SVG, WEBP…)<input type="file" accept="image/*" style="display:none" onchange="(function(e){const f=e.target.files[0];if(!f)return;if(f.type==='image/svg+xml'){const r=new FileReader();r.onload=ev=>{setRestaurantLogo(ev.target.result);applyRestaurantBranding();};r.readAsDataURL(f);}else{compressImageFile(f,{ratio:null,maxDim:600,quality:0.9}).then(d=>{setRestaurantLogo(d);applyRestaurantBranding();}).catch(err=>showToast('⚠️ '+err.message));}})(event)"></label>
       <input class="ai" value="${logo}" placeholder="ou coller une URL https://..." oninput="setRestaurantLogo(this.value.trim());applyRestaurantBranding()">
       <div style="font-size:10px;color:var(--text3);font-family:Jost,sans-serif;margin-top:4px">Format recommandé : PNG transparent, hauteur 50–70px, largeur max 200px (ratio conseillé 3:1 à 5:1).</div>
+      ${logo?`<div style="font-size:10.5px;color:var(--text2);font-family:Jost,sans-serif;margin-top:6px">✓ Ce logo est aussi utilisé pour le menu imprimé (onglet Export), sauf si vous en uploadez un autre spécifiquement pour l'impression.</div>`:''}
     </div>
     
     <div class="af"><label class="al" style="font-size:12px;font-weight:600;margin-top:12px;display:block;border-top:1px solid var(--border);padding-top:12px">Adresse & contact</label></div>
