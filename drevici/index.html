@@ -123,11 +123,10 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .edit-mode .dish-row[data-edit]:hover,.edit-mode .bev-row[data-edit]:hover{box-shadow:inset 0 0 0 2px var(--navy);border-radius:8px}
 .admin-btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .admin-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.logo-img{height:32px;max-width:160px;object-fit:contain;display:none;}
+.logo-img{height:36px;max-width:180px;object-fit:contain;display:none}
 .logo-text{font-family:var(--restoFont,'Cormorant Garamond'),serif;font-size:20px;font-weight:700;color:#fff;letter-spacing:.08em;white-space:nowrap;text-align:center}
 .header-top{position:relative}
 .logo-centered{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;display:flex;align-items:center;justify-content:center}
-@media(min-width:480px){.logo-img{height:42px;max-width:200px;display:block}.logo-text{display:none}}
 .header-sub{font-size:10px;font-weight:300;color:var(--subtitleColor,rgba(255,255,255,0.45));letter-spacing:.14em;text-transform:uppercase;margin-bottom:0;text-align:center}
 
 /* ── STICKY NAV ── */
@@ -3968,12 +3967,19 @@ function pdfCfg(){
     template: d.template || 'maritime',          // 'classic' | 'maritime'
     titleColor: d.titleColor || '#10285E',
     accentColor: d.accentColor || '#C6A24A',
-    showLogo: d.showLogo !== false,
+    // Défaut : coché seulement si un logo existe déjà (uploadé pour le
+    // PDF ou repris de l'identité du restaurant) — sinon décoché, le
+    // texte prend le relai. Une fois que l'utilisateur touche la case
+    // lui-même, son choix explicite (d.showLogo) est toujours respecté.
+    showLogo: d.showLogo !== undefined ? d.showLogo : !!(d.logoData || getRestaurantLogo()),
     showIcons: d.showIcons !== false,
+    showDots: d.showDots !== false,
+    showFrame: d.showFrame !== false,
     bgColor: d.bgColor || '#FFFDF8',
     logoData: d.logoData || '',
     footerAddress: d.footerAddress || (DATA.address ? [DATA.address.street,DATA.address.zip,DATA.address.city].filter(Boolean).join(', ') : '') || '',
     footerPhone: d.footerPhone || (DATA.address&&DATA.address.phone) || '',
+    footerCustomText: d.footerCustomText || '',
     footerShowDate: d.footerShowDate !== false,
     format: d.format || 'a4',                    // 'a4' | 'gbiz'
     paperSize: d.paperSize || 'a4'                // 'a4' | 'a5' — only applies when format is 'a4' (the print/PDF format)
@@ -4002,31 +4008,31 @@ function buildPdfMenuHTML(cfg){
   h += `<h1 class="pdf-title">${restName}</h1>`;
   if(DATA.heroActive && DATA.hero) h += `<div class="pdf-sub">${t(DATA.hero)}</div>`;
   if(showMainIc) h += `<img src="${icData.main}" style="width:48px;height:48px;object-fit:contain;margin:10px auto 0;display:block" onerror="this.style.display='none'">`;
-  if(cfg.template === 'maritime') h += `<div class="pdf-deco-divider">${PDF_SVG.waves}</div>`;
   h += `</div>`;
 
   // Tabs / sections
   DATA.tabs.filter(tb=>tb.id!=='__home' && tb.visible!==false).forEach(tb=>{
-    h += `<div class="pdf-section">`;
+    const breakBefore = tb.pdfPageBreakBefore ? 'page-break-before:always;break-before:page;' : '';
+    h += `<div class="pdf-section" style="${breakBefore}">`;
     h += `<h2 class="pdf-cat">`;
     if(showSecIc) h += `<img src="${icData.secondary}" style="width:16px;height:16px;object-fit:contain;vertical-align:middle;margin-right:6px" onerror="this.remove()">`;
-    else if(cfg.template === 'maritime') h += `<span class="pdf-cat-icon">${PDF_SVG.oyster}</span>`;
     h += `${t(tb.label)}</h2>`;
     tb.cards.forEach(card=>{
       if(t(card.label) && tb.cards.length>1) h += `<h3 class="pdf-subcat">${t(card.label)}</h3>`;
       const rows = [];
+      const dots = cfg.showDots!==false ? '<span class="pdf-dots"></span>' : '<span class="pdf-dots-off"></span>';
       if(card.dishes){
         card.dishes.filter(d=>!d.hidden).forEach(d=>{
-          rows.push(`<div class="pdf-dish"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(d.name)||''}</span><span class="pdf-dots"></span><span class="pdf-dish-price">${d.price||''}</span></div>${t(d.desc)?`<div class="pdf-dish-desc">${t(d.desc)}</div>`:''}</div>`);
+          rows.push(`<div class="pdf-dish"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(d.name)||''}</span>${dots}<span class="pdf-dish-price">${d.price||''}</span></div>${t(d.desc)?`<div class="pdf-dish-desc">${t(d.desc)}</div>`:''}</div>`);
         });
       } else if(card.type==='variants'){
         (card.variants||[]).filter(v=>!v.hidden).forEach(v=>{
-          rows.push(`<div class="pdf-dish"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(v.name)||''}</span><span class="pdf-dots"></span><span class="pdf-dish-price">${v.price||''}</span></div></div>`);
+          rows.push(`<div class="pdf-dish"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(v.name)||''}</span>${dots}<span class="pdf-dish-price">${v.price||''}</span></div></div>`);
         });
       } else if(card.type==='bevs'){
         (card.items||[]).filter(item=>!item.hidden).forEach(item=>{
           const sizes=(item.sizes||[]).map(s=>bevSizeLabel(s)+' — '+s.price+'€').join(' · ');
-          rows.push(`<div class="pdf-dish"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(item.name)||''}</span><span class="pdf-dots"></span><span class="pdf-dish-price">${sizes||item.price||''}</span></div>${t(item.desc)?`<div class="pdf-dish-desc">${t(item.desc)}</div>`:''}</div>`);
+          rows.push(`<div class="pdf-dish"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(item.name)||''}</span>${dots}<span class="pdf-dish-price">${sizes||item.price||''}</span></div>${t(item.desc)?`<div class="pdf-dish-desc">${t(item.desc)}</div>`:''}</div>`);
         });
       }
       h += rows.join('');
@@ -4038,14 +4044,14 @@ function buildPdfMenuHTML(cfg){
   const footerBits = [];
   if(cfg.footerAddress) footerBits.push(cfg.footerAddress);
   if(cfg.footerPhone) footerBits.push(cfg.footerPhone);
+  if(cfg.footerCustomText) footerBits.push(cfg.footerCustomText);
   if(cfg.footerShowDate){
     const now = new Date();
     footerBits.push('Mis à jour le ' + now.toLocaleDateString('fr-FR'));
   }
-  if(footerBits.length || cfg.template==='maritime'){
+  if(footerBits.length){
     h += `<div class="pdf-footer">`;
-    if(cfg.template === 'maritime') h += `<div class="pdf-deco-anchor">${PDF_SVG.anchor}</div>`;
-    if(footerBits.length) h += `<div class="pdf-footer-text">${footerBits.join('  ·  ')}</div>`;
+    h += `<div class="pdf-footer-text">${footerBits.join('  ·  ')}</div>`;
     h += `</div>`;
   }
   return h;
@@ -4077,28 +4083,23 @@ function buildPdfCSS(cfg){
      so the two always match — one standard recipe, no per-client tweaking. */
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
   .pdf-page{font-family:'Open Sans',sans-serif;color:#1a1a1a;background:${cfg.bgColor||'#FFFDF8'};width:${pageW}px;padding:${pad}px;margin:0 auto;position:relative}
-  ${maritime?`.pdf-page::before{content:'';position:absolute;inset:${px(14)}px;border:1.5px solid ${cfg.accentColor};opacity:.4;pointer-events:none}`:''}
+  ${cfg.showFrame!==false?`.pdf-page::before{content:'';position:absolute;inset:${px(14)}px;border:1.5px solid ${cfg.accentColor};opacity:.4;pointer-events:none}`:''}
   .pdf-header{text-align:center;margin-bottom:${isGbiz?40:px(28)}px;position:relative}
   .pdf-logo-text{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?22:px(22)}px;font-weight:700;color:var(--navy,#10285E);margin:0 auto 12px;display:block;text-align:center}
 .pdf-logo{max-width:${isGbiz?160:px(120)}px;max-height:${isGbiz?110:px(80)}px;object-fit:contain;margin:0 auto 12px;display:block}
   .pdf-title{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?44:px(32)}px;font-weight:700;color:${cfg.titleColor};line-height:1.1}
   .pdf-sub{font-size:${isGbiz?13:px(11)}px;letter-spacing:.16em;text-transform:uppercase;color:#999;margin-top:6px}
-  .pdf-deco-divider{width:${isGbiz?120:px(90)}px;margin:14px auto 0;color:${cfg.accentColor}}
-  .pdf-deco-divider svg{width:100%;height:auto;display:block}
   .pdf-section{margin-bottom:${isGbiz?30:px(22)}px;break-inside:avoid;page-break-inside:avoid}
   .pdf-cat{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?26:px(20)}px;font-weight:600;color:${cfg.titleColor};margin:${isGbiz?28:px(20)}px 0 ${isGbiz?16:px(12)}px;padding-bottom:6px;border-bottom:1.5px solid ${maritime?cfg.accentColor:'#e2e2e2'};display:flex;align-items:center;gap:10px}
-  .pdf-cat-icon{display:inline-block;width:${isGbiz?28:px(22)}px;height:${isGbiz?28:px(22)}px;color:${cfg.accentColor};flex:none}
-  .pdf-cat-icon svg{width:100%;height:100%;display:block}
   .pdf-subcat{font-size:${isGbiz?13:px(11)}px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:${cfg.accentColor};margin:${isGbiz?18:px(14)}px 0 ${isGbiz?10:px(8)}px}
   .pdf-dish{margin-bottom:${isGbiz?13:px(10)}px;break-inside:avoid;page-break-inside:avoid}
   .pdf-dish-line{display:flex;align-items:baseline;gap:6px}
   .pdf-dish-name{font-size:${isGbiz?16:px(13)}px;font-weight:600;white-space:nowrap}
   .pdf-dots{flex:1;border-bottom:1px dotted #ccc;transform:translateY(-3px);min-width:18px}
+  .pdf-dots-off{flex:1;min-width:18px}
   .pdf-dish-price{font-size:${isGbiz?16:px(13)}px;font-weight:600;color:${cfg.accentColor};white-space:nowrap;flex:none}
   .pdf-dish-desc{font-size:${isGbiz?12:px(10.5)}px;font-weight:300;color:#777;margin-top:2px;line-height:1.4;max-width:88%}
   .pdf-footer{margin-top:${isGbiz?44:px(30)}px;padding-top:${isGbiz?20:px(14)}px;border-top:1px solid ${maritime?cfg.accentColor:'#e2e2e2'};text-align:center}
-  .pdf-deco-anchor{width:${isGbiz?40:px(30)}px;margin:0 auto ${isGbiz?12:px(8)}px;color:${cfg.accentColor}}
-  .pdf-deco-anchor svg{width:100%;height:auto;display:block}
   .pdf-footer-text{font-size:${isGbiz?12:px(10)}px;color:#999;letter-spacing:.04em;line-height:1.6}
   @media print{
     @page{size:${isA5?'A5':'A4'};margin:${isA5?'10mm':'14mm'}}
@@ -4252,6 +4253,14 @@ function renderPrintBody(){
     ${(ic.main||ic.secondary)?`<label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showIcons!==false?'checked':''} onchange="setPdfCfg('showIcons',this.checked)"><label>Afficher les icônes décoratives</label></label>
     <div style="font-size:10px;color:var(--text3);margin-top:3px">Si le logo est affiché, l'icône principale est masquée automatiquement.</div>`:''}
 
+    <label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showDots!==false?'checked':''} onchange="setPdfCfg('showDots',this.checked)"><label>Pointillés entre le plat et le prix</label></label>
+    <label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showFrame!==false?'checked':''} onchange="setPdfCfg('showFrame',this.checked)"><label>Cadre autour de la page</label></label>
+    <div style="font-size:10px;color:var(--text3);margin-top:3px">Sur un menu qui tient sur une seule page, le cadre encadre bien tout le contenu. S'il dépasse sur une deuxième page, utilisez "Nouvelle page" ci-dessous sur une catégorie pour éviter une coupure au milieu.</div>
+
+    <div class="af" style="margin-top:10px"><label class="al">Texte personnalisé (pied de page)</label>
+      <textarea class="ai" rows="2" placeholder="Ex : Fait maison, produits locaux…" oninput="setPdfCfg('footerCustomText',this.value)" style="width:100%;resize:vertical;font-family:Jost,sans-serif">${cfg.footerCustomText||''}</textarea>
+    </div>
+
     <div class="af" style="margin-top:10px"><label class="al">Format papier</label>
       <div style="display:flex;gap:16px;margin-top:2px">
         <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="pdfPaperSize" value="a4" ${cfg.paperSize!=='a5'?'checked':''} onchange="setPdfCfg('paperSize','a4')"> A4</label>
@@ -4260,11 +4269,20 @@ function renderPrintBody(){
       <div style="font-size:10.5px;color:var(--text3);margin-top:4px">A5 (moitié d'A4) — pratique pour un petit menu de table.</div>
     </div>
 
+    <div class="af" style="margin-top:10px"><label class="al">Saut de page par catégorie</label>
+      <div style="font-size:10.5px;color:var(--text3);margin-bottom:6px">Force une catégorie à commencer sur une nouvelle page plutôt que d'être coupée au milieu.</div>
+      ${DATA.tabs.filter(tb=>tb.id!=='__home').map(tb=>`<label class="admin-toggle" style="margin-top:4px"><input type="checkbox" ${tb.pdfPageBreakBefore?'checked':''} onchange="tb_setPageBreak('${tb.id}',this.checked)"><label>${t(tb.label)}</label></label>`).join('')}
+    </div>
+
     <div class="af" style="margin-top:14px"><label class="al">Aperçu live</label>
       <iframe id="pdfPreviewFrame" style="width:100%;height:420px;border:1px solid var(--border);border-radius:8px;background:#e8e8e8"></iframe>
     </div>
 
-    <button class="aadd" style="width:100%;padding:11px;margin-top:6px" onclick="exportA4Print(pdfCfg())">Imprimer le menu</button>`;
+    <button class="aadd" style="width:100%;padding:11px;margin-top:6px;font-weight:700" onclick="exportA4Print(pdfCfg())">Imprimer le menu</button>`;
+}
+function tb_setPageBreak(tabId, val){
+  const tb = DATA.tabs.find(x=>x.id===tabId);
+  if(tb){ tb.pdfPageBreakBefore = val; updatePdfPreview(); }
 }
 // Kept for compatibility (renderExportSection still calls it); wraps the body in its own section.
 function renderPdfStyleSection(){
@@ -4422,14 +4440,20 @@ function applyRestaurantBranding(){
     }
   });
   const name=getRestaurantName();
+  const logo=getRestaurantLogo();
   const logoEl=document.querySelector('.logo-img');
   const textEl=document.getElementById('logoText');
-  // The menu's own header always shows the restaurant name as styled
-  // text (in the chosen font) — never the uploaded logo image. That
-  // logo is still used elsewhere (PDF export, social templates), just
-  // not here.
-  if(logoEl) logoEl.style.display='none';
-  if(textEl){ textEl.style.display='block'; textEl.textContent=name||'Mon Restaurant'; }
+  // Logo takes over from the styled text the moment one is uploaded —
+  // text is only the fallback for restaurants that haven't set a logo
+  // yet. (Previously this always showed text and never the logo here;
+  // the logo only ever appeared in PDF/social exports.)
+  if(logo){
+    if(logoEl){ logoEl.src=logo; logoEl.style.display='block'; }
+    if(textEl) textEl.style.display='none';
+  } else {
+    if(logoEl) logoEl.style.display='none';
+    if(textEl){ textEl.style.display='block'; textEl.textContent=name||'Mon Restaurant'; }
+  }
   document.title=(name||'Menu')+' — Menu';
 }
 
@@ -4868,6 +4892,19 @@ function openFirstAdminSection(){
 // elsewhere since this file was last deployed.
 applyRestaurantBranding();
 renderAll();
+// BUG FIX: the schedule popup (homepage badge AND the menu-list page's
+// badge — both use this same widget, just with a different suffix)
+// only ever closed if you clicked its own badge again. toggleSchedPopup
+// stops the click from bubbling on the badge itself, but nothing closed
+// it on an outside click — on mobile especially, that reads as "stuck
+// open". One listener, closes any open popup whose badge wasn't the
+// click target, covers every instance regardless of suffix.
+document.addEventListener('click', function(e){
+  document.querySelectorAll('.resto-popup.visible').forEach(function(p){
+    const badge = p.closest('.resto-badge-inline');
+    if (badge && !badge.contains(e.target)) p.classList.remove('visible');
+  });
+});
 { const dBtn=document.getElementById('calAdminBtnDesktop'); if(dBtn) dBtn.href=RESA_ADMIN_URL;
   const mBtn=document.getElementById('calAdminBtnMobile'); if(mBtn) mBtn.href=RESA_ADMIN_URL; }
 // BUG FIX: the "Lecture / Modifier / Réglages" bar (.mode-links-bar) was
