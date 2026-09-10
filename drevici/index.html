@@ -4085,10 +4085,15 @@ function paginatePdfPages(cfg){
   const fullPageHeightPx = isA5 ? 794 : 1123;
   const A5_SCALE = 0.72;
   const padPx = Math.round((isA5 ? A5_SCALE : 1) * 40);
-  // 6% safety margin: fonts/DPI vary slightly by browser/OS, so aim a
-  // bit under the true limit rather than risk the browser's own print
-  // engine still needing to split a page we thought would fit.
-  const maxPageHeightPx = Math.floor((fullPageHeightPx - 2*padPx) * 0.94);
+  // Small safety margin: fonts/DPI vary slightly by browser/OS, so aim
+  // a touch under the true limit rather than risk the browser's own
+  // print engine still needing to split a page we thought would fit.
+  // (Was 6% — real-world testing showed that left a whole extra dish's
+  // worth of unused space at the bottom of every page, which is also
+  // what read as "bottom margin bigger than the other 3 sides": the
+  // frame itself is a uniform 14px inset on every side, so that gap
+  // was unused content room, not the frame sitting off-center.)
+  const maxPageHeightPx = Math.floor((fullPageHeightPx - 2*padPx) * 0.985);
 
   const { headerHtml, contentBlocks, footerHtml } = buildPdfBlocks(cfg);
 
