@@ -4190,6 +4190,10 @@ function buildPdfCSS(cfg){
   const scale = isGbiz ? 1 : (isA5 ? A5_SCALE : 1);
   const px = v => Math.round(v*scale*100)/100;
   const pageW = isGbiz ? 612 : (isA5 ? Math.round(794*A5_SCALE) : 794);
+  // Must match paginatePdfPages()'s fullPageHeightPx exactly — both need
+  // the SAME physical page height, one to size the box, the other to
+  // budget how much content fits in it.
+  const pageH = isGbiz ? null : (isA5 ? 794 : 1123);
   const pad = isGbiz ? 70 : px(40);
   const maritime = cfg.template === 'maritime';
   return `
@@ -4203,7 +4207,17 @@ function buildPdfCSS(cfg){
      forces the print output to reproduce colors exactly as configured,
      so the two always match — one standard recipe, no per-client tweaking. */
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
-  .pdf-page{--space-scale:1;font-family:'Open Sans',sans-serif;color:#1a1a1a;background:${cfg.bgColor||'#FFFDF8'};width:${pageW}px;padding:${pad}px;margin:0 auto;position:relative}
+  // BUG FIX: without an explicit height, a page whose content ends
+  // early just... ends there — the box (background AND the frame,
+  // which is positioned relative to this same box) stops with the
+  // content, leaving the rest of the physical sheet as plain unstyled
+  // white. That's both the "huge blank margin at the bottom" and the
+  // "frame margin isn't the same on all 4 sides" symptom at once: once
+  // every page is pinned to the true full page height, the frame's
+  // uniform inset (below) finally wraps a box that's actually the size
+  // of the physical sheet, on every page, not just on ones lucky enough
+  // to be completely full.
+  .pdf-page{--space-scale:1;font-family:'Open Sans',sans-serif;color:#1a1a1a;background:${cfg.bgColor||'#FFFDF8'};width:${pageW}px;${pageH?`min-height:${pageH}px;`:''}padding:${pad}px;margin:0 auto;position:relative}
   ${cfg.showFrame!==false?`.pdf-page::before{content:'';position:absolute;inset:${px(14)}px;border:1.5px solid ${cfg.accentColor};opacity:.4;pointer-events:none}`:''}
   .pdf-header{text-align:center;margin-bottom:${isGbiz?40:px(28)}px;position:relative}
   .pdf-logo-text{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?22:px(22)}px;font-weight:700;color:var(--navy,#10285E);margin:0 auto 12px;display:block;text-align:center}
