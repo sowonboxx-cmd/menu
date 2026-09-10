@@ -4132,9 +4132,27 @@ function paginatePdfPages(cfg){
     current = withFooter;
   }
   pages.push(current);
+  // Whitespace as the adjustment variable: a page sitting well under
+  // its available height gets its inter-dish/inter-category spacing
+  // gently stretched (never text size) via the --space-scale custom
+  // property (see buildPdfCSS) so the page reads as "designed to end
+  // here" rather than "ran out of content". Capped low (max +22%) to
+  // stay subtle — this is what actually closes the gap a fixed
+  // min-height otherwise leaves behind on a page that's genuinely
+  // shorter than a full sheet's worth of dishes.
+  const result = pages.map(pageHtml=>{
+    const used = heightOf(pageHtml);
+    const ratio = maxPageHeightPx > 0 ? used / maxPageHeightPx : 1;
+    let spaceScale = 1;
+    if(ratio < 0.97 && ratio > 0){
+      const slack = 0.97 - ratio;
+      spaceScale = Math.min(1.22, 1 + slack * 0.9);
+    }
+    return { html: pageHtml, spaceScale };
+  });
 
   document.body.removeChild(holder);
-  return pages.map(html => ({ html, spaceScale: 1 }));
+  return result;
 }
 
 
@@ -4172,19 +4190,19 @@ function buildPdfCSS(cfg){
      forces the print output to reproduce colors exactly as configured,
      so the two always match — one standard recipe, no per-client tweaking. */
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
-  .pdf-page{font-family:'Open Sans',sans-serif;color:#1a1a1a;background:${cfg.bgColor||'#FFFDF8'};width:${pageW}px;${pageH?`min-height:${pageH}px;`:''}padding:${pad}px;margin:0 auto;position:relative}
+  .pdf-page{--space-scale:1;font-family:'Open Sans',sans-serif;color:#1a1a1a;background:${cfg.bgColor||'#FFFDF8'};width:${pageW}px;${pageH?`min-height:${pageH}px;`:''}padding:${pad}px;margin:0 auto;position:relative}
   ${cfg.showFrame!==false?`.pdf-page::before{content:'';position:absolute;inset:${px(14)}px;border:1.5px solid ${cfg.accentColor};opacity:.4;pointer-events:none}`:''}
-  .pdf-header{text-align:center;margin-bottom:${isGbiz?55:px(43)}px;position:relative}
+  .pdf-header{text-align:center;margin-bottom:calc(${isGbiz?55:px(43)}px * var(--space-scale));position:relative}
   .pdf-logo-text{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?22:px(22)}px;font-weight:700;color:var(--navy,#10285E);margin:0 auto 12px;display:block;text-align:center}
 .pdf-logo{max-width:${isGbiz?160:px(120)}px;max-height:${isGbiz?110:px(80)}px;object-fit:contain;margin:0 auto 12px;display:block}
   .pdf-title{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?44:px(32)}px;font-weight:700;color:${cfg.titleColor};line-height:1.1}
   .pdf-sub{font-size:${isGbiz?13:px(11)}px;letter-spacing:.16em;text-transform:uppercase;color:#999;margin-top:6px}
-  .pdf-section{margin-bottom:${isGbiz?55:px(47)}px;break-inside:avoid;page-break-inside:avoid}
-  .pdf-cat{font-family:'Open Sans',sans-serif;font-size:${isGbiz?26:px(20)}px;font-weight:600;color:${cfg.titleColor};margin:${isGbiz?28:px(20)}px 0 ${isGbiz?16:px(12)}px;padding-bottom:6px;border-bottom:1.5px solid ${maritime?cfg.accentColor:'#e2e2e2'};display:flex;align-items:center;gap:10px}
-  .pdf-subcat{font-size:${isGbiz?13:px(11)}px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:${cfg.accentColor};margin:${isGbiz?18:px(14)}px 0 ${isGbiz?10:px(8)}px}
-  .pdf-dish{margin-bottom:${isGbiz?13:px(10)}px;break-inside:avoid;page-break-inside:avoid}
+  .pdf-section{margin-bottom:calc(${isGbiz?55:px(47)}px * var(--space-scale));break-inside:avoid;page-break-inside:avoid}
+  .pdf-cat{font-family:'Open Sans',sans-serif;font-size:${isGbiz?26:px(20)}px;font-weight:600;color:${cfg.titleColor};margin:calc(${isGbiz?28:px(20)}px * var(--space-scale)) 0 calc(${isGbiz?16:px(12)}px * var(--space-scale));padding-bottom:6px;border-bottom:1.5px solid ${maritime?cfg.accentColor:'#e2e2e2'};display:flex;align-items:center;gap:10px}
+  .pdf-subcat{font-size:${isGbiz?13:px(11)}px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:${cfg.accentColor};margin:calc(${isGbiz?18:px(14)}px * var(--space-scale)) 0 calc(${isGbiz?10:px(8)}px * var(--space-scale))}
+  .pdf-dish{margin-bottom:calc(${isGbiz?13:px(10)}px * var(--space-scale));break-inside:avoid;page-break-inside:avoid}
   .pdf-dish-line{display:flex;align-items:baseline;gap:6px}
-  .pdf-dish-name{font-size:${isGbiz?16:px(13)}px;font-weight:600;white-space:nowrap}
+  .pdf-dish-name{font-size:${isGbiz?16:px(13)}px;font-weight:600;white-space:nowrap;color:${cfg.titleColor}}
   .pdf-dots{flex:1;border-bottom:1px dotted #ccc;transform:translateY(-3px);min-width:18px}
   .pdf-dots-off{flex:1;min-width:18px}
   .pdf-dish-price{font-size:${isGbiz?16:px(13)}px;font-weight:600;color:${cfg.accentColor};white-space:nowrap;flex:none}
@@ -4261,9 +4279,11 @@ function exportA4Print(cfg){
   const css = buildPdfCSS(cfg);
   const pages = paginatePdfPages(cfg);
   const restName = getRestaurantName() || 'Menu';
-  const pagesHtml = pages.map((page, i)=>
-    `<div class="pdf-page"${i<pages.length-1?' style="page-break-after:always;break-after:page"':''}>${page.html}</div>`
-  ).join('');
+  const pagesHtml = pages.map((page, i)=>{
+    const breakStyle = i<pages.length-1 ? 'page-break-after:always;break-after:page;' : '';
+    const scaleStyle = page.spaceScale && page.spaceScale!==1 ? `--space-scale:${page.spaceScale};` : '';
+    return `<div class="pdf-page" style="${breakStyle}${scaleStyle}">${page.html}</div>`;
+  }).join('');
   const doc = `<!DOCTYPE html><html><head>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
