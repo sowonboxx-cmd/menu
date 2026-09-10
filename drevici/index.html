@@ -4076,17 +4076,19 @@ function buildPdfBlocks(cfg){
 // physical sheet. Each one gets its own complete, independent border.
 function paginatePdfPages(cfg){
   if(cfg.format === 'gbiz') return [buildPdfMenuHTML(cfg)]; // one tall image, not print-paginated
+
   const isA5 = cfg.paperSize === 'a5';
+  // True A4/A5 physical page height at 96dpi (matches buildPdfCSS, which
+  // now uses the same real dimensions with @page margin:0 — the only
+  // inset left is our own deliberate `pad`, accounted for below).
+  const fullPageHeightPx = isA5 ? 794 : 1123;
   const A5_SCALE = 0.72;
-  const scale = isA5 ? A5_SCALE : 1;
-  const pageW = Math.round(700*scale); // matches buildPdfCSS's own pageW for this same cfg
-  const printableWidthMm = isA5 ? 85 : 182;   // page width minus the two @page margins
-  const printableHeightMm = isA5 ? 128 : 269; // page height minus the two @page margins
-  const pxPerMm = pageW / printableWidthMm;
+  const padPx = Math.round((isA5 ? A5_SCALE : 1) * 40);
   // 6% safety margin: fonts/DPI vary slightly by browser/OS, so aim a
   // bit under the true limit rather than risk the browser's own print
   // engine still needing to split a page we thought would fit.
-  const maxPageHeightPx = Math.floor(printableHeightMm * pxPerMm * 0.94);
+  const SAFETY = 0.94;
+  const maxPageHeightPx = Math.floor((fullPageHeightPx - 2*padPx) * SAFETY);
 
   const { headerHtml, contentBlocks, footerHtml } = buildPdfBlocks(cfg);
 
@@ -4097,30 +4099,78 @@ function paginatePdfPages(cfg){
   const measureEl = holder.querySelector('#__pdfMeasure');
   const heightOf = html => { measureEl.innerHTML = html; return measureEl.offsetHeight; };
 
-  const pages = [];
-  let current = headerHtml;
-  contentBlocks.forEach(block=>{
-    const candidate = current + block.html;
-    const mustBreak = block.forceBreak && current !== headerHtml && current !== '';
-    if(!mustBreak && heightOf(candidate) <= maxPageHeightPx){
-      current = candidate;
-    } else {
+  // Fill greedily up to a given per-page ceiling. Used twice below: once
+  // at the true max (just to find out how many pages this content needs
+  // at all), then again at a lower, *balanced* target once that page
+  // count is known — this is what actually fixes "page 1 at 94%, page 2
+  // at 48%": instead of always stuffing page 1 as full as physically
+  // possible, aim every page at content/pageCount instead.
+  function fillPages(ceilingPx){
+    const pages = [];
+    let current = headerHtml;
+    contentBlocks.forEach(block=>{
+      const candidate = current + block.html;
+      const mustBreak = block.forceBreak && current !== headerHtml && current !== '';
+      if(!mustBreak && heightOf(candidate) <= ceilingPx){
+        current = candidate;
+      } else {
+        pages.push(current);
+        current = block.html; // new page starts with just this block (no repeated header)
+      }
+    });
+    const withFooter = current + footerHtml;
+    if(footerHtml && heightOf(withFooter) > ceilingPx){
       pages.push(current);
-      current = block.html; // new page starts with just this block (no repeated header)
+      current = footerHtml;
+    } else {
+      current = withFooter;
     }
-  });
-  // Footer: append to the last page if it fits, otherwise its own page.
-  const withFooter = current + footerHtml;
-  if(footerHtml && heightOf(withFooter) > maxPageHeightPx){
     pages.push(current);
-    current = footerHtml;
-  } else {
-    current = withFooter;
+    return pages;
   }
-  pages.push(current);
+
+  // Pass 1: how many pages does this content need at all, packed as
+  // tightly as physically possible?
+  const maxFilledPages = fillPages(maxPageHeightPx);
+  const pageCount = maxFilledPages.length;
+
+  // Pass 2: re-distribute across that many pages, but aim for an even
+  // share of the total content instead of the hard ceiling — this is
+  // the actual "balance rather than maximize" pass. A single page (or
+  // content that barely reached the next page) doesn't need balancing.
+  let pages = maxFilledPages;
+  if(pageCount > 1){
+    const totalContentHeight = heightOf(contentBlocks.map(b=>b.html).join(''));
+    const totalHeaderFooter = heightOf(headerHtml) + (footerHtml ? heightOf(footerHtml) : 0);
+    const targetPerPage = Math.min(maxPageHeightPx, Math.ceil((totalContentHeight + totalHeaderFooter) / pageCount));
+    const balanced = fillPages(targetPerPage);
+    // Safety net: only use the balanced pass if it didn't accidentally
+    // create MORE pages than the tightly-packed version (can happen at
+    // the margins with a forced category break) — never make things
+    // worse than the simple greedy-max fallback.
+    if(balanced.length <= pageCount) pages = balanced;
+  }
+
+  // Whitespace as the adjustment variable: a page sitting well under its
+  // share gets its inter-dish/inter-category spacing gently stretched
+  // (never text size) via the --space-scale custom property (see
+  // buildPdfCSS) so the page reads as "designed to end here" rather
+  // than "ran out of content". Capped low (max +22%) to stay subtle.
+  // Returned as {html, spaceScale} — exportA4Print applies the scale
+  // when it wraps each one in its actual <div class="pdf-page">.
+  const result = pages.map(pageHtml=>{
+    const used = heightOf(pageHtml);
+    const ratio = maxPageHeightPx > 0 ? used / maxPageHeightPx : 1;
+    let spaceScale = 1;
+    if(ratio < 0.85 && ratio > 0){
+      const slack = 0.85 - ratio; // how far under the "ideal" 85% band
+      spaceScale = Math.min(1.22, 1 + slack * 0.6);
+    }
+    return { html: pageHtml, spaceScale };
+  });
 
   document.body.removeChild(holder);
-  return pages;
+  return result;
 }
 
 
@@ -4128,20 +4178,24 @@ function paginatePdfPages(cfg){
 function buildPdfCSS(cfg){
   const isGbiz = cfg.format === 'gbiz';
   const isA5 = !isGbiz && cfg.paperSize === 'a5';
-  // A4 ~ 794px wide @96dpi; Google Business 3064x5447 → we render preview at scaled width.
-  // A5 is exactly half of A4 (cut along the long edge) — scaling every
-  // A4 dimension down by the same ratio keeps proportions (and the
-  // design itself) identical, just smaller, rather than needing a
-  // separate set of hand-tuned numbers to keep in sync.
+  // True A4/A5 physical page size at 96dpi (210×297mm / 148×210mm).
+  // @page margin is 0 below — the PDF itself must be genuinely
+  // edge-to-edge, no browser-added margin; the only inset left is our
+  // own deliberate `pad`, a design choice rather than a print-driver
+  // default. A5's own true dimensions (559×794px) happen to sit at
+  // ~0.70-0.72 of A4's, which is why the existing 0.72 scale (already
+  // used for every font-size/spacing below) stays a good approximation
+  // rather than needing a second, separately-tuned set of numbers.
   const A5_SCALE = 0.72;
   const scale = isGbiz ? 1 : (isA5 ? A5_SCALE : 1);
   const px = v => Math.round(v*scale*100)/100;
-  const pageW = isGbiz ? 612 : px(700);   // preview px width (gbiz is portrait 9:16-ish)
+  const pageW = isGbiz ? 612 : (isA5 ? Math.round(794*A5_SCALE) : 794);
   const pad = isGbiz ? 70 : px(40);
   const maritime = cfg.template === 'maritime';
   return `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Open+Sans:wght@300;400;600&display=swap');
   *{box-sizing:border-box;margin:0;padding:0}
+  html,body{margin:0;padding:0}
   /* BUG FIX: without this, browsers print backgrounds/colors differently
      from what's shown on screen by default (usually to save ink) — this
      is exactly what made the live preview and the actual printed/PDF
@@ -4149,17 +4203,17 @@ function buildPdfCSS(cfg){
      forces the print output to reproduce colors exactly as configured,
      so the two always match — one standard recipe, no per-client tweaking. */
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
-  .pdf-page{font-family:'Open Sans',sans-serif;color:#1a1a1a;background:${cfg.bgColor||'#FFFDF8'};width:${pageW}px;padding:${pad}px;margin:0 auto;position:relative}
+  .pdf-page{--space-scale:1;font-family:'Open Sans',sans-serif;color:#1a1a1a;background:${cfg.bgColor||'#FFFDF8'};width:${pageW}px;padding:${pad}px;margin:0 auto;position:relative}
   ${cfg.showFrame!==false?`.pdf-page::before{content:'';position:absolute;inset:${px(14)}px;border:1.5px solid ${cfg.accentColor};opacity:.4;pointer-events:none}`:''}
   .pdf-header{text-align:center;margin-bottom:${isGbiz?40:px(28)}px;position:relative}
   .pdf-logo-text{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?22:px(22)}px;font-weight:700;color:var(--navy,#10285E);margin:0 auto 12px;display:block;text-align:center}
 .pdf-logo{max-width:${isGbiz?160:px(120)}px;max-height:${isGbiz?110:px(80)}px;object-fit:contain;margin:0 auto 12px;display:block}
   .pdf-title{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?44:px(32)}px;font-weight:700;color:${cfg.titleColor};line-height:1.1}
   .pdf-sub{font-size:${isGbiz?13:px(11)}px;letter-spacing:.16em;text-transform:uppercase;color:#999;margin-top:6px}
-  .pdf-section{margin-bottom:${isGbiz?30:px(22)}px;break-inside:avoid;page-break-inside:avoid}
-  .pdf-cat{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?26:px(20)}px;font-weight:600;color:${cfg.titleColor};margin:${isGbiz?28:px(20)}px 0 ${isGbiz?16:px(12)}px;padding-bottom:6px;border-bottom:1.5px solid ${maritime?cfg.accentColor:'#e2e2e2'};display:flex;align-items:center;gap:10px}
-  .pdf-subcat{font-size:${isGbiz?13:px(11)}px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:${cfg.accentColor};margin:${isGbiz?18:px(14)}px 0 ${isGbiz?10:px(8)}px}
-  .pdf-dish{margin-bottom:${isGbiz?13:px(10)}px;break-inside:avoid;page-break-inside:avoid}
+  .pdf-section{margin-bottom:calc(${isGbiz?30:px(22)}px * var(--space-scale));break-inside:avoid;page-break-inside:avoid}
+  .pdf-cat{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?26:px(20)}px;font-weight:600;color:${cfg.titleColor};margin:calc(${isGbiz?28:px(20)}px * var(--space-scale)) 0 calc(${isGbiz?16:px(12)}px * var(--space-scale));padding-bottom:6px;border-bottom:1.5px solid ${maritime?cfg.accentColor:'#e2e2e2'};display:flex;align-items:center;gap:10px}
+  .pdf-subcat{font-size:${isGbiz?13:px(11)}px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:${cfg.accentColor};margin:calc(${isGbiz?18:px(14)}px * var(--space-scale)) 0 calc(${isGbiz?10:px(8)}px * var(--space-scale))}
+  .pdf-dish{margin-bottom:calc(${isGbiz?13:px(10)}px * var(--space-scale));break-inside:avoid;page-break-inside:avoid}
   .pdf-dish-line{display:flex;align-items:baseline;gap:6px}
   .pdf-dish-name{font-size:${isGbiz?16:px(13)}px;font-weight:600;white-space:nowrap}
   .pdf-dots{flex:1;border-bottom:1px dotted #ccc;transform:translateY(-3px);min-width:18px}
@@ -4169,7 +4223,8 @@ function buildPdfCSS(cfg){
   .pdf-footer{margin-top:${isGbiz?44:px(30)}px;padding-top:${isGbiz?20:px(14)}px;border-top:1px solid ${maritime?cfg.accentColor:'#e2e2e2'};text-align:center}
   .pdf-footer-text{font-size:${isGbiz?12:px(10)}px;color:#999;letter-spacing:.04em;line-height:1.6}
   @media print{
-    @page{size:${isA5?'A5':'A4'};margin:${isA5?'10mm':'14mm'}}
+    html,body{margin:0!important;padding:0!important}
+    @page{size:${isA5?'A5':'A4'};margin:0}
   }`;
 }
 
@@ -4237,9 +4292,11 @@ function exportA4Print(cfg){
   const css = buildPdfCSS(cfg);
   const pages = paginatePdfPages(cfg);
   const restName = getRestaurantName() || 'Menu';
-  const pagesHtml = pages.map((pageContent, i)=>
-    `<div class="pdf-page"${i<pages.length-1?' style="page-break-after:always;break-after:page"':''}>${pageContent}</div>`
-  ).join('');
+  const pagesHtml = pages.map((page, i)=>{
+    const breakStyle = i<pages.length-1 ? 'page-break-after:always;break-after:page;' : '';
+    const scaleStyle = page.spaceScale && page.spaceScale!==1 ? `--space-scale:${page.spaceScale};` : '';
+    return `<div class="pdf-page" style="${breakStyle}${scaleStyle}">${page.html}</div>`;
+  }).join('');
   const doc = `<!DOCTYPE html><html><head>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
