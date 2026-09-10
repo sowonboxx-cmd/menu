@@ -3977,10 +3977,7 @@ function pdfCfg(){
     showFrame: d.showFrame !== false,
     bgColor: d.bgColor || '#FFFDF8',
     logoData: d.logoData || '',
-    footerAddress: d.footerAddress || (DATA.address ? [DATA.address.street,DATA.address.zip,DATA.address.city].filter(Boolean).join(', ') : '') || '',
-    footerPhone: d.footerPhone || (DATA.address&&DATA.address.phone) || '',
     footerCustomText: d.footerCustomText || '',
-    footerShowDate: d.footerShowDate !== false,
     format: d.format || 'a4',                    // 'a4' | 'gbiz'
     paperSize: d.paperSize || 'a4'                // 'a4' | 'a5' — only applies when format is 'a4' (the print/PDF format)
   };
@@ -4057,16 +4054,11 @@ function buildPdfBlocks(cfg){
     });
   });
 
-  const footerBits = [];
-  if(cfg.footerAddress) footerBits.push(cfg.footerAddress);
-  if(cfg.footerPhone) footerBits.push(cfg.footerPhone);
-  if(cfg.footerCustomText) footerBits.push(cfg.footerCustomText);
-  if(cfg.footerShowDate){
-    const now = new Date();
-    footerBits.push('Mis à jour le ' + now.toLocaleDateString('fr-FR'));
-  }
-  const footerHtml = footerBits.length
-    ? `<div class="pdf-footer"><div class="pdf-footer-text">${footerBits.join('  ·  ')}</div></div>`
+  // Footer : uniquement le texte personnalisé — plus aucun champ ajouté
+  // automatiquement (adresse, téléphone, date), puisque rien de tout ça
+  // n'était sélectionnable/désactivable individuellement.
+  const footerHtml = cfg.footerCustomText
+    ? `<div class="pdf-footer"><div class="pdf-footer-text">${cfg.footerCustomText}</div></div>`
     : '';
 
   return { headerHtml, contentBlocks, footerHtml };
@@ -4356,7 +4348,7 @@ function renderPrintBody(){
       <iframe id="pdfPreviewFrame" style="width:100%;height:420px;border:1px solid var(--border);border-radius:8px;background:#e8e8e8"></iframe>
     </div>
 
-    <button class="aadd" style="width:100%;padding:11px;margin-top:6px;font-weight:700" onclick="exportA4Print(pdfCfg())">Imprimer le menu</button>`;
+    <button class="aadd" style="width:100%;padding:13px;margin-top:6px;font-weight:700;background:var(--navy);color:#fff;border:none;font-size:14px" onclick="exportA4Print(pdfCfg())">Imprimer le menu</button>`;
 }
 function tb_setPageBreak(tabId, val){
   const tb = DATA.tabs.find(x=>x.id===tabId);
