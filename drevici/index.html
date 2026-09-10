@@ -4077,21 +4077,30 @@ function buildPdfBlocks(cfg){
 function paginatePdfPages(cfg){
   if(cfg.format === 'gbiz') return [{ html: buildPdfMenuHTML(cfg), spaceScale: 1 }]; // one tall image, not print-paginated
   const isA5 = cfg.paperSize === 'a5';
+  // True A4/A5 physical page height at 96dpi (210×297mm / 148×210mm).
+  // @page margin is 0 (see buildPdfCSS) — the PDF itself must be truly
+  // edge-to-edge, so the full physical height is available; the only
+  // inset left is our own deliberate `pad`, a design choice rather
+  // than a print-driver default.
+  const fullPageHeightPx = isA5 ? 794 : 1123;
   const A5_SCALE = 0.72;
-  const scale = isA5 ? A5_SCALE : 1;
-  const pageW = Math.round(700*scale); // matches buildPdfCSS's own pageW for this same cfg
-  const printableWidthMm = isA5 ? 85 : 182;   // page width minus the two @page margins
-  const printableHeightMm = isA5 ? 128 : 269; // page height minus the two @page margins
-  const pxPerMm = pageW / printableWidthMm;
+  const padPx = Math.round((isA5 ? A5_SCALE : 1) * 40);
   // 6% safety margin: fonts/DPI vary slightly by browser/OS, so aim a
   // bit under the true limit rather than risk the browser's own print
   // engine still needing to split a page we thought would fit.
-  const maxPageHeightPx = Math.floor(printableHeightMm * pxPerMm * 0.94);
+  const maxPageHeightPx = Math.floor((fullPageHeightPx - 2*padPx) * 0.94);
 
   const { headerHtml, contentBlocks, footerHtml } = buildPdfBlocks(cfg);
 
   const holder = document.createElement('div');
   holder.style.cssText = 'position:fixed;left:-99999px;top:0;visibility:hidden;';
+  // min-height:0 here is essential, not cosmetic: .pdf-page carries its
+  // own min-height (the full physical page) so real pages always look
+  // complete even half-empty — but that same min-height would poison
+  // THIS measurement if left in place, since every offsetHeight read
+  // would floor out at "one full page" regardless of actual content,
+  // making every single block appear to overflow and forcing a page
+  // break after each one. This override keeps the measurement honest.
   holder.innerHTML = `<style>${buildPdfCSS(cfg)}</style><div class="pdf-page" id="__pdfMeasure" style="height:auto;min-height:0"></div>`;
   document.body.appendChild(holder);
   const measureEl = holder.querySelector('#__pdfMeasure');
@@ -4128,31 +4137,29 @@ function paginatePdfPages(cfg){
 function buildPdfCSS(cfg){
   const isGbiz = cfg.format === 'gbiz';
   const isA5 = !isGbiz && cfg.paperSize === 'a5';
-  // A4 ~ 794px wide @96dpi; Google Business 3064x5447 → we render preview at scaled width.
-  // A5 is exactly half of A4 (cut along the long edge) — scaling every
-  // A4 dimension down by the same ratio keeps proportions (and the
-  // design itself) identical, just smaller, rather than needing a
-  // separate set of hand-tuned numbers to keep in sync.
+  // True A4/A5 physical page size at 96dpi (210×297mm / 148×210mm).
+  // @page margin is 0 below — the PDF itself must be genuinely
+  // edge-to-edge (background/frame reach the true page border), no
+  // browser-added margin; the only inset left is our own deliberate
+  // `pad`, a design choice rather than a print-driver default. A5's
+  // own true dimensions (559×794px) sit at ~0.70-0.72 of A4's, which is
+  // why the existing 0.72 scale (already used for every font-size/
+  // spacing below) stays a good approximation rather than needing a
+  // second, separately-tuned set of numbers.
   const A5_SCALE = 0.72;
   const scale = isGbiz ? 1 : (isA5 ? A5_SCALE : 1);
   const px = v => Math.round(v*scale*100)/100;
-  const pageW = isGbiz ? 612 : px(700);   // preview px width (gbiz is portrait 9:16-ish)
+  const pageW = isGbiz ? 612 : (isA5 ? Math.round(794*A5_SCALE) : 794);
+  // Must match paginatePdfPages()'s fullPageHeightPx exactly — both need
+  // the SAME physical page height, one to size the box, the other to
+  // budget how much content fits in it.
+  const pageH = isGbiz ? null : (isA5 ? 794 : 1123);
   const pad = isGbiz ? 70 : px(40);
-  // BUG FIX: min-height added so the page's own background AND its
-  // frame (::before, positioned relative to this same box) always
-  // reach the true bottom of the physical page — previously, a page
-  // whose content ended early just stopped there, leaving the rest of
-  // the sheet as plain unstyled white below an incomplete-looking
-  // frame. Must match paginatePdfPages()'s own printableHeightMm/
-  // pxPerMm math so the box and the content-fitting budget agree on
-  // what "one page" is.
-  const printableWidthMm = isA5 ? 85 : 182;
-  const printableHeightMm = isA5 ? 128 : 269;
-  const pageH = isGbiz ? null : Math.round(printableHeightMm * (pageW / printableWidthMm));
   const maritime = cfg.template === 'maritime';
   return `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Open+Sans:wght@300;400;600&display=swap');
   *{box-sizing:border-box;margin:0;padding:0}
+  html,body{margin:0;padding:0}
   /* BUG FIX: without this, browsers print backgrounds/colors differently
      from what's shown on screen by default (usually to save ink) — this
      is exactly what made the live preview and the actual printed/PDF
@@ -4167,8 +4174,8 @@ function buildPdfCSS(cfg){
 .pdf-logo{max-width:${isGbiz?160:px(120)}px;max-height:${isGbiz?110:px(80)}px;object-fit:contain;margin:0 auto 12px;display:block}
   .pdf-title{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?44:px(32)}px;font-weight:700;color:${cfg.titleColor};line-height:1.1}
   .pdf-sub{font-size:${isGbiz?13:px(11)}px;letter-spacing:.16em;text-transform:uppercase;color:#999;margin-top:6px}
-  .pdf-section{margin-bottom:${isGbiz?30:px(22)}px;break-inside:avoid;page-break-inside:avoid}
-  .pdf-cat{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?26:px(20)}px;font-weight:600;color:${cfg.titleColor};margin:${isGbiz?28:px(20)}px 0 ${isGbiz?16:px(12)}px;padding-bottom:6px;border-bottom:1.5px solid ${maritime?cfg.accentColor:'#e2e2e2'};display:flex;align-items:center;gap:10px}
+  .pdf-section{margin-bottom:${isGbiz?40:px(32)}px;break-inside:avoid;page-break-inside:avoid}
+  .pdf-cat{font-family:'Open Sans',sans-serif;font-size:${isGbiz?26:px(20)}px;font-weight:600;color:${cfg.titleColor};margin:${isGbiz?28:px(20)}px 0 ${isGbiz?16:px(12)}px;padding-bottom:6px;border-bottom:1.5px solid ${maritime?cfg.accentColor:'#e2e2e2'};display:flex;align-items:center;gap:10px}
   .pdf-subcat{font-size:${isGbiz?13:px(11)}px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:${cfg.accentColor};margin:${isGbiz?18:px(14)}px 0 ${isGbiz?10:px(8)}px}
   .pdf-dish{margin-bottom:${isGbiz?13:px(10)}px;break-inside:avoid;page-break-inside:avoid}
   .pdf-dish-line{display:flex;align-items:baseline;gap:6px}
@@ -4180,7 +4187,8 @@ function buildPdfCSS(cfg){
   .pdf-footer{margin-top:${isGbiz?44:px(30)}px;padding-top:${isGbiz?20:px(14)}px;border-top:1px solid ${maritime?cfg.accentColor:'#e2e2e2'};text-align:center}
   .pdf-footer-text{font-size:${isGbiz?12:px(10)}px;color:#999;letter-spacing:.04em;line-height:1.6}
   @media print{
-    @page{size:${isA5?'A5':'A4'};margin:${isA5?'10mm':'14mm'}}
+    html,body{margin:0!important;padding:0!important}
+    @page{size:${isA5?'A5':'A4'};margin:0}
   }`;
 }
 
