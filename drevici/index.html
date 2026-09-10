@@ -4015,10 +4015,15 @@ function buildPdfBlocks(cfg){
   let headerHtml = `<div class="pdf-header">`;
   if(showLogoImg) headerHtml += `<img src="${logoUrl}" class="pdf-logo" onerror="this.style.display='none'">`;
   else if(cfg.showLogo && !logoUrl) headerHtml += `<div class="pdf-logo-text">${getRestaurantName()||''}</div>`;
-  // Logo takes priority over the text title once one is actually shown
-  // (image + repeated name right under it read as redundant) — the
-  // title stays as the fallback for restaurants with no logo at all.
-  if(!showLogoImg) headerHtml += `<h1 class="pdf-title">${restName}</h1>`;
+  // BUG FIX: this only ever suppressed the big <h1> title when a real
+  // logo IMAGE was showing — but checking "Afficher le logo" with no
+  // logo actually uploaded falls back to .pdf-logo-text (the name,
+  // small and styled), and the <h1> still rendered right under it: two
+  // renderings of the same name stacked together. The checkbox itself
+  // is "soit l'un soit l'autre" regardless of whether a real image
+  // exists — so the title is now suppressed whenever cfg.showLogo is
+  // on at all, not just when an image happens to be present.
+  if(!cfg.showLogo) headerHtml += `<h1 class="pdf-title">${restName}</h1>`;
   if(DATA.heroActive && DATA.hero) headerHtml += `<div class="pdf-sub">${t(DATA.hero)}</div>`;
   if(showMainIc) headerHtml += `<img src="${icData.main}" style="width:48px;height:48px;object-fit:contain;margin:10px auto 0;display:block" onerror="this.style.display='none'">`;
   headerHtml += `</div>`;
