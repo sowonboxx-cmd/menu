@@ -567,6 +567,9 @@ body.home-cover-showing{overflow:hidden}
           <span class="header-sub" id="heroSubEl" style="margin-bottom:0"></span>
         </div>
         <div class="header-top-right">
+          <button class="admin-btn" onclick="openAdminSection('__print')" title="Impression du menu">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="1.3" width="8" height="4" rx="0.5"/><rect x="2" y="5.3" width="12" height="6" rx="1"/><rect x="4" y="9" width="8" height="5.7" rx="0.5"/></svg>
+          </button>
           <a class="admin-btn" id="calAdminBtnDesktop" href="#" title="Réservations">
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1.5"/><line x1="2" y1="6.5" x2="14" y2="6.5"/><line x1="5" y1="1.5" x2="5" y2="4"/><line x1="11" y1="1.5" x2="11" y2="4"/></svg>
           </a>
@@ -4084,7 +4087,7 @@ function paginatePdfPages(cfg){
   // than a print-driver default.
   const fullPageHeightPx = isA5 ? 794 : 1123;
   const A5_SCALE = 0.72;
-  const padPx = Math.round((isA5 ? A5_SCALE : 1) * 40);
+  const padPx = Math.round((isA5 ? A5_SCALE : 1) * 30);
   // Small safety margin: fonts/DPI vary slightly by browser/OS, so aim
   // a touch under the true limit rather than risk the browser's own
   // print engine still needing to split a page we thought would fit.
@@ -4093,7 +4096,7 @@ function paginatePdfPages(cfg){
   // what read as "bottom margin bigger than the other 3 sides": the
   // frame itself is a uniform 14px inset on every side, so that gap
   // was unused content room, not the frame sitting off-center.)
-  const maxPageHeightPx = Math.floor((fullPageHeightPx - 2*padPx) * 0.995);
+  const maxPageHeightPx = Math.floor((fullPageHeightPx - 2*padPx) * 1.03);
 
   const { headerHtml, contentBlocks, footerHtml } = buildPdfBlocks(cfg);
 
@@ -4177,7 +4180,7 @@ function buildPdfCSS(cfg){
   // the SAME physical page height, one to size the box, the other to
   // budget how much content fits in it.
   const pageH = isGbiz ? null : (isA5 ? 794 : 1123);
-  const pad = isGbiz ? 70 : px(40);
+  const pad = isGbiz ? 70 : px(30);
   const maritime = cfg.template === 'maritime';
   return `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Open+Sans:wght@300;400;600&family=Playfair+Display:wght@400;600&display=swap');
@@ -4190,9 +4193,9 @@ function buildPdfCSS(cfg){
      forces the print output to reproduce colors exactly as configured,
      so the two always match — one standard recipe, no per-client tweaking. */
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
-  .pdf-page{--space-scale:1;font-family:'Open Sans',sans-serif;color:#1a1a1a;background:${cfg.bgColor||'#FFFDF8'};width:${pageW}px;${pageH?`min-height:${pageH}px;`:''}padding:${pad}px;margin:0 auto;position:relative}
+  .pdf-page{--space-scale:1;--top-pad-trim:0px;font-family:'Open Sans',sans-serif;color:#1a1a1a;background:${cfg.bgColor||'#FFFDF8'};width:${pageW}px;${pageH?`min-height:${pageH}px;`:''}padding-top:calc(${pad}px - var(--top-pad-trim));padding-right:${pad}px;padding-bottom:${pad}px;padding-left:${pad}px;margin:0 auto;position:relative}
   ${cfg.showFrame!==false?`.pdf-page::before{content:'';position:absolute;inset:${px(14)}px;border:1.5px solid ${cfg.accentColor};opacity:.4;pointer-events:none}`:''}
-  .pdf-header{text-align:center;margin-bottom:calc(${isGbiz?55:px(43)}px * var(--space-scale));position:relative}
+  .pdf-header{text-align:center;margin-bottom:calc(${isGbiz?55:px(33)}px * var(--space-scale));position:relative}
   .pdf-logo-text{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?22:px(22)}px;font-weight:700;color:var(--navy,#10285E);margin:0 auto 12px;display:block;text-align:center}
 .pdf-logo{max-width:${isGbiz?240:px(180)}px;max-height:${isGbiz?165:px(120)}px;object-fit:contain;margin:0 auto 12px;display:block}
   .pdf-title{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?44:px(32)}px;font-weight:700;color:${cfg.titleColor};line-height:1.1}
@@ -4223,13 +4226,21 @@ function updatePdfPreview(){
   const css = buildPdfCSS(cfg);
   const menu = buildPdfMenuHTML(cfg);
   const isGbiz = cfg.format === 'gbiz';
+  const isA5 = !isGbiz && cfg.paperSize === 'a5';
+  const previewMaxW = isGbiz ? 612 : (isA5 ? Math.round(794*0.72) : 794);
   // For A4: overlay page-break guides every ~1040px (A4 ratio at 700px width)
   const doc = `<!DOCTYPE html><html><head>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Lovelo:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><meta charset="UTF-8"><style>${css}
+    html,body{overflow-x:hidden}
     body{background:#e8e8e8;padding:16px 0;margin:0}
-    .pdf-page{box-shadow:0 2px 12px rgba(0,0,0,.15)}
+    /* Preview-only: shrink the page to fit whatever width the iframe
+       actually has instead of the fixed print width — real size shows
+       up when they hit "Imprimer le menu". Font sizes stay in real px
+       (not %), so at small widths text can look tiny; that's expected,
+       it's a layout preview, not a legibility test. */
+    .pdf-page{width:100%!important;max-width:${previewMaxW}px;box-shadow:0 2px 12px rgba(0,0,0,.15)}
     ${!isGbiz?`.pdf-page{position:relative}`:''}
   </style></head><body><div class="pdf-page" id="pdfPageEl">${menu}</div>
   <script>
@@ -4282,7 +4293,11 @@ function exportA4Print(cfg){
   const pagesHtml = pages.map((page, i)=>{
     const breakStyle = i<pages.length-1 ? 'page-break-after:always;break-after:page;' : '';
     const scaleStyle = page.spaceScale && page.spaceScale!==1 ? `--space-scale:${page.spaceScale};` : '';
-    return `<div class="pdf-page" style="${breakStyle}${scaleStyle}">${page.html}</div>`;
+    // Continuation pages (no header) sat with the same top padding as
+    // page 1, but without the header there to justify that much air —
+    // the first category on those pages read as starting too low.
+    const topTrimStyle = i>0 ? `--top-pad-trim:10px;` : '';
+    return `<div class="pdf-page" style="${breakStyle}${scaleStyle}${topTrimStyle}">${page.html}</div>`;
   }).join('');
   const doc = `<!DOCTYPE html><html><head>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -4353,15 +4368,11 @@ function renderPrintBody(){
     <button class="aadd" style="width:100%;padding:8px;margin-top:2px;font-size:11px;background:#fff;color:var(--text2)" onclick="resetPdfColors()">↺ Réinitialiser les couleurs PDF</button>
 
     <div class="af"><label class="al">Logo du menu</label>
-      ${logoSrc ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      ${logoSrc ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
         <img src="${logoSrc}" style="max-height:50px;max-width:120px;object-fit:contain;border:1px solid var(--border);border-radius:6px;padding:4px;background:#fff" onerror="this.style.display='none'">
-        <button class="adel" onclick="setPdfCfg('logoData','');renderAdminSection(adminCurrentTab)" title="Supprimer">✕</button>
-      </div>` : `<div style="font-size:11px;color:var(--text3);margin-bottom:6px">Aucun logo — le nom de l'établissement sera affiché.</div>`}
-      <label class="aadd" style="display:block;width:100%;text-align:center;padding:9px;cursor:pointer">
-        📁 Uploader un logo (PNG, SVG, WEBP…)
-        <input type="file" accept="image/*" style="display:none" onchange="(function(e){const f=e.target.files[0];if(!f)return;if(f.type==='image/svg+xml'){const r=new FileReader();r.onload=ev=>setPdfCfg('logoData',ev.target.result);r.readAsDataURL(f);}else{compressImageFile(f,{ratio:null,maxDim:600,quality:0.9}).then(d=>setPdfCfg('logoData',d)).catch(err=>showToast('⚠️ '+err.message));}})(event)">
-      </label>
-      <label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showLogo?'checked':''} onchange="setPdfCfg('showLogo',this.checked);renderAdminSection(adminCurrentTab)"><label>Afficher le logo</label></label>
+      </div>
+      <div style="font-size:10.5px;color:var(--text3);margin-bottom:6px">Repris automatiquement de vos Informations générales — changez-le là-bas si besoin.</div>` : `<div style="font-size:11px;color:var(--text3);margin-bottom:6px">Aucun logo dans vos Informations générales — le nom de l'établissement sera affiché.</div>`}
+      <label class="admin-toggle" style="margin-top:2px"><input type="checkbox" ${cfg.showLogo?'checked':''} onchange="setPdfCfg('showLogo',this.checked);renderAdminSection(adminCurrentTab)"><label>Afficher le logo</label></label>
     </div>
 
     ${(ic.main||ic.secondary)?`<label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showIcons!==false?'checked':''} onchange="setPdfCfg('showIcons',this.checked)"><label>Afficher les icônes décoratives</label></label>
