@@ -340,6 +340,8 @@ body.home-cover-showing{overflow:hidden}
 .home-cover-top{position:relative;z-index:3;padding:20px 20px 0;text-align:center;flex:none}
 .home-cover-name{color:#fff;font-family:var(--restoFont,'Cormorant Garamond'),serif;font-weight:700;font-size:35px;letter-spacing:.04em}
 @media(max-width:640px){ .home-cover-name{font-size:24px} }
+.home-cover-logo{max-height:60px;max-width:70%;object-fit:contain;display:inline-block}
+@media(max-width:640px){ .home-cover-logo{max-height:42px} }
 .home-cover-sched{display:flex;justify-content:center;margin-top:10px}
 .home-cover-sched .sched-pin-frame{background:rgba(0,0,0,.55);border-color:rgba(255,255,255,.3)}
 .home-cover-sched .resto-badge-inline span{color:#fff!important;font-size:14px!important}
@@ -664,7 +666,7 @@ let DATA = {
   corpoTemplates: [],
   icones: { main: '', secondary: '' },
   homeTab: { active:false, photo:'', video:'' },
-  homeCover: { active:true, mediaType:'photo', image:'', mobilePos:50, mobileImage:'', video:'', slideshow:[{image:'',kenBurns:'zoom-in'},{image:'',kenBurns:'pan-left'},{image:'',kenBurns:'pan-right'}], headline:'', headlineFont:'Jost', statusBarColor:'#000000', cta1Label:'Voir le menu', cta1Url:'', cta2Label:'Réserver', cta2Url:'' },
+  homeCover: { active:true, mediaType:'photo', image:'', mobilePos:50, mobileImage:'', video:'', slideshow:[{image:'',kenBurns:'zoom-in'},{image:'',kenBurns:'pan-left'},{image:'',kenBurns:'pan-right'}], logo:'', headline:'', headlineFont:'Jost', statusBarColor:'#000000', cta1Label:'Voir le menu', cta1Url:'', cta2Label:'Réserver', cta2Url:'' },
   schedule: [
     { day:'Lundi',    services:[] },
     { day:'Mardi',    services:[{label:'Soir',open:17,close:2}] },
@@ -1724,7 +1726,9 @@ function renderHomeCover(){
     <div class="home-cover-media">${mediaHtml}</div>
     <div class="home-cover-overlay"></div>
     <div class="home-cover-top">
-      <div class="home-cover-name">${escapeHtmlLocal(getRestaurantName())}</div>
+      ${hc.logo
+        ? `<img src="${escAttr(hc.logo)}" alt="${escAttr(getRestaurantName())}" class="home-cover-logo" onerror="this.style.display='none'">`
+        : `<div class="home-cover-name">${escapeHtmlLocal(getRestaurantName())}</div>`}
     </div>
     <div class="home-cover-fade-group" id="homeCoverFadeGroup">
       <div class="home-cover-sched">${renderScheduleInline('Cover')}</div>
@@ -1838,7 +1842,7 @@ function publishNow(){
 // name in their own handlers — no need to touch each of them.
 function scheduleCoverAutoSave(){ scheduleAutoSave(); }
 function renderAdminHomeCover(){
-  const hc=DATA.homeCover||(DATA.homeCover={active:false,mediaType:'photo',image:'',mobilePos:50,mobileImage:'',video:'',slideshow:[{image:'',kenBurns:'zoom-in'},{image:'',kenBurns:'pan-left'},{image:'',kenBurns:'pan-right'}],headline:'',statusBarColor:'#000000',cta1Label:'Voir le menu',cta1Url:'',cta2Label:'Réserver',cta2Url:''});
+  const hc=DATA.homeCover||(DATA.homeCover={active:false,mediaType:'photo',image:'',mobilePos:50,mobileImage:'',video:'',slideshow:[{image:'',kenBurns:'zoom-in'},{image:'',kenBurns:'pan-left'},{image:'',kenBurns:'pan-right'}],logo:'',headline:'',statusBarColor:'#000000',cta1Label:'Voir le menu',cta1Url:'',cta2Label:'Réserver',cta2Url:''});
   if(!hc.slideshow) hc.slideshow=[{image:'',kenBurns:'zoom-in'},{image:'',kenBurns:'pan-left'},{image:'',kenBurns:'pan-right'}];
   const mobPos=hc.mobilePos!=null?hc.mobilePos:50;
   const isVideo=hc.mediaType==='video';
@@ -1852,6 +1856,9 @@ function renderAdminHomeCover(){
     {v:'pan-right',l:'Zoom à droite'},
   ];
   return `<div class="admin-section"><div class="admin-sect-title">Page d'accueil</div><div class="admin-sect-body">
+    <div class="af"><label class="al">Logo affiché sur la page d'accueil (en haut, sur l'image/vidéo)</label></div>
+    ${imgFieldHtml(hc.logo||'', "DATA.homeCover.logo=this.value.trim();renderAll();renderAdminSection('__cover');scheduleCoverAutoSave()", 'https://... .png ou .webp', null)}
+    <div style="font-size:10.5px;color:var(--text3);margin-top:-8px;margin-bottom:4px">Indépendant du logo des Informations générales — utile pour une version blanche/inversée qui se voit mieux sur une photo. Vide = le nom de l'établissement s'affiche à la place.</div>
     <div class="af"><label class="al">Média de fond</label>
       <div style="display:flex;gap:16px;margin-top:2px;flex-wrap:wrap">
         <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="coverMediaType" value="photo" ${!isVideo&&!isSlideshow?'checked':''} onchange="DATA.homeCover.mediaType='photo';renderAll();renderAdminSection('__cover');scheduleCoverAutoSave()"> Photo</label>
