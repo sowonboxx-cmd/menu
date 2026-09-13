@@ -313,6 +313,26 @@ body.home-cover-showing{overflow:hidden}
 @media(min-width:641px){ .home-cover{zoom:0.9090909} }
 .home-cover-media{position:absolute;inset:0;width:100%;height:100%}
 .home-cover-media img,.home-cover-media video{width:100%;height:100%;object-fit:cover;display:block}
+/* Slideshow: 3 photos cross-fading, each with its own Ken Burns pan/
+   zoom running continuously underneath (not just during its own
+   crossfade window — the image keeps drifting the whole time it's
+   loaded, the animation just isn't visible until that slide fades in). */
+.home-cover-slideshow{position:absolute;inset:0;width:100%;height:100%;overflow:hidden}
+.hcs-slide{position:absolute;inset:0;opacity:0;transition:opacity 1.4s ease}
+.hcs-slide.hcs-active{opacity:1;z-index:1}
+.hcs-kb{width:100%;height:100%;object-fit:cover;display:block;animation-duration:18s;animation-timing-function:ease-in-out;animation-iteration-count:infinite;animation-direction:alternate}
+@keyframes hcsZoomIn{from{transform:scale(1)}to{transform:scale(1.18)}}
+@keyframes hcsZoomOut{from{transform:scale(1.18)}to{transform:scale(1)}}
+@keyframes hcsPanTop{from{transform:scale(1.15) translateY(4%)}to{transform:scale(1.15) translateY(-4%)}}
+@keyframes hcsPanBottom{from{transform:scale(1.15) translateY(-4%)}to{transform:scale(1.15) translateY(4%)}}
+@keyframes hcsPanLeft{from{transform:scale(1.15) translateX(4%)}to{transform:scale(1.3) translateX(-2%)}}
+@keyframes hcsPanRight{from{transform:scale(1.15) translateX(-4%)}to{transform:scale(1.3) translateX(2%)}}
+.hcs-kb-zoom-in{animation-name:hcsZoomIn}
+.hcs-kb-zoom-out{animation-name:hcsZoomOut}
+.hcs-kb-pan-top{animation-name:hcsPanTop}
+.hcs-kb-pan-bottom{animation-name:hcsPanBottom}
+.hcs-kb-pan-left{animation-name:hcsPanLeft}
+.hcs-kb-pan-right{animation-name:hcsPanRight}
 .home-cover-overlay{position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.65) 0%,rgba(0,0,0,.15) 45%,rgba(0,0,0,.35) 100%)}
 /* Name is NOT part of the fade group below — it stays put the whole
    time, so the handoff to the real header's own name (once the cover
@@ -644,7 +664,7 @@ let DATA = {
   corpoTemplates: [],
   icones: { main: '', secondary: '' },
   homeTab: { active:false, photo:'', video:'' },
-  homeCover: { active:true, mediaType:'photo', image:'', mobilePos:50, mobileImage:'', video:'', headline:'', headlineFont:'Jost', statusBarColor:'#000000', cta1Label:'Voir le menu', cta1Url:'', cta2Label:'Réserver', cta2Url:'' },
+  homeCover: { active:true, mediaType:'photo', image:'', mobilePos:50, mobileImage:'', video:'', slideshow:[{image:'',kenBurns:'zoom-in'},{image:'',kenBurns:'pan-left'},{image:'',kenBurns:'pan-right'}], headline:'', headlineFont:'Jost', statusBarColor:'#000000', cta1Label:'Voir le menu', cta1Url:'', cta2Label:'Réserver', cta2Url:'' },
   schedule: [
     { day:'Lundi',    services:[] },
     { day:'Mardi',    services:[{label:'Soir',open:17,close:2}] },
@@ -1664,8 +1684,9 @@ let homeCoverDismissedThisSession=false;
 function renderHomeCover(){
   const el=document.getElementById('homeCoverContainer');
   const hc=DATA.homeCover||{};
-  if(!hc.active||homeCoverDismissedThisSession){ el.innerHTML=''; document.body.classList.remove('home-cover-showing'); return; }
+  if(!hc.active||homeCoverDismissedThisSession){ el.innerHTML=''; document.body.classList.remove('home-cover-showing'); stopHomeCoverSlideshow(); return; }
   const isVideo=hc.mediaType==='video';
+  const isSlideshow=hc.mediaType==='slideshow';
   let mediaHtml='';
   if(isVideo && hc.video){
     const videoUrl=hc.video;
@@ -1681,6 +1702,11 @@ function renderHomeCover(){
       else embedUrl=videoUrl;
       mediaHtml=`<iframe src="${escAttr(embedUrl)}" style="width:100%;height:100%;border:none;pointer-events:none" allow="autoplay; encrypted-media" allowfullscreen loading="lazy"></iframe>`;
     }
+  } else if(isSlideshow && hc.slideshow && hc.slideshow.some(s=>s.image)){
+    const slides=hc.slideshow.filter(s=>s.image);
+    mediaHtml=`<div class="home-cover-slideshow" id="homeCoverSlideshow">${slides.map((s,i)=>
+      `<div class="hcs-slide${i===0?' hcs-active':''}" data-kb="${escAttr(s.kenBurns||'zoom-in')}"><img src="${escAttr(s.image)}" alt="" class="hcs-kb hcs-kb-${escAttr(s.kenBurns||'zoom-in')}"></div>`
+    ).join('')}</div>`;
   } else if(!isVideo && hc.image){
     applyHomeCoverMobilePos(hc.mobilePos!=null?hc.mobilePos:50);
     // A dedicated mobile photo, if set, takes over from the shared
@@ -1716,9 +1742,34 @@ function renderHomeCover(){
   document.body.classList.add('home-cover-showing');
   const themeMeta=document.getElementById('themeColorMeta');
   if(themeMeta) themeMeta.setAttribute('content', hc.statusBarColor||'#000000');
+  startHomeCoverSlideshow();
+}
+// Cycles through the slideshow's slides via a crossfade — each slide's
+// own Ken Burns animation (see CSS) restarts automatically because
+// adding/removing .hcs-active re-triggers it (animation resets when an
+// element goes from display/opacity:0 back to visible in most browsers
+// via the class toggle + a reflow-free restart is not guaranteed, so we
+// force it by re-adding the class on a fresh animation frame).
+let homeCoverSlideshowTimer=null;
+function startHomeCoverSlideshow(){
+  if(homeCoverSlideshowTimer){ clearInterval(homeCoverSlideshowTimer); homeCoverSlideshowTimer=null; }
+  const wrap=document.getElementById('homeCoverSlideshow');
+  if(!wrap) return;
+  const slides=[...wrap.querySelectorAll('.hcs-slide')];
+  if(slides.length<2) return; // nothing to cycle with 0 or 1 image
+  let idx=0;
+  homeCoverSlideshowTimer=setInterval(()=>{
+    slides[idx].classList.remove('hcs-active');
+    idx=(idx+1)%slides.length;
+    slides[idx].classList.add('hcs-active');
+  }, 6000);
+}
+function stopHomeCoverSlideshow(){
+  if(homeCoverSlideshowTimer){ clearInterval(homeCoverSlideshowTimer); homeCoverSlideshowTimer=null; }
 }
 function dismissHomeCover(){
   homeCoverDismissedThisSession=true;
+  stopHomeCoverSlideshow();
   const group=document.getElementById('homeCoverFadeGroup');
   if(group) group.classList.add('fading-out');
   setTimeout(()=>{
@@ -1787,20 +1838,45 @@ function publishNow(){
 // name in their own handlers — no need to touch each of them.
 function scheduleCoverAutoSave(){ scheduleAutoSave(); }
 function renderAdminHomeCover(){
-  const hc=DATA.homeCover||(DATA.homeCover={active:false,mediaType:'photo',image:'',mobilePos:50,mobileImage:'',video:'',headline:'',statusBarColor:'#000000',cta1Label:'Voir le menu',cta1Url:'',cta2Label:'Réserver',cta2Url:''});
+  const hc=DATA.homeCover||(DATA.homeCover={active:false,mediaType:'photo',image:'',mobilePos:50,mobileImage:'',video:'',slideshow:[{image:'',kenBurns:'zoom-in'},{image:'',kenBurns:'pan-left'},{image:'',kenBurns:'pan-right'}],headline:'',statusBarColor:'#000000',cta1Label:'Voir le menu',cta1Url:'',cta2Label:'Réserver',cta2Url:''});
+  if(!hc.slideshow) hc.slideshow=[{image:'',kenBurns:'zoom-in'},{image:'',kenBurns:'pan-left'},{image:'',kenBurns:'pan-right'}];
   const mobPos=hc.mobilePos!=null?hc.mobilePos:50;
   const isVideo=hc.mediaType==='video';
+  const isSlideshow=hc.mediaType==='slideshow';
+  const KEN_BURNS_OPTIONS=[
+    {v:'zoom-in',l:'Zoom avant (centré)'},
+    {v:'zoom-out',l:'Zoom arrière (centré)'},
+    {v:'pan-top',l:'Vers le haut'},
+    {v:'pan-bottom',l:'Vers le bas'},
+    {v:'pan-left',l:'Zoom à gauche'},
+    {v:'pan-right',l:'Zoom à droite'},
+  ];
   return `<div class="admin-section"><div class="admin-sect-title">Page d'accueil</div><div class="admin-sect-body">
     <div class="af"><label class="al">Média de fond</label>
-      <div style="display:flex;gap:16px;margin-top:2px">
-        <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="coverMediaType" value="photo" ${!isVideo?'checked':''} onchange="DATA.homeCover.mediaType='photo';renderAll();renderAdminSection('__cover');scheduleCoverAutoSave()"> Photo</label>
+      <div style="display:flex;gap:16px;margin-top:2px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="coverMediaType" value="photo" ${!isVideo&&!isSlideshow?'checked':''} onchange="DATA.homeCover.mediaType='photo';renderAll();renderAdminSection('__cover');scheduleCoverAutoSave()"> Photo</label>
         <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="coverMediaType" value="video" ${isVideo?'checked':''} onchange="DATA.homeCover.mediaType='video';renderAll();renderAdminSection('__cover');scheduleCoverAutoSave()"> Vidéo</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="coverMediaType" value="slideshow" ${isSlideshow?'checked':''} onchange="DATA.homeCover.mediaType='slideshow';renderAll();renderAdminSection('__cover');scheduleCoverAutoSave()"> Diaporama (3 photos)</label>
       </div>
     </div>
     ${isVideo ? `
     <div class="af"><label class="al">Vidéo (URL YouTube, Vimeo, ou lien direct .mp4)</label>
       <input class="ai" value="${escAttr(hc.video||'')}" placeholder="https://youtube.com/watch?v=... ou https://vimeo.com/..." oninput="DATA.homeCover.video=this.value.trim();renderAll();scheduleCoverAutoSave()">
     </div>
+    ` : isSlideshow ? `
+    <div class="af"><label class="al">Diaporama — exactement 3 photos, effet Ken Burns au choix pour chacune</label>
+      <div style="font-size:10.5px;color:var(--text3);margin-top:-2px;margin-bottom:8px">Même format que l'image de fond classique (plein écran). Les photos s'enchaînent en fondu, chacune avec son propre mouvement de zoom/pan.</div>
+    </div>
+    ${hc.slideshow.map((slide,i)=>`
+      <div class="af" style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+        <label class="al">Photo ${i+1}</label>
+        ${imgFieldHtml(slide.image||'', `DATA.homeCover.slideshow[${i}].image=this.value.trim();renderAll();renderAdminSection('__cover');scheduleCoverAutoSave()`, 'https://... .jpg ou .webp', null)}
+        <label class="al" style="margin-top:8px">Effet Ken Burns</label>
+        <select class="ai" style="font-size:13px" onchange="DATA.homeCover.slideshow[${i}].kenBurns=this.value;renderAll();scheduleCoverAutoSave()">
+          ${KEN_BURNS_OPTIONS.map(o=>`<option value="${o.v}" ${(slide.kenBurns||'zoom-in')===o.v?'selected':''}>${o.l}</option>`).join('')}
+        </select>
+      </div>
+    `).join('')}
     ` : `
     <div class="af"><label class="al">Image de fond (plein écran)</label></div>
     ${imgFieldHtml(hc.image||'', "DATA.homeCover.image=this.value.trim();renderAll();renderAdminSection('__cover');scheduleCoverAutoSave()", 'https://... .jpg ou .webp', null)}
@@ -3974,7 +4050,7 @@ function pdfCfg(){
     // PDF ou repris de l'identité du restaurant) — sinon décoché, le
     // texte prend le relai. Une fois que l'utilisateur touche la case
     // lui-même, son choix explicite (d.showLogo) est toujours respecté.
-    showLogo: d.showLogo !== undefined ? d.showLogo : !!(d.logoData || getRestaurantLogo()),
+    showLogo: d.showLogo !== undefined ? d.showLogo : true,
     showIcons: d.showIcons !== false,
     showDots: d.showDots !== false,
     showFrame: d.showFrame !== false,
@@ -4223,11 +4299,17 @@ function updatePdfPreview(){
   const frame = document.getElementById('pdfPreviewFrame');
   if(!frame) return;
   const cfg = pdfCfg();
-  const css = buildPdfCSS(cfg);
-  const menu = buildPdfMenuHTML(cfg);
   const isGbiz = cfg.format === 'gbiz';
-  const isA5 = !isGbiz && cfg.paperSize === 'a5';
-  const previewMaxW = isGbiz ? 612 : (isA5 ? Math.round(794*0.72) : 794);
+  // The live preview always renders at A5 proportions regardless of the
+  // real paperSize setting — A4 in this narrow admin panel ends up so
+  // zoomed out it barely reads as a page. A4 and A5 share the exact
+  // same width:height ratio (ISO 216), so this is purely cosmetic here;
+  // the real export (exportA4Print) still uses the actual cfg.paperSize.
+  const previewCfg = isGbiz ? cfg : { ...cfg, paperSize: 'a5' };
+  const css = buildPdfCSS(previewCfg);
+  const menu = buildPdfMenuHTML(previewCfg);
+  const isA5 = !isGbiz; // preview is always A5-shaped unless it's the gbiz image format
+  const previewMaxW = isGbiz ? 612 : Math.round(794*0.72);
   // For A4: overlay page-break guides every ~1040px (A4 ratio at 700px width)
   const doc = `<!DOCTYPE html><html><head>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -4399,11 +4481,11 @@ function renderPrintBody(){
       ${DATA.tabs.filter(tb=>tb.id!=='__home').map(tb=>`<label class="admin-toggle" style="margin-top:4px"><input type="checkbox" ${tb.pdfPageBreakBefore?'checked':''} onchange="tb_setPageBreak('${tb.id}',this.checked)"><label>${t(tb.label)}</label></label>`).join('')}
     </div>
 
-    <div class="af" style="margin-top:14px"><label class="al">Aperçu live</label>
+    <div class="af" style="margin-top:14px"><label class="al">Aperçu live <span style="font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0">(indicatif — cliquez sur "Générer le PDF / Imprimer le menu" pour le rendu exact)</span></label>
       <iframe id="pdfPreviewFrame" style="width:100%;height:420px;border:1px solid var(--border);border-radius:8px;background:#e8e8e8"></iframe>
     </div>
 
-    <button class="aadd" style="width:100%;padding:13px;margin-top:6px;font-weight:700;background:var(--navy);color:#fff;border:none;font-size:14px" onclick="exportA4Print(pdfCfg())">Imprimer le menu</button>`;
+    <button class="aadd" style="width:100%;padding:13px;margin-top:6px;font-weight:700;background:var(--navy);color:#fff;border:none;font-size:14px" onclick="exportA4Print(pdfCfg())">Générer le PDF / Imprimer le menu</button>`;
 }
 function tb_setPageBreak(tabId, val){
   const tb = DATA.tabs.find(x=>x.id===tabId);
