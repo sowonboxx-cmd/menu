@@ -4106,26 +4106,30 @@ function buildPdfBlocks(cfg){
   const icData = DATA.icones||{};
   const showMainIc = cfg.showIcons!==false && icData.main && !cfg.showLogo;
   const showSecIc  = cfg.showIcons!==false && !!icData.secondary;
-  // Google Business n'affiche jamais le logo (image ou texte-repli) —
-  // toujours le nom en titre, quel que soit le réglage "Afficher le
-  // logo" (qui reste pertinent pour le PDF classique).
+  // Google Business n'affiche aucun en-tête du tout (ni logo, ni nom
+  // du restaurant) — seulement les catégories, dès la première page.
+  // Ça règle aussi l'alignement entre pages d'un coup : sans en-tête
+  // nulle part, chaque page démarre déjà au même niveau naturellement.
   const showLogoImg = !isGbizFmt && cfg.showLogo && logoUrl;
 
-  let headerHtml = `<div class="pdf-header">`;
-  if(showLogoImg) headerHtml += `<img src="${logoUrl}" class="pdf-logo" onerror="this.style.display='none'">`;
-  else if(!isGbizFmt && cfg.showLogo && !logoUrl) headerHtml += `<div class="pdf-logo-text">${getRestaurantName()||''}</div>`;
-  // BUG FIX: this only ever suppressed the big <h1> title when a real
-  // logo IMAGE was showing — but checking "Afficher le logo" with no
-  // logo actually uploaded falls back to .pdf-logo-text (the name,
-  // small and styled), and the <h1> still rendered right under it: two
-  // renderings of the same name stacked together. The checkbox itself
-  // is "soit l'un soit l'autre" regardless of whether a real image
-  // exists — so the title is now suppressed whenever cfg.showLogo is
-  // on at all, not just when an image happens to be present.
-  if(isGbizFmt || !cfg.showLogo) headerHtml += `<h1 class="pdf-title">${restName}</h1>`;
-  if(DATA.heroActive && DATA.hero) headerHtml += `<div class="pdf-sub">${t(DATA.hero)}</div>`;
-  if(showMainIc) headerHtml += `<img src="${icData.main}" style="width:48px;height:48px;object-fit:contain;margin:10px auto 0;display:block" onerror="this.style.display='none'">`;
-  headerHtml += `</div>`;
+  let headerHtml = '';
+  if(!isGbizFmt){
+    headerHtml = `<div class="pdf-header">`;
+    if(showLogoImg) headerHtml += `<img src="${logoUrl}" class="pdf-logo" onerror="this.style.display='none'">`;
+    else if(cfg.showLogo && !logoUrl) headerHtml += `<div class="pdf-logo-text">${getRestaurantName()||''}</div>`;
+    // BUG FIX: this only ever suppressed the big <h1> title when a real
+    // logo IMAGE was showing — but checking "Afficher le logo" with no
+    // logo actually uploaded falls back to .pdf-logo-text (the name,
+    // small and styled), and the <h1> still rendered right under it: two
+    // renderings of the same name stacked together. The checkbox itself
+    // is "soit l'un soit l'autre" regardless of whether a real image
+    // exists — so the title is now suppressed whenever cfg.showLogo is
+    // on at all, not just when an image happens to be present.
+    if(!cfg.showLogo) headerHtml += `<h1 class="pdf-title">${restName}</h1>`;
+    if(DATA.heroActive && DATA.hero) headerHtml += `<div class="pdf-sub">${t(DATA.hero)}</div>`;
+    if(showMainIc) headerHtml += `<img src="${icData.main}" style="width:48px;height:48px;object-fit:contain;margin:10px auto 0;display:block" onerror="this.style.display='none'">`;
+    headerHtml += `</div>`;
+  }
 
   const contentBlocks = [];
   const dots = cfg.showDots!==false ? '<span class="pdf-dots"></span>' : '<span class="pdf-dots-off"></span>';
@@ -4450,7 +4454,11 @@ function paginateGbizPages(cfg){
   // isGbiz) — mesurer à une autre largeur fausserait les proportions
   // texte/page.
   const RENDER_W = 612;
-  const maxPageHeightPx = Math.floor(RENDER_W * GBIZ_PAGE_RATIO);
+  // Petite marge de sécurité : la capture finale utilise maintenant une
+  // hauteur stricte (overflow:hidden côté source), donc mieux vaut
+  // viser légèrement en dessous du maximum théorique plutôt que de
+  // risquer de rogner un plat au pixel près.
+  const maxPageHeightPx = Math.floor(RENDER_W * GBIZ_PAGE_RATIO * 0.96);
 
   const { headerHtml, contentBlocks, footerHtml } = buildPdfBlocks(cfg);
 
@@ -4460,12 +4468,6 @@ function paginateGbizPages(cfg){
   document.body.appendChild(holder);
   const measureEl = holder.querySelector('#__gbizMeasure');
   const heightOf = html => { measureEl.innerHTML = html; return measureEl.offsetHeight; };
-  // Measured once so every continuation page can reserve the exact
-  // same vertical space the real header occupies on page 1 — without
-  // this, page 1's category title sits lower than every other page's
-  // (pushed down by the logo), which is exactly the "not seamless"
-  // jump Will flagged when flipping between images.
-  const headerHeight = heightOf(headerHtml);
 
   // Regroupe les blocs plat-par-plat en paquets par catégorie (chaque
   // <h2 class="pdf-cat"> marque le début d'une nouvelle catégorie).
@@ -4475,22 +4477,21 @@ function paginateGbizPages(cfg){
     else groups[groups.length-1].push(b);
   });
 
+  // Pas de plafond de catégories par page — on remplit selon la place
+  // réellement disponible (2 ou 3 catégories, selon ce qui tient),
+  // pour éviter à la fois le débordement ET une page qui reste à
+  // moitié vide alors qu'une catégorie de plus aurait tenu.
   const pages = [];
   let current = headerHtml;
-  let catsOnCurrentPage = 0;
-  const MAX_CATS_PER_PAGE = 2; // pour que ça respire — quitte à ne pas remplir toute la hauteur disponible
   groups.forEach(group=>{
     const groupHtml = group.map(b=>b.html).join('');
     const candidate = current + groupHtml;
-    const wouldExceedCatCap = catsOnCurrentPage >= MAX_CATS_PER_PAGE;
-    if(!wouldExceedCatCap && heightOf(candidate) <= maxPageHeightPx){
+    if(heightOf(candidate) <= maxPageHeightPx){
       current = candidate;
-      catsOnCurrentPage++;
     } else if(heightOf(groupHtml) <= maxPageHeightPx){
       // La catégorie entière rentre sur une page fraîche.
       pages.push(current);
       current = groupHtml;
-      catsOnCurrentPage = 1;
     } else {
       // Même seule sur une page vide, la catégorie est trop grande —
       // dernier recours : on la découpe plat par plat.
@@ -4502,7 +4503,6 @@ function paginateGbizPages(cfg){
         else { if(sub) pages.push(sub); sub = b.html; }
       });
       current = sub;
-      catsOnCurrentPage = 1;
     }
   });
   if(footerHtml){
@@ -4513,10 +4513,10 @@ function paginateGbizPages(cfg){
   if(current) pages.push(current);
 
   document.body.removeChild(holder);
-  // Same-height invisible spacer (reusing .pdf-header's own class so
-  // its margin-bottom matches too) on every page after the first, so
-  // the first category title lands at the exact same Y on every page.
-  return pages.map((pageHtml, i) => i===0 ? pageHtml : `<div class="pdf-header" style="height:${headerHeight}px"></div>` + pageHtml);
+  // Plus besoin d'espaceur artificiel : sans aucun en-tête nulle part
+  // (voir buildPdfBlocks), chaque page démarre déjà au même niveau
+  // naturellement — alignement "gratuit", pas de bricolage nécessaire.
+  return pages;
 }
 
 async function exportGbizImage(cfg){
@@ -4533,14 +4533,17 @@ async function exportGbizImage(cfg){
   for(let i=0;i<pages.length;i++){
     const holder = document.createElement('div');
     const pageHeightPx = Math.floor(RENDER_W*GBIZ_PAGE_RATIO);
-    // La boîte source garde min-height (jamais de rognage si le
-    // contenu dépasse un peu) — mais on donne à html2canvas une taille
-    // de capture explicite, pour que le fichier final ait TOUJOURS les
-    // mêmes proportions, même sur une page moins remplie que les
-    // autres (c'est ça qui donnait des ratios différents d'une image à
-    // l'autre).
-    holder.style.cssText = `position:fixed;left:-99999px;top:0;width:${RENDER_W}px`;
-    holder.innerHTML = `<style>${css}</style><div class="pdf-page" id="gbizPage${i}" style="width:${RENDER_W}px;min-height:${pageHeightPx}px">${pages[i]}</div>`;
+    // BUG FIX: passer width/height explicites À html2canvas EN PLUS du
+    // scale a fini par rogner le cadre à droite et en bas — les deux
+    // réglages se marchaient dessus (la fenêtre de capture restait à
+    // la taille non mise à l'échelle alors que le contenu, lui,
+    // s'affichait déjà agrandi). On garde une hauteur FIXE (pas
+    // min-height) + overflow:hidden sur la boîte source elle-même pour
+    // garantir des proportions identiques — html2canvas mesure alors
+    // cette boîte déjà correctement dimensionnée, sans qu'on ait besoin
+    // de lui repasser des dimensions en plus du scale.
+    holder.style.cssText = `position:fixed;left:-99999px;top:0;width:${RENDER_W}px;height:${pageHeightPx}px`;
+    holder.innerHTML = `<style>${css}</style><div class="pdf-page" id="gbizPage${i}" style="width:${RENDER_W}px;height:${pageHeightPx}px;overflow:hidden">${pages[i]}</div>`;
     document.body.appendChild(holder);
     const pageEl = holder.querySelector(`#gbizPage${i}`);
     // Attente réelle du chargement des polices (Playfair Display, Open
@@ -4548,7 +4551,7 @@ async function exportGbizImage(cfg){
     await document.fonts.ready;
     await new Promise(r=>setTimeout(r,120));
     try{
-      const canvas = await html2canvas(pageEl, { width: RENDER_W, height: pageHeightPx, scale, useCORS:true, backgroundColor:bg, logging:false });
+      const canvas = await html2canvas(pageEl, { scale, useCORS:true, backgroundColor:bg, logging:false });
       const link = document.createElement('a');
       const suffix = pages.length>1 ? `-${i+1}` : '';
       link.download = `${restName}-google-business${suffix}.png`;
