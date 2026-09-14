@@ -4418,36 +4418,108 @@ function exportA4Print(cfg){
   setTimeout(()=>{ win.print(); URL.revokeObjectURL(url); }, 600);
 }
 
-function exportGbizImage(cfg){
-  if(typeof html2canvas === 'undefined'){ showToast('⚠ html2canvas non chargé'); return; }
-  showToast('Génération image en cours…');
-  // Render off-screen at preview width, then scale to 3064px wide
-  const css = buildPdfCSS(cfg);
-  const menu = buildPdfMenuHTML(cfg);
+// Découpe le contenu en plusieurs images de mêmes proportions que le
+// format Google Business déjà validé par Will (ratio hauteur/largeur
+// ≈1.886, mesuré sur son propre export testé). Même logique que la
+// pagination PDF : on essaie de garder chaque catégorie entière sur une
+// image, on la fait juste commencer sur la suivante si elle ne rentre
+// pas dans ce qui reste — et seulement si une catégorie est trop
+// grande pour tenir seule sur une image entière, on la découpe plat
+// par plat en dernier recours (jamais un plat coupé en deux).
+const GBIZ_PAGE_RATIO = 1.8863; // height / width
+function paginateGbizPages(cfg){
+  // 612px = la largeur pour laquelle les tailles de police du format
+  // Google Business sont déjà calibrées (buildPdfCSS's pageW pour
+  // isGbiz) — mesurer à une autre largeur fausserait les proportions
+  // texte/page.
+  const RENDER_W = 612;
+  const maxPageHeightPx = Math.floor(RENDER_W * GBIZ_PAGE_RATIO);
+
+  const { headerHtml, contentBlocks, footerHtml } = buildPdfBlocks(cfg);
+
   const holder = document.createElement('div');
-  holder.style.cssText = 'position:fixed;left:-99999px;top:0;';
-  holder.innerHTML = `<style>${css}</style><div class="pdf-page" id="gbizPage">${menu}</div>`;
+  holder.style.cssText = `position:fixed;left:-99999px;top:0;visibility:hidden;width:${RENDER_W}px`;
+  holder.innerHTML = `<style>${buildPdfCSS(cfg)}</style><div class="pdf-page" id="__gbizMeasure" style="height:auto;min-height:0;width:${RENDER_W}px"></div>`;
   document.body.appendChild(holder);
-  const pageEl = holder.querySelector('#gbizPage');
-  const previewW = pageEl.offsetWidth || 612;
-  const TARGET_W = 3064;
-  const scale = TARGET_W / previewW;
-  setTimeout(()=>{
-    html2canvas(pageEl, { scale: scale, useCORS: true, backgroundColor: cfg.template==='maritime'?'#fdfbf6':'#ffffff', logging:false })
-      .then(canvas => {
-        document.body.removeChild(holder);
-        const link = document.createElement('a');
-        link.download = (getRestaurantName()||'menu').replace(/\s+/g,'-').toLowerCase() + '-google-business.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        showToast('Image Google Business téléchargée');
-      })
-      .catch(err => {
-        document.body.removeChild(holder);
-        console.error(err);
-        showToast('⚠ Erreur génération image');
+  const measureEl = holder.querySelector('#__gbizMeasure');
+  const heightOf = html => { measureEl.innerHTML = html; return measureEl.offsetHeight; };
+
+  // Regroupe les blocs plat-par-plat en paquets par catégorie (chaque
+  // <h2 class="pdf-cat"> marque le début d'une nouvelle catégorie).
+  const groups = [];
+  contentBlocks.forEach(b=>{
+    if(b.html.includes('class="pdf-cat"') || groups.length===0) groups.push([b]);
+    else groups[groups.length-1].push(b);
+  });
+
+  const pages = [];
+  let current = headerHtml;
+  groups.forEach(group=>{
+    const groupHtml = group.map(b=>b.html).join('');
+    const candidate = current + groupHtml;
+    if(heightOf(candidate) <= maxPageHeightPx){
+      current = candidate;
+    } else if(heightOf(groupHtml) <= maxPageHeightPx){
+      // La catégorie entière rentre sur une page fraîche.
+      pages.push(current);
+      current = groupHtml;
+    } else {
+      // Même seule sur une page vide, la catégorie est trop grande —
+      // dernier recours : on la découpe plat par plat.
+      if(current){ pages.push(current); current=''; }
+      let sub='';
+      group.forEach(b=>{
+        const cand2 = sub + b.html;
+        if(heightOf(cand2) <= maxPageHeightPx){ sub = cand2; }
+        else { if(sub) pages.push(sub); sub = b.html; }
       });
-  }, 400);
+      current = sub;
+    }
+  });
+  if(footerHtml){
+    const withFooter = current + footerHtml;
+    if(heightOf(withFooter) <= maxPageHeightPx){ current = withFooter; }
+    else { pages.push(current); current = footerHtml; }
+  }
+  if(current) pages.push(current);
+
+  document.body.removeChild(holder);
+  return pages;
+}
+
+async function exportGbizImage(cfg){
+  if(typeof html2canvas === 'undefined'){ showToast('⚠ html2canvas non chargé'); return; }
+  showToast('Génération des images en cours…');
+  const css = buildPdfCSS(cfg);
+  const pages = paginateGbizPages(cfg);
+  const RENDER_W = 612; // doit rester identique à paginateGbizPages
+  const TARGET_W = 1080;
+  const scale = TARGET_W / RENDER_W;
+  const restName = (getRestaurantName()||'menu').replace(/\s+/g,'-').toLowerCase();
+  const bg = cfg.template==='maritime' ? '#fdfbf6' : '#ffffff';
+
+  for(let i=0;i<pages.length;i++){
+    const holder = document.createElement('div');
+    holder.style.cssText = `position:fixed;left:-99999px;top:0;width:${RENDER_W}px`;
+    holder.innerHTML = `<style>${css}</style><div class="pdf-page" id="gbizPage${i}" style="width:${RENDER_W}px;min-height:${Math.floor(RENDER_W*GBIZ_PAGE_RATIO)}px">${pages[i]}</div>`;
+    document.body.appendChild(holder);
+    const pageEl = holder.querySelector(`#gbizPage${i}`);
+    await new Promise(r=>setTimeout(r,300)); // laisse les polices/images se poser avant capture
+    try{
+      const canvas = await html2canvas(pageEl, { scale, useCORS:true, backgroundColor:bg, logging:false });
+      const link = document.createElement('a');
+      const suffix = pages.length>1 ? `-${i+1}` : '';
+      link.download = `${restName}-google-business${suffix}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch(err){
+      console.error(err);
+      showToast('⚠ Erreur génération image '+(i+1));
+    } finally {
+      document.body.removeChild(holder);
+    }
+  }
+  showToast(pages.length>1 ? `${pages.length} images Google Business téléchargées` : 'Image Google Business téléchargée');
 }
 
 // Admin UI for the PDF style panel
