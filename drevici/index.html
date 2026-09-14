@@ -4125,7 +4125,9 @@ function buildPdfBlocks(cfg){
   // which is harder for a quick glance (and for Google's own menu
   // parsing, when it reads a PDF/image) to disambiguate.
   const isGbizFmt = cfg.format === 'gbiz';
-  const priceText = d => (isGbizFmt && d.priceType==='dual' && d.p1 && d.p2) ? `${d.p1}€ / ${d.p2}€` : (d.price||'');
+  const priceText = d => fmtCurrency((isGbizFmt && d.priceType==='dual' && d.p1 && d.p2)
+    ? `${d.qty1||''} — ${d.p1}€ · ${d.qty2||''} — ${d.p2}€`
+    : (d.price||''));
   DATA.tabs.filter(tb=>tb.id!=='__home' && tb.visible!==false).forEach(tb=>{
     let pendingHeader = `<h2 class="pdf-cat">${showSecIc?`<img src="${icData.secondary}" style="width:16px;height:16px;object-fit:contain;vertical-align:middle;margin-right:6px" onerror="this.remove()">`:''}${t(tb.label)}</h2>`;
     let firstBlockOfTab = true;
@@ -4137,7 +4139,7 @@ function buildPdfBlocks(cfg){
           `<div class="pdf-dish"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(v.name)||''}</span>${dots}<span class="pdf-dish-price">${priceText(v)}</span></div></div>`)
         : card.type==='bevs' ? (card.items||[]).filter(item=>!item.hidden).map(item=>{
           const sizes=(item.sizes||[]).map(s=>bevSizeLabel(s)+' — '+s.price+'€').join(' · ');
-          return `<div class="pdf-dish"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(item.name)||''}</span>${dots}<span class="pdf-dish-price">${sizes||item.price||''}</span></div>${t(item.desc)?`<div class="pdf-dish-desc">${t(item.desc)}</div>`:''}</div>`;
+          return `<div class="pdf-dish"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(item.name)||''}</span>${dots}<span class="pdf-dish-price">${fmtCurrency(sizes||item.price||'')}</span></div>${t(item.desc)?`<div class="pdf-dish-desc">${t(item.desc)}</div>`:''}</div>`;
         }) : [];
       items.forEach((itemHtml, i)=>{
         let html = itemHtml;
@@ -4276,7 +4278,7 @@ function buildPdfCSS(cfg){
   // the SAME physical page height, one to size the box, the other to
   // budget how much content fits in it.
   const pageH = isGbiz ? null : (isA5 ? 794 : 1123);
-  const pad = isGbiz ? 70 : px(30);
+  const pad = isGbiz ? 45 : px(30);
   const maritime = cfg.template === 'maritime';
   return `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Open+Sans:wght@300;400;600&family=Playfair+Display:wght@400;600&display=swap');
@@ -4291,13 +4293,13 @@ function buildPdfCSS(cfg){
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
   .pdf-page{--space-scale:1;--top-pad-trim:0px;font-family:'Open Sans',sans-serif;color:#1a1a1a;background:${cfg.bgColor||'#FFFDF8'};width:${pageW}px;${pageH?`min-height:${pageH}px;`:''}padding-top:calc(${pad}px - var(--top-pad-trim));padding-right:${pad}px;padding-bottom:${pad}px;padding-left:${pad}px;margin:0 auto;position:relative}
   ${cfg.showFrame!==false?`.pdf-page::before{content:'';position:absolute;inset:${px(14)}px;border:1.5px solid ${cfg.accentColor};opacity:.4;pointer-events:none}`:''}
-  .pdf-header{text-align:center;margin-bottom:calc(${isGbiz?55:px(33)}px * var(--space-scale));position:relative}
+  .pdf-header{text-align:center;margin-bottom:calc(${isGbiz?18:px(33)}px * var(--space-scale));position:relative}
   .pdf-logo-text{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?22:px(22)}px;font-weight:700;color:var(--navy,#10285E);margin:0 auto 12px;display:block;text-align:center}
-.pdf-logo{max-width:${isGbiz?240:px(180)}px;max-height:${isGbiz?165:px(120)}px;object-fit:contain;margin:0 auto 12px;display:block}
+.pdf-logo{max-width:${isGbiz?100:px(180)}px;max-height:${isGbiz?70:px(120)}px;object-fit:contain;margin:0 auto 8px;display:block}
   .pdf-title{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?44:px(32)}px;font-weight:700;color:${cfg.titleColor};line-height:1.1}
   .pdf-sub{font-size:${isGbiz?13:px(11)}px;letter-spacing:.16em;text-transform:uppercase;color:#999;margin-top:6px}
   .pdf-section{margin-bottom:calc(${isGbiz?100:px(52)}px * var(--space-scale));break-inside:avoid;page-break-inside:avoid}
-  .pdf-cat{font-family:'Playfair Display',serif;font-size:${isGbiz?26:px(20)}px;font-weight:600;color:${cfg.titleColor};margin:calc(${isGbiz?50:px(20)}px * var(--space-scale)) 0 calc(${isGbiz?16:px(12)}px * var(--space-scale));padding-bottom:6px;border-bottom:1.5px solid ${maritime?cfg.accentColor:'#e2e2e2'};display:flex;align-items:center;gap:10px}
+  .pdf-cat{font-family:'Playfair Display',serif;font-size:${isGbiz?26:px(20)}px;font-weight:600;color:${cfg.titleColor};margin:calc(${isGbiz?14:px(20)}px * var(--space-scale)) 0 calc(${isGbiz?16:px(12)}px * var(--space-scale));padding-bottom:6px;border-bottom:1.5px solid ${maritime?cfg.accentColor:'#e2e2e2'};display:flex;align-items:center;gap:10px}
   .pdf-subcat{font-size:${isGbiz?13:px(11)}px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:${cfg.accentColor};margin:calc(${isGbiz?18:px(14)}px * var(--space-scale)) 0 calc(${isGbiz?10:px(8)}px * var(--space-scale))}
   .pdf-dish{margin-bottom:calc(${isGbiz?13:px(10)}px * var(--space-scale));break-inside:avoid;page-break-inside:avoid}
   .pdf-dish-line{display:flex;align-items:baseline;gap:6px}
@@ -4305,7 +4307,7 @@ function buildPdfCSS(cfg){
   .pdf-dots{flex:1;border-bottom:1px dotted #ccc;transform:translateY(-3px);min-width:18px}
   .pdf-dots-off{flex:1;min-width:18px}
   .pdf-dish-price{font-size:${isGbiz?16:px(13)}px;font-weight:600;color:${cfg.accentColor};white-space:nowrap;flex:none}
-  .pdf-dish-desc{font-size:${isGbiz?12:px(10.5)}px;font-weight:300;color:#6E6E73;margin-top:2px;line-height:1.4;max-width:88%}
+  .pdf-dish-desc{font-size:${isGbiz?12:px(10.5)}px;font-weight:300;color:#6E6E73;margin-top:2px;line-height:1.4;max-width:88%;text-align:left}
   .pdf-footer{margin-top:${isGbiz?44:px(30)}px;padding-top:${isGbiz?20:px(14)}px;border-top:1px solid ${maritime?cfg.accentColor:'#e2e2e2'};text-align:center}
   .pdf-footer-text{font-size:${isGbiz?12:px(10)}px;color:#999;letter-spacing:.04em;line-height:1.6}
   @media print{
@@ -4443,6 +4445,12 @@ function paginateGbizPages(cfg){
   document.body.appendChild(holder);
   const measureEl = holder.querySelector('#__gbizMeasure');
   const heightOf = html => { measureEl.innerHTML = html; return measureEl.offsetHeight; };
+  // Measured once so every continuation page can reserve the exact
+  // same vertical space the real header occupies on page 1 — without
+  // this, page 1's category title sits lower than every other page's
+  // (pushed down by the logo), which is exactly the "not seamless"
+  // jump Will flagged when flipping between images.
+  const headerHeight = heightOf(headerHtml);
 
   // Regroupe les blocs plat-par-plat en paquets par catégorie (chaque
   // <h2 class="pdf-cat"> marque le début d'une nouvelle catégorie).
@@ -4484,7 +4492,10 @@ function paginateGbizPages(cfg){
   if(current) pages.push(current);
 
   document.body.removeChild(holder);
-  return pages;
+  // Same-height invisible spacer (reusing .pdf-header's own class so
+  // its margin-bottom matches too) on every page after the first, so
+  // the first category title lands at the exact same Y on every page.
+  return pages.map((pageHtml, i) => i===0 ? pageHtml : `<div class="pdf-header" style="height:${headerHeight}px"></div>` + pageHtml);
 }
 
 async function exportGbizImage(cfg){
@@ -4799,6 +4810,7 @@ function restaurantSettingHtml(){
     <div class="af"><label class="al">Lien Google Maps</label>
       <input class="ai" value="${DATA.address&&DATA.address.mapsUrl||''}" placeholder="https://maps.google.com/..." oninput="if(!DATA.address)DATA.address={};DATA.address.mapsUrl=this.value;renderAll()">
     </div>
+    <label class="admin-toggle" style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px"><input type="checkbox" ${DATA.showCurrency!==false?'checked':''} onchange="DATA.showCurrency=this.checked;renderAll()"><label>Afficher la devise (€)</label></label>
   </div></div>
 `;
 }
@@ -4978,7 +4990,6 @@ function renderSocialAdminSection(){
         <input class="ai" value="${soc.facebook||''}" placeholder="drevicioyster" oninput="if(!DATA.social)DATA.social={};DATA.social.facebook=this.value;renderAll()">
       </div></div>
     <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-top:4px;line-height:1.5">Les liens s'affichent sous la présentation si le champ est rempli.</div>
-    <label class="admin-toggle" style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px"><input type="checkbox" ${DATA.showCurrency!==false?'checked':''} onchange="DATA.showCurrency=this.checked;renderAll()"><label>Afficher la devise (€)</label></label>
     <div class="af" style="margin-top:14px"><label class="al">Affichage par défaut du menu</label>
       <div style="display:flex;gap:16px;margin-top:2px">
         <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="defaultViewChoice" value="grid" ${(DATA.defaultView||'grid')==='grid'?'checked':''} onchange="DATA.defaultView='grid';view='grid';renderAll()"> Grille</label>
