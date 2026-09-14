@@ -25,6 +25,7 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
 .header{background:var(--navy);padding:22px 0 18px}
 .header-top{position:relative;display:flex;align-items:center;justify-content:center}
 .logo-link{text-decoration:none}
+.logo-img{height:38px;max-width:180px;object-fit:contain;display:none;margin:0 auto}
 .logo-text{font-family:var(--restoFont),serif;font-size:24px;font-weight:700;color:#fff;letter-spacing:.08em;text-align:center;display:block;text-transform:uppercase}
 .header-sub{font-size:10px;font-weight:300;color:#FFFFFF;letter-spacing:.14em;text-transform:uppercase;text-align:center;margin-top:6px}
 
@@ -145,12 +146,14 @@ body.has-admin-sticky .wrap{padding-bottom:88px}
 </head>
 <body>
 
-<!-- ── Header — text title + subtitle, same font/treatment as index-drevici.html ── -->
+<!-- ── Header — logo if uploaded on index.html, else styled text in
+     the site's own chosen font, same as index.html's own header. ── -->
 <div class="header">
   <div class="container">
     <div class="header-top">
       <a href="https://drevicioyster.com" class="logo-link">
-        <span class="logo-text">Drevici Oyster</span>
+        <img class="logo-img" id="headerLogoImg" src="" alt="Drevici Oyster" style="display:none" onerror="this.style.display='none'"/>
+        <span class="logo-text" id="headerLogoText">Drevici Oyster</span>
       </a>
     </div>
     <div class="header-sub">Réservation</div>
@@ -365,6 +368,42 @@ const SUPABASE_ANON_KEY = 'sb_publishable_9PaqDuXnWV3aOCBPk9ImmQ_4YgYTU9n';
 // client_slug='drevici' (menu), one with client_slug='drevici-paris'
 // (this location's reservations).
 const CLIENT_SLUG = 'drevici-paris';
+
+// The menu (index.html) uses a different client_slug than this
+// reservation system — see the note above. Used only to fetch the
+// restaurant's name/logo/font for the header, so it stays in sync with
+// index.html's branding without duplicating it here by hand.
+const MENU_CLIENT_SLUG = 'drevici';
+
+// Header branding (logo takes over from the styled text once one is
+// uploaded on index.html; font matches whatever's picked there too) —
+// reads the same menu_data row index.html writes to.
+async function loadHeaderBranding() {
+  if (!supabaseClient) return;
+  try {
+    const { data: row, error } = await supabaseClient
+      .from('menu_data')
+      .select('data')
+      .eq('client_slug', MENU_CLIENT_SLUG)
+      .maybeSingle();
+    if (error) throw error;
+    const d = row && row.data;
+    if (!d) return;
+    const logoImg = document.getElementById('headerLogoImg');
+    const logoText = document.getElementById('headerLogoText');
+    if (d.restaurantLogo) {
+      if (logoImg) { logoImg.src = d.restaurantLogo; logoImg.style.display = 'block'; }
+      if (logoText) logoText.style.display = 'none';
+    } else if (d.restaurantName && logoText) {
+      logoText.textContent = d.restaurantName;
+    }
+    if (d.restoFont) {
+      document.documentElement.style.setProperty('--restoFont', "'" + d.restoFont + "'");
+    }
+  } catch (e) {
+    console.warn('Header branding load failed, keeping static fallback:', e.message);
+  }
+}
 
 // Liste d'attente désactivée pour l'instant (peut-être en v2) — le
 // backend/table restent intacts, juste l'entrée point client masquée.
@@ -913,6 +952,7 @@ loadBlockedDates().then(() => renderCal());
 loadSpaces();
 loadTables();
 loadServices();
+loadHeaderBranding();
 
 // Admin-only sticky button: never shown to a regular customer, only
 // when the admin opens this page with ?admin=1 in the URL.

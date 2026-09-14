@@ -36,6 +36,7 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
 .header{background:var(--navy);padding:22px 0 18px}
 .header-top{position:relative;display:flex;align-items:center;justify-content:center}
 .logo-link{text-decoration:none}
+.logo-img{height:34px;max-width:160px;object-fit:contain;display:none}
 .logo-text{font-family:var(--restoFont),serif;font-size:24px;font-weight:700;color:#fff;letter-spacing:.08em;text-align:center;display:block;text-transform:uppercase}
 .header-sub{font-size:10px;font-weight:300;color:#FFFFFF;letter-spacing:.14em;text-transform:uppercase;text-align:center;margin-top:6px}
 .logout-btn{position:absolute;right:16px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(255,255,255,.6);cursor:pointer;font-family:inherit;display:flex;align-items:center;padding:4px}
@@ -340,7 +341,8 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
     <div class="container">
       <div class="header-top">
         <a href="#" class="logo-link" id="logoLink">
-          <span class="logo-text">Drevici Oyster</span>
+          <img class="logo-img" id="headerLogoImg" src="" alt="Drevici Oyster" style="display:none" onerror="this.style.display='none'"/>
+          <span class="logo-text" id="headerLogoText">Drevici Oyster</span>
         </a>
         <div class="notif-bell" id="notifBell" title="Réservations sans table affectée" onclick="showUnassignedReservations()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -549,6 +551,37 @@ const CLIENT_SLUG = 'drevici-paris';
 // header logo link in resa.html.
 const MENU_URL = 'https://sowonboxx-cmd.github.io/menu/drevici/';
 
+const MENU_CLIENT_SLUG = 'drevici';
+// Header branding (logo takes over from the styled text once one is
+// uploaded on index.html; font matches whatever's picked there too) —
+// reads the same menu_data row index.html writes to.
+async function loadHeaderBranding() {
+  if (!sb) return;
+  try {
+    const { data: row, error } = await sb
+      .from('menu_data')
+      .select('data')
+      .eq('client_slug', MENU_CLIENT_SLUG)
+      .maybeSingle();
+    if (error) throw error;
+    const d = row && row.data;
+    if (!d) return;
+    const logoImg = document.getElementById('headerLogoImg');
+    const logoText = document.getElementById('headerLogoText');
+    if (d.restaurantLogo) {
+      if (logoImg) { logoImg.src = d.restaurantLogo; logoImg.style.display = 'block'; }
+      if (logoText) logoText.style.display = 'none';
+    } else if (d.restaurantName && logoText) {
+      logoText.textContent = d.restaurantName;
+    }
+    if (d.restoFont) {
+      document.documentElement.style.setProperty('--restoFont', "'" + d.restoFont + "'");
+    }
+  } catch (e) {
+    console.warn('Header branding load failed, keeping static fallback:', e.message);
+  }
+}
+
 // CONFIG NOTE: must match CLOSED_DAYS in resa.html exactly — used here
 // only to grey out the same closed days in the month view for visual
 // consistency (the public calendar is the actual source of truth for
@@ -621,6 +654,7 @@ function enterDashboard() {
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('dashContent').classList.remove('hidden');
   document.getElementById('logoLink').href = MENU_URL;
+  loadHeaderBranding();
   Promise.all([loadReservations(), loadBlockedDates(), loadSpaces(), loadTables(), loadServices()]).then(() => {
     renderWeek();
     renderMonth();
