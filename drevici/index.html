@@ -4070,6 +4070,12 @@ function pdfCfg(){
     bgColor: d.bgColor || '#FFFDF8',
     logoData: d.logoData || '',
     footerCustomText: d.footerCustomText || '',
+    // Réglage LOCAL à l'impression/export, indépendant du réglage
+    // global (Mon établissement → "Afficher la devise (€)") — permet
+    // de forcer le symbole € on/off spécifiquement sur le menu imprimé
+    // sans changer l'affichage du site. Affiché par défaut ici, quel
+    // que soit l'état du réglage global.
+    showCurrency: d.showCurrency !== undefined ? d.showCurrency : true,
     format: d.format || 'a4',                    // 'a4' | 'gbiz'
     paperSize: d.paperSize || 'a4'                // 'a4' | 'a5' — only applies when format is 'a4' (the print/PDF format)
   };
@@ -4094,16 +4100,20 @@ function buildPdfMenuHTML(cfg){
 // starts a page with just a lonely heading and nothing under it.
 function buildPdfBlocks(cfg){
   const restName = getRestaurantName() || 'Menu';
+  const isGbizFmt = cfg.format === 'gbiz';
   // Logo: PDF-specific upload > restaurant logo already stored > nothing
   const logoUrl = (DATA.pdfStyle && DATA.pdfStyle.logoData) || getRestaurantLogo() || '';
   const icData = DATA.icones||{};
   const showMainIc = cfg.showIcons!==false && icData.main && !cfg.showLogo;
   const showSecIc  = cfg.showIcons!==false && !!icData.secondary;
-  const showLogoImg = cfg.showLogo && logoUrl;
+  // Google Business n'affiche jamais le logo (image ou texte-repli) —
+  // toujours le nom en titre, quel que soit le réglage "Afficher le
+  // logo" (qui reste pertinent pour le PDF classique).
+  const showLogoImg = !isGbizFmt && cfg.showLogo && logoUrl;
 
   let headerHtml = `<div class="pdf-header">`;
   if(showLogoImg) headerHtml += `<img src="${logoUrl}" class="pdf-logo" onerror="this.style.display='none'">`;
-  else if(cfg.showLogo && !logoUrl) headerHtml += `<div class="pdf-logo-text">${getRestaurantName()||''}</div>`;
+  else if(!isGbizFmt && cfg.showLogo && !logoUrl) headerHtml += `<div class="pdf-logo-text">${getRestaurantName()||''}</div>`;
   // BUG FIX: this only ever suppressed the big <h1> title when a real
   // logo IMAGE was showing — but checking "Afficher le logo" with no
   // logo actually uploaded falls back to .pdf-logo-text (the name,
@@ -4112,7 +4122,7 @@ function buildPdfBlocks(cfg){
   // is "soit l'un soit l'autre" regardless of whether a real image
   // exists — so the title is now suppressed whenever cfg.showLogo is
   // on at all, not just when an image happens to be present.
-  if(!cfg.showLogo) headerHtml += `<h1 class="pdf-title">${restName}</h1>`;
+  if(isGbizFmt || !cfg.showLogo) headerHtml += `<h1 class="pdf-title">${restName}</h1>`;
   if(DATA.heroActive && DATA.hero) headerHtml += `<div class="pdf-sub">${t(DATA.hero)}</div>`;
   if(showMainIc) headerHtml += `<img src="${icData.main}" style="width:48px;height:48px;object-fit:contain;margin:10px auto 0;display:block" onerror="this.style.display='none'">`;
   headerHtml += `</div>`;
@@ -4124,10 +4134,13 @@ function buildPdfBlocks(cfg){
   // on one line, versus the site's own "Les 6 — 12€ · Les 12 — 22€"
   // which is harder for a quick glance (and for Google's own menu
   // parsing, when it reads a PDF/image) to disambiguate.
-  const isGbizFmt = cfg.format === 'gbiz';
   // Format simple validé par Will pour Google Business — "12€ / 22€",
   // pas de découpage en plusieurs lignes.
-  const priceText = d => fmtCurrency((isGbizFmt && d.priceType==='dual' && d.p1 && d.p2)
+  // Réglage propre à l'impression (cfg.showCurrency), pas le réglage
+  // global du site — c'est ce qui permet de le forcer indépendamment
+  // depuis la section Export/Impression.
+  const pdfCurrency = s => cfg.showCurrency===false ? String(s||'').replace(/€/g,'').trim() : s;
+  const priceText = d => pdfCurrency((isGbizFmt && d.priceType==='dual' && d.p1 && d.p2)
     ? `${d.p1}€ / ${d.p2}€`
     : (d.price||''));
   DATA.tabs.filter(tb=>tb.id!=='__home' && tb.visible!==false).forEach(tb=>{
@@ -4141,7 +4154,7 @@ function buildPdfBlocks(cfg){
           `<div class="pdf-dish"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(v.name)||''}</span>${dots}<span class="pdf-dish-price">${priceText(v)}</span></div></div>`)
         : card.type==='bevs' ? (card.items||[]).filter(item=>!item.hidden).map(item=>{
           const sizes=(item.sizes||[]).map(s=>bevSizeLabel(s)+' — '+s.price+'€').join(' · ');
-          return `<div class="pdf-dish"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(item.name)||''}</span>${dots}<span class="pdf-dish-price">${fmtCurrency(sizes||item.price||'')}</span></div>${t(item.desc)?`<div class="pdf-dish-desc">${t(item.desc)}</div>`:''}</div>`;
+          return `<div class="pdf-dish"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(item.name)||''}</span>${dots}<span class="pdf-dish-price">${pdfCurrency(sizes||item.price||'')}</span></div>${t(item.desc)?`<div class="pdf-dish-desc">${t(item.desc)}</div>`:''}</div>`;
         }) : [];
       items.forEach((itemHtml, i)=>{
         let html = itemHtml;
@@ -4464,15 +4477,20 @@ function paginateGbizPages(cfg){
 
   const pages = [];
   let current = headerHtml;
+  let catsOnCurrentPage = 0;
+  const MAX_CATS_PER_PAGE = 2; // pour que ça respire — quitte à ne pas remplir toute la hauteur disponible
   groups.forEach(group=>{
     const groupHtml = group.map(b=>b.html).join('');
     const candidate = current + groupHtml;
-    if(heightOf(candidate) <= maxPageHeightPx){
+    const wouldExceedCatCap = catsOnCurrentPage >= MAX_CATS_PER_PAGE;
+    if(!wouldExceedCatCap && heightOf(candidate) <= maxPageHeightPx){
       current = candidate;
+      catsOnCurrentPage++;
     } else if(heightOf(groupHtml) <= maxPageHeightPx){
       // La catégorie entière rentre sur une page fraîche.
       pages.push(current);
       current = groupHtml;
+      catsOnCurrentPage = 1;
     } else {
       // Même seule sur une page vide, la catégorie est trop grande —
       // dernier recours : on la découpe plat par plat.
@@ -4484,6 +4502,7 @@ function paginateGbizPages(cfg){
         else { if(sub) pages.push(sub); sub = b.html; }
       });
       current = sub;
+      catsOnCurrentPage = 1;
     }
   });
   if(footerHtml){
@@ -4513,8 +4532,15 @@ async function exportGbizImage(cfg){
 
   for(let i=0;i<pages.length;i++){
     const holder = document.createElement('div');
+    const pageHeightPx = Math.floor(RENDER_W*GBIZ_PAGE_RATIO);
+    // La boîte source garde min-height (jamais de rognage si le
+    // contenu dépasse un peu) — mais on donne à html2canvas une taille
+    // de capture explicite, pour que le fichier final ait TOUJOURS les
+    // mêmes proportions, même sur une page moins remplie que les
+    // autres (c'est ça qui donnait des ratios différents d'une image à
+    // l'autre).
     holder.style.cssText = `position:fixed;left:-99999px;top:0;width:${RENDER_W}px`;
-    holder.innerHTML = `<style>${css}</style><div class="pdf-page" id="gbizPage${i}" style="width:${RENDER_W}px;min-height:${Math.floor(RENDER_W*GBIZ_PAGE_RATIO)}px">${pages[i]}</div>`;
+    holder.innerHTML = `<style>${css}</style><div class="pdf-page" id="gbizPage${i}" style="width:${RENDER_W}px;min-height:${pageHeightPx}px">${pages[i]}</div>`;
     document.body.appendChild(holder);
     const pageEl = holder.querySelector(`#gbizPage${i}`);
     // Attente réelle du chargement des polices (Playfair Display, Open
@@ -4522,7 +4548,7 @@ async function exportGbizImage(cfg){
     await document.fonts.ready;
     await new Promise(r=>setTimeout(r,120));
     try{
-      const canvas = await html2canvas(pageEl, { scale, useCORS:true, backgroundColor:bg, logging:false });
+      const canvas = await html2canvas(pageEl, { width: RENDER_W, height: pageHeightPx, scale, useCORS:true, backgroundColor:bg, logging:false });
       const link = document.createElement('a');
       const suffix = pages.length>1 ? `-${i+1}` : '';
       link.download = `${restName}-google-business${suffix}.png`;
@@ -4569,6 +4595,8 @@ function renderPrintBody(){
     <div style="font-size:10px;color:var(--text3);margin-top:3px">Si le logo est affiché, l'icône principale est masquée automatiquement.</div>`:''}
 
     <label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showDots!==false?'checked':''} onchange="setPdfCfg('showDots',this.checked)"><label>Pointillés entre le plat et le prix</label></label>
+    <label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showCurrency!==false?'checked':''} onchange="setPdfCfg('showCurrency',this.checked)"><label>Afficher le symbole €</label></label>
+    <div style="font-size:10px;color:var(--text3);margin-top:3px">Indépendant du réglage du site (Mon établissement) — force l'affichage ou non sur le menu imprimé/exporté spécifiquement.</div>
     <label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showFrame!==false?'checked':''} onchange="setPdfCfg('showFrame',this.checked)"><label>Cadre autour de la page</label></label>
     <div style="font-size:10px;color:var(--text3);margin-top:3px">Sur un menu qui tient sur une seule page, le cadre encadre bien tout le contenu. S'il dépasse sur une deuxième page, utilisez "Nouvelle page" ci-dessous sur une catégorie pour éviter une coupure au milieu.</div>
 
