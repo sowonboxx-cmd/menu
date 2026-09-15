@@ -588,7 +588,7 @@ body.home-cover-showing{overflow:hidden}
           <span class="header-sub" id="heroSubEl" style="margin-bottom:0"></span>
         </div>
         <div class="header-top-right">
-          <button class="admin-btn" onclick="openAdminSection('__print')" title="Impression du menu">
+          <button class="admin-btn" onclick="openAdminSection('__print')" title="Export du menu">
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="1.3" width="8" height="4" rx="0.5"/><rect x="2" y="5.3" width="12" height="6" rx="1"/><rect x="4" y="9" width="8" height="5.7" rx="0.5"/></svg>
           </button>
           <a class="admin-btn" id="calAdminBtnDesktop" href="#" title="Réservations">
@@ -630,7 +630,7 @@ body.home-cover-showing{overflow:hidden}
   <div class="sticky-reserve">
     <div class="container">
       <div class="mode-links-bar">
-        <button class="mode-link" onclick="openAdminSection('__print')" title="Impression du menu">
+        <button class="mode-link" onclick="openAdminSection('__print')" title="Export du menu">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="1.3" width="8" height="4" rx="0.5"/><rect x="2" y="5.3" width="12" height="6" rx="1"/><rect x="4" y="9" width="8" height="5.7" rx="0.5"/></svg>
         </button>
         <a class="mode-link" id="calAdminBtnMobile" href="#" title="Réservations">
@@ -2804,7 +2804,7 @@ function renderAdminTabDd(){
     +'<option value="__addtab_plats">+ Nouvelle tab (plats)</option>'
     +'<option value="__addtab_boissons">+ Nouvelle tab (boissons)</option>'
     +'<option value="__reorder">☰ Réordonner les tabs</option>'
-    +'<option value="__print">Impression du menu</option>'
+    +'<option value="__print">Export du menu</option>'
     +'<option value="__social" style="font-weight:600">★ Réseaux sociaux</option>';
   dd.value=adminCurrentTab;
 }
@@ -4077,7 +4077,8 @@ function pdfCfg(){
     // que soit l'état du réglage global.
     showCurrency: d.showCurrency !== undefined ? d.showCurrency : true,
     format: d.format || 'a4',                    // 'a4' | 'gbiz'
-    paperSize: d.paperSize || 'a4'                // 'a4' | 'a5' — only applies when format is 'a4' (the print/PDF format)
+    paperSize: d.paperSize || 'a4',               // 'a4' | 'a5' — only applies when format is 'a4' (the print/PDF format)
+    exportTab: d.exportTab || 'print'             // which tab is active in the export panel UI: 'print' | 'gbiz' | 'insta'
   };
 }
 function setPdfCfg(key, val){
@@ -4489,7 +4490,11 @@ function paginateGbizPages(cfg){
   groups.forEach(group=>{
     const groupHtml = group.map(b=>b.html).join('');
     const candidate = current + groupHtml;
-    if(heightOf(candidate) <= maxPageHeightPx){
+    // "Saut de page par catégorie" — même mécanique que le PDF : on
+    // force une page fraîche pour cette catégorie, sauf si on est déjà
+    // en tout début de page (rien à gagner à forcer un saut inutile).
+    const mustBreak = group[0] && group[0].forceBreak && current !== '';
+    if(!mustBreak && heightOf(candidate) <= maxPageHeightPx){
       current = candidate;
     } else if(heightOf(groupHtml) <= maxPageHeightPx){
       // La catégorie entière rentre sur une page fraîche.
@@ -4574,6 +4579,7 @@ async function exportGbizImage(cfg){
 function renderPrintBody(){
   const cfg = pdfCfg();
   const ic = DATA.icones||{};
+  const activeTab = cfg.exportTab || 'print'; // 'print' | 'gbiz' | 'insta'
   const swatch = (label, key, val) => `
     <div class="af"><label class="al">${label}</label>
       <div style="display:flex;align-items:center;gap:8px">
@@ -4582,54 +4588,85 @@ function renderPrintBody(){
       </div>
     </div>`;
   const logoSrc = cfg.logoData || getRestaurantLogo();
-  return `<div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:12px;line-height:1.6">Personnalisez le menu imprimable, prévisualisez et exportez.</div>
 
-    ${swatch('Couleur titre', 'titleColor', cfg.titleColor)}
-    ${swatch('Couleur prix / accent', 'accentColor', cfg.accentColor)}
-    ${swatch('Couleur de fond', 'bgColor', cfg.bgColor||'#FFFDF8')}
-    <button class="aadd" style="width:100%;padding:8px;margin-top:2px;font-size:11px;background:#fff;color:var(--text2)" onclick="resetPdfColors()">↺ Réinitialiser les couleurs PDF</button>
+  const tabBtn = (id, label, disabled) => `<button ${disabled?'disabled title="Bientôt disponible"':`onclick="setPdfCfg('exportTab','${id}');renderAdminSection(adminCurrentTab)"`} style="flex:1;padding:9px 6px;font-family:Jost,sans-serif;font-size:12.5px;font-weight:600;border:1.5px solid var(--border);cursor:${disabled?'not-allowed':'pointer'};background:${activeTab===id?'var(--navy)':'#fff'};color:${activeTab===id?'#fff':disabled?'var(--text3)':'var(--text2)'};opacity:${disabled?0.55:1};border-radius:8px">${label}</button>`;
+  const tabsHtml = `
+    <div style="display:flex;gap:6px;margin-bottom:14px">
+      ${tabBtn('print','Impression')}
+      ${tabBtn('gbiz','Google Business')}
+      ${tabBtn('insta','Instagram',true)}
+    </div>`;
 
-    <div class="af"><label class="al">Logo du menu</label>
-      ${logoSrc ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-        <img src="${logoSrc}" style="max-height:50px;max-width:120px;object-fit:contain;border:1px solid var(--border);border-radius:6px;padding:4px;background:#fff" onerror="this.style.display='none'">
-      </div>
-      <div style="font-size:10.5px;color:var(--text3);margin-bottom:6px">Repris automatiquement de vos Informations générales — changez-le là-bas si besoin.</div>` : `<div style="font-size:11px;color:var(--text3);margin-bottom:6px">Aucun logo dans vos Informations générales — le nom de l'établissement sera affiché.</div>`}
-      <label class="admin-toggle" style="margin-top:2px"><input type="checkbox" ${cfg.showLogo?'checked':''} onchange="setPdfCfg('showLogo',this.checked);renderAdminSection(adminCurrentTab)"><label>Afficher le logo</label></label>
+  const colorsAccordion = `<div class="admin-section collapsible collapsed" style="margin-bottom:10px;border:1px solid var(--border);border-radius:10px;overflow:hidden">
+    <div class="admin-sect-title" onclick="toggleAdminSection(this)" style="cursor:pointer">Couleurs du menu</div>
+    <div class="admin-sect-body">
+      ${swatch('Couleur titre', 'titleColor', cfg.titleColor)}
+      ${swatch('Couleur prix / accent', 'accentColor', cfg.accentColor)}
+      ${swatch('Couleur de fond', 'bgColor', cfg.bgColor||'#FFFDF8')}
+      <button class="aadd" style="width:100%;padding:8px;margin-top:2px;font-size:11px;background:#fff;color:var(--text2)" onclick="resetPdfColors()">↺ Réinitialiser les couleurs PDF</button>
     </div>
+  </div>`;
 
-    ${(ic.main||ic.secondary)?`<label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showIcons!==false?'checked':''} onchange="setPdfCfg('showIcons',this.checked)"><label>Afficher les icônes décoratives</label></label>
-    <div style="font-size:10px;color:var(--text3);margin-top:3px">Si le logo est affiché, l'icône principale est masquée automatiquement.</div>`:''}
-
-    <label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showDots!==false?'checked':''} onchange="setPdfCfg('showDots',this.checked)"><label>Pointillés entre le plat et le prix</label></label>
-    <label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showCurrency!==false?'checked':''} onchange="setPdfCfg('showCurrency',this.checked)"><label>Afficher le symbole €</label></label>
-    <div style="font-size:10px;color:var(--text3);margin-top:3px">Indépendant du réglage du site (Mon établissement) — force l'affichage ou non sur le menu imprimé/exporté spécifiquement.</div>
-    <label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showFrame!==false?'checked':''} onchange="setPdfCfg('showFrame',this.checked)"><label>Cadre autour de la page</label></label>
-    <div style="font-size:10px;color:var(--text3);margin-top:3px">Sur un menu qui tient sur une seule page, le cadre encadre bien tout le contenu. S'il dépasse sur une deuxième page, utilisez "Nouvelle page" ci-dessous sur une catégorie pour éviter une coupure au milieu.</div>
-
-    <div class="af" style="margin-top:10px"><label class="al">Texte personnalisé (pied de page)</label>
-      <textarea class="ai" rows="2" placeholder="Ex : Fait maison, produits locaux…" oninput="setPdfCfg('footerCustomText',this.value)" style="width:100%;resize:vertical;font-family:Jost,sans-serif">${cfg.footerCustomText||''}</textarea>
-    </div>
-
+  const paperSizeHtml = activeTab==='print' ? `
     <div class="af" style="margin-top:10px"><label class="al">Format papier</label>
       <div style="display:flex;gap:16px;margin-top:2px">
         <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="pdfPaperSize" value="a4" ${cfg.paperSize!=='a5'?'checked':''} onchange="setPdfCfg('paperSize','a4')"> A4</label>
         <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="pdfPaperSize" value="a5" ${cfg.paperSize==='a5'?'checked':''} onchange="setPdfCfg('paperSize','a5')"> A5</label>
       </div>
       <div style="font-size:10.5px;color:var(--text3);margin-top:4px">A5 (moitié d'A4) — pratique pour un petit menu de table.</div>
-    </div>
+    </div>` : '';
 
-    <div class="af" style="margin-top:10px"><label class="al">Saut de page par catégorie</label>
-      <div style="font-size:10.5px;color:var(--text3);margin-bottom:6px">Force une catégorie à commencer sur une nouvelle page plutôt que d'être coupée au milieu.</div>
-      ${DATA.tabs.filter(tb=>tb.id!=='__home').map(tb=>`<label class="admin-toggle" style="margin-top:4px"><input type="checkbox" ${tb.pdfPageBreakBefore?'checked':''} onchange="tb_setPageBreak('${tb.id}',this.checked)"><label>${t(tb.label)}</label></label>`).join('')}
-    </div>
+  const elementsAccordion = `<div class="admin-section collapsible collapsed" style="margin-bottom:10px;border:1px solid var(--border);border-radius:10px;overflow:hidden">
+    <div class="admin-sect-title" onclick="toggleAdminSection(this)" style="cursor:pointer">Éléments du menu</div>
+    <div class="admin-sect-body">
+      <div class="af"><label class="al">Logo du menu</label>
+        ${logoSrc ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <img src="${logoSrc}" style="max-height:50px;max-width:120px;object-fit:contain;border:1px solid var(--border);border-radius:6px;padding:4px;background:#fff" onerror="this.style.display='none'">
+        </div>
+        <div style="font-size:10.5px;color:var(--text3);margin-bottom:6px">Repris automatiquement de vos Informations générales — changez-le là-bas si besoin.</div>` : `<div style="font-size:11px;color:var(--text3);margin-bottom:6px">Aucun logo dans vos Informations générales — le nom de l'établissement sera affiché.</div>`}
+        <label class="admin-toggle" style="margin-top:2px"><input type="checkbox" ${cfg.showLogo?'checked':''} onchange="setPdfCfg('showLogo',this.checked);renderAdminSection(adminCurrentTab)"><label>Afficher le logo</label></label>
+      </div>
 
+      ${(ic.main||ic.secondary)?`<label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showIcons!==false?'checked':''} onchange="setPdfCfg('showIcons',this.checked)"><label>Afficher les icônes décoratives</label></label>
+      <div style="font-size:10px;color:var(--text3);margin-top:3px">Si le logo est affiché, l'icône principale est masquée automatiquement.</div>`:''}
+
+      <label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showDots!==false?'checked':''} onchange="setPdfCfg('showDots',this.checked)"><label>Pointillés entre le plat et le prix</label></label>
+      <label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showCurrency!==false?'checked':''} onchange="setPdfCfg('showCurrency',this.checked)"><label>Afficher le symbole €</label></label>
+      <div style="font-size:10px;color:var(--text3);margin-top:3px">Indépendant du réglage du site (Mon établissement) — force l'affichage ou non sur le menu imprimé/exporté spécifiquement.</div>
+      <label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showFrame!==false?'checked':''} onchange="setPdfCfg('showFrame',this.checked)"><label>Cadre autour de la page</label></label>
+      <div style="font-size:10px;color:var(--text3);margin-top:3px">Sur un menu qui tient sur une seule page, le cadre encadre bien tout le contenu. S'il dépasse sur une deuxième page, utilisez "Nouvelle page" ci-dessous sur une catégorie pour éviter une coupure au milieu.</div>
+
+      <div class="af" style="margin-top:10px"><label class="al">Texte personnalisé (pied de page)</label>
+        <textarea class="ai" rows="2" placeholder="Ex : Fait maison, produits locaux…" oninput="setPdfCfg('footerCustomText',this.value)" style="width:100%;resize:vertical;font-family:Jost,sans-serif">${cfg.footerCustomText||''}</textarea>
+      </div>
+
+      ${paperSizeHtml}
+
+      <div class="af" style="margin-top:10px"><label class="al">Saut de page par catégorie</label>
+        <div style="font-size:10.5px;color:var(--text3);margin-bottom:6px">Force une catégorie à commencer sur une nouvelle page/image plutôt que d'être coupée au milieu — valable pour l'impression comme pour Google Business.</div>
+        ${DATA.tabs.filter(tb=>tb.id!=='__home').map(tb=>`<label class="admin-toggle" style="margin-top:4px"><input type="checkbox" ${tb.pdfPageBreakBefore?'checked':''} onchange="tb_setPageBreak('${tb.id}',this.checked)"><label>${t(tb.label)}</label></label>`).join('')}
+      </div>
+    </div>
+  </div>`;
+
+  const previewHtml = activeTab==='print' ? `
     <div class="af" style="margin-top:14px"><label class="al">Aperçu live <span style="font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0">(indicatif — cliquez sur "Générer le PDF / Imprimer le menu" pour le rendu exact)</span></label>
       <iframe id="pdfPreviewFrame" style="width:100%;height:420px;border:1px solid var(--border);border-radius:8px;background:#e8e8e8"></iframe>
-    </div>
+    </div>` : '';
 
-    <button class="aadd" style="width:100%;padding:13px;margin-top:6px;font-weight:700;background:var(--navy);color:#fff;border:none;font-size:14px" onclick="exportA4Print(pdfCfg())">Générer le PDF / Imprimer le menu</button>
-    <button class="aadd" style="width:100%;padding:13px;margin-top:8px;font-weight:700;background:#fff;color:var(--navy);border:1.5px solid var(--navy);font-size:14px" onclick="exportGbizImage({...pdfCfg(), format:'gbiz'})">Générer l'image Google Business</button>
-    <div style="font-size:10.5px;color:var(--text3);margin-top:6px;line-height:1.5">Une image verticale, texte seul (aucune photo de plat), pensée pour l'affichage du menu sur Google. Chaque catégorie est bien espacée pour rester lisible d'un coup d'œil.</div>`;
+  const actionHtml = activeTab==='print'
+    ? `<button class="aadd" style="width:100%;padding:13px;margin-top:6px;font-weight:700;background:var(--navy);color:#fff;border:none;font-size:14px" onclick="exportA4Print(pdfCfg())">Générer le PDF / Imprimer le menu</button>`
+    : activeTab==='gbiz'
+    ? `<button class="aadd" style="width:100%;padding:13px;margin-top:6px;font-weight:700;background:var(--navy);color:#fff;border:none;font-size:14px" onclick="exportGbizImage({...pdfCfg(), format:'gbiz'})">Générer l'image Google Business</button>
+       <div style="font-size:10.5px;color:var(--text3);margin-top:6px;line-height:1.5">Une image verticale, texte seul (aucune photo de plat), pensée pour l'affichage du menu sur Google. Chaque catégorie est bien espacée pour rester lisible d'un coup d'œil.</div>`
+    : `<div style="text-align:center;padding:20px;background:#f7f5f0;border-radius:10px;font-size:12.5px;color:var(--text3);font-family:Jost,sans-serif">📷 Export Instagram (Story / Post) — bientôt disponible.</div>`;
+
+  return `<div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:12px;line-height:1.6">Personnalisez le menu, prévisualisez et exportez-le dans le format de votre choix.</div>
+    ${tabsHtml}
+    ${colorsAccordion}
+    ${elementsAccordion}
+    ${previewHtml}
+    ${actionHtml}`;
 }
 function tb_setPageBreak(tabId, val){
   const tb = DATA.tabs.find(x=>x.id===tabId);
@@ -4637,7 +4674,7 @@ function tb_setPageBreak(tabId, val){
 }
 // Kept for compatibility (renderExportSection still calls it); wraps the body in its own section.
 function renderPdfStyleSection(){
-  return `<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Exporter le menu en PDF</div><div class="admin-sect-body">${renderPrintBody()}</div></div>`;
+  return `<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Export du menu</div><div class="admin-sect-body">${renderPrintBody()}</div></div>`;
 }
 
 
