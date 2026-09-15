@@ -3977,6 +3977,10 @@ function downloadSocImg(fmt){
         useCORS: true,
         allowTaint: true,
         logging: false,
+        // Même correctif que pour l'export Google Business : évite
+        // l'espacement excessif entre les mots qu'html2canvas introduit
+        // par défaut (mesure mot par mot plutôt que lettre par lettre).
+        letterRendering: true,
         onclone: (cloneDoc)=>{
           // ensure fonts are loaded in clone
           const s=cloneDoc.createElement('link');
@@ -4622,7 +4626,12 @@ async function exportGbizImage(cfg){
     await document.fonts.ready;
     await new Promise(r=>setTimeout(r,120));
     try{
-      const canvas = await html2canvas(pageEl, { scale, useCORS:true, backgroundColor:bg, logging:false });
+      // BUG FIX: html2canvas mesure le texte mot par mot par défaut, ce
+      // qui accumule des écarts d'arrondi entre les mots — exactement
+      // l'effet "justifié" trop espacé signalé, absent de l'impression
+      // (qui utilise le vrai moteur du navigateur, pas html2canvas).
+      // letterRendering force un rendu lettre par lettre, plus précis.
+      const canvas = await html2canvas(pageEl, { scale, useCORS:true, backgroundColor:bg, logging:false, letterRendering:true });
       const link = document.createElement('a');
       const suffix = pages.length>1 ? `-${i+1}` : '';
       link.download = `${restName}-google-business${suffix}.png`;
@@ -4727,7 +4736,7 @@ function renderPrintBody(){
   return `<div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:12px;line-height:1.6">Personnalisez le menu, prévisualisez et exportez-le dans le format de votre choix.</div>
     ${tabsHtml}
     ${colorsAccordion}
-    ${elementsAccordion}
+    ${activeTab==='print' ? elementsAccordion : ''}
     ${previewHtml}
     ${actionHtml}`;
 }
