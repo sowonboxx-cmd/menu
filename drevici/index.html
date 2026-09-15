@@ -4528,7 +4528,7 @@ function paginateGbizPages(cfg){
     measureEl.style.setProperty('--space-scale', '1');
     return h;
   };
-  const COMPRESS_STEPS = [1, 0.97, 0.94, 0.9]; // jamais plus de 10%
+  const COMPRESS_STEPS = [1, 0.97, 0.94, 0.91, 0.88, 0.85]; // jusqu'à 15% maintenant (était 10%)
   groups.forEach(group=>{
     const groupHtml = group.map(b=>b.html).join('');
     const tb = group[0] && group[0].tabId ? DATA.tabs.find(x=>x.id===group[0].tabId) : null;
@@ -4543,7 +4543,7 @@ function paginateGbizPages(cfg){
       current = candidate;
     } else if(wantsPullPrevious){
       // "Rejoindre la page précédente" — on autorise un espacement
-      // compressé (jusqu'à -10%) plutôt que de démarrer une page pour
+      // compressé (jusqu'à -15%) plutôt que de démarrer une page pour
       // ça. Si même compressé ça ne rentre pas, on note l'échec (voir
       // pullFailures) plutôt que de l'imposer quand même — dépasser la
       // marge de compression abîmerait le design de la page.
@@ -4764,7 +4764,7 @@ function tb_setGbizPull(tabId, val){
 }
 // Vignettes de chaque image Google Business à venir, avec pour chaque
 // catégorie le choix de rejoindre la page précédente (espacement
-// compressé de 10% maximum) ou de repartir sur la suivante — pensé
+// compressé de 15% maximum) ou de repartir sur la suivante — pensé
 // pour les cas où l'algorithme automatique coupe mal (un ou deux plats
 // livrés seuls en bas d'une page).
 function renderGbizPagePreview(){
@@ -4788,7 +4788,7 @@ function renderGbizPagePreview(){
 
   return `<div class="af" style="margin-top:14px">
     <label class="al">Aperçu des pages (${pages.length} image${pages.length>1?'s':''})</label>
-    <div style="font-size:10.5px;color:var(--text3);margin-bottom:8px">Une catégorie mal coupée ? Choisissez de la faire rejoindre la page précédente (espacement compressé de 10% maximum si besoin) ou de la garder sur la suivante.</div>
+    <div style="font-size:10.5px;color:var(--text3);margin-bottom:8px">Une catégorie mal coupée ? Choisissez de la faire rejoindre la page précédente (espacement compressé de 15% maximum si besoin) ou de la garder sur la suivante.</div>
     <div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:10px">
       ${pages.map((p,i)=>`
         <div style="flex:none;width:${thumbW}px">
@@ -4810,7 +4810,7 @@ function renderGbizPagePreview(){
             <button style="${btnStyle(!!tb.pdfPageBreakBefore)}" onclick="tb_setPageBreak('${tb.id}',${tb.pdfPageBreakBefore?'false':'true'})">Page ${pageIdx+2} ▶</button>
           </div>
         </div>
-        ${pullFailures.includes(tb.id)?`<div style="font-size:11px;color:#B31217;background:#fdecea;border:1px solid #f3c6c2;border-radius:6px;padding:6px 10px;margin-top:4px;font-family:Jost,sans-serif">⚠️ Impossible de faire rentrer "${t(tb.label)}" dans la page précédente sans dépasser 10% de compression — ça abîmerait la mise en page. Elle reste sur sa propre page.</div>`:''}
+        ${pullFailures.includes(tb.id)?`<div style="font-size:11px;color:#B31217;background:#fdecea;border:1px solid #f3c6c2;border-radius:6px;padding:6px 10px;margin-top:4px;font-family:Jost,sans-serif">⚠️ Impossible de faire rentrer "${t(tb.label)}" dans la page précédente sans dépasser 15% de compression — ça abîmerait la mise en page. Elle reste sur sa propre page.</div>`:''}
       `).join('')}
     </div>
   </div>`;
