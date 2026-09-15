@@ -4607,44 +4607,29 @@ async function exportGbizImage(cfg){
   for(let i=0;i<pages.length;i++){
     const holder = document.createElement('div');
     const pageHeightPx = Math.floor(RENDER_W*GBIZ_PAGE_RATIO);
-    // BUG FIX: passer width/height explicites À html2canvas EN PLUS du
-    // scale a fini par rogner le cadre à droite et en bas — les deux
-    // réglages se marchaient dessus (la fenêtre de capture restait à
-    // la taille non mise à l'échelle alors que le contenu, lui,
-    // s'affichait déjà agrandi). On garde une hauteur FIXE (pas
-    // min-height) + overflow:hidden sur la boîte source elle-même pour
-    // garantir des proportions identiques — html2canvas mesure alors
-    // cette boîte déjà correctement dimensionnée, sans qu'on ait besoin
-    // de lui repasser des dimensions en plus du scale.
-    holder.style.cssText = `position:fixed;left:-99999px;top:0;width:${RENDER_W}px;height:${pageHeightPx}px`;
+    // BUG FIX: le vrai coupable de l'écart entre les mots était
+    // html2canvas lui-même — son moteur de texte "maison" (par
+    // opposition au vrai moteur du navigateur) accumule des écarts
+    // d'arrondi entre les mots quel que soit le réglage tenté
+    // (police bien chargée localement ou non, letterRendering activé
+    // ou non, scale entier ou non — testé et confirmé un par un).
+    // La vraie solution : foreignObjectRendering, qui délègue le texte
+    // au moteur natif du navigateur plutôt qu'à l'approximation
+    // d'html2canvas. Cette option avait déjà été essayée mais donnait
+    // des pages blanches — uniquement parce que l'élément était placé
+    // très loin hors écran (left:-99999px), ce que foreignObjectRendering
+    // gère mal. En le gardant DANS l'écran (juste rendu invisible par
+    // une opacité quasi nulle plutôt que par un déplacement), ça
+    // fonctionne parfaitement : plus de pages blanches, plus d'écart.
+    holder.style.cssText = `position:fixed;left:0;top:0;width:${RENDER_W}px;height:${pageHeightPx}px;opacity:0.001;pointer-events:none;z-index:-1`;
     const scaleStyle = pages[i].spaceScale && pages[i].spaceScale!==1 ? `--space-scale:${pages[i].spaceScale};` : '';
     holder.innerHTML = `<style>${css}</style><div class="pdf-page" id="gbizPage${i}" style="width:${RENDER_W}px;height:${pageHeightPx}px;overflow:hidden;${scaleStyle}">${pages[i].html}</div>`;
     document.body.appendChild(holder);
     const pageEl = holder.querySelector(`#gbizPage${i}`);
-    // BUG FIX: `document.fonts.ready` seul ne garantissait toujours pas
-    // que CES polices précises (Open Sans, Playfair Display) étaient
-    // bien chargées avant capture — d'où l'écart entre les mots qui
-    // persistait (rendu avec une police de secours). Cette fois on
-    // demande explicitement le chargement des polices réellement
-    // utilisées, mais bien APRÈS avoir injecté le <style>@import — le
-    // document les connaît déjà à ce stade, donc la demande peut
-    // aboutir (contrairement à la tentative précédente, faite avant
-    // l'injection, qui ne pouvait rien trouver à charger).
-    await Promise.all([
-      document.fonts.load("300 13px 'Open Sans'"),
-      document.fonts.load("400 13px 'Open Sans'"),
-      document.fonts.load("600 13px 'Open Sans'"),
-      document.fonts.load("600 26px 'Playfair Display'"),
-    ]).catch(()=>{});
     await document.fonts.ready;
     await new Promise(r=>setTimeout(r,150));
     try{
-      // BUG FIX: html2canvas mesure le texte mot par mot par défaut, ce
-      // qui accumule des écarts d'arrondi entre les mots — exactement
-      // l'effet "justifié" trop espacé signalé, absent de l'impression
-      // (qui utilise le vrai moteur du navigateur, pas html2canvas).
-      // letterRendering force un rendu lettre par lettre, plus précis.
-      const canvas = await html2canvas(pageEl, { scale, useCORS:true, backgroundColor:bg, logging:false, letterRendering:true });
+      const canvas = await html2canvas(pageEl, { scale, useCORS:true, backgroundColor:bg, logging:false, foreignObjectRendering:true });
       const link = document.createElement('a');
       const suffix = pages.length>1 ? `-${i+1}` : '';
       link.download = `${restName}-google-business${suffix}.png`;
