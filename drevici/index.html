@@ -4489,7 +4489,14 @@ function paginateGbizPages(cfg){
   const { headerHtml, contentBlocks, footerHtml } = buildPdfBlocks(cfg);
 
   const holder = document.createElement('div');
-  holder.style.cssText = `position:fixed;left:-99999px;top:0;visibility:hidden;width:${RENDER_W}px`;
+  // BUG FIX: le site applique un zoom CSS de 1.1x à tout le document
+  // sur desktop (html{zoom:1.1}, voir plus bas) — sans l'annuler ici,
+  // toutes les mesures de hauteur de cette fonction étaient faussées
+  // d'un facteur 1.1, ce qui explique des regroupements de pages
+  // incohérents (un plat isolé alors qu'il aurait dû rejoindre les
+  // autres). Même correctif déjà utilisé ailleurs dans ce fichier pour
+  // annuler ce même zoom (voir .home-cover{zoom:0.9090909}).
+  holder.style.cssText = `position:fixed;left:-99999px;top:0;visibility:hidden;width:${RENDER_W}px;zoom:0.9090909`;
   holder.innerHTML = `<style>${buildPdfCSS(cfg)}</style><div class="pdf-page" id="__gbizMeasure" style="height:auto;min-height:0;width:${RENDER_W}px"></div>`;
   document.body.appendChild(holder);
   const measureEl = holder.querySelector('#__gbizMeasure');
@@ -4621,7 +4628,13 @@ async function exportGbizImage(cfg){
     // gère mal. En le gardant DANS l'écran (juste rendu invisible par
     // une opacité quasi nulle plutôt que par un déplacement), ça
     // fonctionne parfaitement : plus de pages blanches, plus d'écart.
-    holder.style.cssText = `position:fixed;left:0;top:0;width:${RENDER_W}px;height:${pageHeightPx}px;opacity:0.001;pointer-events:none;z-index:-1`;
+    // BUG FIX: même correctif que dans paginateGbizPages — sans
+    // annuler le zoom CSS de 1.1x du site (desktop), la boîte capturée
+    // était réellement 10% plus grande que ce qu'on demandait,
+    // décalant le cadre (symétrique en théorie, mais mesuré/rogné dans
+    // un système de coordonnées différent de celui utilisé pour le
+    // positionner).
+    holder.style.cssText = `position:fixed;left:0;top:0;width:${RENDER_W}px;height:${pageHeightPx}px;opacity:0.001;pointer-events:none;z-index:-1;zoom:0.9090909`;
     const scaleStyle = pages[i].spaceScale && pages[i].spaceScale!==1 ? `--space-scale:${pages[i].spaceScale};` : '';
     holder.innerHTML = `<style>${css}</style><div class="pdf-page" id="gbizPage${i}" style="width:${RENDER_W}px;height:${pageHeightPx}px;overflow:hidden;${scaleStyle}">${pages[i].html}</div>`;
     document.body.appendChild(holder);
