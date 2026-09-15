@@ -4107,30 +4107,23 @@ function buildPdfBlocks(cfg){
   const icData = DATA.icones||{};
   const showMainIc = cfg.showIcons!==false && icData.main && !cfg.showLogo;
   const showSecIc  = cfg.showIcons!==false && !!icData.secondary;
-  // Google Business n'affiche aucun en-tête du tout (ni logo, ni nom
-  // du restaurant) — seulement les catégories, dès la première page.
-  // Ça règle aussi l'alignement entre pages d'un coup : sans en-tête
-  // nulle part, chaque page démarre déjà au même niveau naturellement.
-  const showLogoImg = !isGbizFmt && cfg.showLogo && logoUrl;
+  const showLogoImg = cfg.showLogo && logoUrl;
 
-  let headerHtml = '';
-  if(!isGbizFmt){
-    headerHtml = `<div class="pdf-header">`;
-    if(showLogoImg) headerHtml += `<img src="${logoUrl}" class="pdf-logo" onerror="this.style.display='none'">`;
-    else if(cfg.showLogo && !logoUrl) headerHtml += `<div class="pdf-logo-text">${getRestaurantName()||''}</div>`;
-    // BUG FIX: this only ever suppressed the big <h1> title when a real
-    // logo IMAGE was showing — but checking "Afficher le logo" with no
-    // logo actually uploaded falls back to .pdf-logo-text (the name,
-    // small and styled), and the <h1> still rendered right under it: two
-    // renderings of the same name stacked together. The checkbox itself
-    // is "soit l'un soit l'autre" regardless of whether a real image
-    // exists — so the title is now suppressed whenever cfg.showLogo is
-    // on at all, not just when an image happens to be present.
-    if(!cfg.showLogo) headerHtml += `<h1 class="pdf-title">${restName}</h1>`;
-    if(DATA.heroActive && DATA.hero) headerHtml += `<div class="pdf-sub">${t(DATA.hero)}</div>`;
-    if(showMainIc) headerHtml += `<img src="${icData.main}" style="width:48px;height:48px;object-fit:contain;margin:10px auto 0;display:block" onerror="this.style.display='none'">`;
-    headerHtml += `</div>`;
-  }
+  let headerHtml = `<div class="pdf-header">`;
+  if(showLogoImg) headerHtml += `<img src="${logoUrl}" class="pdf-logo" onerror="this.style.display='none'">`;
+  else if(cfg.showLogo && !logoUrl) headerHtml += `<div class="pdf-logo-text">${getRestaurantName()||''}</div>`;
+  // BUG FIX: this only ever suppressed the big <h1> title when a real
+  // logo IMAGE was showing — but checking "Afficher le logo" with no
+  // logo actually uploaded falls back to .pdf-logo-text (the name,
+  // small and styled), and the <h1> still rendered right under it: two
+  // renderings of the same name stacked together. The checkbox itself
+  // is "soit l'un soit l'autre" regardless of whether a real image
+  // exists — so the title is now suppressed whenever cfg.showLogo is
+  // on at all, not just when an image happens to be present.
+  if(!cfg.showLogo) headerHtml += `<h1 class="pdf-title">${restName}</h1>`;
+  if(DATA.heroActive && DATA.hero) headerHtml += `<div class="pdf-sub">${t(DATA.hero)}</div>`;
+  if(showMainIc) headerHtml += `<img src="${icData.main}" style="width:48px;height:48px;object-fit:contain;margin:10px auto 0;display:block" onerror="this.style.display='none'">`;
+  headerHtml += `</div>`;
 
   const contentBlocks = [];
   const dots = cfg.showDots!==false ? '<span class="pdf-dots"></span>' : '<span class="pdf-dots-off"></span>';
@@ -4177,8 +4170,9 @@ function buildPdfBlocks(cfg){
 
   // Footer : uniquement le texte personnalisé — plus aucun champ ajouté
   // automatiquement (adresse, téléphone, date), puisque rien de tout ça
-  // n'était sélectionnable/désactivable individuellement.
-  const footerHtml = cfg.footerCustomText
+  // n'était sélectionnable/désactivable individuellement. Non pertinent
+  // pour Google Business (pas de champ dédié pour ce format).
+  const footerHtml = (!isGbizFmt && cfg.footerCustomText)
     ? `<div class="pdf-footer"><div class="pdf-footer-text">${cfg.footerCustomText}</div></div>`
     : '';
 
@@ -4472,6 +4466,11 @@ function paginateGbizPages(cfg){
   document.body.appendChild(holder);
   const measureEl = holder.querySelector('#__gbizMeasure');
   const heightOf = html => { measureEl.innerHTML = html; return measureEl.offsetHeight; };
+  // Mesuré une fois pour que chaque page après la première réserve
+  // exactement le même espace que le vrai en-tête sur la page 1 — sinon
+  // le titre de la première catégorie ne démarre pas au même niveau
+  // partout (revient dès que le logo/nom est réaffiché).
+  const headerHeight = headerHtml ? heightOf(headerHtml) : 0;
 
   // Regroupe les blocs plat-par-plat en paquets par catégorie (chaque
   // <h2 class="pdf-cat"> marque le début d'une nouvelle catégorie).
@@ -4486,6 +4485,7 @@ function paginateGbizPages(cfg){
   // pour éviter à la fois le débordement ET une page qui reste à
   // moitié vide alors qu'une catégorie de plus aurait tenu.
   const pages = []; // { html, spaceScale }
+  const pullFailures = []; // tabIds où "rejoindre la précédente" a été demandé mais n'a pas pu aboutir
   let current = headerHtml;
   let currentScale = 1;
   // Tente les mêmes blocs à une échelle d'espacement réduite (jamais le
@@ -4514,8 +4514,9 @@ function paginateGbizPages(cfg){
     } else if(wantsPullPrevious){
       // "Rejoindre la page précédente" — on autorise un espacement
       // compressé (jusqu'à -10%) plutôt que de démarrer une page pour
-      // ça. Si même compressé ça ne rentre pas, on abandonne
-      // silencieusement et la catégorie repart sur sa page naturelle.
+      // ça. Si même compressé ça ne rentre pas, on note l'échec (voir
+      // pullFailures) plutôt que de l'imposer quand même — dépasser la
+      // marge de compression abîmerait le design de la page.
       let fitScale = null;
       for(const s of COMPRESS_STEPS){
         if(heightOfScaled(candidate, s) <= maxPageHeightPx){ fitScale = s; break; }
@@ -4524,9 +4525,11 @@ function paginateGbizPages(cfg){
         current = candidate;
         currentScale = fitScale;
       } else if(heightOf(groupHtml) <= maxPageHeightPx){
+        pullFailures.push(tb.id);
         pages.push({ html: current, spaceScale: currentScale });
         current = groupHtml; currentScale = 1;
       } else {
+        pullFailures.push(tb.id);
         if(current){ pages.push({ html: current, spaceScale: currentScale }); current=''; currentScale=1; }
         let sub='';
         group.forEach(b=>{
@@ -4561,17 +4564,21 @@ function paginateGbizPages(cfg){
   if(current) pages.push({ html: current, spaceScale: currentScale });
 
   document.body.removeChild(holder);
-  // Plus besoin d'espaceur artificiel : sans aucun en-tête nulle part
-  // (voir buildPdfBlocks), chaque page démarre déjà au même niveau
-  // naturellement — alignement "gratuit", pas de bricolage nécessaire.
-  return pages;
+  // Espaceur invisible de la même hauteur que le vrai en-tête, ajouté
+  // à toutes les pages sauf la première — pour que la première
+  // catégorie démarre au même niveau partout, que le logo/nom soit
+  // affiché ou non.
+  const alignedPages = headerHeight > 0
+    ? pages.map((p,i) => i===0 ? p : { html: `<div class="pdf-header" style="height:${headerHeight}px"></div>` + p.html, spaceScale: p.spaceScale })
+    : pages;
+  return { pages: alignedPages, pullFailures };
 }
 
 async function exportGbizImage(cfg){
   if(typeof html2canvas === 'undefined'){ showToast('⚠ html2canvas non chargé'); return; }
   showToast('Génération des images en cours…');
   const css = buildPdfCSS(cfg);
-  const pages = paginateGbizPages(cfg);
+  const { pages } = paginateGbizPages(cfg);
   const RENDER_W = 612; // doit rester identique à paginateGbizPages
   const TARGET_W = 1080;
   const scale = TARGET_W / RENDER_W;
@@ -4617,15 +4624,29 @@ async function exportGbizImage(cfg){
 }
 
 // Admin UI for the PDF style panel
+// L'accordéon se replie par défaut à chaque nouveau rendu du HTML — il
+// faut mémoriser son état ouvert/fermé à part, sinon changer un simple
+// réglage (pour rafraîchir l'aperçu Google Business) le referme aussitôt.
+let pdfPanelAccordionOpen = { colors:false, elements:false };
+function togglePdfAccordion(name){
+  pdfPanelAccordionOpen[name] = !pdfPanelAccordionOpen[name];
+  renderAdminSection(adminCurrentTab);
+}
 function renderPrintBody(){
   const cfg = pdfCfg();
   const ic = DATA.icones||{};
   const activeTab = cfg.exportTab || 'print'; // 'print' | 'gbiz' | 'insta'
+  // Répercute le changement sur l'aperçu concerné : l'iframe live pour
+  // l'impression, les vignettes pour Google Business (elles ne sont pas
+  // des iframes, donc il faut régénérer tout le panneau pour les
+  // rafraîchir — l'état ouvert/fermé des accordéons est préservé
+  // au-dessus, donc ça ne les referme plus).
+  const refresh = "updatePdfPreview();renderAdminSection(adminCurrentTab)";
   const swatch = (label, key, val) => `
     <div class="af"><label class="al">${label}</label>
       <div style="display:flex;align-items:center;gap:8px">
-        <input type="color" value="${val}" oninput="setPdfCfg('${key}',this.value)" style="width:42px;height:34px;border:1px solid var(--border);border-radius:6px;padding:2px;cursor:pointer;background:#fff">
-        <input class="ai" value="${val}" oninput="setPdfCfg('${key}',this.value)" style="flex:1;font-family:monospace;font-size:12px">
+        <input type="color" value="${val}" oninput="setPdfCfg('${key}',this.value);${refresh}" style="width:42px;height:34px;border:1px solid var(--border);border-radius:6px;padding:2px;cursor:pointer;background:#fff">
+        <input class="ai" value="${val}" oninput="setPdfCfg('${key}',this.value);${refresh}" style="flex:1;font-family:monospace;font-size:12px">
       </div>
     </div>`;
   const logoSrc = cfg.logoData || getRestaurantLogo();
@@ -4638,13 +4659,13 @@ function renderPrintBody(){
       ${tabBtn('insta','Instagram',true)}
     </div>`;
 
-  const colorsAccordion = `<div class="admin-section collapsible collapsed" style="margin-bottom:10px;border:1px solid var(--border);border-radius:10px;overflow:hidden">
-    <div class="admin-sect-title" onclick="toggleAdminSection(this)" style="cursor:pointer">Couleurs du menu</div>
+  const colorsAccordion = `<div class="admin-section collapsible ${pdfPanelAccordionOpen.colors?'':'collapsed'}" style="margin-bottom:10px;border:1px solid var(--border);border-radius:10px;overflow:hidden">
+    <div class="admin-sect-title" onclick="togglePdfAccordion('colors')" style="cursor:pointer">Couleurs du menu</div>
     <div class="admin-sect-body">
       ${swatch('Couleur titre', 'titleColor', cfg.titleColor)}
       ${swatch('Couleur prix / accent', 'accentColor', cfg.accentColor)}
       ${swatch('Couleur de fond', 'bgColor', cfg.bgColor||'#FFFDF8')}
-      <button class="aadd" style="width:100%;padding:8px;margin-top:2px;font-size:11px;background:#fff;color:var(--text2)" onclick="resetPdfColors()">↺ Réinitialiser les couleurs PDF</button>
+      <button class="aadd" style="width:100%;padding:8px;margin-top:2px;font-size:11px;background:#fff;color:var(--text2)" onclick="resetPdfColors();${refresh}">↺ Réinitialiser les couleurs PDF</button>
     </div>
   </div>`;
 
@@ -4657,29 +4678,29 @@ function renderPrintBody(){
       <div style="font-size:10.5px;color:var(--text3);margin-top:4px">A5 (moitié d'A4) — pratique pour un petit menu de table.</div>
     </div>` : '';
 
-  const elementsAccordion = `<div class="admin-section collapsible collapsed" style="margin-bottom:10px;border:1px solid var(--border);border-radius:10px;overflow:hidden">
-    <div class="admin-sect-title" onclick="toggleAdminSection(this)" style="cursor:pointer">Éléments du menu</div>
+  const elementsAccordion = `<div class="admin-section collapsible ${pdfPanelAccordionOpen.elements?'':'collapsed'}" style="margin-bottom:10px;border:1px solid var(--border);border-radius:10px;overflow:hidden">
+    <div class="admin-sect-title" onclick="togglePdfAccordion('elements')" style="cursor:pointer">Éléments du menu</div>
     <div class="admin-sect-body">
       <div class="af"><label class="al">Logo du menu</label>
         ${logoSrc ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
           <img src="${logoSrc}" style="max-height:50px;max-width:120px;object-fit:contain;border:1px solid var(--border);border-radius:6px;padding:4px;background:#fff" onerror="this.style.display='none'">
         </div>
         <div style="font-size:10.5px;color:var(--text3);margin-bottom:6px">Repris automatiquement de vos Informations générales — changez-le là-bas si besoin.</div>` : `<div style="font-size:11px;color:var(--text3);margin-bottom:6px">Aucun logo dans vos Informations générales — le nom de l'établissement sera affiché.</div>`}
-        <label class="admin-toggle" style="margin-top:2px"><input type="checkbox" ${cfg.showLogo?'checked':''} onchange="setPdfCfg('showLogo',this.checked);renderAdminSection(adminCurrentTab)"><label>Afficher le logo</label></label>
+        <label class="admin-toggle" style="margin-top:2px"><input type="checkbox" ${cfg.showLogo?'checked':''} onchange="setPdfCfg('showLogo',this.checked);updatePdfPreview();renderAdminSection(adminCurrentTab)"><label>Afficher le logo</label></label>
       </div>
 
-      ${(ic.main||ic.secondary)?`<label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showIcons!==false?'checked':''} onchange="setPdfCfg('showIcons',this.checked)"><label>Afficher les icônes décoratives</label></label>
+      ${(ic.main||ic.secondary)?`<label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showIcons!==false?'checked':''} onchange="setPdfCfg('showIcons',this.checked);updatePdfPreview();renderAdminSection(adminCurrentTab)"><label>Afficher les icônes décoratives</label></label>
       <div style="font-size:10px;color:var(--text3);margin-top:3px">Si le logo est affiché, l'icône principale est masquée automatiquement.</div>`:''}
 
-      <label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showDots!==false?'checked':''} onchange="setPdfCfg('showDots',this.checked)"><label>Pointillés entre le plat et le prix</label></label>
-      <label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showCurrency!==false?'checked':''} onchange="setPdfCfg('showCurrency',this.checked)"><label>Afficher le symbole €</label></label>
+      <label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showDots!==false?'checked':''} onchange="setPdfCfg('showDots',this.checked);updatePdfPreview();renderAdminSection(adminCurrentTab)"><label>Pointillés entre le plat et le prix</label></label>
+      <label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showCurrency!==false?'checked':''} onchange="setPdfCfg('showCurrency',this.checked);updatePdfPreview();renderAdminSection(adminCurrentTab)"><label>Afficher le symbole €</label></label>
       <div style="font-size:10px;color:var(--text3);margin-top:3px">Indépendant du réglage du site (Mon établissement) — force l'affichage ou non sur le menu imprimé/exporté spécifiquement.</div>
-      <label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showFrame!==false?'checked':''} onchange="setPdfCfg('showFrame',this.checked)"><label>Cadre autour de la page</label></label>
+      <label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${cfg.showFrame!==false?'checked':''} onchange="setPdfCfg('showFrame',this.checked);updatePdfPreview();renderAdminSection(adminCurrentTab)"><label>Cadre autour de la page</label></label>
       <div style="font-size:10px;color:var(--text3);margin-top:3px">Sur un menu qui tient sur une seule page, le cadre encadre bien tout le contenu. S'il dépasse sur une deuxième page, utilisez "Nouvelle page" ci-dessous sur une catégorie pour éviter une coupure au milieu.</div>
 
-      <div class="af" style="margin-top:10px"><label class="al">Texte personnalisé (pied de page)</label>
+      ${activeTab!=='gbiz' ? `<div class="af" style="margin-top:10px"><label class="al">Texte personnalisé (pied de page)</label>
         <textarea class="ai" rows="2" placeholder="Ex : Fait maison, produits locaux…" oninput="setPdfCfg('footerCustomText',this.value)" style="width:100%;resize:vertical;font-family:Jost,sans-serif">${cfg.footerCustomText||''}</textarea>
-      </div>
+      </div>` : ''}
 
       ${paperSizeHtml}
 
@@ -4727,7 +4748,7 @@ function tb_setGbizPull(tabId, val){
 // livrés seuls en bas d'une page).
 function renderGbizPagePreview(){
   const cfg = { ...pdfCfg(), format:'gbiz' };
-  const pages = paginateGbizPages(cfg);
+  const { pages, pullFailures } = paginateGbizPages(cfg);
   const css = buildPdfCSS(cfg);
   const fullW = 612, fullH = Math.floor(fullW*GBIZ_PAGE_RATIO);
   const thumbW = 120, thumbH = Math.round(thumbW*GBIZ_PAGE_RATIO);
@@ -4768,6 +4789,7 @@ function renderGbizPagePreview(){
             <button style="${btnStyle(!!tb.pdfPageBreakBefore)}" onclick="tb_setPageBreak('${tb.id}',${tb.pdfPageBreakBefore?'false':'true'})">Page ${pageIdx+2} ▶</button>
           </div>
         </div>
+        ${pullFailures.includes(tb.id)?`<div style="font-size:11px;color:#B31217;background:#fdecea;border:1px solid #f3c6c2;border-radius:6px;padding:6px 10px;margin-top:4px;font-family:Jost,sans-serif">⚠️ Impossible de faire rentrer "${t(tb.label)}" dans la page précédente sans dépasser 10% de compression — ça abîmerait la mise en page. Elle reste sur sa propre page.</div>`:''}
       `).join('')}
     </div>
   </div>`;
