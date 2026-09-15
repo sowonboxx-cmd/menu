@@ -4149,7 +4149,7 @@ function buildPdfBlocks(cfg){
     ? `${d.p1}€ / ${d.p2}€`
     : (d.price||''));
   DATA.tabs.filter(tb=>tb.id!=='__home' && tb.visible!==false).forEach(tb=>{
-    let pendingHeader = `<h2 class="pdf-cat">${showSecIc?`<img src="${icData.secondary}" style="width:16px;height:16px;object-fit:contain;vertical-align:middle;margin-right:6px" onerror="this.remove()">`:''}${t(tb.label)}</h2>`;
+    let pendingHeader = `<h2 class="pdf-cat" data-tab-id="${tb.id}">${showSecIc?`<img src="${icData.secondary}" style="width:16px;height:16px;object-fit:contain;vertical-align:middle;margin-right:6px" onerror="this.remove()">`:''}${t(tb.label)}</h2>`;
     let firstBlockOfTab = true;
     tb.cards.forEach(card=>{
       let pendingSubcat = (t(card.label) && tb.cards.length>1) ? `<h3 class="pdf-subcat">${t(card.label)}</h3>` : '';
@@ -4170,7 +4170,7 @@ function buildPdfBlocks(cfg){
           forceBreak = !!tb.pdfPageBreakBefore;
           firstBlockOfTab = false;
         }
-        contentBlocks.push({ html, forceBreak });
+        contentBlocks.push({ html, forceBreak, tabId: tb.id });
       });
     });
   });
@@ -4485,30 +4485,70 @@ function paginateGbizPages(cfg){
   // réellement disponible (2 ou 3 catégories, selon ce qui tient),
   // pour éviter à la fois le débordement ET une page qui reste à
   // moitié vide alors qu'une catégorie de plus aurait tenu.
-  const pages = [];
+  const pages = []; // { html, spaceScale }
   let current = headerHtml;
+  let currentScale = 1;
+  // Tente les mêmes blocs à une échelle d'espacement réduite (jamais le
+  // texte) pour voir s'ils rentrent quand même — utilisé uniquement
+  // pour "rejoindre la page précédente", jamais imposé par défaut.
+  const heightOfScaled = (html, scale) => {
+    measureEl.style.setProperty('--space-scale', String(scale));
+    measureEl.innerHTML = html;
+    const h = measureEl.offsetHeight;
+    measureEl.style.setProperty('--space-scale', '1');
+    return h;
+  };
+  const COMPRESS_STEPS = [1, 0.97, 0.94, 0.9]; // jamais plus de 10%
   groups.forEach(group=>{
     const groupHtml = group.map(b=>b.html).join('');
+    const tb = group[0] && group[0].tabId ? DATA.tabs.find(x=>x.id===group[0].tabId) : null;
+    const wantsPullPrevious = tb && tb.gbizPullPrevious && current !== '';
     const candidate = current + groupHtml;
     // "Saut de page par catégorie" — même mécanique que le PDF : on
     // force une page fraîche pour cette catégorie, sauf si on est déjà
     // en tout début de page (rien à gagner à forcer un saut inutile).
     const mustBreak = group[0] && group[0].forceBreak && current !== '';
+
     if(!mustBreak && heightOf(candidate) <= maxPageHeightPx){
       current = candidate;
+    } else if(wantsPullPrevious){
+      // "Rejoindre la page précédente" — on autorise un espacement
+      // compressé (jusqu'à -10%) plutôt que de démarrer une page pour
+      // ça. Si même compressé ça ne rentre pas, on abandonne
+      // silencieusement et la catégorie repart sur sa page naturelle.
+      let fitScale = null;
+      for(const s of COMPRESS_STEPS){
+        if(heightOfScaled(candidate, s) <= maxPageHeightPx){ fitScale = s; break; }
+      }
+      if(fitScale !== null){
+        current = candidate;
+        currentScale = fitScale;
+      } else if(heightOf(groupHtml) <= maxPageHeightPx){
+        pages.push({ html: current, spaceScale: currentScale });
+        current = groupHtml; currentScale = 1;
+      } else {
+        if(current){ pages.push({ html: current, spaceScale: currentScale }); current=''; currentScale=1; }
+        let sub='';
+        group.forEach(b=>{
+          const cand2 = sub + b.html;
+          if(heightOf(cand2) <= maxPageHeightPx){ sub = cand2; }
+          else { if(sub) pages.push({ html: sub, spaceScale: 1 }); sub = b.html; }
+        });
+        current = sub;
+      }
     } else if(heightOf(groupHtml) <= maxPageHeightPx){
       // La catégorie entière rentre sur une page fraîche.
-      pages.push(current);
-      current = groupHtml;
+      pages.push({ html: current, spaceScale: currentScale });
+      current = groupHtml; currentScale = 1;
     } else {
       // Même seule sur une page vide, la catégorie est trop grande —
       // dernier recours : on la découpe plat par plat.
-      if(current){ pages.push(current); current=''; }
+      if(current){ pages.push({ html: current, spaceScale: currentScale }); current=''; currentScale=1; }
       let sub='';
       group.forEach(b=>{
         const cand2 = sub + b.html;
         if(heightOf(cand2) <= maxPageHeightPx){ sub = cand2; }
-        else { if(sub) pages.push(sub); sub = b.html; }
+        else { if(sub) pages.push({ html: sub, spaceScale: 1 }); sub = b.html; }
       });
       current = sub;
     }
@@ -4516,9 +4556,9 @@ function paginateGbizPages(cfg){
   if(footerHtml){
     const withFooter = current + footerHtml;
     if(heightOf(withFooter) <= maxPageHeightPx){ current = withFooter; }
-    else { pages.push(current); current = footerHtml; }
+    else { pages.push({ html: current, spaceScale: currentScale }); current = footerHtml; currentScale = 1; }
   }
-  if(current) pages.push(current);
+  if(current) pages.push({ html: current, spaceScale: currentScale });
 
   document.body.removeChild(holder);
   // Plus besoin d'espaceur artificiel : sans aucun en-tête nulle part
@@ -4551,7 +4591,8 @@ async function exportGbizImage(cfg){
     // cette boîte déjà correctement dimensionnée, sans qu'on ait besoin
     // de lui repasser des dimensions en plus du scale.
     holder.style.cssText = `position:fixed;left:-99999px;top:0;width:${RENDER_W}px;height:${pageHeightPx}px`;
-    holder.innerHTML = `<style>${css}</style><div class="pdf-page" id="gbizPage${i}" style="width:${RENDER_W}px;height:${pageHeightPx}px;overflow:hidden">${pages[i]}</div>`;
+    const scaleStyle = pages[i].spaceScale && pages[i].spaceScale!==1 ? `--space-scale:${pages[i].spaceScale};` : '';
+    holder.innerHTML = `<style>${css}</style><div class="pdf-page" id="gbizPage${i}" style="width:${RENDER_W}px;height:${pageHeightPx}px;overflow:hidden;${scaleStyle}">${pages[i].html}</div>`;
     document.body.appendChild(holder);
     const pageEl = holder.querySelector(`#gbizPage${i}`);
     // Attente réelle du chargement des polices (Playfair Display, Open
@@ -4652,7 +4693,7 @@ function renderPrintBody(){
   const previewHtml = activeTab==='print' ? `
     <div class="af" style="margin-top:14px"><label class="al">Aperçu live <span style="font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0">(indicatif — cliquez sur "Générer le PDF / Imprimer le menu" pour le rendu exact)</span></label>
       <iframe id="pdfPreviewFrame" style="width:100%;height:420px;border:1px solid var(--border);border-radius:8px;background:#e8e8e8"></iframe>
-    </div>` : '';
+    </div>` : activeTab==='gbiz' ? renderGbizPagePreview() : '';
 
   const actionHtml = activeTab==='print'
     ? `<button class="aadd" style="width:100%;padding:13px;margin-top:6px;font-weight:700;background:var(--navy);color:#fff;border:none;font-size:14px" onclick="exportA4Print(pdfCfg())">Générer le PDF / Imprimer le menu</button>`
@@ -4670,7 +4711,66 @@ function renderPrintBody(){
 }
 function tb_setPageBreak(tabId, val){
   const tb = DATA.tabs.find(x=>x.id===tabId);
-  if(tb){ tb.pdfPageBreakBefore = val; updatePdfPreview(); }
+  // Les deux réglages sont mutuellement exclusifs — pousser vers la
+  // page suivante et tirer vers la précédente en même temps n'a pas de
+  // sens.
+  if(tb){ tb.pdfPageBreakBefore = val; if(val) tb.gbizPullPrevious = false; updatePdfPreview(); renderAdminSection(adminCurrentTab); }
+}
+function tb_setGbizPull(tabId, val){
+  const tb = DATA.tabs.find(x=>x.id===tabId);
+  if(tb){ tb.gbizPullPrevious = val; if(val) tb.pdfPageBreakBefore = false; renderAdminSection(adminCurrentTab); }
+}
+// Vignettes de chaque image Google Business à venir, avec pour chaque
+// catégorie le choix de rejoindre la page précédente (espacement
+// compressé de 10% maximum) ou de repartir sur la suivante — pensé
+// pour les cas où l'algorithme automatique coupe mal (un ou deux plats
+// livrés seuls en bas d'une page).
+function renderGbizPagePreview(){
+  const cfg = { ...pdfCfg(), format:'gbiz' };
+  const pages = paginateGbizPages(cfg);
+  const css = buildPdfCSS(cfg);
+  const fullW = 612, fullH = Math.floor(fullW*GBIZ_PAGE_RATIO);
+  const thumbW = 120, thumbH = Math.round(thumbW*GBIZ_PAGE_RATIO);
+  const scaleF = thumbW/fullW;
+
+  const rows = [];
+  pages.forEach((p,i)=>{
+    const tabIds = [...new Set([...p.html.matchAll(/data-tab-id="([^"]+)"/g)].map(m=>m[1]))];
+    tabIds.forEach(tid=>{
+      const tb = DATA.tabs.find(x=>x.id===tid);
+      if(tb) rows.push({ pageIdx:i, tb });
+    });
+  });
+
+  const btnStyle = (active) => `font-size:11px;padding:5px 9px;border-radius:6px;border:1.5px solid ${active?'var(--navy)':'var(--border)'};background:${active?'var(--navy)':'#fff'};color:${active?'#fff':'var(--text2)'};cursor:pointer;font-family:Jost,sans-serif;white-space:nowrap`;
+
+  return `<div class="af" style="margin-top:14px">
+    <label class="al">Aperçu des pages (${pages.length} image${pages.length>1?'s':''})</label>
+    <div style="font-size:10.5px;color:var(--text3);margin-bottom:8px">Une catégorie mal coupée ? Choisissez de la faire rejoindre la page précédente (espacement compressé de 10% maximum si besoin) ou de la garder sur la suivante.</div>
+    <div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:10px">
+      ${pages.map((p,i)=>`
+        <div style="flex:none;width:${thumbW}px">
+          <div style="width:${thumbW}px;height:${thumbH}px;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:#fff;position:relative">
+            <div class="pdf-page" style="width:${fullW}px;height:${fullH}px;overflow:hidden;transform:scale(${scaleF});transform-origin:top left;${p.spaceScale!==1?`--space-scale:${p.spaceScale};`:''}">${p.html}</div>
+          </div>
+          <div style="text-align:center;font-size:10px;color:var(--text3);margin-top:4px">Page ${i+1}${p.spaceScale!==1?` · compressé ${Math.round((1-p.spaceScale)*100)}%`:''}</div>
+        </div>
+      `).join('')}
+    </div>
+    <style>${css}</style>
+    <div style="margin-top:4px">
+      ${rows.map(({pageIdx,tb})=>`
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;background:#fff;border:1px solid var(--border);border-radius:8px;margin-top:6px;flex-wrap:wrap">
+          <div style="font-size:12.5px;font-family:Jost,sans-serif"><strong>${t(tb.label)}</strong> — page ${pageIdx+1}</div>
+          <div style="display:flex;gap:5px">
+            ${pageIdx>0?`<button style="${btnStyle(!!tb.gbizPullPrevious)}" onclick="tb_setGbizPull('${tb.id}',${tb.gbizPullPrevious?'false':'true'})">◀ Page ${pageIdx}</button>`:''}
+            <button style="${btnStyle(!tb.gbizPullPrevious && !tb.pdfPageBreakBefore)}" onclick="tb_setGbizPull('${tb.id}',false);tb_setPageBreak('${tb.id}',false)">Auto</button>
+            <button style="${btnStyle(!!tb.pdfPageBreakBefore)}" onclick="tb_setPageBreak('${tb.id}',${tb.pdfPageBreakBefore?'false':'true'})">Page ${pageIdx+2} ▶</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  </div>`;
 }
 // Kept for compatibility (renderExportSection still calls it); wraps the body in its own section.
 function renderPdfStyleSection(){
