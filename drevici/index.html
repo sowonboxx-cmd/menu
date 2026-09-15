@@ -4621,12 +4621,21 @@ async function exportGbizImage(cfg){
     holder.innerHTML = `<style>${css}</style><div class="pdf-page" id="gbizPage${i}" style="width:${RENDER_W}px;height:${pageHeightPx}px;overflow:hidden;${scaleStyle}">${pages[i].html}</div>`;
     document.body.appendChild(holder);
     const pageEl = holder.querySelector(`#gbizPage${i}`);
-    // BUG FIX: charger les polices AVANT d'injecter le @import (comme
-    // fait précédemment) revenait à demander au navigateur de charger
-    // une police qu'il ne connaît pas encore — ça n'a jamais pu
-    // fonctionner, et semble avoir provoqué les pages blanches. On
-    // attend maintenant APRÈS l'injection du <style>, une fois le
-    // @import réellement enregistré par le document.
+    // BUG FIX: `document.fonts.ready` seul ne garantissait toujours pas
+    // que CES polices précises (Open Sans, Playfair Display) étaient
+    // bien chargées avant capture — d'où l'écart entre les mots qui
+    // persistait (rendu avec une police de secours). Cette fois on
+    // demande explicitement le chargement des polices réellement
+    // utilisées, mais bien APRÈS avoir injecté le <style>@import — le
+    // document les connaît déjà à ce stade, donc la demande peut
+    // aboutir (contrairement à la tentative précédente, faite avant
+    // l'injection, qui ne pouvait rien trouver à charger).
+    await Promise.all([
+      document.fonts.load("300 13px 'Open Sans'"),
+      document.fonts.load("400 13px 'Open Sans'"),
+      document.fonts.load("600 13px 'Open Sans'"),
+      document.fonts.load("600 26px 'Playfair Display'"),
+    ]).catch(()=>{});
     await document.fonts.ready;
     await new Promise(r=>setTimeout(r,150));
     try{
