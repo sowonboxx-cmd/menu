@@ -4474,6 +4474,21 @@ function exportA4Print(cfg){
 // de l'ancien 1.8863 : un cadre plus compact, moins susceptible d'être
 // rogné à l'affichage sur des écrans plus petits.
 const GBIZ_PAGE_RATIO = 1.663; // height / width
+// BUG FIX: le site applique un zoom CSS de 1.1x sur desktop (à partir
+// de 641px de large), mais PAS en dessous de cette largeur — annuler
+// systématiquement un zoom de 1.1 (comme fait dans un premier temps)
+// est donc faux dès que la fenêtre est plus étroite : ça introduit
+// alors le décalage inverse. On mesure ici le zoom RÉELLEMENT actif au
+// moment de l'appel, plutôt que de le supposer fixe, pour que la
+// correction reste juste quelle que soit la largeur de la fenêtre.
+function getActiveZoomRatio(){
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;left:-99999px;top:0;width:1000px;height:10px;visibility:hidden';
+  document.body.appendChild(probe);
+  const ratio = probe.getBoundingClientRect().width / 1000;
+  document.body.removeChild(probe);
+  return ratio || 1;
+}
 function paginateGbizPages(cfg){
   // 612px = la largeur pour laquelle les tailles de police du format
   // Google Business sont déjà calibrées (buildPdfCSS's pageW pour
@@ -4489,14 +4504,11 @@ function paginateGbizPages(cfg){
   const { headerHtml, contentBlocks, footerHtml } = buildPdfBlocks(cfg);
 
   const holder = document.createElement('div');
-  // BUG FIX: le site applique un zoom CSS de 1.1x à tout le document
-  // sur desktop (html{zoom:1.1}, voir plus bas) — sans l'annuler ici,
-  // toutes les mesures de hauteur de cette fonction étaient faussées
-  // d'un facteur 1.1, ce qui explique des regroupements de pages
-  // incohérents (un plat isolé alors qu'il aurait dû rejoindre les
-  // autres). Même correctif déjà utilisé ailleurs dans ce fichier pour
-  // annuler ce même zoom (voir .home-cover{zoom:0.9090909}).
-  holder.style.cssText = `position:fixed;left:-99999px;top:0;visibility:hidden;width:${RENDER_W}px;zoom:0.9090909`;
+  // BUG FIX: le zoom actif (1.1x ou 1x selon la largeur de fenêtre) est
+  // maintenant mesuré dynamiquement plutôt que supposé fixe — voir
+  // getActiveZoomRatio() ci-dessus.
+  const zoomCancel = 1 / getActiveZoomRatio();
+  holder.style.cssText = `position:fixed;left:-99999px;top:0;visibility:hidden;width:${RENDER_W}px;zoom:${zoomCancel}`;
   holder.innerHTML = `<style>${buildPdfCSS(cfg)}</style><div class="pdf-page" id="__gbizMeasure" style="height:auto;min-height:0;width:${RENDER_W}px"></div>`;
   document.body.appendChild(holder);
   const measureEl = holder.querySelector('#__gbizMeasure');
@@ -4528,7 +4540,7 @@ function paginateGbizPages(cfg){
     measureEl.style.setProperty('--space-scale', '1');
     return h;
   };
-  const COMPRESS_STEPS = [1, 0.97, 0.94, 0.91, 0.88, 0.85]; // jusqu'à 15% maintenant (était 10%)
+  const COMPRESS_STEPS = [1, 0.97, 0.94, 0.91, 0.88]; // jusqu'à 12% maintenant
   groups.forEach(group=>{
     const groupHtml = group.map(b=>b.html).join('');
     const tb = group[0] && group[0].tabId ? DATA.tabs.find(x=>x.id===group[0].tabId) : null;
@@ -4543,7 +4555,7 @@ function paginateGbizPages(cfg){
       current = candidate;
     } else if(wantsPullPrevious){
       // "Rejoindre la page précédente" — on autorise un espacement
-      // compressé (jusqu'à -15%) plutôt que de démarrer une page pour
+      // compressé (jusqu'à -12%) plutôt que de démarrer une page pour
       // ça. Si même compressé ça ne rentre pas, on note l'échec (voir
       // pullFailures) plutôt que de l'imposer quand même — dépasser la
       // marge de compression abîmerait le design de la page.
@@ -4628,13 +4640,12 @@ async function exportGbizImage(cfg){
     // gère mal. En le gardant DANS l'écran (juste rendu invisible par
     // une opacité quasi nulle plutôt que par un déplacement), ça
     // fonctionne parfaitement : plus de pages blanches, plus d'écart.
-    // BUG FIX: même correctif que dans paginateGbizPages — sans
-    // annuler le zoom CSS de 1.1x du site (desktop), la boîte capturée
-    // était réellement 10% plus grande que ce qu'on demandait,
-    // décalant le cadre (symétrique en théorie, mais mesuré/rogné dans
-    // un système de coordonnées différent de celui utilisé pour le
-    // positionner).
-    holder.style.cssText = `position:fixed;left:0;top:0;width:${RENDER_W}px;height:${pageHeightPx}px;opacity:0.001;pointer-events:none;z-index:-1;zoom:0.9090909`;
+    // BUG FIX: la correction de zoom fixe (1.1x) était fausse dès que
+    // la fenêtre est plus étroite que 641px (le zoom du site ne
+    // s'active qu'à partir de cette largeur) — mesurée dynamiquement
+    // maintenant via getActiveZoomRatio(), plutôt que supposée.
+    const zoomCancel = 1 / getActiveZoomRatio();
+    holder.style.cssText = `position:fixed;left:0;top:0;width:${RENDER_W}px;height:${pageHeightPx}px;opacity:0.001;pointer-events:none;z-index:-1;zoom:${zoomCancel}`;
     const scaleStyle = pages[i].spaceScale && pages[i].spaceScale!==1 ? `--space-scale:${pages[i].spaceScale};` : '';
     holder.innerHTML = `<style>${css}</style><div class="pdf-page" id="gbizPage${i}" style="width:${RENDER_W}px;height:${pageHeightPx}px;overflow:hidden;${scaleStyle}">${pages[i].html}</div>`;
     document.body.appendChild(holder);
@@ -4764,7 +4775,7 @@ function tb_setGbizPull(tabId, val){
 }
 // Vignettes de chaque image Google Business à venir, avec pour chaque
 // catégorie le choix de rejoindre la page précédente (espacement
-// compressé de 15% maximum) ou de repartir sur la suivante — pensé
+// compressé de 12% maximum) ou de repartir sur la suivante — pensé
 // pour les cas où l'algorithme automatique coupe mal (un ou deux plats
 // livrés seuls en bas d'une page).
 function renderGbizPagePreview(){
@@ -4788,7 +4799,7 @@ function renderGbizPagePreview(){
 
   return `<div class="af" style="margin-top:14px">
     <label class="al">Aperçu des pages (${pages.length} image${pages.length>1?'s':''})</label>
-    <div style="font-size:10.5px;color:var(--text3);margin-bottom:8px">Une catégorie mal coupée ? Choisissez de la faire rejoindre la page précédente (espacement compressé de 15% maximum si besoin) ou de la garder sur la suivante.</div>
+    <div style="font-size:10.5px;color:var(--text3);margin-bottom:8px">Une catégorie mal coupée ? Choisissez de la faire rejoindre la page précédente (espacement compressé de 12% maximum si besoin) ou de la garder sur la suivante.</div>
     <div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:10px">
       ${pages.map((p,i)=>`
         <div style="flex:none;width:${thumbW}px">
@@ -4810,7 +4821,7 @@ function renderGbizPagePreview(){
             <button style="${btnStyle(!!tb.pdfPageBreakBefore)}" onclick="tb_setPageBreak('${tb.id}',${tb.pdfPageBreakBefore?'false':'true'})">Page ${pageIdx+2} ▶</button>
           </div>
         </div>
-        ${pullFailures.includes(tb.id)?`<div style="font-size:11px;color:#B31217;background:#fdecea;border:1px solid #f3c6c2;border-radius:6px;padding:6px 10px;margin-top:4px;font-family:Jost,sans-serif">⚠️ Impossible de faire rentrer "${t(tb.label)}" dans la page précédente sans dépasser 15% de compression — ça abîmerait la mise en page. Elle reste sur sa propre page.</div>`:''}
+        ${pullFailures.includes(tb.id)?`<div style="font-size:11px;color:#B31217;background:#fdecea;border:1px solid #f3c6c2;border-radius:6px;padding:6px 10px;margin-top:4px;font-family:Jost,sans-serif">⚠️ Impossible de faire rentrer "${t(tb.label)}" dans la page précédente sans dépasser 12% de compression — ça abîmerait la mise en page. Elle reste sur sa propre page.</div>`:''}
       `).join('')}
     </div>
   </div>`;
