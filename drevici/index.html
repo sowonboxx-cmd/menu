@@ -4604,6 +4604,19 @@ async function exportGbizImage(cfg){
   const restName = (getRestaurantName()||'menu').replace(/\s+/g,'-').toLowerCase();
   const bg = cfg.template==='maritime' ? '#fdfbf6' : '#ffffff';
 
+  // BUG FIX: `document.fonts.ready` peut se résoudre avant même que le
+  // navigateur ait commencé à traiter le @import qu'on vient d'injecter
+  // (rien n'est encore "en attente" à ce moment précis) — l'attente
+  // précédente ne garantissait donc rien de fiable. On demande
+  // explicitement le chargement des polices réellement utilisées, avec
+  // les graisses concernées, et on attend CES chargements précis.
+  await Promise.all([
+    document.fonts.load("300 13px 'Open Sans'"),
+    document.fonts.load("400 13px 'Open Sans'"),
+    document.fonts.load("600 13px 'Open Sans'"),
+    document.fonts.load("600 26px 'Playfair Display'"),
+  ]).catch(()=>{});
+
   for(let i=0;i<pages.length;i++){
     const holder = document.createElement('div');
     const pageHeightPx = Math.floor(RENDER_W*GBIZ_PAGE_RATIO);
@@ -4621,17 +4634,13 @@ async function exportGbizImage(cfg){
     holder.innerHTML = `<style>${css}</style><div class="pdf-page" id="gbizPage${i}" style="width:${RENDER_W}px;height:${pageHeightPx}px;overflow:hidden;${scaleStyle}">${pages[i].html}</div>`;
     document.body.appendChild(holder);
     const pageEl = holder.querySelector(`#gbizPage${i}`);
-    // Attente réelle du chargement des polices (Playfair Display, Open
-    // Sans) avant capture, plutôt qu'un délai fixe arbitraire.
-    await document.fonts.ready;
-    await new Promise(r=>setTimeout(r,120));
     try{
       // BUG FIX: html2canvas mesure le texte mot par mot par défaut, ce
       // qui accumule des écarts d'arrondi entre les mots — exactement
       // l'effet "justifié" trop espacé signalé, absent de l'impression
       // (qui utilise le vrai moteur du navigateur, pas html2canvas).
       // letterRendering force un rendu lettre par lettre, plus précis.
-      const canvas = await html2canvas(pageEl, { scale, useCORS:true, backgroundColor:bg, logging:false, letterRendering:true });
+      const canvas = await html2canvas(pageEl, { scale, useCORS:true, backgroundColor:bg, logging:false, letterRendering:true, foreignObjectRendering:true });
       const link = document.createElement('a');
       const suffix = pages.length>1 ? `-${i+1}` : '';
       link.download = `${restName}-google-business${suffix}.png`;
