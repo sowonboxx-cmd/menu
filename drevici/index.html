@@ -4559,7 +4559,7 @@ function paginateGbizPages(cfg){
     measureEl.style.setProperty('--space-scale', '1');
     return h;
   };
-  const COMPRESS_STEPS = [1, 0.97, 0.94, 0.91, 0.88]; // jusqu'à 12% maintenant
+  const COMPRESS_STEPS = [1, 0.97, 0.94, 0.91, 0.88, 0.85, 0.82]; // jusqu'à 18% maintenant
   groups.forEach(group=>{
     const groupHtml = group.map(b=>b.html).join('');
     const tb = group[0] && group[0].tabId ? DATA.tabs.find(x=>x.id===group[0].tabId) : null;
@@ -4576,7 +4576,7 @@ function paginateGbizPages(cfg){
       // Par défaut (plus besoin de cocher "Rejoindre la page
       // précédente") : avant de sauter à une page neuve, on tente de
       // compresser l'espacement de tout ce qui est déjà sur la page
-      // (jusqu'à -12%, jamais le texte) pour voir si cette catégorie
+      // (jusqu'à -18%, jamais le texte) pour voir si cette catégorie
       // peut quand même s'ajouter à la suite — remplir chaque page tant
       // que c'est possible plutôt que d'en laisser une à moitié vide
       // alors que la suivante aurait tenu (ex. "Huîtres" seule sur la
@@ -4604,7 +4604,7 @@ function paginateGbizPages(cfg){
       // La catégorie ne rentre pas seule à taille normale — avant de la
       // découper plat par plat (ce qui peut laisser un plat orphelin
       // tout seul sur sa page, ex. "Caviar de nori"), on tente le même
-      // espacement compressé (jusqu'à -12%, jamais le texte) déjà
+      // espacement compressé (jusqu'à -18%, jamais le texte) déjà
       // utilisé ci-dessus : souvent le dépassement ne représente que
       // quelques %, largement dans la marge de compression, alors
       // qu'une catégorie resserrée tient très bien en entier sur une
@@ -4617,7 +4617,7 @@ function paginateGbizPages(cfg){
         pages.push({ html: current, spaceScale: currentScale });
         current = groupHtml; currentScale = fitScale;
       } else {
-        // Même compressée à -12%, la catégorie est trop grande —
+        // Même compressée à -18%, la catégorie est trop grande —
         // dernier recours : on la découpe plat par plat (jamais un plat
         // coupé en deux).
         if(current){ pages.push({ html: current, spaceScale: currentScale }); current=''; currentScale=1; }
@@ -4696,7 +4696,27 @@ async function exportGbizImage(cfg){
     await document.fonts.ready;
     await new Promise(r=>setTimeout(r,150));
     try{
-      const canvas = await html2canvas(pageEl, { scale, useCORS:true, backgroundColor:bg, logging:false, foreignObjectRendering:true });
+      // BUG FIX (mobile bloqué) : foreignObjectRendering:true (choisi
+      // pour corriger l'écart entre les mots — voir plus haut) a un
+      // support très inégal sur Safari/WebKit mobile : il peut rester
+      // bloqué indéfiniment sans jamais réussir ni lever d'erreur,
+      // laissant "Génération en cours…" affiché pour rien — aucun
+      // try/catch ne peut rattraper une promesse qui ne se résout
+      // jamais. On l'entoure d'un délai de sécurité (8s) et, s'il
+      // n'a pas répondu à temps ou s'il échoue, on retente la même
+      // page sans foreignObjectRendering (léger écart entre mots
+      // possible en secours, mais au moins une image est produite).
+      const withTimeout = (p, ms) => Promise.race([
+        p,
+        new Promise((_,rej)=>setTimeout(()=>rej(new Error('html2canvas timeout')), ms))
+      ]);
+      let canvas;
+      try{
+        canvas = await withTimeout(html2canvas(pageEl, { scale, useCORS:true, backgroundColor:bg, logging:false, foreignObjectRendering:true }), 8000);
+      } catch(errFo){
+        console.error('foreignObjectRendering a échoué ou expiré, repli sans lui :', errFo);
+        canvas = await withTimeout(html2canvas(pageEl, { scale, useCORS:true, backgroundColor:bg, logging:false, foreignObjectRendering:false }), 8000);
+      }
       const suffix = pages.length>1 ? `-${i+1}` : '';
       const blob = await new Promise(res=>canvas.toBlob(res,'image/png'));
       if(blob) blobs.push({ blob, name: `${restName}-google-business${suffix}.png` });
@@ -4868,7 +4888,7 @@ function tb_setGbizPull(tabId, val){
 }
 // Vignettes de chaque image Google Business à venir, avec pour chaque
 // catégorie le choix de rejoindre la page précédente (espacement
-// compressé de 12% maximum) ou de repartir sur la suivante — pensé
+// compressé de 18% maximum) ou de repartir sur la suivante — pensé
 // pour les cas où l'algorithme automatique coupe mal (un ou deux plats
 // livrés seuls en bas d'une page).
 function renderGbizPagePreview(){
@@ -4892,7 +4912,7 @@ function renderGbizPagePreview(){
 
   return `<div class="af" style="margin-top:14px">
     <label class="al">Aperçu des pages (${pages.length} image${pages.length>1?'s':''})</label>
-    <div style="font-size:10.5px;color:var(--text3);margin-bottom:8px">Une catégorie mal coupée ? Choisissez de la faire rejoindre la page précédente (espacement compressé de 12% maximum si besoin) ou de la garder sur la suivante.</div>
+    <div style="font-size:10.5px;color:var(--text3);margin-bottom:8px">Une catégorie mal coupée ? Choisissez de la faire rejoindre la page précédente (espacement compressé de 18% maximum si besoin) ou de la garder sur la suivante.</div>
     <div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:10px">
       ${pages.map((p,i)=>`
         <div style="flex:none;width:${thumbW}px">
@@ -4914,7 +4934,7 @@ function renderGbizPagePreview(){
             <button style="${btnStyle(!!tb.pdfPageBreakBefore)}" onclick="tb_setPageBreak('${tb.id}',${tb.pdfPageBreakBefore?'false':'true'})">Page ${pageIdx+2} ▶</button>
           </div>
         </div>
-        ${pullFailures.includes(tb.id)?`<div style="font-size:11px;color:#B31217;background:#fdecea;border:1px solid #f3c6c2;border-radius:6px;padding:6px 10px;margin-top:4px;font-family:Jost,sans-serif">⚠️ Impossible de faire rentrer "${t(tb.label)}" dans la page précédente sans dépasser 12% de compression — ça abîmerait la mise en page. Elle reste sur sa propre page.</div>`:''}
+        ${pullFailures.includes(tb.id)?`<div style="font-size:11px;color:#B31217;background:#fdecea;border:1px solid #f3c6c2;border-radius:6px;padding:6px 10px;margin-top:4px;font-family:Jost,sans-serif">⚠️ Impossible de faire rentrer "${t(tb.label)}" dans la page précédente sans dépasser 18% de compression — ça abîmerait la mise en page. Elle reste sur sa propre page.</div>`:''}
       `).join('')}
     </div>
   </div>`;
