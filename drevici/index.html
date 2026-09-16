@@ -2884,6 +2884,7 @@ function renderAdminSection(tid, _skipScroll){
   body.querySelectorAll('.ai[data-bind]').forEach(input=>input.addEventListener('input',()=>applyBind(input)));
   body.querySelectorAll('.ai[data-bind]').forEach(input=>input.addEventListener('change',()=>applyBind(input)));
   if(document.getElementById('pdfPreviewFrame')) setTimeout(()=>{ if(typeof updatePdfPreview==='function') updatePdfPreview(); }, 100);
+  if(document.getElementById('gbizPreviewFrame')) setTimeout(()=>{ if(typeof updateGbizPreviewFrame==='function') updateGbizPreviewFrame(0); }, 100);
 }
 
 function applyBind(input){
@@ -4925,22 +4926,43 @@ function tb_setGbizPull(tabId, val){
   if(tb){ tb.gbizPullPrevious = val; if(val) tb.pdfPageBreakBefore = false; renderAdminSection(adminCurrentTab); }
 }
 
-// Navigation du carrousel mobile (une page à la fois, flèches flat
-// design, points comme repère — voir renderGbizPagePreview). Simple
-// toggle de visibilité, pas de reconstruction du DOM.
+// Aperçu mobile Google Business — même principe que l'aperçu Impression
+// (updatePdfPreview) : une vraie iframe isolée avec width:100%!important,
+// plutôt qu'un transform:scale() calculé à la main qui donnait un rendu
+// étroit et cassé. Une seule page à la fois ; les flèches/points
+// changent juste le contenu de l'iframe.
+function buildGbizPreviewDoc(css, pageHtml, spaceScale){
+  const RENDER_W = 612;
+  const scaleStyle = spaceScale && spaceScale!==1 ? `--space-scale:${spaceScale};` : '';
+  return `<!DOCTYPE html><html><head>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Lovelo:wght@400;700&family=Open+Sans:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><meta charset="UTF-8"><style>${css}
+html,body{overflow-x:hidden;margin:0}
+body{background:#fff;margin:0}
+.pdf-page{width:100%!important;max-width:${RENDER_W}px;box-shadow:none;margin:0 auto}
+</style></head><body><div class="pdf-page" style="${scaleStyle}">${pageHtml}</div></body></html>`;
+}
+function updateGbizPreviewFrame(idx){
+  const frame = document.getElementById('gbizPreviewFrame');
+  if(!frame) return;
+  const cfg = { ...pdfCfg(), format:'gbiz' };
+  const css = buildPdfCSS(cfg);
+  const { pages } = paginateGbizPages(cfg);
+  if(idx<0 || idx>=pages.length) return;
+  frame.srcdoc = buildGbizPreviewDoc(css, pages[idx].html, pages[idx].spaceScale);
+  const dots = document.querySelectorAll('#gbizCarouselDots .gbiz-carousel-dot');
+  dots.forEach((d,i)=>{ d.style.width = i===idx?'7px':'6px'; d.style.height = i===idx?'7px':'6px'; d.style.background = i===idx?'var(--navy)':'var(--border)'; });
+  const container = document.getElementById('gbizCarousel');
+  if(container) container.dataset.idx = String(idx);
+}
+// Navigation du carrousel mobile (flèches flat design, points comme
+// repère — voir renderGbizPagePreview).
 function gbizCarouselNav(dir){
   const container = document.getElementById('gbizCarousel');
   if(!container) return;
-  const slides = container.querySelectorAll('.gbiz-carousel-slide');
-  const dots = document.querySelectorAll('#gbizCarouselDots .gbiz-carousel-dot');
   const idx = parseInt(container.dataset.idx || '0', 10);
-  const next = idx + dir;
-  if(next < 0 || next >= slides.length) return;
-  if(slides[idx]) slides[idx].style.display = 'none';
-  if(slides[next]) slides[next].style.display = 'flex';
-  if(dots[idx]){ dots[idx].style.width='6px'; dots[idx].style.height='6px'; dots[idx].style.background='var(--border)'; }
-  if(dots[next]){ dots[next].style.width='7px'; dots[next].style.height='7px'; dots[next].style.background='var(--navy)'; }
-  container.dataset.idx = String(next);
+  updateGbizPreviewFrame(idx + dir);
 }
 
 // Vignettes de chaque image Google Business à venir, avec pour chaque
@@ -4977,18 +4999,14 @@ function renderGbizPagePreview(){
   const mobilePreview = `<div class="af" style="margin-top:14px">
     <div id="gbizCarousel" data-idx="0" style="display:flex;align-items:center;gap:8px">
       <button onclick="gbizCarouselNav(-1)" style="${arrowBtnStyle}">${chevron('left')}</button>
-      <div style="flex:1;overflow:hidden">
-        ${pages.map((p,i)=>`
-          <div class="gbiz-carousel-slide" data-idx="${i}" style="display:${i===0?'flex':'none'};justify-content:center;width:100%;height:${thumbH*2}px;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#fff;position:relative">
-            <div class="pdf-page" style="width:${fullW}px;height:${fullH}px;overflow:hidden;transform:scale(${(thumbH*2)/fullH});transform-origin:top center;${p.spaceScale!==1?`--space-scale:${p.spaceScale};`:''}">${p.html}</div>
-          </div>`).join('')}
+      <div style="flex:1;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#fff">
+        <iframe id="gbizPreviewFrame" style="width:100%;aspect-ratio:1 / ${GBIZ_PAGE_RATIO};border:none;display:block;background:#fff"></iframe>
       </div>
       <button onclick="gbizCarouselNav(1)" style="${arrowBtnStyle}">${chevron('right')}</button>
     </div>
     <div id="gbizCarouselDots" style="display:flex;justify-content:center;gap:6px;margin-top:10px">
       ${pages.map((p,i)=>`<span class="gbiz-carousel-dot" data-idx="${i}" style="width:${i===0?7:6}px;height:${i===0?7:6}px;border-radius:50%;background:${i===0?'var(--navy)':'var(--border)'}"></span>`).join('')}
     </div>
-    <style>${css}</style>
   </div>`;
 
   const desktopPreview = `<div class="af" style="margin-top:14px">
@@ -5020,8 +5038,7 @@ function renderGbizPagePreview(){
         </div>
         ${pullFailures.includes(tb.id)?`<div style="font-size:11px;color:#B31217;background:#fdecea;border:1px solid #f3c6c2;border-radius:6px;padding:6px 10px;margin-top:4px;font-family:Jost,sans-serif">⚠️ Impossible de faire rentrer "${t(tb.label)}" dans la page précédente sans dépasser 18% de compression — ça abîmerait la mise en page. Elle reste sur sa propre page.</div>`:''}
       `).join('')}
-    </div>
-  </div>`;
+    </div>`;
 }
 // Kept for compatibility (renderExportSection still calls it); wraps the body in its own section.
 function renderPdfStyleSection(){
@@ -5601,6 +5618,9 @@ function toggleAdminSection(el){
   if(sec) sec.classList.toggle('collapsed');
   if(sec && !sec.classList.contains('collapsed') && sec.querySelector('#pdfPreviewFrame')){
     setTimeout(()=>{ if(typeof updatePdfPreview==='function') updatePdfPreview(); }, 100);
+  }
+  if(sec && !sec.classList.contains('collapsed') && sec.querySelector('#gbizPreviewFrame')){
+    setTimeout(()=>{ if(typeof updateGbizPreviewFrame==='function') updateGbizPreviewFrame(0); }, 100);
   }
 }
 function openFirstAdminSection(){
