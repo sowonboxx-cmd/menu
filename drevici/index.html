@@ -4563,44 +4563,40 @@ function paginateGbizPages(cfg){
   groups.forEach(group=>{
     const groupHtml = group.map(b=>b.html).join('');
     const tb = group[0] && group[0].tabId ? DATA.tabs.find(x=>x.id===group[0].tabId) : null;
-    const wantsPullPrevious = tb && tb.gbizPullPrevious && current !== '';
     const candidate = current + groupHtml;
     // "Saut de page par catégorie" — même mécanique que le PDF : on
     // force une page fraîche pour cette catégorie, sauf si on est déjà
     // en tout début de page (rien à gagner à forcer un saut inutile).
     const mustBreak = group[0] && group[0].forceBreak && current !== '';
 
+    let combined = false;
     if(!mustBreak && heightOf(candidate) <= maxPageHeightPx){
-      current = candidate;
-    } else if(wantsPullPrevious){
-      // "Rejoindre la page précédente" — on autorise un espacement
-      // compressé (jusqu'à -12%) plutôt que de démarrer une page pour
-      // ça. Si même compressé ça ne rentre pas, on note l'échec (voir
-      // pullFailures) plutôt que de l'imposer quand même — dépasser la
-      // marge de compression abîmerait le design de la page.
+      current = candidate; combined = true;
+    } else if(!mustBreak && current !== ''){
+      // Par défaut (plus besoin de cocher "Rejoindre la page
+      // précédente") : avant de sauter à une page neuve, on tente de
+      // compresser l'espacement de tout ce qui est déjà sur la page
+      // (jusqu'à -12%, jamais le texte) pour voir si cette catégorie
+      // peut quand même s'ajouter à la suite — remplir chaque page tant
+      // que c'est possible plutôt que d'en laisser une à moitié vide
+      // alors que la suivante aurait tenu (ex. "Huîtres" seule sur la
+      // page 1 alors que "Terre & mer" aurait pu suivre directement).
       let fitScale = null;
       for(const s of COMPRESS_STEPS){
         if(heightOfScaled(candidate, s) <= maxPageHeightPx){ fitScale = s; break; }
       }
       if(fitScale !== null){
-        current = candidate;
-        currentScale = fitScale;
-      } else if(heightOf(groupHtml) <= maxPageHeightPx){
+        current = candidate; currentScale = fitScale; combined = true;
+      } else if(tb && tb.gbizPullPrevious){
+        // Cette catégorie demandait explicitement à rejoindre la page
+        // précédente et même la compression max n'y suffit pas — on le
+        // signale (pullFailures) plutôt que d'imposer un rendu abîmé.
         pullFailures.push(tb.id);
-        pages.push({ html: current, spaceScale: currentScale });
-        current = groupHtml; currentScale = 1;
-      } else {
-        pullFailures.push(tb.id);
-        if(current){ pages.push({ html: current, spaceScale: currentScale }); current=''; currentScale=1; }
-        let sub='';
-        group.forEach(b=>{
-          const cand2 = sub + b.html;
-          if(heightOf(cand2) <= maxPageHeightPx){ sub = cand2; }
-          else { if(sub) pages.push({ html: sub, spaceScale: 1 }); sub = b.html; }
-        });
-        current = sub;
       }
-    } else if(heightOf(groupHtml) <= maxPageHeightPx){
+    }
+    if(combined) return;
+
+    if(heightOf(groupHtml) <= maxPageHeightPx){
       // La catégorie entière rentre sur une page fraîche.
       pages.push({ html: current, spaceScale: currentScale });
       current = groupHtml; currentScale = 1;
@@ -4609,10 +4605,10 @@ function paginateGbizPages(cfg){
       // découper plat par plat (ce qui peut laisser un plat orphelin
       // tout seul sur sa page, ex. "Caviar de nori"), on tente le même
       // espacement compressé (jusqu'à -12%, jamais le texte) déjà
-      // utilisé pour "rejoindre la page précédente" : souvent le
-      // dépassement ne représente que quelques % , largement dans la
-      // marge de compression, alors qu'une catégorie resserrée tient
-      // très bien en entier sur une seule image.
+      // utilisé ci-dessus : souvent le dépassement ne représente que
+      // quelques %, largement dans la marge de compression, alors
+      // qu'une catégorie resserrée tient très bien en entier sur une
+      // seule image.
       let fitScale = null;
       for(const s of COMPRESS_STEPS){
         if(heightOfScaled(groupHtml, s) <= maxPageHeightPx){ fitScale = s; break; }
