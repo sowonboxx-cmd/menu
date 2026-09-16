@@ -4660,6 +4660,20 @@ async function exportGbizImage(cfg){
   const restName = (getRestaurantName()||'menu').replace(/\s+/g,'-').toLowerCase();
   const bg = cfg.template==='maritime' ? '#fdfbf6' : '#ffffff';
 
+  // BUG FIX (mobile) : la méthode <a download> + toDataURL() ne
+  // télécharge rien sur mobile (Safari iOS ignore l'attribut "download"
+  // sur les URLs data:, et un lien cliqué après plusieurs "await" perd
+  // son statut de geste utilisateur "de confiance" — le clic est alors
+  // silencieusement ignoré, sans erreur visible). Sur desktop ça marche
+  // car le navigateur est plus permissif. Solution : générer chaque
+  // image en Blob, puis utiliser l'API de partage native (navigator.share
+  // avec des fichiers) quand elle est disponible — c'est le mécanisme
+  // pensé pour exactement ce cas sur mobile, il ouvre la feuille de
+  // partage iOS/Android d'où l'utilisateur choisit "Enregistrer
+  // l'image/les X images". Sur desktop (où le partage fichier n'est
+  // généralement pas supporté), on garde le téléchargement direct via
+  // <a download>, inchangé.
+  const blobs = [];
   for(let i=0;i<pages.length;i++){
     const holder = document.createElement('div');
     const pageHeightPx = Math.floor(RENDER_W*GBIZ_PAGE_RATIO);
@@ -4691,11 +4705,9 @@ async function exportGbizImage(cfg){
     await new Promise(r=>setTimeout(r,150));
     try{
       const canvas = await html2canvas(pageEl, { scale, useCORS:true, backgroundColor:bg, logging:false, foreignObjectRendering:true });
-      const link = document.createElement('a');
       const suffix = pages.length>1 ? `-${i+1}` : '';
-      link.download = `${restName}-google-business${suffix}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
+      const blob = await new Promise(res=>canvas.toBlob(res,'image/png'));
+      if(blob) blobs.push({ blob, name: `${restName}-google-business${suffix}.png` });
     } catch(err){
       console.error(err);
       showToast('⚠ Erreur génération image '+(i+1));
@@ -4703,7 +4715,35 @@ async function exportGbizImage(cfg){
       document.body.removeChild(holder);
     }
   }
-  showToast(pages.length>1 ? `${pages.length} images Google Business téléchargées` : 'Image Google Business téléchargée');
+
+  if(!blobs.length) return;
+
+  const files = blobs.map(b=>new File([b.blob], b.name, { type:'image/png' }));
+  const canShareFiles = !!(navigator.canShare && navigator.canShare({ files }));
+  if(canShareFiles){
+    try{
+      await navigator.share({ files, title: `${restName} — Google Business` });
+      showToast(files.length>1 ? `${files.length} images prêtes à enregistrer` : 'Image prête à enregistrer');
+      return;
+    } catch(err){
+      // L'utilisateur a annulé la feuille de partage (AbortError) — pas
+      // une erreur, on ne retente rien d'autre dans ce cas précis.
+      if(err && err.name==='AbortError') return;
+      console.error(err);
+      // Autre échec du partage (rare) : on retombe sur le téléchargement
+      // direct ci-dessous plutôt que de laisser l'utilisateur sans rien.
+    }
+  }
+
+  blobs.forEach(({blob,name})=>{
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = name;
+    link.href = url;
+    link.click();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  });
+  showToast(blobs.length>1 ? `${blobs.length} images Google Business téléchargées` : 'Image Google Business téléchargée');
 }
 
 // Admin UI for the PDF style panel
