@@ -2884,7 +2884,7 @@ function renderAdminSection(tid, _skipScroll){
   body.querySelectorAll('.ai[data-bind]').forEach(input=>input.addEventListener('input',()=>applyBind(input)));
   body.querySelectorAll('.ai[data-bind]').forEach(input=>input.addEventListener('change',()=>applyBind(input)));
   if(document.getElementById('pdfPreviewFrame')) setTimeout(()=>{ if(typeof updatePdfPreview==='function') updatePdfPreview(); }, 100);
-  if(document.getElementById('gbizPreviewFrame')) setTimeout(()=>{ if(typeof updateGbizPreviewFrame==='function') updateGbizPreviewFrame(0); }, 100);
+  if(document.getElementById('gbizCarousel')) setTimeout(()=>{ if(typeof initGbizCarouselFrames==='function') initGbizCarouselFrames(); }, 100);
 }
 
 function applyBind(input){
@@ -4929,8 +4929,10 @@ function tb_setGbizPull(tabId, val){
 // Aperçu mobile Google Business — même principe que l'aperçu Impression
 // (updatePdfPreview) : une vraie iframe isolée avec width:100%!important,
 // plutôt qu'un transform:scale() calculé à la main qui donnait un rendu
-// étroit et cassé. Une seule page à la fois ; les flèches/points
-// changent juste le contenu de l'iframe.
+// étroit et cassé. Façon Apple (App Store) : pas de flèches, chaque
+// page occupe presque toute la largeur avec la suivante qui dépasse
+// légèrement pour inviter à balayer, et les points en bas indiquent
+// combien il y en a.
 function buildGbizPreviewDoc(css, pageHtml, spaceScale){
   const RENDER_W = 612;
   const scaleStyle = spaceScale && spaceScale!==1 ? `--space-scale:${spaceScale};` : '';
@@ -4943,26 +4945,33 @@ body{background:#fff;margin:0}
 .pdf-page{width:100%!important;max-width:${RENDER_W}px;box-shadow:none;margin:0 auto}
 </style></head><body><div class="pdf-page" style="${scaleStyle}">${pageHtml}</div></body></html>`;
 }
-function updateGbizPreviewFrame(idx){
-  const frame = document.getElementById('gbizPreviewFrame');
-  if(!frame) return;
+// Remplit chaque iframe du carrousel avec sa page — appelé une fois au
+// rendu (voir les hooks setTimeout après renderAdminSection /
+// toggleAdminSection), pas besoin de le refaire au balayage puisque
+// toutes les pages sont déjà présentes, juste côte à côte.
+function initGbizCarouselFrames(){
+  const container = document.getElementById('gbizCarousel');
+  if(!container) return;
   const cfg = { ...pdfCfg(), format:'gbiz' };
   const css = buildPdfCSS(cfg);
   const { pages } = paginateGbizPages(cfg);
-  if(idx<0 || idx>=pages.length) return;
-  frame.srcdoc = buildGbizPreviewDoc(css, pages[idx].html, pages[idx].spaceScale);
-  const dots = document.querySelectorAll('#gbizCarouselDots .gbiz-carousel-dot');
-  dots.forEach((d,i)=>{ d.style.width = i===idx?'7px':'6px'; d.style.height = i===idx?'7px':'6px'; d.style.background = i===idx?'var(--navy)':'var(--border)'; });
-  const container = document.getElementById('gbizCarousel');
-  if(container) container.dataset.idx = String(idx);
+  container.querySelectorAll('.gbiz-slide-frame').forEach(frame=>{
+    const idx = parseInt(frame.dataset.idx, 10);
+    if(pages[idx]) frame.srcdoc = buildGbizPreviewDoc(css, pages[idx].html, pages[idx].spaceScale);
+  });
 }
-// Navigation du carrousel mobile (flèches flat design, points comme
-// repère — voir renderGbizPagePreview).
-function gbizCarouselNav(dir){
+// Met à jour le point actif pendant le balayage tactile (défilement
+// natif — aucune flèche à gérer).
+function gbizCarouselOnScroll(){
   const container = document.getElementById('gbizCarousel');
   if(!container) return;
-  const idx = parseInt(container.dataset.idx || '0', 10);
-  updateGbizPreviewFrame(idx + dir);
+  const slides = container.querySelectorAll('.gbiz-slide');
+  if(!slides.length) return;
+  const slideStep = slides[1] ? (slides[1].offsetLeft - slides[0].offsetLeft) : slides[0].offsetWidth;
+  const idx = Math.max(0, Math.min(slides.length-1, Math.round(container.scrollLeft / slideStep)));
+  document.querySelectorAll('#gbizCarouselDots .gbiz-carousel-dot').forEach((d,i)=>{
+    d.style.width = i===idx?'7px':'6px'; d.style.height = i===idx?'7px':'6px'; d.style.background = i===idx?'var(--navy)':'var(--border)';
+  });
 }
 
 // Vignettes de chaque image Google Business à venir, avec pour chaque
@@ -4989,20 +4998,17 @@ function renderGbizPagePreview(){
 
   const btnStyle = (active) => `font-size:11px;padding:5px 9px;border-radius:6px;border:1.5px solid ${active?'var(--navy)':'var(--border)'};background:${active?'var(--navy)':'#fff'};color:${active?'#fff':'var(--text2)'};cursor:pointer;font-family:Jost,sans-serif;white-space:nowrap`;
 
-  // Flat design, cohérent avec les autres icônes du site (stroke,
-  // currentColor, coins arrondis) — voir par ex. les icônes de la
-  // barre de nav. Chevrons pour naviguer, points pleins/creux comme
-  // repère de page — jamais de texte, à la demande de Will côté mobile.
-  const chevron = dir => `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${dir==='left'?'M10 3L5 8l5 5':'M6 3l5 5-5 5'}"/></svg>`;
-  const arrowBtnStyle = `flex:none;width:38px;height:38px;border-radius:50%;border:1.5px solid var(--border);background:#fff;color:var(--navy);display:flex;align-items:center;justify-content:center;cursor:pointer`;
-
+  // Façon Apple (App Store) : chaque page prend 88% de la largeur, la
+  // suivante dépasse juste assez pour inviter à balayer — pas de
+  // flèches. scroll-snap-align fait s'aligner proprement au balayage
+  // natif. Les points en bas (jamais de texte) indiquent le nombre de
+  // pages et la position actuelle.
   const mobilePreview = `<div class="af" style="margin-top:14px">
-    <div id="gbizCarousel" data-idx="0" style="display:flex;align-items:center;gap:8px">
-      <button onclick="gbizCarouselNav(-1)" style="${arrowBtnStyle}">${chevron('left')}</button>
-      <div style="flex:1;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#fff">
-        <iframe id="gbizPreviewFrame" style="width:100%;aspect-ratio:1 / ${GBIZ_PAGE_RATIO};border:none;display:block;background:#fff"></iframe>
-      </div>
-      <button onclick="gbizCarouselNav(1)" style="${arrowBtnStyle}">${chevron('right')}</button>
+    <div id="gbizCarousel" onscroll="gbizCarouselOnScroll()" style="display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+      ${pages.map((p,i)=>`
+        <div class="gbiz-slide" style="flex:0 0 88%;scroll-snap-align:start;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#fff">
+          <iframe class="gbiz-slide-frame" data-idx="${i}" style="width:100%;aspect-ratio:1 / ${GBIZ_PAGE_RATIO};border:none;display:block;background:#fff"></iframe>
+        </div>`).join('')}
     </div>
     <div id="gbizCarouselDots" style="display:flex;justify-content:center;gap:6px;margin-top:10px">
       ${pages.map((p,i)=>`<span class="gbiz-carousel-dot" data-idx="${i}" style="width:${i===0?7:6}px;height:${i===0?7:6}px;border-radius:50%;background:${i===0?'var(--navy)':'var(--border)'}"></span>`).join('')}
@@ -5619,8 +5625,8 @@ function toggleAdminSection(el){
   if(sec && !sec.classList.contains('collapsed') && sec.querySelector('#pdfPreviewFrame')){
     setTimeout(()=>{ if(typeof updatePdfPreview==='function') updatePdfPreview(); }, 100);
   }
-  if(sec && !sec.classList.contains('collapsed') && sec.querySelector('#gbizPreviewFrame')){
-    setTimeout(()=>{ if(typeof updateGbizPreviewFrame==='function') updateGbizPreviewFrame(0); }, 100);
+  if(sec && !sec.classList.contains('collapsed') && sec.querySelector('#gbizCarousel')){
+    setTimeout(()=>{ if(typeof initGbizCarouselFrames==='function') initGbizCarouselFrames(); }, 100);
   }
 }
 function openFirstAdminSection(){
