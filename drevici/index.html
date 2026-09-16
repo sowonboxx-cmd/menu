@@ -4702,24 +4702,28 @@ async function exportGbizImage(cfg){
       // bloqué indéfiniment sans jamais réussir ni lever d'erreur,
       // laissant "Génération en cours…" affiché pour rien — aucun
       // try/catch ne peut rattraper une promesse qui ne se résout
-      // jamais. On l'entoure d'un délai de sécurité (8s) et, s'il
-      // n'a pas répondu à temps ou s'il échoue, on retente la même
-      // page sans foreignObjectRendering (léger écart entre mots
-      // possible en secours, mais au moins une image est produite).
+      // jamais. On l'entoure d'un délai de sécurité et, s'il n'a pas
+      // répondu à temps ou s'il échoue, on retente la même page sans
+      // foreignObjectRendering (léger écart entre mots possible en
+      // secours, mais au moins une image est produite). Délai remonté
+      // à 20s (au lieu de 8s) : un mobile est plus lent qu'un
+      // ordinateur, et les pages sont maintenant plus denses (fusion +
+      // compression) — un rendu simplement lent ne doit pas être pris
+      // pour un vrai blocage et abandonné trop tôt.
       const withTimeout = (p, ms) => Promise.race([
         p,
         new Promise((_,rej)=>setTimeout(()=>rej(new Error('html2canvas timeout')), ms))
       ]);
       let canvas;
       try{
-        canvas = await withTimeout(html2canvas(pageEl, { scale, useCORS:true, backgroundColor:bg, logging:false, foreignObjectRendering:true }), 8000);
+        canvas = await withTimeout(html2canvas(pageEl, { scale, useCORS:true, backgroundColor:bg, logging:false, foreignObjectRendering:true }), 20000);
       } catch(errFo){
         console.error('foreignObjectRendering a échoué ou expiré, repli sans lui :', errFo);
-        canvas = await withTimeout(html2canvas(pageEl, { scale, useCORS:true, backgroundColor:bg, logging:false, foreignObjectRendering:false }), 8000);
+        canvas = await withTimeout(html2canvas(pageEl, { scale, useCORS:true, backgroundColor:bg, logging:false, foreignObjectRendering:false }), 20000);
       }
       const suffix = pages.length>1 ? `-${i+1}` : '';
       const blob = await new Promise(res=>canvas.toBlob(res,'image/png'));
-      if(blob) blobs.push({ blob, name: `${restName}-google-business${suffix}.png` });
+      if(blob) blobs.push({ blob, name: `${restName}-google-business${suffix}.png`, pageIndex: i });
     } catch(err){
       console.error(err);
       showToast('⚠ Erreur génération image '+(i+1));
@@ -4730,7 +4734,7 @@ async function exportGbizImage(cfg){
 
   if(!blobs.length) return;
 
-  const urls = blobs.map(b=>({ url: URL.createObjectURL(b.blob), name: b.name }));
+  const urls = blobs.map(b=>({ url: URL.createObjectURL(b.blob), name: b.name, pageIndex: b.pageIndex, totalPages: pages.length }));
 
   // BUG FIX (desktop cassé) : navigator.share() a été retiré. Même
   // protégé par try/catch, il pouvait rester en attente indéfiniment
@@ -4761,6 +4765,15 @@ async function exportGbizImage(cfg){
 function showGbizResultGallery(images){
   const old = document.getElementById('gbizResultModal');
   if(old){ old.querySelectorAll('img').forEach(img=>{ try{ URL.revokeObjectURL(img.src); }catch(e){} }); old.remove(); }
+  // Toujours trier par position réelle dans le menu (pageIndex) — si une
+  // page a échoué, les suivantes gardent leur vrai numéro (ex. "Page
+  // 3/5") au lieu d'être renumérotées à la suite ("Page 2/4"), ce qui
+  // donnait l'impression trompeuse d'un ordre mélangé.
+  const sorted = [...images].sort((a,b)=>(a.pageIndex??0)-(b.pageIndex??0));
+  const totalPages = sorted[0] && sorted[0].totalPages ? sorted[0].totalPages : sorted.length;
+  const missingNote = sorted.length < totalPages
+    ? `<div style="color:#ffb4b0;font-family:Jost,sans-serif;font-size:12px;text-align:center;margin-bottom:14px">⚠️ ${totalPages - sorted.length} page(s) sur ${totalPages} n'ont pas pu être générée(s) — regénère si besoin.</div>`
+    : '';
   const modal = document.createElement('div');
   modal.id = 'gbizResultModal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9500;display:flex;flex-direction:column;align-items:center;padding:22px 14px;overflow-y:auto;-webkit-overflow-scrolling:touch';
@@ -4768,11 +4781,12 @@ function showGbizResultGallery(images){
     <div style="width:100%;max-width:480px;display:flex;flex-direction:column;align-items:center">
       <button id="gbizResultClose" style="align-self:flex-end;background:none;border:none;color:#fff;font-size:28px;line-height:1;cursor:pointer;margin-bottom:8px;opacity:.85;padding:4px 8px">✕</button>
       <div style="color:rgba(255,255,255,.8);font-family:Jost,sans-serif;font-size:12.5px;text-align:center;margin-bottom:18px;line-height:1.6">📱 Sur téléphone : appuie <b>longuement</b> sur une image ci-dessous, puis "Enregistrer l'image".<br>💻 Sur ordinateur : clic droit → "Enregistrer l'image sous…".</div>
-      ${images.map((im,i)=>`
+      ${missingNote}
+      ${sorted.map(im=>`
         <div style="width:100%;margin-bottom:24px;text-align:center">
           <img src="${im.url}" style="width:100%;border-radius:10px;display:block;box-shadow:0 4px 24px rgba(0,0,0,.45)">
           <div style="margin-top:9px;display:flex;align-items:center;justify-content:center;gap:12px">
-            <span style="color:rgba(255,255,255,.55);font-family:Jost,sans-serif;font-size:11.5px">Page ${i+1}/${images.length}</span>
+            <span style="color:rgba(255,255,255,.55);font-family:Jost,sans-serif;font-size:11.5px">Page ${(im.pageIndex??0)+1}/${totalPages}</span>
             <a href="${im.url}" download="${im.name}" style="color:#fff;font-family:Jost,sans-serif;font-size:12px;font-weight:600;text-decoration:underline">Télécharger</a>
           </div>
         </div>`).join('')}
