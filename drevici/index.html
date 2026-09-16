@@ -4062,8 +4062,15 @@ function pdfCfg(){
   const d = DATA.pdfStyle;
   return {
     template: d.template || 'maritime',          // 'classic' | 'maritime'
-    titleColor: d.titleColor || '#10285E',
-    accentColor: d.accentColor || '#C6A24A',
+    // Plus de sélection séparée ici (accordéon "Couleurs du menu"
+    // retiré à la demande de Will) : le menu exporté reprend
+    // directement les couleurs de marque définies une seule fois dans
+    // Informations générales, pour une DA toujours identique sans
+    // qu'on ait à les re-choisir. d.titleColor/etc restent lus en
+    // premier uniquement pour ne pas casser une éventuelle ancienne
+    // personnalisation déjà enregistrée avant ce changement.
+    titleColor: d.titleColor || (DATA.brandColors && DATA.brandColors.primary) || '#10285E',
+    accentColor: d.accentColor || (DATA.brandColors && DATA.brandColors.accent) || '#C6A24A',
     // Défaut : coché seulement si un logo existe déjà (uploadé pour le
     // PDF ou repris de l'identité du restaurant) — sinon décoché, le
     // texte prend le relai. Une fois que l'utilisateur touche la case
@@ -4072,7 +4079,7 @@ function pdfCfg(){
     showIcons: d.showIcons !== false,
     showDots: d.showDots !== false,
     showFrame: d.showFrame !== false,
-    bgColor: d.bgColor || '#FFFDF8',
+    bgColor: d.bgColor || (DATA.brandColors && DATA.brandColors.bg) || '#FFFDF8',
     logoData: d.logoData || '',
     footerCustomText: d.footerCustomText || '',
     // Réglage LOCAL à l'impression/export, indépendant du réglage
@@ -4417,14 +4424,6 @@ function updatePdfPreview(){
 }
 
 // Export: A4 → print dialog; Google Business → PNG via html2canvas at 3064x5447
-function resetPdfColors(){
-  if(!DATA.pdfStyle) DATA.pdfStyle={};
-  DATA.pdfStyle.titleColor='#10285E';
-  DATA.pdfStyle.accentColor='#C6A24A';
-  DATA.pdfStyle.bgColor='#FFFDF8';
-  renderAdminSection(adminCurrentTab);
-  showToast('Couleurs PDF réinitialisées');
-}
 
 function doPdfExport(){
   const cfg = pdfCfg();
@@ -4835,13 +4834,6 @@ function renderPrintBody(){
   const cfg = pdfCfg();
   const ic = DATA.icones||{};
   const activeTab = cfg.exportTab || 'print'; // 'print' | 'gbiz' | 'insta'
-  const swatch = (label, key, val) => `
-    <div class="af"><label class="al">${label}</label>
-      <div style="display:flex;align-items:center;gap:8px">
-        <input type="color" value="${val}" oninput="setPdfCfg('${key}',this.value)" style="width:42px;height:34px;border:1px solid var(--border);border-radius:6px;padding:2px;cursor:pointer;background:#fff">
-        <input class="ai" value="${val}" oninput="setPdfCfg('${key}',this.value)" style="flex:1;font-family:monospace;font-size:12px">
-      </div>
-    </div>`;
   const logoSrc = cfg.logoData || getRestaurantLogo();
 
   const tabBtn = (id, label, disabled) => `<button ${disabled?'disabled title="Bientôt disponible"':`onclick="setPdfCfg('exportTab','${id}');renderAdminSection(adminCurrentTab)"`} style="flex:1;padding:9px 6px;font-family:Jost,sans-serif;font-size:12.5px;font-weight:600;border:1.5px solid var(--border);cursor:${disabled?'not-allowed':'pointer'};background:${activeTab===id?'var(--navy)':'#fff'};color:${activeTab===id?'#fff':disabled?'var(--text3)':'var(--text2)'};opacity:${disabled?0.55:1};border-radius:8px">${label}</button>`;
@@ -4851,16 +4843,6 @@ function renderPrintBody(){
       ${tabBtn('gbiz','Google Business')}
       ${tabBtn('insta','Instagram',true)}
     </div>`;
-
-  const colorsAccordion = `<div class="admin-section collapsible collapsed" style="margin-bottom:10px;border:1px solid var(--border);border-radius:10px;overflow:hidden">
-    <div class="admin-sect-title" onclick="toggleAdminSection(this)" style="cursor:pointer">Couleurs du menu</div>
-    <div class="admin-sect-body">
-      ${swatch('Couleur titre', 'titleColor', cfg.titleColor)}
-      ${swatch('Couleur prix / accent', 'accentColor', cfg.accentColor)}
-      ${swatch('Couleur de fond', 'bgColor', cfg.bgColor||'#FFFDF8')}
-      <button class="aadd" style="width:100%;padding:8px;margin-top:2px;font-size:11px;background:#fff;color:var(--text2)" onclick="resetPdfColors()">↺ Réinitialiser les couleurs PDF</button>
-    </div>
-  </div>`;
 
   const paperSizeHtml = activeTab==='print' ? `
     <div class="af" style="margin-top:10px"><label class="al">Format papier</label>
@@ -4918,7 +4900,6 @@ function renderPrintBody(){
 
   return `${isMobileDevice()?'':'<div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:12px;line-height:1.6">Personnalisez le menu, prévisualisez et exportez-le dans le format de votre choix.</div>'}
     ${tabsHtml}
-    ${colorsAccordion}
     ${activeTab==='print' ? elementsAccordion : ''}
     ${previewHtml}
     ${actionHtml}`;
