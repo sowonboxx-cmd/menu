@@ -4645,14 +4645,90 @@ function paginateGbizPages(cfg){
   return { pages, pullFailures };
 }
 
+// Détection mobile simple (pour proposer un téléchargement page par page
+// en plus du bouton "Générer toutes les images" — voir plus bas) : sur
+// desktop, le bouton existant fonctionne déjà bien tel quel, donc pas
+// besoin d'alourdir cette UI là où ce n'est pas nécessaire.
+function isMobileDevice(){
+  return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+}
+
+// Rendu d'UNE page Google Business en Blob PNG — logique extraite
+// d'exportGbizImage pour être réutilisée aussi par le téléchargement
+// page par page (mobile). Lève une erreur si ça échoue (à charge de
+// l'appelant de l'attraper).
+async function renderGbizPageToBlob(css, pages, i, restName, bg){
+  const RENDER_W = 612; // doit rester identique à paginateGbizPages
+  const TARGET_W = 1080;
+  const scale = TARGET_W / RENDER_W;
+  const holder = document.createElement('div');
+  const pageHeightPx = Math.floor(RENDER_W*GBIZ_PAGE_RATIO);
+  // BUG FIX: le vrai coupable de l'écart entre les mots était
+  // html2canvas lui-même — son moteur de texte "maison" (par
+  // opposition au vrai moteur du navigateur) accumule des écarts
+  // d'arrondi entre les mots quel que soit le réglage tenté
+  // (police bien chargée localement ou non, letterRendering activé
+  // ou non, scale entier ou non — testé et confirmé un par un).
+  // La vraie solution : foreignObjectRendering, qui délègue le texte
+  // au moteur natif du navigateur plutôt qu'à l'approximation
+  // d'html2canvas. Cette option avait déjà été essayée mais donnait
+  // des pages blanches — uniquement parce que l'élément était placé
+  // très loin hors écran (left:-99999px), ce que foreignObjectRendering
+  // gère mal. En le gardant DANS l'écran (juste rendu invisible par
+  // une opacité quasi nulle plutôt que par un déplacement), ça
+  // fonctionne parfaitement : plus de pages blanches, plus d'écart.
+  // BUG FIX: la correction de zoom fixe (1.1x) était fausse dès que
+  // la fenêtre est plus étroite que 641px (le zoom du site ne
+  // s'active qu'à partir de cette largeur) — mesurée dynamiquement
+  // maintenant via getActiveZoomRatio(), plutôt que supposée.
+  const zoomCancel = 1 / getActiveZoomRatio();
+  holder.style.cssText = `position:fixed;left:0;top:0;width:${RENDER_W}px;height:${pageHeightPx}px;opacity:0.001;pointer-events:none;z-index:-1;zoom:${zoomCancel}`;
+  const scaleStyle = pages[i].spaceScale && pages[i].spaceScale!==1 ? `--space-scale:${pages[i].spaceScale};` : '';
+  holder.innerHTML = `<style>${css}</style><div class="pdf-page" id="gbizPage${i}" style="width:${RENDER_W}px;height:${pageHeightPx}px;overflow:hidden;${scaleStyle}">${pages[i].html}</div>`;
+  document.body.appendChild(holder);
+  const pageEl = holder.querySelector(`#gbizPage${i}`);
+  try{
+    await document.fonts.ready;
+    await new Promise(r=>setTimeout(r,150));
+    // BUG FIX (mobile bloqué) : foreignObjectRendering:true (choisi
+    // pour corriger l'écart entre les mots — voir plus haut) a un
+    // support très inégal sur Safari/WebKit mobile : il peut rester
+    // bloqué indéfiniment sans jamais réussir ni lever d'erreur,
+    // laissant "Génération en cours…" affiché pour rien — aucun
+    // try/catch ne peut rattraper une promesse qui ne se résout
+    // jamais. On l'entoure d'un délai de sécurité et, s'il n'a pas
+    // répondu à temps ou s'il échoue, on retente la même page sans
+    // foreignObjectRendering (léger écart entre mots possible en
+    // secours, mais au moins une image est produite). Délai remonté
+    // à 20s (au lieu de 8s) : un mobile est plus lent qu'un
+    // ordinateur, et les pages sont maintenant plus denses (fusion +
+    // compression) — un rendu simplement lent ne doit pas être pris
+    // pour un vrai blocage et abandonné trop tôt.
+    const withTimeout = (p, ms) => Promise.race([
+      p,
+      new Promise((_,rej)=>setTimeout(()=>rej(new Error('html2canvas timeout')), ms))
+    ]);
+    let canvas;
+    try{
+      canvas = await withTimeout(html2canvas(pageEl, { scale, useCORS:true, backgroundColor:bg, logging:false, foreignObjectRendering:true }), 20000);
+    } catch(errFo){
+      console.error('foreignObjectRendering a échoué ou expiré, repli sans lui :', errFo);
+      canvas = await withTimeout(html2canvas(pageEl, { scale, useCORS:true, backgroundColor:bg, logging:false, foreignObjectRendering:false }), 20000);
+    }
+    const suffix = pages.length>1 ? `-${i+1}` : '';
+    const blob = await new Promise(res=>canvas.toBlob(res,'image/png'));
+    if(!blob) throw new Error('toBlob a renvoyé null');
+    return { blob, name: `${restName}-google-business${suffix}.png`, pageIndex: i };
+  } finally {
+    document.body.removeChild(holder);
+  }
+}
+
 async function exportGbizImage(cfg){
   if(typeof html2canvas === 'undefined'){ showToast('⚠ html2canvas non chargé'); return; }
   showToast('Génération des images en cours…');
   const css = buildPdfCSS(cfg);
   const { pages } = paginateGbizPages(cfg);
-  const RENDER_W = 612; // doit rester identique à paginateGbizPages
-  const TARGET_W = 1080;
-  const scale = TARGET_W / RENDER_W;
   const restName = (getRestaurantName()||'menu').replace(/\s+/g,'-').toLowerCase();
   const bg = cfg.template==='maritime' ? '#fdfbf6' : '#ffffff';
 
@@ -4664,71 +4740,19 @@ async function exportGbizImage(cfg){
   // car le navigateur est plus permissif. On génère donc chaque image en
   // Blob (voir plus bas pour le téléchargement + la galerie de secours
   // garantie sur mobile) — navigator.share() a été essayé puis retiré :
-  // trop peu fiable, voir le second BUG FIX plus bas.
+  // trop peu fiable, voir le second BUG FIX plus bas. Sur mobile, le
+  // bouton "Télécharger" par page (voir renderGbizPagePreview /
+  // exportGbizSinglePage) est l'alternative recommandée à ce bouton
+  // "tout générer d'un coup", plus fiable puisqu'il ne fait qu'un seul
+  // rendu par clic direct.
   const blobs = [];
   for(let i=0;i<pages.length;i++){
-    const holder = document.createElement('div');
-    const pageHeightPx = Math.floor(RENDER_W*GBIZ_PAGE_RATIO);
-    // BUG FIX: le vrai coupable de l'écart entre les mots était
-    // html2canvas lui-même — son moteur de texte "maison" (par
-    // opposition au vrai moteur du navigateur) accumule des écarts
-    // d'arrondi entre les mots quel que soit le réglage tenté
-    // (police bien chargée localement ou non, letterRendering activé
-    // ou non, scale entier ou non — testé et confirmé un par un).
-    // La vraie solution : foreignObjectRendering, qui délègue le texte
-    // au moteur natif du navigateur plutôt qu'à l'approximation
-    // d'html2canvas. Cette option avait déjà été essayée mais donnait
-    // des pages blanches — uniquement parce que l'élément était placé
-    // très loin hors écran (left:-99999px), ce que foreignObjectRendering
-    // gère mal. En le gardant DANS l'écran (juste rendu invisible par
-    // une opacité quasi nulle plutôt que par un déplacement), ça
-    // fonctionne parfaitement : plus de pages blanches, plus d'écart.
-    // BUG FIX: la correction de zoom fixe (1.1x) était fausse dès que
-    // la fenêtre est plus étroite que 641px (le zoom du site ne
-    // s'active qu'à partir de cette largeur) — mesurée dynamiquement
-    // maintenant via getActiveZoomRatio(), plutôt que supposée.
-    const zoomCancel = 1 / getActiveZoomRatio();
-    holder.style.cssText = `position:fixed;left:0;top:0;width:${RENDER_W}px;height:${pageHeightPx}px;opacity:0.001;pointer-events:none;z-index:-1;zoom:${zoomCancel}`;
-    const scaleStyle = pages[i].spaceScale && pages[i].spaceScale!==1 ? `--space-scale:${pages[i].spaceScale};` : '';
-    holder.innerHTML = `<style>${css}</style><div class="pdf-page" id="gbizPage${i}" style="width:${RENDER_W}px;height:${pageHeightPx}px;overflow:hidden;${scaleStyle}">${pages[i].html}</div>`;
-    document.body.appendChild(holder);
-    const pageEl = holder.querySelector(`#gbizPage${i}`);
-    await document.fonts.ready;
-    await new Promise(r=>setTimeout(r,150));
     try{
-      // BUG FIX (mobile bloqué) : foreignObjectRendering:true (choisi
-      // pour corriger l'écart entre les mots — voir plus haut) a un
-      // support très inégal sur Safari/WebKit mobile : il peut rester
-      // bloqué indéfiniment sans jamais réussir ni lever d'erreur,
-      // laissant "Génération en cours…" affiché pour rien — aucun
-      // try/catch ne peut rattraper une promesse qui ne se résout
-      // jamais. On l'entoure d'un délai de sécurité et, s'il n'a pas
-      // répondu à temps ou s'il échoue, on retente la même page sans
-      // foreignObjectRendering (léger écart entre mots possible en
-      // secours, mais au moins une image est produite). Délai remonté
-      // à 20s (au lieu de 8s) : un mobile est plus lent qu'un
-      // ordinateur, et les pages sont maintenant plus denses (fusion +
-      // compression) — un rendu simplement lent ne doit pas être pris
-      // pour un vrai blocage et abandonné trop tôt.
-      const withTimeout = (p, ms) => Promise.race([
-        p,
-        new Promise((_,rej)=>setTimeout(()=>rej(new Error('html2canvas timeout')), ms))
-      ]);
-      let canvas;
-      try{
-        canvas = await withTimeout(html2canvas(pageEl, { scale, useCORS:true, backgroundColor:bg, logging:false, foreignObjectRendering:true }), 20000);
-      } catch(errFo){
-        console.error('foreignObjectRendering a échoué ou expiré, repli sans lui :', errFo);
-        canvas = await withTimeout(html2canvas(pageEl, { scale, useCORS:true, backgroundColor:bg, logging:false, foreignObjectRendering:false }), 20000);
-      }
-      const suffix = pages.length>1 ? `-${i+1}` : '';
-      const blob = await new Promise(res=>canvas.toBlob(res,'image/png'));
-      if(blob) blobs.push({ blob, name: `${restName}-google-business${suffix}.png`, pageIndex: i });
+      const result = await renderGbizPageToBlob(css, pages, i, restName, bg);
+      blobs.push(result);
     } catch(err){
       console.error(err);
       showToast('⚠ Erreur génération image '+(i+1));
-    } finally {
-      document.body.removeChild(holder);
     }
   }
 
@@ -4900,6 +4924,37 @@ function tb_setGbizPull(tabId, val){
   const tb = DATA.tabs.find(x=>x.id===tabId);
   if(tb){ tb.gbizPullPrevious = val; if(val) tb.pdfPageBreakBefore = false; renderAdminSection(adminCurrentTab); }
 }
+// Téléchargement d'UNE SEULE page Google Business — pensé pour mobile
+// (voir isMobileDevice) : un clic direct = un seul rendu, donc pas la
+// longue chaîne d'attentes asynchrones qui rend le bouton "Générer
+// toutes les images" peu fiable sur certains mobiles. Régénère la
+// pagination (rapide, déterministe) pour retrouver exactement le même
+// découpage que l'aperçu, puis ne rend que la page demandée.
+async function exportGbizSinglePage(pageIdx){
+  if(typeof html2canvas === 'undefined'){ showToast('⚠ html2canvas non chargé'); return; }
+  const cfg = { ...pdfCfg(), format:'gbiz' };
+  const css = buildPdfCSS(cfg);
+  const { pages } = paginateGbizPages(cfg);
+  if(pageIdx<0 || pageIdx>=pages.length) return;
+  showToast(`Génération de la page ${pageIdx+1}…`);
+  const restName = (getRestaurantName()||'menu').replace(/\s+/g,'-').toLowerCase();
+  const bg = cfg.template==='maritime' ? '#fdfbf6' : '#ffffff';
+  try{
+    const { blob, name } = await renderGbizPageToBlob(css, pages, pageIdx, restName, bg);
+    const url = URL.createObjectURL(blob);
+    try{
+      const link = document.createElement('a');
+      link.download = name;
+      link.href = url;
+      link.click();
+    } catch(err){ console.error(err); }
+    showGbizResultGallery([{ url, name, pageIndex: pageIdx, totalPages: pages.length }]);
+  } catch(err){
+    console.error(err);
+    showToast('⚠ Erreur génération image '+(pageIdx+1));
+  }
+}
+
 // Vignettes de chaque image Google Business à venir, avec pour chaque
 // catégorie le choix de rejoindre la page précédente (espacement
 // compressé de 18% maximum) ou de repartir sur la suivante — pensé
@@ -4934,6 +4989,7 @@ function renderGbizPagePreview(){
             <div class="pdf-page" style="width:${fullW}px;height:${fullH}px;overflow:hidden;transform:scale(${scaleF});transform-origin:top left;${p.spaceScale!==1?`--space-scale:${p.spaceScale};`:''}">${p.html}</div>
           </div>
           <div style="text-align:center;font-size:10px;color:var(--text3);margin-top:4px">Page ${i+1}${p.spaceScale!==1?` · compressé ${Math.round((1-p.spaceScale)*100)}%`:''}</div>
+          ${isMobileDevice()?`<button onclick="exportGbizSinglePage(${i})" style="width:100%;margin-top:5px;padding:6px 4px;font-size:10.5px;font-family:Jost,sans-serif;font-weight:600;border:1.5px solid var(--navy);border-radius:6px;background:#fff;color:var(--navy);cursor:pointer">⬇ Télécharger</button>`:''}
         </div>
       `).join('')}
     </div>
