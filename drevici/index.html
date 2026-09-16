@@ -2885,6 +2885,7 @@ function renderAdminSection(tid, _skipScroll){
   body.querySelectorAll('.ai[data-bind]').forEach(input=>input.addEventListener('change',()=>applyBind(input)));
   if(document.getElementById('pdfPreviewFrame')) setTimeout(()=>{ if(typeof updatePdfPreview==='function') updatePdfPreview(); }, 100);
   if(document.getElementById('gbizCarousel')) setTimeout(()=>{ if(typeof initGbizCarouselFrames==='function') initGbizCarouselFrames(); }, 100);
+  if(document.getElementById('pdfCarousel')) setTimeout(()=>{ if(typeof initPdfCarouselFrames==='function') initPdfCarouselFrames(); }, 100);
 }
 
 function applyBind(input){
@@ -4886,10 +4887,25 @@ function renderPrintBody(){
     </div>
   </div>`;
 
-  const previewHtml = activeTab==='print' ? `
+  const printPages = activeTab==='print' ? paginatePdfPages(cfg) : [];
+  const printIsA5 = cfg.paperSize === 'a5';
+  const printRatio = printIsA5 ? (794/572) : (1123/794); // hauteur/largeur, mêmes proportions que buildPreviewSlideDoc
+
+  const previewHtml = activeTab==='print' ? (isMobileDevice() ? `
+    <div class="af" style="margin-top:14px">
+      <div id="pdfCarousel" onscroll="pdfCarouselOnScroll()" style="display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+        ${printPages.map((p,i)=>`
+          <div class="pdf-slide" style="flex:0 0 88%;scroll-snap-align:start;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#fff">
+            <iframe class="pdf-slide-frame" data-idx="${i}" style="width:100%;aspect-ratio:1 / ${printRatio};border:none;display:block;background:#fff"></iframe>
+          </div>`).join('')}
+      </div>
+      <div id="pdfCarouselDots" style="display:flex;justify-content:center;gap:6px;margin-top:10px">
+        ${printPages.map((p,i)=>`<span class="pdf-carousel-dot" data-idx="${i}" style="width:${i===0?7:6}px;height:${i===0?7:6}px;border-radius:50%;background:${i===0?'var(--navy)':'var(--border)'}"></span>`).join('')}
+      </div>
+    </div>` : `
     <div class="af" style="margin-top:14px"><label class="al">Aperçu live <span style="font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0">(indicatif — cliquez sur "Générer le PDF / Imprimer le menu" pour le rendu exact)</span></label>
       <iframe id="pdfPreviewFrame" style="width:100%;height:420px;border:1px solid var(--border);border-radius:8px;background:#e8e8e8"></iframe>
-    </div>` : activeTab==='gbiz' ? renderGbizPagePreview() : '';
+    </div>`) : activeTab==='gbiz' ? renderGbizPagePreview() : '';
 
   const actionHtml = activeTab==='print'
     ? `<button class="aadd" style="width:100%;padding:13px;margin-top:6px;font-weight:700;background:var(--navy);color:#fff;border:none;font-size:14px" onclick="exportA4Print(pdfCfg())">Générer le PDF / Imprimer le menu</button>`
@@ -4917,18 +4933,17 @@ function tb_setGbizPull(tabId, val){
 }
 
 // Aperçu mobile Google Business — une vraie iframe isolée, mais qui
-// garde la page à sa vraie taille fixe (612px, mêmes tailles de police
-// que l'export réel) et la réduit ENTIÈREMENT en un seul bloc via
+// garde la page à sa vraie taille fixe (mêmes tailles de police que
+// l'export réel) et la réduit ENTIÈREMENT en un seul bloc via
 // transform:scale() — comme le fait déjà la vignette desktop. Un
 // width:100%!important avait été tenté ici mais force le texte (en
-// tailles fixes calibrées pour 612px) à se replier dans un espace
-// minuscule : tout apparaît alors énorme et hors d'échelle. Le scale
-// calculé dynamiquement dans l'iframe (au chargement + au resize)
+// tailles fixes calibrées pour une largeur donnée) à se replier dans un
+// espace minuscule : tout apparaît alors énorme et hors d'échelle. Le
+// scale calculé dynamiquement dans l'iframe (au chargement + au resize)
 // garantit que tout — texte, espacement — rétrécit ensemble,
-// proportionnellement, comme un vrai zoom out.
-function buildGbizPreviewDoc(css, pageHtml, spaceScale){
-  const RENDER_W = 612;
-  const pageHeightPx = Math.floor(RENDER_W*GBIZ_PAGE_RATIO);
+// proportionnellement, comme un vrai zoom out. Partagé entre Google
+// Business (page fixe 612px) et Impression (page A4/A5).
+function buildPreviewSlideDoc(css, pageHtml, spaceScale, pageW, pageH){
   const scaleStyle = spaceScale && spaceScale!==1 ? `--space-scale:${spaceScale};` : '';
   return `<!DOCTYPE html><html><head>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -4936,16 +4951,16 @@ function buildGbizPreviewDoc(css, pageHtml, spaceScale){
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Lovelo:wght@400;700&family=Open+Sans:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><meta charset="UTF-8"><style>${css}
 html,body{overflow:hidden;margin:0}
 body{background:#fff}
-#stage{width:${RENDER_W}px;height:${pageHeightPx}px;overflow:hidden;transform-origin:top left}
+#stage{width:${pageW}px;height:${pageH}px;overflow:hidden;transform-origin:top left}
 </style></head><body><div id="stage" class="pdf-page" style="${scaleStyle}">${pageHtml}</div>
 <script>
 (function(){
   function fit(){
     var vw = document.documentElement.clientWidth;
-    var scale = vw / ${RENDER_W};
+    var scale = vw / ${pageW};
     var stage = document.getElementById('stage');
     stage.style.transform = 'scale(' + scale + ')';
-    document.body.style.height = (${pageHeightPx} * scale) + 'px';
+    document.body.style.height = (${pageH} * scale) + 'px';
   }
   fit();
   window.addEventListener('resize', fit);
@@ -4953,10 +4968,16 @@ body{background:#fff}
 <\/script>
 </body></html>`;
 }
-// Remplit chaque iframe du carrousel avec sa page — appelé une fois au
-// rendu (voir les hooks setTimeout après renderAdminSection /
-// toggleAdminSection), pas besoin de le refaire au balayage puisque
-// toutes les pages sont déjà présentes, juste côte à côte.
+function buildGbizPreviewDoc(css, pageHtml, spaceScale){
+  const RENDER_W = 612;
+  const pageHeightPx = Math.floor(RENDER_W*GBIZ_PAGE_RATIO);
+  return buildPreviewSlideDoc(css, pageHtml, spaceScale, RENDER_W, pageHeightPx);
+}
+// Remplit chaque iframe des carrousels (Google Business + Impression)
+// avec sa page — appelé une fois au rendu (voir les hooks setTimeout
+// après renderAdminSection / toggleAdminSection), pas besoin de le
+// refaire au balayage puisque toutes les pages sont déjà présentes,
+// juste côte à côte.
 function initGbizCarouselFrames(){
   const container = document.getElementById('gbizCarousel');
   if(!container) return;
@@ -4968,19 +4989,36 @@ function initGbizCarouselFrames(){
     if(pages[idx]) frame.srcdoc = buildGbizPreviewDoc(css, pages[idx].html, pages[idx].spaceScale);
   });
 }
-// Met à jour le point actif pendant le balayage tactile (défilement
-// natif — aucune flèche à gérer).
-function gbizCarouselOnScroll(){
-  const container = document.getElementById('gbizCarousel');
+function initPdfCarouselFrames(){
+  const container = document.getElementById('pdfCarousel');
   if(!container) return;
-  const slides = container.querySelectorAll('.gbiz-slide');
+  const cfg = pdfCfg();
+  const css = buildPdfCSS(cfg);
+  const pages = paginatePdfPages(cfg);
+  const isA5 = cfg.paperSize === 'a5';
+  const pageW = isA5 ? Math.round(794*0.72) : 794;
+  const pageH = isA5 ? 794 : 1123;
+  container.querySelectorAll('.pdf-slide-frame').forEach(frame=>{
+    const idx = parseInt(frame.dataset.idx, 10);
+    if(pages[idx]) frame.srcdoc = buildPreviewSlideDoc(css, pages[idx].html, pages[idx].spaceScale, pageW, pageH);
+  });
+}
+// Met à jour le point actif pendant le balayage tactile (défilement
+// natif — aucune flèche à gérer). Générique pour partager la même
+// logique entre les deux carrousels (Google Business + Impression).
+function carouselOnScroll(containerId, slideClass, dotsId, dotClass){
+  const container = document.getElementById(containerId);
+  if(!container) return;
+  const slides = container.querySelectorAll('.'+slideClass);
   if(!slides.length) return;
   const slideStep = slides[1] ? (slides[1].offsetLeft - slides[0].offsetLeft) : slides[0].offsetWidth;
   const idx = Math.max(0, Math.min(slides.length-1, Math.round(container.scrollLeft / slideStep)));
-  document.querySelectorAll('#gbizCarouselDots .gbiz-carousel-dot').forEach((d,i)=>{
+  document.querySelectorAll('#'+dotsId+' .'+dotClass).forEach((d,i)=>{
     d.style.width = i===idx?'7px':'6px'; d.style.height = i===idx?'7px':'6px'; d.style.background = i===idx?'var(--navy)':'var(--border)';
   });
 }
+function gbizCarouselOnScroll(){ carouselOnScroll('gbizCarousel','gbiz-slide','gbizCarouselDots','gbiz-carousel-dot'); }
+function pdfCarouselOnScroll(){ carouselOnScroll('pdfCarousel','pdf-slide','pdfCarouselDots','pdf-carousel-dot'); }
 
 // Vignettes de chaque image Google Business à venir, avec pour chaque
 // catégorie le choix de rejoindre la page précédente (espacement
@@ -5046,8 +5084,7 @@ function renderGbizPagePreview(){
           <div style="font-size:12.5px;font-family:Jost,sans-serif"><strong>${t(tb.label)}</strong> — page ${pageIdx+1}</div>
           <div style="display:flex;gap:5px">
             ${pageIdx>0?`<button style="${btnStyle(!!tb.gbizPullPrevious)}" onclick="tb_setGbizPull('${tb.id}',${tb.gbizPullPrevious?'false':'true'})">◀ Page ${pageIdx}</button>`:''}
-            <button style="${btnStyle(!tb.gbizPullPrevious && !tb.pdfPageBreakBefore)}" onclick="tb_setGbizPull('${tb.id}',false);tb_setPageBreak('${tb.id}',false)">Auto</button>
-            <button style="${btnStyle(!!tb.pdfPageBreakBefore)}" onclick="tb_setPageBreak('${tb.id}',${tb.pdfPageBreakBefore?'false':'true'})">Page ${pageIdx+2} ▶</button>
+            ${pageIdx<pages.length-1?`<button style="${btnStyle(!!tb.pdfPageBreakBefore)}" onclick="tb_setPageBreak('${tb.id}',${tb.pdfPageBreakBefore?'false':'true'})">Page ${pageIdx+2} ▶</button>`:''}
           </div>
         </div>
         ${pullFailures.includes(tb.id)?`<div style="font-size:11px;color:#B31217;background:#fdecea;border:1px solid #f3c6c2;border-radius:6px;padding:6px 10px;margin-top:4px;font-family:Jost,sans-serif">⚠️ Impossible de faire rentrer "${t(tb.label)}" dans la page précédente sans dépasser 18% de compression — ça abîmerait la mise en page. Elle reste sur sa propre page.</div>`:''}
@@ -5635,6 +5672,9 @@ function toggleAdminSection(el){
   }
   if(sec && !sec.classList.contains('collapsed') && sec.querySelector('#gbizCarousel')){
     setTimeout(()=>{ if(typeof initGbizCarouselFrames==='function') initGbizCarouselFrames(); }, 100);
+  }
+  if(sec && !sec.classList.contains('collapsed') && sec.querySelector('#pdfCarousel')){
+    setTimeout(()=>{ if(typeof initPdfCarouselFrames==='function') initPdfCarouselFrames(); }, 100);
   }
 }
 function openFirstAdminSection(){
