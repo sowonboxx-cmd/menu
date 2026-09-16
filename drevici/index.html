@@ -4935,24 +4935,42 @@ function tb_setGbizPull(tabId, val){
   if(tb){ tb.gbizPullPrevious = val; if(val) tb.pdfPageBreakBefore = false; renderAdminSection(adminCurrentTab); }
 }
 
-// Aperçu mobile Google Business — même principe que l'aperçu Impression
-// (updatePdfPreview) : une vraie iframe isolée avec width:100%!important,
-// plutôt qu'un transform:scale() calculé à la main qui donnait un rendu
-// étroit et cassé. Façon Apple (App Store) : pas de flèches, chaque
-// page occupe presque toute la largeur avec la suivante qui dépasse
-// légèrement pour inviter à balayer, et les points en bas indiquent
-// combien il y en a.
+// Aperçu mobile Google Business — une vraie iframe isolée, mais qui
+// garde la page à sa vraie taille fixe (612px, mêmes tailles de police
+// que l'export réel) et la réduit ENTIÈREMENT en un seul bloc via
+// transform:scale() — comme le fait déjà la vignette desktop. Un
+// width:100%!important avait été tenté ici mais force le texte (en
+// tailles fixes calibrées pour 612px) à se replier dans un espace
+// minuscule : tout apparaît alors énorme et hors d'échelle. Le scale
+// calculé dynamiquement dans l'iframe (au chargement + au resize)
+// garantit que tout — texte, espacement — rétrécit ensemble,
+// proportionnellement, comme un vrai zoom out.
 function buildGbizPreviewDoc(css, pageHtml, spaceScale){
   const RENDER_W = 612;
+  const pageHeightPx = Math.floor(RENDER_W*GBIZ_PAGE_RATIO);
   const scaleStyle = spaceScale && spaceScale!==1 ? `--space-scale:${spaceScale};` : '';
   return `<!DOCTYPE html><html><head>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Lovelo:wght@400;700&family=Open+Sans:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><meta charset="UTF-8"><style>${css}
-html,body{overflow-x:hidden;margin:0}
-body{background:#fff;margin:0}
-.pdf-page{width:100%!important;max-width:${RENDER_W}px;box-shadow:none;margin:0 auto}
-</style></head><body><div class="pdf-page" style="${scaleStyle}">${pageHtml}</div></body></html>`;
+html,body{overflow:hidden;margin:0}
+body{background:#fff}
+#stage{width:${RENDER_W}px;height:${pageHeightPx}px;overflow:hidden;transform-origin:top left}
+</style></head><body><div id="stage" class="pdf-page" style="${scaleStyle}">${pageHtml}</div>
+<script>
+(function(){
+  function fit(){
+    var vw = document.documentElement.clientWidth;
+    var scale = vw / ${RENDER_W};
+    var stage = document.getElementById('stage');
+    stage.style.transform = 'scale(' + scale + ')';
+    document.body.style.height = (${pageHeightPx} * scale) + 'px';
+  }
+  fit();
+  window.addEventListener('resize', fit);
+})();
+<\/script>
+</body></html>`;
 }
 // Remplit chaque iframe du carrousel avec sa page — appelé une fois au
 // rendu (voir les hooks setTimeout après renderAdminSection /
