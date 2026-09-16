@@ -4605,16 +4605,34 @@ function paginateGbizPages(cfg){
       pages.push({ html: current, spaceScale: currentScale });
       current = groupHtml; currentScale = 1;
     } else {
-      // Même seule sur une page vide, la catégorie est trop grande —
-      // dernier recours : on la découpe plat par plat.
-      if(current){ pages.push({ html: current, spaceScale: currentScale }); current=''; currentScale=1; }
-      let sub='';
-      group.forEach(b=>{
-        const cand2 = sub + b.html;
-        if(heightOf(cand2) <= maxPageHeightPx){ sub = cand2; }
-        else { if(sub) pages.push({ html: sub, spaceScale: 1 }); sub = b.html; }
-      });
-      current = sub;
+      // La catégorie ne rentre pas seule à taille normale — avant de la
+      // découper plat par plat (ce qui peut laisser un plat orphelin
+      // tout seul sur sa page, ex. "Caviar de nori"), on tente le même
+      // espacement compressé (jusqu'à -12%, jamais le texte) déjà
+      // utilisé pour "rejoindre la page précédente" : souvent le
+      // dépassement ne représente que quelques % , largement dans la
+      // marge de compression, alors qu'une catégorie resserrée tient
+      // très bien en entier sur une seule image.
+      let fitScale = null;
+      for(const s of COMPRESS_STEPS){
+        if(heightOfScaled(groupHtml, s) <= maxPageHeightPx){ fitScale = s; break; }
+      }
+      if(fitScale !== null){
+        pages.push({ html: current, spaceScale: currentScale });
+        current = groupHtml; currentScale = fitScale;
+      } else {
+        // Même compressée à -12%, la catégorie est trop grande —
+        // dernier recours : on la découpe plat par plat (jamais un plat
+        // coupé en deux).
+        if(current){ pages.push({ html: current, spaceScale: currentScale }); current=''; currentScale=1; }
+        let sub='';
+        group.forEach(b=>{
+          const cand2 = sub + b.html;
+          if(heightOf(cand2) <= maxPageHeightPx){ sub = cand2; }
+          else { if(sub) pages.push({ html: sub, spaceScale: 1 }); sub = b.html; }
+        });
+        current = sub;
+      }
     }
   });
   if(footerHtml){
