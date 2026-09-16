@@ -3,13 +3,13 @@
 <head>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Lovelo:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Lovelo:wght@400;700&family=Open+Sans:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" id="themeColorMeta" content="#10285E">
 <title>Menu</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 /* NOTE: the viewport meta tag already sets user-scalable=no, but modern
@@ -4380,7 +4380,7 @@ function updatePdfPreview(){
   const doc = `<!DOCTYPE html><html><head>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Lovelo:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><meta charset="UTF-8"><style>${css}
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Lovelo:wght@400;700&family=Open+Sans:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><meta charset="UTF-8"><style>${css}
     html,body{overflow-x:hidden}
     body{background:#e8e8e8;padding:16px 0;margin:0}
     /* Preview-only: shrink the page to fit whatever width the iframe
@@ -4450,7 +4450,7 @@ function exportA4Print(cfg){
   const doc = `<!DOCTYPE html><html><head>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Lovelo:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><meta charset="UTF-8"><title>${restName}</title><style>${css}</style></head><body>${pagesHtml}</body></html>`;
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Lovelo:wght@400;700&family=Open+Sans:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><meta charset="UTF-8"><title>${restName}</title><style>${css}</style></head><body>${pagesHtml}</body></html>`;
   // BUG FIX: this used to open a blank window and fill it via
   // document.write() — increasingly restricted by modern browsers
   // (Safari in particular), which can silently leave the new tab blank
@@ -4716,42 +4716,47 @@ async function exportGbizImage(cfg){
 
   const urls = blobs.map(b=>({ url: URL.createObjectURL(b.blob), name: b.name }));
 
-  // BUG FIX (mobile, suite) : même le partage natif et le <a download>
-  // en secours peuvent échouer silencieusement selon le navigateur (ou
-  // le contexte, ex. navigateur intégré à une appli) — impossible de
-  // détecter côté JS si l'un ou l'autre a réellement réussi. Solution
-  // fiable à 100% quel que soit l'appareil : on affiche systématiquement
-  // les images directement à l'écran dans une galerie, ce qui permet un
-  // enregistrement 100% natif (appui long sur mobile, clic droit sur
-  // desktop) qui ne dépend d'aucune API JS pouvant être bloquée.
-  const canShareFiles = !!(navigator.canShare && navigator.canShare({ files: blobs.map(b=>new File([b.blob], b.name, { type:'image/png' })) }));
-  if(canShareFiles){
-    try{
-      const files = blobs.map(b=>new File([b.blob], b.name, { type:'image/png' }));
+  // BUG FIX (desktop cassé) : navigator.canShare()/navigator.share() ne
+  // sont pas garantis disponibles ou peuvent lever une exception selon
+  // le navigateur (contexte non sécurisé, absence de support fichiers,
+  // etc.) — cet appel n'était pas protégé et faisait planter toute la
+  // fonction en silence sur desktop dès qu'il levait une erreur, avant
+  // même d'atteindre le téléchargement de secours ci-dessous. Toute
+  // cette tentative est maintenant isolée dans son propre try/catch :
+  // si quoi que ce soit échoue ici, on continue simplement vers le
+  // téléchargement direct + la galerie, qui eux fonctionnaient déjà.
+  try{
+    const files = blobs.map(b=>new File([b.blob], b.name, { type:'image/png' }));
+    const canShareFiles = !!(navigator.canShare && navigator.canShare({ files }));
+    if(canShareFiles){
       await navigator.share({ files, title: `${restName} — Google Business` });
       showToast(files.length>1 ? `${files.length} images prêtes à enregistrer` : 'Image prête à enregistrer');
       return;
-    } catch(err){
-      // L'utilisateur a annulé la feuille de partage (AbortError) — pas
-      // une erreur, on ne retente rien d'autre dans ce cas précis.
-      if(err && err.name==='AbortError') return;
-      console.error(err);
-      // Autre échec du partage : on continue vers la galerie ci-dessous
-      // plutôt que de laisser l'utilisateur sans rien.
     }
+  } catch(err){
+    // L'utilisateur a annulé la feuille de partage (AbortError) — pas
+    // une erreur, on ne retente rien d'autre dans ce cas précis.
+    if(err && err.name==='AbortError') return;
+    console.error(err);
+    // Tout autre échec (partage indisponible, exception navigateur…) :
+    // on continue vers le téléchargement direct + la galerie ci-dessous
+    // plutôt que de laisser l'utilisateur sans rien.
   }
 
   // Tentative de téléchargement direct (fonctionne sur desktop) — sans
   // garantie sur mobile, d'où la galerie affichée juste après dans tous
-  // les cas.
-  urls.forEach(({url,name})=>{
-    const link = document.createElement('a');
-    link.download = name;
-    link.href = url;
-    link.click();
-  });
+  // les cas. Isolée elle aussi : une erreur ici ne doit jamais empêcher
+  // la galerie de secours de s'afficher.
+  try{
+    urls.forEach(({url,name})=>{
+      const link = document.createElement('a');
+      link.download = name;
+      link.href = url;
+      link.click();
+    });
+  } catch(err){ console.error(err); }
 
-  showGbizResultGallery(urls);
+  try{ showGbizResultGallery(urls); } catch(err){ console.error(err); }
 }
 
 // Galerie de secours garantie : affiche chaque image générée directement
@@ -4953,7 +4958,7 @@ function exportMenuPDF(){
   lines.push(`<!DOCTYPE html><html><head>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Lovelo:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Lovelo:wght@400;700&family=Open+Sans:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><meta charset="UTF-8">
 <title>${restName}</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Open+Sans:wght@300;400;600&display=swap');
