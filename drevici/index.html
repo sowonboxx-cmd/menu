@@ -4462,24 +4462,33 @@ function exportA4Print(cfg){
   const url = URL.createObjectURL(blob);
   const win = window.open(url, '_blank');
   if(!win){ showToast('⚠️ Le navigateur a bloqué la fenêtre — autorise les pop-ups pour ce site'); return; }
-  // BUG FIX: un délai fixe de 600ms était une estimation à l'aveugle
-  // du temps de chargement des polices (Playfair Display, Open Sans) —
-  // sur une connexion plus lente ou un cache froid, l'impression
-  // pouvait démarrer avant qu'elles soient prêtes, et le navigateur
-  // affichait alors une police de repli avec un espacement des mots
-  // très différent (lu comme "aligné en justifié" alors que ça ne l'a
-  // jamais été). On attend maintenant le vrai signal de la fenêtre
-  // elle-même plutôt que de deviner un délai.
+  // BUG FIX (iPhone) : la fenêtre pouvait s'ouvrir et afficher le menu
+  // sans jamais déclencher win.print() — soit parce que win.document.
+  // fonts.ready ne se résout pas de façon fiable dans cette fenêtre
+  // séparée sur iOS, soit parce que l'évènement 'load' ne se déclenche
+  // pas toujours sur une URL blob: là-bas. Deux filets de sécurité
+  // ajoutés : un délai maximum sur l'attente des polices, et un appel
+  // de secours si rien n'a encore imprimé après quelques secondes —
+  // print() finit donc toujours par être appelé, même si l'un des
+  // signaux attendus ne vient jamais.
+  let printed = false;
+  const doPrint = () => {
+    if(printed) return;
+    printed = true;
+    try{ win.print(); }catch(e){ console.error(e); }
+    URL.revokeObjectURL(url);
+  };
   const waitThenPrint = () => {
     const ready = win.document && win.document.fonts && win.document.fonts.ready
       ? win.document.fonts.ready
       : Promise.resolve();
-    ready.then(()=>{
-      setTimeout(()=>{ win.print(); URL.revokeObjectURL(url); }, 100);
+    Promise.race([ ready, new Promise(res=>setTimeout(res, 3000)) ]).then(()=>{
+      setTimeout(doPrint, 100);
     });
   };
   if(win.document && win.document.readyState === 'complete') waitThenPrint();
   else win.addEventListener('load', waitThenPrint);
+  setTimeout(()=>{ if(!printed) doPrint(); }, 4500);
 }
 
 // Découpe le contenu en plusieurs images de mêmes proportions que le
