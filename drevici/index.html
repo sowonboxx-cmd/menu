@@ -215,7 +215,7 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .dish-name{font-family:'Open Sans',sans-serif;font-size:14px;font-weight:600;color:var(--navy);line-height:1.2}
 .dish-badges{display:flex;gap:4px;align-items:center}
 .badge-icon{width:18px;height:18px;object-fit:contain;display:inline-block}
-.dish-desc{font-size:12px;font-family:'Open Sans',sans-serif;font-weight:300;color:var(--text2);line-height:1.55;margin-top:2px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.dish-desc{font-size:12px;font-family:'Open Sans',sans-serif;font-weight:400;color:var(--text2);line-height:1.55;margin-top:2px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .dish-price{font-size:13px;font-weight:500;color:var(--gold);margin-top:6px;white-space:nowrap;flex-shrink:0}
 .dish-img{width:80px;height:80px;border-radius:8px;object-fit:cover;flex:none;background:#ece8e1;cursor:pointer;transition:opacity .15s}
 .dish-img:hover{opacity:.82}
@@ -228,7 +228,7 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .gc-img:hover{opacity:.82}
 .gc-body{padding:10px 12px 12px}
 .gc-name{font-family:'Open Sans',sans-serif;font-size:14px;font-weight:600;color:var(--navy);margin-bottom:2px;line-height:1.2}
-.gc-desc{font-size:12px;font-family:'Open Sans',sans-serif;font-weight:300;color:var(--text2);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.gc-desc{font-size:12px;font-family:'Open Sans',sans-serif;font-weight:400;color:var(--text2);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .gc-price{font-size:12px;font-weight:500;color:var(--gold);margin-top:5px;white-space:nowrap;flex-shrink:0}
 .gc-top-row{display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:2px}
 .gc-top-row .gc-name{margin-bottom:0}
@@ -242,8 +242,8 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .variant-price{font-size:12px;font-weight:500;color:var(--gold)}
 .bev-row{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid rgba(0,0,0,0.05);gap:10px}
 .bev-row>div:first-child{min-width:0;flex:1}
-.bev-desc{font-size:12px;font-family:'Open Sans',sans-serif;font-weight:300;color:var(--text2);line-height:1.5;margin-top:2px;max-width:340px}
-.bev-sizes{font-size:12px;font-weight:300;color:var(--text2);font-family:'Jost',sans-serif;margin-top:2px}
+.bev-desc{font-size:12px;font-family:'Open Sans',sans-serif;font-weight:400;color:var(--text2);line-height:1.5;margin-top:2px;max-width:340px}
+.bev-sizes{font-size:12px;font-weight:400;color:var(--text2);font-family:'Jost',sans-serif;margin-top:2px}
 .bev-row:last-child{border-bottom:none;padding-bottom:0}
 .bev-name{font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:400;color:var(--text)}
 .bev-price{font-size:12px;font-weight:500;color:var(--gold);white-space:nowrap;flex-shrink:0}
@@ -4347,7 +4347,7 @@ function buildPdfCSS(cfg){
   .pdf-dots{flex:1;border-bottom:1px dotted #ccc;transform:translateY(-3px);min-width:18px}
   .pdf-dots-off{flex:1;min-width:18px}
   .pdf-dish-price{font-size:${isGbiz?18.08:px(13)}px;font-weight:600;color:${cfg.accentColor};white-space:nowrap;flex:none}
-  .pdf-dish-desc{font-size:${isGbiz?13.56:px(10.5)}px;font-weight:300;color:#6E6E73;margin-top:2px;line-height:1.4;max-width:88%;text-align:left}
+  .pdf-dish-desc{font-size:${isGbiz?13.56:px(10.5)}px;font-weight:400;color:#6E6E73;margin-top:2px;line-height:1.4;max-width:88%;text-align:left}
   /* Catégorie solo (un seul plat) — resserre le plat, jamais .pdf-cat */
   .pdf-dish.pdf-dish-solo{margin-bottom:calc(${isGbiz?13:px(10)}px * var(--space-scale) * var(--solo-scale))}
   .pdf-dish.pdf-dish-solo .pdf-dish-name,.pdf-dish.pdf-dish-solo .pdf-dish-price{font-size:calc(${isGbiz?18.08:px(13)}px * var(--solo-scale))}
@@ -4661,14 +4661,10 @@ async function exportGbizImage(cfg){
   // sur les URLs data:, et un lien cliqué après plusieurs "await" perd
   // son statut de geste utilisateur "de confiance" — le clic est alors
   // silencieusement ignoré, sans erreur visible). Sur desktop ça marche
-  // car le navigateur est plus permissif. Solution : générer chaque
-  // image en Blob, puis utiliser l'API de partage native (navigator.share
-  // avec des fichiers) quand elle est disponible — c'est le mécanisme
-  // pensé pour exactement ce cas sur mobile, il ouvre la feuille de
-  // partage iOS/Android d'où l'utilisateur choisit "Enregistrer
-  // l'image/les X images". Sur desktop (où le partage fichier n'est
-  // généralement pas supporté), on garde le téléchargement direct via
-  // <a download>, inchangé.
+  // car le navigateur est plus permissif. On génère donc chaque image en
+  // Blob (voir plus bas pour le téléchargement + la galerie de secours
+  // garantie sur mobile) — navigator.share() a été essayé puis retiré :
+  // trop peu fiable, voir le second BUG FIX plus bas.
   const blobs = [];
   for(let i=0;i<pages.length;i++){
     const holder = document.createElement('div');
@@ -4716,37 +4712,15 @@ async function exportGbizImage(cfg){
 
   const urls = blobs.map(b=>({ url: URL.createObjectURL(b.blob), name: b.name }));
 
-  // BUG FIX (desktop cassé) : navigator.canShare()/navigator.share() ne
-  // sont pas garantis disponibles ou peuvent lever une exception selon
-  // le navigateur (contexte non sécurisé, absence de support fichiers,
-  // etc.) — cet appel n'était pas protégé et faisait planter toute la
-  // fonction en silence sur desktop dès qu'il levait une erreur, avant
-  // même d'atteindre le téléchargement de secours ci-dessous. Toute
-  // cette tentative est maintenant isolée dans son propre try/catch :
-  // si quoi que ce soit échoue ici, on continue simplement vers le
-  // téléchargement direct + la galerie, qui eux fonctionnaient déjà.
-  try{
-    const files = blobs.map(b=>new File([b.blob], b.name, { type:'image/png' }));
-    const canShareFiles = !!(navigator.canShare && navigator.canShare({ files }));
-    if(canShareFiles){
-      await navigator.share({ files, title: `${restName} — Google Business` });
-      showToast(files.length>1 ? `${files.length} images prêtes à enregistrer` : 'Image prête à enregistrer');
-      return;
-    }
-  } catch(err){
-    // L'utilisateur a annulé la feuille de partage (AbortError) — pas
-    // une erreur, on ne retente rien d'autre dans ce cas précis.
-    if(err && err.name==='AbortError') return;
-    console.error(err);
-    // Tout autre échec (partage indisponible, exception navigateur…) :
-    // on continue vers le téléchargement direct + la galerie ci-dessous
-    // plutôt que de laisser l'utilisateur sans rien.
-  }
-
-  // Tentative de téléchargement direct (fonctionne sur desktop) — sans
-  // garantie sur mobile, d'où la galerie affichée juste après dans tous
-  // les cas. Isolée elle aussi : une erreur ici ne doit jamais empêcher
-  // la galerie de secours de s'afficher.
+  // BUG FIX (desktop cassé) : navigator.share() a été retiré. Même
+  // protégé par try/catch, il pouvait rester en attente indéfiniment
+  // sans jamais réussir ni lever d'erreur sur certains navigateurs
+  // desktop (aucun catch ne peut rattraper une promesse qui ne se
+  // résout jamais) — ce qui bloquait toute la fonction en silence.
+  // Retour à quelque chose de simple et fiable : téléchargement direct
+  // (fonctionne sur desktop, comme à l'origine) + galerie visuelle
+  // affichée systématiquement juste après (garantie sur mobile, appui
+  // long pour enregistrer).
   try{
     urls.forEach(({url,name})=>{
       const link = document.createElement('a');
