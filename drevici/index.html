@@ -4226,7 +4226,7 @@ function buildPdfBlocks(cfg){
           forceBreak = !!tb.pdfPageBreakBefore;
           firstBlockOfTab = false;
         }
-        contentBlocks.push({ html, forceBreak, tabId: tb.id });
+        contentBlocks.push({ html, forceBreak, tabId: tb.id, cardType: card.type||'dishes' });
       });
     });
   });
@@ -4382,6 +4382,8 @@ function buildInstaCSS(cfg){
   .pdf-page{--space-scale:1;font-family:'${font}',serif;color:${titleColor};background:${bg};width:${INSTA_RENDER_W}px;height:${Math.round(INSTA_RENDER_W*INSTA_RATIO)}px;padding:${padTop}px ${padSide}px;margin:0 auto;position:relative;overflow:hidden;text-align:center;display:flex;flex-direction:column;align-items:center}
   .pdf-page::before{content:'';position:absolute;inset:20px;border:1.5px solid ${gold};pointer-events:none}
   .pdf-cat{font-family:'${font}',serif;font-weight:800;font-size:${titleSize}px;line-height:1.1;text-transform:uppercase;letter-spacing:.01em;color:${titleColor};margin-bottom:44px;border:none}
+  .pdf-cat:has(+ .pdf-subcat){margin-bottom:22px}
+  .pdf-cat + .pdf-subcat{margin-top:15px}
   .pdf-subcat{font-family:'${font}',serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.06em;color:${gold};margin:30px 0 18px}
   .pdf-dish{margin-bottom:calc(30px * var(--space-scale));width:100%}
   .pdf-dish + .pdf-dish::before{content:'';display:block;width:64px;height:1px;background:${gold};margin:0 auto calc(26px * var(--space-scale));opacity:.8}
@@ -4479,16 +4481,83 @@ function buildInstaPages(cfg){
   };
 
   const COMPRESS_STEPS = [1, 0.94, 0.88, 0.82, 0.76, 0.7];
-  const result = groups.map(group=>{
-    let html = group.map(b=>b.html).join('');
-    html = fitInstaOneLiners(html, holder, cfg);
-    const tabIdMatch = html.match(/data-tab-id="([^"]+)"/);
-    const tabId = tabIdMatch ? tabIdMatch[1] : null;
-    let fitScale = COMPRESS_STEPS[COMPRESS_STEPS.length-1];
+  const bestScaleFor = html => {
     for(const s of COMPRESS_STEPS){
-      if(heightOf(html, s) <= pageH){ fitScale = s; break; }
+      if(heightOf(html, s) <= pageH) return s;
     }
-    return { html, spaceScale: fitScale, tabId };
+    return null; // ne rentre même pas compressé au maximum
+  };
+  // Répartition la plus équilibrée possible de `n` éléments en `parts`
+  // groupes — ex. n=5, parts=2 → [3,2], jamais [4,1]. Règle absolue
+  // demandée par Will pour la répartition sur plusieurs images.
+  const balancedSplit = (n, parts) => {
+    const base = Math.floor(n/parts), rem = n % parts;
+    return Array.from({length:parts}, (_, i) => base + (i < rem ? 1 : 0));
+  };
+
+  const result = [];
+  groups.forEach(group=>{
+    const tabIdMatch = group[0].html.match(/data-tab-id="([^"]+)"/);
+    const tabId = tabIdMatch ? tabIdMatch[1] : null;
+    const tb = tabId ? DATA.tabs.find(x=>x.id===tabId) : null;
+    const headerMatch = group[0].html.match(/^<h2 class="pdf-cat"[\s\S]*?<\/h2>/);
+    const headerHtml = headerMatch ? headerMatch[0] : '';
+
+    // Boissons exclues par défaut sur Instagram (Will ne fait que des
+    // restaurants) — case à cocher par catégorie pour les inclure
+    // explicitement (tb.instaIncludeBevs). Si toute la catégorie est
+    // composée de boissons et n'est pas cochée, aucune image générée
+    // pour elle.
+    const filtered = (tb && tb.instaIncludeBevs) ? group : group.filter(b=>b.cardType!=='bevs');
+    if(!filtered.length) return;
+
+    // Taille de police "une seule ligne" fixée indépendamment sur
+    // chaque bloc, avant toute décision de découpage — voir
+    // fitInstaOneLiners. Si le tout premier bloc restant après le
+    // filtrage boissons n'a plus le titre de catégorie (parce que le
+    // vrai premier bloc d'origine a été filtré), on le réinjecte.
+    const fixedBlocks = filtered.map(b=>({ ...b, html: fitInstaOneLiners(b.html, holder, cfg) }));
+    if(!fixedBlocks[0].html.includes('class="pdf-cat"')){
+      fixedBlocks[0] = { ...fixedBlocks[0], html: headerHtml + fixedBlocks[0].html };
+    }
+
+    const wholeHtml = fixedBlocks.map(b=>b.html).join('');
+    const wholeScale = bestScaleFor(wholeHtml);
+    if(wholeScale !== null){
+      result.push({ html: wholeHtml, spaceScale: wholeScale, tabId });
+      return;
+    }
+
+    // Ne rentre pas en une seule image, même compressée à -30% —
+    // règle absolue de Will : répartir sur autant de pages que
+    // nécessaire, en équilibrant le NOMBRE de plats aussi près que
+    // possible entre elles (jamais 4 et 1 quand 3 et 2 est possible),
+    // jamais en coupant un plat au milieu. Le titre de catégorie est
+    // répété au début de chaque page suivante, pour que chaque image
+    // reste compréhensible isolément (carrousel Instagram).
+    const n = fixedBlocks.length;
+    let placed = false;
+    for(let parts=2; parts<=n && !placed; parts++){
+      const sizes = balancedSplit(n, parts);
+      const pages = [];
+      let idx = 0, allFit = true;
+      for(const size of sizes){
+        const slice = fixedBlocks.slice(idx, idx+size);
+        idx += size;
+        let sliceHtml = slice.map(b=>b.html).join('');
+        if(!sliceHtml.includes('class="pdf-cat"')) sliceHtml = headerHtml + sliceHtml;
+        const scale = bestScaleFor(sliceHtml);
+        if(scale === null){ allFit = false; break; }
+        pages.push({ html: sliceHtml, spaceScale: scale, tabId });
+      }
+      if(allFit){ result.push(...pages); placed = true; }
+    }
+    if(!placed){
+      // Dernier recours extrême (même 1 plat par page ne rentrerait
+      // pas) : une seule image, compressée au maximum, plutôt que de
+      // ne rien produire.
+      result.push({ html: wholeHtml, spaceScale: COMPRESS_STEPS[COMPRESS_STEPS.length-1], tabId });
+    }
   });
 
   document.body.removeChild(holder);
@@ -5187,6 +5256,15 @@ function renderPrintBody(){
         </div>
       `).join('')}
     </div>
+    ${(() => {
+      const bevTabs = DATA.tabs.filter(tb=>tb.id!=='__home' && tb.cards && tb.cards.some(c=>c.type==='bevs'));
+      if(!bevTabs.length) return '';
+      return `<div class="af" style="margin-top:12px">
+        <label class="al">Boissons</label>
+        <div style="font-size:10.5px;color:var(--text3);margin-bottom:6px">Exclues par défaut sur Instagram — à cocher pour les inclure, catégorie par catégorie.</div>
+        ${bevTabs.map(tb=>`<label class="admin-toggle" style="margin-top:4px"><input type="checkbox" ${tb.instaIncludeBevs?'checked':''} onchange="tb_setInstaBevs('${tb.id}',this.checked)"><label>Inclure les boissons de "${t(tb.label)}"</label></label>`).join('')}
+      </div>`;
+    })()}
     ${renderInstaPagePreview()}` : '';
 
   const actionHtml = activeTab==='print'
@@ -5199,6 +5277,12 @@ function renderPrintBody(){
     ${activeTab==='print' ? elementsAccordion : ''}
     ${previewHtml}
     ${actionHtml}`;
+}
+// Boissons exclues par défaut sur Instagram (voir buildInstaPages) —
+// à cocher explicitement par catégorie.
+function tb_setInstaBevs(tabId, val){
+  const tb = DATA.tabs.find(x=>x.id===tabId);
+  if(tb){ tb.instaIncludeBevs = val; renderAdminSection(adminCurrentTab); }
 }
 function tb_setPageBreak(tabId, val){
   const tb = DATA.tabs.find(x=>x.id===tabId);
