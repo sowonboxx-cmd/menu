@@ -4101,6 +4101,7 @@ function pdfCfg(){
     // dérivé) pour ne rien changer visuellement tant que rien n'est
     // explicitement modifié.
     instaTitleColor: d.instaTitleColor || d.titleColor || '#10285E',
+    instaBgColor: d.instaBgColor || '',            // vide = hérite de la couleur de fond générale
     instaMenuColor: d.instaMenuColor || d.titleColor || '#10285E',
     instaDescColor: d.instaDescColor || '',        // vide = dérivé automatiquement du navy (voir buildInstaCSS)
     instaTitleSize: d.instaTitleSize || 54,
@@ -4357,7 +4358,9 @@ function lightenHex(hex, amt){
 function buildInstaCSS(cfg){
   const navy = cfg.titleColor || '#10285E';
   const gold = cfg.accentColor || '#C6A24A';
-  const bg = cfg.bgColor || '#FDFBF6';
+  // Fond Instagram — réglable indépendamment (cfg.instaBgColor),
+  // sinon hérite de la couleur de fond générale de la marque.
+  const bg = cfg.instaBgColor || cfg.bgColor || '#FDFBF6';
   // 3 couleurs et 3 tailles indépendantes (titre / menu / description)
   // — réglables dans l'admin, uniquement pour Instagram. Défauts
   // calqués sur le rendu initial si rien n'est explicitement choisi.
@@ -5010,7 +5013,7 @@ async function renderGbizPageToBlob(css, pages, i, restName, bg){
 // Instagram : même moteur robuste que Google Business (délai de
 // sécurité + repli sans foreignObjectRendering), mais dimensions et
 // police propres au format story (voir buildInstaCSS/buildInstaPages).
-async function renderInstaPageToBlob(css, pages, i, restName){
+async function renderInstaPageToBlob(css, pages, i, restName, bg){
   const TARGET_W = 1080;
   const scale = TARGET_W / INSTA_RENDER_W;
   const holder = document.createElement('div');
@@ -5030,10 +5033,10 @@ async function renderInstaPageToBlob(css, pages, i, restName){
     ]);
     let canvas;
     try{
-      canvas = await withTimeout(html2canvas(pageEl, { scale, useCORS:true, backgroundColor:'#ffffff', logging:false, foreignObjectRendering:true }), 20000);
+      canvas = await withTimeout(html2canvas(pageEl, { scale, useCORS:true, backgroundColor:bg, logging:false, foreignObjectRendering:true }), 20000);
     } catch(errFo){
       console.error('foreignObjectRendering a échoué ou expiré, repli sans lui :', errFo);
-      canvas = await withTimeout(html2canvas(pageEl, { scale, useCORS:true, backgroundColor:'#ffffff', logging:false, foreignObjectRendering:false }), 20000);
+      canvas = await withTimeout(html2canvas(pageEl, { scale, useCORS:true, backgroundColor:bg, logging:false, foreignObjectRendering:false }), 20000);
     }
     const tb = pages[i].tabId ? DATA.tabs.find(x=>x.id===pages[i].tabId) : null;
     const slug = (tb ? t(tb.label) : `image-${i+1}`).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
@@ -5051,11 +5054,12 @@ async function exportInstaImages(cfg){
   const css = buildInstaCSS(cfg);
   const pages = buildInstaPages(cfg);
   const restName = (getRestaurantName()||'menu').replace(/\s+/g,'-').toLowerCase();
+  const bg = cfg.instaBgColor || cfg.bgColor || '#FDFBF6';
 
   const blobs = [];
   for(let i=0;i<pages.length;i++){
     try{
-      const result = await renderInstaPageToBlob(css, pages, i, restName);
+      const result = await renderInstaPageToBlob(css, pages, i, restName, bg);
       blobs.push(result);
     } catch(err){
       console.error(err);
@@ -5085,7 +5089,7 @@ async function exportGbizImage(cfg){
   const css = buildPdfCSS(cfg);
   const { pages } = paginateGbizPages(cfg);
   const restName = (getRestaurantName()||'menu').replace(/\s+/g,'-').toLowerCase();
-  const bg = cfg.template==='maritime' ? '#fdfbf6' : '#ffffff';
+  const bg = cfg.bgColor || '#FDFBF6';
 
   // BUG FIX (mobile) : la méthode <a download> + toDataURL() ne
   // télécharge rien sur mobile (Safari iOS ignore l'attribut "download"
@@ -5219,7 +5223,12 @@ function renderPrintBody(){
 
   const printPages = activeTab==='print' ? paginatePdfPages(cfg) : [];
   const printIsA5 = cfg.paperSize === 'a5';
-  const printRatio = printIsA5 ? (794/572) : (1123/794); // hauteur/largeur, mêmes proportions que buildPreviewSlideDoc
+  const printFullW = printIsA5 ? Math.round(794*0.72) : 794;
+  const printFullH = printIsA5 ? 794 : 1123;
+  const printRatio = printFullH/printFullW; // hauteur/largeur, mêmes proportions que buildPreviewSlideDoc
+  const printThumbW = 110, printThumbH = Math.round(printThumbW*printRatio);
+  const printScaleF = printThumbW/printFullW;
+  const printCss = activeTab==='print' ? buildPdfCSS(cfg) : '';
 
   const previewHtml = activeTab==='print' ? (isMobileDevice() ? `
     <div class="af" style="margin-top:14px">
@@ -5234,12 +5243,26 @@ function renderPrintBody(){
       </div>
     </div>` : `
     <div class="af" style="margin-top:14px">
-      <iframe id="pdfPreviewFrame" style="width:100%;height:420px;border:1px solid var(--border);border-radius:8px;background:#e8e8e8"></iframe>
+      <div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:10px">
+        ${printPages.map((p,i)=>`
+          <div style="flex:none;width:${printThumbW}px">
+            <div style="width:${printThumbW}px;height:${printThumbH}px;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:#fff;position:relative">
+              <div class="pdf-page" style="width:${printFullW}px;height:${printFullH}px;overflow:hidden;transform:scale(${printScaleF});transform-origin:top left;${p.spaceScale!==1?`--space-scale:${p.spaceScale};`:''}">${p.html}</div>
+            </div>
+            <div style="text-align:center;font-size:10px;color:var(--text3);margin-top:4px">Page ${i+1}</div>
+          </div>
+        `).join('')}
+      </div>
+      <style>${printCss}</style>
     </div>`) : activeTab==='gbiz' ? renderGbizPagePreview() : activeTab==='insta' ? `
     <div class="af"><label class="al">Police du visuel</label>
       <select class="ai" style="font-size:13px" onchange="setPdfCfg('instaFont',this.value);renderAdminSection(adminCurrentTab)">
         ${INSTA_FONT_OPTIONS.map(f=>`<option value="${f}" ${cfg.instaFont===f?'selected':''}>${f}</option>`).join('')}
       </select>
+    </div>
+    <div class="af" style="margin-top:10px;max-width:130px">
+      <label class="al">Couleur de fond</label>
+      <input type="color" value="${cfg.instaBgColor||cfg.bgColor||'#FDFBF6'}" oninput="setPdfCfg('instaBgColor',this.value)" style="width:100%;height:32px;border:1px solid var(--border);border-radius:6px;padding:2px;cursor:pointer;background:#fff">
     </div>
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
       ${[
@@ -5314,7 +5337,6 @@ function buildPreviewSlideDoc(css, pageHtml, spaceScale, pageW, pageH){
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Lovelo:wght@400;700&family=Open+Sans:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><meta charset="UTF-8"><style>${css}
 html,body{overflow:hidden;margin:0}
-body{background:#fff}
 #stage{width:${pageW}px;height:${pageH}px;overflow:hidden;transform-origin:top left}
 </style></head><body><div id="stage" class="pdf-page" style="${scaleStyle}">${pageHtml}</div>
 <script>
