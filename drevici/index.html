@@ -4104,8 +4104,8 @@ function pdfCfg(){
     instaBgColor: d.instaBgColor || '',            // vide = hérite de la couleur de fond générale
     instaMenuColor: d.instaMenuColor || d.titleColor || '#10285E',
     instaDescColor: d.instaDescColor || '',        // vide = dérivé automatiquement du navy (voir buildInstaCSS)
-    instaTitleSize: d.instaTitleSize || 54,
-    instaMenuSize: d.instaMenuSize || 25,
+    instaTitleSize: d.instaTitleSize || 45,
+    instaMenuSize: d.instaMenuSize || 21,
     instaDescSize: d.instaDescSize || 19
   };
 }
@@ -4367,8 +4367,8 @@ function buildInstaCSS(cfg){
   const titleColor = cfg.instaTitleColor || navy;
   const menuColor = cfg.instaMenuColor || navy;
   const descColor = cfg.instaDescColor || lightenHex(navy, 0.28);
-  const titleSize = cfg.instaTitleSize || 54;
-  const menuSize = cfg.instaMenuSize || 25;
+  const titleSize = cfg.instaTitleSize || 45;
+  const menuSize = cfg.instaMenuSize || 21;
   const descSize = cfg.instaDescSize || 19;
   const padTop = 100, padSide = 36;
   // Police propre à Instagram (cfg.instaFont) — voir INSTA_FONT_OPTIONS
@@ -4390,10 +4390,10 @@ function buildInstaCSS(cfg){
   .pdf-subcat{font-family:'${font}',serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.06em;color:${gold};margin:30px 0 18px}
   .pdf-dish{margin-bottom:calc(30px * var(--space-scale));width:100%}
   .pdf-dish + .pdf-dish::before{content:'';display:block;width:64px;height:1px;background:${gold};margin:0 auto calc(26px * var(--space-scale));opacity:.8}
-  .pdf-dish-line{text-align:center}
-  .pdf-dish-name{font-family:'${font}',serif;font-weight:800;font-size:${menuSize}px;text-transform:uppercase;letter-spacing:.01em;color:${menuColor};display:inline-block;vertical-align:baseline;margin-right:14px}
+  .pdf-dish-line{display:flex;justify-content:center;align-items:baseline;gap:14px}
+  .pdf-dish-name{font-family:'${font}',serif;font-weight:800;font-size:${menuSize}px;text-transform:uppercase;letter-spacing:.01em;color:${menuColor}}
   .pdf-dots,.pdf-dots-off{display:none}
-  .pdf-dish-price{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${Math.max(14,menuSize-1)}px;color:${menuColor};display:inline-block;vertical-align:baseline}
+  .pdf-dish-price{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${Math.max(14,menuSize-1)}px;color:${menuColor}}
   .pdf-dish-desc{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${descSize}px;line-height:1.35;color:${descColor};margin-top:6px;max-width:76%;margin-left:auto;margin-right:auto;text-wrap:balance}
   .pdf-footer{display:none}
   `;
@@ -4426,8 +4426,8 @@ function fitInstaOneLiners(html, holder, cfg){
   // une petite marge de sécurité pour ne jamais toucher le cadre doré.
   const padSide = 36;
   const availableW = INSTA_RENDER_W - padSide*2 - 16;
-  const titleSize = cfg.instaTitleSize || 54;
-  const menuSize = cfg.instaMenuSize || 25;
+  const titleSize = cfg.instaTitleSize || 45;
+  const menuSize = cfg.instaMenuSize || 21;
 
   function fitOne(text, tag, className, baseSize, minSize){
     const test = document.createElement(tag);
@@ -4454,26 +4454,22 @@ function fitInstaOneLiners(html, holder, cfg){
     const size = fitOne(inner, 'h3', 'pdf-subcat', 22, 13);
     return `<h3 class="pdf-subcat" style="font-size:${size}px;white-space:nowrap">${inner}</h3>`;
   });
-  // Largeur maximale d'un nom de plat — calquée sur "Maquereau au
-  // poivre de Sichuan" à la taille de police actuelle, mesurée dans
-  // la police réellement choisie (rapport proportionnel automatique
-  // si la police change — demande explicite de Will). Au-delà de
-  // cette largeur, le nom passe naturellement à la ligne (dernier mot
-  // renvoyé en dessous, centré comme le reste) plutôt que de rétrécir
-  // la police — on ne veut jamais rétrécir le nom, juste le nom de
-  // catégorie/sous-catégorie (voir fitOne ci-dessus).
-  const nameMeasure = document.createElement('span');
-  nameMeasure.className = 'pdf-dish-name';
-  nameMeasure.style.whiteSpace = 'nowrap';
-  nameMeasure.style.position = 'absolute';
-  nameMeasure.style.fontSize = menuSize+'px';
-  nameMeasure.textContent = 'Maquereau au poivre de Sichuan';
-  measureEl.appendChild(nameMeasure);
-  const maxNameWidth = nameMeasure.scrollWidth;
-  measureEl.removeChild(nameMeasure);
-
+  // BUG FIX (chevauchement) : le retour à la ligne d'un nom de plat
+  // recasse la mise en page à l'export — confirmé que ça arrive aussi
+  // en inline-block, pas seulement en flex ; html2canvas mesure mal la
+  // hauteur dès qu'un retour à la ligne se produit ici, quel que soit
+  // le mode d'affichage. Retour au principe d'origine : un nom de plat
+  // ne passe JAMAIS à la ligne, on rétrécit sa police à la place — mais
+  // calibré sur "Maquereau au poivre de Sichuan" comme cas
+  // limite accepté par Will (jamais plus long que ça dans la
+  // pratique) : cette taille devient le plancher, jamais rétréci
+  // davantage même pour un nom encore plus long (mieux vaut un léger
+  // dépassement rare qu'un texte illisible ou le bug qui revient — à
+  // la charge du restaurateur de raccourcir si besoin).
+  const worstCaseFloor = fitOne('Maquereau au poivre de Sichuan', 'span', 'pdf-dish-name', menuSize, 10);
   out = out.replace(/<span class="pdf-dish-name">([\s\S]*?)<\/span>/g, (m, inner)=>{
-    return `<span class="pdf-dish-name" style="max-width:${maxNameWidth}px">${inner}</span>`;
+    const size = fitOne(inner, 'span', 'pdf-dish-name', menuSize, worstCaseFloor);
+    return `<span class="pdf-dish-name" style="font-size:${size}px;white-space:nowrap">${inner}</span>`;
   });
   return out;
 }
@@ -5262,8 +5258,8 @@ function renderPrintBody(){
     </div>
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
       ${[
-        {key:'instaTitleColor', sizeKey:'instaTitleSize', label:'Titre', color:cfg.instaTitleColor||cfg.titleColor||'#10285E', size:cfg.instaTitleSize||54, min:24, max:80},
-        {key:'instaMenuColor', sizeKey:'instaMenuSize', label:'Menu (plat + prix)', color:cfg.instaMenuColor||cfg.titleColor||'#10285E', size:cfg.instaMenuSize||25, min:14, max:40},
+        {key:'instaTitleColor', sizeKey:'instaTitleSize', label:'Titre', color:cfg.instaTitleColor||cfg.titleColor||'#10285E', size:cfg.instaTitleSize||45, min:24, max:80},
+        {key:'instaMenuColor', sizeKey:'instaMenuSize', label:'Menu (plat + prix)', color:cfg.instaMenuColor||cfg.titleColor||'#10285E', size:cfg.instaMenuSize||21, min:14, max:40},
         {key:'instaDescColor', sizeKey:'instaDescSize', label:'Description', color:cfg.instaDescColor||lightenHex(cfg.titleColor||'#10285E',0.28), size:cfg.instaDescSize||19, min:12, max:30},
         {key:'instaBgColor', label:'Fond', color:cfg.instaBgColor||cfg.bgColor||'#FDFBF6', resettable:true}
       ].map(r=>`
