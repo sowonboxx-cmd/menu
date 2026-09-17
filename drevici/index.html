@@ -4092,7 +4092,8 @@ function pdfCfg(){
     showCurrency: d.showCurrency !== undefined ? d.showCurrency : true,
     format: d.format || 'a4',                    // 'a4' | 'gbiz'
     paperSize: d.paperSize || 'a4',               // 'a4' | 'a5' — only applies when format is 'a4' (the print/PDF format)
-    exportTab: d.exportTab || 'print'             // which tab is active in the export panel UI: 'print' | 'gbiz' | 'insta'
+    exportTab: d.exportTab || 'print',            // which tab is active in the export panel UI: 'print' | 'gbiz' | 'insta'
+    instaFont: d.instaFont || 'Playfair Display'  // Instagram uniquement — voir INSTA_FONT_OPTIONS
   };
 }
 function setPdfCfg(key, val){
@@ -4159,10 +4160,16 @@ function buildPdfBlocks(cfg){
   // pas de découpage en plusieurs lignes.
   // Réglage propre à l'impression (cfg.showCurrency), pas le réglage
   // global du site — c'est ce qui permet de le forcer indépendamment
-  // depuis la section Export/Impression.
-  const pdfCurrency = s => cfg.showCurrency===false ? String(s||'').replace(/€/g,'').trim() : s;
+  // depuis la section Export/Impression. Instagram (isInstaFmt) ignore
+  // ce réglage et retire toujours le symbole € — demande explicite de
+  // Will, spécifique à ce format uniquement.
+  const isInstaFmt = cfg.format === 'insta';
+  const pdfCurrency = s => (cfg.showCurrency===false || isInstaFmt) ? String(s||'').replace(/€/g,'').trim() : s;
+  // Sur Instagram, un double prix (ex. huîtres "Les 6 — 12€ · Les 12 —
+  // 22€") n'affiche que le premier — demande explicite de Will, pour
+  // rester le plus épuré possible sur ce format précis uniquement.
   const priceText = d => pdfCurrency((isGbizFmt && d.priceType==='dual' && d.p1 && d.p2)
-    ? `${d.p1}€ / ${d.p2}€`
+    ? (isInstaFmt ? `${d.p1}` : `${d.p1}€ / ${d.p2}€`)
     : (d.price||''));
   DATA.tabs.filter(tb=>tb.id!=='__home' && tb.visible!==false).forEach(tb=>{
     let pendingHeader = `<h2 class="pdf-cat" data-tab-id="${tb.id}">${showSecIc?`<img src="${icData.secondary}" style="width:16px;height:16px;object-fit:contain;vertical-align:middle;margin-right:6px" onerror="this.remove()">`:''}${t(tb.label)}</h2>`;
@@ -4189,7 +4196,13 @@ function buildPdfBlocks(cfg){
         : card.type==='variants' ? (card.variants||[]).filter(v=>!v.hidden).map(v=>
           `<div class="pdf-dish${soloCls}"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(v.name)||''}</span>${dots}<span class="pdf-dish-price">${priceText(v)}</span></div></div>`)
         : card.type==='bevs' ? (card.items||[]).filter(item=>!item.hidden).map(item=>{
-          const sizes=(item.sizes||[]).map(s=>bevSizeLabel(s)+' — '+s.price+'€').join(' · ');
+          // Sur Instagram, un seul prix affiché (la 1ère taille), pas la
+          // liste complète "Les 6 — 12€ · Les 12 — 22€" — même logique
+          // d'épuration que priceText ci-dessus, appliquée ici pour les
+          // plats à tailles multiples (huîtres, etc.).
+          const sizes = isInstaFmt
+            ? ((item.sizes||[])[0] ? String((item.sizes||[])[0].price||'') : '')
+            : (item.sizes||[]).map(s=>bevSizeLabel(s)+' — '+s.price+'€').join(' · ');
           return `<div class="pdf-dish${soloCls}"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(item.name)||''}</span>${dots}<span class="pdf-dish-price">${pdfCurrency(sizes||item.price||'')}</span></div>${t(item.desc)?`<div class="pdf-dish-desc">${t(item.desc)}</div>`:''}</div>`;
         }) : [];
       items.forEach((itemHtml, i)=>{
@@ -4335,22 +4348,28 @@ function buildInstaCSS(cfg){
   const bg = cfg.bgColor || '#FDFBF6';
   const descColor = lightenHex(navy, 0.28);
   const pad = 56;
+  // Police propre à Instagram (cfg.instaFont) — voir INSTA_FONT_OPTIONS
+  // pour la liste proposée dans l'admin. Une seule police pour tout
+  // (titre, nom de plat, prix, description), à différents poids/styles
+  // — demande explicite de Will, spécifique à ce format uniquement.
+  const font = cfg.instaFont || 'Playfair Display';
+  const fontUrlName = font.replace(/ /g,'+');
   return `
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;1,500;1,600&family=Playfair+Display:wght@700;800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=${fontUrlName}:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap');
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{margin:0;padding:0;background:${bg}}
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
-  .pdf-page{--space-scale:1;font-family:'Cormorant Garamond',serif;color:${navy};background:${bg};width:${INSTA_RENDER_W}px;height:${Math.round(INSTA_RENDER_W*INSTA_RATIO)}px;padding:${pad}px ${pad*0.65}px;margin:0 auto;position:relative;overflow:hidden;text-align:center;display:flex;flex-direction:column;align-items:center}
+  .pdf-page{--space-scale:1;font-family:'${font}',serif;color:${navy};background:${bg};width:${INSTA_RENDER_W}px;height:${Math.round(INSTA_RENDER_W*INSTA_RATIO)}px;padding:${pad}px ${pad*0.65}px;margin:0 auto;position:relative;overflow:hidden;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center}
   .pdf-page::before{content:'';position:absolute;inset:20px;border:1.5px solid ${gold};pointer-events:none}
-  .pdf-cat{font-family:'Playfair Display',serif;font-weight:800;font-size:54px;line-height:1.1;text-transform:uppercase;letter-spacing:.01em;color:${navy};margin-bottom:44px;border:none}
-  .pdf-subcat{font-family:'Playfair Display',serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.06em;color:${gold};margin:30px 0 18px}
+  .pdf-cat{font-family:'${font}',serif;font-weight:800;font-size:54px;line-height:1.1;text-transform:uppercase;letter-spacing:.01em;color:${navy};margin-bottom:44px;border:none}
+  .pdf-subcat{font-family:'${font}',serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.06em;color:${gold};margin:30px 0 18px}
   .pdf-dish{margin-bottom:calc(30px * var(--space-scale));width:100%}
   .pdf-dish + .pdf-dish::before{content:'';display:block;width:64px;height:1px;background:${gold};margin:0 auto calc(26px * var(--space-scale));opacity:.8}
   .pdf-dish-line{display:flex;justify-content:center;align-items:baseline;gap:14px;flex-wrap:wrap}
-  .pdf-dish-name{font-family:'Playfair Display',serif;font-weight:800;font-size:25px;text-transform:uppercase;letter-spacing:.01em;color:${navy}}
+  .pdf-dish-name{font-family:'${font}',serif;font-weight:800;font-size:25px;text-transform:uppercase;letter-spacing:.01em;color:${navy}}
   .pdf-dots,.pdf-dots-off{display:none}
-  .pdf-dish-price{font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:500;font-size:24px;color:${navy}}
-  .pdf-dish-desc{font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:500;font-size:19px;line-height:1.35;color:${descColor};margin-top:6px;max-width:88%;margin-left:auto;margin-right:auto}
+  .pdf-dish-price{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:24px;color:${navy}}
+  .pdf-dish-desc{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:19px;line-height:1.35;color:${descColor};margin-top:6px;max-width:88%;margin-left:auto;margin-right:auto}
   .pdf-footer{display:none}
   `;
 }
@@ -4599,6 +4618,17 @@ function exportA4Print(cfg){
 const GBIZ_PAGE_RATIO = 1.663; // height / width
 // Instagram Story — vraie proportion 9:16 (1080×1920 à l'export final).
 const INSTA_RATIO = 16/9; // height / width
+// 20 polices Google Fonts parmi les plus populaires ET les plus
+// lisibles pour un menu — mélange de serif élégantes (registre menu
+// classique) et de sans-serif nettes (lisibilité). Demande explicite
+// de Will : propre à Instagram uniquement, une seule police pour tout
+// le visuel (titre, plat, prix, description).
+const INSTA_FONT_OPTIONS = [
+  'Playfair Display','Cormorant Garamond','Merriweather','Lora','EB Garamond',
+  'Libre Baskerville','Crimson Text','Cardo','Cinzel','Marcellus',
+  'Prata','DM Serif Display','Abril Fatface','Bodoni Moda','Josefin Sans',
+  'Montserrat','Raleway','Poppins','Quicksand','Nunito'
+];
 const INSTA_RENDER_W = 608;
 // BUG FIX: le site applique un zoom CSS de 1.1x sur desktop (à partir
 // de 641px de large), mais PAS en dessous de cette largeur — annuler
@@ -5059,7 +5089,13 @@ function renderPrintBody(){
     </div>` : `
     <div class="af" style="margin-top:14px">
       <iframe id="pdfPreviewFrame" style="width:100%;height:420px;border:1px solid var(--border);border-radius:8px;background:#e8e8e8"></iframe>
-    </div>`) : activeTab==='gbiz' ? renderGbizPagePreview() : activeTab==='insta' ? renderInstaPagePreview() : '';
+    </div>`) : activeTab==='gbiz' ? renderGbizPagePreview() : activeTab==='insta' ? `
+    <div class="af"><label class="al">Police du visuel</label>
+      <select class="ai" style="font-size:13px" onchange="setPdfCfg('instaFont',this.value);renderAdminSection(adminCurrentTab)">
+        ${INSTA_FONT_OPTIONS.map(f=>`<option value="${f}" ${cfg.instaFont===f?'selected':''}>${f}</option>`).join('')}
+      </select>
+    </div>
+    ${renderInstaPagePreview()}` : '';
 
   const actionHtml = activeTab==='print'
     ? `<button class="aadd" style="width:100%;padding:13px;margin-top:6px;font-weight:700;background:var(--navy);color:#fff;border:none;font-size:14px" onclick="exportA4Print(pdfCfg())">Générer le PDF / Imprimer le menu</button>`
