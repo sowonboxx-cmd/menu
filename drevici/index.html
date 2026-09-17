@@ -4315,17 +4315,17 @@ function paginatePdfPages(cfg){
   // its available height gets its inter-dish/inter-category spacing
   // gently stretched (never text size) via the --space-scale custom
   // property (see buildPdfCSS) so the page reads as "designed to end
-  // here" rather than "ran out of content". Capped low (max +22%) to
-  // stay subtle — this is what actually closes the gap a fixed
-  // min-height otherwise leaves behind on a page that's genuinely
-  // shorter than a full sheet's worth of dishes.
+  // here" rather than "ran out of content". Remonté de +22% à +50% —
+  // le plafond précédent était trop bas pour une page très courte
+  // (ex. Huîtres seule, 4 plats), qui gardait un vide visible même une
+  // fois étirée au maximum autorisé.
   const result = pages.map(pageHtml=>{
     const used = heightOf(pageHtml);
     const ratio = maxPageHeightPx > 0 ? used / maxPageHeightPx : 1;
     let spaceScale = 1;
     if(ratio < 0.97 && ratio > 0){
       const slack = 0.97 - ratio;
-      spaceScale = Math.min(1.22, 1 + slack * 0.9);
+      spaceScale = Math.min(1.5, 1 + slack * 0.9);
     }
     return { html: pageHtml, spaceScale };
   });
