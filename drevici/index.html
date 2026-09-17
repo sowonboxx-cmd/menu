@@ -4895,8 +4895,7 @@ function renderPrintBody(){
   const actionHtml = activeTab==='print'
     ? `<button class="aadd" style="width:100%;padding:13px;margin-top:6px;font-weight:700;background:var(--navy);color:#fff;border:none;font-size:14px" onclick="exportA4Print(pdfCfg())">Générer le PDF / Imprimer le menu</button>`
     : activeTab==='gbiz'
-    ? `<button class="aadd" style="width:100%;padding:13px;margin-top:6px;font-weight:700;background:var(--navy);color:#fff;border:none;font-size:14px" onclick="exportGbizImage({...pdfCfg(), format:'gbiz'})">Générer l'image Google Business</button>
-       <div style="font-size:10.5px;color:var(--text3);margin-top:6px;line-height:1.5">Une image verticale, texte seul (aucune photo de plat), pensée pour l'affichage du menu sur Google. Chaque catégorie est bien espacée pour rester lisible d'un coup d'œil.</div>`
+    ? `<button class="aadd" style="width:100%;padding:13px;margin-top:6px;font-weight:700;background:var(--navy);color:#fff;border:none;font-size:14px" onclick="exportGbizImage({...pdfCfg(), format:'gbiz'})">Générer l'image Google Business</button>`
     : `<div style="text-align:center;padding:20px;background:#f7f5f0;border-radius:10px;font-size:12.5px;color:var(--text3);font-family:Jost,sans-serif">📷 Export Instagram (Story / Post) — bientôt disponible.</div>`;
 
   return `${tabsHtml}
@@ -4906,14 +4905,7 @@ function renderPrintBody(){
 }
 function tb_setPageBreak(tabId, val){
   const tb = DATA.tabs.find(x=>x.id===tabId);
-  // Les deux réglages sont mutuellement exclusifs — pousser vers la
-  // page suivante et tirer vers la précédente en même temps n'a pas de
-  // sens.
-  if(tb){ tb.pdfPageBreakBefore = val; if(val) tb.gbizPullPrevious = false; updatePdfPreview(); renderAdminSection(adminCurrentTab); }
-}
-function tb_setGbizPull(tabId, val){
-  const tb = DATA.tabs.find(x=>x.id===tabId);
-  if(tb){ tb.gbizPullPrevious = val; if(val) tb.pdfPageBreakBefore = false; renderAdminSection(adminCurrentTab); }
+  if(tb){ tb.pdfPageBreakBefore = val; updatePdfPreview(); renderAdminSection(adminCurrentTab); }
 }
 
 // Aperçu mobile Google Business — une vraie iframe isolée, mais qui
@@ -5011,22 +5003,11 @@ function pdfCarouselOnScroll(){ carouselOnScroll('pdfCarousel','pdf-slide','pdfC
 // livrés seuls en bas d'une page).
 function renderGbizPagePreview(){
   const cfg = { ...pdfCfg(), format:'gbiz' };
-  const { pages, pullFailures } = paginateGbizPages(cfg);
+  const { pages } = paginateGbizPages(cfg);
   const css = buildPdfCSS(cfg);
   const fullW = 612, fullH = Math.floor(fullW*GBIZ_PAGE_RATIO);
   const thumbW = 120, thumbH = Math.round(thumbW*GBIZ_PAGE_RATIO);
   const scaleF = thumbW/fullW;
-
-  const rows = [];
-  pages.forEach((p,i)=>{
-    const tabIds = [...new Set([...p.html.matchAll(/data-tab-id="([^"]+)"/g)].map(m=>m[1]))];
-    tabIds.forEach(tid=>{
-      const tb = DATA.tabs.find(x=>x.id===tid);
-      if(tb) rows.push({ pageIdx:i, tb });
-    });
-  });
-
-  const btnStyle = (active) => `font-size:11px;padding:5px 9px;border-radius:6px;border:1.5px solid ${active?'var(--navy)':'var(--border)'};background:${active?'var(--navy)':'#fff'};color:${active?'#fff':'var(--text2)'};cursor:pointer;font-family:Jost,sans-serif;white-space:nowrap`;
 
   // Façon Apple (App Store) : chaque page prend 88% de la largeur, la
   // suivante dépasse juste assez pour inviter à balayer — pas de
@@ -5046,8 +5027,6 @@ function renderGbizPagePreview(){
   </div>`;
 
   const desktopPreview = `<div class="af" style="margin-top:14px">
-    <label class="al">Aperçu des pages (${pages.length} image${pages.length>1?'s':''})</label>
-    <div style="font-size:10.5px;color:var(--text3);margin-bottom:8px">Une catégorie mal coupée ? Choisissez de la faire rejoindre la page précédente (espacement compressé de 18% maximum si besoin) ou de la garder sur la suivante.</div>
     <div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:10px">
       ${pages.map((p,i)=>`
         <div style="flex:none;width:${thumbW}px">
@@ -5061,19 +5040,7 @@ function renderGbizPagePreview(){
     <style>${css}</style>
   </div>`;
 
-  return `${isMobileDevice() ? mobilePreview : desktopPreview}
-    <div style="margin-top:4px">
-      ${rows.map(({pageIdx,tb})=>`
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;background:#fff;border:1px solid var(--border);border-radius:8px;margin-top:6px;flex-wrap:wrap">
-          <div style="font-size:12.5px;font-family:Jost,sans-serif"><strong>${t(tb.label)}</strong> — page ${pageIdx+1}</div>
-          <div style="display:flex;gap:5px">
-            ${pageIdx>0?`<button style="${btnStyle(!!tb.gbizPullPrevious)}" onclick="tb_setGbizPull('${tb.id}',${tb.gbizPullPrevious?'false':'true'})">◀ Page ${pageIdx}</button>`:''}
-            ${pageIdx<pages.length-1?`<button style="${btnStyle(!!tb.pdfPageBreakBefore)}" onclick="tb_setPageBreak('${tb.id}',${tb.pdfPageBreakBefore?'false':'true'})">Page ${pageIdx+2} ▶</button>`:''}
-          </div>
-        </div>
-        ${pullFailures.includes(tb.id)?`<div style="font-size:11px;color:#B31217;background:#fdecea;border:1px solid #f3c6c2;border-radius:6px;padding:6px 10px;margin-top:4px;font-family:Jost,sans-serif">⚠️ Impossible de faire rentrer "${t(tb.label)}" dans la page précédente sans dépasser 18% de compression — ça abîmerait la mise en page. Elle reste sur sa propre page.</div>`:''}
-      `).join('')}
-    </div>`;
+  return isMobileDevice() ? mobilePreview : desktopPreview;
 }
 // Kept for compatibility (renderExportSection still calls it); wraps the body in its own section.
 function renderPdfStyleSection(){
