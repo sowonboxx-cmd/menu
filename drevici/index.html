@@ -4394,7 +4394,7 @@ function buildInstaCSS(cfg){
   .pdf-dish-name{font-family:'${font}',serif;font-weight:800;font-size:${menuSize}px;text-transform:uppercase;letter-spacing:.01em;color:${menuColor}}
   .pdf-dots,.pdf-dots-off{display:none}
   .pdf-dish-price{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${Math.max(14,menuSize-1)}px;color:${menuColor}}
-  .pdf-dish-desc{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${descSize}px;line-height:1.35;color:${descColor};margin-top:6px;max-width:88%;margin-left:auto;margin-right:auto;text-wrap:balance}
+  .pdf-dish-desc{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${descSize}px;line-height:1.35;color:${descColor};margin-top:6px;max-width:76%;margin-left:auto;margin-right:auto;text-wrap:balance}
   .pdf-footer{display:none}
   `;
 }
@@ -4535,9 +4535,9 @@ function buildInstaPages(cfg){
     // règle absolue de Will : répartir sur autant de pages que
     // nécessaire, en équilibrant le NOMBRE de plats aussi près que
     // possible entre elles (jamais 4 et 1 quand 3 et 2 est possible),
-    // jamais en coupant un plat au milieu. Le titre de catégorie est
-    // répété au début de chaque page suivante, pour que chaque image
-    // reste compréhensible isolément (carrousel Instagram).
+    // jamais en coupant un plat au milieu. Le titre de catégorie n'est
+    // PAS répété sur les pages suivantes — demande explicite de Will :
+    // c'est la suite du même menu, pas une nouvelle catégorie.
     const n = fixedBlocks.length;
     let placed = false;
     for(let parts=2; parts<=n && !placed; parts++){
@@ -4547,8 +4547,7 @@ function buildInstaPages(cfg){
       for(const size of sizes){
         const slice = fixedBlocks.slice(idx, idx+size);
         idx += size;
-        let sliceHtml = slice.map(b=>b.html).join('');
-        if(!sliceHtml.includes('class="pdf-cat"')) sliceHtml = headerHtml + sliceHtml;
+        const sliceHtml = slice.map(b=>b.html).join('');
         const scale = bestScaleFor(sliceHtml);
         if(scale === null){ allFit = false; break; }
         pages.push({ html: sliceHtml, spaceScale: scale, tabId });
@@ -5265,13 +5264,14 @@ function renderPrintBody(){
         {key:'instaTitleColor', sizeKey:'instaTitleSize', label:'Titre', color:cfg.instaTitleColor||cfg.titleColor||'#10285E', size:cfg.instaTitleSize||54, min:24, max:80},
         {key:'instaMenuColor', sizeKey:'instaMenuSize', label:'Menu (plat + prix)', color:cfg.instaMenuColor||cfg.titleColor||'#10285E', size:cfg.instaMenuSize||25, min:14, max:40},
         {key:'instaDescColor', sizeKey:'instaDescSize', label:'Description', color:cfg.instaDescColor||lightenHex(cfg.titleColor||'#10285E',0.28), size:cfg.instaDescSize||19, min:12, max:30},
-        {key:'instaBgColor', label:'Fond', color:cfg.instaBgColor||cfg.bgColor||'#FDFBF6'}
+        {key:'instaBgColor', label:'Fond', color:cfg.instaBgColor||cfg.bgColor||'#FDFBF6', resettable:true}
       ].map(r=>`
         <div class="af" style="flex:1;min-width:130px">
           <label class="al">${r.label}</label>
           <div style="display:flex;align-items:center;gap:6px">
             <input type="color" value="${/^#/.test(r.color)?r.color:'#10285E'}" oninput="setPdfCfg('${r.key}',this.value)" style="width:36px;height:32px;border:1px solid var(--border);border-radius:6px;padding:2px;cursor:pointer;background:#fff">
             ${r.sizeKey?`<input class="ai" type="number" min="${r.min}" max="${r.max}" value="${r.size}" oninput="setPdfCfg('${r.sizeKey}',parseInt(this.value)||${r.size})" style="width:60px;font-size:12px" title="Taille (px)">`:''}
+            ${r.resettable?`<button type="button" title="Réinitialiser" onclick="setPdfCfg('${r.key}','');renderAdminSection(adminCurrentTab)" style="width:32px;height:32px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text2);cursor:pointer;font-size:14px">↺</button>`:''}
           </div>
         </div>
       `).join('')}
