@@ -5260,21 +5260,18 @@ function renderPrintBody(){
         ${INSTA_FONT_OPTIONS.map(f=>`<option value="${f}" ${cfg.instaFont===f?'selected':''}>${f}</option>`).join('')}
       </select>
     </div>
-    <div class="af" style="margin-top:10px;max-width:130px">
-      <label class="al">Couleur de fond</label>
-      <input type="color" value="${cfg.instaBgColor||cfg.bgColor||'#FDFBF6'}" oninput="setPdfCfg('instaBgColor',this.value)" style="width:100%;height:32px;border:1px solid var(--border);border-radius:6px;padding:2px;cursor:pointer;background:#fff">
-    </div>
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
       ${[
         {key:'instaTitleColor', sizeKey:'instaTitleSize', label:'Titre', color:cfg.instaTitleColor||cfg.titleColor||'#10285E', size:cfg.instaTitleSize||54, min:24, max:80},
         {key:'instaMenuColor', sizeKey:'instaMenuSize', label:'Menu (plat + prix)', color:cfg.instaMenuColor||cfg.titleColor||'#10285E', size:cfg.instaMenuSize||25, min:14, max:40},
-        {key:'instaDescColor', sizeKey:'instaDescSize', label:'Description', color:cfg.instaDescColor||lightenHex(cfg.titleColor||'#10285E',0.28), size:cfg.instaDescSize||19, min:12, max:30}
+        {key:'instaDescColor', sizeKey:'instaDescSize', label:'Description', color:cfg.instaDescColor||lightenHex(cfg.titleColor||'#10285E',0.28), size:cfg.instaDescSize||19, min:12, max:30},
+        {key:'instaBgColor', label:'Fond', color:cfg.instaBgColor||cfg.bgColor||'#FDFBF6'}
       ].map(r=>`
         <div class="af" style="flex:1;min-width:130px">
           <label class="al">${r.label}</label>
           <div style="display:flex;align-items:center;gap:6px">
             <input type="color" value="${/^#/.test(r.color)?r.color:'#10285E'}" oninput="setPdfCfg('${r.key}',this.value)" style="width:36px;height:32px;border:1px solid var(--border);border-radius:6px;padding:2px;cursor:pointer;background:#fff">
-            <input class="ai" type="number" min="${r.min}" max="${r.max}" value="${r.size}" oninput="setPdfCfg('${r.sizeKey}',parseInt(this.value)||${r.size})" style="width:60px;font-size:12px" title="Taille (px)">
+            ${r.sizeKey?`<input class="ai" type="number" min="${r.min}" max="${r.max}" value="${r.size}" oninput="setPdfCfg('${r.sizeKey}',parseInt(this.value)||${r.size})" style="width:60px;font-size:12px" title="Taille (px)">`:''}
           </div>
         </div>
       `).join('')}
@@ -5283,8 +5280,6 @@ function renderPrintBody(){
       const bevTabs = DATA.tabs.filter(tb=>tb.id!=='__home' && tb.cards && tb.cards.some(c=>c.type==='bevs'));
       if(!bevTabs.length) return '';
       return `<div class="af" style="margin-top:12px">
-        <label class="al">Boissons</label>
-        <div style="font-size:10.5px;color:var(--text3);margin-bottom:6px">Exclues par défaut sur Instagram — à cocher pour les inclure, catégorie par catégorie.</div>
         ${bevTabs.map(tb=>`<label class="admin-toggle" style="margin-top:4px"><input type="checkbox" ${tb.instaIncludeBevs?'checked':''} onchange="tb_setInstaBevs('${tb.id}',this.checked)"><label>Inclure les boissons de "${t(tb.label)}"</label></label>`).join('')}
       </div>`;
     })()}
