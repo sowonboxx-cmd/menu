@@ -2886,6 +2886,7 @@ function renderAdminSection(tid, _skipScroll){
   if(document.getElementById('pdfPreviewFrame')) setTimeout(()=>{ if(typeof updatePdfPreview==='function') updatePdfPreview(); }, 100);
   if(document.getElementById('gbizCarousel')) setTimeout(()=>{ if(typeof initGbizCarouselFrames==='function') initGbizCarouselFrames(); }, 100);
   if(document.getElementById('pdfCarousel')) setTimeout(()=>{ if(typeof initPdfCarouselFrames==='function') initPdfCarouselFrames(); }, 100);
+  if(document.getElementById('instaCarousel')) setTimeout(()=>{ if(typeof initInstaCarouselFrames==='function') initInstaCarouselFrames(); }, 100);
 }
 
 function applyBind(input){
@@ -4114,7 +4115,9 @@ function buildPdfMenuHTML(cfg){
 // starts a page with just a lonely heading and nothing under it.
 function buildPdfBlocks(cfg){
   const restName = getRestaurantName() || 'Menu';
-  const isGbizFmt = cfg.format === 'gbiz';
+  // Instagram (comme Google Business) : aucun en-tête, direct dans les
+  // catégories — chaque story ne montre qu'UNE catégorie à la fois.
+  const isGbizFmt = cfg.format === 'gbiz' || cfg.format === 'insta';
   // Logo: PDF-specific upload > restaurant logo already stored > nothing
   const logoUrl = (DATA.pdfStyle && DATA.pdfStyle.logoData) || getRestaurantLogo() || '';
   const icData = DATA.icones||{};
@@ -4299,6 +4302,97 @@ function paginatePdfPages(cfg){
       spaceScale = Math.min(1.22, 1 + slack * 0.9);
     }
     return { html: pageHtml, spaceScale };
+  });
+
+  document.body.removeChild(holder);
+  return result;
+}
+
+
+// Éclaircit une couleur hex en la mélangeant avec du blanc — utilisé
+// pour dériver le "bleu moyen" des descriptions Instagram à partir du
+// navy de la marque (cfg.titleColor), sans devoir stocker une 2e
+// couleur séparée que Will devrait régler lui-même.
+function lightenHex(hex, amt){
+  hex = (hex||'#10285E').replace('#','');
+  if(hex.length===3) hex = hex.split('').map(c=>c+c).join('');
+  const r = parseInt(hex.slice(0,2),16)||0, g = parseInt(hex.slice(2,4),16)||0, b = parseInt(hex.slice(4,6),16)||0;
+  const mix = c => Math.round(c + (255-c)*amt);
+  return `rgb(${mix(r)},${mix(g)},${mix(b)})`;
+}
+
+// CSS dédiée au format Instagram (story 9:16) — reprend les mêmes
+// classes que buildPdfBlocks produit déjà (.pdf-cat, .pdf-dish, etc.)
+// mais avec un habillage entièrement différent : tout centré, gros
+// titres en majuscules, prix et descriptions en italique, courtes
+// séparations dorées entre les plats plutôt que des pointillés —
+// calqué sur la référence fournie par Will (mood Drevici, mise en
+// forme différente). Une image = une seule catégorie, jamais de
+// chevauchement entre catégories.
+function buildInstaCSS(cfg){
+  const navy = cfg.titleColor || '#10285E';
+  const gold = cfg.accentColor || '#C6A24A';
+  const bg = cfg.bgColor || '#FDFBF6';
+  const descColor = lightenHex(navy, 0.28);
+  const pad = 56;
+  return `
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;1,500;1,600&family=Playfair+Display:wght@700;800&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{margin:0;padding:0;background:${bg}}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
+  .pdf-page{--space-scale:1;font-family:'Cormorant Garamond',serif;color:${navy};background:${bg};width:${INSTA_RENDER_W}px;height:${Math.round(INSTA_RENDER_W*INSTA_RATIO)}px;padding:${pad}px ${pad*0.65}px;margin:0 auto;position:relative;overflow:hidden;text-align:center;display:flex;flex-direction:column;align-items:center}
+  .pdf-page::before{content:'';position:absolute;inset:20px;border:1.5px solid ${gold};pointer-events:none}
+  .pdf-cat{font-family:'Playfair Display',serif;font-weight:800;font-size:54px;line-height:1.1;text-transform:uppercase;letter-spacing:.01em;color:${navy};margin-bottom:44px;border:none}
+  .pdf-subcat{font-family:'Playfair Display',serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.06em;color:${gold};margin:30px 0 18px}
+  .pdf-dish{margin-bottom:calc(30px * var(--space-scale));width:100%}
+  .pdf-dish + .pdf-dish::before{content:'';display:block;width:64px;height:1px;background:${gold};margin:0 auto calc(26px * var(--space-scale));opacity:.8}
+  .pdf-dish-line{display:flex;justify-content:center;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .pdf-dish-name{font-family:'Playfair Display',serif;font-weight:800;font-size:25px;text-transform:uppercase;letter-spacing:.01em;color:${navy}}
+  .pdf-dots,.pdf-dots-off{display:none}
+  .pdf-dish-price{font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:500;font-size:24px;color:${navy}}
+  .pdf-dish-desc{font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:500;font-size:19px;line-height:1.35;color:${descColor};margin-top:6px;max-width:88%;margin-left:auto;margin-right:auto}
+  .pdf-footer{display:none}
+  `;
+}
+
+// Une image = une seule catégorie (jamais de fusion entre catégories,
+// jamais de découpe au milieu d'une catégorie) — automatique, sans
+// aucun réglage manuel par catégorie contrairement à Google Business :
+// le seul degré de liberté est un resserrement d'espacement (jusqu'à
+// -30%, jamais le texte) si la catégorie ne rentre pas nativement dans
+// le cadre fixe de la story.
+function buildInstaPages(cfg){
+  const { contentBlocks } = buildPdfBlocks(cfg);
+  const groups = [];
+  let current = null;
+  contentBlocks.forEach(b=>{
+    if(b.html.includes('class="pdf-cat"')){ current = []; groups.push(current); }
+    if(current) current.push(b);
+  });
+
+  const css = buildInstaCSS(cfg);
+  const pageH = Math.round(INSTA_RENDER_W*INSTA_RATIO);
+  const holder = document.createElement('div');
+  holder.style.cssText = 'position:fixed;left:-99999px;top:0;visibility:hidden;';
+  holder.innerHTML = `<style>${css}</style><div class="pdf-page" id="__instaMeasure" style="height:auto;overflow:visible"></div>`;
+  document.body.appendChild(holder);
+  const measureEl = holder.querySelector('#__instaMeasure');
+  const heightOf = (html, scale) => {
+    measureEl.style.setProperty('--space-scale', scale ?? 1);
+    measureEl.innerHTML = html;
+    return measureEl.offsetHeight;
+  };
+
+  const COMPRESS_STEPS = [1, 0.94, 0.88, 0.82, 0.76, 0.7];
+  const result = groups.map(group=>{
+    const html = group.map(b=>b.html).join('');
+    const tabIdMatch = html.match(/data-tab-id="([^"]+)"/);
+    const tabId = tabIdMatch ? tabIdMatch[1] : null;
+    let fitScale = COMPRESS_STEPS[COMPRESS_STEPS.length-1];
+    for(const s of COMPRESS_STEPS){
+      if(heightOf(html, s) <= pageH){ fitScale = s; break; }
+    }
+    return { html, spaceScale: fitScale, tabId };
   });
 
   document.body.removeChild(holder);
@@ -4503,6 +4597,9 @@ function exportA4Print(cfg){
 // de l'ancien 1.8863 : un cadre plus compact, moins susceptible d'être
 // rogné à l'affichage sur des écrans plus petits.
 const GBIZ_PAGE_RATIO = 1.663; // height / width
+// Instagram Story — vraie proportion 9:16 (1080×1920 à l'export final).
+const INSTA_RATIO = 16/9; // height / width
+const INSTA_RENDER_W = 608;
 // BUG FIX: le site applique un zoom CSS de 1.1x sur desktop (à partir
 // de 641px de large), mais PAS en dessous de cette largeur — annuler
 // systématiquement un zoom de 1.1 (comme fait dans un premier temps)
@@ -4734,6 +4831,78 @@ async function renderGbizPageToBlob(css, pages, i, restName, bg){
   }
 }
 
+// Instagram : même moteur robuste que Google Business (délai de
+// sécurité + repli sans foreignObjectRendering), mais dimensions et
+// police propres au format story (voir buildInstaCSS/buildInstaPages).
+async function renderInstaPageToBlob(css, pages, i, restName){
+  const TARGET_W = 1080;
+  const scale = TARGET_W / INSTA_RENDER_W;
+  const holder = document.createElement('div');
+  const pageHeightPx = Math.round(INSTA_RENDER_W*INSTA_RATIO);
+  const zoomCancel = 1 / getActiveZoomRatio();
+  holder.style.cssText = `position:fixed;left:0;top:0;width:${INSTA_RENDER_W}px;height:${pageHeightPx}px;opacity:0.001;pointer-events:none;z-index:-1;zoom:${zoomCancel}`;
+  const scaleStyle = pages[i].spaceScale && pages[i].spaceScale!==1 ? `--space-scale:${pages[i].spaceScale};` : '';
+  holder.innerHTML = `<style>${css}</style><div class="pdf-page" id="instaPage${i}" style="width:${INSTA_RENDER_W}px;height:${pageHeightPx}px;overflow:hidden;${scaleStyle}">${pages[i].html}</div>`;
+  document.body.appendChild(holder);
+  const pageEl = holder.querySelector(`#instaPage${i}`);
+  try{
+    await document.fonts.ready;
+    await new Promise(r=>setTimeout(r,150));
+    const withTimeout = (p, ms) => Promise.race([
+      p,
+      new Promise((_,rej)=>setTimeout(()=>rej(new Error('html2canvas timeout')), ms))
+    ]);
+    let canvas;
+    try{
+      canvas = await withTimeout(html2canvas(pageEl, { scale, useCORS:true, backgroundColor:'#ffffff', logging:false, foreignObjectRendering:true }), 20000);
+    } catch(errFo){
+      console.error('foreignObjectRendering a échoué ou expiré, repli sans lui :', errFo);
+      canvas = await withTimeout(html2canvas(pageEl, { scale, useCORS:true, backgroundColor:'#ffffff', logging:false, foreignObjectRendering:false }), 20000);
+    }
+    const tb = pages[i].tabId ? DATA.tabs.find(x=>x.id===pages[i].tabId) : null;
+    const slug = (tb ? t(tb.label) : `image-${i+1}`).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+    const blob = await new Promise(res=>canvas.toBlob(res,'image/png'));
+    if(!blob) throw new Error('toBlob a renvoyé null');
+    return { blob, name: `${restName}-instagram-${slug||i+1}.png`, pageIndex: i };
+  } finally {
+    document.body.removeChild(holder);
+  }
+}
+
+async function exportInstaImages(cfg){
+  if(typeof html2canvas === 'undefined'){ showToast('⚠ html2canvas non chargé'); return; }
+  showToast('Génération des images en cours…');
+  const css = buildInstaCSS(cfg);
+  const pages = buildInstaPages(cfg);
+  const restName = (getRestaurantName()||'menu').replace(/\s+/g,'-').toLowerCase();
+
+  const blobs = [];
+  for(let i=0;i<pages.length;i++){
+    try{
+      const result = await renderInstaPageToBlob(css, pages, i, restName);
+      blobs.push(result);
+    } catch(err){
+      console.error(err);
+      showToast('⚠ Erreur génération image '+(i+1));
+    }
+  }
+
+  if(!blobs.length) return;
+
+  const urls = blobs.map(b=>({ url: URL.createObjectURL(b.blob), name: b.name, pageIndex: b.pageIndex, totalPages: pages.length }));
+
+  try{
+    urls.forEach(({url,name})=>{
+      const link = document.createElement('a');
+      link.download = name;
+      link.href = url;
+      link.click();
+    });
+  } catch(err){ console.error(err); }
+
+  try{ showGbizResultGallery(urls); } catch(err){ console.error(err); }
+}
+
 async function exportGbizImage(cfg){
   if(typeof html2canvas === 'undefined'){ showToast('⚠ html2canvas non chargé'); return; }
   showToast('Génération des images en cours…');
@@ -4842,7 +5011,7 @@ function renderPrintBody(){
     <div style="display:flex;gap:6px;margin-bottom:14px">
       ${tabBtn('print','Impression')}
       ${tabBtn('gbiz','Google Business')}
-      ${tabBtn('insta','Instagram',true)}
+      ${tabBtn('insta','Instagram')}
     </div>`;
 
   const elementsAccordion = `<div class="admin-section collapsible collapsed" style="margin-bottom:10px;border:1px solid var(--border);border-radius:10px;overflow:hidden">
@@ -4890,13 +5059,13 @@ function renderPrintBody(){
     </div>` : `
     <div class="af" style="margin-top:14px">
       <iframe id="pdfPreviewFrame" style="width:100%;height:420px;border:1px solid var(--border);border-radius:8px;background:#e8e8e8"></iframe>
-    </div>`) : activeTab==='gbiz' ? renderGbizPagePreview() : '';
+    </div>`) : activeTab==='gbiz' ? renderGbizPagePreview() : activeTab==='insta' ? renderInstaPagePreview() : '';
 
   const actionHtml = activeTab==='print'
     ? `<button class="aadd" style="width:100%;padding:13px;margin-top:6px;font-weight:700;background:var(--navy);color:#fff;border:none;font-size:14px" onclick="exportA4Print(pdfCfg())">Générer le PDF / Imprimer le menu</button>`
     : activeTab==='gbiz'
     ? `<button class="aadd" style="width:100%;padding:13px;margin-top:6px;font-weight:700;background:var(--navy);color:#fff;border:none;font-size:14px" onclick="exportGbizImage({...pdfCfg(), format:'gbiz'})">Générer l'image Google Business</button>`
-    : `<div style="text-align:center;padding:20px;background:#f7f5f0;border-radius:10px;font-size:12.5px;color:var(--text3);font-family:Jost,sans-serif">📷 Export Instagram (Story / Post) — bientôt disponible.</div>`;
+    : `<button class="aadd" style="width:100%;padding:13px;margin-top:6px;font-weight:700;background:var(--navy);color:#fff;border:none;font-size:14px" onclick="exportInstaImages({...pdfCfg(), format:'insta'})">Générer les images Instagram</button>`;
 
   return `${tabsHtml}
     ${activeTab==='print' ? elementsAccordion : ''}
@@ -4986,9 +5155,25 @@ function initPdfCarouselFrames(){
     if(pages[idx]) frame.srcdoc = buildPreviewSlideDoc(css, pages[idx].html, pages[idx].spaceScale, pageW, pageH);
   });
 }
+function buildInstaPreviewDoc(css, pageHtml, spaceScale){
+  const pageHeightPx = Math.round(INSTA_RENDER_W*INSTA_RATIO);
+  return buildPreviewSlideDoc(css, pageHtml, spaceScale, INSTA_RENDER_W, pageHeightPx);
+}
+function initInstaCarouselFrames(){
+  const container = document.getElementById('instaCarousel');
+  if(!container) return;
+  const cfg = { ...pdfCfg(), format:'insta' };
+  const css = buildInstaCSS(cfg);
+  const pages = buildInstaPages(cfg);
+  container.querySelectorAll('.insta-slide-frame').forEach(frame=>{
+    const idx = parseInt(frame.dataset.idx, 10);
+    if(pages[idx]) frame.srcdoc = buildInstaPreviewDoc(css, pages[idx].html, pages[idx].spaceScale);
+  });
+}
 // Met à jour le point actif pendant le balayage tactile (défilement
 // natif — aucune flèche à gérer). Générique pour partager la même
-// logique entre les deux carrousels (Google Business + Impression).
+// logique entre les trois carrousels (Google Business + Impression +
+// Instagram).
 function carouselOnScroll(containerId, slideClass, dotsId, dotClass){
   const container = document.getElementById(containerId);
   if(!container) return;
@@ -5002,6 +5187,7 @@ function carouselOnScroll(containerId, slideClass, dotsId, dotClass){
 }
 function gbizCarouselOnScroll(){ carouselOnScroll('gbizCarousel','gbiz-slide','gbizCarouselDots','gbiz-carousel-dot'); }
 function pdfCarouselOnScroll(){ carouselOnScroll('pdfCarousel','pdf-slide','pdfCarouselDots','pdf-carousel-dot'); }
+function instaCarouselOnScroll(){ carouselOnScroll('instaCarousel','insta-slide','instaCarouselDots','insta-carousel-dot'); }
 
 // Vignettes de chaque image Google Business à venir, avec pour chaque
 // catégorie le choix de rejoindre la page précédente (espacement
@@ -5072,6 +5258,48 @@ function renderGbizPagePreview(){
       `).join('')}
     </div>`;
 }
+
+// Instagram : automatique, une image = une catégorie, jamais de
+// réglage manuel par catégorie (contrairement à Google Business) —
+// juste l'aperçu, façon Apple sur mobile (balayage, points), vignettes
+// sur desktop.
+function renderInstaPagePreview(){
+  const cfg = { ...pdfCfg(), format:'insta' };
+  const pages = buildInstaPages(cfg);
+  const css = buildInstaCSS(cfg);
+  const fullW = INSTA_RENDER_W, fullH = Math.round(fullW*INSTA_RATIO);
+  const thumbW = 110, thumbH = Math.round(thumbW*INSTA_RATIO);
+  const scaleF = thumbW/fullW;
+
+  const mobilePreview = `<div class="af" style="margin-top:14px">
+    <div id="instaCarousel" onscroll="instaCarouselOnScroll()" style="display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+      ${pages.map((p,i)=>`
+        <div class="insta-slide" style="flex:0 0 88%;scroll-snap-align:start;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#fff">
+          <iframe class="insta-slide-frame" data-idx="${i}" style="width:100%;aspect-ratio:1 / ${INSTA_RATIO};border:none;display:block;background:#fff"></iframe>
+        </div>`).join('')}
+    </div>
+    <div id="instaCarouselDots" style="display:flex;justify-content:center;gap:6px;margin-top:10px">
+      ${pages.map((p,i)=>`<span class="insta-carousel-dot" data-idx="${i}" style="width:${i===0?7:6}px;height:${i===0?7:6}px;border-radius:50%;background:${i===0?'var(--navy)':'var(--border)'}"></span>`).join('')}
+    </div>
+  </div>`;
+
+  const desktopPreview = `<div class="af" style="margin-top:14px">
+    <div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:10px">
+      ${pages.map((p,i)=>`
+        <div style="flex:none;width:${thumbW}px">
+          <div style="width:${thumbW}px;height:${thumbH}px;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:#fff;position:relative">
+            <div class="pdf-page" style="width:${fullW}px;height:${fullH}px;overflow:hidden;transform:scale(${scaleF});transform-origin:top left;${p.spaceScale!==1?`--space-scale:${p.spaceScale};`:''}">${p.html}</div>
+          </div>
+          <div style="text-align:center;font-size:10px;color:var(--text3);margin-top:4px">${p.tabId&&DATA.tabs.find(x=>x.id===p.tabId)?t(DATA.tabs.find(x=>x.id===p.tabId).label):`Image ${i+1}`}</div>
+        </div>
+      `).join('')}
+    </div>
+    <style>${css}</style>
+  </div>`;
+
+  return isMobileDevice() ? mobilePreview : desktopPreview;
+}
+
 // Kept for compatibility (renderExportSection still calls it); wraps the body in its own section.
 function renderPdfStyleSection(){
   return `<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Export du menu</div><div class="admin-sect-body">${renderPrintBody()}</div></div>`;
@@ -5656,6 +5884,9 @@ function toggleAdminSection(el){
   }
   if(sec && !sec.classList.contains('collapsed') && sec.querySelector('#pdfCarousel')){
     setTimeout(()=>{ if(typeof initPdfCarouselFrames==='function') initPdfCarouselFrames(); }, 100);
+  }
+  if(sec && !sec.classList.contains('collapsed') && sec.querySelector('#instaCarousel')){
+    setTimeout(()=>{ if(typeof initInstaCarouselFrames==='function') initInstaCarouselFrames(); }, 100);
   }
 }
 function openFirstAdminSection(){
