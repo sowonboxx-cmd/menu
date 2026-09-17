@@ -4093,7 +4093,19 @@ function pdfCfg(){
     format: d.format || 'a4',                    // 'a4' | 'gbiz'
     paperSize: d.paperSize || 'a4',               // 'a4' | 'a5' — only applies when format is 'a4' (the print/PDF format)
     exportTab: d.exportTab || 'print',            // which tab is active in the export panel UI: 'print' | 'gbiz' | 'insta'
-    instaFont: d.instaFont || 'Playfair Display'  // Instagram uniquement — voir INSTA_FONT_OPTIONS
+    instaFont: d.instaFont || 'Playfair Display', // Instagram uniquement — voir INSTA_FONT_OPTIONS
+    // Instagram uniquement — 3 couleurs et 3 tailles indépendantes
+    // (titre de catégorie / "menu" = nom de plat + prix / description),
+    // pour une liberté totale de personnalisation demandée par Will.
+    // Défauts calqués sur le rendu initial validé (navy + bleu clair
+    // dérivé) pour ne rien changer visuellement tant que rien n'est
+    // explicitement modifié.
+    instaTitleColor: d.instaTitleColor || d.titleColor || '#10285E',
+    instaMenuColor: d.instaMenuColor || d.titleColor || '#10285E',
+    instaDescColor: d.instaDescColor || '',        // vide = dérivé automatiquement du navy (voir buildInstaCSS)
+    instaTitleSize: d.instaTitleSize || 54,
+    instaMenuSize: d.instaMenuSize || 25,
+    instaDescSize: d.instaDescSize || 19
   };
 }
 function setPdfCfg(key, val){
@@ -4346,8 +4358,16 @@ function buildInstaCSS(cfg){
   const navy = cfg.titleColor || '#10285E';
   const gold = cfg.accentColor || '#C6A24A';
   const bg = cfg.bgColor || '#FDFBF6';
-  const descColor = lightenHex(navy, 0.28);
-  const pad = 56;
+  // 3 couleurs et 3 tailles indépendantes (titre / menu / description)
+  // — réglables dans l'admin, uniquement pour Instagram. Défauts
+  // calqués sur le rendu initial si rien n'est explicitement choisi.
+  const titleColor = cfg.instaTitleColor || navy;
+  const menuColor = cfg.instaMenuColor || navy;
+  const descColor = cfg.instaDescColor || lightenHex(navy, 0.28);
+  const titleSize = cfg.instaTitleSize || 54;
+  const menuSize = cfg.instaMenuSize || 25;
+  const descSize = cfg.instaDescSize || 19;
+  const padTop = 100, padSide = 36;
   // Police propre à Instagram (cfg.instaFont) — voir INSTA_FONT_OPTIONS
   // pour la liste proposée dans l'admin. Une seule police pour tout
   // (titre, nom de plat, prix, description), à différents poids/styles
@@ -4359,17 +4379,17 @@ function buildInstaCSS(cfg){
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{margin:0;padding:0;background:${bg}}
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
-  .pdf-page{--space-scale:1;font-family:'${font}',serif;color:${navy};background:${bg};width:${INSTA_RENDER_W}px;height:${Math.round(INSTA_RENDER_W*INSTA_RATIO)}px;padding:${pad}px ${pad*0.65}px;margin:0 auto;position:relative;overflow:hidden;text-align:center;display:flex;flex-direction:column;align-items:center}
+  .pdf-page{--space-scale:1;font-family:'${font}',serif;color:${titleColor};background:${bg};width:${INSTA_RENDER_W}px;height:${Math.round(INSTA_RENDER_W*INSTA_RATIO)}px;padding:${padTop}px ${padSide}px;margin:0 auto;position:relative;overflow:hidden;text-align:center;display:flex;flex-direction:column;align-items:center}
   .pdf-page::before{content:'';position:absolute;inset:20px;border:1.5px solid ${gold};pointer-events:none}
-  .pdf-cat{font-family:'${font}',serif;font-weight:800;font-size:54px;line-height:1.1;text-transform:uppercase;letter-spacing:.01em;color:${navy};margin-bottom:44px;border:none}
+  .pdf-cat{font-family:'${font}',serif;font-weight:800;font-size:${titleSize}px;line-height:1.1;text-transform:uppercase;letter-spacing:.01em;color:${titleColor};margin-bottom:44px;border:none}
   .pdf-subcat{font-family:'${font}',serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.06em;color:${gold};margin:30px 0 18px}
   .pdf-dish{margin-bottom:calc(30px * var(--space-scale));width:100%}
   .pdf-dish + .pdf-dish::before{content:'';display:block;width:64px;height:1px;background:${gold};margin:0 auto calc(26px * var(--space-scale));opacity:.8}
   .pdf-dish-line{display:flex;justify-content:center;align-items:baseline;gap:14px;flex-wrap:wrap}
-  .pdf-dish-name{font-family:'${font}',serif;font-weight:800;font-size:25px;text-transform:uppercase;letter-spacing:.01em;color:${navy}}
+  .pdf-dish-name{font-family:'${font}',serif;font-weight:800;font-size:${menuSize}px;text-transform:uppercase;letter-spacing:.01em;color:${menuColor}}
   .pdf-dots,.pdf-dots-off{display:none}
-  .pdf-dish-price{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:24px;color:${navy}}
-  .pdf-dish-desc{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:19px;line-height:1.35;color:${descColor};margin-top:6px;max-width:88%;margin-left:auto;margin-right:auto}
+  .pdf-dish-price{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${Math.max(14,menuSize-1)}px;color:${menuColor}}
+  .pdf-dish-desc{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${descSize}px;line-height:1.35;color:${descColor};margin-top:6px;max-width:88%;margin-left:auto;margin-right:auto;text-wrap:balance}
   .pdf-footer{display:none}
   `;
 }
@@ -4394,13 +4414,15 @@ function buildInstaCSS(cfg){
 // police si besoin (jamais le texte tronqué). Ainsi le bug n'a plus
 // jamais l'occasion de se déclencher, quelle que soit la longueur du
 // texte réel du restaurateur.
-function fitInstaOneLiners(html, holder){
+function fitInstaOneLiners(html, holder, cfg){
   const measureEl = holder.querySelector('#__instaMeasure');
   // Largeur réellement disponible pour le texte : largeur de page moins
   // le padding gauche+droite de .pdf-page (voir buildInstaCSS), moins
   // une petite marge de sécurité pour ne jamais toucher le cadre doré.
-  const pad = 56*0.65;
-  const availableW = INSTA_RENDER_W - pad*2 - 16;
+  const padSide = 36;
+  const availableW = INSTA_RENDER_W - padSide*2 - 16;
+  const titleSize = cfg.instaTitleSize || 54;
+  const menuSize = cfg.instaMenuSize || 25;
 
   function fitOne(text, tag, className, baseSize, minSize){
     const test = document.createElement(tag);
@@ -4420,7 +4442,7 @@ function fitInstaOneLiners(html, holder){
   }
 
   let out = html.replace(/<h2 class="pdf-cat"([^>]*)>([\s\S]*?)<\/h2>/, (m, attrs, inner)=>{
-    const size = fitOne(inner, 'h2', 'pdf-cat', 54, 24);
+    const size = fitOne(inner, 'h2', 'pdf-cat', titleSize, Math.min(24, titleSize));
     return `<h2 class="pdf-cat"${attrs} style="font-size:${size}px;white-space:nowrap">${inner}</h2>`;
   });
   out = out.replace(/<h3 class="pdf-subcat">([\s\S]*?)<\/h3>/g, (m, inner)=>{
@@ -4428,7 +4450,7 @@ function fitInstaOneLiners(html, holder){
     return `<h3 class="pdf-subcat" style="font-size:${size}px;white-space:nowrap">${inner}</h3>`;
   });
   out = out.replace(/<span class="pdf-dish-name">([\s\S]*?)<\/span>/g, (m, inner)=>{
-    const size = fitOne(inner, 'span', 'pdf-dish-name', 25, 14);
+    const size = fitOne(inner, 'span', 'pdf-dish-name', menuSize, Math.min(14, menuSize));
     return `<span class="pdf-dish-name" style="font-size:${size}px;white-space:nowrap">${inner}</span>`;
   });
   return out;
@@ -4459,7 +4481,7 @@ function buildInstaPages(cfg){
   const COMPRESS_STEPS = [1, 0.94, 0.88, 0.82, 0.76, 0.7];
   const result = groups.map(group=>{
     let html = group.map(b=>b.html).join('');
-    html = fitInstaOneLiners(html, holder);
+    html = fitInstaOneLiners(html, holder, cfg);
     const tabIdMatch = html.match(/data-tab-id="([^"]+)"/);
     const tabId = tabIdMatch ? tabIdMatch[1] : null;
     let fitScale = COMPRESS_STEPS[COMPRESS_STEPS.length-1];
@@ -5149,6 +5171,21 @@ function renderPrintBody(){
       <select class="ai" style="font-size:13px" onchange="setPdfCfg('instaFont',this.value);renderAdminSection(adminCurrentTab)">
         ${INSTA_FONT_OPTIONS.map(f=>`<option value="${f}" ${cfg.instaFont===f?'selected':''}>${f}</option>`).join('')}
       </select>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      ${[
+        {key:'instaTitleColor', sizeKey:'instaTitleSize', label:'Titre', color:cfg.instaTitleColor||cfg.titleColor||'#10285E', size:cfg.instaTitleSize||54, min:24, max:80},
+        {key:'instaMenuColor', sizeKey:'instaMenuSize', label:'Menu (plat + prix)', color:cfg.instaMenuColor||cfg.titleColor||'#10285E', size:cfg.instaMenuSize||25, min:14, max:40},
+        {key:'instaDescColor', sizeKey:'instaDescSize', label:'Description', color:cfg.instaDescColor||lightenHex(cfg.titleColor||'#10285E',0.28), size:cfg.instaDescSize||19, min:12, max:30}
+      ].map(r=>`
+        <div class="af" style="flex:1;min-width:130px">
+          <label class="al">${r.label}</label>
+          <div style="display:flex;align-items:center;gap:6px">
+            <input type="color" value="${/^#/.test(r.color)?r.color:'#10285E'}" oninput="setPdfCfg('${r.key}',this.value)" style="width:36px;height:32px;border:1px solid var(--border);border-radius:6px;padding:2px;cursor:pointer;background:#fff">
+            <input class="ai" type="number" min="${r.min}" max="${r.max}" value="${r.size}" oninput="setPdfCfg('${r.sizeKey}',parseInt(this.value)||${r.size})" style="width:60px;font-size:12px" title="Taille (px)">
+          </div>
+        </div>
+      `).join('')}
     </div>
     ${renderInstaPagePreview()}` : '';
 
