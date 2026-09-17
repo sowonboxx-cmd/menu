@@ -4359,7 +4359,7 @@ function buildInstaCSS(cfg){
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{margin:0;padding:0;background:${bg}}
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
-  .pdf-page{--space-scale:1;font-family:'${font}',serif;color:${navy};background:${bg};width:${INSTA_RENDER_W}px;height:${Math.round(INSTA_RENDER_W*INSTA_RATIO)}px;padding:${pad}px ${pad*0.65}px;margin:0 auto;position:relative;overflow:hidden;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .pdf-page{--space-scale:1;font-family:'${font}',serif;color:${navy};background:${bg};width:${INSTA_RENDER_W}px;height:${Math.round(INSTA_RENDER_W*INSTA_RATIO)}px;padding:${pad}px ${pad*0.65}px;margin:0 auto;position:relative;overflow:hidden;text-align:center;display:flex;flex-direction:column;align-items:center}
   .pdf-page::before{content:'';position:absolute;inset:20px;border:1.5px solid ${gold};pointer-events:none}
   .pdf-cat{font-family:'${font}',serif;font-weight:800;font-size:54px;line-height:1.1;text-transform:uppercase;letter-spacing:.01em;color:${navy};margin-bottom:44px;border:none}
   .pdf-subcat{font-family:'${font}',serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.06em;color:${gold};margin:30px 0 18px}
@@ -4380,6 +4380,60 @@ function buildInstaCSS(cfg){
 // le seul degré de liberté est un resserrement d'espacement (jusqu'à
 // -30%, jamais le texte) si la catégorie ne rentre pas nativement dans
 // le cadre fixe de la story.
+//
+// BUG FIX (chevauchement massif) : dès qu'un titre de catégorie ou un
+// nom de plat était trop long pour tenir sur une ligne, il repassait à
+// la ligne — et html2canvas (contrairement à un vrai navigateur) ne
+// recalcule pas correctement la hauteur d'un conteneur flex dont un
+// enfant vient de passer sur 2 lignes : la hauteur qu'il croit avoir
+// est trop petite, donc tout ce qui suit (description, plat suivant)
+// se retrouve positionné par-dessus au lieu d'en dessous. La vraie
+// solution — demande explicite de Will — est d'empêcher ce
+// retour-à-la-ligne à la source : titres et noms de plats DOIVENT
+// toujours tenir sur une seule ligne, en réduisant leur taille de
+// police si besoin (jamais le texte tronqué). Ainsi le bug n'a plus
+// jamais l'occasion de se déclencher, quelle que soit la longueur du
+// texte réel du restaurateur.
+function fitInstaOneLiners(html, holder){
+  const measureEl = holder.querySelector('#__instaMeasure');
+  // Largeur réellement disponible pour le texte : largeur de page moins
+  // le padding gauche+droite de .pdf-page (voir buildInstaCSS), moins
+  // une petite marge de sécurité pour ne jamais toucher le cadre doré.
+  const pad = 56*0.65;
+  const availableW = INSTA_RENDER_W - pad*2 - 16;
+
+  function fitOne(text, tag, className, baseSize, minSize){
+    const test = document.createElement(tag);
+    test.className = className;
+    test.style.whiteSpace = 'nowrap';
+    test.style.position = 'absolute';
+    test.style.fontSize = baseSize+'px';
+    test.innerHTML = text;
+    measureEl.appendChild(test);
+    let size = baseSize;
+    while(test.scrollWidth > availableW && size > minSize){
+      size -= 1;
+      test.style.fontSize = size+'px';
+    }
+    measureEl.removeChild(test);
+    return size;
+  }
+
+  let out = html.replace(/<h2 class="pdf-cat"([^>]*)>([\s\S]*?)<\/h2>/, (m, attrs, inner)=>{
+    const size = fitOne(inner, 'h2', 'pdf-cat', 54, 24);
+    return `<h2 class="pdf-cat"${attrs} style="font-size:${size}px;white-space:nowrap">${inner}</h2>`;
+  });
+  out = out.replace(/<h3 class="pdf-subcat">([\s\S]*?)<\/h3>/g, (m, inner)=>{
+    const size = fitOne(inner, 'h3', 'pdf-subcat', 22, 13);
+    return `<h3 class="pdf-subcat" style="font-size:${size}px;white-space:nowrap">${inner}</h3>`;
+  });
+  out = out.replace(/<span class="pdf-dish-name">([\s\S]*?)<\/span>/g, (m, inner)=>{
+    const size = fitOne(inner, 'span', 'pdf-dish-name', 25, 14);
+    return `<span class="pdf-dish-name" style="font-size:${size}px;white-space:nowrap">${inner}</span>`;
+  });
+  return out;
+}
+
 function buildInstaPages(cfg){
   const { contentBlocks } = buildPdfBlocks(cfg);
   const groups = [];
@@ -4404,7 +4458,8 @@ function buildInstaPages(cfg){
 
   const COMPRESS_STEPS = [1, 0.94, 0.88, 0.82, 0.76, 0.7];
   const result = groups.map(group=>{
-    const html = group.map(b=>b.html).join('');
+    let html = group.map(b=>b.html).join('');
+    html = fitInstaOneLiners(html, holder);
     const tabIdMatch = html.match(/data-tab-id="([^"]+)"/);
     const tabId = tabIdMatch ? tabIdMatch[1] : null;
     let fitScale = COMPRESS_STEPS[COMPRESS_STEPS.length-1];
