@@ -4724,7 +4724,21 @@ function fitInstaOneLiners(html, holder, cfg){
   // gauche ET à droite, donc 70% de largeur utile) plutôt qu'une
   // marge fixe en pixels : demande explicite de Will, les noms de
   // plats touchaient encore les bords du cadre.
-  const availableW = cfg.tabsSource ? INSTA_RENDER_W * 0.70 : INSTA_RENDER_W - padSide*2 - 16;
+  //
+  // BUG FIX (aligné à gauche) : cette limite à 70% a été pensée pour
+  // du texte CENTRÉ, où elle se traduit automatiquement en 15% de
+  // marge des deux côtés. Aligné à gauche, le texte démarre déjà au
+  // bord gauche (padding fixe de la page) — avec le même plafond de
+  // 70%, un plat qui l'atteint dépasse alors largement à droite (plus
+  // de marge à droite qu'à gauche), OU passe à la ligne trop tôt alors
+  // qu'il reste clairement de la place. Pour que la marge gauche et
+  // la marge droite soient identiques en aligné à gauche, le texte
+  // doit pouvoir utiliser toute la largeur du padding de page (le
+  // même repère qui définit déjà la marge gauche), pas le plafond à
+  // 70% pensé pour le centrage.
+  const availableW = cfg.tabsSource
+    ? (cfg.alignContentLeft ? INSTA_RENDER_W - padSide*2 : INSTA_RENDER_W * 0.70)
+    : INSTA_RENDER_W - padSide*2 - 16;
   const { catTitleSize, menuSize } = instaSizesFor(cfg);
 
   function fitOne(text, tag, className, baseSize, minSize){
