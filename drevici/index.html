@@ -4577,7 +4577,7 @@ function instaSizesFor(cfg){
   const menuSize = cfg.instaMenuSize || 21;
   const descSize = cfg.instaDescSize || 19;
   const globalScale = cfg.tabsSource ? (cfg.globalSizeScale ?? 100)/100 : 1;
-  const catTitleSize = Math.round((cfg.tabsSource ? titleSize*0.5*0.75*1.25 : titleSize) * globalScale);
+  const catTitleSize = Math.round((cfg.tabsSource ? titleSize*0.5*0.75*1.25*0.85 : titleSize) * globalScale);
   const formuleTitleSize = Math.round(titleSize*0.8*globalScale);
   return {
     titleSize,
@@ -4632,7 +4632,7 @@ function buildInstaCSS(cfg, ratio){
   .pdf-cat + .pdf-subcat{margin-top:15px}
   ${cfg.tabsSource ? '.pdf-dish + .pdf-cat{margin-top:38px}' : ''}
   .pdf-subcat{font-family:'${font}',serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.06em;color:${gold};margin:30px 0 18px}
-  .pdf-dish{margin-bottom:calc(${cfg.tabsSource?10.84:30}px * var(--space-scale));width:100%}
+  .pdf-dish{margin-bottom:calc(${cfg.tabsSource?9.21:30}px * var(--space-scale));width:100%}
   ${cfg.tabsSource ? '' : `.pdf-dish + .pdf-dish::before{content:'';display:block;width:64px;height:1px;background:${gold};margin:0 auto calc(26px * var(--space-scale));opacity:.8}`}
   .pdf-dish-line{display:flex;justify-content:center;align-items:baseline;gap:14px}
   .pdf-dish-name{font-family:'${font}',serif;font-weight:800;font-size:${menuSize}px;text-transform:${cfg.tabsSource?'none':'uppercase'};letter-spacing:.01em;color:${menuColor}}
@@ -5699,8 +5699,15 @@ function renderFormulesSection(){
       </div>
       <button class="aadd" style="width:100%;margin-top:10px;padding:9px;font-size:12px" onclick="formule_addCategory('${f.id}')">+ Catégorie</button>
 
-      <div style="margin-top:14px;max-width:220px;margin-left:auto;margin-right:auto">
-        <iframe class="formule-preview-frame" data-fid="${f.id}" style="width:100%;aspect-ratio:1 / ${INSTA_RATIO};border:1px solid var(--border);border-radius:8px;display:block;background:#fff"></iframe>
+      <div class="af" style="margin-top:14px">
+        <div id="formuleCarousel-${f.id}" style="display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+          ${['a4','story','post'].map(variant=>`
+            <div style="flex:0 0 80%;scroll-snap-align:start;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#fff">
+              <iframe class="formule-preview-frame" data-fid="${f.id}" data-variant="${variant}" style="width:100%;aspect-ratio:1 / ${variant==='a4'?INSTA_A4_RATIO:variant==='post'?INSTA_POST_RATIO:INSTA_RATIO};border:none;display:block;background:#fff"></iframe>
+              <div style="text-align:center;font-size:10px;color:var(--text3);padding:4px 0;font-family:Jost,sans-serif;text-transform:uppercase;letter-spacing:.04em">${variant==='a4'?'A4':variant==='post'?'Post':'Story'}</div>
+            </div>
+          `).join('')}
+        </div>
       </div>
       <div style="display:flex;gap:6px;margin-top:10px">
         <button class="aadd" style="flex:1;padding:10px;font-size:12px;background:var(--navy);color:#fff;border:none" onclick="formule_exportInsta('${f.id}','a4')">A4</button>
@@ -5919,11 +5926,20 @@ function buildInstaPreviewDoc(css, pageHtml, spaceScale){
 // chaque frappe (uniquement au chargement/après une action qui
 // re-rend la section) — suffisant pour se faire une idée avant
 // d'exporter.
+// Aperçu statique par formule — les 3 formats (A4/Story/Post) côte à
+// côte dans un carrousel qui se balaie, comme les autres aperçus
+// d'Export du menu (une formule ne produisant jamais qu'une seule
+// page, pas besoin de points de pagination). Pas de mise à jour en
+// direct à chaque frappe (uniquement au chargement/après une action
+// qui re-rend la section) — suffisant pour se faire une idée avant
+// d'exporter.
 function initFormulePreviewFrames(){
   document.querySelectorAll('.formule-preview-frame').forEach(frame=>{
     const fid = frame.dataset.fid;
+    const variant = frame.dataset.variant || 'story';
     const f = DATA.formules && DATA.formules.find(x=>x.id===fid);
     if(!f) return;
+    const ratio = variant==='a4' ? INSTA_A4_RATIO : variant==='post' ? INSTA_POST_RATIO : INSTA_RATIO;
     const cfg = {
       ...pdfCfg(), format:'insta', tabsSource: f.tabs,
       instaTitleColor: f.instaTitleColor, instaMenuColor: f.instaMenuColor,
@@ -5933,8 +5949,8 @@ function initFormulePreviewFrames(){
       globalSizeScale: f.globalSizeScale, catCase: f.catCase, descCase: f.descCase, nameCase: f.nameCase
     };
     cfg.formulePreamble = formule_buildPreamble(f, cfg);
-    const built = buildFormulePage(cfg, INSTA_RATIO);
-    const pageH = Math.round(INSTA_RENDER_W*INSTA_RATIO);
+    const built = buildFormulePage(cfg, ratio);
+    const pageH = Math.round(INSTA_RENDER_W*ratio);
     frame.srcdoc = buildPreviewSlideDoc(built.css, built.pages[0].html, built.pages[0].spaceScale, INSTA_RENDER_W, pageH);
   });
 }
