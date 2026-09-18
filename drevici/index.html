@@ -2811,6 +2811,7 @@ function renderAdminTabDd(){
     +'<option value="__addtab_boissons">+ Nouvelle tab (boissons)</option>'
     +'<option value="__reorder">☰ Réordonner les tabs</option>'
     +'<option value="__print">Export du menu</option>'
+    +'<option value="__formules">Menu et Formule</option>'
     +'<option value="__social" style="font-weight:600">★ Réseaux sociaux</option>';
   dd.value=adminCurrentTab;
 }
@@ -2820,6 +2821,7 @@ function adminGoTab(val){
   if(val==='__addtab_boissons'){ addNewTab('boissons'); return; }
   if(val==='__reorder'){ adminCurrentTab='__reorder'; renderAdminSection('__reorder'); return; }
   if(val==='__print'){ adminCurrentTab='__print'; renderAdminSection('__print'); return; }
+  if(val==='__formules'){ adminCurrentTab='__formules'; renderAdminSection('__formules'); return; }
   if(val==='__social'){ adminCurrentTab='__social'; renderAdminSection('__social'); return; }
   if(val==='__cover'){ adminCurrentTab='__cover'; renderAdminSection('__cover'); return; }
   adminCurrentTab=val;
@@ -2877,6 +2879,8 @@ function renderAdminSection(tid, _skipScroll){
     body.innerHTML=renderTabReorder();
   } else if(tid==='__print'){
     body.innerHTML=`<div class="admin-section"><div class="admin-sect-body">${renderPrintBody()}</div></div>`;
+  } else if(tid==='__formules'){
+    body.innerHTML=renderFormulesSection();
   } else if(tid==='__cover'){
     body.innerHTML=renderAdminHomeCover();
   } else {
@@ -3297,6 +3301,128 @@ function migrateTabIds(){
     if(sessionStorage.getItem('lastTabId')===oldId) sessionStorage.setItem('lastTabId',newId);
   });
 }
+
+// ═══ MENU ET FORMULE ═══
+// Menus/formules autonomes (Menu du jour, Menu Saint-Valentin…),
+// séparés du vrai menu (DATA.tabs) mais utilisant exactement la même
+// forme de données (mêmes catégories → cartes → plats) pour pouvoir
+// être passés tels quels au moteur d'export existant (cfg.tabsSource
+// — voir buildPdfBlocks) sans aucune nouvelle logique de rendu.
+// Maximum 5 : au-delà, la plus ancienne est remplacée — demande
+// explicite de Will pour éviter une liste sans fin.
+function formule_ensureInit(){ if(!DATA.formules) DATA.formules = []; }
+function formule_create(){
+  formule_ensureInit();
+  if(DATA.formules.length >= 5){
+    DATA.formules.shift();
+    showToast('Maximum 5 formules — la plus ancienne a été remplacée');
+  }
+  const id = 'formule-' + Date.now();
+  DATA.formules.push({
+    id, name: 'Nouvelle formule', instaTitleColor:'', instaMenuColor:'', instaDescColor:'', instaBgColor:'',
+    tabs: [{ id: id+'-cat1', label:{fr:'Entrée'}, cards:[{ label:{fr:''}, dishes:[] }] }]
+  });
+  renderAdminSection('__formules');
+}
+function formule_delete(fid){
+  formule_ensureInit();
+  DATA.formules = DATA.formules.filter(f=>f.id!==fid);
+  renderAdminSection('__formules');
+}
+function formule_rename(fid, name){
+  const f = DATA.formules.find(x=>x.id===fid);
+  if(f) f.name = name;
+}
+function formule_setColor(fid, key, value){
+  const f = DATA.formules.find(x=>x.id===fid);
+  if(f){ f[key] = value; renderAdminSection('__formules'); }
+}
+function formule_addCategory(fid){
+  const f = DATA.formules.find(x=>x.id===fid);
+  if(!f) return;
+  f.tabs.push({ id: f.id+'-cat'+(f.tabs.length+1)+'-'+Date.now(), label:{fr:'Nouvelle catégorie'}, cards:[{ label:{fr:''}, dishes:[] }] });
+  renderAdminSection('__formules');
+}
+function formule_removeCategory(fid, catId){
+  const f = DATA.formules.find(x=>x.id===fid);
+  if(!f) return;
+  f.tabs = f.tabs.filter(c=>c.id!==catId);
+  renderAdminSection('__formules');
+}
+function formule_renameCategory(fid, catId, name){
+  const f = DATA.formules.find(x=>x.id===fid);
+  const cat = f && f.tabs.find(c=>c.id===catId);
+  if(cat) cat.label = { fr: name };
+}
+function formule_addDish(fid, catId){
+  const f = DATA.formules.find(x=>x.id===fid);
+  const cat = f && f.tabs.find(c=>c.id===catId);
+  if(!cat) return;
+  cat.cards[0].dishes.push({ name:{fr:''}, desc:{fr:''}, price:'' });
+  renderAdminSection('__formules');
+}
+function formule_removeDish(fid, catId, idx){
+  const f = DATA.formules.find(x=>x.id===fid);
+  const cat = f && f.tabs.find(c=>c.id===catId);
+  if(!cat) return;
+  cat.cards[0].dishes.splice(idx,1);
+  renderAdminSection('__formules');
+}
+function formule_updateDish(fid, catId, idx, field, value){
+  const f = DATA.formules.find(x=>x.id===fid);
+  const cat = f && f.tabs.find(c=>c.id===catId);
+  const dish = cat && cat.cards[0].dishes[idx];
+  if(!dish) return;
+  if(field==='name' || field==='desc') dish[field] = { fr: value };
+  else dish[field] = value;
+}
+// Liste plate de tous les plats du vrai menu, pour "importer un plat
+// existant" — seules les cartes de type plat simple (pas boissons/
+// variantes) sont proposées, pour rester simple dans un premier temps.
+function formule_getRealDishes(){
+  const out = [];
+  DATA.tabs.filter(tb=>tb.id!=='__home').forEach(tb=>{
+    (tb.cards||[]).forEach(card=>{
+      if(!card.dishes) return;
+      card.dishes.forEach(d=>{
+        if(d.hidden) return;
+        out.push({ tabLabel: t(tb.label), name: t(d.name), desc: t(d.desc)||'', price: d.price||'' });
+      });
+    });
+  });
+  return out;
+}
+function formule_importDish(fid, catId, selectEl){
+  const idx = parseInt(selectEl.value, 10);
+  selectEl.value = '';
+  if(isNaN(idx)) return;
+  const real = formule_getRealDishes()[idx];
+  if(!real) return;
+  const f = DATA.formules.find(x=>x.id===fid);
+  const cat = f && f.tabs.find(c=>c.id===catId);
+  if(!cat) return;
+  // Copie indépendante — modifier le prix ou le texte ici ne touche
+  // jamais le vrai plat du menu principal.
+  cat.cards[0].dishes.push({ name:{fr:real.name}, desc:{fr:real.desc}, price:real.price });
+  renderAdminSection('__formules');
+}
+function formule_exportPrint(fid){
+  const f = DATA.formules.find(x=>x.id===fid);
+  if(!f) return;
+  const cfg = { ...pdfCfg(), tabsSource: f.tabs };
+  exportA4Print(cfg);
+}
+function formule_exportInsta(fid, variant){
+  const f = DATA.formules.find(x=>x.id===fid);
+  if(!f) return;
+  const cfg = {
+    ...pdfCfg(), format:'insta', tabsSource: f.tabs,
+    instaTitleColor: f.instaTitleColor, instaMenuColor: f.instaMenuColor,
+    instaDescColor: f.instaDescColor, instaBgColor: f.instaBgColor
+  };
+  exportInstaImages(cfg, variant);
+}
+
 function addNewTab(type){
   let cards, labelFr, labelEn;
   if(type==='boissons'){
@@ -4190,7 +4316,12 @@ function buildPdfBlocks(cfg){
   const priceText = d => pdfCurrency((isGbizFmt && d.priceType==='dual' && d.p1 && d.p2)
     ? (isInstaFmt ? `${d.p1}` : `${d.p1}€ / ${d.p2}€`)
     : (d.price||''));
-  DATA.tabs.filter(tb=>tb.id!=='__home' && tb.visible!==false).forEach(tb=>{
+  // Réutilisable pour "Menu et Formule" : par défaut on lit le vrai
+  // menu (DATA.tabs), mais si cfg.tabsSource est fourni (les
+  // catégories d'une formule), c'est cette liste qui est utilisée à la
+  // place — c'est le seul point de contact du moteur avec la source
+  // des données, aucune autre logique n'a besoin de changer.
+  (cfg.tabsSource || DATA.tabs).filter(tb=>tb.id!=='__home' && tb.visible!==false).forEach(tb=>{
     let pendingHeader = `<h2 class="pdf-cat" data-tab-id="${tb.id}">${showSecIc?`<img src="${icData.secondary}" style="width:16px;height:16px;object-fit:contain;vertical-align:middle;margin-right:6px" onerror="this.remove()">`:''}${t(tb.label)}</h2>`;
     let firstBlockOfTab = true;
     // "Catégorie solo" — une catégorie qui ne contient qu'UN SEUL plat au
@@ -4527,7 +4658,8 @@ function buildInstaPages(cfg, ratio){
   groups.forEach(group=>{
     const tabIdMatch = group[0].html.match(/data-tab-id="([^"]+)"/);
     const tabId = tabIdMatch ? tabIdMatch[1] : null;
-    const tb = tabId ? DATA.tabs.find(x=>x.id===tabId) : null;
+    const tb = tabId ? (cfg.tabsSource || DATA.tabs).find(x=>x.id===tabId) : null;
+    const tabLabel = tb ? t(tb.label) : null;
     const headerMatch = group[0].html.match(/^<h2 class="pdf-cat"[\s\S]*?<\/h2>/);
     const headerHtml = headerMatch ? headerMatch[0] : '';
 
@@ -4552,7 +4684,7 @@ function buildInstaPages(cfg, ratio){
     const wholeHtml = fixedBlocks.map(b=>b.html).join('');
     const wholeScale = bestScaleFor(wholeHtml);
     if(wholeScale !== null){
-      result.push({ html: wholeHtml, spaceScale: wholeScale, tabId });
+      result.push({ html: wholeHtml, spaceScale: wholeScale, tabId, tabLabel });
       return;
     }
 
@@ -4575,7 +4707,7 @@ function buildInstaPages(cfg, ratio){
         const sliceHtml = slice.map(b=>b.html).join('');
         const scale = bestScaleFor(sliceHtml);
         if(scale === null){ allFit = false; break; }
-        pages.push({ html: sliceHtml, spaceScale: scale, tabId });
+        pages.push({ html: sliceHtml, spaceScale: scale, tabId, tabLabel });
       }
       if(allFit){ result.push(...pages); placed = true; }
     }
@@ -4583,7 +4715,7 @@ function buildInstaPages(cfg, ratio){
       // Dernier recours extrême (même 1 plat par page ne rentrerait
       // pas) : une seule image, compressée au maximum, plutôt que de
       // ne rien produire.
-      result.push({ html: wholeHtml, spaceScale: COMPRESS_STEPS[COMPRESS_STEPS.length-1], tabId });
+      result.push({ html: wholeHtml, spaceScale: COMPRESS_STEPS[COMPRESS_STEPS.length-1], tabId, tabLabel });
     }
   });
 
@@ -5075,8 +5207,7 @@ async function renderInstaPageToBlob(css, pages, i, restName, bg, ratio, variant
     // qui capture la bonne zone (léger écart entre mots possible en
     // échange, largement préférable à du contenu manquant).
     let canvas = await withTimeout(html2canvas(pageEl, { scale, useCORS:true, backgroundColor:bg, logging:false, foreignObjectRendering:false }), 20000);
-    const tb = pages[i].tabId ? DATA.tabs.find(x=>x.id===pages[i].tabId) : null;
-    const slug = (tb ? t(tb.label) : `image-${i+1}`).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+    const slug = (pages[i].tabLabel || `image-${i+1}`).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
     const blob = await new Promise(res=>canvas.toBlob(res,'image/png'));
     if(!blob) throw new Error('toBlob a renvoyé null');
     return { blob, name: `${restName}-instagram-${variantLabel||'story'}-${slug||i+1}.png`, pageIndex: i };
@@ -5224,6 +5355,92 @@ function showGbizResultGallery(images){
 }
 
 // Admin UI for the PDF style panel
+// Section admin "Menu et Formule" — un brouillon pensé pour être
+// ajusté ensuite : liste des formules (max 5), édition libre des
+// catégories/plats (à la main ou importés du vrai menu), couleurs
+// optionnelles (héritent de la marque par défaut, comme Instagram),
+// et export Impression/Story/Post en réutilisant le moteur existant.
+function renderFormulesSection(){
+  formule_ensureInit();
+  const realDishes = formule_getRealDishes();
+  const importOptions = realDishes.map((d,i)=>`<option value="${i}">${d.name} — ${d.tabLabel}</option>`).join('');
+
+  const colorRow = f => `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+    ${[
+      {key:'instaTitleColor', label:'Titre'},
+      {key:'instaMenuColor', label:'Menu'},
+      {key:'instaDescColor', label:'Description'},
+      {key:'instaBgColor', label:'Fond'}
+    ].map(c=>`
+      <div class="af" style="flex:1;min-width:90px">
+        <label class="al">${c.label}</label>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input type="color" value="${f[c.key]||'#10285E'}" oninput="formule_setColor('${f.id}','${c.key}',this.value)" style="width:32px;height:30px;border:1px solid var(--border);border-radius:6px;padding:2px;cursor:pointer;background:#fff">
+          ${f[c.key]?`<button type="button" title="Réinitialiser" onclick="formule_setColor('${f.id}','${c.key}','')" style="width:28px;height:28px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text2);cursor:pointer;font-size:12px">↺</button>`:''}
+        </div>
+      </div>
+    `).join('')}
+  </div>`;
+
+  const formuleCard = f => `<div class="admin-section collapsible collapsed" style="margin-bottom:10px;border:1px solid var(--border);border-radius:10px;overflow:hidden">
+    <div class="admin-sect-title" onclick="toggleAdminSection(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center">
+      <span>${f.name||'Formule sans nom'}</span>
+    </div>
+    <div class="admin-sect-body">
+      <div class="af"><label class="al">Nom de la formule</label>
+        <input class="ai" value="${f.name||''}" placeholder="Ex : Menu du dimanche — 35€" oninput="formule_rename('${f.id}',this.value)">
+      </div>
+
+      <div style="font-size:10.5px;color:var(--text3);margin:10px 0 4px">Couleurs — vides par défaut (héritent de l'identité du restaurant), à changer uniquement si tu veux un habillage différent pour cette formule.</div>
+      ${colorRow(f)}
+
+      <div style="margin-top:14px">
+        ${f.tabs.map(cat=>`
+          <div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:8px;background:#fafafa">
+            <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
+              <input class="ai" style="flex:1;font-weight:600" value="${t(cat.label)||''}" placeholder="Nom de la catégorie (ex : Entrée)" oninput="formule_renameCategory('${f.id}','${cat.id}',this.value)">
+              <button title="Supprimer la catégorie" onclick="formule_removeCategory('${f.id}','${cat.id}')" style="width:30px;height:30px;flex:none;border:1px solid var(--border);border-radius:6px;background:#fff;color:#B31217;cursor:pointer">✕</button>
+            </div>
+            ${(cat.cards[0].dishes||[]).map((d,di)=>`
+              <div style="display:flex;gap:6px;align-items:flex-start;margin-bottom:6px;padding:8px;background:#fff;border:1px solid var(--border);border-radius:6px">
+                <div style="flex:1">
+                  <div style="display:flex;gap:6px;margin-bottom:4px">
+                    <input class="ai" style="flex:1" placeholder="Nom du plat" value="${t(d.name)||''}" oninput="formule_updateDish('${f.id}','${cat.id}',${di},'name',this.value)">
+                    <input class="ai" style="width:70px" placeholder="Prix" value="${d.price||''}" oninput="formule_updateDish('${f.id}','${cat.id}',${di},'price',this.value)">
+                  </div>
+                  <textarea class="ai" rows="1" placeholder="Description (optionnel)" oninput="formule_updateDish('${f.id}','${cat.id}',${di},'desc',this.value)">${t(d.desc)||''}</textarea>
+                </div>
+                <button title="Supprimer le plat" onclick="formule_removeDish('${f.id}','${cat.id}',${di})" style="width:30px;height:30px;flex:none;border:1px solid var(--border);border-radius:6px;background:#fff;color:#B31217;cursor:pointer">✕</button>
+              </div>
+            `).join('')}
+            <div style="display:flex;gap:6px;margin-top:6px">
+              <button class="aadd" style="flex:1;padding:8px;font-size:11.5px" onclick="formule_addDish('${f.id}','${cat.id}')">+ Plat vierge</button>
+              <select class="ai" style="flex:1;font-size:11.5px" onchange="formule_importDish('${f.id}','${cat.id}',this)">
+                <option value="">+ Importer un plat existant…</option>
+                ${importOptions}
+              </select>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <button class="aadd" style="width:100%;margin-top:10px;padding:9px;font-size:12px" onclick="formule_addCategory('${f.id}')">+ Catégorie</button>
+
+      <div style="display:flex;gap:6px;margin-top:14px">
+        <button class="aadd" style="flex:1;padding:10px;font-size:12px;background:var(--navy);color:#fff;border:none" onclick="formule_exportPrint('${f.id}')">Imprimer / PDF</button>
+        <button class="aadd" style="flex:1;padding:10px;font-size:12px;background:var(--navy);color:#fff;border:none" onclick="formule_exportInsta('${f.id}','story')">Story</button>
+        <button class="aadd" style="flex:1;padding:10px;font-size:12px;background:var(--navy);color:#fff;border:none" onclick="formule_exportInsta('${f.id}','post')">Post</button>
+      </div>
+      <button class="aadd" style="width:100%;margin-top:8px;padding:8px;font-size:11px;background:#fff;color:#B31217;border:1px solid #B31217" onclick="if(confirm('Supprimer cette formule ?')) formule_delete('${f.id}')">Supprimer cette formule</button>
+    </div>
+  </div>`;
+
+  return `<div class="admin-section"><div class="admin-sect-body">
+    <div style="font-size:11px;color:var(--text3);margin-bottom:12px;line-height:1.6">Menus et formules autonomes (Menu du jour, Menu Saint-Valentin…) — jusqu'à 5, séparés du menu principal. Écris les plats à la main ou importe-les du vrai menu pour juste changer le prix. Réutilise ensuite l'impression et les réseaux sociaux comme pour le menu.</div>
+    ${DATA.formules.length ? DATA.formules.map(formuleCard).join('') : '<div style="text-align:center;padding:20px;color:var(--text3);font-size:12.5px">Aucune formule pour l\'instant.</div>'}
+    <button class="aadd" style="width:100%;padding:12px;margin-top:6px;font-weight:700" ${DATA.formules.length>=5?'':''} onclick="formule_create()">+ Nouvelle formule${DATA.formules.length>=5?' (remplacera la plus ancienne)':''}</button>
+  </div></div>`;
+}
+
 function renderPrintBody(){
   const cfg = pdfCfg();
   const ic = DATA.icones||{};
