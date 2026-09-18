@@ -4718,7 +4718,11 @@ function fitInstaOneLiners(html, holder, cfg){
   // le padding gauche+droite de .pdf-page (voir buildInstaCSS), moins
   // une petite marge de sécurité pour ne jamais toucher le cadre doré.
   const padSide = 36;
-  const availableW = INSTA_RENDER_W - padSide*2 - 16;
+  // Menus et Formules uniquement — marge en pourcentage (15% à
+  // gauche ET à droite, donc 70% de largeur utile) plutôt qu'une
+  // marge fixe en pixels : demande explicite de Will, les noms de
+  // plats touchaient encore les bords du cadre.
+  const availableW = cfg.tabsSource ? INSTA_RENDER_W * 0.70 : INSTA_RENDER_W - padSide*2 - 16;
   const { catTitleSize, menuSize } = instaSizesFor(cfg);
 
   function fitOne(text, tag, className, baseSize, minSize){
@@ -5640,23 +5644,29 @@ function renderFormulesSection(){
   // même mécanisme que Export du menu) continue de s'appliquer quoi
   // que ces curseurs demandent : un plat trop long au 150% choisi sera
   // ramené à une taille qui rentre, jamais au-delà du cadre.
-  const colorRow = f => `<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:nowrap;align-items:flex-start">
-    ${[
-      {key:'instaTitleColor', sizeKey:'titleSizePct', label:'Titre formule'},
-      {key:'instaMenuColor', sizeKey:'menuSizePct', label:'Plat'},
-      {key:'instaDescColor', sizeKey:'descSizePct', label:'Description'},
-      {key:'instaBgColor', sizeKey:null, label:'Fond'}
-    ].map(c=>`
+  // Titre des catégories + Nom des plats sur une ligne (les deux
+  // réglages qu'on ajuste le plus souvent), Détails des plats +
+  // Couleur de fond sur une deuxième ligne en dessous — plus aéré que
+  // les 4 d'un coup, demande explicite de Will.
+  const colorCell = c => `
       <div class="af" style="flex:1;min-width:0">
         <label class="al" style="font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block">${c.label}</label>
         <div style="display:flex;align-items:center;gap:3px">
-          <input type="color" value="${f[c.key]||defaultFor(c.key)}" oninput="formule_setColor('${f.id}','${c.key}',this.value)" style="width:26px;height:26px;flex:none;border:1px solid var(--border);border-radius:6px;padding:2px;cursor:pointer;background:#fff">
-          ${f[c.key]?`<button type="button" title="Réinitialiser" onclick="formule_setColor('${f.id}','${c.key}','')" style="width:22px;height:22px;flex:none;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text2);cursor:pointer;font-size:11px;padding:0">↺</button>`:''}
+          <input type="color" value="${c.f[c.key]||defaultFor(c.key)}" oninput="formule_setColor('${c.f.id}','${c.key}',this.value)" style="width:26px;height:26px;flex:none;border:1px solid var(--border);border-radius:6px;padding:2px;cursor:pointer;background:#fff">
+          ${c.f[c.key]?`<button type="button" title="Réinitialiser" onclick="formule_setColor('${c.f.id}','${c.key}','')" style="width:22px;height:22px;flex:none;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text2);cursor:pointer;font-size:11px;padding:0">↺</button>`:''}
         </div>
-        ${c.sizeKey?`<input type="range" min="50" max="150" step="1" value="${f[c.sizeKey] ?? 100}" title="Taille — ${f[c.sizeKey] ?? 100}%" oninput="this.title='Taille — '+this.value+'%';formule_setField('${f.id}','${c.sizeKey}',parseInt(this.value,10))" style="width:100%;margin-top:5px">`:''}
-      </div>
-    `).join('')}
-  </div>`;
+        ${c.sizeKey?`<input type="range" min="50" max="150" step="1" value="${c.f[c.sizeKey] ?? 100}" title="Taille — ${c.f[c.sizeKey] ?? 100}%" oninput="this.title='Taille — '+this.value+'%';formule_setField('${c.f.id}','${c.sizeKey}',parseInt(this.value,10))" style="width:100%;margin-top:5px">`:''}
+      </div>`;
+  const colorRow = f => `
+    <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:nowrap;align-items:flex-start">
+      ${colorCell({f, key:'instaTitleColor', sizeKey:'titleSizePct', label:'Titre des catégories'})}
+      ${colorCell({f, key:'instaMenuColor', sizeKey:'menuSizePct', label:'Nom des plats'})}
+    </div>
+    <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:nowrap;align-items:flex-start">
+      ${colorCell({f, key:'instaDescColor', sizeKey:'descSizePct', label:'Détails des plats'})}
+      ${colorCell({f, key:'instaBgColor', sizeKey:null, label:'Couleur de fond'})}
+    </div>`;
+
 
   const formuleCard = f => `<div class="admin-section collapsible collapsed" style="margin-bottom:10px;border:1px solid var(--border);border-radius:10px;overflow:hidden">
     <div class="admin-sect-title" onclick="toggleAdminSection(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center">
