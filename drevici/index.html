@@ -4666,6 +4666,8 @@ function buildInstaCSS(cfg, ratio){
   .pdf-dish{margin-bottom:calc(${cfg.tabsSource?7.83:30}px * var(--space-scale));width:100%}
   ${cfg.tabsSource ? '' : `.pdf-dish + .pdf-dish::before{content:'';display:block;width:64px;height:1px;background:${gold};margin:0 auto calc(26px * var(--space-scale));opacity:.8}`}
   .pdf-dish-line{display:flex;justify-content:center;align-items:baseline;gap:14px}
+  .pdf-dish-line-group{width:100%}
+  .pdf-dish-line-cont{margin-top:2px}
   .pdf-dish-name{font-family:'${font}',serif;font-weight:800;font-size:${menuSize}px;text-transform:${cfg.tabsSource?'none':'uppercase'};letter-spacing:.01em;color:${menuColor}}
   .pdf-dots,.pdf-dots-off{display:none}
   .pdf-dish-price{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${Math.max(14,menuSize-1)}px;color:${menuColor}}
@@ -4770,22 +4772,63 @@ function fitInstaOneLiners(html, holder, cfg){
   // Sichuan" comme cas limite accepté par Will (jamais plus long que
   // ça dans la pratique) — cette taille devient le plancher, jamais
   // rétréci davantage même pour un nom encore plus long.
-  //
-  // BUG FIX (Menus et Formules) : ce même plancher basé sur la phrase
-  // de référence ne marchait pas ici — si la référence rentre déjà
-  // sans effort à la taille de base (ce qui arrive souvent avec la
-  // marge 15%/15% plus généreuse des formules), le plancher devient
-  // quasi égal à la taille de base et un nom bien plus long qu'elle
-  // (ex. "Sashimi de maquereau, fraises, échalotes & jaune d'œuf
-  // confit au soja") ne rétrécit alors plus du tout et dépasse le
-  // cadre. Pour les formules, où Will veut une garantie absolue de
-  // ne jamais dépasser (pas de "cas accepté"), on utilise directement
-  // le plancher bas (10px) sans passer par la phrase de référence.
-  const worstCaseFloor = cfg.tabsSource ? 10 : fitOne('Maquereau au poivre de Sichuan', 'span', 'pdf-dish-name', menuSize, 10);
-  out = out.replace(/<span class="pdf-dish-name">([\s\S]*?)<\/span>/g, (m, inner)=>{
-    const size = fitOne(inner, 'span', 'pdf-dish-name', menuSize, worstCaseFloor);
-    return `<span class="pdf-dish-name" style="font-size:${size}px;white-space:nowrap">${inner}</span>`;
-  });
+  if(!cfg.tabsSource){
+    const worstCaseFloor = fitOne('Maquereau au poivre de Sichuan', 'span', 'pdf-dish-name', menuSize, 10);
+    out = out.replace(/<span class="pdf-dish-name">([\s\S]*?)<\/span>/g, (m, inner)=>{
+      const size = fitOne(inner, 'span', 'pdf-dish-name', menuSize, worstCaseFloor);
+      return `<span class="pdf-dish-name" style="font-size:${size}px;white-space:nowrap">${inner}</span>`;
+    });
+    return out;
+  }
+
+  // Menus et Formules — demande explicite de Will : tous les noms de
+  // plats gardent la MÊME taille (plus de rétrécissement individuel
+  // qui donnait des tailles incohérentes d'un plat à l'autre). Si un
+  // nom dépasse la largeur disponible (70%) à cette taille commune,
+  // il passe à une DEUXIÈME LIGNE — mais jamais via le retour à la
+  // ligne natif du navigateur (c'est justement ce qui casse le rendu
+  // html2canvas) : on découpe le texte au mot le plus proche nous-
+  // mêmes et on produit deux éléments SÉPARÉS, chacun sur sa propre
+  // ligne, ni l'un ni l'autre ne wrappant jamais lui-même. Le prix
+  // reste uniquement sur la première ligne, pour la clarté demandée.
+  function widthOfName(text, size){
+    const t2 = document.createElement('span');
+    t2.className = 'pdf-dish-name';
+    t2.style.whiteSpace = 'nowrap'; t2.style.position = 'absolute'; t2.style.width = 'auto';
+    t2.style.fontSize = size+'px';
+    t2.innerHTML = text;
+    measureEl.appendChild(t2);
+    const w = t2.scrollWidth;
+    measureEl.removeChild(t2);
+    return w;
+  }
+  out = out.replace(/<div class="pdf-dish-line"><span class="pdf-dish-name">([\s\S]*?)<\/span>((?:<span class="pdf-dots(?:-off)?"><\/span>)?)<span class="pdf-dish-price">([\s\S]*?)<\/span><\/div>/g,
+    (m, nameInner, dotsInner, priceInner)=>{
+      const fullW = widthOfName(nameInner, menuSize);
+      if(fullW <= availableW){
+        return `<div class="pdf-dish-line"><span class="pdf-dish-name" style="font-size:${menuSize}px;white-space:nowrap">${nameInner}</span>${dotsInner}<span class="pdf-dish-price">${priceInner}</span></div>`;
+      }
+      const priceW = widthOfName(priceInner, menuSize);
+      const gap = 14;
+      const words = nameInner.split(' ');
+      let splitIdx = 0;
+      for(let i=words.length-1;i>=1;i--){
+        if(widthOfName(words.slice(0,i).join(' '), menuSize) <= availableW - priceW - gap){ splitIdx = i; break; }
+      }
+      if(splitIdx===0){
+        // Un seul mot déjà trop long même seul pour la 1ère ligne avec
+        // le prix — dernier recours : rétrécir cette ligne, plutôt que
+        // de la couper au milieu d'un mot.
+        let size = menuSize;
+        while(widthOfName(nameInner,size) > availableW && size>10) size -= 1;
+        return `<div class="pdf-dish-line"><span class="pdf-dish-name" style="font-size:${size}px;white-space:nowrap">${nameInner}</span>${dotsInner}<span class="pdf-dish-price">${priceInner}</span></div>`;
+      }
+      const line1 = words.slice(0,splitIdx).join(' ');
+      const line2 = words.slice(splitIdx).join(' ');
+      let size2 = menuSize;
+      while(widthOfName(line2,size2) > availableW && size2>10) size2 -= 1;
+      return `<div class="pdf-dish-line-group"><div class="pdf-dish-line"><span class="pdf-dish-name" style="font-size:${menuSize}px;white-space:nowrap">${line1}</span>${dotsInner}<span class="pdf-dish-price">${priceInner}</span></div><div class="pdf-dish-line pdf-dish-line-cont"><span class="pdf-dish-name" style="font-size:${size2}px;white-space:nowrap">${line2}</span></div></div>`;
+    });
   return out;
 }
 
