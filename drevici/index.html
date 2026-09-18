@@ -4516,6 +4516,12 @@ function buildInstaCSS(cfg, ratio){
   const titleSize = cfg.instaTitleSize || 45;
   const menuSize = cfg.instaMenuSize || 21;
   const descSize = cfg.instaDescSize || 19;
+  // Menus et Formules uniquement — par défaut, une catégorie
+  // (Entrée/Plat/Dessert) est 50% plus petite que la taille de titre
+  // normale, et le titre de la formule elle-même 20% plus petit —
+  // demande explicite de Will.
+  const catTitleSize = cfg.tabsSource ? Math.round(titleSize*0.5) : titleSize;
+  const formuleTitleSize = Math.round(titleSize*0.8);
   // 100px pour la story normale, 50px pour le post ET pour toute
   // formule (A4/Story/Post confondus) — demande explicite de Will :
   // pour une formule, le titre doit toujours être remonté au même
@@ -4534,11 +4540,12 @@ function buildInstaCSS(cfg, ratio){
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
   .pdf-page{--space-scale:1;font-family:'${font}',serif;color:${titleColor};background:${bg};width:${INSTA_RENDER_W}px;height:${Math.round(INSTA_RENDER_W*ratio)}px;padding:${padTop}px ${padSide}px;margin:0 auto;position:relative;overflow:hidden;text-align:center;display:flex;flex-direction:column;align-items:center}
   .pdf-page::before{content:'';position:absolute;inset:20px;border:1.5px solid ${gold};pointer-events:none}
-  .pdf-cat{font-family:'${font}',serif;font-weight:800;font-size:${titleSize}px;line-height:1.1;text-transform:uppercase;letter-spacing:.01em;color:${titleColor};margin-bottom:${cfg.tabsSource?14:44}px;border:none}
+  .pdf-cat{font-family:'${font}',serif;font-weight:800;font-size:${catTitleSize}px;line-height:1.1;text-transform:uppercase;letter-spacing:.01em;color:${titleColor};margin-bottom:${cfg.tabsSource?14:44}px;border:none}
   .pdf-cat:has(+ .pdf-subcat){margin-bottom:22px}
   .pdf-cat + .pdf-subcat{margin-top:15px}
+  ${cfg.tabsSource ? '.pdf-dish + .pdf-cat{margin-top:18px}' : ''}
   .pdf-subcat{font-family:'${font}',serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.06em;color:${gold};margin:30px 0 18px}
-  .pdf-dish{margin-bottom:calc(30px * var(--space-scale));width:100%}
+  .pdf-dish{margin-bottom:calc(${cfg.tabsSource?25.5:30}px * var(--space-scale));width:100%}
   ${cfg.tabsSource ? '' : `.pdf-dish + .pdf-dish::before{content:'';display:block;width:64px;height:1px;background:${gold};margin:0 auto calc(26px * var(--space-scale));opacity:.8}`}
   .pdf-dish-line{display:flex;justify-content:center;align-items:baseline;gap:14px}
   .pdf-dish-name{font-family:'${font}',serif;font-weight:800;font-size:${menuSize}px;text-transform:uppercase;letter-spacing:.01em;color:${menuColor}}
@@ -4548,7 +4555,7 @@ function buildInstaCSS(cfg, ratio){
   .pdf-footer{display:none}
   /* Menus et Formules uniquement — titre + texte libre optionnels,
      affichés avant les catégories (voir formule_buildPreamble). */
-  .formule-title{font-family:'${font}',serif;font-weight:800;font-size:${titleSize}px;line-height:1.15;text-transform:uppercase;letter-spacing:.01em;color:${titleColor};margin-bottom:10px;text-align:center}
+  .formule-title{font-family:'${font}',serif;font-weight:800;font-size:${formuleTitleSize}px;line-height:1.15;text-transform:uppercase;letter-spacing:.01em;color:${titleColor};margin-bottom:10px;text-align:center}
   .formule-freetext{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${descSize}px;line-height:1.4;color:${descColor};white-space:pre-wrap;text-align:center;margin-bottom:34px;max-width:82%;margin-left:auto;margin-right:auto}
   `;
 }
