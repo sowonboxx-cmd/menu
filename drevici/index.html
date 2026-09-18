@@ -2811,7 +2811,7 @@ function renderAdminTabDd(){
     +'<option value="__addtab_boissons">+ Nouvelle tab (boissons)</option>'
     +'<option value="__reorder">☰ Réordonner les tabs</option>'
     +'<option value="__print">Export du menu</option>'
-    +'<option value="__formules">Menu et Formule</option>'
+    +'<option value="__formules">Menus et Formules</option>'
     +'<option value="__social" style="font-weight:600">★ Réseaux sociaux</option>';
   dd.value=adminCurrentTab;
 }
@@ -2880,7 +2880,7 @@ function renderAdminSection(tid, _skipScroll){
   } else if(tid==='__print'){
     body.innerHTML=`<div class="admin-section"><div class="admin-sect-body">${renderPrintBody()}</div></div>`;
   } else if(tid==='__formules'){
-    body.innerHTML=renderFormulesSection();
+    body.innerHTML=renderFormulesSection()+adminSaveBar();
   } else if(tid==='__cover'){
     body.innerHTML=renderAdminHomeCover();
   } else {
@@ -3308,18 +3308,19 @@ function migrateTabIds(){
 // forme de données (mêmes catégories → cartes → plats) pour pouvoir
 // être passés tels quels au moteur d'export existant (cfg.tabsSource
 // — voir buildPdfBlocks) sans aucune nouvelle logique de rendu.
-// Maximum 5 : au-delà, la plus ancienne est remplacée — demande
+// Maximum 10 : au-delà, la plus ancienne est remplacée — demande
 // explicite de Will pour éviter une liste sans fin.
 function formule_ensureInit(){ if(!DATA.formules) DATA.formules = []; }
 function formule_create(){
   formule_ensureInit();
-  if(DATA.formules.length >= 5){
+  if(DATA.formules.length >= 10){
     DATA.formules.shift();
-    showToast('Maximum 5 formules — la plus ancienne a été remplacée');
+    showToast('Maximum 10 formules — la plus ancienne a été remplacée');
   }
   const id = 'formule-' + Date.now();
   DATA.formules.push({
-    id, name: 'Nouvelle formule', instaTitleColor:'', instaMenuColor:'', instaDescColor:'', instaBgColor:'',
+    id, name: 'Nouvelle formule', title:'', freeText:'',
+    instaTitleColor:'', instaMenuColor:'', instaDescColor:'', instaBgColor:'',
     tabs: [{ id: id+'-cat1', label:{fr:'Entrée'}, cards:[{ label:{fr:''}, dishes:[] }] }]
   });
   renderAdminSection('__formules');
@@ -3336,6 +3337,10 @@ function formule_rename(fid, name){
 function formule_setColor(fid, key, value){
   const f = DATA.formules.find(x=>x.id===fid);
   if(f){ f[key] = value; renderAdminSection('__formules'); }
+}
+function formule_setField(fid, field, value){
+  const f = DATA.formules.find(x=>x.id===fid);
+  if(f) f[field] = value;
 }
 function formule_addCategory(fid){
   const f = DATA.formules.find(x=>x.id===fid);
@@ -3406,11 +3411,13 @@ function formule_importDish(fid, catId, selectEl){
   cat.cards[0].dishes.push({ name:{fr:real.name}, desc:{fr:real.desc}, price:real.price });
   renderAdminSection('__formules');
 }
-function formule_exportPrint(fid){
-  const f = DATA.formules.find(x=>x.id===fid);
-  if(!f) return;
-  const cfg = { ...pdfCfg(), tabsSource: f.tabs };
-  exportA4Print(cfg);
+// Titre + texte libre optionnels, injectés en préambule de la
+// première page — voir buildInstaPages (cfg.formulePreamble). Comptent
+// dans le calcul "tout tenir sur une page", comme le reste.
+function formule_buildPreamble(f, cfg){
+  if(!f.title && !f.freeText) return '';
+  const css = buildInstaCSS(cfg);
+  return `${f.title?`<div class="formule-title">${f.title}</div>`:''}${f.freeText?`<div class="formule-freetext">${f.freeText.replace(/\n/g,'<br>')}</div>`:''}`;
 }
 function formule_exportInsta(fid, variant){
   const f = DATA.formules.find(x=>x.id===fid);
@@ -3420,6 +3427,7 @@ function formule_exportInsta(fid, variant){
     instaTitleColor: f.instaTitleColor, instaMenuColor: f.instaMenuColor,
     instaDescColor: f.instaDescColor, instaBgColor: f.instaBgColor
   };
+  cfg.formulePreamble = formule_buildPreamble(f, cfg);
   exportInstaImages(cfg, variant);
 }
 
@@ -4538,6 +4546,10 @@ function buildInstaCSS(cfg, ratio){
   .pdf-dish-price{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${Math.max(14,menuSize-1)}px;color:${menuColor}}
   .pdf-dish-desc{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${descSize}px;line-height:1.35;color:${descColor};margin-top:6px;max-width:76%;margin-left:auto;margin-right:auto;text-wrap:balance}
   .pdf-footer{display:none}
+  /* Menus et Formules uniquement — titre + texte libre optionnels,
+     affichés avant les catégories (voir formule_buildPreamble). */
+  .formule-title{font-family:'${font}',serif;font-weight:800;font-size:${titleSize}px;line-height:1.15;text-transform:uppercase;letter-spacing:.01em;color:${titleColor};margin-bottom:10px;text-align:center}
+  .formule-freetext{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${descSize}px;line-height:1.4;color:${descColor};white-space:pre-wrap;text-align:center;margin-bottom:34px;max-width:82%;margin-left:auto;margin-right:auto}
   `;
 }
 
@@ -4655,7 +4667,8 @@ function buildInstaPages(cfg, ratio){
   };
 
   const result = [];
-  groups.forEach(group=>{
+  groups.forEach((group, groupIdx)=>{
+    const preamble = groupIdx === 0 ? (cfg.formulePreamble || '') : '';
     const tabIdMatch = group[0].html.match(/data-tab-id="([^"]+)"/);
     const tabId = tabIdMatch ? tabIdMatch[1] : null;
     const tb = tabId ? (cfg.tabsSource || DATA.tabs).find(x=>x.id===tabId) : null;
@@ -4681,7 +4694,10 @@ function buildInstaPages(cfg, ratio){
       fixedBlocks[0] = { ...fixedBlocks[0], html: headerHtml + fixedBlocks[0].html };
     }
 
-    const wholeHtml = fixedBlocks.map(b=>b.html).join('');
+    // Le préambule (titre + texte libre d'une formule) compte dans le
+    // calcul "tout tenir sur une page", comme le reste — jamais ajouté
+    // après coup sans vérifier qu'il rentre.
+    const wholeHtml = preamble + fixedBlocks.map(b=>b.html).join('');
     const wholeScale = bestScaleFor(wholeHtml);
     if(wholeScale !== null){
       result.push({ html: wholeHtml, spaceScale: wholeScale, tabId, tabLabel });
@@ -4700,11 +4716,12 @@ function buildInstaPages(cfg, ratio){
     for(let parts=2; parts<=n && !placed; parts++){
       const sizes = balancedSplit(n, parts);
       const pages = [];
-      let idx = 0, allFit = true;
+      let idx = 0, allFit = true, sliceI = 0;
       for(const size of sizes){
         const slice = fixedBlocks.slice(idx, idx+size);
         idx += size;
-        const sliceHtml = slice.map(b=>b.html).join('');
+        const sliceHtml = (sliceI===0 ? preamble : '') + slice.map(b=>b.html).join('');
+        sliceI++;
         const scale = bestScaleFor(sliceHtml);
         if(scale === null){ allFit = false; break; }
         pages.push({ html: sliceHtml, spaceScale: scale, tabId, tabLabel });
@@ -4930,6 +4947,12 @@ const INSTA_RATIO = 16/9; // height / width
 // susceptible de se déclencher puisqu'il y a moins de hauteur
 // disponible.
 const INSTA_POST_RATIO = 4/3; // height / width — 1080×1440
+// "Menus et Formules" — format A4, mais avec l'habillage visuel
+// d'Instagram (centré, épuré) plutôt que celui de l'impression
+// classique du menu complet, jugé plus agréable pour un menu/formule
+// autonome. Même moteur (compression + découpage équilibré multi-
+// pages en dernier recours), juste une proportion A4 (210×297mm).
+const INSTA_A4_RATIO = 1123/794; // height / width
 // 20 polices Google Fonts parmi les plus populaires ET les plus
 // lisibles pour un menu — mélange de serif élégantes (registre menu
 // classique) et de sans-serif nettes (lisibilité). Demande explicite
@@ -5176,9 +5199,9 @@ async function renderGbizPageToBlob(css, pages, i, restName, bg){
 // Instagram : même moteur robuste que Google Business (délai de
 // sécurité + repli sans foreignObjectRendering), mais dimensions et
 // police propres au format story (voir buildInstaCSS/buildInstaPages).
-async function renderInstaPageToBlob(css, pages, i, restName, bg, ratio, variantLabel){
+async function renderInstaPageToBlob(css, pages, i, restName, bg, ratio, variantLabel, targetW){
   ratio = ratio || INSTA_RATIO;
-  const TARGET_W = 1080;
+  const TARGET_W = targetW || 1080;
   const scale = TARGET_W / INSTA_RENDER_W;
   const holder = document.createElement('div');
   const pageHeightPx = Math.round(INSTA_RENDER_W*ratio);
@@ -5216,14 +5239,15 @@ async function renderInstaPageToBlob(css, pages, i, restName, bg, ratio, variant
   }
 }
 
-// variant: 'story' (9:16, par défaut) ou 'post' (4:5) — même moteur,
-// juste une hauteur de page différente ; aucune nouvelle règle
-// (rétrécissement une ligne, découpage équilibré multi-pages,
-// compression d'espacement) n'est dupliquée, tout continue de
-// s'appliquer tel quel avec ce nouveau ratio.
+// variant: 'story' (9:16, par défaut), 'post' (4:5), ou 'a4' (menus et
+// formules — même moteur, juste une hauteur de page différente ;
+// aucune nouvelle règle (rétrécissement une ligne, découpage équilibré
+// multi-pages, compression d'espacement) n'est dupliquée, tout
+// continue de s'appliquer tel quel avec ce nouveau ratio.
 async function exportInstaImages(cfg, variant){
   variant = variant || 'story';
-  const ratio = variant === 'post' ? INSTA_POST_RATIO : INSTA_RATIO;
+  const ratio = variant === 'post' ? INSTA_POST_RATIO : variant === 'a4' ? INSTA_A4_RATIO : INSTA_RATIO;
+  const targetW = variant === 'a4' ? 1600 : 1080; // A4 : un peu plus de résolution pour l'impression
   if(typeof html2canvas === 'undefined'){ showToast('⚠ html2canvas non chargé'); return; }
   showToast('Génération des images en cours…');
   const css = buildInstaCSS(cfg, ratio);
@@ -5234,7 +5258,7 @@ async function exportInstaImages(cfg, variant){
   const blobs = [];
   for(let i=0;i<pages.length;i++){
     try{
-      const result = await renderInstaPageToBlob(css, pages, i, restName, bg, ratio, variant);
+      const result = await renderInstaPageToBlob(css, pages, i, restName, bg, ratio, variant, targetW);
       blobs.push(result);
     } catch(err){
       console.error(err);
@@ -5364,6 +5388,15 @@ function renderFormulesSection(){
   formule_ensureInit();
   const realDishes = formule_getRealDishes();
   const importOptions = realDishes.map((d,i)=>`<option value="${i}">${d.name} — ${d.tabLabel}</option>`).join('');
+  // Vraies couleurs de marque actuelles (Drevici etc.) comme défaut de
+  // repli — pas un bleu générique — cohérent avec ce qu'affiche déjà
+  // Instagram quand rien n'est explicitement changé.
+  const brandCfg = pdfCfg();
+  const brandNavy = brandCfg.titleColor || '#10285E';
+  const brandBg = brandCfg.bgColor || '#FDFBF6';
+  const defaultFor = key => key==='instaBgColor' ? brandBg
+    : key==='instaDescColor' ? lightenHex(brandNavy, 0.28)
+    : brandNavy;
 
   const colorRow = f => `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
     ${[
@@ -5375,7 +5408,7 @@ function renderFormulesSection(){
       <div class="af" style="flex:1;min-width:90px">
         <label class="al">${c.label}</label>
         <div style="display:flex;align-items:center;gap:6px">
-          <input type="color" value="${f[c.key]||'#10285E'}" oninput="formule_setColor('${f.id}','${c.key}',this.value)" style="width:32px;height:30px;border:1px solid var(--border);border-radius:6px;padding:2px;cursor:pointer;background:#fff">
+          <input type="color" value="${f[c.key]||defaultFor(c.key)}" oninput="formule_setColor('${f.id}','${c.key}',this.value)" style="width:32px;height:30px;border:1px solid var(--border);border-radius:6px;padding:2px;cursor:pointer;background:#fff">
           ${f[c.key]?`<button type="button" title="Réinitialiser" onclick="formule_setColor('${f.id}','${c.key}','')" style="width:28px;height:28px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text2);cursor:pointer;font-size:12px">↺</button>`:''}
         </div>
       </div>
@@ -5387,12 +5420,19 @@ function renderFormulesSection(){
       <span>${f.name||'Formule sans nom'}</span>
     </div>
     <div class="admin-sect-body">
-      <div class="af"><label class="al">Nom de la formule</label>
+      <div class="af"><label class="al">Nom de la formule (repère admin uniquement)</label>
         <input class="ai" value="${f.name||''}" placeholder="Ex : Menu du dimanche — 35€" oninput="formule_rename('${f.id}',this.value)">
       </div>
 
-      <div style="font-size:10.5px;color:var(--text3);margin:10px 0 4px">Couleurs — vides par défaut (héritent de l'identité du restaurant), à changer uniquement si tu veux un habillage différent pour cette formule.</div>
+      <div style="font-size:10.5px;color:var(--text3);margin:10px 0 4px">Couleurs — reprennent l'identité du restaurant par défaut, à changer uniquement si tu veux un habillage différent pour cette formule.</div>
       ${colorRow(f)}
+
+      <div class="af" style="margin-top:14px"><label class="al">Titre affiché</label>
+        <input class="ai" value="${f.title||''}" placeholder="Ex : MENU DU DIMANCHE" oninput="formule_setField('${f.id}','title',this.value)">
+      </div>
+      <div class="af" style="margin-top:8px"><label class="al">Texte libre (optionnel)</label>
+        <textarea class="ai" rows="3" placeholder="Ex : Servi du mardi au dimanche, 12h-14h&#10;Entrée + Plat + Dessert — 35€" oninput="formule_setField('${f.id}','freeText',this.value)">${f.freeText||''}</textarea>
+      </div>
 
       <div style="margin-top:14px">
         ${f.tabs.map(cat=>`
@@ -5408,7 +5448,7 @@ function renderFormulesSection(){
                     <input class="ai" style="flex:1" placeholder="Nom du plat" value="${t(d.name)||''}" oninput="formule_updateDish('${f.id}','${cat.id}',${di},'name',this.value)">
                     <input class="ai" style="width:70px" placeholder="Prix" value="${d.price||''}" oninput="formule_updateDish('${f.id}','${cat.id}',${di},'price',this.value)">
                   </div>
-                  <textarea class="ai" rows="1" placeholder="Description (optionnel)" oninput="formule_updateDish('${f.id}','${cat.id}',${di},'desc',this.value)">${t(d.desc)||''}</textarea>
+                  <textarea class="ai" rows="1" placeholder="Description (optionnel — plus court = plus de chances de tenir sur une page)" oninput="formule_updateDish('${f.id}','${cat.id}',${di},'desc',this.value)">${t(d.desc)||''}</textarea>
                 </div>
                 <button title="Supprimer le plat" onclick="formule_removeDish('${f.id}','${cat.id}',${di})" style="width:30px;height:30px;flex:none;border:1px solid var(--border);border-radius:6px;background:#fff;color:#B31217;cursor:pointer">✕</button>
               </div>
@@ -5426,7 +5466,7 @@ function renderFormulesSection(){
       <button class="aadd" style="width:100%;margin-top:10px;padding:9px;font-size:12px" onclick="formule_addCategory('${f.id}')">+ Catégorie</button>
 
       <div style="display:flex;gap:6px;margin-top:14px">
-        <button class="aadd" style="flex:1;padding:10px;font-size:12px;background:var(--navy);color:#fff;border:none" onclick="formule_exportPrint('${f.id}')">Imprimer / PDF</button>
+        <button class="aadd" style="flex:1;padding:10px;font-size:12px;background:var(--navy);color:#fff;border:none" onclick="formule_exportInsta('${f.id}','a4')">A4</button>
         <button class="aadd" style="flex:1;padding:10px;font-size:12px;background:var(--navy);color:#fff;border:none" onclick="formule_exportInsta('${f.id}','story')">Story</button>
         <button class="aadd" style="flex:1;padding:10px;font-size:12px;background:var(--navy);color:#fff;border:none" onclick="formule_exportInsta('${f.id}','post')">Post</button>
       </div>
@@ -5435,9 +5475,9 @@ function renderFormulesSection(){
   </div>`;
 
   return `<div class="admin-section"><div class="admin-sect-body">
-    <div style="font-size:11px;color:var(--text3);margin-bottom:12px;line-height:1.6">Menus et formules autonomes (Menu du jour, Menu Saint-Valentin…) — jusqu'à 5, séparés du menu principal. Écris les plats à la main ou importe-les du vrai menu pour juste changer le prix. Réutilise ensuite l'impression et les réseaux sociaux comme pour le menu.</div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:12px;line-height:1.6">Menus et formules autonomes (Menu du jour, Menu Saint-Valentin…) — jusqu'à 10, séparés du menu principal. Écris les plats à la main ou importe-les du vrai menu pour juste changer le prix. Les descriptions restent optionnelles — sans elles, tout tient plus facilement sur une seule page. Pense à publier après chaque changement.</div>
     ${DATA.formules.length ? DATA.formules.map(formuleCard).join('') : '<div style="text-align:center;padding:20px;color:var(--text3);font-size:12.5px">Aucune formule pour l\'instant.</div>'}
-    <button class="aadd" style="width:100%;padding:12px;margin-top:6px;font-weight:700" ${DATA.formules.length>=5?'':''} onclick="formule_create()">+ Nouvelle formule${DATA.formules.length>=5?' (remplacera la plus ancienne)':''}</button>
+    <button class="aadd" style="width:100%;padding:12px;margin-top:6px;font-weight:700" onclick="formule_create()">+ Nouvelle formule${DATA.formules.length>=10?' (remplacera la plus ancienne)':''}</button>
   </div></div>`;
 }
 
