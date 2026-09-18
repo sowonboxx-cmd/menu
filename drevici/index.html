@@ -2897,6 +2897,7 @@ function renderAdminSection(tid, _skipScroll){
   if(document.getElementById('gbizCarousel')) setTimeout(()=>{ if(typeof initGbizCarouselFrames==='function') initGbizCarouselFrames(); }, 100);
   if(document.getElementById('pdfCarousel')) setTimeout(()=>{ if(typeof initPdfCarouselFrames==='function') initPdfCarouselFrames(); }, 100);
   if(document.getElementById('instaCarousel')) setTimeout(()=>{ if(typeof initInstaCarouselFrames==='function') initInstaCarouselFrames(); }, 100);
+  if(document.querySelector('.formule-preview-frame')) setTimeout(()=>{ if(typeof initFormulePreviewFrames==='function') initFormulePreviewFrames(); }, 100);
 }
 
 function applyBind(input){
@@ -4631,7 +4632,7 @@ function buildInstaCSS(cfg, ratio){
   .pdf-cat + .pdf-subcat{margin-top:15px}
   ${cfg.tabsSource ? '.pdf-dish + .pdf-cat{margin-top:38px}' : ''}
   .pdf-subcat{font-family:'${font}',serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.06em;color:${gold};margin:30px 0 18px}
-  .pdf-dish{margin-bottom:calc(${cfg.tabsSource?12.75:30}px * var(--space-scale));width:100%}
+  .pdf-dish{margin-bottom:calc(${cfg.tabsSource?10.84:30}px * var(--space-scale));width:100%}
   ${cfg.tabsSource ? '' : `.pdf-dish + .pdf-dish::before{content:'';display:block;width:64px;height:1px;background:${gold};margin:0 auto calc(26px * var(--space-scale));opacity:.8}`}
   .pdf-dish-line{display:flex;justify-content:center;align-items:baseline;gap:14px}
   .pdf-dish-name{font-family:'${font}',serif;font-weight:800;font-size:${menuSize}px;text-transform:${cfg.tabsSource?'none':'uppercase'};letter-spacing:.01em;color:${menuColor}}
@@ -5465,7 +5466,13 @@ async function exportInstaImages(cfg, variant){
     });
   } catch(err){ console.error(err); }
 
-  try{ showGbizResultGallery(urls); } catch(err){ console.error(err); }
+  // La galerie de secours n'a de sens que sur mobile (où le
+  // téléchargement JS est peu fiable) — sur desktop, le lien de
+  // téléchargement ci-dessus suffit déjà, ce popup n'apportait rien
+  // et gênait inutilement (demande explicite de Will).
+  if(isMobileDevice()){
+    try{ showGbizResultGallery(urls); } catch(err){ console.error(err); }
+  }
 }
 
 async function exportGbizImage(cfg){
@@ -5584,18 +5591,18 @@ function renderFormulesSection(){
     : key==='instaDescColor' ? lightenHex(brandNavy, 0.28)
     : brandNavy;
 
-  const colorRow = f => `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+  const colorRow = f => `<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:nowrap">
     ${[
       {key:'instaTitleColor', label:'Titre'},
       {key:'instaMenuColor', label:'Menu'},
       {key:'instaDescColor', label:'Description'},
       {key:'instaBgColor', label:'Fond'}
     ].map(c=>`
-      <div class="af" style="flex:1;min-width:90px">
-        <label class="al">${c.label}</label>
-        <div style="display:flex;align-items:center;gap:6px">
-          <input type="color" value="${f[c.key]||defaultFor(c.key)}" oninput="formule_setColor('${f.id}','${c.key}',this.value)" style="width:32px;height:30px;border:1px solid var(--border);border-radius:6px;padding:2px;cursor:pointer;background:#fff">
-          ${f[c.key]?`<button type="button" title="Réinitialiser" onclick="formule_setColor('${f.id}','${c.key}','')" style="width:28px;height:28px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text2);cursor:pointer;font-size:12px">↺</button>`:''}
+      <div class="af" style="flex:1;min-width:0">
+        <label class="al" style="font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block">${c.label}</label>
+        <div style="display:flex;align-items:center;gap:3px">
+          <input type="color" value="${f[c.key]||defaultFor(c.key)}" oninput="formule_setColor('${f.id}','${c.key}',this.value)" style="width:26px;height:26px;flex:none;border:1px solid var(--border);border-radius:6px;padding:2px;cursor:pointer;background:#fff">
+          ${f[c.key]?`<button type="button" title="Réinitialiser" onclick="formule_setColor('${f.id}','${c.key}','')" style="width:22px;height:22px;flex:none;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text2);cursor:pointer;font-size:11px;padding:0">↺</button>`:''}
         </div>
       </div>
     `).join('')}
@@ -5652,8 +5659,7 @@ function renderFormulesSection(){
         </select>
       </div>
 
-      <div style="font-size:10px;color:var(--text3);margin-top:14px">Glisse ⠿ pour réordonner les catégories — replier une catégorie avec ▾ pour y voir plus clair s'il y en a beaucoup.</div>
-      <div style="margin-top:6px">
+      <div style="margin-top:14px">
         ${f.tabs.map((cat,catIdx)=>`
           <div class="admin-card${cat._expanded?'':' collapsed'}" style="border:1px solid var(--border);border-radius:8px;padding:0;margin-top:8px;background:#fafafa"
                draggable="true"
@@ -5693,7 +5699,10 @@ function renderFormulesSection(){
       </div>
       <button class="aadd" style="width:100%;margin-top:10px;padding:9px;font-size:12px" onclick="formule_addCategory('${f.id}')">+ Catégorie</button>
 
-      <div style="display:flex;gap:6px;margin-top:14px">
+      <div style="margin-top:14px;max-width:220px;margin-left:auto;margin-right:auto">
+        <iframe class="formule-preview-frame" data-fid="${f.id}" style="width:100%;aspect-ratio:1 / ${INSTA_RATIO};border:1px solid var(--border);border-radius:8px;display:block;background:#fff"></iframe>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:10px">
         <button class="aadd" style="flex:1;padding:10px;font-size:12px;background:var(--navy);color:#fff;border:none" onclick="formule_exportInsta('${f.id}','a4')">A4</button>
         <button class="aadd" style="flex:1;padding:10px;font-size:12px;background:var(--navy);color:#fff;border:none" onclick="formule_exportInsta('${f.id}','story')">Story</button>
         <button class="aadd" style="flex:1;padding:10px;font-size:12px;background:var(--navy);color:#fff;border:none" onclick="formule_exportInsta('${f.id}','post')">Post</button>
@@ -5703,7 +5712,6 @@ function renderFormulesSection(){
   </div>`;
 
   return `<div class="admin-section"><div class="admin-sect-body">
-    <div style="font-size:11px;color:var(--text3);margin-bottom:12px;line-height:1.6">Menus et formules autonomes (Menu du jour, Menu Saint-Valentin…) — jusqu'à 10, séparés du menu principal. Écris les plats à la main ou importe-les du vrai menu pour juste changer le prix. Les descriptions restent optionnelles — sans elles, tout tient plus facilement sur une seule page. Pense à publier après chaque changement.</div>
     ${DATA.formules.length ? DATA.formules.map(formuleCard).join('') : '<div style="text-align:center;padding:20px;color:var(--text3);font-size:12.5px">Aucune formule pour l\'instant.</div>'}
     <button class="aadd" style="width:100%;padding:12px;margin-top:6px;font-weight:700" onclick="formule_create()">+ Nouvelle formule${DATA.formules.length>=10?' (remplacera la plus ancienne)':''}</button>
   </div></div>`;
@@ -5904,6 +5912,31 @@ function initPdfCarouselFrames(){
 function buildInstaPreviewDoc(css, pageHtml, spaceScale){
   const pageHeightPx = Math.round(INSTA_RENDER_W*INSTA_RATIO);
   return buildPreviewSlideDoc(css, pageHtml, spaceScale, INSTA_RENDER_W, pageHeightPx);
+}
+// Aperçu statique par formule — un seul aperçu (format Story) juste
+// au-dessus des boutons d'export, pas un carrousel (une formule ne
+// produit jamais qu'une seule page). Pas de mise à jour en direct à
+// chaque frappe (uniquement au chargement/après une action qui
+// re-rend la section) — suffisant pour se faire une idée avant
+// d'exporter.
+function initFormulePreviewFrames(){
+  document.querySelectorAll('.formule-preview-frame').forEach(frame=>{
+    const fid = frame.dataset.fid;
+    const f = DATA.formules && DATA.formules.find(x=>x.id===fid);
+    if(!f) return;
+    const cfg = {
+      ...pdfCfg(), format:'insta', tabsSource: f.tabs,
+      instaTitleColor: f.instaTitleColor, instaMenuColor: f.instaMenuColor,
+      instaDescColor: f.instaDescColor, instaBgColor: f.instaBgColor,
+      instaFont: f.instaFont || pdfCfg().instaFont,
+      alignContentLeft: !!f.alignContentLeft, alignTitleLeft: !!f.alignTitleLeft,
+      globalSizeScale: f.globalSizeScale, catCase: f.catCase, descCase: f.descCase, nameCase: f.nameCase
+    };
+    cfg.formulePreamble = formule_buildPreamble(f, cfg);
+    const built = buildFormulePage(cfg, INSTA_RATIO);
+    const pageH = Math.round(INSTA_RENDER_W*INSTA_RATIO);
+    frame.srcdoc = buildPreviewSlideDoc(built.css, built.pages[0].html, built.pages[0].spaceScale, INSTA_RENDER_W, pageH);
+  });
 }
 function initInstaCarouselFrames(){
   const container = document.getElementById('instaCarousel');
