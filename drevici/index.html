@@ -3348,6 +3348,27 @@ function formule_addCategory(fid){
   f.tabs.push({ id: f.id+'-cat'+(f.tabs.length+1)+'-'+Date.now(), label:{fr:'Nouvelle catégorie'}, cards:[{ label:{fr:''}, dishes:[] }] });
   renderAdminSection('__formules');
 }
+// Glisser-déposer pour réordonner les catégories d'une formule (ex :
+// faire passer Plat avant Entrée) — même mécanisme natif HTML5 que le
+// réordonnement des onglets du vrai menu (onDragTab/onDropTab).
+let formuleDragCat = null;
+function formule_onDragCat(e, fid, catIdx){
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT'){ e.preventDefault(); return; }
+  formuleDragCat = { fid, catIdx };
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function formule_onDropCat(e, fid, catIdx){
+  e.preventDefault(); e.currentTarget.classList.remove('drag-over');
+  if(!formuleDragCat || formuleDragCat.fid!==fid || formuleDragCat.catIdx===catIdx) return;
+  const f = DATA.formules.find(x=>x.id===fid);
+  if(!f) return;
+  const [moved] = f.tabs.splice(formuleDragCat.catIdx, 1);
+  f.tabs.splice(catIdx, 0, moved);
+  formuleDragCat = null;
+  renderAdminSection('__formules');
+  showToast('Ordre mis à jour');
+}
 function formule_removeCategory(fid, catId){
   const f = DATA.formules.find(x=>x.id===fid);
   if(!f) return;
@@ -3426,8 +3447,9 @@ function formule_exportInsta(fid, variant){
     ...pdfCfg(), format:'insta', tabsSource: f.tabs,
     instaTitleColor: f.instaTitleColor, instaMenuColor: f.instaMenuColor,
     instaDescColor: f.instaDescColor, instaBgColor: f.instaBgColor,
+    instaFont: f.instaFont || pdfCfg().instaFont,
     alignContentLeft: !!f.alignContentLeft, alignTitleLeft: !!f.alignTitleLeft,
-    globalSizeScale: f.globalSizeScale, catCase: f.catCase, descCase: f.descCase
+    globalSizeScale: f.globalSizeScale, catCase: f.catCase, descCase: f.descCase, nameCase: f.nameCase
   };
   cfg.formulePreamble = formule_buildPreamble(f, cfg);
   exportInstaImages(cfg, variant);
@@ -4511,7 +4533,7 @@ function instaSizesFor(cfg){
   const menuSize = cfg.instaMenuSize || 21;
   const descSize = cfg.instaDescSize || 19;
   const globalScale = cfg.tabsSource ? (cfg.globalSizeScale ?? 100)/100 : 1;
-  const catTitleSize = Math.round((cfg.tabsSource ? titleSize*0.5*0.75 : titleSize) * globalScale);
+  const catTitleSize = Math.round((cfg.tabsSource ? titleSize*0.5*0.75*1.25 : titleSize) * globalScale);
   const formuleTitleSize = Math.round(titleSize*0.8*globalScale);
   return {
     titleSize,
@@ -4570,7 +4592,8 @@ function buildInstaCSS(cfg, ratio){
   .pdf-dish{margin-bottom:calc(${cfg.tabsSource?12.75:30}px * var(--space-scale));width:100%}
   ${cfg.tabsSource ? '' : `.pdf-dish + .pdf-dish::before{content:'';display:block;width:64px;height:1px;background:${gold};margin:0 auto calc(26px * var(--space-scale));opacity:.8}`}
   .pdf-dish-line{display:flex;justify-content:center;align-items:baseline;gap:14px}
-  .pdf-dish-name{font-family:'${font}',serif;font-weight:800;font-size:${menuSize}px;text-transform:uppercase;letter-spacing:.01em;color:${menuColor}}
+  .pdf-dish-name{font-family:'${font}',serif;font-weight:800;font-size:${menuSize}px;text-transform:${cfg.nameCase==='lower'?'lowercase':'uppercase'};letter-spacing:.01em;color:${menuColor}}
+  ${cfg.nameCase==='lower' ? '.pdf-dish-name::first-letter{text-transform:uppercase}' : ''}
   .pdf-dots,.pdf-dots-off{display:none}
   .pdf-dish-price{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${Math.max(14,menuSize-1)}px;color:${menuColor}}
   .pdf-dish-desc{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${descSize}px;line-height:1.35;color:${descColor};margin-top:6px;max-width:76%;margin-left:auto;margin-right:auto;text-wrap:balance;${cfg.tabsSource?`text-transform:${cfg.descCase==='upper'?'uppercase':'lowercase'}`:''}}
@@ -5563,6 +5586,11 @@ function renderFormulesSection(){
         <label class="al">Taille globale des écritures — ${f.globalSizeScale ?? 100}%</label>
         <input type="range" min="40" max="100" step="1" value="${f.globalSizeScale ?? 100}" oninput="this.previousElementSibling.textContent='Taille globale des écritures — '+this.value+'%';formule_setField('${f.id}','globalSizeScale',parseInt(this.value,10))" style="width:100%">
       </div>
+      <div class="af" style="margin-top:10px"><label class="al">Police du visuel</label>
+        <select class="ai" onchange="formule_setField('${f.id}','instaFont',this.value)">
+          ${INSTA_FONT_OPTIONS.map(fo=>`<option value="${fo}" ${(f.instaFont||pdfCfg().instaFont||'Playfair Display')===fo?'selected':''}>${fo}</option>`).join('')}
+        </select>
+      </div>
       <div style="display:flex;gap:8px;margin-top:10px">
         <div class="af" style="flex:1"><label class="al">Casse des catégories</label>
           <select class="ai" onchange="formule_setField('${f.id}','catCase',this.value);renderAdminSection('__formules')">
@@ -5570,21 +5598,37 @@ function renderFormulesSection(){
             <option value="lower" ${f.catCase==='lower'?'selected':''}>Minuscule (1ère lettre en majuscule)</option>
           </select>
         </div>
-        <div class="af" style="flex:1"><label class="al">Casse des descriptions</label>
-          <select class="ai" onchange="formule_setField('${f.id}','descCase',this.value);renderAdminSection('__formules')">
-            <option value="lower" ${f.descCase!=='upper'?'selected':''}>Minuscule (1ère lettre en majuscule)</option>
-            <option value="upper" ${f.descCase==='upper'?'selected':''}>MAJUSCULE</option>
+        <div class="af" style="flex:1"><label class="al">Casse des noms de plats</label>
+          <select class="ai" onchange="formule_setField('${f.id}','nameCase',this.value);renderAdminSection('__formules')">
+            <option value="upper" ${f.nameCase!=='lower'?'selected':''}>MAJUSCULE</option>
+            <option value="lower" ${f.nameCase==='lower'?'selected':''}>Minuscule (1ère lettre en majuscule)</option>
           </select>
         </div>
       </div>
+      <div class="af" style="margin-top:10px"><label class="al">Casse des descriptions</label>
+        <select class="ai" onchange="formule_setField('${f.id}','descCase',this.value);renderAdminSection('__formules')">
+          <option value="lower" ${f.descCase!=='upper'?'selected':''}>Minuscule (1ère lettre en majuscule)</option>
+          <option value="upper" ${f.descCase==='upper'?'selected':''}>MAJUSCULE</option>
+        </select>
+      </div>
 
-      <div style="margin-top:14px">
-        ${f.tabs.map(cat=>`
-          <div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:8px;background:#fafafa">
-            <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
+      <div style="font-size:10px;color:var(--text3);margin-top:14px">Glisse ⠿ pour réordonner les catégories — replier une catégorie avec ▾ pour y voir plus clair s'il y en a beaucoup.</div>
+      <div style="margin-top:6px">
+        ${f.tabs.map((cat,catIdx)=>`
+          <div class="admin-card collapsed" style="border:1px solid var(--border);border-radius:8px;padding:0;margin-top:8px;background:#fafafa"
+               draggable="true"
+               ondragstart="formule_onDragCat(event,'${f.id}',${catIdx})"
+               ondragend="onDragEnd(event)"
+               ondragover="onDragOver(event,0,0,${catIdx})"
+               ondragleave="onDragLeave(event)"
+               ondrop="formule_onDropCat(event,'${f.id}',${catIdx})">
+            <div class="admin-card-hdr" style="display:flex;gap:6px;align-items:center;padding:10px">
+              <span class="drag-handle" title="Glisser pour réordonner" style="cursor:grab;padding:2px 4px">⠿</span>
               <input class="ai" style="flex:1;font-weight:600" value="${t(cat.label)||''}" placeholder="Nom de la catégorie (ex : Entrée)" oninput="formule_renameCategory('${f.id}','${cat.id}',this.value)">
+              <span class="collapse-chevron" style="cursor:pointer;padding:4px 6px;font-size:14px;color:var(--text3)" onclick="this.closest('.admin-card').classList.toggle('collapsed')">▾</span>
               <button title="Supprimer la catégorie" onclick="formule_removeCategory('${f.id}','${cat.id}')" style="width:30px;height:30px;flex:none;border:1px solid var(--border);border-radius:6px;background:#fff;color:#B31217;cursor:pointer">✕</button>
             </div>
+            <div class="admin-card-details" style="padding:0 10px 10px">
             ${(cat.cards[0].dishes||[]).map((d,di)=>`
               <div style="display:flex;gap:6px;align-items:flex-start;margin-bottom:6px;padding:8px;background:#fff;border:1px solid var(--border);border-radius:6px">
                 <div style="flex:1">
@@ -5604,8 +5648,8 @@ function renderFormulesSection(){
                 ${importOptions}
               </select>
             </div>
-          </div>
-        `).join('')}
+            </div>
+          </div>`).join('')}
       </div>
       <button class="aadd" style="width:100%;margin-top:10px;padding:9px;font-size:12px" onclick="formule_addCategory('${f.id}')">+ Catégorie</button>
 
