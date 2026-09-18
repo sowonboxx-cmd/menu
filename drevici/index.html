@@ -4764,14 +4764,24 @@ function fitInstaOneLiners(html, holder, cfg){
   // en inline-block, pas seulement en flex ; html2canvas mesure mal la
   // hauteur dès qu'un retour à la ligne se produit ici, quel que soit
   // le mode d'affichage. Retour au principe d'origine : un nom de plat
-  // ne passe JAMAIS à la ligne, on rétrécit sa police à la place — mais
-  // calibré sur "Maquereau au poivre de Sichuan" comme cas
-  // limite accepté par Will (jamais plus long que ça dans la
-  // pratique) : cette taille devient le plancher, jamais rétréci
-  // davantage même pour un nom encore plus long (mieux vaut un léger
-  // dépassement rare qu'un texte illisible ou le bug qui revient — à
-  // la charge du restaurateur de raccourcir si besoin).
-  const worstCaseFloor = fitOne('Maquereau au poivre de Sichuan', 'span', 'pdf-dish-name', menuSize, 10);
+  // ne passe JAMAIS à la ligne, on rétrécit sa police à la place.
+  //
+  // Export du menu (vrai menu) : calibré sur "Maquereau au poivre de
+  // Sichuan" comme cas limite accepté par Will (jamais plus long que
+  // ça dans la pratique) — cette taille devient le plancher, jamais
+  // rétréci davantage même pour un nom encore plus long.
+  //
+  // BUG FIX (Menus et Formules) : ce même plancher basé sur la phrase
+  // de référence ne marchait pas ici — si la référence rentre déjà
+  // sans effort à la taille de base (ce qui arrive souvent avec la
+  // marge 15%/15% plus généreuse des formules), le plancher devient
+  // quasi égal à la taille de base et un nom bien plus long qu'elle
+  // (ex. "Sashimi de maquereau, fraises, échalotes & jaune d'œuf
+  // confit au soja") ne rétrécit alors plus du tout et dépasse le
+  // cadre. Pour les formules, où Will veut une garantie absolue de
+  // ne jamais dépasser (pas de "cas accepté"), on utilise directement
+  // le plancher bas (10px) sans passer par la phrase de référence.
+  const worstCaseFloor = cfg.tabsSource ? 10 : fitOne('Maquereau au poivre de Sichuan', 'span', 'pdf-dish-name', menuSize, 10);
   out = out.replace(/<span class="pdf-dish-name">([\s\S]*?)<\/span>/g, (m, inner)=>{
     const size = fitOne(inner, 'span', 'pdf-dish-name', menuSize, worstCaseFloor);
     return `<span class="pdf-dish-name" style="font-size:${size}px;white-space:nowrap">${inner}</span>`;
