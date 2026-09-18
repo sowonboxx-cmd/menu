@@ -4539,7 +4539,7 @@ function buildInstaCSS(cfg, ratio){
   .pdf-cat + .pdf-subcat{margin-top:15px}
   .pdf-subcat{font-family:'${font}',serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.06em;color:${gold};margin:30px 0 18px}
   .pdf-dish{margin-bottom:calc(30px * var(--space-scale));width:100%}
-  .pdf-dish + .pdf-dish::before{content:'';display:block;width:64px;height:1px;background:${gold};margin:0 auto calc(26px * var(--space-scale));opacity:.8}
+  ${cfg.tabsSource ? '' : `.pdf-dish + .pdf-dish::before{content:'';display:block;width:64px;height:1px;background:${gold};margin:0 auto calc(26px * var(--space-scale));opacity:.8}`}
   .pdf-dish-line{display:flex;justify-content:center;align-items:baseline;gap:14px}
   .pdf-dish-name{font-family:'${font}',serif;font-weight:800;font-size:${menuSize}px;text-transform:uppercase;letter-spacing:.01em;color:${menuColor}}
   .pdf-dots,.pdf-dots-off{display:none}
@@ -4626,6 +4626,77 @@ function fitInstaOneLiners(html, holder, cfg){
     return `<span class="pdf-dish-name" style="font-size:${size}px;white-space:nowrap">${inner}</span>`;
   });
   return out;
+}
+
+// MENUS ET FORMULES UNIQUEMENT — règle absolue de Will : tout doit
+// tenir sur UNE seule page, jamais de découpage en plusieurs images
+// (contrairement à l'export Instagram du vrai menu, où plusieurs
+// catégories/pages sont normales). Toutes les catégories de la
+// formule sont combinées en un seul bloc. Ordre de repli : d'abord la
+// compression d'espacement habituelle (étendue plus bas que
+// d'habitude), puis, si ça ne suffit toujours pas, une réduction
+// progressive de la taille de police (titre/menu/description
+// ensemble, en gardant leurs proportions relatives) — jamais un
+// découpage en plusieurs pages. Les règles de largeur existantes
+// (une seule ligne pour le titre et le nom de plat, jamais de retour
+// à la ligne) restent inchangées à chaque palier.
+function buildFormulePage(cfg, ratio){
+  ratio = ratio || INSTA_A4_RATIO;
+  const pageH = Math.round(INSTA_RENDER_W*ratio);
+  const baseTitleSize = cfg.instaTitleSize || 45;
+  const baseMenuSize = cfg.instaMenuSize || 21;
+  const baseDescSize = cfg.instaDescSize || 19;
+  // Bien plus bas que le plancher habituel (-30%) — ici on préfère un
+  // espacement très resserré à un découpage en plusieurs images.
+  const COMPRESS_STEPS = [1, 0.94, 0.88, 0.82, 0.76, 0.7, 0.62, 0.54, 0.46, 0.4, 0.34];
+  const FONT_SCALE_STEPS = [1, 0.92, 0.85, 0.78, 0.72, 0.66, 0.6, 0.54];
+
+  const holder = document.createElement('div');
+  holder.style.cssText = 'position:fixed;left:-99999px;top:0;visibility:hidden;';
+  document.body.appendChild(holder);
+
+  let finalHtml = null, finalScale = 1, finalCss = null;
+  outer:
+  for(const fontScale of FONT_SCALE_STEPS){
+    const scaledCfg = {
+      ...cfg,
+      instaTitleSize: Math.max(16, Math.round(baseTitleSize*fontScale)),
+      instaMenuSize: Math.max(11, Math.round(baseMenuSize*fontScale)),
+      instaDescSize: Math.max(10, Math.round(baseDescSize*fontScale))
+    };
+    const css = buildInstaCSS(scaledCfg, ratio);
+    holder.innerHTML = `<style>${css}</style><div class="pdf-page" id="__instaMeasure" style="height:auto;overflow:visible"></div>`;
+    const measureEl = holder.querySelector('#__instaMeasure');
+
+    const { contentBlocks } = buildPdfBlocks(scaledCfg);
+    if(!contentBlocks.length){ finalHtml = cfg.formulePreamble || ''; finalCss = css; break; }
+    const fixedBlocks = contentBlocks.map(b=>({ ...b, html: fitInstaOneLiners(b.html, holder, scaledCfg) }));
+    const wholeHtml = (cfg.formulePreamble || '') + fixedBlocks.map(b=>b.html).join('');
+
+    for(const scale of COMPRESS_STEPS){
+      measureEl.style.setProperty('--space-scale', scale);
+      measureEl.innerHTML = wholeHtml;
+      if(measureEl.offsetHeight <= pageH){
+        finalHtml = wholeHtml; finalScale = scale; finalCss = css;
+        break outer;
+      }
+    }
+  }
+  // Dernier recours extrême (même la plus petite police + la
+  // compression maximale ne suffiraient pas) : on force quand même une
+  // seule page, à la config la plus compressée essayée — jamais de
+  // deuxième image.
+  if(finalHtml === null){
+    const scaledCfg = { ...cfg, instaTitleSize: Math.max(16,Math.round(baseTitleSize*0.54)), instaMenuSize: Math.max(11,Math.round(baseMenuSize*0.54)), instaDescSize: Math.max(10,Math.round(baseDescSize*0.54)) };
+    finalCss = buildInstaCSS(scaledCfg, ratio);
+    const { contentBlocks } = buildPdfBlocks(scaledCfg);
+    const fixedBlocks = contentBlocks.map(b=>({ ...b, html: fitInstaOneLiners(b.html, holder, scaledCfg) }));
+    finalHtml = (cfg.formulePreamble || '') + fixedBlocks.map(b=>b.html).join('');
+    finalScale = 0.34;
+  }
+
+  document.body.removeChild(holder);
+  return { pages: [{ html: finalHtml, spaceScale: finalScale, tabLabel: 'formule' }], css: finalCss };
 }
 
 function buildInstaPages(cfg, ratio){
@@ -5250,8 +5321,17 @@ async function exportInstaImages(cfg, variant){
   const targetW = variant === 'a4' ? 1600 : 1080; // A4 : un peu plus de résolution pour l'impression
   if(typeof html2canvas === 'undefined'){ showToast('⚠ html2canvas non chargé'); return; }
   showToast('Génération des images en cours…');
-  const css = buildInstaCSS(cfg, ratio);
-  const pages = buildInstaPages(cfg, ratio);
+  // Menus et Formules (cfg.tabsSource) : toujours une seule page,
+  // jamais le découpage multi-pages du vrai menu — voir
+  // buildFormulePage.
+  let css, pages;
+  if(cfg.tabsSource){
+    const built = buildFormulePage(cfg, ratio);
+    css = built.css; pages = built.pages;
+  } else {
+    css = buildInstaCSS(cfg, ratio);
+    pages = buildInstaPages(cfg, ratio);
+  }
   const restName = (getRestaurantName()||'menu').replace(/\s+/g,'-').toLowerCase();
   const bg = cfg.instaBgColor || cfg.bgColor || '#FDFBF6';
 
