@@ -1837,18 +1837,18 @@ let _autoSaveTimer=null;
 // right after mutating DATA — this way nothing gets missed. Gated on
 // supaSession && editMode so a regular visitor's own tab-switching
 // never triggers a publish attempt or shows them an admin toast.
-function scheduleAutoSave(){
+function scheduleAutoSave(silent){
   if(_autoSaveTimer) clearTimeout(_autoSaveTimer);
-  _autoSaveTimer=setTimeout(()=>{ publishToSupabase(); }, 900);
+  _autoSaveTimer=setTimeout(()=>{ publishToSupabase(silent); }, 900);
 }
 // Deletions (a tab, a dish, a section...) get saved immediately instead
 // of through the usual debounce — someone who just deleted something is
 // prone to closing the panel or navigating away right after, and the
 // normal ~900ms delay risked losing exactly the change they most wanted
 // kept: the deletion itself.
-function publishNow(){
+function publishNow(silent){
   if(_autoSaveTimer){ clearTimeout(_autoSaveTimer); _autoSaveTimer=null; }
-  publishToSupabase();
+  publishToSupabase(silent);
 }
 // Kept as an alias: the cover section's fields already call this by
 // name in their own handlers — no need to touch each of them.
@@ -3334,23 +3334,23 @@ function formule_create(){
     tabs: [{ id: id+'-cat1', label:{fr:'Entrée'}, cards:[{ label:{fr:''}, dishes:[] }], _expanded:true }]
   });
   renderAdminSection('__formules');
-  scheduleAutoSave();
+  scheduleAutoSave(true);
 }
 function formule_delete(fid){
   formule_ensureInit();
   DATA.formules = DATA.formules.filter(f=>f.id!==fid);
   renderAdminSection('__formules');
-  publishNow();
+  publishNow(true);
 }
 function formule_rename(fid, name){
   const f = DATA.formules.find(x=>x.id===fid);
   if(f) f.name = name;
-  scheduleAutoSave();
+  scheduleAutoSave(true);
 }
 
 function formule_setColor(fid, key, value){
   const f = DATA.formules.find(x=>x.id===fid);
-  if(f){ f[key] = value; renderAdminSection('__formules'); scheduleAutoSave(); }
+  if(f){ f[key] = value; renderAdminSection('__formules'); scheduleAutoSave(true); }
 }
 function formule_setField(fid, field, value){
   const f = DATA.formules.find(x=>x.id===fid);
@@ -3361,14 +3361,14 @@ function formule_setField(fid, field, value){
   // juste les iframes d'aperçu ici (léger, ne perd pas le focus/le
   // défilement, contrairement à un renderAdminSection complet).
   if(typeof initFormulePreviewFrames==='function') initFormulePreviewFrames();
-  scheduleAutoSave();
+  scheduleAutoSave(true);
 }
 function formule_addCategory(fid){
   const f = DATA.formules.find(x=>x.id===fid);
   if(!f) return;
   f.tabs.push({ id: f.id+'-cat'+(f.tabs.length+1)+'-'+Date.now(), label:{fr:'Nouvelle catégorie'}, cards:[{ label:{fr:''}, dishes:[] }], _expanded:true });
   renderAdminSection('__formules');
-  scheduleAutoSave();
+  scheduleAutoSave(true);
 }
 // Glisser-déposer pour réordonner les catégories d'une formule (ex :
 // faire passer Plat avant Entrée) — même mécanisme natif HTML5 que le
@@ -3390,7 +3390,7 @@ function formule_onDropCat(e, fid, catIdx){
   formuleDragCat = null;
   renderAdminSection('__formules');
   showToast('Ordre mis à jour');
-  scheduleAutoSave();
+  scheduleAutoSave(true);
 }
 // BUG FIX (accordéon) : la catégorie se refermait à chaque re-rendu
 // (ex. après l'ajout d'un plat) parce que son état ouvert/fermé
@@ -3408,14 +3408,14 @@ function formule_removeCategory(fid, catId){
   if(!f) return;
   f.tabs = f.tabs.filter(c=>c.id!==catId);
   renderAdminSection('__formules');
-  publishNow();
+  publishNow(true);
 }
 function formule_renameCategory(fid, catId, name){
   const f = DATA.formules.find(x=>x.id===fid);
   const cat = f && f.tabs.find(c=>c.id===catId);
   if(cat) cat.label = { fr: name };
   formule_schedulePreviewRefresh();
-  scheduleAutoSave();
+  scheduleAutoSave(true);
 }
 function formule_addDish(fid, catId){
   const f = DATA.formules.find(x=>x.id===fid);
@@ -3424,7 +3424,7 @@ function formule_addDish(fid, catId){
   cat._expanded = true;
   cat.cards[0].dishes.push({ name:{fr:''}, desc:{fr:''}, price:'' });
   renderAdminSection('__formules');
-  scheduleAutoSave();
+  scheduleAutoSave(true);
 }
 function formule_removeDish(fid, catId, idx){
   const f = DATA.formules.find(x=>x.id===fid);
@@ -3433,7 +3433,7 @@ function formule_removeDish(fid, catId, idx){
   cat._expanded = true;
   cat.cards[0].dishes.splice(idx,1);
   renderAdminSection('__formules');
-  publishNow();
+  publishNow(true);
 }
 function formule_updateDish(fid, catId, idx, field, value){
   const f = DATA.formules.find(x=>x.id===fid);
@@ -3443,7 +3443,7 @@ function formule_updateDish(fid, catId, idx, field, value){
   if(field==='name' || field==='desc') dish[field] = { fr: value };
   else dish[field] = value;
   formule_schedulePreviewRefresh();
-  scheduleAutoSave();
+  scheduleAutoSave(true);
 }
 // Liste plate de tous les plats du vrai menu, pour "importer un plat
 // existant" — seules les cartes de type plat simple (pas boissons/
@@ -3475,7 +3475,7 @@ function formule_importDish(fid, catId, selectEl){
   // jamais le vrai plat du menu principal.
   cat.cards[0].dishes.push({ name:{fr:real.name}, desc:{fr:real.desc}, price:real.price });
   renderAdminSection('__formules');
-  scheduleAutoSave();
+  scheduleAutoSave(true);
 }
 // Titre + texte libre optionnels, injectés en préambule de la
 // première page — voir buildInstaPages (cfg.formulePreamble). Comptent
@@ -4675,8 +4675,8 @@ function buildInstaCSS(cfg, ratio){
   .pdf-footer{display:none}
   /* Menus et Formules uniquement — titre + texte libre optionnels,
      affichés avant les catégories (voir formule_buildPreamble). */
-  .formule-title{font-family:'${font}',serif;font-weight:800;font-size:${formuleTitleSize}px;line-height:1.15;text-transform:uppercase;letter-spacing:.01em;color:${titleColor};margin-bottom:10px;text-align:center}
-  .formule-freetext{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${descSize}px;line-height:1.4;color:${descColor};white-space:pre-wrap;text-align:center;margin-bottom:34px;max-width:82%;margin-left:auto;margin-right:auto}
+  .formule-title{font-family:'${font}',serif;font-weight:800;font-size:${formuleTitleSize}px;line-height:1.15;text-transform:uppercase;letter-spacing:.01em;color:${titleColor};margin-bottom:9px;text-align:center}
+  .formule-freetext{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${Math.round(descSize*0.85)}px;line-height:1.4;color:${descColor};white-space:pre-wrap;text-align:center;margin-bottom:34px;max-width:82%;margin-left:auto;margin-right:auto}
   /* Deux options d'alignement indépendantes, demandées séparément par
      Will : le contenu (catégories/plats) d'un côté, le titre + texte
      libre de l'autre — chacun peut être aligné à gauche ou rester
@@ -5240,15 +5240,28 @@ const INSTA_FONT_OPTIONS = [
   'Montserrat','Raleway','Poppins','Quicksand','Nunito',
   'Oswald','Archivo Narrow','Barlow Condensed','Roboto Condensed','PT Sans Narrow',
   'Fjalla One','Yanone Kaffeesatz','Saira Condensed','Cabin Condensed','Khand',
-  'Asap Condensed','Ubuntu Condensed','Big Shoulders Condensed','IBM Plex Sans Condensed','Encode Sans Condensed'
+  'Asap Condensed','Ubuntu Condensed','Big Shoulders Condensed','IBM Plex Sans Condensed','Encode Sans Condensed',
+  'Rozha One','Kreon','Bevan','Trirong','Rosarivo',
+  'Cormorant SC','Cormorant Upright','Cormorant Infant','Antic Slab','Radley',
+  'Vidaloka','Kadwa','Alegreya','Alegreya SC','Judson'
 ];
 // Polices condensées (lettres plus serrées) — demande explicite de
 // Will pour aider les noms de plats longs à tenir dans le cadre sans
 // trop rétrécir ni passer à la ligne. Affichées avec "(Condensed)"
 // entre parenthèses dans les listes ci-dessous pour qu'on les
 // reconnaisse — le vrai nom de police (sans le suffixe) reste ce qui
-// est envoyé à Google Fonts et stocké comme cfg.instaFont.
-const INSTA_CONDENSED_FONTS = ['Oswald','Archivo Narrow','Barlow Condensed','Roboto Condensed','PT Sans Narrow','Fjalla One','Yanone Kaffeesatz','Saira Condensed','Cabin Condensed','Khand','Asap Condensed','Ubuntu Condensed','Big Shoulders Condensed','IBM Plex Sans Condensed','Encode Sans Condensed'];
+// est envoyé à Google Fonts et stocké comme cfg.instaFont. Deuxième
+// vague : 15 condensées avec empattements (serif), pour ceux qui
+// veulent rester dans un registre plus classique tout en gagnant de
+// la place.
+const INSTA_CONDENSED_FONTS = [
+  'Oswald','Archivo Narrow','Barlow Condensed','Roboto Condensed','PT Sans Narrow',
+  'Fjalla One','Yanone Kaffeesatz','Saira Condensed','Cabin Condensed','Khand',
+  'Asap Condensed','Ubuntu Condensed','Big Shoulders Condensed','IBM Plex Sans Condensed','Encode Sans Condensed',
+  'Rozha One','Kreon','Bevan','Trirong','Rosarivo',
+  'Cormorant SC','Cormorant Upright','Cormorant Infant','Antic Slab','Radley',
+  'Vidaloka','Kadwa','Alegreya','Alegreya SC','Judson'
+];
 function instaFontLabel(font){ return INSTA_CONDENSED_FONTS.includes(font) ? font+' (Condensed)' : font; }
 const INSTA_RENDER_W = 608;
 // BUG FIX: le site applique un zoom CSS de 1.1x sur desktop (à partir
@@ -5719,7 +5732,11 @@ function renderFormulesSection(){
           <input type="color" value="${c.f[c.key]||defaultFor(c.key)}" oninput="formule_setColor('${c.f.id}','${c.key}',this.value)" style="width:26px;height:26px;flex:none;border:1px solid var(--border);border-radius:6px;padding:2px;cursor:pointer;background:#fff">
           ${c.f[c.key]?`<button type="button" title="Réinitialiser" onclick="formule_setColor('${c.f.id}','${c.key}','')" style="width:22px;height:22px;flex:none;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text2);cursor:pointer;font-size:11px;padding:0">↺</button>`:''}
         </div>
-        ${c.sizeKey?`<input type="range" min="50" max="150" step="1" value="${c.f[c.sizeKey] ?? 100}" title="Taille — ${c.f[c.sizeKey] ?? 100}%" oninput="this.title='Taille — '+this.value+'%';formule_setField('${c.f.id}','${c.sizeKey}',parseInt(this.value,10))" style="width:100%;margin-top:5px">`:''}
+        ${c.sizeKey?`
+        <div style="display:flex;align-items:center;gap:4px;margin-top:5px">
+          <input type="range" min="50" max="150" step="1" value="${c.f[c.sizeKey] ?? 100}" oninput="this.nextElementSibling.textContent=this.value+'%';formule_setField('${c.f.id}','${c.sizeKey}',parseInt(this.value,10))" style="flex:1">
+          <span style="font-size:9.5px;color:var(--text3);flex:none;min-width:26px;text-align:right">${c.f[c.sizeKey] ?? 100}%</span>
+        </div>`:''}
       </div>`;
   const colorRow = f => `
     <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:nowrap;align-items:flex-start">
@@ -6255,7 +6272,7 @@ function renderExportSection(){
   </div></div>`+renderPdfStyleSection();
 }
 
-async function publishToSupabase(){
+async function publishToSupabase(silent){
   if(!supaSession){ showToast('⚠️ Connecte-toi pour publier'); renderAdminSection('__global'); return; }
   // NOTE: this used to target a second, redundant "Publier" button
   // (🚀, inside the collapsible "Connexion admin" section) — removed
@@ -6282,7 +6299,7 @@ async function publishToSupabase(){
       .from('menu_data')
       .upsert({ client_slug: CLIENT_SLUG, data: clean, updated_at: new Date().toISOString() }, { onConflict: 'client_slug' });
     if(error) throw error;
-    showToast('✅ Publié !');
+    if(!silent) showToast('✅ Publié !');
   }catch(e){
     console.error('Publish error:',e);
     showToast('❌ '+e.message);
