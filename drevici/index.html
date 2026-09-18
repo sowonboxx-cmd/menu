@@ -5237,8 +5237,19 @@ const INSTA_FONT_OPTIONS = [
   'Playfair Display','Cormorant Garamond','Merriweather','Lora','EB Garamond',
   'Libre Baskerville','Crimson Text','Cardo','Cinzel','Marcellus',
   'Prata','DM Serif Display','Abril Fatface','Bodoni Moda','Josefin Sans',
-  'Montserrat','Raleway','Poppins','Quicksand','Nunito'
+  'Montserrat','Raleway','Poppins','Quicksand','Nunito',
+  'Oswald','Archivo Narrow','Barlow Condensed','Roboto Condensed','PT Sans Narrow',
+  'Fjalla One','Yanone Kaffeesatz','Saira Condensed','Cabin Condensed','Khand',
+  'Asap Condensed','Ubuntu Condensed','Big Shoulders Condensed','IBM Plex Sans Condensed','Encode Sans Condensed'
 ];
+// Polices condensées (lettres plus serrées) — demande explicite de
+// Will pour aider les noms de plats longs à tenir dans le cadre sans
+// trop rétrécir ni passer à la ligne. Affichées avec "(Condensed)"
+// entre parenthèses dans les listes ci-dessous pour qu'on les
+// reconnaisse — le vrai nom de police (sans le suffixe) reste ce qui
+// est envoyé à Google Fonts et stocké comme cfg.instaFont.
+const INSTA_CONDENSED_FONTS = ['Oswald','Archivo Narrow','Barlow Condensed','Roboto Condensed','PT Sans Narrow','Fjalla One','Yanone Kaffeesatz','Saira Condensed','Cabin Condensed','Khand','Asap Condensed','Ubuntu Condensed','Big Shoulders Condensed','IBM Plex Sans Condensed','Encode Sans Condensed'];
+function instaFontLabel(font){ return INSTA_CONDENSED_FONTS.includes(font) ? font+' (Condensed)' : font; }
 const INSTA_RENDER_W = 608;
 // BUG FIX: le site applique un zoom CSS de 1.1x sur desktop (à partir
 // de 641px de large), mais PAS en dessous de cette largeur — annuler
@@ -5741,7 +5752,7 @@ function renderFormulesSection(){
 
       <div class="af" style="margin-top:10px"><label class="al">Police du visuel</label>
         <select class="ai" onchange="formule_setField('${f.id}','instaFont',this.value)">
-          ${INSTA_FONT_OPTIONS.map(fo=>`<option value="${fo}" ${(f.instaFont||pdfCfg().instaFont||'Playfair Display')===fo?'selected':''}>${fo}</option>`).join('')}
+          ${INSTA_FONT_OPTIONS.map(fo=>`<option value="${fo}" ${(f.instaFont||pdfCfg().instaFont||'Playfair Display')===fo?'selected':''}>${instaFontLabel(fo)}</option>`).join('')}
         </select>
         <button type="button" class="aadd" style="margin-top:6px;padding:8px;font-size:11.5px" onclick="showFontGallery('formule','${f.id}')">Voir toutes les polices avec aperçu</button>
       </div>
@@ -5895,7 +5906,7 @@ function renderPrintBody(){
     </div>` : activeTab==='gbiz' ? renderGbizPagePreview() : activeTab==='insta' ? `
     <div class="af"><label class="al">Police du visuel</label>
       <select class="ai" style="font-size:13px" onchange="setPdfCfg('instaFont',this.value);renderAdminSection(adminCurrentTab)">
-        ${INSTA_FONT_OPTIONS.map(f=>`<option value="${f}" ${cfg.instaFont===f?'selected':''}>${f}</option>`).join('')}
+        ${INSTA_FONT_OPTIONS.map(f=>`<option value="${f}" ${cfg.instaFont===f?'selected':''}>${instaFontLabel(f)}</option>`).join('')}
       </select>
     </div>
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
@@ -6460,11 +6471,19 @@ function showFontGallery(target, fid){
   target=target||'resto';
   // Google Fonts supports combining every family into one request —
   // load them all in a single <link> rather than 50 separate ones.
+  // BUG FIX : le lien Google Fonts ne chargeait toujours que FONT_LIST
+  // (la liste des 50 générales) — pour les Menus et Formules, qui
+  // utilisent INSTA_FONT_OPTIONS (avec les nouvelles condensées),
+  // certaines polices n'étaient donc jamais réellement chargées,
+  // affichées avec la police de repli du navigateur dans l'aperçu.
+  // On charge maintenant systématiquement l'union des deux, une
+  // seule fois, quel que soit le contexte d'ouverture de la galerie.
+  const allGalleryFonts = [...new Set([...FONT_LIST, ...INSTA_FONT_OPTIONS])];
   if(!document.querySelector('link[data-font-gallery]')){
     const l=document.createElement('link');
     l.rel='stylesheet';
     l.dataset.fontGallery='1';
-    l.href='https://fonts.googleapis.com/css2?'+FONT_LIST.map(f=>'family='+encodeURIComponent(f)+':wght@400;700').join('&')+'&display=swap';
+    l.href='https://fonts.googleapis.com/css2?'+allGalleryFonts.map(f=>'family='+encodeURIComponent(f)+':wght@400;700').join('&')+'&display=swap';
     document.head.appendChild(l);
   }
   // Menus et Formules : liste réduite (celle déjà proposée pour
@@ -6477,7 +6496,7 @@ function showFontGallery(target, fid){
       ? `formule_setField('${fid}','instaFont','${f.replace(/'/g,"\\'")}');if(typeof initFormulePreviewFrames==='function')initFormulePreviewFrames();closeFontGallery();renderAdminSection('__formules')`
       : `${target==='cover' ? 'setCoverHeadlineFont' : 'setRestoFont'}('${f.replace(/'/g,"\\'")}');closeFontGallery()`;
     return `<div class="font-gallery-row" onclick="${onclick}">
-    <div class="font-gallery-name">${f}</div>
+    <div class="font-gallery-name">${target==='formule' ? instaFontLabel(f) : f}</div>
     <div class="font-gallery-sample" style="font-family:'${f}',serif">${escapeHtmlLocal(sampleText)}</div>
   </div>`;
   }).join('');
