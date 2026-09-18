@@ -3425,7 +3425,8 @@ function formule_exportInsta(fid, variant){
   const cfg = {
     ...pdfCfg(), format:'insta', tabsSource: f.tabs,
     instaTitleColor: f.instaTitleColor, instaMenuColor: f.instaMenuColor,
-    instaDescColor: f.instaDescColor, instaBgColor: f.instaBgColor
+    instaDescColor: f.instaDescColor, instaBgColor: f.instaBgColor,
+    alignContentLeft: !!f.alignContentLeft, alignTitleLeft: !!f.alignTitleLeft
   };
   cfg.formulePreamble = formule_buildPreamble(f, cfg);
   exportInstaImages(cfg, variant);
@@ -4520,7 +4521,7 @@ function buildInstaCSS(cfg, ratio){
   // (Entrée/Plat/Dessert) est 50% plus petite que la taille de titre
   // normale, et le titre de la formule elle-même 20% plus petit —
   // demande explicite de Will.
-  const catTitleSize = cfg.tabsSource ? Math.round(titleSize*0.5) : titleSize;
+  const catTitleSize = cfg.tabsSource ? Math.round(titleSize*0.5*0.75) : titleSize;
   const formuleTitleSize = Math.round(titleSize*0.8);
   // 100px pour la story normale, 50px pour le post ET pour toute
   // formule (A4/Story/Post confondus) — demande explicite de Will :
@@ -4545,7 +4546,7 @@ function buildInstaCSS(cfg, ratio){
   .pdf-cat + .pdf-subcat{margin-top:15px}
   ${cfg.tabsSource ? '.pdf-dish + .pdf-cat{margin-top:18px}' : ''}
   .pdf-subcat{font-family:'${font}',serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.06em;color:${gold};margin:30px 0 18px}
-  .pdf-dish{margin-bottom:calc(${cfg.tabsSource?25.5:30}px * var(--space-scale));width:100%}
+  .pdf-dish{margin-bottom:calc(${cfg.tabsSource?12.75:30}px * var(--space-scale));width:100%}
   ${cfg.tabsSource ? '' : `.pdf-dish + .pdf-dish::before{content:'';display:block;width:64px;height:1px;background:${gold};margin:0 auto calc(26px * var(--space-scale));opacity:.8}`}
   .pdf-dish-line{display:flex;justify-content:center;align-items:baseline;gap:14px}
   .pdf-dish-name{font-family:'${font}',serif;font-weight:800;font-size:${menuSize}px;text-transform:uppercase;letter-spacing:.01em;color:${menuColor}}
@@ -4557,6 +4558,20 @@ function buildInstaCSS(cfg, ratio){
      affichés avant les catégories (voir formule_buildPreamble). */
   .formule-title{font-family:'${font}',serif;font-weight:800;font-size:${formuleTitleSize}px;line-height:1.15;text-transform:uppercase;letter-spacing:.01em;color:${titleColor};margin-bottom:10px;text-align:center}
   .formule-freetext{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${descSize}px;line-height:1.4;color:${descColor};white-space:pre-wrap;text-align:center;margin-bottom:34px;max-width:82%;margin-left:auto;margin-right:auto}
+  /* Deux options d'alignement indépendantes, demandées séparément par
+     Will : le contenu (catégories/plats) d'un côté, le titre + texte
+     libre de l'autre — chacun peut être aligné à gauche ou rester
+     centré, sans dépendre l'un de l'autre. */
+  ${cfg.alignContentLeft ? `
+  .pdf-cat{text-align:left;width:100%}
+  .pdf-subcat{text-align:left;width:100%}
+  .pdf-dish-line{justify-content:flex-start;text-align:left}
+  .pdf-dish-desc{text-align:left;margin-left:0;margin-right:auto}
+  ` : ''}
+  ${cfg.alignTitleLeft ? `
+  .formule-title{text-align:left;width:100%}
+  .formule-freetext{text-align:left;margin-left:0;margin-right:auto;width:100%}
+  ` : ''}
   `;
 }
 
@@ -5520,6 +5535,8 @@ function renderFormulesSection(){
       <div class="af" style="margin-top:8px"><label class="al">Texte libre (optionnel)</label>
         <textarea class="ai" rows="3" placeholder="Ex : Servi du mardi au dimanche, 12h-14h&#10;Entrée + Plat + Dessert — 35€" oninput="formule_setField('${f.id}','freeText',this.value)">${f.freeText||''}</textarea>
       </div>
+      <label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${f.alignTitleLeft?'checked':''} onchange="formule_setField('${f.id}','alignTitleLeft',this.checked)"><label>Aligner le titre et le texte libre à gauche</label></label>
+      <label class="admin-toggle" style="margin-top:4px"><input type="checkbox" ${f.alignContentLeft?'checked':''} onchange="formule_setField('${f.id}','alignContentLeft',this.checked)"><label>Aligner les catégories et les plats à gauche</label></label>
 
       <div style="margin-top:14px">
         ${f.tabs.map(cat=>`
