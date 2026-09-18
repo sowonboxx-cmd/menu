@@ -3312,6 +3312,15 @@ function migrateTabIds(){
 // Maximum 10 : au-delà, la plus ancienne est remplacée — demande
 // explicite de Will pour éviter une liste sans fin.
 function formule_ensureInit(){ if(!DATA.formules) DATA.formules = []; }
+// Aperçu en direct pour les champs texte (nom de plat, prix,
+// description, catégorie...) — léger debounce pour ne pas
+// reconstruire l'aperçu à chaque frappe (buildFormulePage fait
+// plusieurs passes de mesure, ça ralentirait sinon).
+let _formulePreviewTimer = null;
+function formule_schedulePreviewRefresh(){
+  if(_formulePreviewTimer) clearTimeout(_formulePreviewTimer);
+  _formulePreviewTimer = setTimeout(()=>{ if(typeof initFormulePreviewFrames==='function') initFormulePreviewFrames(); }, 400);
+}
 function formule_create(){
   formule_ensureInit();
   if(DATA.formules.length >= 10){
@@ -3338,6 +3347,7 @@ function formule_rename(fid, name){
   if(f) f.name = name;
   scheduleAutoSave();
 }
+
 function formule_setColor(fid, key, value){
   const f = DATA.formules.find(x=>x.id===fid);
   if(f){ f[key] = value; renderAdminSection('__formules'); scheduleAutoSave(); }
@@ -3345,6 +3355,12 @@ function formule_setColor(fid, key, value){
 function formule_setField(fid, field, value){
   const f = DATA.formules.find(x=>x.id===fid);
   if(f) f[field] = value;
+  // BUG FIX (aperçu figé) : les cases d'alignement notamment ne
+  // rafraîchissaient jamais l'aperçu — seul un rendu complet de la
+  // section le faisait, et elles ne le déclenchaient pas. On rafraîchit
+  // juste les iframes d'aperçu ici (léger, ne perd pas le focus/le
+  // défilement, contrairement à un renderAdminSection complet).
+  if(typeof initFormulePreviewFrames==='function') initFormulePreviewFrames();
   scheduleAutoSave();
 }
 function formule_addCategory(fid){
@@ -3398,6 +3414,7 @@ function formule_renameCategory(fid, catId, name){
   const f = DATA.formules.find(x=>x.id===fid);
   const cat = f && f.tabs.find(c=>c.id===catId);
   if(cat) cat.label = { fr: name };
+  formule_schedulePreviewRefresh();
   scheduleAutoSave();
 }
 function formule_addDish(fid, catId){
@@ -3425,6 +3442,7 @@ function formule_updateDish(fid, catId, idx, field, value){
   if(!dish) return;
   if(field==='name' || field==='desc') dish[field] = { fr: value };
   else dish[field] = value;
+  formule_schedulePreviewRefresh();
   scheduleAutoSave();
 }
 // Liste plate de tous les plats du vrai menu, pour "importer un plat
@@ -3467,18 +3485,31 @@ function formule_buildPreamble(f, cfg){
   const css = buildInstaCSS(cfg);
   return `${f.title?`<div class="formule-title">${f.title}</div>`:''}${f.freeText?`<div class="formule-freetext">${f.freeText.replace(/\n/g,'<br>')}</div>`:''}`;
 }
+// Config Instagram/Formule partagée entre l'export et l'aperçu — un
+// seul endroit où les couleurs, la police, l'alignement, la casse ET
+// les curseurs de taille par élément (Titre/Plat/Description, en %
+// de la taille de base) sont assemblés, pour ne jamais les faire
+// diverger entre ce qui s'affiche en aperçu et ce qui s'exporte.
+function formule_buildCfg(f){
+  const base = pdfCfg();
+  const cfg = {
+    ...base, format:'insta', tabsSource: f.tabs,
+    instaTitleColor: f.instaTitleColor, instaMenuColor: f.instaMenuColor,
+    instaDescColor: f.instaDescColor, instaBgColor: f.instaBgColor,
+    instaFont: f.instaFont || base.instaFont,
+    alignContentLeft: !!f.alignContentLeft, alignTitleLeft: !!f.alignTitleLeft,
+    catCase: f.catCase, descCase: f.descCase, nameCase: f.nameCase,
+    instaTitleSize: Math.round((base.instaTitleSize||45) * (f.titleSizePct ?? 100)/100),
+    instaMenuSize: Math.round((base.instaMenuSize||21) * (f.menuSizePct ?? 100)/100),
+    instaDescSize: Math.round((base.instaDescSize||19) * (f.descSizePct ?? 100)/100)
+  };
+  cfg.formulePreamble = formule_buildPreamble(f, cfg);
+  return cfg;
+}
 function formule_exportInsta(fid, variant){
   const f = DATA.formules.find(x=>x.id===fid);
   if(!f) return;
-  const cfg = {
-    ...pdfCfg(), format:'insta', tabsSource: f.tabs,
-    instaTitleColor: f.instaTitleColor, instaMenuColor: f.instaMenuColor,
-    instaDescColor: f.instaDescColor, instaBgColor: f.instaBgColor,
-    instaFont: f.instaFont || pdfCfg().instaFont,
-    alignContentLeft: !!f.alignContentLeft, alignTitleLeft: !!f.alignTitleLeft,
-    globalSizeScale: f.globalSizeScale, catCase: f.catCase, descCase: f.descCase, nameCase: f.nameCase
-  };
-  cfg.formulePreamble = formule_buildPreamble(f, cfg);
+  const cfg = formule_buildCfg(f);
   exportInstaImages(cfg, variant);
 }
 
@@ -4695,6 +4726,15 @@ function fitInstaOneLiners(html, holder, cfg){
     test.className = className;
     test.style.whiteSpace = 'nowrap';
     test.style.position = 'absolute';
+    // BUG FIX (titres plus petits en alignement à gauche) : .pdf-cat a
+    // width:100% quand alignContentLeft est actif (pour que le texte
+    // s'aligne vraiment sur le bord de la page) — sans ce correctif,
+    // l'élément de mesure hérite de ce width:100%, et scrollWidth
+    // reflète alors la largeur du CONTENEUR entier plutôt que celle du
+    // texte, faussant le calcul et rétrécissant inutilement. width:auto
+    // ici force une mesure toujours basée sur la taille naturelle du
+    // texte, centré ou aligné à gauche.
+    test.style.width = 'auto';
     test.style.fontSize = baseSize+'px';
     test.innerHTML = text;
     measureEl.appendChild(test);
@@ -5591,12 +5631,21 @@ function renderFormulesSection(){
     : key==='instaDescColor' ? lightenHex(brandNavy, 0.28)
     : brandNavy;
 
-  const colorRow = f => `<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:nowrap">
+  // Colonnes couleur + taille — Titre/Plat/Description ont chacun
+  // leur propre curseur de taille (%) juste sous leur pastille de
+  // couleur, pour ajuster tout en un coup d'œil juste au-dessus de
+  // l'aperçu (demande explicite de Will). Fond n'a pas de taille
+  // (c'est juste une couleur). La protection "jamais plus large que le
+  // cadre" (rétrécissement automatique, jamais de retour à la ligne —
+  // même mécanisme que Export du menu) continue de s'appliquer quoi
+  // que ces curseurs demandent : un plat trop long au 150% choisi sera
+  // ramené à une taille qui rentre, jamais au-delà du cadre.
+  const colorRow = f => `<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:nowrap;align-items:flex-start">
     ${[
-      {key:'instaTitleColor', label:'Titre'},
-      {key:'instaMenuColor', label:'Menu'},
-      {key:'instaDescColor', label:'Description'},
-      {key:'instaBgColor', label:'Fond'}
+      {key:'instaTitleColor', sizeKey:'titleSizePct', label:'Titre formule'},
+      {key:'instaMenuColor', sizeKey:'menuSizePct', label:'Plat'},
+      {key:'instaDescColor', sizeKey:'descSizePct', label:'Description'},
+      {key:'instaBgColor', sizeKey:null, label:'Fond'}
     ].map(c=>`
       <div class="af" style="flex:1;min-width:0">
         <label class="al" style="font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block">${c.label}</label>
@@ -5604,6 +5653,7 @@ function renderFormulesSection(){
           <input type="color" value="${f[c.key]||defaultFor(c.key)}" oninput="formule_setColor('${f.id}','${c.key}',this.value)" style="width:26px;height:26px;flex:none;border:1px solid var(--border);border-radius:6px;padding:2px;cursor:pointer;background:#fff">
           ${f[c.key]?`<button type="button" title="Réinitialiser" onclick="formule_setColor('${f.id}','${c.key}','')" style="width:22px;height:22px;flex:none;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text2);cursor:pointer;font-size:11px;padding:0">↺</button>`:''}
         </div>
+        ${c.sizeKey?`<input type="range" min="50" max="150" step="1" value="${f[c.sizeKey] ?? 100}" title="Taille — ${f[c.sizeKey] ?? 100}%" oninput="this.title='Taille — '+this.value+'%';formule_setField('${f.id}','${c.sizeKey}',parseInt(this.value,10))" style="width:100%;margin-top:5px">`:''}
       </div>
     `).join('')}
   </div>`;
@@ -5617,9 +5667,6 @@ function renderFormulesSection(){
         <input class="ai" value="${f.name||''}" placeholder="Ex : Menu du dimanche — 35€" oninput="formule_rename('${f.id}',this.value)">
       </div>
 
-      <div style="font-size:10.5px;color:var(--text3);margin:10px 0 4px">Couleurs — reprennent l'identité du restaurant par défaut, à changer uniquement si tu veux un habillage différent pour cette formule.</div>
-      ${colorRow(f)}
-
       <div class="af" style="margin-top:14px"><label class="al">Titre affiché</label>
         <input class="ai" value="${f.title||''}" placeholder="Ex : MENU DU DIMANCHE" oninput="formule_setField('${f.id}','title',this.value)">
       </div>
@@ -5629,14 +5676,11 @@ function renderFormulesSection(){
       <label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${f.alignTitleLeft?'checked':''} onchange="formule_setField('${f.id}','alignTitleLeft',this.checked)"><label>Aligner le titre et le texte libre à gauche</label></label>
       <label class="admin-toggle" style="margin-top:4px"><input type="checkbox" ${f.alignContentLeft?'checked':''} onchange="formule_setField('${f.id}','alignContentLeft',this.checked)"><label>Aligner les catégories et les plats à gauche</label></label>
 
-      <div class="af" style="margin-top:12px">
-        <label class="al">Taille globale des écritures — ${f.globalSizeScale ?? 100}%</label>
-        <input type="range" min="40" max="100" step="1" value="${f.globalSizeScale ?? 100}" oninput="this.previousElementSibling.textContent='Taille globale des écritures — '+this.value+'%';formule_setField('${f.id}','globalSizeScale',parseInt(this.value,10))" style="width:100%">
-      </div>
       <div class="af" style="margin-top:10px"><label class="al">Police du visuel</label>
         <select class="ai" onchange="formule_setField('${f.id}','instaFont',this.value)">
           ${INSTA_FONT_OPTIONS.map(fo=>`<option value="${fo}" ${(f.instaFont||pdfCfg().instaFont||'Playfair Display')===fo?'selected':''}>${fo}</option>`).join('')}
         </select>
+        <button type="button" class="aadd" style="margin-top:6px;padding:8px;font-size:11.5px" onclick="showFontGallery('formule','${f.id}')">Voir toutes les polices avec aperçu</button>
       </div>
       <div style="display:flex;gap:8px;margin-top:10px">
         <div class="af" style="flex:1"><label class="al">Casse des catégories</label>
@@ -5698,6 +5742,9 @@ function renderFormulesSection(){
           </div>`).join('')}
       </div>
       <button class="aadd" style="width:100%;margin-top:10px;padding:9px;font-size:12px" onclick="formule_addCategory('${f.id}')">+ Catégorie</button>
+
+      <div style="font-size:10.5px;color:var(--text3);margin:14px 0 4px">Couleurs et tailles — reprennent l'identité du restaurant par défaut. Le curseur ajuste la taille (%) de chaque élément ; un plat trop long reste toujours contenu dans le cadre (rétréci automatiquement si besoin, jamais de retour à la ligne).</div>
+      ${colorRow(f)}
 
       <div class="af" style="margin-top:14px">
         <div id="formuleCarousel-${f.id}" style="display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:4px">
@@ -5940,15 +5987,7 @@ function initFormulePreviewFrames(){
     const f = DATA.formules && DATA.formules.find(x=>x.id===fid);
     if(!f) return;
     const ratio = variant==='a4' ? INSTA_A4_RATIO : variant==='post' ? INSTA_POST_RATIO : INSTA_RATIO;
-    const cfg = {
-      ...pdfCfg(), format:'insta', tabsSource: f.tabs,
-      instaTitleColor: f.instaTitleColor, instaMenuColor: f.instaMenuColor,
-      instaDescColor: f.instaDescColor, instaBgColor: f.instaBgColor,
-      instaFont: f.instaFont || pdfCfg().instaFont,
-      alignContentLeft: !!f.alignContentLeft, alignTitleLeft: !!f.alignTitleLeft,
-      globalSizeScale: f.globalSizeScale, catCase: f.catCase, descCase: f.descCase, nameCase: f.nameCase
-    };
-    cfg.formulePreamble = formule_buildPreamble(f, cfg);
+    const cfg = formule_buildCfg(f);
     const built = buildFormulePage(cfg, ratio);
     const pageH = Math.round(INSTA_RENDER_W*ratio);
     frame.srcdoc = buildPreviewSlideDoc(built.css, built.pages[0].html, built.pages[0].spaceScale, INSTA_RENDER_W, pageH);
@@ -6354,7 +6393,7 @@ const FONT_LIST = ["Jost", "Montserrat", "Oswald", "Raleway", "Poppins", "Merriw
 // popup that loads every font at once and shows the restaurant's own
 // name (or "Restaurant" as a fallback) set in each of them side by
 // side, so they can actually be compared at a glance.
-function showFontGallery(target){
+function showFontGallery(target, fid){
   target=target||'resto';
   // Google Fonts supports combining every family into one request —
   // load them all in a single <link> rather than 50 separate ones.
@@ -6365,12 +6404,20 @@ function showFontGallery(target){
     l.href='https://fonts.googleapis.com/css2?'+FONT_LIST.map(f=>'family='+encodeURIComponent(f)+':wght@400;700').join('&')+'&display=swap';
     document.head.appendChild(l);
   }
+  // Menus et Formules : liste réduite (celle déjà proposée pour
+  // Instagram, pensée pour ce format précis) plutôt que les 50
+  // polices générales — mais même principe d'aperçu en direct.
+  const fontList = target==='formule' ? INSTA_FONT_OPTIONS : FONT_LIST;
   const sampleText = (DATA.restaurantName||'Restaurant');
-  const setterFn = target==='cover' ? 'setCoverHeadlineFont' : 'setRestoFont';
-  const rows = FONT_LIST.map(f=>`<div class="font-gallery-row" onclick="${setterFn}('${f.replace(/'/g,"\\'")}');closeFontGallery()">
+  const rows = fontList.map(f=>{
+    const onclick = target==='formule'
+      ? `formule_setField('${fid}','instaFont','${f.replace(/'/g,"\\'")}');if(typeof initFormulePreviewFrames==='function')initFormulePreviewFrames();closeFontGallery();renderAdminSection('__formules')`
+      : `${target==='cover' ? 'setCoverHeadlineFont' : 'setRestoFont'}('${f.replace(/'/g,"\\'")}');closeFontGallery()`;
+    return `<div class="font-gallery-row" onclick="${onclick}">
     <div class="font-gallery-name">${f}</div>
     <div class="font-gallery-sample" style="font-family:'${f}',serif">${escapeHtmlLocal(sampleText)}</div>
-  </div>`).join('');
+  </div>`;
+  }).join('');
   const modal=document.createElement('div');
   modal.className='font-gallery-overlay';
   modal.id='fontGalleryOverlay';
