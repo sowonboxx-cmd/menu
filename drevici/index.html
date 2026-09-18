@@ -4361,7 +4361,8 @@ function lightenHex(hex, amt){
 // calqué sur la référence fournie par Will (mood Drevici, mise en
 // forme différente). Une image = une seule catégorie, jamais de
 // chevauchement entre catégories.
-function buildInstaCSS(cfg){
+function buildInstaCSS(cfg, ratio){
+  ratio = ratio || INSTA_RATIO;
   const navy = cfg.titleColor || '#10285E';
   const gold = cfg.accentColor || '#C6A24A';
   // Fond Instagram — réglable indépendamment (cfg.instaBgColor),
@@ -4388,7 +4389,7 @@ function buildInstaCSS(cfg){
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{margin:0;padding:0;background:${bg}}
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
-  .pdf-page{--space-scale:1;font-family:'${font}',serif;color:${titleColor};background:${bg};width:${INSTA_RENDER_W}px;height:${Math.round(INSTA_RENDER_W*INSTA_RATIO)}px;padding:${padTop}px ${padSide}px;margin:0 auto;position:relative;overflow:hidden;text-align:center;display:flex;flex-direction:column;align-items:center}
+  .pdf-page{--space-scale:1;font-family:'${font}',serif;color:${titleColor};background:${bg};width:${INSTA_RENDER_W}px;height:${Math.round(INSTA_RENDER_W*ratio)}px;padding:${padTop}px ${padSide}px;margin:0 auto;position:relative;overflow:hidden;text-align:center;display:flex;flex-direction:column;align-items:center}
   .pdf-page::before{content:'';position:absolute;inset:20px;border:1.5px solid ${gold};pointer-events:none}
   .pdf-cat{font-family:'${font}',serif;font-weight:800;font-size:${titleSize}px;line-height:1.1;text-transform:uppercase;letter-spacing:.01em;color:${titleColor};margin-bottom:44px;border:none}
   .pdf-cat:has(+ .pdf-subcat){margin-bottom:22px}
@@ -4480,7 +4481,8 @@ function fitInstaOneLiners(html, holder, cfg){
   return out;
 }
 
-function buildInstaPages(cfg){
+function buildInstaPages(cfg, ratio){
+  ratio = ratio || INSTA_RATIO;
   const { contentBlocks } = buildPdfBlocks(cfg);
   const groups = [];
   let current = null;
@@ -4489,8 +4491,8 @@ function buildInstaPages(cfg){
     if(current) current.push(b);
   });
 
-  const css = buildInstaCSS(cfg);
-  const pageH = Math.round(INSTA_RENDER_W*INSTA_RATIO);
+  const css = buildInstaCSS(cfg, ratio);
+  const pageH = Math.round(INSTA_RENDER_W*ratio);
   const holder = document.createElement('div');
   holder.style.cssText = 'position:fixed;left:-99999px;top:0;visibility:hidden;';
   holder.innerHTML = `<style>${css}</style><div class="pdf-page" id="__instaMeasure" style="height:auto;overflow:visible"></div>`;
@@ -4785,6 +4787,12 @@ function exportA4Print(cfg){
 const GBIZ_PAGE_RATIO = 1.663; // height / width
 // Instagram Story — vraie proportion 9:16 (1080×1920 à l'export final).
 const INSTA_RATIO = 16/9; // height / width
+// Instagram Post — format 4:5 (1080×1350 à l'export final), le plus
+// utilisé en feed actuellement. Même largeur que la story, juste une
+// page moins haute — aucune nouvelle règle : mêmes plafonds une seule
+// ligne, même découpage équilibré multi-pages, juste plus susceptible
+// de se déclencher puisqu'il y a moins de hauteur disponible.
+const INSTA_POST_RATIO = 5/4; // height / width
 // 20 polices Google Fonts parmi les plus populaires ET les plus
 // lisibles pour un menu — mélange de serif élégantes (registre menu
 // classique) et de sans-serif nettes (lisibilité). Demande explicite
@@ -5031,11 +5039,12 @@ async function renderGbizPageToBlob(css, pages, i, restName, bg){
 // Instagram : même moteur robuste que Google Business (délai de
 // sécurité + repli sans foreignObjectRendering), mais dimensions et
 // police propres au format story (voir buildInstaCSS/buildInstaPages).
-async function renderInstaPageToBlob(css, pages, i, restName, bg){
+async function renderInstaPageToBlob(css, pages, i, restName, bg, ratio, variantLabel){
+  ratio = ratio || INSTA_RATIO;
   const TARGET_W = 1080;
   const scale = TARGET_W / INSTA_RENDER_W;
   const holder = document.createElement('div');
-  const pageHeightPx = Math.round(INSTA_RENDER_W*INSTA_RATIO);
+  const pageHeightPx = Math.round(INSTA_RENDER_W*ratio);
   const zoomCancel = 1 / getActiveZoomRatio();
   holder.style.cssText = `position:fixed;left:0;top:0;width:${INSTA_RENDER_W}px;height:${pageHeightPx}px;opacity:0.001;pointer-events:none;z-index:-1;zoom:${zoomCancel}`;
   const scaleStyle = pages[i].spaceScale && pages[i].spaceScale!==1 ? `--space-scale:${pages[i].spaceScale};` : '';
@@ -5060,24 +5069,31 @@ async function renderInstaPageToBlob(css, pages, i, restName, bg){
     const slug = (tb ? t(tb.label) : `image-${i+1}`).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
     const blob = await new Promise(res=>canvas.toBlob(res,'image/png'));
     if(!blob) throw new Error('toBlob a renvoyé null');
-    return { blob, name: `${restName}-instagram-${slug||i+1}.png`, pageIndex: i };
+    return { blob, name: `${restName}-instagram-${variantLabel||'story'}-${slug||i+1}.png`, pageIndex: i };
   } finally {
     document.body.removeChild(holder);
   }
 }
 
-async function exportInstaImages(cfg){
+// variant: 'story' (9:16, par défaut) ou 'post' (4:5) — même moteur,
+// juste une hauteur de page différente ; aucune nouvelle règle
+// (rétrécissement une ligne, découpage équilibré multi-pages,
+// compression d'espacement) n'est dupliquée, tout continue de
+// s'appliquer tel quel avec ce nouveau ratio.
+async function exportInstaImages(cfg, variant){
+  variant = variant || 'story';
+  const ratio = variant === 'post' ? INSTA_POST_RATIO : INSTA_RATIO;
   if(typeof html2canvas === 'undefined'){ showToast('⚠ html2canvas non chargé'); return; }
   showToast('Génération des images en cours…');
-  const css = buildInstaCSS(cfg);
-  const pages = buildInstaPages(cfg);
+  const css = buildInstaCSS(cfg, ratio);
+  const pages = buildInstaPages(cfg, ratio);
   const restName = (getRestaurantName()||'menu').replace(/\s+/g,'-').toLowerCase();
   const bg = cfg.instaBgColor || cfg.bgColor || '#FDFBF6';
 
   const blobs = [];
   for(let i=0;i<pages.length;i++){
     try{
-      const result = await renderInstaPageToBlob(css, pages, i, restName, bg);
+      const result = await renderInstaPageToBlob(css, pages, i, restName, bg, ratio, variant);
       blobs.push(result);
     } catch(err){
       console.error(err);
@@ -5292,7 +5308,10 @@ function renderPrintBody(){
     ? `<button class="aadd" style="width:100%;padding:13px;margin-top:6px;font-weight:700;background:var(--navy);color:#fff;border:none;font-size:14px" onclick="exportA4Print(pdfCfg())">Générer le PDF / Imprimer le menu</button>`
     : activeTab==='gbiz'
     ? `<button class="aadd" style="width:100%;padding:13px;margin-top:6px;font-weight:700;background:var(--navy);color:#fff;border:none;font-size:14px" onclick="exportGbizImage({...pdfCfg(), format:'gbiz'})">Générer l'image Google Business</button>`
-    : `<button class="aadd" style="width:100%;padding:13px;margin-top:6px;font-weight:700;background:var(--navy);color:#fff;border:none;font-size:14px" onclick="exportInstaImages({...pdfCfg(), format:'insta'})">Générer les images Instagram</button>`;
+    : `<div style="display:flex;gap:8px;margin-top:6px">
+        <button class="aadd" style="flex:1;padding:13px;font-weight:700;background:var(--navy);color:#fff;border:none;font-size:13.5px" onclick="exportInstaImages({...pdfCfg(), format:'insta'}, 'story')">Télécharger pour Story</button>
+        <button class="aadd" style="flex:1;padding:13px;font-weight:700;background:var(--navy);color:#fff;border:none;font-size:13.5px" onclick="exportInstaImages({...pdfCfg(), format:'insta'}, 'post')">Télécharger pour Post</button>
+       </div>`;
 
   return `${tabsHtml}
     ${activeTab==='print' ? elementsAccordion : ''}
