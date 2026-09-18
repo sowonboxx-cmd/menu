@@ -3426,7 +3426,8 @@ function formule_exportInsta(fid, variant){
     ...pdfCfg(), format:'insta', tabsSource: f.tabs,
     instaTitleColor: f.instaTitleColor, instaMenuColor: f.instaMenuColor,
     instaDescColor: f.instaDescColor, instaBgColor: f.instaBgColor,
-    alignContentLeft: !!f.alignContentLeft, alignTitleLeft: !!f.alignTitleLeft
+    alignContentLeft: !!f.alignContentLeft, alignTitleLeft: !!f.alignTitleLeft,
+    globalSizeScale: f.globalSizeScale, catCase: f.catCase, descCase: f.descCase
   };
   cfg.formulePreamble = formule_buildPreamble(f, cfg);
   exportInstaImages(cfg, variant);
@@ -4494,6 +4495,33 @@ function lightenHex(hex, amt){
 }
 
 // CSS dédiée au format Instagram (story 9:16) — reprend les mêmes
+// Calcul centralisé des tailles Instagram/Formule — utilisé à la fois
+// par buildInstaCSS (le CSS affiché) ET fitInstaOneLiners (le
+// rétrécissement "une seule ligne", qui applique un style en ligne
+// prioritaire sur la classe CSS). BUG FIX : avant ce partage,
+// fitInstaOneLiners recalculait sa propre taille de base à partir de
+// cfg.instaTitleSize brut, ignorant complètement catTitleSize/
+// formuleTitleSize/l'échelle globale — ses styles en ligne écrasaient
+// donc silencieusement toute réduction de taille faite côté CSS.
+// Menus et Formules uniquement : catégories 50%×75% plus petites,
+// titre de formule 20% plus petit, et une échelle globale (%)
+// s'applique en dernier, sur tout à la fois, proportionnellement.
+function instaSizesFor(cfg){
+  const titleSize = cfg.instaTitleSize || 45;
+  const menuSize = cfg.instaMenuSize || 21;
+  const descSize = cfg.instaDescSize || 19;
+  const globalScale = cfg.tabsSource ? (cfg.globalSizeScale ?? 100)/100 : 1;
+  const catTitleSize = Math.round((cfg.tabsSource ? titleSize*0.5*0.75 : titleSize) * globalScale);
+  const formuleTitleSize = Math.round(titleSize*0.8*globalScale);
+  return {
+    titleSize,
+    catTitleSize,
+    formuleTitleSize,
+    menuSize: Math.round(menuSize*globalScale),
+    descSize: Math.round(descSize*globalScale)
+  };
+}
+
 // classes que buildPdfBlocks produit déjà (.pdf-cat, .pdf-dish, etc.)
 // mais avec un habillage entièrement différent : tout centré, gros
 // titres en majuscules, prix et descriptions en italique, courtes
@@ -4514,15 +4542,7 @@ function buildInstaCSS(cfg, ratio){
   const titleColor = cfg.instaTitleColor || navy;
   const menuColor = cfg.instaMenuColor || navy;
   const descColor = cfg.instaDescColor || lightenHex(navy, 0.28);
-  const titleSize = cfg.instaTitleSize || 45;
-  const menuSize = cfg.instaMenuSize || 21;
-  const descSize = cfg.instaDescSize || 19;
-  // Menus et Formules uniquement — par défaut, une catégorie
-  // (Entrée/Plat/Dessert) est 50% plus petite que la taille de titre
-  // normale, et le titre de la formule elle-même 20% plus petit —
-  // demande explicite de Will.
-  const catTitleSize = cfg.tabsSource ? Math.round(titleSize*0.5*0.75) : titleSize;
-  const formuleTitleSize = Math.round(titleSize*0.8);
+  const { titleSize, catTitleSize, formuleTitleSize, menuSize, descSize } = instaSizesFor(cfg);
   // 100px pour la story normale, 50px pour le post ET pour toute
   // formule (A4/Story/Post confondus) — demande explicite de Will :
   // pour une formule, le titre doit toujours être remonté au même
@@ -4541,10 +4561,11 @@ function buildInstaCSS(cfg, ratio){
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
   .pdf-page{--space-scale:1;font-family:'${font}',serif;color:${titleColor};background:${bg};width:${INSTA_RENDER_W}px;height:${Math.round(INSTA_RENDER_W*ratio)}px;padding:${padTop}px ${padSide}px;margin:0 auto;position:relative;overflow:hidden;text-align:center;display:flex;flex-direction:column;align-items:center}
   .pdf-page::before{content:'';position:absolute;inset:20px;border:1.5px solid ${gold};pointer-events:none}
-  .pdf-cat{font-family:'${font}',serif;font-weight:800;font-size:${catTitleSize}px;line-height:1.1;text-transform:uppercase;letter-spacing:.01em;color:${titleColor};margin-bottom:${cfg.tabsSource?14:44}px;border:none}
+  .pdf-cat{font-family:'${font}',serif;font-weight:800;font-size:${catTitleSize}px;line-height:1.1;text-transform:${cfg.catCase==='lower'?'lowercase':'uppercase'};letter-spacing:.01em;color:${titleColor};margin-bottom:${cfg.tabsSource?14:44}px;border:none}
+  ${cfg.catCase==='lower' ? '.pdf-cat::first-letter{text-transform:uppercase}' : ''}
   .pdf-cat:has(+ .pdf-subcat){margin-bottom:22px}
   .pdf-cat + .pdf-subcat{margin-top:15px}
-  ${cfg.tabsSource ? '.pdf-dish + .pdf-cat{margin-top:18px}' : ''}
+  ${cfg.tabsSource ? '.pdf-dish + .pdf-cat{margin-top:38px}' : ''}
   .pdf-subcat{font-family:'${font}',serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.06em;color:${gold};margin:30px 0 18px}
   .pdf-dish{margin-bottom:calc(${cfg.tabsSource?12.75:30}px * var(--space-scale));width:100%}
   ${cfg.tabsSource ? '' : `.pdf-dish + .pdf-dish::before{content:'';display:block;width:64px;height:1px;background:${gold};margin:0 auto calc(26px * var(--space-scale));opacity:.8}`}
@@ -4552,7 +4573,8 @@ function buildInstaCSS(cfg, ratio){
   .pdf-dish-name{font-family:'${font}',serif;font-weight:800;font-size:${menuSize}px;text-transform:uppercase;letter-spacing:.01em;color:${menuColor}}
   .pdf-dots,.pdf-dots-off{display:none}
   .pdf-dish-price{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${Math.max(14,menuSize-1)}px;color:${menuColor}}
-  .pdf-dish-desc{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${descSize}px;line-height:1.35;color:${descColor};margin-top:6px;max-width:76%;margin-left:auto;margin-right:auto;text-wrap:balance}
+  .pdf-dish-desc{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${descSize}px;line-height:1.35;color:${descColor};margin-top:6px;max-width:76%;margin-left:auto;margin-right:auto;text-wrap:balance;${cfg.tabsSource?`text-transform:${cfg.descCase==='upper'?'uppercase':'lowercase'}`:''}}
+  ${cfg.tabsSource && cfg.descCase!=='upper' ? '.pdf-dish-desc::first-letter{text-transform:uppercase}' : ''}
   .pdf-footer{display:none}
   /* Menus et Formules uniquement — titre + texte libre optionnels,
      affichés avant les catégories (voir formule_buildPreamble). */
@@ -4602,8 +4624,7 @@ function fitInstaOneLiners(html, holder, cfg){
   // une petite marge de sécurité pour ne jamais toucher le cadre doré.
   const padSide = 36;
   const availableW = INSTA_RENDER_W - padSide*2 - 16;
-  const titleSize = cfg.instaTitleSize || 45;
-  const menuSize = cfg.instaMenuSize || 21;
+  const { catTitleSize, menuSize } = instaSizesFor(cfg);
 
   function fitOne(text, tag, className, baseSize, minSize){
     const test = document.createElement(tag);
@@ -4623,7 +4644,7 @@ function fitInstaOneLiners(html, holder, cfg){
   }
 
   let out = html.replace(/<h2 class="pdf-cat"([^>]*)>([\s\S]*?)<\/h2>/, (m, attrs, inner)=>{
-    const size = fitOne(inner, 'h2', 'pdf-cat', titleSize, Math.min(24, titleSize));
+    const size = fitOne(inner, 'h2', 'pdf-cat', catTitleSize, Math.min(13, catTitleSize));
     return `<h2 class="pdf-cat"${attrs} style="font-size:${size}px;white-space:nowrap">${inner}</h2>`;
   });
   out = out.replace(/<h3 class="pdf-subcat">([\s\S]*?)<\/h3>/g, (m, inner)=>{
@@ -5537,6 +5558,25 @@ function renderFormulesSection(){
       </div>
       <label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${f.alignTitleLeft?'checked':''} onchange="formule_setField('${f.id}','alignTitleLeft',this.checked)"><label>Aligner le titre et le texte libre à gauche</label></label>
       <label class="admin-toggle" style="margin-top:4px"><input type="checkbox" ${f.alignContentLeft?'checked':''} onchange="formule_setField('${f.id}','alignContentLeft',this.checked)"><label>Aligner les catégories et les plats à gauche</label></label>
+
+      <div class="af" style="margin-top:12px">
+        <label class="al">Taille globale des écritures — ${f.globalSizeScale ?? 100}%</label>
+        <input type="range" min="40" max="100" step="1" value="${f.globalSizeScale ?? 100}" oninput="this.previousElementSibling.textContent='Taille globale des écritures — '+this.value+'%';formule_setField('${f.id}','globalSizeScale',parseInt(this.value,10))" style="width:100%">
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <div class="af" style="flex:1"><label class="al">Casse des catégories</label>
+          <select class="ai" onchange="formule_setField('${f.id}','catCase',this.value);renderAdminSection('__formules')">
+            <option value="upper" ${f.catCase!=='lower'?'selected':''}>MAJUSCULE</option>
+            <option value="lower" ${f.catCase==='lower'?'selected':''}>Minuscule (1ère lettre en majuscule)</option>
+          </select>
+        </div>
+        <div class="af" style="flex:1"><label class="al">Casse des descriptions</label>
+          <select class="ai" onchange="formule_setField('${f.id}','descCase',this.value);renderAdminSection('__formules')">
+            <option value="lower" ${f.descCase!=='upper'?'selected':''}>Minuscule (1ère lettre en majuscule)</option>
+            <option value="upper" ${f.descCase==='upper'?'selected':''}>MAJUSCULE</option>
+          </select>
+        </div>
+      </div>
 
       <div style="margin-top:14px">
         ${f.tabs.map(cat=>`
