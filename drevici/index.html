@@ -3321,32 +3321,37 @@ function formule_create(){
   DATA.formules.push({
     id, name: 'Nouvelle formule', title:'', freeText:'',
     instaTitleColor:'', instaMenuColor:'', instaDescColor:'', instaBgColor:'',
-    tabs: [{ id: id+'-cat1', label:{fr:'Entrée'}, cards:[{ label:{fr:''}, dishes:[] }] }]
+    tabs: [{ id: id+'-cat1', label:{fr:'Entrée'}, cards:[{ label:{fr:''}, dishes:[] }], _expanded:true }]
   });
   renderAdminSection('__formules');
+  scheduleAutoSave();
 }
 function formule_delete(fid){
   formule_ensureInit();
   DATA.formules = DATA.formules.filter(f=>f.id!==fid);
   renderAdminSection('__formules');
+  publishNow();
 }
 function formule_rename(fid, name){
   const f = DATA.formules.find(x=>x.id===fid);
   if(f) f.name = name;
+  scheduleAutoSave();
 }
 function formule_setColor(fid, key, value){
   const f = DATA.formules.find(x=>x.id===fid);
-  if(f){ f[key] = value; renderAdminSection('__formules'); }
+  if(f){ f[key] = value; renderAdminSection('__formules'); scheduleAutoSave(); }
 }
 function formule_setField(fid, field, value){
   const f = DATA.formules.find(x=>x.id===fid);
   if(f) f[field] = value;
+  scheduleAutoSave();
 }
 function formule_addCategory(fid){
   const f = DATA.formules.find(x=>x.id===fid);
   if(!f) return;
-  f.tabs.push({ id: f.id+'-cat'+(f.tabs.length+1)+'-'+Date.now(), label:{fr:'Nouvelle catégorie'}, cards:[{ label:{fr:''}, dishes:[] }] });
+  f.tabs.push({ id: f.id+'-cat'+(f.tabs.length+1)+'-'+Date.now(), label:{fr:'Nouvelle catégorie'}, cards:[{ label:{fr:''}, dishes:[] }], _expanded:true });
   renderAdminSection('__formules');
+  scheduleAutoSave();
 }
 // Glisser-déposer pour réordonner les catégories d'une formule (ex :
 // faire passer Plat avant Entrée) — même mécanisme natif HTML5 que le
@@ -3368,31 +3373,49 @@ function formule_onDropCat(e, fid, catIdx){
   formuleDragCat = null;
   renderAdminSection('__formules');
   showToast('Ordre mis à jour');
+  scheduleAutoSave();
+}
+// BUG FIX (accordéon) : la catégorie se refermait à chaque re-rendu
+// (ex. après l'ajout d'un plat) parce que son état ouvert/fermé
+// n'était jamais mémorisé nulle part — chaque rendu partait du même
+// "collapsed" par défaut codé en dur. L'état vit maintenant sur la
+// catégorie elle-même (cat._expanded), lu au rendu et mis à jour au
+// clic sur la flèche, donc il survit à n'importe quel re-rendu.
+function formule_toggleCategoryOpen(fid, catId, expanded){
+  const f = DATA.formules.find(x=>x.id===fid);
+  const cat = f && f.tabs.find(c=>c.id===catId);
+  if(cat) cat._expanded = expanded;
 }
 function formule_removeCategory(fid, catId){
   const f = DATA.formules.find(x=>x.id===fid);
   if(!f) return;
   f.tabs = f.tabs.filter(c=>c.id!==catId);
   renderAdminSection('__formules');
+  publishNow();
 }
 function formule_renameCategory(fid, catId, name){
   const f = DATA.formules.find(x=>x.id===fid);
   const cat = f && f.tabs.find(c=>c.id===catId);
   if(cat) cat.label = { fr: name };
+  scheduleAutoSave();
 }
 function formule_addDish(fid, catId){
   const f = DATA.formules.find(x=>x.id===fid);
   const cat = f && f.tabs.find(c=>c.id===catId);
   if(!cat) return;
+  cat._expanded = true;
   cat.cards[0].dishes.push({ name:{fr:''}, desc:{fr:''}, price:'' });
   renderAdminSection('__formules');
+  scheduleAutoSave();
 }
 function formule_removeDish(fid, catId, idx){
   const f = DATA.formules.find(x=>x.id===fid);
   const cat = f && f.tabs.find(c=>c.id===catId);
   if(!cat) return;
+  cat._expanded = true;
   cat.cards[0].dishes.splice(idx,1);
   renderAdminSection('__formules');
+  publishNow();
 }
 function formule_updateDish(fid, catId, idx, field, value){
   const f = DATA.formules.find(x=>x.id===fid);
@@ -3401,6 +3424,7 @@ function formule_updateDish(fid, catId, idx, field, value){
   if(!dish) return;
   if(field==='name' || field==='desc') dish[field] = { fr: value };
   else dish[field] = value;
+  scheduleAutoSave();
 }
 // Liste plate de tous les plats du vrai menu, pour "importer un plat
 // existant" — seules les cartes de type plat simple (pas boissons/
@@ -3427,10 +3451,12 @@ function formule_importDish(fid, catId, selectEl){
   const f = DATA.formules.find(x=>x.id===fid);
   const cat = f && f.tabs.find(c=>c.id===catId);
   if(!cat) return;
+  cat._expanded = true;
   // Copie indépendante — modifier le prix ou le texte ici ne touche
   // jamais le vrai plat du menu principal.
   cat.cards[0].dishes.push({ name:{fr:real.name}, desc:{fr:real.desc}, price:real.price });
   renderAdminSection('__formules');
+  scheduleAutoSave();
 }
 // Titre + texte libre optionnels, injectés en préambule de la
 // première page — voir buildInstaPages (cfg.formulePreamble). Comptent
@@ -4291,6 +4317,19 @@ function buildPdfMenuHTML(cfg){
 // variant/bev-item is its own block (never split internally); a
 // category's own <h2> travels with its first dish so a category never
 // starts a page with just a lonely heading and nothing under it.
+// Menus et Formules uniquement — transformation du TEXTE lui-même
+// (jamais du CSS text-transform + ::first-letter) pour la casse
+// "minuscule" : ::first-letter n'est pas fiable avec html2canvas
+// (confirmé par capture — ça casse le rendu, espace fantôme entre la
+// 1ère et la 2e lettre). En transformant la vraie chaîne de
+// caractères avant de l'insérer dans le HTML, ça marche avec
+// n'importe quel moteur de rendu, sans dépendre d'un pseudo-élément.
+function applyTextCase(text, mode){
+  if(!text) return text;
+  if(mode === 'upper') return text.toUpperCase();
+  if(mode === 'lower') return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+  return text;
+}
 function buildPdfBlocks(cfg){
   const restName = getRestaurantName() || 'Menu';
   // Instagram (comme Google Business) : aucun en-tête, direct dans les
@@ -4354,7 +4393,8 @@ function buildPdfBlocks(cfg){
   // place — c'est le seul point de contact du moteur avec la source
   // des données, aucune autre logique n'a besoin de changer.
   (cfg.tabsSource || DATA.tabs).filter(tb=>tb.id!=='__home' && tb.visible!==false).forEach(tb=>{
-    let pendingHeader = `<h2 class="pdf-cat" data-tab-id="${tb.id}">${showSecIc?`<img src="${icData.secondary}" style="width:16px;height:16px;object-fit:contain;vertical-align:middle;margin-right:6px" onerror="this.remove()">`:''}${t(tb.label)}</h2>`;
+    const catLabel = cfg.tabsSource ? applyTextCase(t(tb.label), cfg.catCase==='lower'?'lower':'upper') : t(tb.label);
+    let pendingHeader = `<h2 class="pdf-cat" data-tab-id="${tb.id}">${showSecIc?`<img src="${icData.secondary}" style="width:16px;height:16px;object-fit:contain;vertical-align:middle;margin-right:6px" onerror="this.remove()">`:''}${catLabel}</h2>`;
     let firstBlockOfTab = true;
     // "Catégorie solo" — une catégorie qui ne contient qu'UN SEUL plat au
     // total (tous types de cartes confondus) se retrouve visuellement
@@ -4373,8 +4413,11 @@ function buildPdfBlocks(cfg){
     const soloCls = tabItemCount===1 ? ' pdf-dish-solo' : '';
     tb.cards.forEach(card=>{
       let pendingSubcat = (t(card.label) && tb.cards.length>1) ? `<h3 class="pdf-subcat">${t(card.label)}</h3>` : '';
-      const items = card.dishes ? card.dishes.filter(d=>!d.hidden).map(d=>
-          `<div class="pdf-dish${soloCls}"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(d.name)||''}</span>${dots}<span class="pdf-dish-price">${priceText(d)}</span></div>${t(d.desc)?`<div class="pdf-dish-desc">${t(d.desc)}</div>`:''}</div>`)
+      const items = card.dishes ? card.dishes.filter(d=>!d.hidden).map(d=>{
+          const dName = cfg.tabsSource ? applyTextCase(t(d.name)||'', cfg.nameCase==='lower'?'lower':'upper') : (t(d.name)||'');
+          const dDesc = cfg.tabsSource ? applyTextCase(t(d.desc), cfg.descCase==='upper'?'upper':'lower') : t(d.desc);
+          return `<div class="pdf-dish${soloCls}"><div class="pdf-dish-line"><span class="pdf-dish-name">${dName}</span>${dots}<span class="pdf-dish-price">${priceText(d)}</span></div>${dDesc?`<div class="pdf-dish-desc">${dDesc}</div>`:''}</div>`;
+        })
         : card.type==='variants' ? (card.variants||[]).filter(v=>!v.hidden).map(v=>
           `<div class="pdf-dish${soloCls}"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(v.name)||''}</span>${dots}<span class="pdf-dish-price">${priceText(v)}</span></div></div>`)
         : card.type==='bevs' ? (card.items||[]).filter(item=>!item.hidden).map(item=>{
@@ -4583,8 +4626,7 @@ function buildInstaCSS(cfg, ratio){
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
   .pdf-page{--space-scale:1;font-family:'${font}',serif;color:${titleColor};background:${bg};width:${INSTA_RENDER_W}px;height:${Math.round(INSTA_RENDER_W*ratio)}px;padding:${padTop}px ${padSide}px;margin:0 auto;position:relative;overflow:hidden;text-align:center;display:flex;flex-direction:column;align-items:center}
   .pdf-page::before{content:'';position:absolute;inset:20px;border:1.5px solid ${gold};pointer-events:none}
-  .pdf-cat{font-family:'${font}',serif;font-weight:800;font-size:${catTitleSize}px;line-height:1.1;text-transform:${cfg.catCase==='lower'?'lowercase':'uppercase'};letter-spacing:.01em;color:${titleColor};margin-bottom:${cfg.tabsSource?14:44}px;border:none}
-  ${cfg.catCase==='lower' ? '.pdf-cat::first-letter{text-transform:uppercase}' : ''}
+  .pdf-cat{font-family:'${font}',serif;font-weight:800;font-size:${catTitleSize}px;line-height:1.1;text-transform:${cfg.tabsSource?'none':'uppercase'};letter-spacing:.01em;color:${titleColor};margin-bottom:${cfg.tabsSource?14:44}px;border:none}
   .pdf-cat:has(+ .pdf-subcat){margin-bottom:22px}
   .pdf-cat + .pdf-subcat{margin-top:15px}
   ${cfg.tabsSource ? '.pdf-dish + .pdf-cat{margin-top:38px}' : ''}
@@ -4592,12 +4634,10 @@ function buildInstaCSS(cfg, ratio){
   .pdf-dish{margin-bottom:calc(${cfg.tabsSource?12.75:30}px * var(--space-scale));width:100%}
   ${cfg.tabsSource ? '' : `.pdf-dish + .pdf-dish::before{content:'';display:block;width:64px;height:1px;background:${gold};margin:0 auto calc(26px * var(--space-scale));opacity:.8}`}
   .pdf-dish-line{display:flex;justify-content:center;align-items:baseline;gap:14px}
-  .pdf-dish-name{font-family:'${font}',serif;font-weight:800;font-size:${menuSize}px;text-transform:${cfg.nameCase==='lower'?'lowercase':'uppercase'};letter-spacing:.01em;color:${menuColor}}
-  ${cfg.nameCase==='lower' ? '.pdf-dish-name::first-letter{text-transform:uppercase}' : ''}
+  .pdf-dish-name{font-family:'${font}',serif;font-weight:800;font-size:${menuSize}px;text-transform:${cfg.tabsSource?'none':'uppercase'};letter-spacing:.01em;color:${menuColor}}
   .pdf-dots,.pdf-dots-off{display:none}
   .pdf-dish-price{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${Math.max(14,menuSize-1)}px;color:${menuColor}}
-  .pdf-dish-desc{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${descSize}px;line-height:1.35;color:${descColor};margin-top:6px;max-width:76%;margin-left:auto;margin-right:auto;text-wrap:balance;${cfg.tabsSource?`text-transform:${cfg.descCase==='upper'?'uppercase':'lowercase'}`:''}}
-  ${cfg.tabsSource && cfg.descCase!=='upper' ? '.pdf-dish-desc::first-letter{text-transform:uppercase}' : ''}
+  .pdf-dish-desc{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${descSize}px;line-height:1.35;color:${descColor};margin-top:6px;max-width:76%;margin-left:auto;margin-right:auto;text-wrap:balance}
   .pdf-footer{display:none}
   /* Menus et Formules uniquement — titre + texte libre optionnels,
      affichés avant les catégories (voir formule_buildPreamble). */
@@ -5615,7 +5655,7 @@ function renderFormulesSection(){
       <div style="font-size:10px;color:var(--text3);margin-top:14px">Glisse ⠿ pour réordonner les catégories — replier une catégorie avec ▾ pour y voir plus clair s'il y en a beaucoup.</div>
       <div style="margin-top:6px">
         ${f.tabs.map((cat,catIdx)=>`
-          <div class="admin-card collapsed" style="border:1px solid var(--border);border-radius:8px;padding:0;margin-top:8px;background:#fafafa"
+          <div class="admin-card${cat._expanded?'':' collapsed'}" style="border:1px solid var(--border);border-radius:8px;padding:0;margin-top:8px;background:#fafafa"
                draggable="true"
                ondragstart="formule_onDragCat(event,'${f.id}',${catIdx})"
                ondragend="onDragEnd(event)"
@@ -5625,8 +5665,8 @@ function renderFormulesSection(){
             <div class="admin-card-hdr" style="display:flex;gap:6px;align-items:center;padding:10px">
               <span class="drag-handle" title="Glisser pour réordonner" style="cursor:grab;padding:2px 4px">⠿</span>
               <input class="ai" style="flex:1;font-weight:600" value="${t(cat.label)||''}" placeholder="Nom de la catégorie (ex : Entrée)" oninput="formule_renameCategory('${f.id}','${cat.id}',this.value)">
-              <span class="collapse-chevron" style="cursor:pointer;padding:4px 6px;font-size:14px;color:var(--text3)" onclick="this.closest('.admin-card').classList.toggle('collapsed')">▾</span>
-              <button title="Supprimer la catégorie" onclick="formule_removeCategory('${f.id}','${cat.id}')" style="width:30px;height:30px;flex:none;border:1px solid var(--border);border-radius:6px;background:#fff;color:#B31217;cursor:pointer">✕</button>
+              <span class="collapse-chevron" style="cursor:pointer;padding:4px 6px;font-size:14px;color:var(--text3)" onclick="const c=this.closest('.admin-card');c.classList.toggle('collapsed');formule_toggleCategoryOpen('${f.id}','${cat.id}',!c.classList.contains('collapsed'))">▾</span>
+              <button title="Supprimer la catégorie" onclick="if(confirm('Supprimer cette catégorie et tous ses plats ?')) formule_removeCategory('${f.id}','${cat.id}')" style="width:30px;height:30px;flex:none;border:1px solid var(--border);border-radius:6px;background:#fff;color:#B31217;cursor:pointer">✕</button>
             </div>
             <div class="admin-card-details" style="padding:0 10px 10px">
             ${(cat.cards[0].dishes||[]).map((d,di)=>`
