@@ -4377,7 +4377,11 @@ function buildInstaCSS(cfg, ratio){
   const titleSize = cfg.instaTitleSize || 45;
   const menuSize = cfg.instaMenuSize || 21;
   const descSize = cfg.instaDescSize || 19;
-  const padTop = 50, padSide = 36;
+  // 100px pour la story, 50px pour le post — demande explicite de
+  // Will : le post (canevas plus court) a besoin de gagner de la place
+  // en haut pour faire rentrer plus de contenu, la story garde son
+  // espace d'origine.
+  const padTop = ratio === INSTA_POST_RATIO ? 50 : 100, padSide = 36;
   // Police propre à Instagram (cfg.instaFont) — voir INSTA_FONT_OPTIONS
   // pour la liste proposée dans l'admin. Une seule police pour tout
   // (titre, nom de plat, prix, description), à différents poids/styles
@@ -5059,13 +5063,18 @@ async function renderInstaPageToBlob(css, pages, i, restName, bg, ratio, variant
       p,
       new Promise((_,rej)=>setTimeout(()=>rej(new Error('html2canvas timeout')), ms))
     ]);
-    let canvas;
-    try{
-      canvas = await withTimeout(html2canvas(pageEl, { scale, useCORS:true, backgroundColor:bg, logging:false, foreignObjectRendering:true }), 20000);
-    } catch(errFo){
-      console.error('foreignObjectRendering a échoué ou expiré, repli sans lui :', errFo);
-      canvas = await withTimeout(html2canvas(pageEl, { scale, useCORS:true, backgroundColor:bg, logging:false, foreignObjectRendering:false }), 20000);
-    }
+    // BUG FIX (contenu décalé/manquant en haut) : la pagination
+    // elle-même est vérifiée correcte (testé : chaque page démarre
+    // bien sur une frontière de plat entière, jamais coupée) — le
+    // problème vient de la capture foreignObjectRendering:true elle-
+    // même sur ce format (page haute, mise à l'échelle ~1.78x) : elle
+    // ne lève aucune erreur mais capture une zone décalée par rapport
+    // au vrai contenu de la page, engendrant exactement ce
+    // "contenu manquant en haut + grand vide en bas". On saute donc
+    // directement au mode sans foreignObjectRendering pour Instagram,
+    // qui capture la bonne zone (léger écart entre mots possible en
+    // échange, largement préférable à du contenu manquant).
+    let canvas = await withTimeout(html2canvas(pageEl, { scale, useCORS:true, backgroundColor:bg, logging:false, foreignObjectRendering:false }), 20000);
     const tb = pages[i].tabId ? DATA.tabs.find(x=>x.id===pages[i].tabId) : null;
     const slug = (tb ? t(tb.label) : `image-${i+1}`).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
     const blob = await new Promise(res=>canvas.toBlob(res,'image/png'));
