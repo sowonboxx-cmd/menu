@@ -5731,6 +5731,20 @@ function renderFormulesSection(){
     : key==='instaDescColor' ? lightenHex(brandNavy, 0.28)
     : brandNavy;
 
+  // Charge tout de suite (sans attendre l'ouverture de la galerie) les
+  // polices actuellement utilisées par chaque formule, pour que le nom
+  // affiché juste au-dessus du bouton "Voir et choisir la police"
+  // s'affiche réellement dans cette police, pas dans une police de
+  // repli — demande explicite de Will pour que ce soit visible tout
+  // de suite. Recalculé à chaque rendu (pas juste à la création) pour
+  // que changer la police d'une formule mette bien à jour ce lien.
+  const usedFonts = [...new Set(DATA.formules.map(f=>f.instaFont||brandCfg.instaFont||'Playfair Display'))];
+  if(usedFonts.length){
+    let l = document.querySelector('link[data-formule-fonts]');
+    if(!l){ l=document.createElement('link'); l.rel='stylesheet'; l.dataset.formuleFonts='1'; document.head.appendChild(l); }
+    l.href='https://fonts.googleapis.com/css2?'+usedFonts.map(fo=>'family='+encodeURIComponent(fo)+':wght@400;700').join('&')+'&display=swap';
+  }
+
   // Colonnes couleur + taille — Titre/Plat/Description ont chacun
   // leur propre curseur de taille (%) juste sous leur pastille de
   // couleur, pour ajuster tout en un coup d'œil juste au-dessus de
@@ -5851,7 +5865,8 @@ function renderFormulesSection(){
 
       ${sectionHeader('Personnalisation')}
       <div class="af">
-        <button type="button" class="aadd" style="padding:9px;font-size:12px" onclick="showFontGallery('formule','${f.id}')">Voir et choisir la police</button>
+        <div style="font-size:15px;color:var(--navy);font-family:'${f.instaFont||brandCfg.instaFont||'Playfair Display'}',serif;margin-bottom:6px">${f.instaFont||brandCfg.instaFont||'Playfair Display'}</div>
+        <button type="button" style="width:100%;padding:11px;border:none;border-radius:var(--rs);background:var(--navy);color:#fff;font-size:14px;font-family:'${f.instaFont||brandCfg.instaFont||'Playfair Display'}',serif;cursor:pointer" onclick="showFontGallery('formule','${f.id}')">Voir et choisir la police</button>
       </div>
       <label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${f.alignTitleLeft?'checked':''} onchange="formule_setField('${f.id}','alignTitleLeft',this.checked)"><label>Aligner le titre et le texte libre à gauche</label></label>
       <label class="admin-toggle" style="margin-top:4px"><input type="checkbox" ${f.alignContentLeft?'checked':''} onchange="formule_setField('${f.id}','alignContentLeft',this.checked)"><label>Aligner les catégories et les plats à gauche</label></label>
