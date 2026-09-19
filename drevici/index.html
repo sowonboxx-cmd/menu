@@ -6421,11 +6421,6 @@ function restaurantSettingHtml(){
         <label class="al" style="color:rgba(16,40,94,0.55);text-decoration:underline;text-underline-offset:2px;cursor:pointer">Voir et choisir la police</label>
         <div id="restoFontNameDisplay" style="font-size:16px;color:var(--navy);font-family:'${DATA.restoFont||'Cormorant Garamond'}',serif;margin-top:4px">${DATA.restoFont||'Cormorant Garamond'}</div>
       </div>
-      <div style="margin-top:8px;padding:10px;border:1px solid var(--border);border-radius:6px;background:#fafaf7" id="fontPreviewBox">
-        <div style="font-size:22px;font-family:var(--restoFont,'Cormorant Garamond'),serif;font-weight:700;color:var(--navy)">${name||'Nom du restaurant'}</div>
-        <div style="font-size:13px;font-family:var(--restoFont,'Cormorant Garamond'),serif;color:var(--text3);margin-top:4px">Entrées · Plats · Desserts</div>
-      </div>
-      <div style="font-size:10px;color:var(--text3);margin-top:4px">Aperçu de la police sur le nom et les catégories.</div>
     </div>
     <div class="af"><label class="al" style="font-weight:600">Logo de l'établissement</label></div>
     ${imgFieldHtml(logo, "setRestaurantLogo(this.value.trim());applyRestaurantBranding()", 'https://... .png ou .webp', null)}
@@ -6451,6 +6446,12 @@ function restaurantSettingHtml(){
       <input class="ai" value="${DATA.address&&DATA.address.mapsUrl||''}" placeholder="https://maps.google.com/..." oninput="if(!DATA.address)DATA.address={};DATA.address.mapsUrl=this.value;renderAll()">
     </div>
     <label class="admin-toggle" style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px"><input type="checkbox" ${DATA.showCurrency!==false?'checked':''} onchange="DATA.showCurrency=this.checked;renderAll()"><label>Afficher la devise (€)</label></label>
+    <div class="af" style="margin-top:14px"><label class="al">Affichage par défaut du menu</label>
+      <div style="display:flex;gap:16px;margin-top:2px">
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="defaultViewChoice" value="grid" ${(DATA.defaultView||'grid')==='grid'?'checked':''} onchange="DATA.defaultView='grid';view='grid';renderAll()"> Grille</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="defaultViewChoice" value="list" ${DATA.defaultView==='list'?'checked':''} onchange="DATA.defaultView='list';view='list';renderAll()"> Liste</label>
+      </div>
+    </div>
   </div></div>
 `;
 }
@@ -6459,8 +6460,7 @@ function renderBrandColorsSection(){
   const bc=DATA.brandColors||{primary:'#10285E',accent:'#C6A24A',bg:'#F7F5F0'};
   const labels={primary:'Couleur principale',accent:'Couleur accent',bg:'Couleur de fond',tabInactive:'Titres des tabs (non sélectionnés)'};
   const defaults={primary:'#10285E',accent:'#C6A24A',bg:'#F7F5F0',tabInactive:'#B3B3B3'};
-  let h='<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Couleur principale</div><div class="admin-sect-body">';
-  h+='<div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.5">Utilisées dans l\'app et les templates réseaux. Sauvegarder pour appliquer.</div>';
+  let h='<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Couleurs principales</div><div class="admin-sect-body">';
   ['primary','accent','bg','tabInactive'].forEach(key=>{
     const val=bc[key]||defaults[key];
     h+='<div class="af"><label class="al">'+labels[key]+'</label>'
@@ -6650,13 +6650,6 @@ function renderSocialAdminSection(){
         <input class="ai" value="${soc.facebook||''}" placeholder="drevicioyster" oninput="if(!DATA.social)DATA.social={};DATA.social.facebook=this.value;renderAll()">
       </div></div>
     <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-top:4px;line-height:1.5">Les liens s'affichent sous la présentation si le champ est rempli.</div>
-    <div class="af" style="margin-top:14px"><label class="al">Affichage par défaut du menu</label>
-      <div style="display:flex;gap:16px;margin-top:2px">
-        <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="defaultViewChoice" value="grid" ${(DATA.defaultView||'grid')==='grid'?'checked':''} onchange="DATA.defaultView='grid';view='grid';renderAll()"> Grille</label>
-        <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="defaultViewChoice" value="list" ${DATA.defaultView==='list'?'checked':''} onchange="DATA.defaultView='list';view='list';renderAll()"> Liste</label>
-      </div>
-      <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-top:4px">Les visiteurs ne peuvent plus choisir eux-mêmes — c'est cette vue qui s'affiche pour tout le monde.</div>
-    </div>
   </div></div>`;
 }
 
