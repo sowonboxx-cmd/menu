@@ -2972,57 +2972,6 @@ function renderFirstTabExtrasSection(){
     <label class="admin-toggle"><input type="checkbox" ${DATA.intro.active?'checked':''} onchange="DATA.intro.active=this.checked;renderAll();renderAdminSection('__global')"><label>Afficher la présentation</label></label>
     `+biInput('Texte de présentation', DATA.intro.text.fr||'', DATA.intro.text[adminLang]||'', `DATA.intro.text[adminLang]=this.value;renderAll()`, true)+`
   </div></div>`;
-  // Plats à la une (accueil uniquement)
-  h+=`<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Plats à la une</div><div class="admin-sect-body">
-    <label class="admin-toggle" style="margin-bottom:10px"><input type="checkbox" ${DATA.pinnedShowHome!==false?'checked':''} onchange="DATA.pinnedShowHome=this.checked;renderAll()"><label>Activer</label></label>
-    <div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:10px">Les plats épinglés s'affichent en haut du premier onglet du menu.</div>`;
-  // Pinned first (draggable to reorder)
-  const pinnedList = DATA.pinnedDishes||[];
-  if(pinnedList.length>0){
-    h+=`<div style="margin-bottom:8px;padding-bottom:10px;border-bottom:1px dashed var(--border)">
-      <div style="font-size:10px;color:var(--text3);font-family:Jost,sans-serif;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px">Épinglés (glisser pour réordonner)</div>`;
-    pinnedList.forEach((p,pi)=>{
-      const r=resolvePin(p); if(!r) return;
-      const {tab:tb, ci, di, dish:d}=r;
-      h+=`<div class="admin-card" draggable="true" data-pinidx="${pi}" style="display:flex;align-items:center;gap:8px;background:#fdf8ec;margin-bottom:4px;cursor:grab"
-        ondragstart="onDragPin(event,${pi})" ondragend="onDragPinEnd(event)" ondragover="onDragPinOver(event,${pi})" ondrop="onDropPin(event,${pi})">
-        <span style="font-size:14px;color:var(--text3);cursor:grab;padding:0 4px">⠿</span>
-        ${d.img?`<img src="${d.img}" style="width:40px;height:40px;border-radius:6px;object-fit:cover;flex:none" loading="lazy">`:`<div style="width:40px;height:40px;border-radius:6px;background:#ddd;flex:none"></div>`}
-        <div style="flex:1;min-width:0"><div style="font-family:Cormorant Garamond,serif;font-size:14px;font-weight:600;color:var(--navy)">${t(d.name)}</div><div style="font-size:11px;color:var(--text3)">${t(tb.label)}</div></div>
-        <button class="apin pinned" onclick="togglePin('${tb.id}',${ci},${di})" title="Retirer">📌</button>
-      </div>`;
-    });
-    h+=`</div>`;
-  }
-  // All dishes (not yet pinned)
-  let pinCount=0;
-  DATA.tabs.forEach((tab,ti)=>{
-    tab.cards.forEach((card,ci)=>{
-      if(!card.dishes) return;
-      card.dishes.forEach((d,di)=>{
-        ensureDishPid(d);
-        const isPinned=pinnedList.some(p=>p.tabId===tab.id&&p.pid===d._pid);
-        if(isPinned) return; // already shown above
-        pinCount++;
-        h+=`<div class="admin-card" style="display:flex;align-items:center;gap:8px;background:var(--bg)">
-          ${d.img?`<img src="${d.img}" style="width:40px;height:40px;border-radius:6px;object-fit:cover;flex:none" loading="lazy">`:`<div style="width:40px;height:40px;border-radius:6px;background:#ddd;flex:none"></div>`}
-          <div style="flex:1;min-width:0"><div style="font-family:Cormorant Garamond,serif;font-size:14px;font-weight:600;color:var(--navy)">${t(d.name)}</div><div style="font-size:11px;color:var(--text3)">${t(tab.label)}</div></div>
-          <button class="apin" onclick="togglePin('${tab.id}',${ci},${di})" title="Épingler">📍</button>
-        </div>`;
-      });
-    });
-  });
-  if(!pinCount&&!pinnedList.length) h+=`<div style="font-size:12px;color:var(--text3);font-family:Jost,sans-serif;padding:8px">Aucun plat dans le menu.</div>`;
-  h+=`</div></div>`;
-
-  // Champ libre de la page Accueil (global infoBanner)
-  const ib=DATA.infoBanner||{};
-  h+=`<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Champ libre</div><div class="admin-sect-body">
-    <label class="admin-toggle" style="margin-bottom:8px"><input type="checkbox" ${ib.active?'checked':''} onchange="if(!DATA.infoBanner)DATA.infoBanner={};DATA.infoBanner.active=this.checked;renderAll()"><label>Visible</label></label>
-    `+biInput('Étiquette (optionnel)', t(ib.label)||'', t(ib.label)||'', `if(!DATA.infoBanner)DATA.infoBanner={};if(!DATA.infoBanner.label)DATA.infoBanner.label={};DATA.infoBanner.label[adminLang]=this.value;renderAll()`)+`
-    `+biInput('Titre', (ib.title&&ib.title.fr)||'', (ib.title&&ib.title[adminLang])||'', `if(!DATA.infoBanner)DATA.infoBanner={};if(!DATA.infoBanner.title)DATA.infoBanner.title={};DATA.infoBanner.title[adminLang]=this.value;renderAll()`)+`
-    `+biInput('Texte', (ib.desc&&ib.desc.fr)||'', (ib.desc&&ib.desc[adminLang])||'', `if(!DATA.infoBanner)DATA.infoBanner={};if(!DATA.infoBanner.desc)DATA.infoBanner.desc={};DATA.infoBanner.desc[adminLang]=this.value;renderAll()`, true)+`
-  </div></div>`;
 
   return h;
 }
