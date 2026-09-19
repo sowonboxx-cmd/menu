@@ -5768,6 +5768,7 @@ function renderFormulesSection(){
     </div>`;
 
 
+  const sectionHeader = title => `<div style="border-top:1px solid var(--border);margin:18px 0 12px"></div><div style="text-align:center;text-transform:uppercase;font-weight:700;font-size:11px;letter-spacing:.06em;color:var(--text2);margin-bottom:12px">${title}</div>`;
   const formuleCard = f => `<div class="admin-section collapsible collapsed" style="margin-bottom:10px;border:1px solid var(--border);border-radius:10px;overflow:hidden">
     <div class="admin-sect-title" onclick="toggleAdminSection(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center">
       <span>${f.name||'Formule sans nom'}</span>
@@ -5784,28 +5785,33 @@ function renderFormulesSection(){
         <textarea class="ai" rows="3" placeholder="Ex : Servi du mardi au dimanche, 12h-14h&#10;Entrée + Plat + Dessert — 35€" oninput="formule_setField('${f.id}','freeText',this.value)">${f.freeText||''}</textarea>
       </div>
 
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <div class="af" style="flex:1"><label class="al">Casse des catégories</label>
-          <select class="ai" onchange="formule_setField('${f.id}','catCase',this.value);renderAdminSection('__formules')">
-            <option value="upper" ${f.catCase!=='lower'?'selected':''}>MAJUSCULE</option>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <span style="font-size:10px;color:var(--text3);flex:none">Casse</span>
+        <div style="display:flex;align-items:center;gap:4px;font-size:10.5px">
+          <span style="color:var(--text3)">Catégorie</span>
+          <select class="ai" style="width:auto;font-size:10.5px;padding:4px 6px" onchange="formule_setField('${f.id}','catCase',this.value)">
+            <option value="upper" ${f.catCase!=='lower'?'selected':''}>Majuscule</option>
             <option value="lower" ${f.catCase==='lower'?'selected':''}>Minuscule</option>
           </select>
         </div>
-        <div class="af" style="flex:1"><label class="al">Casse des noms de plats</label>
-          <select class="ai" onchange="formule_setField('${f.id}','nameCase',this.value);renderAdminSection('__formules')">
-            <option value="upper" ${f.nameCase!=='lower'?'selected':''}>MAJUSCULE</option>
+        <div style="display:flex;align-items:center;gap:4px;font-size:10.5px">
+          <span style="color:var(--text3)">Nom des plats</span>
+          <select class="ai" style="width:auto;font-size:10.5px;padding:4px 6px" onchange="formule_setField('${f.id}','nameCase',this.value)">
+            <option value="upper" ${f.nameCase!=='lower'?'selected':''}>Majuscule</option>
             <option value="lower" ${f.nameCase==='lower'?'selected':''}>Minuscule</option>
           </select>
         </div>
-      </div>
-      <div class="af" style="margin-top:10px"><label class="al">Casse des descriptions</label>
-        <select class="ai" onchange="formule_setField('${f.id}','descCase',this.value);renderAdminSection('__formules')">
-          <option value="lower" ${f.descCase!=='upper'?'selected':''}>Minuscule</option>
-          <option value="upper" ${f.descCase==='upper'?'selected':''}>MAJUSCULE</option>
-        </select>
+        <div style="display:flex;align-items:center;gap:4px;font-size:10.5px">
+          <span style="color:var(--text3)">Description</span>
+          <select class="ai" style="width:auto;font-size:10.5px;padding:4px 6px" onchange="formule_setField('${f.id}','descCase',this.value)">
+            <option value="lower" ${f.descCase!=='upper'?'selected':''}>Minuscule</option>
+            <option value="upper" ${f.descCase==='upper'?'selected':''}>Majuscule</option>
+          </select>
+        </div>
       </div>
 
-      <div style="margin-top:14px">
+      ${sectionHeader('Éléments du menu')}
+      <div>
         ${f.tabs.map((cat,catIdx)=>`
           <div class="admin-card${cat._expanded?'':' collapsed'}" style="border:1px solid var(--border);border-radius:8px;padding:0;margin-top:8px;background:#fafafa"
                draggable="true"
@@ -5845,7 +5851,8 @@ function renderFormulesSection(){
       </div>
       <button class="aadd" style="width:100%;margin-top:10px;padding:9px;font-size:12px" onclick="formule_addCategory('${f.id}')">+ Catégorie</button>
 
-      <div class="af" style="margin-top:14px">
+      ${sectionHeader('Personnalisation')}
+      <div class="af">
         <button type="button" class="aadd" style="padding:9px;font-size:12px" onclick="showFontGallery('formule','${f.id}')">Voir et choisir la police</button>
       </div>
       <label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${f.alignTitleLeft?'checked':''} onchange="formule_setField('${f.id}','alignTitleLeft',this.checked)"><label>Aligner le titre et le texte libre à gauche</label></label>
