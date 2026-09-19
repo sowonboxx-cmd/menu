@@ -5864,9 +5864,9 @@ function renderFormulesSection(){
       <button class="aadd" style="width:100%;margin-top:10px;padding:9px;font-size:12px" onclick="formule_addCategory('${f.id}')">+ Catégorie</button>
 
       ${sectionHeader('Personnalisation')}
-      <div class="af">
-        <div style="font-size:15px;color:var(--navy);font-family:'${f.instaFont||brandCfg.instaFont||'Playfair Display'}',serif;margin-bottom:6px">${f.instaFont||brandCfg.instaFont||'Playfair Display'}</div>
-        <button type="button" style="width:100%;padding:11px;border:none;border-radius:var(--rs);background:var(--navy);color:#fff;font-size:14px;font-family:'${f.instaFont||brandCfg.instaFont||'Playfair Display'}',serif;cursor:pointer" onclick="showFontGallery('formule','${f.id}')">Voir et choisir la police</button>
+      <div class="af" style="cursor:pointer" onclick="showFontGallery('formule','${f.id}')">
+        <label class="al" style="color:rgba(16,40,94,0.55);text-decoration:underline;text-underline-offset:2px;cursor:pointer">Voir et choisir la police</label>
+        <div style="font-size:16px;color:var(--navy);font-family:'${f.instaFont||brandCfg.instaFont||'Playfair Display'}',serif;margin-top:4px">${f.instaFont||brandCfg.instaFont||'Playfair Display'}</div>
       </div>
       <label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${f.alignTitleLeft?'checked':''} onchange="formule_setField('${f.id}','alignTitleLeft',this.checked)"><label>Aligner le titre et le texte libre à gauche</label></label>
       <label class="admin-toggle" style="margin-top:4px"><input type="checkbox" ${f.alignContentLeft?'checked':''} onchange="formule_setField('${f.id}','alignContentLeft',this.checked)"><label>Aligner les catégories et les plats à gauche</label></label>
@@ -5902,6 +5902,15 @@ function renderPrintBody(){
   const ic = DATA.icones||{};
   const activeTab = cfg.exportTab || 'print'; // 'print' | 'gbiz' | 'insta'
   const logoSrc = cfg.logoData || getRestaurantLogo();
+  // Charge tout de suite la police Instagram actuelle, pour que son
+  // nom s'affiche réellement dans cette police au-dessus du bouton
+  // "Voir et choisir la police" (pas une police de repli).
+  if(activeTab==='insta'){
+    const curFont = cfg.instaFont || 'Playfair Display';
+    let fl = document.querySelector('link[data-insta-font]');
+    if(!fl){ fl=document.createElement('link'); fl.rel='stylesheet'; fl.dataset.instaFont='1'; document.head.appendChild(fl); }
+    fl.href = 'https://fonts.googleapis.com/css2?family='+encodeURIComponent(curFont)+':wght@400;700&display=swap';
+  }
 
   const tabBtn = (id, label, disabled) => `<button ${disabled?'disabled title="Bientôt disponible"':`onclick="setPdfCfg('exportTab','${id}');renderAdminSection(adminCurrentTab)"`} style="flex:1;padding:9px 6px;font-family:Jost,sans-serif;font-size:12.5px;font-weight:600;border:1.5px solid var(--border);cursor:${disabled?'not-allowed':'pointer'};background:${activeTab===id?'var(--navy)':'#fff'};color:${activeTab===id?'#fff':disabled?'var(--text3)':'var(--text2)'};opacity:${disabled?0.55:1};border-radius:8px">${label}</button>`;
   const tabsHtml = `
@@ -5956,10 +5965,9 @@ function renderPrintBody(){
         ${printPages.map((p,i)=>`<span class="pdf-carousel-dot" data-idx="${i}" style="width:${i===0?7:6}px;height:${i===0?7:6}px;border-radius:50%;background:${i===0?'var(--navy)':'var(--border)'}"></span>`).join('')}
       </div>
     </div>` : activeTab==='gbiz' ? renderGbizPagePreview() : activeTab==='insta' ? `
-    <div class="af"><label class="al">Police du visuel</label>
-      <select class="ai" style="font-size:13px" onchange="setPdfCfg('instaFont',this.value);renderAdminSection(adminCurrentTab)">
-        ${INSTA_FONT_OPTIONS.map(f=>`<option value="${f}" ${cfg.instaFont===f?'selected':''}>${instaFontLabel(f)}</option>`).join('')}
-      </select>
+    <div class="af" style="cursor:pointer" onclick="showFontGallery('insta')">
+      <label class="al" style="color:rgba(16,40,94,0.55);text-decoration:underline;text-underline-offset:2px;cursor:pointer">Voir et choisir la police</label>
+      <div style="font-size:16px;color:var(--navy);font-family:'${cfg.instaFont||'Playfair Display'}',serif;margin-top:4px">${cfg.instaFont||'Playfair Display'}</div>
     </div>
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
       ${[
@@ -6541,14 +6549,16 @@ function showFontGallery(target, fid){
   // Menus et Formules : liste réduite (celle déjà proposée pour
   // Instagram, pensée pour ce format précis) plutôt que les 50
   // polices générales — mais même principe d'aperçu en direct.
-  const fontList = target==='formule' ? INSTA_FONT_OPTIONS : FONT_LIST;
+  const fontList = (target==='formule' || target==='insta') ? INSTA_FONT_OPTIONS : FONT_LIST;
   const sampleText = (DATA.restaurantName||'Restaurant');
   const rows = fontList.map(f=>{
     const onclick = target==='formule'
       ? `formule_setField('${fid}','instaFont','${f.replace(/'/g,"\\'")}');if(typeof initFormulePreviewFrames==='function')initFormulePreviewFrames();closeFontGallery();renderAdminSection('__formules')`
+      : target==='insta'
+      ? `setPdfCfg('instaFont','${f.replace(/'/g,"\\'")}');closeFontGallery();renderAdminSection(adminCurrentTab)`
       : `${target==='cover' ? 'setCoverHeadlineFont' : 'setRestoFont'}('${f.replace(/'/g,"\\'")}');closeFontGallery()`;
     return `<div class="font-gallery-row" onclick="${onclick}">
-    <div class="font-gallery-name">${target==='formule' ? instaFontLabel(f) : f}</div>
+    <div class="font-gallery-name">${(target==='formule'||target==='insta') ? instaFontLabel(f) : f}</div>
     <div class="font-gallery-sample" style="font-family:'${f}',serif">${escapeHtmlLocal(sampleText)}</div>
   </div>`;
   }).join('');
