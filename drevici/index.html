@@ -6416,11 +6416,11 @@ function restaurantSettingHtml(){
     <div class="af"><label class="al">Nom de l'établissement</label>
       <input class="ai" value="${name}" placeholder="Nom du restaurant" oninput="setRestaurantName(this.value);document.getElementById('logoText').textContent=this.value||'Mon Restaurant'">
     </div>
-    <div class="af"><label class="al">Police du logo</label>
-      <select class="ai" id="restoFontSelect" style="font-size:13px" onchange="setRestoFont(this.value)">
-        ${FONT_LIST.map(f=>`<option value="${f}" style="font-family:'${f}',sans-serif" ${(DATA.restoFont||'')===f?'selected':''}>${f}</option>`).join('')}
-      </select>
-      <button type="button" class="aadd" style="margin-top:6px" onclick="showFontGallery()">Voir toutes les polices</button>
+    <div class="af">
+      <div style="cursor:pointer" onclick="showFontGallery()">
+        <label class="al" style="color:rgba(16,40,94,0.55);text-decoration:underline;text-underline-offset:2px;cursor:pointer">Voir et choisir la police</label>
+        <div id="restoFontNameDisplay" style="font-size:16px;color:var(--navy);font-family:'${DATA.restoFont||'Cormorant Garamond'}',serif;margin-top:4px">${DATA.restoFont||'Cormorant Garamond'}</div>
+      </div>
       <div style="margin-top:8px;padding:10px;border:1px solid var(--border);border-radius:6px;background:#fafaf7" id="fontPreviewBox">
         <div style="font-size:22px;font-family:var(--restoFont,'Cormorant Garamond'),serif;font-weight:700;color:var(--navy)">${name||'Nom du restaurant'}</div>
         <div style="font-size:13px;font-family:var(--restoFont,'Cormorant Garamond'),serif;color:var(--text3);margin-top:4px">Entrées · Plats · Desserts</div>
@@ -6592,6 +6592,8 @@ function setRestoFont(font){
   // Update preview
   const box=document.getElementById('fontPreviewBox');
   if(box) box.querySelectorAll('div').forEach(el=>el.style.fontFamily="'"+font+"',serif");
+  const nameDisplay=document.getElementById('restoFontNameDisplay');
+  if(nameDisplay){ nameDisplay.style.fontFamily="'"+font+"',serif"; nameDisplay.textContent=font; }
   renderAll();
 }
 // Independent from the site-wide font (setRestoFont/DATA.restoFont) —
