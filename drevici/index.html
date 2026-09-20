@@ -534,7 +534,7 @@ body.home-cover-showing{overflow:hidden}
    ne suffit pas partout (Safari iOS, notamment, ne teinte que la
    coche, pas le carré lui-même). On dessine la case nous-mêmes :
    fond noir par défaut, coche bleu clair dessinée à la main. */
-.ig-subpage-old-content input[type="checkbox"]{appearance:none;-webkit-appearance:none;width:15px;height:15px;flex:none;border-radius:4px;background:#171717!important;border:1px solid #5a5a5a;cursor:pointer;position:relative;margin:0}
+.ig-subpage-old-content input[type="checkbox"]{appearance:none;-webkit-appearance:none;width:15px;height:15px;flex:none;border-radius:4px;background:#3a3a3a!important;border:1px solid #5a5a5a;cursor:pointer;position:relative;margin:0}
 .ig-subpage-old-content input[type="checkbox"]:checked{border-color:var(--ig-navy-light)}
 .ig-subpage-old-content input[type="checkbox"]:checked::after{content:'';position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid var(--ig-navy-light);border-width:0 2px 2px 0;transform:rotate(45deg)}
 /* BUG FIX (contour bleu au survol) : .admin-toggle:hover met la
@@ -596,6 +596,21 @@ body.home-cover-showing{overflow:hidden}
    déjà son propre libellé, il ne lui manquait qu'un encadré pour bien
    la distinguer du reste. */
 .ig-gallery-frame{border:1px solid #5a5a5a;border-radius:10px;padding:10px 12px;margin-top:8px}
+/* Bloc "Section" — un seul bloc cliquable par section, exactement le
+   même style que les lignes de "Changer l'ordre des onglets" (fond
+   gris carte, nom en bleu clair), avec une petite flèche à droite
+   plutôt qu'un dépliage sur place. */
+.ig-subpage-old-content .ig-section-row{display:flex;align-items:center;gap:8px;background:var(--ig-card)!important;border:none!important;padding:14px 14px;margin-bottom:8px;cursor:pointer}
+.ig-section-row-label{color:var(--navy);font-weight:500;flex:1;font-family:'Jost',sans-serif;font-size:14px}
+/* Bouton retour "interne" (liste des sections → détail d'une
+   section), imbriqué dans le même contenu, distinct du bouton retour
+   principal qui lui ramène à "Catégories". */
+.ig-inner-back-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+/* Caption Instagram — un seul cadre, le libellé à l'intérieur, tout en
+   haut, au-dessus de l'exemple/placeholder. */
+.ig-caption-wrap{border:1px solid #5a5a5a;border-radius:10px;padding:8px 10px;margin-top:10px}
+.ig-caption-label{font-size:10px;font-weight:600;color:var(--ig-text-dimmer,var(--text3));margin-bottom:4px}
+.ig-subpage-old-content .ig-caption-input{border:none!important;background:transparent!important;padding:0!important;width:100%}
 .ig-card-sect-title .adel{color:#ffb3ab!important}
 /* Boutons "+ Plat"/"+ Boisson"/"+ Variante"/"+ Nouvelle section" —
    trait continu plutôt que pointillé, fond de la page plutôt qu'un
@@ -3244,28 +3259,54 @@ function togglePin(tabId,ci,di){
   renderAdminSection(adminCurrentTab);
 }
 
+// Une tab est maintenant une vraie navigation à deux niveaux : la
+// liste des sections (un bloc chacune, comme "Changer l'ordre des
+// onglets"), puis le détail d'UNE section (ses plats) une fois qu'on
+// clique dedans. tabSectionOpen retient, par tab, quelle section est
+// actuellement ouverte (ou aucune = on est sur la liste).
+let tabSectionOpen = {};
+function openTabSection(tabId, ci){ tabSectionOpen[tabId] = ci; renderAdminSection(tabId); }
+function closeTabSection(tabId){ tabSectionOpen[tabId] = null; renderAdminSection(tabId); }
+
 function renderAdminTab(ti){
+  const tab=DATA.tabs[ti];
+  const openCi = tabSectionOpen[tab.id];
+  if(openCi!=null && tab.cards[openCi]) return renderTabSectionDetail(ti, openCi);
+  return renderTabSectionList(ti);
+}
+
+function renderTabSectionList(ti){
   const tab=DATA.tabs[ti];
   let h='';
 
-  // Nom de l'onglet — juste le champ, pas d'accordéon (rien à
-  // replier/déplier ici, un seul champ ne le justifie pas). Visible/
-  // Masquée/Supprimer simplifiés en œil + corbeille à droite, comme
-  // pour un plat.
+  // Nom de l'onglet — juste le champ, pas d'accordéon. Visible/
+  // Masquée/Supprimer simplifiés en œil + corbeille à droite.
   h+=`<div class="af" style="display:flex;align-items:center;gap:8px">
     <input class="ai" style="flex:1" value="${escAttr(tab.label[adminLang]||'')}" placeholder="Nom de l'onglet" oninput="DATA.tabs[${ti}].label[adminLang]=this.value;renderAll()">
     ${dishEyeDelButtons(tab.visible===false, `DATA.tabs[${ti}].visible=${tab.visible===false};renderAll();renderAdminSection(DATA.tabs[${ti}].id)`, `askConfirm('Supprimer la tab « ${(tab.label.fr||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")} » et tout son contenu ?',()=>delTab(${ti}))`)}
   </div>`;
 
-  // Réordonner les sections construit ici mais affiché tout en bas
-  // (moins important à voir tout de suite que le contenu lui-même).
-  let reorderHtml='';
+  // Sections — un seul bloc cliquable chacune (nom en bleu clair,
+  // petite flèche à droite), on entre dans le détail au clic. Plus
+  // d'accordéon qui déplie tout sur place : trop d'informations d'un
+  // coup quand il y a beaucoup de plats.
+  h+=`<div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin:14px 0 8px">Section</div>`;
+  tab.cards.forEach((card,ci)=>{
+    h+=`<div class="admin-card ig-section-row" onclick="openTabSection('${tab.id}',${ci})">
+      <span class="ig-section-row-label">${t(card.label)||'(sans titre)'}</span>
+      <span class="ig-row-chevron">›</span>
+    </div>`;
+  });
+
+  h+=`<button class="aadd ig-add-btn" style="display:block;width:100%;padding:10px" onclick="addCard(${ti})">+ Nouvelle section dans cette tab</button>`;
+
+  // Réordonner les sections (2+ sections seulement), tout en bas.
   if(tab.cards.length>=2){
-    reorderHtml+=`<div class="admin-section collapsible collapsed" style="margin-top:20px"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Ordre des sections</div><div class="admin-sect-body">`;
-    reorderHtml+=`<div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:10px;line-height:1.5">Changer l'ordre des onglets</div>`;
-    reorderHtml+=`<div id="sectionReorderList" data-ti="${ti}">`;
+    h+=`<div class="admin-section collapsible collapsed" style="margin-top:20px"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Ordre des sections</div><div class="admin-sect-body">`;
+    h+=`<div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:10px;line-height:1.5">Changer l'ordre des onglets</div>`;
+    h+=`<div id="sectionReorderList" data-ti="${ti}">`;
     tab.cards.forEach((card,ci)=>{
-      reorderHtml+=`<div class="admin-card" style="display:flex;align-items:center;gap:10px;background:#fff;margin-bottom:6px;cursor:grab;touch-action:none"
+      h+=`<div class="admin-card" style="display:flex;align-items:center;gap:10px;background:#fff;margin-bottom:6px;cursor:grab;touch-action:none"
             data-ti="${ti}" data-ci="${ci}"
             draggable="true"
             ondragstart="onDragSectionRow(event,${ti},${ci})"
@@ -3278,84 +3319,90 @@ function renderAdminTab(ti){
         <span style="font-size:10px;color:var(--text3)">Section ${ci+1}</span>
       </div>`;
     });
-    reorderHtml+=`</div></div></div>`;
+    h+=`</div></div></div>`;
   }
 
-  // Cards
-  h+=`<div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin:14px 0 8px">Section</div>`;
-  tab.cards.forEach((card,ci)=>{
-    const cardOpenByDefault = tab.cards.length<2;
-    h+=`<div class="admin-section collapsible${cardOpenByDefault?'':' collapsed'}"><div class="ig-card-sect-title" onclick="toggleAdminSection(this)" style="display:flex;align-items:center;gap:8px;cursor:pointer">
-      <input class="ai ig-card-title-input" value="${escAttr(card.label[adminLang]||'')}" placeholder="Titre de section" style="flex:1" onclick="event.stopPropagation()" oninput="DATA.tabs[${ti}].cards[${ci}].label[adminLang]=this.value;renderAll()">
-      <button class="adel" style="font-size:12px;padding:1px 5px;flex:none;opacity:.6" onclick="event.stopPropagation();askConfirm('Supprimer cette section ?',()=>{DATA.tabs[${ti}].cards.splice(${ci},1);renderAll();renderAdminSection(DATA.tabs[${ti}].id);publishNow()})">✕</button>
-    </div><div class="admin-sect-body">`;
-    h+=`<div class="admin-card">`;
-    h+=``;
-
-    if(card.type==='bevs'){
-      (card.items||[]).forEach((item,ii)=>{
-        const sizeRows=(item.sizes||[]).map((s,si)=>{
-          const unit=s.unit||'cl';
-          return `<div class="ai-row" style="margin-bottom:4px;align-items:center"><select class="ai-unit-sel" onchange="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].format=this.value;const f=BEV_FORMATS.find(f=>f.key===this.value);if(f&&f.autoCl!=null){DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].cl=f.autoCl;DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].unit='cl';}renderAll();renderAdminSection(DATA.tabs[${ti}].id)">${bevFormatOptionsHtml(s.format)}</select><input class="ai" type="number" min="0" placeholder="Contenance" value="${s.cl||''}" style="max-width:64px" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].cl=this.value;renderAll()"><select class="ai-unit-sel" onchange="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].unit=this.value;renderAll()"><option value="cl" ${unit==='cl'?'selected':''}>cl</option><option value="l" ${unit==='l'?'selected':''}>L</option></select><input class="ai" type="number" min="0" step="0.5" placeholder="prix" value="${s.price||''}" style="max-width:64px" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].price=this.value;renderAll()"><span style="font-size:11px;color:var(--text3);padding:0 4px">€</span><button class="adel" onclick="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes.splice(${si},1);renderAll();renderAdminSection(DATA.tabs[${ti}].id)">×</button></div>`;
-        }).join('');
-        const bevName=typeof item.name==='object'?(item.name[adminLang]||item.name.fr||''):(item.name||'');
-        h+=`<div class="admin-card collapsed" style="background:#fff;margin-top:4px" ondragover="onDragOver(event,${ti},${ci},${ii})" ondragleave="onDragLeave(event)" ondrop="onDropBev(event,${ti},${ci},${ii})">
-          <div class="admin-card-hdr"><span class="drag-handle" draggable="true" ondragstart="onDragBev(event,${ti},${ci},${ii})" ondragend="onDragEndHandle(event)">⠿</span><span class="admin-card-num" style="cursor:pointer" onclick="this.closest('.admin-card').classList.toggle('collapsed')">Boisson ${ii+1}${bevName?' — '+escAttr(bevName):''} <span class="collapse-chevron">▾</span></span>${dishEyeDelButtons(!!item.hidden, `(function(){if(${!!item.hidden}){delete DATA.tabs[${ti}].cards[${ci}].items[${ii}].hidden;}else{DATA.tabs[${ti}].cards[${ci}].items[${ii}].hidden=true;}renderAll();renderAdminSection(DATA.tabs[${ti}].id)})()`, `askConfirm('Supprimer cette boisson ?',()=>delBev(${ti},${ci},${ii}))`)}</div>
-          <div class="admin-card-details">
-          <input class="ai" style="margin-bottom:4px" placeholder="${adminLang!=='fr'&&typeof item.name==='object'?item.name.fr||'Nom':'Nom'}" value="${typeof item.name==='object'?(item.name[adminLang]||''):item.name||''}" oninput="if(typeof DATA.tabs[${ti}].cards[${ci}].items[${ii}].name!=='object'){DATA.tabs[${ti}].cards[${ci}].items[${ii}].name={fr:DATA.tabs[${ti}].cards[${ci}].items[${ii}].name};}DATA.tabs[${ti}].cards[${ci}].items[${ii}].name[adminLang]=this.value;renderAll()">
-          <textarea class="ai" rows="2" style="resize:vertical;margin-bottom:4px;font-size:12px" placeholder="Description (notes de dégustation, etc.)" oninput="if(!DATA.tabs[${ti}].cards[${ci}].items[${ii}].desc||typeof DATA.tabs[${ti}].cards[${ci}].items[${ii}].desc!=='object'){DATA.tabs[${ti}].cards[${ci}].items[${ii}].desc={};}DATA.tabs[${ti}].cards[${ci}].items[${ii}].desc[adminLang]=this.value;renderAll()">${(item.desc&&item.desc[adminLang])||''}</textarea>
-          `+imgFieldHtml(item.img||'',`DATA.tabs[${ti}].cards[${ci}].items[${ii}].img=this.value;renderAll()`,"Image URL ou uploader")+`
-
-          <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:4px">Format, contenance & prix</div>
-          ${sizeRows}
-          <button class="aadd ig-add-btn" style="margin-top:2px" onclick="if(!Array.isArray(DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes)){DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes=[];}DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes.push({format:'',cl:'',unit:'cl',price:''});renderAll();renderAdminSection(DATA.tabs[${ti}].id)">+ Taille</button>
-
-          <div class="af" style="margin-top:10px"><label class="al" style="font-size:11px;font-weight:600;color:var(--text2)">Caption Instagram (pré-enregistrée)</label>
-            <textarea class="ai ig-visible-field" rows="4" style="resize:vertical;min-height:72px;font-size:12px;border-radius:10px" placeholder="Ex: Notre sélection du moment 🍷" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].caption=this.value">${item.caption||''}</textarea>
-          </div>
-          <div class="ig-gallery-frame">${entityGalleryHtml(ti,ci,ii,'items',item.gallery)}</div>
-          </div>
-        </div>`;
-      });
-      h+=`<button class="aadd ig-add-btn" style="margin-top:4px" onclick="addBev(${ti},${ci})">+ Boisson</button>`;
-    } else if(card.type==='variants'){
-      h+=imgFieldHtml(card.img||'',`DATA.tabs[${ti}].cards[${ci}].img=this.value;renderAll()`,"Image URL ou uploader");
-      (card.variants||[]).forEach((v,vi)=>{
-        const vFr=typeof v.name==='object'?v.name.fr||'':v.name||'';
-        const vVal=typeof v.name==='object'?(v.name[adminLang]||''):v.name||'';
-        h+=`<div class="ai-row" style="margin-top:4px" ondragover="onDragOver(event,${ti},${ci},${vi})" ondragleave="onDragLeave(event)" ondrop="onDropVariant(event,${ti},${ci},${vi})"><span class="drag-handle" title="Glisser pour réordonner" draggable="true" ondragstart="onDragVariant(event,${ti},${ci},${vi})" ondragend="onDragEndHandle(event)">⠿</span><input class="ai" value="${vVal}" placeholder="${adminLang!=='fr'?vFr:''}" oninput="if(typeof DATA.tabs[${ti}].cards[${ci}].variants[${vi}].name!=='object'){DATA.tabs[${ti}].cards[${ci}].variants[${vi}].name={fr:DATA.tabs[${ti}].cards[${ci}].variants[${vi}].name};}DATA.tabs[${ti}].cards[${ci}].variants[${vi}].name[adminLang]=this.value;renderAll()"><input class="ai ai-sm" value="${v.price||''}" oninput="DATA.tabs[${ti}].cards[${ci}].variants[${vi}].price=this.value;renderAll()"><button class="adel" onclick="askConfirm('Supprimer cette variante ?',()=>delVariant(${ti},${ci},${vi}))">×</button></div>`;
-      });
-      h+=`<button class="aadd ig-add-btn" onclick="addVariant(${ti},${ci})">+ Variante</button>`;
-    } else {
-      (card.dishes||[]).forEach((d,di)=>{
-        const dName=d.name&&(d.name[adminLang]||d.name.fr)||'';
-        h+=`<div class="admin-card collapsed" style="background:#fff;margin-top:6px" ondragover="onDragOver(event,${ti},${ci},${di})" ondragleave="onDragLeave(event)" ondrop="onDrop(event,${ti},${ci},${di})">
-          <div class="admin-card-hdr"><span class="drag-handle" title="Glisser pour réordonner" draggable="true" ondragstart="onDragStart(event,${ti},${ci},${di})" ondragend="onDragEndHandle(event)">⠿</span><span class="admin-card-num" style="cursor:pointer" onclick="this.closest('.admin-card').classList.toggle('collapsed')">Plat ${di+1}${dName?' — '+escAttr(dName):''} <span class="collapse-chevron">▾</span></span>${dishEyeDelButtons(!!d.hidden, `(function(){if(${!!d.hidden}){delete DATA.tabs[${ti}].cards[${ci}].dishes[${di}].hidden;}else{DATA.tabs[${ti}].cards[${ci}].dishes[${di}].hidden=true;}renderAll();renderAdminSection(DATA.tabs[${ti}].id)})()`, `askConfirm('Supprimer « ${(d.name.fr||'ce plat').replace(/\\/g,'\\\\').replace(/'/g,"\\'")} » ?',()=>delDish(${ti},${ci},${di}))`)}</div>
-          <div class="admin-card-details">
-          <div class="af"><input class="ai" value="${escAttr(d.name[adminLang]||'')}" placeholder="Nom" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].name[adminLang]=this.value;renderAll()"></div>
-          <div class="af"><textarea class="ai" rows="2" style="resize:vertical" placeholder="Description" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].desc[adminLang]=this.value;renderAll()">${escAttr(d.desc[adminLang]||'')}</textarea></div>
-          `+priceFieldSimple(d,ti,ci,di)+`
-          `+imgFieldHtml(d.img||'',`DATA.tabs[${ti}].cards[${ci}].dishes[${di}].img=this.value;renderAll()`,"Image visuelle principale")+`
-          <div class="ig-gallery-frame">`+dishGalleryHtml(d,ti,ci,di)+`</div>
-          <div class="af"><label class="al" style="font-size:11px;font-weight:600;color:var(--text2)">Caption Instagram (pré-enregistrée)</label>
-            <textarea class="ai ig-visible-field" rows="4" style="resize:vertical;min-height:72px;font-size:12px;border-radius:10px" placeholder="Ex: Nos huîtres Spéciales N°3 — iodées, fraîches, servies sur glace 🦪 Disponibles au bar ou à emporter." oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].caption=this.value">${d.caption||''}</textarea>
-          </div>
-          `+adminBadgeGroup(d,`DATA.tabs[${ti}].cards[${ci}].dishes[${di}]`)+`
-          </div>
-        </div>`;
-      });
-      h+=`<button class="aadd ig-add-btn" onclick="addDish(${ti},${ci})">+ Plat</button>`;
-    }
-
-    h+=`</div></div></div>`;
-  });
-
-  h+=`<div class="admin-section"><button class="aadd ig-add-btn" style="display:block;width:100%;padding:10px" onclick="addCard(${ti})">+ Nouvelle section dans cette tab</button></div>`;
-  h+=reorderHtml;
-
   h+=adminSaveBar();
-
   return h;
+}
+
+function renderTabSectionDetail(ti, ci){
+  const tab=DATA.tabs[ti];
+  const card=tab.cards[ci];
+  let h='';
+
+  h+=`<div class="ig-inner-back-row">
+    <button class="ig-back-btn" onclick="closeTabSection('${tab.id}')">‹</button>
+    <input class="ai ig-card-title-input" style="flex:1" value="${escAttr(card.label[adminLang]||'')}" placeholder="Titre de section" oninput="DATA.tabs[${ti}].cards[${ci}].label[adminLang]=this.value;renderAll()">
+    <button class="adel" style="font-size:12px;padding:1px 5px;flex:none;opacity:.6" onclick="askConfirm('Supprimer cette section ?',()=>{DATA.tabs[${ti}].cards.splice(${ci},1);tabSectionOpen['${tab.id}']=null;renderAll();renderAdminSection(DATA.tabs[${ti}].id);publishNow()})">✕</button>
+  </div>`;
+  h+=`<div class="admin-card">`;
+
+  if(card.type==='bevs'){
+    (card.items||[]).forEach((item,ii)=>{
+      const sizeRows=(item.sizes||[]).map((s,si)=>{
+        const unit=s.unit||'cl';
+        return `<div class="ai-row" style="margin-bottom:4px;align-items:center"><select class="ai-unit-sel" onchange="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].format=this.value;const f=BEV_FORMATS.find(f=>f.key===this.value);if(f&&f.autoCl!=null){DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].cl=f.autoCl;DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].unit='cl';}renderAll();renderAdminSection(DATA.tabs[${ti}].id)">${bevFormatOptionsHtml(s.format)}</select><input class="ai" type="number" min="0" placeholder="Contenance" value="${s.cl||''}" style="max-width:64px" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].cl=this.value;renderAll()"><select class="ai-unit-sel" onchange="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].unit=this.value;renderAll()"><option value="cl" ${unit==='cl'?'selected':''}>cl</option><option value="l" ${unit==='l'?'selected':''}>L</option></select><input class="ai" type="number" min="0" step="0.5" placeholder="prix" value="${s.price||''}" style="max-width:64px" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].price=this.value;renderAll()"><span style="font-size:11px;color:var(--text3);padding:0 4px">€</span><button class="adel" onclick="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes.splice(${si},1);renderAll();renderAdminSection(DATA.tabs[${ti}].id)">×</button></div>`;
+      }).join('');
+      const bevName=typeof item.name==='object'?(item.name[adminLang]||item.name.fr||''):(item.name||'');
+      h+=`<div class="admin-card collapsed" style="background:#fff;margin-top:4px" ondragover="onDragOver(event,${ti},${ci},${ii})" ondragleave="onDragLeave(event)" ondrop="onDropBev(event,${ti},${ci},${ii})">
+        <div class="admin-card-hdr"><span class="drag-handle" draggable="true" ondragstart="onDragBev(event,${ti},${ci},${ii})" ondragend="onDragEndHandle(event)">⠿</span><span class="admin-card-num" style="cursor:pointer" onclick="this.closest('.admin-card').classList.toggle('collapsed')">Boisson ${ii+1}${bevName?' — '+escAttr(bevName):''}</span>${dishEyeDelButtons(!!item.hidden, `(function(){if(${!!item.hidden}){delete DATA.tabs[${ti}].cards[${ci}].items[${ii}].hidden;}else{DATA.tabs[${ti}].cards[${ci}].items[${ii}].hidden=true;}renderAll();renderAdminSection(DATA.tabs[${ti}].id)})()`, `askConfirm('Supprimer cette boisson ?',()=>delBev(${ti},${ci},${ii}))`)}</div>
+        <div class="admin-card-details">
+        <input class="ai ig-visible-field" style="margin-bottom:4px" placeholder="${adminLang!=='fr'&&typeof item.name==='object'?item.name.fr||'Nom':'Nom'}" value="${typeof item.name==='object'?(item.name[adminLang]||''):item.name||''}" oninput="if(typeof DATA.tabs[${ti}].cards[${ci}].items[${ii}].name!=='object'){DATA.tabs[${ti}].cards[${ci}].items[${ii}].name={fr:DATA.tabs[${ti}].cards[${ci}].items[${ii}].name};}DATA.tabs[${ti}].cards[${ci}].items[${ii}].name[adminLang]=this.value;renderAll()">
+        <textarea class="ai ig-visible-field" rows="2" style="resize:vertical;margin-bottom:4px;font-size:12px" placeholder="Description (notes de dégustation, etc.)" oninput="if(!DATA.tabs[${ti}].cards[${ci}].items[${ii}].desc||typeof DATA.tabs[${ti}].cards[${ci}].items[${ii}].desc!=='object'){DATA.tabs[${ti}].cards[${ci}].items[${ii}].desc={};}DATA.tabs[${ti}].cards[${ci}].items[${ii}].desc[adminLang]=this.value;renderAll()">${(item.desc&&item.desc[adminLang])||''}</textarea>
+        `+imgFieldHtml(item.img||'',`DATA.tabs[${ti}].cards[${ci}].items[${ii}].img=this.value;renderAll()`,"Image URL ou uploader")+`
+
+        <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:4px">Format, contenance & prix</div>
+        ${sizeRows}
+        <button class="aadd ig-add-btn" style="margin-top:2px" onclick="if(!Array.isArray(DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes)){DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes=[];}DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes.push({format:'',cl:'',unit:'cl',price:''});renderAll();renderAdminSection(DATA.tabs[${ti}].id)">+ Taille</button>
+
+        ${captionFieldHtml(item.caption||'', 'Ex: Notre sélection du moment 🍷', `DATA.tabs[${ti}].cards[${ci}].items[${ii}].caption=this.value`)}
+        <div class="ig-gallery-frame">${entityGalleryHtml(ti,ci,ii,'items',item.gallery)}</div>
+        </div>
+      </div>`;
+    });
+    h+=`<button class="aadd ig-add-btn" style="margin-top:4px" onclick="addBev(${ti},${ci})">+ Boisson</button>`;
+  } else if(card.type==='variants'){
+    h+=imgFieldHtml(card.img||'',`DATA.tabs[${ti}].cards[${ci}].img=this.value;renderAll()`,"Image URL ou uploader");
+    (card.variants||[]).forEach((v,vi)=>{
+      const vFr=typeof v.name==='object'?v.name.fr||'':v.name||'';
+      const vVal=typeof v.name==='object'?(v.name[adminLang]||''):v.name||'';
+      h+=`<div class="ai-row" style="margin-top:4px" ondragover="onDragOver(event,${ti},${ci},${vi})" ondragleave="onDragLeave(event)" ondrop="onDropVariant(event,${ti},${ci},${vi})"><span class="drag-handle" title="Glisser pour réordonner" draggable="true" ondragstart="onDragVariant(event,${ti},${ci},${vi})" ondragend="onDragEndHandle(event)">⠿</span><input class="ai ig-visible-field" value="${vVal}" placeholder="${adminLang!=='fr'?vFr:''}" oninput="if(typeof DATA.tabs[${ti}].cards[${ci}].variants[${vi}].name!=='object'){DATA.tabs[${ti}].cards[${ci}].variants[${vi}].name={fr:DATA.tabs[${ti}].cards[${ci}].variants[${vi}].name};}DATA.tabs[${ti}].cards[${ci}].variants[${vi}].name[adminLang]=this.value;renderAll()"><input class="ai ai-sm ig-visible-field" value="${v.price||''}" oninput="DATA.tabs[${ti}].cards[${ci}].variants[${vi}].price=this.value;renderAll()"><button class="adel" onclick="askConfirm('Supprimer cette variante ?',()=>delVariant(${ti},${ci},${vi}))">×</button></div>`;
+    });
+    h+=`<button class="aadd ig-add-btn" onclick="addVariant(${ti},${ci})">+ Variante</button>`;
+  } else {
+    (card.dishes||[]).forEach((d,di)=>{
+      const dName=d.name&&(d.name[adminLang]||d.name.fr)||'';
+      h+=`<div class="admin-card collapsed" style="background:#fff;margin-top:6px" ondragover="onDragOver(event,${ti},${ci},${di})" ondragleave="onDragLeave(event)" ondrop="onDrop(event,${ti},${ci},${di})">
+        <div class="admin-card-hdr"><span class="drag-handle" title="Glisser pour réordonner" draggable="true" ondragstart="onDragStart(event,${ti},${ci},${di})" ondragend="onDragEndHandle(event)">⠿</span><span class="admin-card-num" style="cursor:pointer" onclick="this.closest('.admin-card').classList.toggle('collapsed')">Plat ${di+1}${dName?' — '+escAttr(dName):''}</span>${dishEyeDelButtons(!!d.hidden, `(function(){if(${!!d.hidden}){delete DATA.tabs[${ti}].cards[${ci}].dishes[${di}].hidden;}else{DATA.tabs[${ti}].cards[${ci}].dishes[${di}].hidden=true;}renderAll();renderAdminSection(DATA.tabs[${ti}].id)})()`, `askConfirm('Supprimer « ${(d.name.fr||'ce plat').replace(/\\/g,'\\\\').replace(/'/g,"\\'")} » ?',()=>delDish(${ti},${ci},${di}))`)}</div>
+        <div class="admin-card-details">
+        <div class="af"><input class="ai ig-visible-field" value="${escAttr(d.name[adminLang]||'')}" placeholder="Nom" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].name[adminLang]=this.value;renderAll()"></div>
+        <div class="af"><textarea class="ai ig-visible-field" rows="2" style="resize:vertical" placeholder="Description" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].desc[adminLang]=this.value;renderAll()">${escAttr(d.desc[adminLang]||'')}</textarea></div>
+        `+priceFieldSimple(d,ti,ci,di)+`
+        `+imgFieldHtml(d.img||'',`DATA.tabs[${ti}].cards[${ci}].dishes[${di}].img=this.value;renderAll()`,"Image visuelle principale")+`
+        <div class="ig-gallery-frame">`+dishGalleryHtml(d,ti,ci,di)+`</div>
+        ${captionFieldHtml(d.caption||'', 'Ex: Nos huîtres Spéciales N°3 — iodées, fraîches, servies sur glace 🦪 Disponibles au bar ou à emporter.', `DATA.tabs[${ti}].cards[${ci}].dishes[${di}].caption=this.value`)}
+        `+adminBadgeGroup(d,`DATA.tabs[${ti}].cards[${ci}].dishes[${di}]`)+`
+        </div>
+      </div>`;
+    });
+    h+=`<button class="aadd ig-add-btn" onclick="addDish(${ti},${ci})">+ Plat</button>`;
+  }
+
+  h+=`</div>`;
+  h+=adminSaveBar();
+  return h;
+}
+
+// Cadre unique pour la caption Instagram : le libellé est maintenant
+// À L'INTÉRIEUR du cadre, au-dessus de l'exemple/placeholder, plutôt
+// qu'en dehors — pour qu'on comprenne tout de suite à quoi sert le
+// champ sans avoir à lire un texte séparé.
+function captionFieldHtml(value, placeholder, onInputCode){
+  return `<div class="ig-caption-wrap">
+    <div class="ig-caption-label">Caption Instagram (pré-enregistrée)</div>
+    <textarea class="ig-caption-input" rows="4" style="resize:vertical;min-height:60px;font-size:12px" placeholder="${escAttr(placeholder)}" oninput="${onInputCode}">${escAttr(value)}</textarea>
+  </div>`;
 }
 
 // ── ADMIN MUTATIONS ──
