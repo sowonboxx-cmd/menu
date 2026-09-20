@@ -591,7 +591,7 @@ body.home-cover-showing{overflow:hidden}
    transparent pour rester dans la même ligne que le fond gris du
    bandeau ; couleur bleu clair, comme les noms de sections dans
    "Changer l'ordre des onglets". */
-.ig-subpage-old-content .ig-card-title-input{background:transparent!important;color:var(--navy)!important;font-weight:500}
+.ig-subpage-old-content .ig-card-title-input{background:transparent!important;color:#8AB4F8!important;font-weight:500}
 /* Cadre visible autour de la galerie réseaux sociaux — elle avait
    déjà son propre libellé, il ne lui manquait qu'un encadré pour bien
    la distinguer du reste. */
@@ -601,7 +601,7 @@ body.home-cover-showing{overflow:hidden}
    gris carte, nom en bleu clair), avec une petite flèche à droite
    plutôt qu'un dépliage sur place. */
 .ig-subpage-old-content .ig-section-row{display:flex;align-items:center;gap:8px;background:var(--ig-card)!important;border:none!important;padding:14px 14px;margin-bottom:8px;cursor:pointer}
-.ig-section-row-label{color:var(--navy);font-weight:500;flex:1;font-family:'Jost',sans-serif;font-size:14px}
+.ig-section-row-label{color:#8AB4F8!important;font-weight:500;flex:1;font-family:'Jost',sans-serif;font-size:14px}
 /* Bouton retour "interne" (liste des sections → détail d'une
    section), imbriqué dans le même contenu, distinct du bouton retour
    principal qui lui ramène à "Catégories". */
@@ -3138,7 +3138,7 @@ function priceFieldSimple(d, ti, ci, di){
     <div style="display:flex;align-items:center;gap:6px">
       <input class="ai" type="number" min="0" step="0.5" value="${numVal}" placeholder="Prix" style="max-width:100px" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].price=this.value?this.value+'€':'';renderAll()">
       <span style="font-size:13px;color:var(--text3)">€</span>
-      ${DATA.tabs[ti].id==='huitres'?`<label style='display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text3);cursor:pointer;margin-left:8px'><input type='checkbox' ${d.priceType==='dual'?'checked':''} onchange='DATA.tabs[${ti}].cards[${ci}].dishes[${di}].priceType=this.checked?"dual":"";renderAll();renderAdminSection(DATA.tabs[${ti}].id)'> + Ajouter un prix</label>`:''}
+      ${DATA.tabs[ti].id==='huitres'?`<label style='display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text3);cursor:pointer;margin-left:8px'><input type='checkbox' ${d.priceType==='dual'?'checked':''} onchange='DATA.tabs[${ti}].cards[${ci}].dishes[${di}].priceType=this.checked?"dual":"";renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)'> + Ajouter un prix</label>`:''}
     </div>
   </div>`;
 }
@@ -3161,7 +3161,7 @@ function priceField(d, ti, ci, di){
     <div style="display:flex;align-items:center;gap:6px">
       <input class="ai" type="number" min="0" step="0.5" value="${numVal}" style="max-width:100px" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].price=this.value?this.value+'€':'';renderAll()">
       <span style="font-size:13px;color:var(--text3)">€</span>
-      ${DATA.tabs[ti].id==='huitres'?`<label style='display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text3);cursor:pointer;margin-left:8px'><input type='checkbox' ${d.priceType==='dual'?'checked':''} onchange='DATA.tabs[${ti}].cards[${ci}].dishes[${di}].priceType=this.checked?"dual":"";renderAll();renderAdminSection(DATA.tabs[${ti}].id)'> + Ajouter un prix</label>`:''}
+      ${DATA.tabs[ti].id==='huitres'?`<label style='display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text3);cursor:pointer;margin-left:8px'><input type='checkbox' ${d.priceType==='dual'?'checked':''} onchange='DATA.tabs[${ti}].cards[${ci}].dishes[${di}].priceType=this.checked?"dual":"";renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)'> + Ajouter un prix</label>`:''}
     </div>
   </div>`;
 }
@@ -3265,8 +3265,17 @@ function togglePin(tabId,ci,di){
 // clique dedans. tabSectionOpen retient, par tab, quelle section est
 // actuellement ouverte (ou aucune = on est sur la liste).
 let tabSectionOpen = {};
-function openTabSection(tabId, ci){ tabSectionOpen[tabId] = ci; renderAdminSection(tabId); }
-function closeTabSection(tabId){ tabSectionOpen[tabId] = null; renderAdminSection(tabId); }
+// BUG FIX (retombe en light mode) : appeler renderAdminSection(tabId)
+// directement prend la branche générique de rendu (l'ancien accès
+// direct par onglet, sans l'habillage sombre) — alors qu'on est en
+// réalité toujours dans Home → Catégories. On doit redemander
+// __global pour que le contenu reste imbriqué dans le bon wrapper.
+function refreshCurrentTabView(tabId){
+  if(adminCurrentTab==='__global') renderAdminSection('__global');
+  else renderAdminSection(tabId);
+}
+function openTabSection(tabId, ci){ tabSectionOpen[tabId] = ci; refreshCurrentTabView(tabId); }
+function closeTabSection(tabId){ tabSectionOpen[tabId] = null; refreshCurrentTabView(tabId); }
 
 function renderAdminTab(ti){
   const tab=DATA.tabs[ti];
@@ -3283,7 +3292,7 @@ function renderTabSectionList(ti){
   // Masquée/Supprimer simplifiés en œil + corbeille à droite.
   h+=`<div class="af" style="display:flex;align-items:center;gap:8px">
     <input class="ai" style="flex:1" value="${escAttr(tab.label[adminLang]||'')}" placeholder="Nom de l'onglet" oninput="DATA.tabs[${ti}].label[adminLang]=this.value;renderAll()">
-    ${dishEyeDelButtons(tab.visible===false, `DATA.tabs[${ti}].visible=${tab.visible===false};renderAll();renderAdminSection(DATA.tabs[${ti}].id)`, `askConfirm('Supprimer la tab « ${(tab.label.fr||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")} » et tout son contenu ?',()=>delTab(${ti}))`)}
+    ${dishEyeDelButtons(tab.visible===false, `DATA.tabs[${ti}].visible=${tab.visible===false};renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)`, `askConfirm('Supprimer la tab « ${(tab.label.fr||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")} » et tout son contenu ?',()=>delTab(${ti}))`)}
   </div>`;
 
   // Sections — un seul bloc cliquable chacune (nom en bleu clair,
@@ -3334,7 +3343,7 @@ function renderTabSectionDetail(ti, ci){
   h+=`<div class="ig-inner-back-row">
     <button class="ig-back-btn" onclick="closeTabSection('${tab.id}')">‹</button>
     <input class="ai ig-card-title-input" style="flex:1" value="${escAttr(card.label[adminLang]||'')}" placeholder="Titre de section" oninput="DATA.tabs[${ti}].cards[${ci}].label[adminLang]=this.value;renderAll()">
-    <button class="adel" style="font-size:12px;padding:1px 5px;flex:none;opacity:.6" onclick="askConfirm('Supprimer cette section ?',()=>{DATA.tabs[${ti}].cards.splice(${ci},1);tabSectionOpen['${tab.id}']=null;renderAll();renderAdminSection(DATA.tabs[${ti}].id);publishNow()})">✕</button>
+    <button class="adel" style="font-size:12px;padding:1px 5px;flex:none;opacity:.6" onclick="askConfirm('Supprimer cette section ?',()=>{DATA.tabs[${ti}].cards.splice(${ci},1);tabSectionOpen['${tab.id}']=null;renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id);publishNow()})">✕</button>
   </div>`;
   h+=`<div class="admin-card">`;
 
@@ -3342,11 +3351,11 @@ function renderTabSectionDetail(ti, ci){
     (card.items||[]).forEach((item,ii)=>{
       const sizeRows=(item.sizes||[]).map((s,si)=>{
         const unit=s.unit||'cl';
-        return `<div class="ai-row" style="margin-bottom:4px;align-items:center"><select class="ai-unit-sel" onchange="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].format=this.value;const f=BEV_FORMATS.find(f=>f.key===this.value);if(f&&f.autoCl!=null){DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].cl=f.autoCl;DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].unit='cl';}renderAll();renderAdminSection(DATA.tabs[${ti}].id)">${bevFormatOptionsHtml(s.format)}</select><input class="ai" type="number" min="0" placeholder="Contenance" value="${s.cl||''}" style="max-width:64px" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].cl=this.value;renderAll()"><select class="ai-unit-sel" onchange="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].unit=this.value;renderAll()"><option value="cl" ${unit==='cl'?'selected':''}>cl</option><option value="l" ${unit==='l'?'selected':''}>L</option></select><input class="ai" type="number" min="0" step="0.5" placeholder="prix" value="${s.price||''}" style="max-width:64px" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].price=this.value;renderAll()"><span style="font-size:11px;color:var(--text3);padding:0 4px">€</span><button class="adel" onclick="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes.splice(${si},1);renderAll();renderAdminSection(DATA.tabs[${ti}].id)">×</button></div>`;
+        return `<div class="ai-row" style="margin-bottom:4px;align-items:center"><select class="ai-unit-sel" onchange="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].format=this.value;const f=BEV_FORMATS.find(f=>f.key===this.value);if(f&&f.autoCl!=null){DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].cl=f.autoCl;DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].unit='cl';}renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)">${bevFormatOptionsHtml(s.format)}</select><input class="ai" type="number" min="0" placeholder="Contenance" value="${s.cl||''}" style="max-width:64px" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].cl=this.value;renderAll()"><select class="ai-unit-sel" onchange="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].unit=this.value;renderAll()"><option value="cl" ${unit==='cl'?'selected':''}>cl</option><option value="l" ${unit==='l'?'selected':''}>L</option></select><input class="ai" type="number" min="0" step="0.5" placeholder="prix" value="${s.price||''}" style="max-width:64px" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].price=this.value;renderAll()"><span style="font-size:11px;color:var(--text3);padding:0 4px">€</span><button class="adel" onclick="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes.splice(${si},1);renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)">×</button></div>`;
       }).join('');
       const bevName=typeof item.name==='object'?(item.name[adminLang]||item.name.fr||''):(item.name||'');
       h+=`<div class="admin-card collapsed" style="background:#fff;margin-top:4px" ondragover="onDragOver(event,${ti},${ci},${ii})" ondragleave="onDragLeave(event)" ondrop="onDropBev(event,${ti},${ci},${ii})">
-        <div class="admin-card-hdr"><span class="drag-handle" draggable="true" ondragstart="onDragBev(event,${ti},${ci},${ii})" ondragend="onDragEndHandle(event)">⠿</span><span class="admin-card-num" style="cursor:pointer" onclick="this.closest('.admin-card').classList.toggle('collapsed')">Boisson ${ii+1}${bevName?' — '+escAttr(bevName):''}</span>${dishEyeDelButtons(!!item.hidden, `(function(){if(${!!item.hidden}){delete DATA.tabs[${ti}].cards[${ci}].items[${ii}].hidden;}else{DATA.tabs[${ti}].cards[${ci}].items[${ii}].hidden=true;}renderAll();renderAdminSection(DATA.tabs[${ti}].id)})()`, `askConfirm('Supprimer cette boisson ?',()=>delBev(${ti},${ci},${ii}))`)}</div>
+        <div class="admin-card-hdr"><span class="drag-handle" draggable="true" ondragstart="onDragBev(event,${ti},${ci},${ii})" ondragend="onDragEndHandle(event)">⠿</span><span class="admin-card-num" style="cursor:pointer" onclick="this.closest('.admin-card').classList.toggle('collapsed')">Boisson ${ii+1}${bevName?' — '+escAttr(bevName):''}</span>${dishEyeDelButtons(!!item.hidden, `(function(){if(${!!item.hidden}){delete DATA.tabs[${ti}].cards[${ci}].items[${ii}].hidden;}else{DATA.tabs[${ti}].cards[${ci}].items[${ii}].hidden=true;}renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)})()`, `askConfirm('Supprimer cette boisson ?',()=>delBev(${ti},${ci},${ii}))`)}</div>
         <div class="admin-card-details">
         <input class="ai ig-visible-field" style="margin-bottom:4px" placeholder="${adminLang!=='fr'&&typeof item.name==='object'?item.name.fr||'Nom':'Nom'}" value="${typeof item.name==='object'?(item.name[adminLang]||''):item.name||''}" oninput="if(typeof DATA.tabs[${ti}].cards[${ci}].items[${ii}].name!=='object'){DATA.tabs[${ti}].cards[${ci}].items[${ii}].name={fr:DATA.tabs[${ti}].cards[${ci}].items[${ii}].name};}DATA.tabs[${ti}].cards[${ci}].items[${ii}].name[adminLang]=this.value;renderAll()">
         <textarea class="ai ig-visible-field" rows="2" style="resize:vertical;margin-bottom:4px;font-size:12px" placeholder="Description (notes de dégustation, etc.)" oninput="if(!DATA.tabs[${ti}].cards[${ci}].items[${ii}].desc||typeof DATA.tabs[${ti}].cards[${ci}].items[${ii}].desc!=='object'){DATA.tabs[${ti}].cards[${ci}].items[${ii}].desc={};}DATA.tabs[${ti}].cards[${ci}].items[${ii}].desc[adminLang]=this.value;renderAll()">${(item.desc&&item.desc[adminLang])||''}</textarea>
@@ -3354,7 +3363,7 @@ function renderTabSectionDetail(ti, ci){
 
         <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:4px">Format, contenance & prix</div>
         ${sizeRows}
-        <button class="aadd ig-add-btn" style="margin-top:2px" onclick="if(!Array.isArray(DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes)){DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes=[];}DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes.push({format:'',cl:'',unit:'cl',price:''});renderAll();renderAdminSection(DATA.tabs[${ti}].id)">+ Taille</button>
+        <button class="aadd ig-add-btn" style="margin-top:2px" onclick="if(!Array.isArray(DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes)){DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes=[];}DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes.push({format:'',cl:'',unit:'cl',price:''});renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)">+ Taille</button>
 
         ${captionFieldHtml(item.caption||'', 'Ex: Notre sélection du moment 🍷', `DATA.tabs[${ti}].cards[${ci}].items[${ii}].caption=this.value`)}
         <div class="ig-gallery-frame">${entityGalleryHtml(ti,ci,ii,'items',item.gallery)}</div>
@@ -3374,7 +3383,7 @@ function renderTabSectionDetail(ti, ci){
     (card.dishes||[]).forEach((d,di)=>{
       const dName=d.name&&(d.name[adminLang]||d.name.fr)||'';
       h+=`<div class="admin-card collapsed" style="background:#fff;margin-top:6px" ondragover="onDragOver(event,${ti},${ci},${di})" ondragleave="onDragLeave(event)" ondrop="onDrop(event,${ti},${ci},${di})">
-        <div class="admin-card-hdr"><span class="drag-handle" title="Glisser pour réordonner" draggable="true" ondragstart="onDragStart(event,${ti},${ci},${di})" ondragend="onDragEndHandle(event)">⠿</span><span class="admin-card-num" style="cursor:pointer" onclick="this.closest('.admin-card').classList.toggle('collapsed')">Plat ${di+1}${dName?' — '+escAttr(dName):''}</span>${dishEyeDelButtons(!!d.hidden, `(function(){if(${!!d.hidden}){delete DATA.tabs[${ti}].cards[${ci}].dishes[${di}].hidden;}else{DATA.tabs[${ti}].cards[${ci}].dishes[${di}].hidden=true;}renderAll();renderAdminSection(DATA.tabs[${ti}].id)})()`, `askConfirm('Supprimer « ${(d.name.fr||'ce plat').replace(/\\/g,'\\\\').replace(/'/g,"\\'")} » ?',()=>delDish(${ti},${ci},${di}))`)}</div>
+        <div class="admin-card-hdr"><span class="drag-handle" title="Glisser pour réordonner" draggable="true" ondragstart="onDragStart(event,${ti},${ci},${di})" ondragend="onDragEndHandle(event)">⠿</span><span class="admin-card-num" style="cursor:pointer" onclick="this.closest('.admin-card').classList.toggle('collapsed')">Plat ${di+1}${dName?' — '+escAttr(dName):''}</span>${dishEyeDelButtons(!!d.hidden, `(function(){if(${!!d.hidden}){delete DATA.tabs[${ti}].cards[${ci}].dishes[${di}].hidden;}else{DATA.tabs[${ti}].cards[${ci}].dishes[${di}].hidden=true;}renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)})()`, `askConfirm('Supprimer « ${(d.name.fr||'ce plat').replace(/\\/g,'\\\\').replace(/'/g,"\\'")} » ?',()=>delDish(${ti},${ci},${di}))`)}</div>
         <div class="admin-card-details">
         <div class="af"><input class="ai ig-visible-field" value="${escAttr(d.name[adminLang]||'')}" placeholder="Nom" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].name[adminLang]=this.value;renderAll()"></div>
         <div class="af"><textarea class="ai ig-visible-field" rows="2" style="resize:vertical" placeholder="Description" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].desc[adminLang]=this.value;renderAll()">${escAttr(d.desc[adminLang]||'')}</textarea></div>
@@ -3407,22 +3416,22 @@ function captionFieldHtml(value, placeholder, onInputCode){
 
 // ── ADMIN MUTATIONS ──
 function delTab(ti){ DATA.tabs.splice(ti,1); if(DATA.tabs.length>0)adminCurrentTab=DATA.tabs[0].id; else adminCurrentTab='__global'; renderAll(); renderAdminTabDd(); renderAdminSection(adminCurrentTab); showToast('Tab supprimée'); publishNow(); }
-function delDish(ti,ci,di){ DATA.tabs[ti].cards[ci].dishes.splice(di,1); renderAll(); renderAdminSection(DATA.tabs[ti].id); publishNow(); }
-function delVariant(ti,ci,vi){ DATA.tabs[ti].cards[ci].variants.splice(vi,1); renderAll(); renderAdminSection(DATA.tabs[ti].id); publishNow(); }
-function delBev(ti,ci,ii){ DATA.tabs[ti].cards[ci].items.splice(ii,1); renderAll(); renderAdminSection(DATA.tabs[ti].id); publishNow(); }
+function delDish(ti,ci,di){ DATA.tabs[ti].cards[ci].dishes.splice(di,1); renderAll(); refreshCurrentTabView(DATA.tabs[ti].id); publishNow(); }
+function delVariant(ti,ci,vi){ DATA.tabs[ti].cards[ci].variants.splice(vi,1); renderAll(); refreshCurrentTabView(DATA.tabs[ti].id); publishNow(); }
+function delBev(ti,ci,ii){ DATA.tabs[ti].cards[ci].items.splice(ii,1); renderAll(); refreshCurrentTabView(DATA.tabs[ti].id); publishNow(); }
 function addDish(ti,ci){
   DATA.tabs[ti].cards[ci].dishes.push({_pid:genPid(),name:{fr:'',en:''},desc:{fr:'',en:''},price:'',img:'',spicy:false,vegan:false});
   renderAll();
-  renderAdminSection(DATA.tabs[ti].id);
+  refreshCurrentTabView(DATA.tabs[ti].id);
   // Scroll to bottom to show new dish
   const body=document.getElementById('adminBody');
   if(body) setTimeout(()=>body.scrollTop=body.scrollHeight,50);
 }
-function addVariant(ti,ci){ DATA.tabs[ti].cards[ci].variants.push({name:{fr:'Nouvelle variante',en:'New item'},price:'9€'}); renderAll(); renderAdminSection(DATA.tabs[ti].id); }
+function addVariant(ti,ci){ DATA.tabs[ti].cards[ci].variants.push({name:{fr:'Nouvelle variante',en:'New item'},price:'9€'}); renderAll(); refreshCurrentTabView(DATA.tabs[ti].id); }
 function addBev(ti,ci){
   DATA.tabs[ti].cards[ci].items.push({name:{fr:'Nouvelle boisson',en:'New drink'},price:''});
   renderAll();
-  renderAdminSection(DATA.tabs[ti].id);
+  refreshCurrentTabView(DATA.tabs[ti].id);
   const body=document.getElementById('adminBody');
   if(body) setTimeout(()=>body.scrollTop=body.scrollHeight,50);
 }
@@ -3432,7 +3441,7 @@ function addCard(ti){
   if(isBev) DATA.tabs[ti].cards.push({label:{fr:'Nouvelle section',en:'New section'},type:'bevs',items:[]});
   else DATA.tabs[ti].cards.push({label:{fr:'Nouvelle section',en:'New section'},dishes:[]});
   renderAll();
-  renderAdminSection(DATA.tabs[ti].id);
+  refreshCurrentTabView(DATA.tabs[ti].id);
   const body=document.getElementById('adminBody');
   if(body) setTimeout(()=>{body.scrollTop=body.scrollHeight; const secs=body.querySelectorAll('.admin-section.collapsible'); if(secs.length) secs[secs.length-1].classList.remove('collapsed');},50);
 }
@@ -3726,14 +3735,14 @@ function onDropVariant(e,ti,ci,vi){
   if(!dragSrc||!dragSrc.isVariant||dragSrc.ti!==ti||dragSrc.ci!==ci||dragSrc.vi===vi) return;
   const variants=DATA.tabs[ti].cards[ci].variants;
   const [moved]=variants.splice(dragSrc.vi,1); variants.splice(vi,0,moved);
-  dragSrc=null; renderAll(); renderAdminSection(DATA.tabs[ti].id);
+  dragSrc=null; renderAll(); refreshCurrentTabView(DATA.tabs[ti].id);
 }
 function onDropBev(e,ti,ci,ii){
   e.preventDefault(); e.currentTarget.classList.remove('drag-over');
   if(!dragSrc||!dragSrc.isBev||dragSrc.ti!==ti||dragSrc.ci!==ci||dragSrc.ii===ii) return;
   const items=DATA.tabs[ti].cards[ci].items;
   const [moved]=items.splice(dragSrc.ii,1); items.splice(ii,0,moved);
-  dragSrc=null; renderAll(); renderAdminSection(DATA.tabs[ti].id);
+  dragSrc=null; renderAll(); refreshCurrentTabView(DATA.tabs[ti].id);
 }
 function onDragStart(e,ti,ci,di){ dragSrc={ti,ci,di}; const card=e.currentTarget.closest('.admin-card')||e.currentTarget; card.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; }
 function onDragEnd(e){ e.currentTarget.classList.remove('dragging'); document.querySelectorAll('.admin-card').forEach(el=>el.classList.remove('drag-over')); }
@@ -3768,7 +3777,7 @@ function onDropSection(e,ti,ci){
   cards.splice(ci,0,moved);
   dragSectionSrc=null;
   renderAll();
-  renderAdminSection(DATA.tabs[ti].id);
+  refreshCurrentTabView(DATA.tabs[ti].id);
 }
 function onDragOver(e,ti,ci,di){ e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
 function onDragLeave(e){ e.currentTarget.classList.remove('drag-over'); }
@@ -3799,7 +3808,7 @@ function onDropSectionRow(e,ti,ci){
   cards.splice(ci,0,moved);
   dragSectionRowSrc=null;
   renderAll();
-  renderAdminSection(DATA.tabs[ti].id);
+  refreshCurrentTabView(DATA.tabs[ti].id);
   showToast('Ordre des sections mis à jour');
 }
 function onDrop(e,ti,ci,di){
@@ -3809,7 +3818,7 @@ function onDrop(e,ti,ci,di){
   const [moved]=dishes.splice(dragSrc.di,1);
   dishes.splice(di,0,moved);
   dragSrc=null;
-  renderAll(); renderAdminSection(DATA.tabs[ti].id);
+  renderAll(); refreshCurrentTabView(DATA.tabs[ti].id);
 }
 
 // ═══════════════════════════════════════════
@@ -6992,7 +7001,7 @@ function entityGalleryHtml(ti,ci,idx,kind,gallery){
     h+=`<div style="display:flex;align-items:flex-start;gap:6px">
       <span style="font-size:10px;color:var(--text3);min-width:14px;text-align:center;padding-top:10px;flex:none">${gi+1}</span>`
       +imgFieldHtml(val,cb,`Photo ${gi+1} — URL ou upload`,9/16)
-      +(val?`<button onclick="${base}.gallery[${gi}]='';renderAll();renderAdminSection(DATA.tabs[${ti}].id)" style="padding:4px 8px;font-size:11px;border:1px solid #fca5a5;border-radius:4px;color:#c62828;background:#fff;cursor:pointer;white-space:nowrap;align-self:center;flex:none">✕</button>`:'')
+      +(val?`<button onclick="${base}.gallery[${gi}]='';renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)" style="padding:4px 8px;font-size:11px;border:1px solid #fca5a5;border-radius:4px;color:#c62828;background:#fff;cursor:pointer;white-space:nowrap;align-self:center;flex:none">✕</button>`:'')
       +`</div>`;
   }
   h+='</div></div>';
