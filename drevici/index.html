@@ -530,7 +530,25 @@ body.home-cover-showing{overflow:hidden}
 .ig-subpage-old-content textarea::placeholder{color:var(--ig-text-dimmer)}
 .ig-subpage-old-content .aadd{background:var(--ig-card)!important;border:1.5px dashed #575757!important;color:var(--ig-text-dim)!important}
 .ig-subpage-old-content .adel{background:transparent!important;color:#e07a72!important;border-color:#5a3a37!important}
-.ig-subpage-old-content input[type="checkbox"]{accent-color:var(--ig-navy-light)}
+.ig-subpage-old-content input[type="checkbox"]{accent-color:#1a1a1a}
+/* BUG FIX (contour bleu au survol) : .admin-toggle:hover met la
+   bordure en var(--navy), qui dans ce contexte sombre est notre bleu
+   clair (--ig-navy-light) — d'où le liseré bleu inattendu. On le
+   neutralise ici avec un survol neutre, comme sur "Publier". */
+.ig-subpage-old-content .admin-toggle:hover{border-color:transparent!important}
+.ig-subpage-old-content .ig-pill:hover{background:#3a3a3a!important}
+.ig-subpage-old-content .ai-upload-btn{background:var(--ig-card)!important;border:none!important;color:#fff!important}
+/* "Voir et choisir la police" — même forme de champ (.ai) que les
+   autres, cliquable, avec un tout petit libellé au-dessus du nom de
+   la police pour qu'on comprenne encore que c'est cliquable. */
+.ig-font-field{cursor:pointer}
+/* Grille/Liste en deux rectangles pleine largeur, même gris que les
+   autres champs, pas de rond radio natif — juste le rectangle
+   sélectionné qui ressort. */
+.ig-segmented{display:flex;gap:8px}
+.ig-seg-btn{flex:1;display:flex;align-items:center;justify-content:center;padding:11px;background:var(--ig-card);border-radius:10px;color:var(--ig-text-dim);font-size:13px;font-family:'Jost',sans-serif;cursor:pointer;position:relative;text-align:center}
+.ig-seg-btn input{position:absolute;opacity:0;pointer-events:none}
+.ig-seg-btn.active{background:#454545;color:#fff;font-weight:600}
 /* Le petit encart d'aide (fond clair d'origine, texte foncé codé en
    dur) et tout texte en couleur de marque (navy) dans ce contenu
    réutilisé passent en clair pour rester lisibles sur fond sombre. */
@@ -541,8 +559,6 @@ body.home-cover-showing{overflow:hidden}
 /* Bouton Publier — recoloré uniquement quand on est dans "Informations
    générales" (.ig-page précède la barre Publier dans le DOM, elle
    n'est pas imbriquée dedans). */
-.ig-page ~ div #mainPublishBtn{background:#2f2f2f!important;color:#fff!important;border:none!important}
-.ig-page ~ div #mainPublishBtn:hover{background:#3a3a3a!important}
 
 .admin-section{margin-bottom:16px;border-radius:6px;overflow:hidden}
 .admin-section:has(>.admin-sect-title){border:1px solid rgba(16,40,94,0.18)}
@@ -1575,10 +1591,13 @@ function renderAll(){
   // needs the final say, overriding that with its own configured color,
   // or every render (not just the first) would silently revert it.
   renderHomeCover();
-  // Auto-save: only when an actual admin is actively editing — never
-  // for a regular visitor just browsing tabs, who has no session and
-  // would otherwise see a stray "connecte-toi pour publier" toast.
-  if(supaSession && editMode) scheduleAutoSave();
+  // Auto-save : dès qu'il y a une vraie session admin, point.
+  // BUG FIX : ça exigeait AUSSI editMode (le mode crayon sur le site),
+  // qui n'est pas lié à l'ouverture du panneau admin (l'engrenage) —
+  // modifier un champ dans "Informations générales" sans avoir en plus
+  // activé ce mode-là ne déclenchait donc aucune sauvegarde silencieuse,
+  // contrairement à ce qui était attendu partout dans l'admin.
+  if(supaSession) scheduleAutoSave(true);
 }
 
 // BUG FIX: this used to populate a sticky #globalSocialBar shown on
@@ -2943,9 +2962,12 @@ function adminGoTab(val){
 }
 
 function adminSaveBar(){
-  return `<div style="display:flex;gap:8px;margin-top:12px;padding:0 0 4px">
-    <button class="asave" id="mainPublishBtn" style="flex:1" onclick="handleSaveClick()">Publier</button>
-  </div>`;
+  // Retiré partout — demande explicite de Will : tout s'enregistre
+  // automatiquement maintenant (voir renderAll()), plus besoin d'un
+  // bouton manuel. Un échec de sauvegarde reste signalé par ailleurs
+  // (toast d'erreur dans publishToSupabase), donc rien n'est perdu
+  // silencieusement.
+  return '';
 }
 // Wrapped so that a rendering error can never silently block publishing —
 // the user always gets a clear toast instead of a click that appears to do nothing.
@@ -6484,15 +6506,13 @@ function restaurantSettingHtml(){
       <input class="ai" value="${name}" placeholder="Nom de l'établissement" oninput="setRestaurantName(this.value);document.getElementById('logoText').textContent=this.value||'Mon Restaurant'">
     </div>
     <div class="af">
-      <div style="cursor:pointer" onclick="showFontGallery()">
-        <label class="al" style="color:rgba(16,40,94,0.55);text-decoration:underline;text-underline-offset:2px;cursor:pointer">Voir et choisir la police</label>
-        <div id="restoFontNameDisplay" style="font-size:16px;color:var(--navy);font-family:'${DATA.restoFont||'Cormorant Garamond'}',serif!important;margin-top:4px">${DATA.restoFont||'Cormorant Garamond'}</div>
+      <div class="ai ig-font-field" onclick="showFontGallery()">
+        <span style="font-size:10px;color:var(--ig-text-dimmer)">Voir et choisir la police</span>
+        <div id="restoFontNameDisplay" style="font-size:16px;color:var(--ig-text);font-family:'${DATA.restoFont||'Cormorant Garamond'}',serif!important;margin-top:2px">${DATA.restoFont||'Cormorant Garamond'}</div>
       </div>
     </div>
     <div class="af"><label class="al" style="font-weight:600">Logo de l'établissement</label></div>
     ${imgFieldHtml(logo, "setRestaurantLogo(this.value.trim());applyRestaurantBranding()", 'https://... .png ou .webp', null)}
-    <div style="font-size:10px;color:var(--text3);font-family:Jost,sans-serif;margin-top:-8px;margin-bottom:4px">Format recommandé : PNG transparent, hauteur 50–70px, largeur max 200px (ratio conseillé 3:1 à 5:1).</div>
-    ${logo?`<div style="font-size:10.5px;color:var(--text2);font-family:Jost,sans-serif;margin-bottom:8px">✓ Ce logo est aussi utilisé pour le menu imprimé (onglet Export), sauf si vous en uploadez un autre spécifiquement pour l'impression.</div>`:''}
 
     <div class="af"><label class="al" style="font-size:12px;font-weight:600;margin-top:12px;display:block;border-top:1px solid var(--border);padding-top:12px">Adresse & contact</label></div>
     <div class="af">
@@ -6514,9 +6534,15 @@ function restaurantSettingHtml(){
     </div>
     <label class="admin-toggle ig-pill" style="margin-top:14px"><input type="checkbox" ${DATA.showCurrency!==false?'checked':''} onchange="DATA.showCurrency=this.checked;renderAll()"><label>Afficher la devise (€)</label></label>
     <div class="af" style="margin-top:14px"><label class="al">Affichage par défaut du menu</label>
-      <div style="display:flex;gap:16px;margin-top:2px">
-        <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="defaultViewChoice" value="grid" ${(DATA.defaultView||'grid')==='grid'?'checked':''} onchange="DATA.defaultView='grid';view='grid';renderAll()"> Grille</label>
-        <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="defaultViewChoice" value="list" ${DATA.defaultView==='list'?'checked':''} onchange="DATA.defaultView='list';view='list';renderAll()"> Liste</label>
+      <div class="ig-segmented" style="margin-top:4px">
+        <label class="ig-seg-btn${(DATA.defaultView||'grid')==='grid'?' active':''}">
+          <input type="radio" name="defaultViewChoice" value="grid" ${(DATA.defaultView||'grid')==='grid'?'checked':''} onchange="DATA.defaultView='grid';view='grid';renderAll();renderAdminSection('__global')">
+          Grille
+        </label>
+        <label class="ig-seg-btn${DATA.defaultView==='list'?' active':''}">
+          <input type="radio" name="defaultViewChoice" value="list" ${DATA.defaultView==='list'?'checked':''} onchange="DATA.defaultView='list';view='list';renderAll();renderAdminSection('__global')">
+          Liste
+        </label>
       </div>
     </div>
   </div></div>
@@ -6722,9 +6748,9 @@ function renderSocialAdminSection(){
 function ghSectionHtml(){
   if(supaSession){
     return `<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Connexion admin</div><div class="admin-sect-body">
-      <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#eef6ee;border-radius:8px;border:1px solid #b8e0b8">
-        <div style="flex:1"><div style="font-size:12px;color:#2a7a2a;font-family:Jost,sans-serif;font-weight:500">✓ Connecté</div><div style="font-size:11px;color:#999;font-family:Jost,sans-serif;margin-top:2px">${escAttr(supaSession.user?.email||'')}</div></div>
-        <button onclick="adminSignOut()" style="font-size:11px;color:#c0392b;background:none;border:1px solid #f5c6c2;border-radius:6px;padding:4px 8px;cursor:pointer;font-family:Jost,sans-serif">Déconnexion</button>
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#2f2f2f;border-radius:10px">
+        <div style="flex:1"><div style="font-size:12px;color:#4caf50;font-family:Jost,sans-serif;font-weight:500">✓ Connecté</div><div style="font-size:11px;color:#999;font-family:Jost,sans-serif;margin-top:2px">${escAttr(supaSession.user?.email||'')}</div></div>
+        <button onclick="adminSignOut()" style="font-size:11px;color:#e07a72;background:none;border:1px solid #5a3a37;border-radius:6px;padding:4px 8px;cursor:pointer;font-family:Jost,sans-serif">Déconnexion</button>
       </div>
     </div></div>`;
   }
