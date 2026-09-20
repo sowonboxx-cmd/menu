@@ -2016,12 +2016,12 @@ function renderAdminHomeCover(){
     {v:'pan-right',l:'Zoom à droite'},
   ];
   return `<div class="admin-section"><div class="admin-sect-title">Page d'accueil</div><div class="admin-sect-body">
-    ${imgFieldHtml(hc.logo||'', "DATA.homeCover.logo=this.value.trim();renderAll();renderAdminSection('__site');scheduleCoverAutoSave()", 'Logo', null)}
+    ${imgFieldHtml(hc.logo||'', "DATA.homeCover.logo=this.value.trim();renderAll();renderAdminSection('__global');scheduleCoverAutoSave()", 'Logo', null)}
     <div class="af"><label class="al">Média de fond</label>
       <div class="ig-segmented" style="margin-top:4px">
-        <label class="ig-seg-btn${!isVideo&&!isSlideshow?' active':''}"><input type="radio" name="coverMediaType" value="photo" ${!isVideo&&!isSlideshow?'checked':''} onchange="DATA.homeCover.mediaType='photo';renderAll();renderAdminSection('__site');scheduleCoverAutoSave()">Photo</label>
-        <label class="ig-seg-btn${isVideo?' active':''}"><input type="radio" name="coverMediaType" value="video" ${isVideo?'checked':''} onchange="DATA.homeCover.mediaType='video';renderAll();renderAdminSection('__site');scheduleCoverAutoSave()">Vidéo</label>
-        <label class="ig-seg-btn${isSlideshow?' active':''}"><input type="radio" name="coverMediaType" value="slideshow" ${isSlideshow?'checked':''} onchange="DATA.homeCover.mediaType='slideshow';renderAll();renderAdminSection('__site');scheduleCoverAutoSave()">Diaporama</label>
+        <label class="ig-seg-btn${!isVideo&&!isSlideshow?' active':''}"><input type="radio" name="coverMediaType" value="photo" ${!isVideo&&!isSlideshow?'checked':''} onchange="DATA.homeCover.mediaType='photo';renderAll();renderAdminSection('__global');scheduleCoverAutoSave()">Photo</label>
+        <label class="ig-seg-btn${isVideo?' active':''}"><input type="radio" name="coverMediaType" value="video" ${isVideo?'checked':''} onchange="DATA.homeCover.mediaType='video';renderAll();renderAdminSection('__global');scheduleCoverAutoSave()">Vidéo</label>
+        <label class="ig-seg-btn${isSlideshow?' active':''}"><input type="radio" name="coverMediaType" value="slideshow" ${isSlideshow?'checked':''} onchange="DATA.homeCover.mediaType='slideshow';renderAll();renderAdminSection('__global');scheduleCoverAutoSave()">Diaporama</label>
       </div>
     </div>
     ${isVideo ? `
@@ -2033,7 +2033,7 @@ function renderAdminHomeCover(){
     ${hc.slideshow.map((slide,i)=>`
       <div class="af admin-card" style="padding:12px 14px;margin-bottom:10px">
         <label class="al">Photo ${i+1}</label>
-        ${imgFieldHtml(slide.image||'', `DATA.homeCover.slideshow[${i}].image=this.value.trim();renderAll();renderAdminSection('__site');scheduleCoverAutoSave()`, 'https://... .jpg ou .webp', null)}
+        ${imgFieldHtml(slide.image||'', `DATA.homeCover.slideshow[${i}].image=this.value.trim();renderAll();renderAdminSection('__global');scheduleCoverAutoSave()`, 'https://... .jpg ou .webp', null)}
         <select class="ai" style="font-size:13px;margin-top:8px" onchange="DATA.homeCover.slideshow[${i}].kenBurns=this.value;renderAll();scheduleCoverAutoSave()">
           ${KEN_BURNS_OPTIONS.map(o=>`<option value="${o.v}" ${(slide.kenBurns||'zoom-in')===o.v?'selected':''}>${o.l}</option>`).join('')}
         </select>
@@ -2041,7 +2041,7 @@ function renderAdminHomeCover(){
     `).join('')}
     ` : `
     <div class="af"><label class="al">Image de fond (plein écran)</label></div>
-    ${imgFieldHtml(hc.image||'', "DATA.homeCover.image=this.value.trim();renderAll();renderAdminSection('__site');scheduleCoverAutoSave()", 'https://... .jpg ou .webp', null)}
+    ${imgFieldHtml(hc.image||'', "DATA.homeCover.image=this.value.trim();renderAll();renderAdminSection('__global');scheduleCoverAutoSave()", 'https://... .jpg ou .webp', null)}
     <div class="af admin-card" style="display:flex;gap:16px;align-items:center;padding:12px 14px">
       <div style="flex:1;min-width:0">
         <label class="al">Position sur mobile — <strong id="homeCoverMobilePosLabel">${mobPos}</strong>%</label>
@@ -2936,8 +2936,7 @@ function closeAdmin(){ document.getElementById('adminOverlay').classList.remove(
 function renderAdminTabDd(){
   const dd=document.getElementById('adminTabDd');
   const tabOpts=DATA.tabs.filter(tb=>tb.id!=='__home').map(tb=>`<option value="${tb.id}"${tb.id===adminCurrentTab?' selected':''}>${t(tb.label)}</option>`).join('');
-  dd.innerHTML='<option value="__global">Informations générales</option>'
-    +'<option value="__site">Site internet</option>'
+  dd.innerHTML='<option value="__global">Home</option>'
     +tabOpts
     +'<option value="__addtab_plats">+ Nouvelle tab (plats)</option>'
     +'<option value="__addtab_boissons">+ Nouvelle tab (boissons)</option>'
@@ -3008,11 +3007,9 @@ function renderAdminSection(tid, _skipScroll){
   // Dark mode (façon ChatGPT) pour "Informations générales" — fond du
   // panneau assombri uniquement quand on est dans cette section,
   // le reste de l'admin n'est pas encore redessiné.
-  if(body) body.classList.toggle('ig-dark', tid==='__global' || tid==='__site');
+  if(body) body.classList.toggle('ig-dark', tid==='__global');
   if(tid==='__global'){
-    body.innerHTML=renderAdminGroupTid('__global');
-  } else if(tid==='__site'){
-    body.innerHTML=renderAdminGroupTid('__site');
+    body.innerHTML=renderAdminGlobal();
   } else if(tid==='__social'){
     body.innerHTML=renderSocialSection()+adminSaveBar();
   } else if(tid==='__reorder'){
@@ -6702,7 +6699,7 @@ function setCoverHeadlineFont(font){
     document.head.appendChild(l);
   }
   renderAll();
-  renderAdminSection('__site');
+  renderAdminSection('__global');
   scheduleCoverAutoSave();
 }
 
@@ -6773,13 +6770,14 @@ async function doAdminSignIn(){
 
 // Patch renderAdminGlobal to prepend the admin login/publish section
 const _origGlobal=renderAdminGlobal;
-// Système générique de "groupe" façon ChatGPT (Customize ChatGPT) —
-// un écran d'accueil avec une liste de lignes, chacune menant à ce qui
-// existait déjà. "Informations générales" et "Site internet" sont
-// deux groupes distincts partageant exactement le même mécanisme et
-// habillage — un futur groupe s'ajoute simplement en créant sa propre
-// liste de lignes ci-dessous, rien d'autre à dupliquer.
-let adminGroupSubpage = { __global: null, __site: null };
+// "Home" — une seule page façon ChatGPT (Customize ChatGPT) qui
+// combine plusieurs groupes de sections empilés (Informations
+// générales, Site internet, et d'autres à venir), chacun avec son
+// propre petit label au-dessus de sa liste. Toutes les lignes mènent
+// à ce qui existait déjà. Un futur groupe s'ajoute simplement en
+// créant sa propre liste de lignes et en l'ajoutant à HOME_GROUPS —
+// rien d'autre à dupliquer.
+let homeSubpageKey = null;
 const INFO_GENERALE_ROWS = [
   { key:'connexion', label:'Connexion admin', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>', fn:ghSectionHtml },
   { key:'etablissement', label:'Mon établissement', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 9.5V20h14V9.5"/><path d="M9.5 20v-6h5v6"/></svg>', fn:restaurantSettingHtml },
@@ -6791,40 +6789,39 @@ const INFO_GENERALE_ROWS = [
 const SITE_INTERNET_ROWS = [
   { key:'accueil', label:"Page d'accueil", icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 4l9 6.5"/><path d="M5 10v9h14v-9"/><rect x="10" y="13" width="4" height="6"/></svg>', fn:renderAdminHomeCover }
 ];
-const ADMIN_GROUPS = {
-  __global: { label:'Informations générales', rows:INFO_GENERALE_ROWS },
-  __site: { label:'Site internet', rows:SITE_INTERNET_ROWS }
-};
-function openGroupRow(groupTid, key){ adminGroupSubpage[groupTid] = key; renderAdminSection(groupTid); }
-function closeGroupRow(groupTid){ adminGroupSubpage[groupTid] = null; renderAdminSection(groupTid); }
-function renderGroupHome(groupTid){
-  const g = ADMIN_GROUPS[groupTid];
-  return `<div class="ig-page">
+const HOME_GROUPS = [
+  { label:'Informations générales', rows:INFO_GENERALE_ROWS },
+  { label:'Site internet', rows:SITE_INTERNET_ROWS }
+];
+function openHomeRow(key){ homeSubpageKey = key; renderAdminSection('__global'); }
+function closeHomeRow(){ homeSubpageKey = null; renderAdminSection('__global'); }
+function findHomeRow(key){
+  for(const g of HOME_GROUPS){ const r = g.rows.find(r=>r.key===key); if(r) return r; }
+  return null;
+}
+function renderHomeList(){
+  return `<div class="ig-page">${HOME_GROUPS.map(g=>`
     <div class="ig-group-label">${g.label}</div>
-    <div class="ig-list">${g.rows.map(r=>`
-      <div class="ig-row" onclick="openGroupRow('${groupTid}','${r.key}')">
+    <div class="ig-list" style="margin-bottom:18px">${g.rows.map(r=>`
+      <div class="ig-row" onclick="openHomeRow('${r.key}')">
         <span class="ig-row-icon">${r.icon}</span>
         <span class="ig-row-label">${r.label}</span>
         <span class="ig-row-chevron">›</span>
       </div>`).join('')}</div>
-  </div>`;
+  `).join('')}</div>`;
 }
-function renderGroupSubpage(groupTid){
-  const g = ADMIN_GROUPS[groupTid];
-  const row = g.rows.find(r=>r.key===adminGroupSubpage[groupTid]);
-  if(!row) return renderGroupHome(groupTid);
+function renderHomeSubpage(){
+  const row = findHomeRow(homeSubpageKey);
+  if(!row) return renderHomeList();
   return `<div class="ig-page">
     <div class="ig-subpage-hdr">
-      <button class="ig-back-btn" onclick="closeGroupRow('${groupTid}')">‹</button>
+      <button class="ig-back-btn" onclick="closeHomeRow()">‹</button>
       <span class="ig-subpage-title">${row.label}</span>
     </div>
   <div class="ig-subpage-old-content">${row.fn().replace(/\bcollapsible collapsed\b/g,'')}</div>
   </div>`;
 }
-function renderAdminGroupTid(groupTid){
-  return adminGroupSubpage[groupTid] ? renderGroupSubpage(groupTid) : renderGroupHome(groupTid);
-}
-renderAdminGlobal = function(){ return renderAdminGroupTid('__global'); };
+renderAdminGlobal = function(){ return homeSubpageKey ? renderHomeSubpage() : renderHomeList(); };
 
 // ═══════════════════════════════════════════
 // ADMIN COLLAPSE
