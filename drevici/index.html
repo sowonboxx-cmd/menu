@@ -503,7 +503,7 @@ body.home-cover-showing{overflow:hidden}
    (fonds blancs codés en dur, champs natifs) est forcé explicitement
    avec !important puisqu'il s'agit de styles en ligne. */
 .ig-subpage-old-content{
-  background:transparent;border-radius:12px;padding:0;color:var(--ig-text);
+  background:transparent;border-radius:12px;padding:0 2px;color:var(--ig-text);
   --bg:#171717;--border:transparent;--text:#ececec;--text2:#cfcfcf;--text3:var(--ig-text-dim);--white:var(--ig-card);--navy:var(--ig-navy-light);
 }
 .ig-subpage-old-content .admin-section{background:transparent!important;margin-bottom:0;border:none}
@@ -904,7 +904,7 @@ let DATA = {
 // the very first frame instead of flashing the site's own navy first.
 if(DATA.homeCover && DATA.homeCover.active){
   const _tm=document.getElementById('themeColorMeta');
-  if(_tm) _tm.setAttribute('content', DATA.homeCover.statusBarColor||'#000000');
+  if(_tm) _tm.setAttribute('content', DATA.homeCover.statusBarColor || (DATA.brandColors&&DATA.brandColors.accent) || '#000000');
 }
 
 let lang='fr', view=(DATA.defaultView||'grid'), currentTabId=(decodeURIComponent((location.hash||'').replace(/^#/,''))||sessionStorage.getItem('lastTabId')||'huitres');
@@ -1905,7 +1905,7 @@ function renderHomeCover(){
   </div>`;
   document.body.classList.add('home-cover-showing');
   const themeMeta=document.getElementById('themeColorMeta');
-  if(themeMeta) themeMeta.setAttribute('content', hc.statusBarColor||'#000000');
+  if(themeMeta) themeMeta.setAttribute('content', hc.statusBarColor || (DATA.brandColors&&DATA.brandColors.accent) || '#000000');
   startHomeCoverSlideshow();
 }
 // Cycles through the slideshow's slides via a crossfade — each slide's
@@ -2016,14 +2016,12 @@ function renderAdminHomeCover(){
     {v:'pan-right',l:'Zoom à droite'},
   ];
   return `<div class="admin-section"><div class="admin-sect-title">Page d'accueil</div><div class="admin-sect-body">
-    <div class="af"><label class="al">Logo (optionnel — sur l'image/vidéo de fond)</label></div>
-    ${imgFieldHtml(hc.logo||'', "DATA.homeCover.logo=this.value.trim();renderAll();renderAdminSection('__cover');scheduleCoverAutoSave()", 'https://... .png ou .webp', null)}
-    <div style="font-size:10.5px;color:var(--ig-text-dimmer,var(--text3));margin-top:-8px;margin-bottom:4px">Indépendant du logo de "Mon établissement" — utile pour une version blanche qui se voit mieux sur une photo. Vide = le nom de l'établissement s'affiche à la place.</div>
+    ${imgFieldHtml(hc.logo||'', "DATA.homeCover.logo=this.value.trim();renderAll();renderAdminSection('__site');scheduleCoverAutoSave()", 'Logo', null)}
     <div class="af"><label class="al">Média de fond</label>
       <div class="ig-segmented" style="margin-top:4px">
-        <label class="ig-seg-btn${!isVideo&&!isSlideshow?' active':''}"><input type="radio" name="coverMediaType" value="photo" ${!isVideo&&!isSlideshow?'checked':''} onchange="DATA.homeCover.mediaType='photo';renderAll();renderAdminSection('__cover');scheduleCoverAutoSave()">Photo</label>
-        <label class="ig-seg-btn${isVideo?' active':''}"><input type="radio" name="coverMediaType" value="video" ${isVideo?'checked':''} onchange="DATA.homeCover.mediaType='video';renderAll();renderAdminSection('__cover');scheduleCoverAutoSave()">Vidéo</label>
-        <label class="ig-seg-btn${isSlideshow?' active':''}"><input type="radio" name="coverMediaType" value="slideshow" ${isSlideshow?'checked':''} onchange="DATA.homeCover.mediaType='slideshow';renderAll();renderAdminSection('__cover');scheduleCoverAutoSave()">Diaporama</label>
+        <label class="ig-seg-btn${!isVideo&&!isSlideshow?' active':''}"><input type="radio" name="coverMediaType" value="photo" ${!isVideo&&!isSlideshow?'checked':''} onchange="DATA.homeCover.mediaType='photo';renderAll();renderAdminSection('__site');scheduleCoverAutoSave()">Photo</label>
+        <label class="ig-seg-btn${isVideo?' active':''}"><input type="radio" name="coverMediaType" value="video" ${isVideo?'checked':''} onchange="DATA.homeCover.mediaType='video';renderAll();renderAdminSection('__site');scheduleCoverAutoSave()">Vidéo</label>
+        <label class="ig-seg-btn${isSlideshow?' active':''}"><input type="radio" name="coverMediaType" value="slideshow" ${isSlideshow?'checked':''} onchange="DATA.homeCover.mediaType='slideshow';renderAll();renderAdminSection('__site');scheduleCoverAutoSave()">Diaporama</label>
       </div>
     </div>
     ${isVideo ? `
@@ -2035,7 +2033,7 @@ function renderAdminHomeCover(){
     ${hc.slideshow.map((slide,i)=>`
       <div class="af admin-card" style="padding:12px 14px;margin-bottom:10px">
         <label class="al">Photo ${i+1}</label>
-        ${imgFieldHtml(slide.image||'', `DATA.homeCover.slideshow[${i}].image=this.value.trim();renderAll();renderAdminSection('__cover');scheduleCoverAutoSave()`, 'https://... .jpg ou .webp', null)}
+        ${imgFieldHtml(slide.image||'', `DATA.homeCover.slideshow[${i}].image=this.value.trim();renderAll();renderAdminSection('__site');scheduleCoverAutoSave()`, 'https://... .jpg ou .webp', null)}
         <select class="ai" style="font-size:13px;margin-top:8px" onchange="DATA.homeCover.slideshow[${i}].kenBurns=this.value;renderAll();scheduleCoverAutoSave()">
           ${KEN_BURNS_OPTIONS.map(o=>`<option value="${o.v}" ${(slide.kenBurns||'zoom-in')===o.v?'selected':''}>${o.l}</option>`).join('')}
         </select>
@@ -2043,7 +2041,7 @@ function renderAdminHomeCover(){
     `).join('')}
     ` : `
     <div class="af"><label class="al">Image de fond (plein écran)</label></div>
-    ${imgFieldHtml(hc.image||'', "DATA.homeCover.image=this.value.trim();renderAll();renderAdminSection('__cover');scheduleCoverAutoSave()", 'https://... .jpg ou .webp', null)}
+    ${imgFieldHtml(hc.image||'', "DATA.homeCover.image=this.value.trim();renderAll();renderAdminSection('__site');scheduleCoverAutoSave()", 'https://... .jpg ou .webp', null)}
     <div class="af admin-card" style="display:flex;gap:16px;align-items:center;padding:12px 14px">
       <div style="flex:1;min-width:0">
         <label class="al">Position sur mobile — <strong id="homeCoverMobilePosLabel">${mobPos}</strong>%</label>
@@ -2057,20 +2055,14 @@ function renderAdminHomeCover(){
       ${imgFieldHtml(hc.mobileImage||'', "DATA.homeCover.mobileImage=this.value.trim();renderAll();scheduleCoverAutoSave()", 'Photo uniquement pour mobile (optionnel)', null)}
     </div>
     `}
-    <div class="af"><label class="al">Couleur de la barre du haut sur mobile</label>
-      <div style="display:flex;align-items:center;gap:8px">
-        <input type="color" value="${hc.statusBarColor||'#000000'}" style="width:25px;height:25px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer" onchange="DATA.homeCover.statusBarColor=this.value;renderAll();scheduleCoverAutoSave()">
-        <span style="font-size:11px;color:var(--ig-text-dimmer,var(--text3));font-family:Jost,sans-serif">Noir par défaut — à adapter si besoin.</span>
-      </div>
-    </div>
     <div class="af">
       <textarea class="ai" rows="2" style="resize:vertical" placeholder="Texte affiché en bas de l'écran d'accueil" oninput="DATA.homeCover.headline=this.value;renderAll();scheduleCoverAutoSave()">${escAttr(hc.headline||'')}</textarea>
     </div>
-    <div class="af"><label class="al">Police de ce texte</label>
-      <select class="ai" style="font-size:13px" onchange="setCoverHeadlineFont(this.value)">
-        ${FONT_LIST.map(f=>`<option value="${f}" style="font-family:'${f}',sans-serif" ${(hc.headlineFont||'Jost')===f?'selected':''}>${f}</option>`).join('')}
-      </select>
-      <button type="button" class="aadd" style="margin-top:6px" onclick="showFontGallery('cover')">Voir toutes les polices</button>
+    <div class="af">
+      <div class="ai ig-font-field" onclick="showFontGallery('cover')">
+        <span style="font-size:10px;color:var(--ig-text-dimmer)">Voir et choisir la police</span>
+        <div id="coverFontNameDisplay" style="font-size:16px;color:var(--ig-text);font-family:'${hc.headlineFont||'Jost'}',sans-serif!important;margin-top:2px">${hc.headlineFont||'Jost'}</div>
+      </div>
     </div>
     <label class="al" style="display:block;margin-top:12px;font-size:11px;text-transform:uppercase;letter-spacing:.06em">1er bouton</label>
     <div class="af" style="display:flex;gap:8px">
@@ -2945,7 +2937,7 @@ function renderAdminTabDd(){
   const dd=document.getElementById('adminTabDd');
   const tabOpts=DATA.tabs.filter(tb=>tb.id!=='__home').map(tb=>`<option value="${tb.id}"${tb.id===adminCurrentTab?' selected':''}>${t(tb.label)}</option>`).join('');
   dd.innerHTML='<option value="__global">Informations générales</option>'
-    +'<option value="__cover">Page d\'accueil</option>'
+    +'<option value="__site">Site internet</option>'
     +tabOpts
     +'<option value="__addtab_plats">+ Nouvelle tab (plats)</option>'
     +'<option value="__addtab_boissons">+ Nouvelle tab (boissons)</option>'
@@ -2963,7 +2955,6 @@ function adminGoTab(val){
   if(val==='__print'){ adminCurrentTab='__print'; renderAdminSection('__print'); return; }
   if(val==='__formules'){ adminCurrentTab='__formules'; renderAdminSection('__formules'); return; }
   if(val==='__social'){ adminCurrentTab='__social'; renderAdminSection('__social'); return; }
-  if(val==='__cover'){ adminCurrentTab='__cover'; renderAdminSection('__cover'); return; }
   adminCurrentTab=val;
   renderAdminSection(val);
 }
@@ -3017,9 +3008,11 @@ function renderAdminSection(tid, _skipScroll){
   // Dark mode (façon ChatGPT) pour "Informations générales" — fond du
   // panneau assombri uniquement quand on est dans cette section,
   // le reste de l'admin n'est pas encore redessiné.
-  if(body) body.classList.toggle('ig-dark', tid==='__global');
+  if(body) body.classList.toggle('ig-dark', tid==='__global' || tid==='__site');
   if(tid==='__global'){
-    body.innerHTML=renderAdminGlobal()+adminSaveBar();
+    body.innerHTML=renderAdminGroupTid('__global');
+  } else if(tid==='__site'){
+    body.innerHTML=renderAdminGroupTid('__site');
   } else if(tid==='__social'){
     body.innerHTML=renderSocialSection()+adminSaveBar();
   } else if(tid==='__reorder'){
@@ -3028,8 +3021,6 @@ function renderAdminSection(tid, _skipScroll){
     body.innerHTML=`<div class="admin-section"><div class="admin-sect-body">${renderPrintBody()}</div></div>`;
   } else if(tid==='__formules'){
     body.innerHTML=renderFormulesSection()+adminSaveBar();
-  } else if(tid==='__cover'){
-    body.innerHTML=renderAdminHomeCover();
   } else {
     const ti=DATA.tabs.findIndex(tb=>tb.id===tid);
     if(ti<0){body.innerHTML='';return;}
@@ -6711,7 +6702,7 @@ function setCoverHeadlineFont(font){
     document.head.appendChild(l);
   }
   renderAll();
-  renderAdminSection('__cover');
+  renderAdminSection('__site');
   scheduleCoverAutoSave();
 }
 
@@ -6782,47 +6773,58 @@ async function doAdminSignIn(){
 
 // Patch renderAdminGlobal to prepend the admin login/publish section
 const _origGlobal=renderAdminGlobal;
-// "Informations générales" — redesign étape 1, façon liste ChatGPT
-// (Customize ChatGPT) : un écran d'accueil avec 6 lignes, chacune
-// menant à ce qui existait déjà (juste réorganisé en pages séparées
-// au lieu d'être toutes empilées et dépliables). D'autres sections
-// viendront s'ajouter à cette liste au fur et à mesure — ordre donné
-// explicitly par Will.
-let infoGeneraleSubpage = null;
+// Système générique de "groupe" façon ChatGPT (Customize ChatGPT) —
+// un écran d'accueil avec une liste de lignes, chacune menant à ce qui
+// existait déjà. "Informations générales" et "Site internet" sont
+// deux groupes distincts partageant exactement le même mécanisme et
+// habillage — un futur groupe s'ajoute simplement en créant sa propre
+// liste de lignes ci-dessous, rien d'autre à dupliquer.
+let adminGroupSubpage = { __global: null, __site: null };
 const INFO_GENERALE_ROWS = [
   { key:'connexion', label:'Connexion admin', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>', fn:ghSectionHtml },
   { key:'etablissement', label:'Mon établissement', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 9.5V20h14V9.5"/><path d="M9.5 20v-6h5v6"/></svg>', fn:restaurantSettingHtml },
   { key:'presentation', label:'Présentation', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m21 15-5-5-11 9"/></svg>', fn:renderFirstTabExtrasSection },
   { key:'horaires', label:'Horaires', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>', fn:renderScheduleAdmin },
   { key:'social', label:'Réseaux sociaux', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="2.3"/><circle cx="18" cy="6" r="2.3"/><circle cx="18" cy="18" r="2.3"/><path d="m8 10.8 8-4.6M8 13.2l8 4.6"/></svg>', fn:renderSocialAdminSection },
-  { key:'couleurs', label:'Couleurs principales', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.2 0-.9.7-1.5 1.5-1.5H16a4 4 0 0 0 4-4c0-4.4-3.6-8-8-8Z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></svg>', fn:renderBrandColorsSection },
+  { key:'couleurs', label:'Couleurs principales', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.2 0-.9.7-1.5 1.5-1.5H16a4 4 0 0 0 4-4c0-4.4-3.6-8-8-8Z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></svg>', fn:renderBrandColorsSection }
+];
+const SITE_INTERNET_ROWS = [
   { key:'accueil', label:"Page d'accueil", icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 4l9 6.5"/><path d="M5 10v9h14v-9"/><rect x="10" y="13" width="4" height="6"/></svg>', fn:renderAdminHomeCover }
 ];
-function openInfoGeneraleRow(key){ infoGeneraleSubpage = key; renderAdminSection('__global'); }
-function closeInfoGeneraleRow(){ infoGeneraleSubpage = null; renderAdminSection('__global'); }
-function renderInfoGeneraleHome(){
+const ADMIN_GROUPS = {
+  __global: { label:'Informations générales', rows:INFO_GENERALE_ROWS },
+  __site: { label:'Site internet', rows:SITE_INTERNET_ROWS }
+};
+function openGroupRow(groupTid, key){ adminGroupSubpage[groupTid] = key; renderAdminSection(groupTid); }
+function closeGroupRow(groupTid){ adminGroupSubpage[groupTid] = null; renderAdminSection(groupTid); }
+function renderGroupHome(groupTid){
+  const g = ADMIN_GROUPS[groupTid];
   return `<div class="ig-page">
-    <div class="ig-group-label">Informations générales</div>
-    <div class="ig-list">${INFO_GENERALE_ROWS.map(r=>`
-      <div class="ig-row" onclick="openInfoGeneraleRow('${r.key}')">
+    <div class="ig-group-label">${g.label}</div>
+    <div class="ig-list">${g.rows.map(r=>`
+      <div class="ig-row" onclick="openGroupRow('${groupTid}','${r.key}')">
         <span class="ig-row-icon">${r.icon}</span>
         <span class="ig-row-label">${r.label}</span>
         <span class="ig-row-chevron">›</span>
       </div>`).join('')}</div>
   </div>`;
 }
-function renderInfoGeneraleSubpage(){
-  const row = INFO_GENERALE_ROWS.find(r=>r.key===infoGeneraleSubpage);
-  if(!row) return renderInfoGeneraleHome();
+function renderGroupSubpage(groupTid){
+  const g = ADMIN_GROUPS[groupTid];
+  const row = g.rows.find(r=>r.key===adminGroupSubpage[groupTid]);
+  if(!row) return renderGroupHome(groupTid);
   return `<div class="ig-page">
     <div class="ig-subpage-hdr">
-      <button class="ig-back-btn" onclick="closeInfoGeneraleRow()">‹</button>
+      <button class="ig-back-btn" onclick="closeGroupRow('${groupTid}')">‹</button>
       <span class="ig-subpage-title">${row.label}</span>
     </div>
   <div class="ig-subpage-old-content">${row.fn().replace(/\bcollapsible collapsed\b/g,'')}</div>
   </div>`;
 }
-renderAdminGlobal=function(){ return infoGeneraleSubpage ? renderInfoGeneraleSubpage() : renderInfoGeneraleHome(); };
+function renderAdminGroupTid(groupTid){
+  return adminGroupSubpage[groupTid] ? renderGroupSubpage(groupTid) : renderGroupHome(groupTid);
+}
+renderAdminGlobal = function(){ return renderAdminGroupTid('__global'); };
 
 // ═══════════════════════════════════════════
 // ADMIN COLLAPSE
