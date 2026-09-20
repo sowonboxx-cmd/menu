@@ -2015,31 +2015,28 @@ function renderAdminHomeCover(){
     {v:'pan-left',l:'Zoom à gauche'},
     {v:'pan-right',l:'Zoom à droite'},
   ];
-  return `<div class="admin-section"><div class="admin-sect-title">Page d'entrée</div><div class="admin-sect-body">
-    <div class="af"><label class="al">Logo affiché sur la page d'accueil (en haut, sur l'image/vidéo)</label></div>
+  return `<div class="admin-section"><div class="admin-sect-title">Page d'accueil</div><div class="admin-sect-body">
+    <div class="af"><label class="al">Logo (optionnel — sur l'image/vidéo de fond)</label></div>
     ${imgFieldHtml(hc.logo||'', "DATA.homeCover.logo=this.value.trim();renderAll();renderAdminSection('__cover');scheduleCoverAutoSave()", 'https://... .png ou .webp', null)}
-    <div style="font-size:10.5px;color:var(--text3);margin-top:-8px;margin-bottom:4px">Indépendant du logo des Informations générales — utile pour une version blanche/inversée qui se voit mieux sur une photo. Vide = le nom de l'établissement s'affiche à la place.</div>
+    <div style="font-size:10.5px;color:var(--ig-text-dimmer,var(--text3));margin-top:-8px;margin-bottom:4px">Indépendant du logo de "Mon établissement" — utile pour une version blanche qui se voit mieux sur une photo. Vide = le nom de l'établissement s'affiche à la place.</div>
     <div class="af"><label class="al">Média de fond</label>
-      <div style="display:flex;gap:16px;margin-top:2px;flex-wrap:wrap">
-        <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="coverMediaType" value="photo" ${!isVideo&&!isSlideshow?'checked':''} onchange="DATA.homeCover.mediaType='photo';renderAll();renderAdminSection('__cover');scheduleCoverAutoSave()"> Photo</label>
-        <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="coverMediaType" value="video" ${isVideo?'checked':''} onchange="DATA.homeCover.mediaType='video';renderAll();renderAdminSection('__cover');scheduleCoverAutoSave()"> Vidéo</label>
-        <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Jost,sans-serif"><input type="radio" name="coverMediaType" value="slideshow" ${isSlideshow?'checked':''} onchange="DATA.homeCover.mediaType='slideshow';renderAll();renderAdminSection('__cover');scheduleCoverAutoSave()"> Diaporama (3 photos)</label>
+      <div class="ig-segmented" style="margin-top:4px">
+        <label class="ig-seg-btn${!isVideo&&!isSlideshow?' active':''}"><input type="radio" name="coverMediaType" value="photo" ${!isVideo&&!isSlideshow?'checked':''} onchange="DATA.homeCover.mediaType='photo';renderAll();renderAdminSection('__cover');scheduleCoverAutoSave()">Photo</label>
+        <label class="ig-seg-btn${isVideo?' active':''}"><input type="radio" name="coverMediaType" value="video" ${isVideo?'checked':''} onchange="DATA.homeCover.mediaType='video';renderAll();renderAdminSection('__cover');scheduleCoverAutoSave()">Vidéo</label>
+        <label class="ig-seg-btn${isSlideshow?' active':''}"><input type="radio" name="coverMediaType" value="slideshow" ${isSlideshow?'checked':''} onchange="DATA.homeCover.mediaType='slideshow';renderAll();renderAdminSection('__cover');scheduleCoverAutoSave()">Diaporama</label>
       </div>
     </div>
     ${isVideo ? `
-    <div class="af"><label class="al">Vidéo (URL YouTube, Vimeo, ou lien direct .mp4)</label>
-      <input class="ai" value="${escAttr(hc.video||'')}" placeholder="https://youtube.com/watch?v=... ou https://vimeo.com/..." oninput="DATA.homeCover.video=this.value.trim();renderAll();scheduleCoverAutoSave()">
+    <div class="af">
+      <input class="ai" value="${escAttr(hc.video||'')}" placeholder="Vidéo — URL YouTube, Vimeo ou lien .mp4" oninput="DATA.homeCover.video=this.value.trim();renderAll();scheduleCoverAutoSave()">
     </div>
     ` : isSlideshow ? `
-    <div class="af"><label class="al">Diaporama — exactement 3 photos, effet Ken Burns au choix pour chacune</label>
-      <div style="font-size:10.5px;color:var(--text3);margin-top:-2px;margin-bottom:8px">Même format que l'image de fond classique (plein écran). Les photos s'enchaînent en fondu, chacune avec son propre mouvement de zoom/pan.</div>
-    </div>
+    <div class="af"><label class="al">Diaporama — 3 photos, effet Ken Burns au choix pour chacune</label></div>
     ${hc.slideshow.map((slide,i)=>`
-      <div class="af" style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+      <div class="af admin-card" style="padding:12px 14px;margin-bottom:10px">
         <label class="al">Photo ${i+1}</label>
         ${imgFieldHtml(slide.image||'', `DATA.homeCover.slideshow[${i}].image=this.value.trim();renderAll();renderAdminSection('__cover');scheduleCoverAutoSave()`, 'https://... .jpg ou .webp', null)}
-        <label class="al" style="margin-top:8px">Effet Ken Burns</label>
-        <select class="ai" style="font-size:13px" onchange="DATA.homeCover.slideshow[${i}].kenBurns=this.value;renderAll();scheduleCoverAutoSave()">
+        <select class="ai" style="font-size:13px;margin-top:8px" onchange="DATA.homeCover.slideshow[${i}].kenBurns=this.value;renderAll();scheduleCoverAutoSave()">
           ${KEN_BURNS_OPTIONS.map(o=>`<option value="${o.v}" ${(slide.kenBurns||'zoom-in')===o.v?'selected':''}>${o.l}</option>`).join('')}
         </select>
       </div>
@@ -2047,49 +2044,45 @@ function renderAdminHomeCover(){
     ` : `
     <div class="af"><label class="al">Image de fond (plein écran)</label></div>
     ${imgFieldHtml(hc.image||'', "DATA.homeCover.image=this.value.trim();renderAll();renderAdminSection('__cover');scheduleCoverAutoSave()", 'https://... .jpg ou .webp', null)}
-    <div class="af" style="display:flex;gap:16px;align-items:center;background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 14px">
+    <div class="af admin-card" style="display:flex;gap:16px;align-items:center;padding:12px 14px">
       <div style="flex:1;min-width:0">
-        <label class="al">Position de l'image sur mobile <strong id="homeCoverMobilePosLabel">${mobPos}</strong>%</label>
+        <label class="al">Position sur mobile — <strong id="homeCoverMobilePosLabel">${mobPos}</strong>%</label>
         <input type="range" min="0" max="100" value="${mobPos}" style="width:100%" oninput="updateHomeCoverMobilePreview(this.value)" onchange="DATA.homeCover.mobilePos=parseInt(this.value);renderAll();scheduleCoverAutoSave()">
-        <div style="font-size:10.5px;color:var(--text3);margin-top:4px">0 = bord gauche de l'image visible • 100 = bord droit visible. Sans effet si une photo dédiée au mobile est renseignée ci-dessous.</div>
       </div>
       <div style="width:96px;height:172px;border-radius:14px;overflow:hidden;border:3px solid #1D1D1F;background:#0b0b0b;flex:none;position:relative">
         ${hc.image?`<img id="homeCoverMobilePreviewImg" src="${escAttr(hc.image)}" style="width:100%;height:100%;object-fit:cover;object-position:${mobPos}% center;display:block">`:`<div style="color:rgba(255,255,255,.5);font-size:10px;text-align:center;padding:10px">Aperçu mobile</div>`}
       </div>
     </div>
-    <div class="af"><label class="al">Photo uniquement pour mobile (optionnel)</label></div>
-    ${imgFieldHtml(hc.mobileImage||'', "DATA.homeCover.mobileImage=this.value.trim();renderAll();scheduleCoverAutoSave()", 'https://... — laissez vide pour utiliser la même image que sur desktop', null)}
-    <div style="font-size:10.5px;color:var(--text3);margin-top:-8px;margin-bottom:4px">Si renseignée, remplace l'image de fond ci-dessus uniquement sur mobile — le desktop garde toujours l'image principale.</div>
+    <div class="af">
+      ${imgFieldHtml(hc.mobileImage||'', "DATA.homeCover.mobileImage=this.value.trim();renderAll();scheduleCoverAutoSave()", 'Photo uniquement pour mobile (optionnel)', null)}
+    </div>
     `}
-    <div class="af"><label class="al">Couleur de la barre du haut sur mobile (batterie, heure, notch)</label>
+    <div class="af"><label class="al">Couleur de la barre du haut sur mobile</label>
       <div style="display:flex;align-items:center;gap:8px">
-        <input type="color" value="${hc.statusBarColor||'#000000'}" style="width:44px;height:32px;border:1px solid var(--border);border-radius:6px;padding:2px;cursor:pointer" onchange="DATA.homeCover.statusBarColor=this.value;renderAll();scheduleCoverAutoSave()">
-        <span style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif">Noir par défaut — à adapter si l'image ou la vidéo ne s'y prête pas.</span>
+        <input type="color" value="${hc.statusBarColor||'#000000'}" style="width:25px;height:25px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer" onchange="DATA.homeCover.statusBarColor=this.value;renderAll();scheduleCoverAutoSave()">
+        <span style="font-size:11px;color:var(--ig-text-dimmer,var(--text3));font-family:Jost,sans-serif">Noir par défaut — à adapter si besoin.</span>
       </div>
     </div>
-    <div class="af"><label class="al">Texte (centré, en bas de l'écran)</label>
-      <textarea class="ai" rows="2" style="resize:vertical" placeholder="Ex: Fraîcheur et tradition, au cœur de Paris" oninput="DATA.homeCover.headline=this.value;renderAll();scheduleCoverAutoSave()">${escAttr(hc.headline||'')}</textarea>
-      <div style="font-size:10px;color:var(--text3);margin-top:4px">Entrée = retour à la ligne, si tu veux le répartir sur deux lignes.</div>
+    <div class="af">
+      <textarea class="ai" rows="2" style="resize:vertical" placeholder="Texte affiché en bas de l'écran d'accueil" oninput="DATA.homeCover.headline=this.value;renderAll();scheduleCoverAutoSave()">${escAttr(hc.headline||'')}</textarea>
     </div>
     <div class="af"><label class="al">Police de ce texte</label>
       <select class="ai" style="font-size:13px" onchange="setCoverHeadlineFont(this.value)">
         ${FONT_LIST.map(f=>`<option value="${f}" style="font-family:'${f}',sans-serif" ${(hc.headlineFont||'Jost')===f?'selected':''}>${f}</option>`).join('')}
       </select>
       <button type="button" class="aadd" style="margin-top:6px" onclick="showFontGallery('cover')">Voir toutes les polices</button>
-      <div style="font-size:10px;color:var(--text3);margin-top:4px">La même, que le fond soit une photo ou une vidéo — indépendante de la police générale du site.</div>
     </div>
-    <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-family:Jost,sans-serif;margin:12px 0 6px;border-top:1px solid var(--border);padding-top:12px">1er bouton</div>
+    <label class="al" style="display:block;margin-top:12px;font-size:11px;text-transform:uppercase;letter-spacing:.06em">1er bouton</label>
     <div class="af" style="display:flex;gap:8px">
       <input class="ai" value="${escAttr(hc.cta1Label||'')}" placeholder="Texte (ex: Voir le menu)" oninput="DATA.homeCover.cta1Label=this.value;renderAll();scheduleCoverAutoSave()">
-      <input class="ai" value="${escAttr(hc.cta1Url||'')}" placeholder="Lien (vide = fait apparaître le menu ici même)" oninput="DATA.homeCover.cta1Url=this.value.trim();renderAll();scheduleCoverAutoSave()">
+      <input class="ai" value="${escAttr(hc.cta1Url||'')}" placeholder="Lien (vide = ouvre le menu ici)" oninput="DATA.homeCover.cta1Url=this.value.trim();renderAll();scheduleCoverAutoSave()">
     </div>
-    <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-family:Jost,sans-serif;margin:12px 0 6px">2e bouton</div>
+    <label class="al" style="display:block;margin-top:12px;font-size:11px;text-transform:uppercase;letter-spacing:.06em">2e bouton</label>
     <div class="af" style="display:flex;gap:8px">
       <input class="ai" value="${escAttr(hc.cta2Label||'')}" placeholder="Texte (ex: Réserver)" oninput="DATA.homeCover.cta2Label=this.value;renderAll();scheduleCoverAutoSave()">
       <input class="ai" value="${escAttr(hc.cta2Url||'')}" placeholder="Lien" oninput="DATA.homeCover.cta2Url=this.value.trim();renderAll();scheduleCoverAutoSave()">
     </div>
-    <div style="font-size:10.5px;color:var(--text3);font-family:Jost,sans-serif;margin-top:10px">Cette section s'enregistre automatiquement quelques instants après chaque modification — pas besoin du bouton "Publier".</div>
-  </div></div>`+adminSaveBar();
+  </div></div>`;
 }
 
 // Home tab photo: respect the photo's own proportions rather than
@@ -6572,7 +6565,7 @@ function renderBrandColorsSection(){
     const val=bc[key]||defaults[key];
     h+='<div class="af"><label class="al">'+labels[key]+'</label>'
       +'<div style="display:flex;align-items:center;gap:8px">'
-      +'<input type="color" value="'+val+'" oninput="if(!DATA.brandColors)DATA.brandColors={};DATA.brandColors[&quot;'+key+'&quot;]=this.value;applyBrandColors()" style="width:36px;height:36px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer">'
+      +'<input type="color" value="'+val+'" oninput="if(!DATA.brandColors)DATA.brandColors={};DATA.brandColors[&quot;'+key+'&quot;]=this.value;applyBrandColors()" style="width:25px;height:25px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer">'
       +'<input class="ai" value="'+val+'" oninput="if(!DATA.brandColors)DATA.brandColors={};DATA.brandColors[&quot;'+key+'&quot;]=this.value;applyBrandColors()" style="flex:1;height:36px;font-family:monospace;font-size:12px;box-sizing:border-box">'
       +'</div></div>';
   });
@@ -6802,7 +6795,8 @@ const INFO_GENERALE_ROWS = [
   { key:'presentation', label:'Présentation', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m21 15-5-5-11 9"/></svg>', fn:renderFirstTabExtrasSection },
   { key:'horaires', label:'Horaires', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>', fn:renderScheduleAdmin },
   { key:'social', label:'Réseaux sociaux', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="2.3"/><circle cx="18" cy="6" r="2.3"/><circle cx="18" cy="18" r="2.3"/><path d="m8 10.8 8-4.6M8 13.2l8 4.6"/></svg>', fn:renderSocialAdminSection },
-  { key:'couleurs', label:'Couleurs principales', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.2 0-.9.7-1.5 1.5-1.5H16a4 4 0 0 0 4-4c0-4.4-3.6-8-8-8Z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></svg>', fn:renderBrandColorsSection }
+  { key:'couleurs', label:'Couleurs principales', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.2 0-.9.7-1.5 1.5-1.5H16a4 4 0 0 0 4-4c0-4.4-3.6-8-8-8Z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></svg>', fn:renderBrandColorsSection },
+  { key:'accueil', label:"Page d'accueil", icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 4l9 6.5"/><path d="M5 10v9h14v-9"/><rect x="10" y="13" width="4" height="6"/></svg>', fn:renderAdminHomeCover }
 ];
 function openInfoGeneraleRow(key){ infoGeneraleSubpage = key; renderAdminSection('__global'); }
 function closeInfoGeneraleRow(){ infoGeneraleSubpage = null; renderAdminSection('__global'); }
