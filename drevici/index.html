@@ -564,6 +564,30 @@ body.home-cover-showing{overflow:hidden}
    sombre (celui de la page, pas celui des cartes) pour qu'il ressorte
    davantage. */
 .ig-subpage-old-content .ig-service-btn{border:1px solid #5a5a5a!important;background:var(--ig-bg)!important}
+/* Boutons Visible/Masquée/Supprimer au niveau d'un onglet — fond
+   coloré à faible opacité (vert/gris/rouge), pas de bordure du tout,
+   plutôt qu'un simple contraste navy/gris comme avant. */
+.ig-subpage-old-content .tab-status-btn{border:none!important;border-radius:8px;padding:9px 6px;font-size:11px;font-family:'Jost',sans-serif;cursor:pointer;white-space:nowrap;text-align:center}
+.ig-subpage-old-content .tab-status-green{background:rgba(76,175,80,0.12)!important;color:#8bc78e!important}
+.ig-subpage-old-content .tab-status-green.active{background:rgba(76,175,80,0.28)!important;color:#fff!important}
+.ig-subpage-old-content .tab-status-gray{background:rgba(255,255,255,0.06)!important;color:#b4b4b4!important}
+.ig-subpage-old-content .tab-status-gray.active{background:rgba(255,255,255,0.18)!important;color:#fff!important}
+.ig-subpage-old-content .tab-status-red{background:rgba(224,122,114,0.14)!important;color:#e07a72!important}
+/* Titre de section (dans un onglet) — remplace .admin-sect-title
+   (masqué partout ailleurs) : ici on le garde visible mais en blanc
+   sur fond marque, pour qu'il ressorte au lieu de rester bleu sur
+   transparent. Volontairement pas scopé à .ig-subpage-old-content :
+   fonctionne aussi bien depuis l'ancien accès direct par onglet. */
+.ig-card-sect-title{background:var(--navy);color:#fff!important;padding:10px 12px;border-radius:8px;font-family:'Jost',sans-serif;font-size:13px;font-weight:500}
+.ig-card-sect-title .adel{color:#ffb3ab!important}
+/* Boutons "+ Plat"/"+ Boisson"/"+ Variante"/"+ Nouvelle section" —
+   trait continu plutôt que pointillé, fond de la page plutôt qu'un
+   simple "none", texte centré. */
+.ig-subpage-old-content .ig-add-btn{border:1px solid #5a5a5a!important;background:var(--ig-bg)!important;text-align:center}
+/* Boutons œil/suppression (remplace Visible/Masquée/✕ colorés) —
+   flat, un seul gris neutre discret. */
+.ig-subpage-old-content .dish-eye-btn{background:none!important;border:none!important;color:var(--ig-text-dim);padding:4px 5px;cursor:pointer;display:flex;align-items:center}
+.ig-subpage-old-content .dish-eye-btn:hover{color:#fff}
 /* Le petit encart d'aide (fond clair d'origine, texte foncé codé en
    dur) et tout texte en couleur de marque (navy) dans ce contenu
    réutilisé passent en clair pour rester lisibles sur fond sombre. */
@@ -3194,20 +3218,20 @@ function renderAdminTab(ti){
 
   // Tab label + visibility
   h+=`<div class="admin-section collapsible"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Nom de l'onglet</div><div class="admin-sect-body">`;
-  h+=biInput("Nom de l'onglet", tab.label.fr||'', tab.label[adminLang]||'', `DATA.tabs[${ti}].label[adminLang]=this.value;renderAll()`);
+  h+=`<div class="af"><input class="ai" value="${escAttr(tab.label[adminLang]||'')}" placeholder="Nom de l'onglet" oninput="DATA.tabs[${ti}].label[adminLang]=this.value;renderAll()"></div>`;
   h+=`<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">
     <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:6px;margin-top:8px">
-      <button class="aadd" style="margin:0;padding:8px 6px;font-size:11px;background:${tab.visible!==false?'var(--navy)':'#eee'};color:${tab.visible!==false?'#fff':'var(--text2)'}; border:none" onclick="DATA.tabs[${ti}].visible=true;renderAll();renderAdminSection(DATA.tabs[${ti}].id)">Visible</button>
-      <button class="aadd" style="margin:0;padding:8px 6px;font-size:11px;background:${tab.visible===false?'#555':'#eee'};color:${tab.visible===false?'#fff':'var(--text2)'};border:none" onclick="DATA.tabs[${ti}].visible=false;renderAll();renderAdminSection(DATA.tabs[${ti}].id)">Masquée</button>
-      <button onclick="askConfirm('Supprimer la tab « ${(tab.label.fr||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")} » et tout son contenu ?',()=>delTab(${ti}))" style="margin:0;padding:8px 10px;font-size:11px;border:1px solid #f5c6c2;border-radius:var(--rs);background:none;color:#c0392b;cursor:pointer;font-family:Jost,sans-serif;white-space:nowrap">Supprimer</button>
+      <button class="tab-status-btn tab-status-green${tab.visible!==false?' active':''}" onclick="DATA.tabs[${ti}].visible=true;renderAll();renderAdminSection(DATA.tabs[${ti}].id)">Visible</button>
+      <button class="tab-status-btn tab-status-gray${tab.visible===false?' active':''}" onclick="DATA.tabs[${ti}].visible=false;renderAll();renderAdminSection(DATA.tabs[${ti}].id)">Masquée</button>
+      <button class="tab-status-btn tab-status-red" onclick="askConfirm('Supprimer la tab « ${(tab.label.fr||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")} » et tout son contenu ?',()=>delTab(${ti}))">Supprimer</button>
     </div>
   </div></div></div>`;
 
   // Réordonner les sections (only relevant when there are 2+ sections) — modelled
   // exactly on the tab reorder UI which works reliably.
   if(tab.cards.length>=2){
-    h+=`<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Ordre des sections</div><div class="admin-sect-body">`;
-    h+=`<div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:10px;line-height:1.5">Glissez pour changer l'ordre des sections dans cet onglet.</div>`;
+    h+=`<div class="admin-section collapsible collapsed" style="margin-top:20px"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Ordre des sections</div><div class="admin-sect-body">`;
+    h+=`<div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:10px;line-height:1.5">Changer l'ordre des onglets</div>`;
     h+=`<div id="sectionReorderList" data-ti="${ti}">`;
     tab.cards.forEach((card,ci)=>{
       h+=`<div class="admin-card" style="display:flex;align-items:center;gap:10px;background:#fff;margin-bottom:6px;cursor:grab;touch-action:none"
@@ -3228,7 +3252,7 @@ function renderAdminTab(ti){
 
   // Cards
   tab.cards.forEach((card,ci)=>{
-    h+=`<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer"><span>Section — ${t(card.label)}</span><button class="adel" style="font-size:12px;padding:1px 5px;flex:none;opacity:.6;margin-left:auto;margin-right:20px" onclick="event.stopPropagation();askConfirm('Supprimer cette section ?',()=>{DATA.tabs[${ti}].cards.splice(${ci},1);renderAll();renderAdminSection(DATA.tabs[${ti}].id);publishNow()})">✕</button></div><div class="admin-sect-body">`;
+    h+=`<div class="admin-section collapsible collapsed"><div class="ig-card-sect-title" onclick="toggleAdminSection(this)" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer"><span>Section — ${t(card.label)}</span><button class="adel" style="font-size:12px;padding:1px 5px;flex:none;opacity:.6;margin-left:auto;margin-right:20px" onclick="event.stopPropagation();askConfirm('Supprimer cette section ?',()=>{DATA.tabs[${ti}].cards.splice(${ci},1);renderAll();renderAdminSection(DATA.tabs[${ti}].id);publishNow()})">✕</button></div><div class="admin-sect-body">`;
     h+=`<div class="admin-card">`;
     h+=biInput('Titre de section', card.label.fr||'', card.label[adminLang]||'', `DATA.tabs[${ti}].cards[${ci}].label[adminLang]=this.value;renderAll()`);
     h+=``;
@@ -3241,7 +3265,7 @@ function renderAdminTab(ti){
         }).join('');
         const bevName=typeof item.name==='object'?(item.name[adminLang]||item.name.fr||''):(item.name||'');
         h+=`<div class="admin-card collapsed" style="background:#fff;margin-top:4px" ondragover="onDragOver(event,${ti},${ci},${ii})" ondragleave="onDragLeave(event)" ondrop="onDropBev(event,${ti},${ci},${ii})">
-          <div class="admin-card-hdr"><span class="drag-handle" draggable="true" ondragstart="onDragBev(event,${ti},${ci},${ii})" ondragend="onDragEndHandle(event)">⠿</span><span class="admin-card-num" style="cursor:pointer" onclick="this.closest('.admin-card').classList.toggle('collapsed')">Boisson ${ii+1}${bevName?' — '+escAttr(bevName):''} <span class="collapse-chevron">▾</span></span><div style="display:flex;gap:3px;margin-left:auto;margin-right:4px"><button class="dish-vis-btn ${!item.hidden?'dish-vis-active':''}" onclick="delete DATA.tabs[${ti}].cards[${ci}].items[${ii}].hidden;renderAll();renderAdminSection(DATA.tabs[${ti}].id)">Visible</button><button class="dish-vis-btn dish-hid-btn ${item.hidden?'dish-hid-active':''}" onclick="DATA.tabs[${ti}].cards[${ci}].items[${ii}].hidden=true;renderAll();renderAdminSection(DATA.tabs[${ti}].id)">Masquée</button><button class="dish-vis-btn dish-del-btn" onclick="askConfirm('Supprimer cette boisson ?',()=>delBev(${ti},${ci},${ii}))">✕</button></div></div>
+          <div class="admin-card-hdr"><span class="drag-handle" draggable="true" ondragstart="onDragBev(event,${ti},${ci},${ii})" ondragend="onDragEndHandle(event)">⠿</span><span class="admin-card-num" style="cursor:pointer" onclick="this.closest('.admin-card').classList.toggle('collapsed')">Boisson ${ii+1}${bevName?' — '+escAttr(bevName):''} <span class="collapse-chevron">▾</span></span>${dishEyeDelButtons(!!item.hidden, `(function(){if(${!!item.hidden}){delete DATA.tabs[${ti}].cards[${ci}].items[${ii}].hidden;}else{DATA.tabs[${ti}].cards[${ci}].items[${ii}].hidden=true;}renderAll();renderAdminSection(DATA.tabs[${ti}].id)})()`, `askConfirm('Supprimer cette boisson ?',()=>delBev(${ti},${ci},${ii}))`)}</div>
           <div class="admin-card-details">
           <input class="ai" style="margin-bottom:4px" placeholder="${adminLang!=='fr'&&typeof item.name==='object'?item.name.fr||'Nom':'Nom'}" value="${typeof item.name==='object'?(item.name[adminLang]||''):item.name||''}" oninput="if(typeof DATA.tabs[${ti}].cards[${ci}].items[${ii}].name!=='object'){DATA.tabs[${ti}].cards[${ci}].items[${ii}].name={fr:DATA.tabs[${ti}].cards[${ci}].items[${ii}].name};}DATA.tabs[${ti}].cards[${ci}].items[${ii}].name[adminLang]=this.value;renderAll()">
           <textarea class="ai" rows="2" style="resize:vertical;margin-bottom:4px;font-size:12px" placeholder="Description (notes de dégustation, etc.)" oninput="if(!DATA.tabs[${ti}].cards[${ci}].items[${ii}].desc||typeof DATA.tabs[${ti}].cards[${ci}].items[${ii}].desc!=='object'){DATA.tabs[${ti}].cards[${ci}].items[${ii}].desc={};}DATA.tabs[${ti}].cards[${ci}].items[${ii}].desc[adminLang]=this.value;renderAll()">${(item.desc&&item.desc[adminLang])||''}</textarea>
@@ -3249,7 +3273,7 @@ function renderAdminTab(ti){
 
           <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:4px">Format, contenance & prix</div>
           ${sizeRows}
-          <button class="aadd" style="margin-top:2px" onclick="if(!Array.isArray(DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes)){DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes=[];}DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes.push({format:'',cl:'',unit:'cl',price:''});renderAll();renderAdminSection(DATA.tabs[${ti}].id)">+ Taille</button>
+          <button class="aadd ig-add-btn" style="margin-top:2px" onclick="if(!Array.isArray(DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes)){DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes=[];}DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes.push({format:'',cl:'',unit:'cl',price:''});renderAll();renderAdminSection(DATA.tabs[${ti}].id)">+ Taille</button>
 
           <div class="af" style="margin-top:10px"><label class="al" style="font-size:11px;font-weight:600;color:var(--text2)">Caption Instagram (pré-enregistrée)</label>
             <textarea class="ai" rows="4" style="resize:vertical;min-height:72px;font-size:12px" placeholder="Ex: Notre sélection du moment 🍷" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].caption=this.value">${item.caption||''}</textarea>
@@ -3259,7 +3283,7 @@ function renderAdminTab(ti){
           </div>
         </div>`;
       });
-      h+=`<button class="aadd" style="margin-top:4px" onclick="addBev(${ti},${ci})">+ Boisson</button>`;
+      h+=`<button class="aadd ig-add-btn" style="margin-top:4px" onclick="addBev(${ti},${ci})">+ Boisson</button>`;
     } else if(card.type==='variants'){
       h+=imgFieldHtml(card.img||'',`DATA.tabs[${ti}].cards[${ci}].img=this.value;renderAll()`,"Image URL ou uploader");
       (card.variants||[]).forEach((v,vi)=>{
@@ -3267,12 +3291,12 @@ function renderAdminTab(ti){
         const vVal=typeof v.name==='object'?(v.name[adminLang]||''):v.name||'';
         h+=`<div class="ai-row" style="margin-top:4px" ondragover="onDragOver(event,${ti},${ci},${vi})" ondragleave="onDragLeave(event)" ondrop="onDropVariant(event,${ti},${ci},${vi})"><span class="drag-handle" title="Glisser pour réordonner" draggable="true" ondragstart="onDragVariant(event,${ti},${ci},${vi})" ondragend="onDragEndHandle(event)">⠿</span><input class="ai" value="${vVal}" placeholder="${adminLang!=='fr'?vFr:''}" oninput="if(typeof DATA.tabs[${ti}].cards[${ci}].variants[${vi}].name!=='object'){DATA.tabs[${ti}].cards[${ci}].variants[${vi}].name={fr:DATA.tabs[${ti}].cards[${ci}].variants[${vi}].name};}DATA.tabs[${ti}].cards[${ci}].variants[${vi}].name[adminLang]=this.value;renderAll()"><input class="ai ai-sm" value="${v.price||''}" oninput="DATA.tabs[${ti}].cards[${ci}].variants[${vi}].price=this.value;renderAll()"><button class="adel" onclick="askConfirm('Supprimer cette variante ?',()=>delVariant(${ti},${ci},${vi}))">×</button></div>`;
       });
-      h+=`<button class="aadd" onclick="addVariant(${ti},${ci})">+ Variante</button>`;
+      h+=`<button class="aadd ig-add-btn" onclick="addVariant(${ti},${ci})">+ Variante</button>`;
     } else {
       (card.dishes||[]).forEach((d,di)=>{
         const dName=d.name&&(d.name[adminLang]||d.name.fr)||'';
         h+=`<div class="admin-card collapsed" style="background:#fff;margin-top:6px" ondragover="onDragOver(event,${ti},${ci},${di})" ondragleave="onDragLeave(event)" ondrop="onDrop(event,${ti},${ci},${di})">
-          <div class="admin-card-hdr"><span class="drag-handle" title="Glisser pour réordonner" draggable="true" ondragstart="onDragStart(event,${ti},${ci},${di})" ondragend="onDragEndHandle(event)">⠿</span><span class="admin-card-num" style="cursor:pointer" onclick="this.closest('.admin-card').classList.toggle('collapsed')">Plat ${di+1}${dName?' — '+escAttr(dName):''} <span class="collapse-chevron">▾</span></span><div style="display:flex;gap:3px;margin-left:auto;margin-right:4px"><button class="dish-vis-btn ${!d.hidden?'dish-vis-active':''}" onclick="delete DATA.tabs[${ti}].cards[${ci}].dishes[${di}].hidden;renderAll();renderAdminSection(DATA.tabs[${ti}].id)">Visible</button><button class="dish-vis-btn dish-hid-btn ${d.hidden?'dish-hid-active':''}" onclick="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].hidden=true;renderAll();renderAdminSection(DATA.tabs[${ti}].id)">Masquée</button><button class="dish-vis-btn dish-del-btn" onclick="askConfirm('Supprimer « ${(d.name.fr||'ce plat').replace(/\\/g,'\\\\').replace(/'/g,"\\'")} » ?',()=>delDish(${ti},${ci},${di}))">✕</button></div></div>
+          <div class="admin-card-hdr"><span class="drag-handle" title="Glisser pour réordonner" draggable="true" ondragstart="onDragStart(event,${ti},${ci},${di})" ondragend="onDragEndHandle(event)">⠿</span><span class="admin-card-num" style="cursor:pointer" onclick="this.closest('.admin-card').classList.toggle('collapsed')">Plat ${di+1}${dName?' — '+escAttr(dName):''} <span class="collapse-chevron">▾</span></span>${dishEyeDelButtons(!!d.hidden, `(function(){if(${!!d.hidden}){delete DATA.tabs[${ti}].cards[${ci}].dishes[${di}].hidden;}else{DATA.tabs[${ti}].cards[${ci}].dishes[${di}].hidden=true;}renderAll();renderAdminSection(DATA.tabs[${ti}].id)})()`, `askConfirm('Supprimer « ${(d.name.fr||'ce plat').replace(/\\/g,'\\\\').replace(/'/g,"\\'")} » ?',()=>delDish(${ti},${ci},${di}))`)}</div>
           <div class="admin-card-details">
           `+biInput('Nom', d.name.fr||'', d.name[adminLang]||'', `DATA.tabs[${ti}].cards[${ci}].dishes[${di}].name[adminLang]=this.value;renderAll()`)+`
           `+biInput('Description', d.desc.fr||'', d.desc[adminLang]||'', `DATA.tabs[${ti}].cards[${ci}].dishes[${di}].desc[adminLang]=this.value;renderAll()`)+`
@@ -3287,26 +3311,13 @@ function renderAdminTab(ti){
           </div>
         </div>`;
       });
-      h+=`<button class="aadd" onclick="addDish(${ti},${ci})">+ Plat</button>`;
+      h+=`<button class="aadd ig-add-btn" onclick="addDish(${ti},${ci})">+ Plat</button>`;
     }
 
     h+=`</div></div></div>`;
   });
 
-  h+=`<div class="admin-section"><button class="aadd" style="display:block;width:100%;padding:10px" onclick="addCard(${ti})">+ Nouvelle section dans cette tab</button></div>`;
-
-  // Champ libre de la tab — présent par défaut sur chaque onglet, pas
-  // seulement là où on en a besoin aujourd'hui : parfois il ne sert à
-  // rien (laissé inactif), parfois c'est un texte d'explication utile
-  // qu'il doit être possible d'activer et de modifier sans intervention
-  // de développement.
-  const tib=tab.infoBanner||{};
-  h+=`<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Champ libre</div><div class="admin-sect-body">
-    <label class="admin-toggle" style="margin-bottom:8px"><input type="checkbox" ${tib.active?'checked':''} onchange="if(!DATA.tabs[${ti}].infoBanner)DATA.tabs[${ti}].infoBanner={};DATA.tabs[${ti}].infoBanner.active=this.checked;renderAll()"><label>Visible</label></label>
-    `+biInput('Étiquette (optionnel)', t(tib.label)||'', t(tib.label)||'', `if(!DATA.tabs[${ti}].infoBanner)DATA.tabs[${ti}].infoBanner={};if(!DATA.tabs[${ti}].infoBanner.label)DATA.tabs[${ti}].infoBanner.label={};DATA.tabs[${ti}].infoBanner.label[adminLang]=this.value;renderAll()`)+`
-    `+biInput('Titre', (tib.title&&tib.title.fr)||'', (tib.title&&tib.title[adminLang])||'', `if(!DATA.tabs[${ti}].infoBanner)DATA.tabs[${ti}].infoBanner={};if(!DATA.tabs[${ti}].infoBanner.title)DATA.tabs[${ti}].infoBanner.title={};DATA.tabs[${ti}].infoBanner.title[adminLang]=this.value;renderAll()`)+`
-    `+biInput('Texte', (tib.desc&&tib.desc.fr)||'', (tib.desc&&tib.desc[adminLang])||'', `if(!DATA.tabs[${ti}].infoBanner)DATA.tabs[${ti}].infoBanner={};if(!DATA.tabs[${ti}].infoBanner.desc)DATA.tabs[${ti}].infoBanner.desc={};DATA.tabs[${ti}].infoBanner.desc[adminLang]=this.value;renderAll()`, true)+`
-  </div></div>`;
+  h+=`<div class="admin-section"><button class="aadd ig-add-btn" style="display:block;width:100%;padding:10px" onclick="addCard(${ti})">+ Nouvelle section dans cette tab</button></div>`;
 
   h+=adminSaveBar();
 
@@ -6853,6 +6864,19 @@ function dishGalleryHtml(d,ti,ci,di){ return entityGalleryHtml(ti,ci,di,'dishes'
 // Generalized gallery editor — used for both dishes (kind='dishes') and boissons (kind='items')
 // Admin panel "Informations alimentaires" checkbox group. `path` is the JS expression
 // pointing at the dish/item object, e.g. DATA.tabs[0].cards[1].dishes[2]
+// Boutons "œil" (visible/masqué, un seul bouton qui bascule) +
+// suppression — flat, gris neutre, remplace les 3 anciens boutons
+// colorés (Visible/Masquée/✕) au niveau de chaque plat/boisson.
+const EYE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
+const EYE_OFF_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/><line x1="2" y1="2" x2="22" y2="22"/></svg>';
+const TRASH_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
+function dishEyeDelButtons(hidden, toggleCode, delCode){
+  return `<div style="display:flex;gap:2px;margin-left:auto;margin-right:4px">
+    <button class="dish-eye-btn" onclick="${toggleCode}" title="${hidden?'Masqué — cliquer pour afficher':'Visible — cliquer pour masquer'}">${hidden?EYE_OFF_SVG:EYE_SVG}</button>
+    <button class="dish-eye-btn" onclick="${delCode}" title="Supprimer">${TRASH_SVG}</button>
+  </div>`;
+}
+
 function adminBadgeGroup(obj, path){
   obj=obj||{};
   return `<div class="badge-group"><span style="width:100%;font-size:11px;font-weight:600;color:var(--text2);margin-bottom:2px">Informations alimentaires</span>`
