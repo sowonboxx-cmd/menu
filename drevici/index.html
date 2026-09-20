@@ -6789,24 +6789,46 @@ const INFO_GENERALE_ROWS = [
 const SITE_INTERNET_ROWS = [
   { key:'accueil', label:"Page d'accueil", icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 4l9 6.5"/><path d="M5 10v9h14v-9"/><rect x="10" y="13" width="4" height="6"/></svg>', fn:renderAdminHomeCover }
 ];
+// Dynamique — reconstruite à chaque affichage pour toujours refléter
+// les vraies catégories du menu (ajout/suppression/renommage), pas une
+// liste figée. Chaque ligne réutilise renderAdminTab(ti), la même
+// édition de plats déjà existante, juste avec l'habillage sombre.
+function categorieRows(){
+  return DATA.tabs.filter(tb=>tb.id!=='__home').map(tb=>({
+    key: tb.id,
+    label: t(tb.label)||'(sans nom)',
+    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 12.3 12.3 20.6a2 2 0 0 1-2.8 0l-7.1-7.1a2 2 0 0 1 0-2.8L10.7 2.4A2 2 0 0 1 12.1 1.8H19a2 2 0 0 1 2 2v6.9a2 2 0 0 1-.6 1.4Z"/><circle cx="14.5" cy="6.5" r="1.2"/></svg>',
+    fn: () => renderAdminTab(DATA.tabs.findIndex(x=>x.id===tb.id))
+  }));
+}
+// Actions directes (pas de sous-page) : cliquer crée tout de suite une
+// table, comme le fait déjà le "+" dans l'ancien menu déroulant.
+const MANAGER_CATEGORIES_ROWS = [
+  { key:'newtab-plats', label:'Nouvelle table pour les plats', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>', action:"addNewTab('plats')" },
+  { key:'newtab-boissons', label:'Nouvelle table pour les boissons', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>', action:"addNewTab('boissons')" },
+  { key:'reorder', label:'Réordonner les tables', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>', fn: renderTabReorder }
+];
 const HOME_GROUPS = [
   { label:'Informations générales', rows:INFO_GENERALE_ROWS },
-  { label:'Site internet', rows:SITE_INTERNET_ROWS }
+  { label:'Site internet', rows:SITE_INTERNET_ROWS },
+  { label:'Catégories', rows:categorieRows },
+  { label:'Manager les catégories', rows:MANAGER_CATEGORIES_ROWS }
 ];
+function homeGroupRows(g){ return typeof g.rows === 'function' ? g.rows() : g.rows; }
 function openHomeRow(key){ homeSubpageKey = key; renderAdminSection('__global'); }
 function closeHomeRow(){ homeSubpageKey = null; renderAdminSection('__global'); }
 function findHomeRow(key){
-  for(const g of HOME_GROUPS){ const r = g.rows.find(r=>r.key===key); if(r) return r; }
+  for(const g of HOME_GROUPS){ const r = homeGroupRows(g).find(r=>r.key===key); if(r) return r; }
   return null;
 }
 function renderHomeList(){
   return `<div class="ig-page">${HOME_GROUPS.map(g=>`
     <div class="ig-group-label">${g.label}</div>
-    <div class="ig-list" style="margin-bottom:18px">${g.rows.map(r=>`
-      <div class="ig-row" onclick="openHomeRow('${r.key}')">
+    <div class="ig-list" style="margin-bottom:18px">${homeGroupRows(g).map(r=>`
+      <div class="ig-row" onclick="${r.action ? r.action : `openHomeRow('${r.key}')`}">
         <span class="ig-row-icon">${r.icon}</span>
         <span class="ig-row-label">${r.label}</span>
-        <span class="ig-row-chevron">›</span>
+        ${r.action ? '' : '<span class="ig-row-chevron">›</span>'}
       </div>`).join('')}</div>
   `).join('')}</div>`;
 }
