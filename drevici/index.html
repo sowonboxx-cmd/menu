@@ -578,7 +578,7 @@ body.home-cover-showing{overflow:hidden}
    sur fond marque, pour qu'il ressorte au lieu de rester bleu sur
    transparent. Volontairement pas scopé à .ig-subpage-old-content :
    fonctionne aussi bien depuis l'ancien accès direct par onglet. */
-.ig-card-sect-title{background:var(--navy);color:#fff!important;padding:10px 12px;border-radius:8px;font-family:'Jost',sans-serif;font-size:13px;font-weight:500}
+.ig-card-sect-title{background:var(--ig-card,#2f2f2f);color:var(--ig-text,#ececec)!important;padding:10px 12px;border-radius:8px;font-family:'Jost',sans-serif;font-size:13px;font-weight:500}
 .ig-card-sect-title .adel{color:#ffb3ab!important}
 /* Boutons "+ Plat"/"+ Boisson"/"+ Variante"/"+ Nouvelle section" —
    trait continu plutôt que pointillé, fond de la page plutôt qu'un
@@ -3216,25 +3216,24 @@ function renderAdminTab(ti){
   const tab=DATA.tabs[ti];
   let h='';
 
-  // Tab label + visibility
-  h+=`<div class="admin-section collapsible"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Nom de l'onglet</div><div class="admin-sect-body">`;
-  h+=`<div class="af"><input class="ai" value="${escAttr(tab.label[adminLang]||'')}" placeholder="Nom de l'onglet" oninput="DATA.tabs[${ti}].label[adminLang]=this.value;renderAll()"></div>`;
-  h+=`<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">
-    <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:6px;margin-top:8px">
-      <button class="tab-status-btn tab-status-green${tab.visible!==false?' active':''}" onclick="DATA.tabs[${ti}].visible=true;renderAll();renderAdminSection(DATA.tabs[${ti}].id)">Visible</button>
-      <button class="tab-status-btn tab-status-gray${tab.visible===false?' active':''}" onclick="DATA.tabs[${ti}].visible=false;renderAll();renderAdminSection(DATA.tabs[${ti}].id)">Masquée</button>
-      <button class="tab-status-btn tab-status-red" onclick="askConfirm('Supprimer la tab « ${(tab.label.fr||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")} » et tout son contenu ?',()=>delTab(${ti}))">Supprimer</button>
-    </div>
-  </div></div></div>`;
+  // Nom de l'onglet — juste le champ, pas d'accordéon (rien à
+  // replier/déplier ici, un seul champ ne le justifie pas). Visible/
+  // Masquée/Supprimer simplifiés en œil + corbeille à droite, comme
+  // pour un plat.
+  h+=`<div class="af" style="display:flex;align-items:center;gap:8px">
+    <input class="ai" style="flex:1" value="${escAttr(tab.label[adminLang]||'')}" placeholder="Nom de l'onglet" oninput="DATA.tabs[${ti}].label[adminLang]=this.value;renderAll()">
+    ${dishEyeDelButtons(tab.visible===false, `DATA.tabs[${ti}].visible=${tab.visible===false};renderAll();renderAdminSection(DATA.tabs[${ti}].id)`, `askConfirm('Supprimer la tab « ${(tab.label.fr||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")} » et tout son contenu ?',()=>delTab(${ti}))`)}
+  </div>`;
 
-  // Réordonner les sections (only relevant when there are 2+ sections) — modelled
-  // exactly on the tab reorder UI which works reliably.
+  // Réordonner les sections construit ici mais affiché tout en bas
+  // (moins important à voir tout de suite que le contenu lui-même).
+  let reorderHtml='';
   if(tab.cards.length>=2){
-    h+=`<div class="admin-section collapsible collapsed" style="margin-top:20px"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Ordre des sections</div><div class="admin-sect-body">`;
-    h+=`<div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:10px;line-height:1.5">Changer l'ordre des onglets</div>`;
-    h+=`<div id="sectionReorderList" data-ti="${ti}">`;
+    reorderHtml+=`<div class="admin-section collapsible collapsed" style="margin-top:20px"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Ordre des sections</div><div class="admin-sect-body">`;
+    reorderHtml+=`<div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:10px;line-height:1.5">Changer l'ordre des onglets</div>`;
+    reorderHtml+=`<div id="sectionReorderList" data-ti="${ti}">`;
     tab.cards.forEach((card,ci)=>{
-      h+=`<div class="admin-card" style="display:flex;align-items:center;gap:10px;background:#fff;margin-bottom:6px;cursor:grab;touch-action:none"
+      reorderHtml+=`<div class="admin-card" style="display:flex;align-items:center;gap:10px;background:#fff;margin-bottom:6px;cursor:grab;touch-action:none"
             data-ti="${ti}" data-ci="${ci}"
             draggable="true"
             ondragstart="onDragSectionRow(event,${ti},${ci})"
@@ -3247,14 +3246,15 @@ function renderAdminTab(ti){
         <span style="font-size:10px;color:var(--text3)">Section ${ci+1}</span>
       </div>`;
     });
-    h+=`</div></div></div>`;
+    reorderHtml+=`</div></div></div>`;
   }
 
   // Cards
+  h+=`<div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin:14px 0 8px">Section</div>`;
   tab.cards.forEach((card,ci)=>{
-    h+=`<div class="admin-section collapsible collapsed"><div class="ig-card-sect-title" onclick="toggleAdminSection(this)" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer"><span>Section — ${t(card.label)}</span><button class="adel" style="font-size:12px;padding:1px 5px;flex:none;opacity:.6;margin-left:auto;margin-right:20px" onclick="event.stopPropagation();askConfirm('Supprimer cette section ?',()=>{DATA.tabs[${ti}].cards.splice(${ci},1);renderAll();renderAdminSection(DATA.tabs[${ti}].id);publishNow()})">✕</button></div><div class="admin-sect-body">`;
+    h+=`<div class="admin-section collapsible collapsed"><div class="ig-card-sect-title" onclick="toggleAdminSection(this)" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer"><span>${t(card.label)||'(sans titre)'}</span><button class="adel" style="font-size:12px;padding:1px 5px;flex:none;opacity:.6;margin-left:auto;margin-right:20px" onclick="event.stopPropagation();askConfirm('Supprimer cette section ?',()=>{DATA.tabs[${ti}].cards.splice(${ci},1);renderAll();renderAdminSection(DATA.tabs[${ti}].id);publishNow()})">✕</button></div><div class="admin-sect-body">`;
     h+=`<div class="admin-card">`;
-    h+=biInput('Titre de section', card.label.fr||'', card.label[adminLang]||'', `DATA.tabs[${ti}].cards[${ci}].label[adminLang]=this.value;renderAll()`);
+    h+=`<div class="af"><input class="ai" value="${escAttr(card.label[adminLang]||'')}" placeholder="Titre de section" oninput="DATA.tabs[${ti}].cards[${ci}].label[adminLang]=this.value;renderAll()"></div>`;
     h+=``;
 
     if(card.type==='bevs'){
@@ -3318,6 +3318,7 @@ function renderAdminTab(ti){
   });
 
   h+=`<div class="admin-section"><button class="aadd ig-add-btn" style="display:block;width:100%;padding:10px" onclick="addCard(${ti})">+ Nouvelle section dans cette tab</button></div>`;
+  h+=reorderHtml;
 
   h+=adminSaveBar();
 
@@ -6815,9 +6816,9 @@ function categorieRows(){
 // Actions directes (pas de sous-page) : cliquer crée tout de suite une
 // table, comme le fait déjà le "+" dans l'ancien menu déroulant.
 const MANAGER_CATEGORIES_ROWS = [
-  { key:'newtab-plats', label:'Nouvelle table pour les plats', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>', action:"addNewTab('plats')" },
-  { key:'newtab-boissons', label:'Nouvelle table pour les boissons', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>', action:"addNewTab('boissons')" },
-  { key:'reorder', label:'Réordonner les tables', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>', fn: renderTabReorder }
+  { key:'newtab-plats', label:'Nouvelle tab pour les plats', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>', action:"addNewTab('plats')" },
+  { key:'newtab-boissons', label:'Nouvelle tab pour les boissons', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>', action:"addNewTab('boissons')" },
+  { key:'reorder', label:'Réordonner les tabs', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>', fn: renderTabReorder }
 ];
 const HOME_GROUPS = [
   { label:'Informations générales', rows:INFO_GENERALE_ROWS },
