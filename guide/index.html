@@ -233,7 +233,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
   body:not(.edit-mode) .offer-card .ov2-banner{text-align:center;justify-content:center}
   body:not(.edit-mode) .ov2-price-pill-below{align-self:center}
   .offers-mobile-tabbar-wrap{display:none}
-  body:not(.edit-mode) .offers-mobile-tabbar-wrap{display:block;position:sticky;bottom:14px;z-index:20;margin-top:16px;padding:0 14px;pointer-events:none;box-sizing:border-box}
+  body:not(.edit-mode) .offers-mobile-tabbar-wrap{display:block;position:sticky;bottom:14px;z-index:20;margin-top:16px;pointer-events:none;box-sizing:border-box}
   body:not(.edit-mode) .offers-mobile-tabbar-wrap .fshow-tabbar{pointer-events:auto;box-shadow:none;display:flex;width:94%;box-sizing:border-box}
   body:not(.edit-mode) .offers-mobile-tabbar-wrap .fshow-tab{flex:1;text-align:center}
   body:not(.edit-mode) .offers-mobile-tabbar-wrap .fshow-tab{text-transform:lowercase}
@@ -413,9 +413,12 @@ body.edit-mode .fshow-nav-row{align-items:flex-start}
 .ov2-price-pill{display:inline-flex;align-items:baseline;gap:0px;background:#EAF3FE;color:#2F6FE0;font-size:12px;font-weight:600;padding:4px 11px;border-radius:8px;border:1px solid #D6E8FC;white-space:nowrap}
 .ov2-price-pill span{font-weight:600;opacity:1}
 .ov2-included{font-size:13px;color:var(--text2);margin-bottom:14px;font-weight:600}
-.ov2-features{display:flex;flex-direction:column;gap:11px;margin-bottom:35px}
-.ov2-feature{display:flex;gap:9px;align-items:flex-start;font-size:14px;color:#1D1D1F;line-height:1.4}
+.ov2-features{display:flex;flex-direction:column;margin-bottom:35px}
+.ov2-feature{display:flex;gap:9px;align-items:center;justify-content:space-between;font-size:14px;color:#1D1D1F;line-height:1.4;padding:12px 0}
+.ov2-feature + .ov2-feature{border-top:1px solid #EDEDF0}
 .ov2-feature-badge{display:inline-flex;align-items:center;margin-left:auto;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;flex:none}
+.ov2-check-circle{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#E3F5E7;color:#2FA84F;flex:none}
+.ov2-check-circle svg{width:12px;height:12px}
 .ov2-check{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;border:1.5px solid var(--text3);color:var(--text3);background:#fff;margin-top:1px}
 .ov2-check svg{width:8px;height:8px}
 .ov2-info{display:flex;flex-direction:column;gap:8px;margin:0}
@@ -2915,10 +2918,24 @@ function setupOffersCarouselSync(order){
       btn.classList.toggle('active', btn.dataset.tag === activeTag);
     });
     positionOffersTabIndicator();
+    // Scroll-snap's actual rest position drifts slightly from card to card (a browser
+    // quirk, not something we can fix by tweaking the snap CSS), so instead of trusting
+    // a fixed width/position for the bar, we measure the currently-active card directly
+    // and match the bar's real left edge + width to it every time — guaranteed pixel
+    // alignment no matter which card is showing.
+    const wrap = document.getElementById('offersMobileTabbarWrap');
+    const tabbar = document.getElementById('offersMobileTabbarInner');
+    if(wrap && tabbar){
+      const cardRect = closest.getBoundingClientRect();
+      const wrapRect = wrap.getBoundingClientRect();
+      tabbar.style.width = cardRect.width + 'px';
+      tabbar.style.marginLeft = (cardRect.left - wrapRect.left) + 'px';
+    }
   };
   grid._offersScrollHandler && grid.removeEventListener('scroll', grid._offersScrollHandler);
   grid._offersScrollHandler = ()=>requestAnimationFrame(onScroll);
   grid.addEventListener('scroll', grid._offersScrollHandler, { passive:true });
+  requestAnimationFrame(onScroll);
 }
 function setOffersColumnsPerRow(n){
   DATA.offersColumnsPerRow = n;
@@ -2943,6 +2960,7 @@ function toggleOfferCardHidden(tag){
   DATA.offerMeta[tag].hidden = !DATA.offerMeta[tag].hidden;
   save();
   renderOffers();
+  renderMatrix();
 }
 let _offerCardDragSrc = null;
 function offerCardDragStart(e, tag){ _offerCardDragSrc = tag; }
@@ -3058,7 +3076,10 @@ function renderOffers(){
           ${feats.filter(f=>f).map(f=>{
             const isResa = f.trim().toLowerCase() === 'réservation en ligne';
             const badgeText = meta.reservationBadge;
-            return `<div class="ov2-feature"><span class="ov2-check">${FLAT_CHECK}</span><span>${esc(f)}</span>${(isResa && badgeText) ? `<span class="ov2-feature-badge" style="background:${hexToRgba(bannerColor,0.14)};color:${bannerColor}">${esc(badgeText)}</span>` : ''}</div>`;
+            const rightEl = (isResa && badgeText)
+              ? `<span class="ov2-feature-badge" style="background:${hexToRgba(bannerColor,0.14)};color:${bannerColor}">${esc(badgeText)}</span>`
+              : `<span class="ov2-check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12 5 5L20 6"/></svg></span>`;
+            return `<div class="ov2-feature"><span>${esc(f)}</span>${rightEl}</div>`;
           }).join('')}
           ${!feats.some(f=>f)?'<div style="font-size:12px;color:var(--text3);font-style:italic">Aucune fonctionnalité renseignée</div>':''}
         </div>
@@ -3075,7 +3096,7 @@ function renderOffers(){
           <textarea placeholder="Description infobulle (unique à cette offre)" style="font-size:11px;color:var(--text2);border:1px solid var(--border);border-radius:6px;outline:none;background:#fff;padding:5px 8px;width:100%;resize:vertical;min-height:36px;font-family:'Inter',sans-serif" onchange="DATA.offerMeta['${tag}'].installDesc=this.value;save();renderOffers()">${esc(meta.installDesc||'')}</textarea>
         </div>
       ` : ''}
-      <button class="offer-cta" type="button" style="background:${meta.ctaColor || (tag==='apero' ? '#232323' : '#2F6FE0')}">${esc(meta.ctaText || 'Choisir cette offre')}</button>
+      <button class="offer-cta" type="button" style="background:${meta.ctaColor || '#2C5282'}">${esc(meta.ctaText || 'Choisir cette offre')}</button>
       ${(!editable && meta.setup>0) ? `
         <div class="ov2-info-mobile">
           <span class="ov2-install-wrap" onclick="this.classList.toggle('active');event.stopPropagation()">
@@ -3091,7 +3112,7 @@ function renderOffers(){
           ${DATA.cardColors[tag]?`<button type="button" style="font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;text-decoration:underline;margin-left:auto" onclick="delete DATA.cardColors['${tag}'];save();renderOffers()">Réinitialiser</button>`:''}
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
-          <input type="color" value="${meta.ctaColor || (tag==='apero' ? '#232323' : '#2F6FE0')}" style="width:32px;height:28px;border:1px solid var(--border);border-radius:6px;padding:2px;background:#fff;cursor:pointer" onchange="DATA.offerMeta['${tag}'].ctaColor=this.value;save();renderOffers()">
+          <input type="color" value="${meta.ctaColor || '#2C5282'}" style="width:32px;height:28px;border:1px solid var(--border);border-radius:6px;padding:2px;background:#fff;cursor:pointer" onchange="DATA.offerMeta['${tag}'].ctaColor=this.value;save();renderOffers()">
           <span style="font-size:11px;color:var(--text3)">Couleur du bouton</span>
           ${meta.ctaColor?`<button type="button" style="font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;text-decoration:underline;margin-left:auto" onclick="delete DATA.offerMeta['${tag}'].ctaColor;save();renderOffers()">Réinitialiser</button>`:''}
         </div>
@@ -3115,7 +3136,7 @@ function renderOffers(){
   });
 
   document.getElementById('offersAutoTop').innerHTML = cardsHtml.join('');
-  document.getElementById('offersAutoTop').style.setProperty('--offers-cols', DATA.offersColumnsPerRow || 3);
+  document.getElementById('offersAutoTop').style.setProperty('--offers-cols', Math.max(1, Math.min(DATA.offersColumnsPerRow || 3, order.length)));
   let addBtnWrap = document.getElementById('addOfferCardBtnWrap');
   if(!addBtnWrap){
     addBtnWrap = document.createElement('div');
@@ -3186,12 +3207,19 @@ function renderOffersTrustBar(){
 function renderMatrix(){
   renderMatrixLabel();
   const el = document.getElementById('matrixTable');
-  const colCount = DATA.tagOrder.length + 1 + (editMode ? 1 : 0);
-  let html = `<thead><tr><th>Fonctionnalité</th>${DATA.tagOrder.map(tag=>`<th class="center" ${editMode?`draggable="true" ondragstart="tagColumnDragStart(event,'${tag}')" ondragover="event.preventDefault()" ondrop="tagColumnDrop(event,'${tag}')" style="cursor:grab"`:''}>${
+  const visibleTagOrder = editMode ? DATA.tagOrder : DATA.tagOrder.filter(tag=>!(DATA.offerMeta[tag]||{}).hidden);
+  const colCount = visibleTagOrder.length + 1 + (editMode ? 1 : 0);
+  let html = `<thead><tr><th>Fonctionnalité</th>${visibleTagOrder.map(tag=>{
+    const isHidden = !!(DATA.offerMeta[tag]||{}).hidden;
+    return `<th class="center" ${editMode?`draggable="true" ondragstart="tagColumnDragStart(event,'${tag}')" ondragover="event.preventDefault()" ondrop="tagColumnDrop(event,'${tag}')" style="cursor:grab"`:''}>${
     editMode
-      ? `<div style="display:flex;align-items:center;justify-content:center;gap:3px"><span class="feature-drag" style="cursor:grab" title="Glisser pour réordonner">⠿</span><input value="${esc(tagLabel(tag))}" style="border:none;outline:none;background:transparent;font-size:11px;font-weight:700;text-align:center;width:${Math.max(50,tagLabel(tag).length*7)}px" onchange="renameTagColumn('${tag}',this.value)"><button onclick="deleteTagColumn('${tag}')" title="Supprimer" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;padding:2px">✕</button></div>`
+      ? `<div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div style="display:flex;align-items:center;justify-content:center;gap:3px"><span class="feature-drag" style="cursor:grab" title="Glisser pour réordonner">⠿</span><input value="${esc(tagLabel(tag))}" style="border:none;outline:none;background:transparent;font-size:11px;font-weight:700;text-align:center;width:${Math.max(50,tagLabel(tag).length*7)}px" onchange="renameTagColumn('${tag}',this.value)"><button onclick="deleteTagColumn('${tag}')" title="Supprimer" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;padding:2px">✕</button></div>
+          ${DATA.offerMeta[tag] ? `<button type="button" onclick="toggleOfferCardHidden('${tag}')" style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:700;letter-spacing:.02em;border:1px solid ${isHidden?'var(--border)':'var(--pro)'};color:${isHidden?'var(--text3)':'var(--pro)'};background:${isHidden?'#f5f5f5':'var(--tint-pro)'};border-radius:20px;padding:2px 8px;cursor:pointer;white-space:nowrap;text-transform:none">${isHidden?'◯ Masquée':'● Visible'}</button>` : ''}
+        </div>`
       : `<span class="tag-col-full">${esc(tagLabel(tag))}</span><span class="tag-col-abbr" onclick="toggleTagAbbrTooltip(event,this)">${esc((tagLabel(tag)||'?').trim().charAt(0).toUpperCase())}<span class="tag-col-abbr-tooltip">${esc(tagLabel(tag))}</span></span>`
-  }</th>`).join('')}${editMode?`<th class="center" style="white-space:nowrap"><input type="text" id="addTagColumnInput" placeholder="+ offre…" style="border:1px dashed var(--border);border-radius:6px;padding:4px 8px;font-size:10px;width:80px;outline:none;text-transform:none;font-weight:500" onkeydown="if(event.key==='Enter'){event.preventDefault();addTagColumn(this.value);this.value=''}"></th>`:''}</tr></thead><tbody>`;
+  }</th>`;
+  }).join('')}${editMode?`<th class="center" style="white-space:nowrap"><input type="text" id="addTagColumnInput" placeholder="+ offre…" style="border:1px dashed var(--border);border-radius:6px;padding:4px 8px;font-size:10px;width:80px;outline:none;text-transform:none;font-weight:500" onkeydown="if(event.key==='Enter'){event.preventDefault();addTagColumn(this.value);this.value=''}"></th>`:''}</tr></thead><tbody>`;
   DATA.categories.forEach((cat, ci) => {
     if(cat.prestation) return; // Prestation lives in its own standalone block now.
     const collapsed = !!cat.matrixCollapsed;
@@ -3224,7 +3252,7 @@ function renderMatrix(){
             ${item.price?`<span style="color:var(--text3);font-size:10px">(+${item.price}€)</span>`:''}
           </div>
         </td>`;
-        DATA.tagOrder.forEach(tag=>{
+        visibleTagOrder.forEach(tag=>{
           const cell = getCellData(item, tag);
           if(editMode){
             html += `<td class="center">${matrixCellEditHtml(ci, ii, tag, cell)}</td>`;
