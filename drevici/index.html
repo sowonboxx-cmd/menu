@@ -3378,9 +3378,9 @@ function renderTabSectionDetail(ti, ci){
     <input class="ai ig-card-title-input" style="flex:1" value="${escAttr(card.label[adminLang]||'')}" placeholder="Titre de section" oninput="DATA.tabs[${ti}].cards[${ci}].label[adminLang]=this.value;renderAll()">
     <button class="adel" style="font-size:12px;padding:1px 5px;flex:none;opacity:.6" onclick="askConfirm('Supprimer cette section ?',()=>{DATA.tabs[${ti}].cards.splice(${ci},1);tabSectionOpen['${tab.id}']=null;renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id);publishNow()})">✕</button>
   </div>`;
-  h+=`<div class="admin-card">`;
 
   if(card.type==='bevs'){
+    h+=`<div class="admin-card">`;
     (card.items||[]).forEach((item,ii)=>{
       const sizeRows=(item.sizes||[]).map((s,si)=>{
         const unit=s.unit||'cl';
@@ -3403,19 +3403,24 @@ function renderTabSectionDetail(ti, ci){
         </div>
       </div>`;
     });
-    h+=`<button class="aadd ig-add-btn" style="margin-top:4px" onclick="addBev(${ti},${ci})">Boisson</button>`;
+    h+=`</div>`;
+    h+=`<button class="aadd ig-add-btn ig-add-btn-standalone" style="margin-top:4px" onclick="addBev(${ti},${ci})">Boisson</button>`;
   } else if(card.type==='variants'){
+    h+=`<div class="admin-card">`;
     h+=imgFieldHtml(card.img||'',`DATA.tabs[${ti}].cards[${ci}].img=this.value;renderAll()`,"Image URL ou uploader");
     (card.variants||[]).forEach((v,vi)=>{
       const vFr=typeof v.name==='object'?v.name.fr||'':v.name||'';
       const vVal=typeof v.name==='object'?(v.name[adminLang]||''):v.name||'';
       h+=`<div class="ai-row" style="margin-top:4px" ondragover="onDragOver(event,${ti},${ci},${vi})" ondragleave="onDragLeave(event)" ondrop="onDropVariant(event,${ti},${ci},${vi})"><span class="drag-handle" title="Glisser pour réordonner" draggable="true" ondragstart="onDragVariant(event,${ti},${ci},${vi})" ondragend="onDragEndHandle(event)">⠿</span><input class="ai ig-visible-field" value="${vVal}" placeholder="${adminLang!=='fr'?vFr:''}" oninput="if(typeof DATA.tabs[${ti}].cards[${ci}].variants[${vi}].name!=='object'){DATA.tabs[${ti}].cards[${ci}].variants[${vi}].name={fr:DATA.tabs[${ti}].cards[${ci}].variants[${vi}].name};}DATA.tabs[${ti}].cards[${ci}].variants[${vi}].name[adminLang]=this.value;renderAll()"><input class="ai ai-sm ig-visible-field" value="${v.price||''}" oninput="DATA.tabs[${ti}].cards[${ci}].variants[${vi}].price=this.value;renderAll()"><button class="adel" onclick="askConfirm('Supprimer cette variante ?',()=>delVariant(${ti},${ci},${vi}))">×</button></div>`;
     });
-    h+=`<button class="aadd ig-add-btn" onclick="addVariant(${ti},${ci})">Variante</button>`;
+    h+=`</div>`;
+    h+=`<button class="aadd ig-add-btn ig-add-btn-standalone" onclick="addVariant(${ti},${ci})">Variante</button>`;
   } else {
     const openDi = dishDetailOpen[tab.id];
     if(openDi!=null && card.dishes[openDi]){
       h+=renderDishDetailBody(ti, ci, openDi);
+      h+=adminSaveBar();
+      return h;
     } else {
       h+=`<div class="ig-list">`;
       card.dishes.forEach((d,di)=>{
@@ -3426,14 +3431,12 @@ function renderTabSectionDetail(ti, ci){
         </div>`;
       });
       h+=`</div>`;
-      h+=`</div>`; // ferme .admin-card avant le bouton séparé
       h+=`<button class="aadd ig-add-btn ig-add-btn-standalone" onclick="addDish(${ti},${ci})">Ajouter un plat</button>`;
       h+=adminSaveBar();
       return h;
     }
   }
 
-  h+=`</div>`;
   h+=adminSaveBar();
   return h;
 }
