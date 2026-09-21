@@ -543,7 +543,8 @@ body.home-cover-showing{overflow:hidden}
    neutralise ici avec un survol neutre, comme sur "Publier". */
 .ig-subpage-old-content .admin-toggle:hover{border-color:transparent!important}
 .ig-subpage-old-content .ig-pill:hover{background:#3a3a3a!important}
-.ig-subpage-old-content .ai-upload-btn{background:var(--ig-card)!important;border:none!important;color:#fff!important}
+.ig-subpage-old-content .ai-upload-btn{background:var(--ig-card)!important;border:none!important;color:#fff!important;height:34px!important;width:34px!important}
+.ig-subpage-old-content .ai-img-wrap .ai{height:34px}
 /* "Voir et choisir la police" — même forme de champ (.ai) que les
    autres, cliquable, avec un tout petit libellé au-dessus du nom de
    la police pour qu'on comprenne encore que c'est cliquable. */
@@ -3181,6 +3182,9 @@ function renderFirstTabExtrasSection(){
   h+=`<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Présentation</div><div class="admin-sect-body">
     <label class="admin-toggle ig-pill"><input type="checkbox" ${DATA.intro.active?'checked':''} onchange="DATA.intro.active=this.checked;renderAll();renderAdminSection('__global')"><label>Afficher la présentation</label></label>
     `+biInput('Texte de présentation', DATA.intro.text.fr||'', DATA.intro.text[adminLang]||'', `DATA.intro.text[adminLang]=this.value;renderAll()`, true)+`
+    <label class="admin-toggle ig-pill" style="margin-top:14px"><input type="checkbox" ${DATA.showCurrency!==false?'checked':''} onchange="DATA.showCurrency=this.checked;renderAll()"><label>Afficher la devise (€)</label></label>
+    <label class="admin-toggle ig-pill" style="margin-top:8px"><input type="checkbox" ${(DATA.defaultView||'grid')==='grid'?'checked':''} onchange="if(this.checked){DATA.defaultView='grid';view='grid';}else{DATA.defaultView='list';view='list';}renderAll();renderAdminSection('__global')"><label>Afficher en grille</label></label>
+    <label class="admin-toggle ig-pill" style="margin-top:8px"><input type="checkbox" ${DATA.defaultView==='list'?'checked':''} onchange="if(this.checked){DATA.defaultView='list';view='list';}else{DATA.defaultView='grid';view='grid';}renderAll();renderAdminSection('__global')"><label>Afficher en liste</label></label>
   </div></div>`;
 
   return h;
@@ -6640,8 +6644,7 @@ function restaurantSettingHtml(){
         <div id="restoFontNameDisplay" style="font-size:16px;color:var(--ig-text);font-family:'${DATA.restoFont||'Cormorant Garamond'}',serif!important;margin-top:2px">${DATA.restoFont||'Cormorant Garamond'}</div>
       </div>
     </div>
-    <div class="af"><label class="al" style="font-weight:600">Logo de l'établissement</label></div>
-    ${imgFieldHtml(logo, "setRestaurantLogo(this.value.trim());applyRestaurantBranding()", 'https://... .png ou .webp', null)}
+    ${imgFieldHtml(logo, "setRestaurantLogo(this.value.trim());applyRestaurantBranding()", "Logo de l'établissement", null)}
 
     <div class="af"><label class="al" style="font-size:12px;font-weight:600;margin-top:12px;display:block;border-top:1px solid var(--border);padding-top:12px">Adresse & contact</label></div>
     <div class="af">
@@ -6660,19 +6663,6 @@ function restaurantSettingHtml(){
     </div>
     <div class="af">
       <input class="ai" value="${DATA.address&&DATA.address.mapsUrl||''}" placeholder="Lien Google Maps" oninput="if(!DATA.address)DATA.address={};DATA.address.mapsUrl=this.value;renderAll()">
-    </div>
-    <label class="admin-toggle ig-pill" style="margin-top:14px"><input type="checkbox" ${DATA.showCurrency!==false?'checked':''} onchange="DATA.showCurrency=this.checked;renderAll()"><label>Afficher la devise (€)</label></label>
-    <div class="af" style="margin-top:14px"><label class="al">Affichage par défaut du menu</label>
-      <div class="ig-segmented" style="margin-top:4px">
-        <label class="ig-seg-btn${(DATA.defaultView||'grid')==='grid'?' active':''}">
-          <input type="radio" name="defaultViewChoice" value="grid" ${(DATA.defaultView||'grid')==='grid'?'checked':''} onchange="DATA.defaultView='grid';view='grid';renderAll();renderAdminSection('__global')">
-          Grille
-        </label>
-        <label class="ig-seg-btn${DATA.defaultView==='list'?' active':''}">
-          <input type="radio" name="defaultViewChoice" value="list" ${DATA.defaultView==='list'?'checked':''} onchange="DATA.defaultView='list';view='list';renderAll();renderAdminSection('__global')">
-          Liste
-        </label>
-      </div>
     </div>
   </div></div>
 `;
