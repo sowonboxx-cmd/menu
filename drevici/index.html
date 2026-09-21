@@ -3317,15 +3317,18 @@ function renderTabSectionList(ti){
   const tab=DATA.tabs[ti];
   let h='';
 
-  // Nom de l'onglet + œil/corbeille : déplacés dans l'en-tête de la
-  // page (voir renderHomeSubpage) pour ne plus faire doublon avec le
-  // titre affiché en haut. Rien à afficher ici pour ça.
+  // Nom de l'onglet — juste le champ, pas d'accordéon. Visible/
+  // Masquée/Supprimer simplifiés en œil + corbeille à droite.
+  h+=`<div class="af" style="display:flex;align-items:center;gap:8px">
+    <input class="ai" style="flex:1" value="${escAttr(tab.label[adminLang]||'')}" placeholder="Nom de l'onglet" oninput="DATA.tabs[${ti}].label[adminLang]=this.value;renderAll()">
+    ${dishEyeDelButtons(tab.visible===false, `DATA.tabs[${ti}].visible=${tab.visible===false};renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)`, `askConfirm('Supprimer la tab « ${(tab.label.fr||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")} » et tout son contenu ?',()=>delTab(${ti}))`)}
+  </div>`;
 
   // Sections — un seul bloc cliquable chacune (nom en bleu clair,
   // petite flèche à droite), on entre dans le détail au clic. Plus
   // d'accordéon qui déplie tout sur place : trop d'informations d'un
   // coup quand il y a beaucoup de plats.
-  h+=`<div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:8px">Section</div>`;
+  h+=`<div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin:14px 0 8px">Section</div>`;
   h+=`<div class="ig-list">`;
   tab.cards.forEach((card,ci)=>{
     h+=`<div class="ig-row" onclick="openTabSection('${tab.id}',${ci})">
@@ -6937,8 +6940,7 @@ function categorieRows(){
     key: tb.id,
     label: t(tb.label)||'(sans nom)',
     icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 12.3 12.3 20.6a2 2 0 0 1-2.8 0l-7.1-7.1a2 2 0 0 1 0-2.8L10.7 2.4A2 2 0 0 1 12.1 1.8H19a2 2 0 0 1 2 2v6.9a2 2 0 0 1-.6 1.4Z"/><circle cx="14.5" cy="6.5" r="1.2"/></svg>',
-    fn: () => renderAdminTab(DATA.tabs.findIndex(x=>x.id===tb.id)),
-    tabId: tb.id
+    fn: () => renderAdminTab(DATA.tabs.findIndex(x=>x.id===tb.id))
   }));
 }
 // Actions directes (pas de sous-page) : cliquer crée tout de suite une
@@ -6975,23 +6977,10 @@ function renderHomeList(){
 function renderHomeSubpage(){
   const row = findHomeRow(homeSubpageKey);
   if(!row) return renderHomeList();
-  // Les catégories (tabs) rendent leur titre éditable directement dans
-  // l'en-tête, avec œil/corbeille alignés dessus — plus de champ
-  // "Nom de l'onglet" en double plus bas (voir renderTabSectionList).
-  let titleHtml, extraHdr='';
-  if(row.tabId!=null){
-    const ti=DATA.tabs.findIndex(x=>x.id===row.tabId);
-    const tab=DATA.tabs[ti];
-    titleHtml=`<input class="ai ig-card-title-input" style="flex:1" value="${escAttr(tab.label[adminLang]||'')}" placeholder="Nom de l'onglet" oninput="DATA.tabs[${ti}].label[adminLang]=this.value;renderAll()">`;
-    extraHdr=dishEyeDelButtons(tab.visible===false, `DATA.tabs[${ti}].visible=${tab.visible===false};renderAll();renderAdminSection('__global')`, `askConfirm('Supprimer la tab « ${(tab.label.fr||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")} » et tout son contenu ?',()=>delTab(${ti}))`, true);
-  } else {
-    titleHtml=`<span class="ig-subpage-title">${row.label}</span>`;
-  }
   return `<div class="ig-page">
     <div class="ig-subpage-hdr">
       <button class="ig-back-btn" onclick="closeHomeRow()">‹</button>
-      ${titleHtml}
-      ${extraHdr}
+      <span class="ig-subpage-title">${row.label}</span>
     </div>
   <div class="ig-subpage-old-content">${row.fn().replace(/\bcollapsible collapsed\b/g,'')}</div>
   </div>`;
@@ -7012,10 +7001,9 @@ function dishGalleryHtml(d,ti,ci,di){ return entityGalleryHtml(ti,ci,di,'dishes'
 const EYE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
 const EYE_OFF_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/><line x1="2" y1="2" x2="22" y2="22"/></svg>';
 const TRASH_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
-function dishEyeDelButtons(hidden, toggleCode, delCode, colored){
-  const eyeColor = colored ? (hidden?'color:#e07a72':'color:#66bb6a') : '';
+function dishEyeDelButtons(hidden, toggleCode, delCode){
   return `<div style="display:flex;gap:2px;margin-left:auto;margin-right:4px">
-    <button class="dish-eye-btn" style="${eyeColor}" onclick="${toggleCode}" title="${hidden?'Masqué — cliquer pour afficher':'Visible — cliquer pour masquer'}">${hidden?EYE_OFF_SVG:EYE_SVG}</button>
+    <button class="dish-eye-btn" onclick="${toggleCode}" title="${hidden?'Masqué — cliquer pour afficher':'Visible — cliquer pour masquer'}">${hidden?EYE_OFF_SVG:EYE_SVG}</button>
     <button class="dish-eye-btn" onclick="${delCode}" title="Supprimer">${TRASH_SVG}</button>
   </div>`;
 }
