@@ -543,7 +543,7 @@ body.home-cover-showing{overflow:hidden}
    ne suffit pas partout (Safari iOS, notamment, ne teinte que la
    coche, pas le carré lui-même). On dessine la case nous-mêmes :
    fond noir par défaut, coche bleu clair dessinée à la main. */
-.ig-subpage-old-content input[type="checkbox"]{appearance:none;-webkit-appearance:none;width:15px;height:15px;flex:none;border-radius:4px;background:#3a3a3a!important;border:1px solid #5a5a5a;cursor:pointer;position:relative;margin:0}
+.ig-subpage-old-content input[type="checkbox"]{appearance:none;-webkit-appearance:none;width:15px;height:15px;flex:none;border-radius:4px;background:#575757!important;border:1px solid #7a7a7a;cursor:pointer;position:relative;margin:0}
 /* Curseur "Position sur mobile" — juste le bleu, sans le halo/contour
    blanc que le curseur natif ajoute par défaut autour du curseur. */
 .ig-subpage-old-content input[type="range"]{accent-color:#8ab4f8}
@@ -602,8 +602,20 @@ body.home-cover-showing{overflow:hidden}
 /* Champs numériques (quantité/prix double-offre) — flèches natives
    passées en blanc par inversion, plutôt que masquées : plus simple
    à lire, sans rajouter de bordure supplémentaire autour d'elles. */
+/* BUG FIX (fond noir autour des flèches) : le filtre "invert" à lui
+   seul n'enlevait pas le cadre/fond que Safari ajoute autour du
+   spinner natif. On le masque maintenant complètement et on dessine
+   nous-mêmes deux petits chevrons blancs, haut/bas, bien centrés. */
+.ig-num-white-arrows{
+  -webkit-appearance:none;-moz-appearance:textfield;appearance:none;
+  padding-right:22px!important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 16' fill='none' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='2 5 5 2 8 5'/%3E%3Cpolyline points='2 11 5 14 8 11'/%3E%3C/svg%3E")!important;
+  background-repeat:no-repeat!important;
+  background-position:right 5px center!important;
+  background-size:9px 15px!important;
+}
 .ig-num-white-arrows::-webkit-inner-spin-button,
-.ig-num-white-arrows::-webkit-outer-spin-button{filter:invert(1);opacity:1;background:transparent!important}
+.ig-num-white-arrows::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 /* Boutons Visible/Masquée/Supprimer au niveau d'un onglet — fond
    coloré à faible opacité (vert/gris/rouge), pas de bordure du tout,
    plutôt qu'un simple contraste navy/gris comme avant. */
@@ -3020,7 +3032,18 @@ function openAdmin(){
   renderAdminTabDd();
   const targetTab=DATA.tabs.find(t=>t.id===currentTabId);
   if(targetTab){adminCurrentTab=currentTabId;document.getElementById('adminTabDd').value=currentTabId;}
-  renderAdminSection(adminCurrentTab);
+  // BUG FIX (panneau tout blanc à la première ouverture) : si quoi que
+  // ce soit plante pendant le rendu (donnée pas encore chargée, état
+  // d'une ancienne session invalide, etc.), on se rabat proprement sur
+  // Home plutôt que de laisser #adminBody vide/blanc sans explication.
+  try{
+    renderAdminSection(adminCurrentTab);
+  }catch(e){
+    console.error('Erreur de rendu admin, retour à Home :', e);
+    adminCurrentTab='__global';
+    homeSubpageKey=null;
+    renderAdminSection('__global');
+  }
 }
 // Quick-access shortcuts (bottom nav bar's print/social icons): open the
 // admin panel landing directly on a given section, instead of wherever
@@ -6191,7 +6214,7 @@ function renderPrintBody(){
     fl.href = 'https://fonts.googleapis.com/css2?family='+encodeURIComponent(curFont)+':wght@400;700&display=swap';
   }
 
-  const tabBtn = (id, label, disabled) => `<button ${disabled?'disabled title="Bientôt disponible"':`onclick="setPdfCfg('exportTab','${id}');renderAdminSection(adminCurrentTab)"`} style="flex:1;padding:9px 6px;font-family:Jost,sans-serif;font-size:12.5px;font-weight:600;border:none;cursor:${disabled?'not-allowed':'pointer'};background:${activeTab===id?'var(--navy)':'var(--ig-card,#2f2f2f)'};color:${activeTab===id?'#fff':disabled?'var(--ig-text-dimmer,#8e8ea0)':'var(--ig-text-dim,#b4b4b4)'};opacity:${disabled?0.55:1};border-radius:8px">${label}</button>`;
+  const tabBtn = (id, label, disabled) => `<button ${disabled?'disabled title="Bientôt disponible"':`onclick="setPdfCfg('exportTab','${id}');renderAdminSection(adminCurrentTab)"`} style="flex:1;padding:9px 6px;font-family:Jost,sans-serif;font-size:12.5px;font-weight:600;border:none;cursor:${disabled?'not-allowed':'pointer'};background:${activeTab===id?'#454545':'var(--ig-card,#2f2f2f)'};color:${activeTab===id?'#fff':disabled?'var(--ig-text-dimmer,#8e8ea0)':'var(--ig-text-dim,#b4b4b4)'};opacity:${disabled?0.55:1};border-radius:8px">${label}</button>`;
   const tabsHtml = `
     <div style="display:flex;gap:6px;margin-bottom:14px">
       ${tabBtn('print','Impression')}
@@ -6216,11 +6239,14 @@ function renderPrintBody(){
       <label class="admin-toggle ig-pill" style="margin-top:8px"><input type="checkbox" ${cfg.showCurrency!==false?'checked':''} onchange="setPdfCfg('showCurrency',this.checked)"><label>Afficher le symbole €</label></label>
       <label class="admin-toggle ig-pill" style="margin-top:8px"><input type="checkbox" ${cfg.showFrame!==false?'checked':''} onchange="setPdfCfg('showFrame',this.checked)"><label>Cadre autour de la page</label></label>
 
-      <div class="af" style="margin-top:10px"><label class="al">Texte personnalisé (pied de page)</label>
-        <textarea class="ai" rows="2" placeholder="Ex : Fait maison, produits locaux…" oninput="setPdfCfg('footerCustomText',this.value)" style="width:100%;resize:vertical;font-family:Jost,sans-serif">${cfg.footerCustomText||''}</textarea>
+      <div class="af" style="margin-top:10px">
+        <div class="ig-caption-wrap">
+          <div class="ig-caption-label">Texte personnalisé (pied de page)</div>
+          <textarea class="ig-caption-input" rows="2" placeholder="Ex : Fait maison, produits locaux…" oninput="setPdfCfg('footerCustomText',this.value)" style="width:100%;resize:vertical;font-family:Jost,sans-serif">${cfg.footerCustomText||''}</textarea>
+        </div>
       </div>
 
-      <div class="af" style="margin-top:14px;text-align:center"><label class="al" style="font-size:15px;font-weight:800;color:var(--navy);letter-spacing:.03em">Saut de page par catégorie</label>
+      <div class="af" style="margin-top:14px"><label class="al">Saut de page par catégorie</label>
         ${DATA.tabs.filter(tb=>tb.id!=='__home').map(tb=>`<label class="admin-toggle ig-pill" style="margin-top:4px"><input type="checkbox" ${tb.pdfPageBreakBefore?'checked':''} onchange="tb_setPageBreak('${tb.id}',this.checked)"><label>${t(tb.label)}</label></label>`).join('')}
       </div>
     </div>
@@ -6241,21 +6267,23 @@ function renderPrintBody(){
           </div>`).join('')}
       </div>
       <div id="pdfCarouselDots" style="display:flex;justify-content:center;gap:6px;margin-top:10px">
-        ${printPages.map((p,i)=>`<span class="pdf-carousel-dot" data-idx="${i}" style="width:${i===0?7:6}px;height:${i===0?7:6}px;border-radius:50%;background:${i===0?'var(--navy)':'var(--border)'}"></span>`).join('')}
+        ${printPages.map((p,i)=>`<span class="pdf-carousel-dot" data-idx="${i}" style="width:${i===0?7:6}px;height:${i===0?7:6}px;border-radius:50%;background:${i===0?'#fff':'var(--border)'}"></span>`).join('')}
       </div>
     </div>` : activeTab==='gbiz' ? renderGbizPagePreview() : activeTab==='insta' ? `
-    <div class="af" style="cursor:pointer" onclick="showFontGallery('insta')">
-      <label class="al" style="color:rgba(16,40,94,0.55);text-decoration:underline;text-underline-offset:2px;cursor:pointer">Voir et choisir la police</label>
-      <div style="font-size:16px;color:var(--navy);font-family:'${cfg.instaFont||'Playfair Display'}',serif!important;margin-top:4px">${cfg.instaFont||'Playfair Display'}</div>
+    <div class="af">
+      <div class="ai ig-font-field" onclick="showFontGallery('insta')">
+        <span style="font-size:11.5px;color:var(--ig-text-dimmer,var(--text3))">Voir et choisir la police</span>
+        <div style="font-size:18.5px;color:var(--ig-text,#ececec);font-family:'${cfg.instaFont||'Playfair Display'}',serif!important;margin-top:2px">${cfg.instaFont||'Playfair Display'}</div>
+      </div>
     </div>
-    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+    <div class="af" style="display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-top:10px">
       ${[
         {key:'instaTitleColor', sizeKey:'instaTitleSize', label:'Titre', color:cfg.instaTitleColor||cfg.titleColor||'#10285E', size:cfg.instaTitleSize||45, min:24, max:80},
-        {key:'instaMenuColor', sizeKey:'instaMenuSize', label:'Menu (plat + prix)', color:cfg.instaMenuColor||cfg.titleColor||'#10285E', size:cfg.instaMenuSize||21, min:14, max:40},
+        {key:'instaMenuColor', sizeKey:'instaMenuSize', label:'Menu', color:cfg.instaMenuColor||cfg.titleColor||'#10285E', size:cfg.instaMenuSize||21, min:14, max:40},
         {key:'instaDescColor', sizeKey:'instaDescSize', label:'Description', color:cfg.instaDescColor||lightenHex(cfg.titleColor||'#10285E',0.28), size:cfg.instaDescSize||19, min:12, max:30},
         {key:'instaBgColor', label:'Fond', color:cfg.instaBgColor||cfg.bgColor||'#FDFBF6', resettable:true}
       ].map(r=>`
-        <div class="af" style="flex:1;min-width:130px">
+        <div class="af">
           <label class="al">${r.label}</label>
           <div style="display:flex;align-items:center;gap:6px">
             <input type="color" value="${/^#/.test(r.color)?r.color:'#10285E'}" oninput="setPdfCfg('${r.key}',this.value)" style="width:25px;height:25px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer">
@@ -6429,7 +6457,7 @@ function carouselOnScroll(containerId, slideClass, dotsId, dotClass){
   const slideStep = slides[1] ? (slides[1].offsetLeft - slides[0].offsetLeft) : slides[0].offsetWidth;
   const idx = Math.max(0, Math.min(slides.length-1, Math.round(container.scrollLeft / slideStep)));
   document.querySelectorAll('#'+dotsId+' .'+dotClass).forEach((d,i)=>{
-    d.style.width = i===idx?'7px':'6px'; d.style.height = i===idx?'7px':'6px'; d.style.background = i===idx?'var(--navy)':'var(--border)';
+    d.style.width = i===idx?'7px':'6px'; d.style.height = i===idx?'7px':'6px'; d.style.background = i===idx?'#fff':'var(--border)';
   });
 }
 function gbizCarouselOnScroll(){ carouselOnScroll('gbizCarousel','gbiz-slide','gbizCarouselDots','gbiz-carousel-dot'); }
@@ -6473,7 +6501,7 @@ function renderGbizPagePreview(){
         </div>`).join('')}
     </div>
     <div id="gbizCarouselDots" style="display:flex;justify-content:center;gap:6px;margin-top:10px">
-      ${pages.map((p,i)=>`<span class="gbiz-carousel-dot" data-idx="${i}" style="width:${i===0?7:6}px;height:${i===0?7:6}px;border-radius:50%;background:${i===0?'var(--navy)':'var(--border)'}"></span>`).join('')}
+      ${pages.map((p,i)=>`<span class="gbiz-carousel-dot" data-idx="${i}" style="width:${i===0?7:6}px;height:${i===0?7:6}px;border-radius:50%;background:${i===0?'#fff':'var(--border)'}"></span>`).join('')}
     </div>
   </div>`;
 
@@ -6508,7 +6536,7 @@ function renderInstaPagePreview(){
         </div>`).join('')}
     </div>
     <div id="instaCarouselDots" style="display:flex;justify-content:center;gap:6px;margin-top:10px">
-      ${pages.map((p,i)=>`<span class="insta-carousel-dot" data-idx="${i}" style="width:${i===0?7:6}px;height:${i===0?7:6}px;border-radius:50%;background:${i===0?'var(--navy)':'var(--border)'}"></span>`).join('')}
+      ${pages.map((p,i)=>`<span class="insta-carousel-dot" data-idx="${i}" style="width:${i===0?7:6}px;height:${i===0?7:6}px;border-radius:50%;background:${i===0?'#fff':'var(--border)'}"></span>`).join('')}
     </div>
   </div>`;
 
