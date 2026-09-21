@@ -567,6 +567,21 @@ body.home-cover-showing{overflow:hidden}
    bordure du tout ; on leur ajoute le même liseré gris clair que
    quand un champ est sélectionné, mais en permanence cette fois. */
 .ig-subpage-old-content .ig-visible-field{border:1px solid #5a5a5a!important}
+/* Bouton supprimer un service — posé À L'INTÉRIEUR du champ (qui, lui,
+   prend toute la largeur), plutôt qu'à côté comme un élément séparé. */
+.ig-service-del-btn{position:absolute!important;right:6px;top:50%;transform:translateY(-50%);margin:0!important}
+/* Heures/minutes — largeurs strictement égales (flex:1 des deux
+   côtés, plus de largeur fixe différente), chiffres qui respirent
+   (padding gauche), flèche native masquée puis redessinée en blanc
+   avec un peu de marge à droite plutôt que collée au bord. */
+.ig-subpage-old-content select.ig-hm-select{
+  appearance:none;-webkit-appearance:none;-moz-appearance:none;
+  padding:6px 26px 6px 12px!important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")!important;
+  background-repeat:no-repeat!important;
+  background-position:right 8px center!important;
+  background-size:13px!important;
+}
 /* "+ Service" — trait continu plutôt que pointillé, et fond plus
    sombre (celui de la page, pas celui des cartes) pour qu'il ressorte
    davantage. */
@@ -2862,26 +2877,26 @@ function renderScheduleAdmin(){
     // Compat: migrate old {open,close} to services[]
     if(!d.services) d.services = (d.open!=null?[{label:'',open:d.open,close:d.close}]:[]);
     const svcs=d.services||[];
-    h+=`<div class="admin-card" style="background:#fff;margin-bottom:6px">
+    h+=`<div class="admin-card" style="background:#fff;margin-bottom:7px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <div style="font-size:12px;font-weight:600;color:var(--navy);font-family:Jost,sans-serif">${d.day}</div>
         ${svcs.length===0?`<span style="font-size:11px;color:var(--text3)">Fermé</span>`:''}
       </div>`;
     svcs.forEach((s,si)=>{
       h+=`<div class="admin-card" style="background:var(--bg);margin-bottom:6px;padding:8px 10px">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-          <input class="ai ig-visible-field" value="${s.label||''}" placeholder="Service (ex: Midi, Soir, Brunch)" style="flex:1"
+        <div style="position:relative;margin-bottom:14px">
+          <input class="ai ig-visible-field" value="${s.label||''}" placeholder="Service (ex: Midi, Soir, Brunch)" style="width:100%;padding-right:38px"
             oninput="DATA.schedule[${i}].services[${si}].label=this.value;renderAll()">
-          <button class="adel" onclick="DATA.schedule[${i}].services.splice(${si},1);renderAll();renderAdminSection('__global')">×</button>
+          <button class="adel ig-service-del-btn" onclick="askConfirm('Supprimer ce service ?',()=>{DATA.schedule[${i}].services.splice(${si},1);renderAll();renderAdminSection('__global')})">×</button>
         </div>
         <div class="ai-row" style="gap:12px">
-          <div style="flex:1"><div style="font-size:10px;color:var(--text3);margin-bottom:4px">Ouverture</div>
+          <div style="flex:1"><div style="font-size:10px;color:var(--text3);margin-bottom:4px;text-align:center">Ouverture</div>
             <div style="display:flex;gap:4px">
-              <select class="ai ig-visible-field" style="flex:1;padding:6px 4px" onchange="(function(v){const p=DATA.schedule[${i}].services[${si}];p.open=v===''?null:parseFloat(v);renderAll()})(this.value)">
+              <select class="ai ig-visible-field ig-hm-select" style="flex:1" onchange="(function(v){const p=DATA.schedule[${i}].services[${si}];p.open=v===''?null:parseFloat(v);renderAll()})(this.value)">
                 <option value="">--</option>
                 ${Array.from({length:24},(_,h)=>`<option value="${h}" ${s.open==h?'selected':''}>${String(h).padStart(2,'0')}h</option>`).join('')}
               </select>
-              <select class="ai ig-visible-field" style="width:60px;padding:6px 4px" onchange="(function(v){const p=DATA.schedule[${i}].services[${si}];if(p.open!=null){p.open=Math.floor(p.open)+parseFloat(v);renderAll();}})(this.value)">
+              <select class="ai ig-visible-field ig-hm-select" style="flex:1" onchange="(function(v){const p=DATA.schedule[${i}].services[${si}];if(p.open!=null){p.open=Math.floor(p.open)+parseFloat(v);renderAll();}})(this.value)">
                 <option value="0" ${(s.open%1||0)<0.1?'selected':''}>00</option>
                 <option value="0.25" ${Math.abs((s.open%1||0)-0.25)<0.1?'selected':''}>15</option>
                 <option value="0.5" ${Math.abs((s.open%1||0)-0.5)<0.1?'selected':''}>30</option>
@@ -2889,13 +2904,13 @@ function renderScheduleAdmin(){
               </select>
             </div>
           </div>
-          <div style="flex:1"><div style="font-size:10px;color:var(--text3);margin-bottom:4px">Fermeture</div>
+          <div style="flex:1"><div style="font-size:10px;color:var(--text3);margin-bottom:4px;text-align:center">Fermeture</div>
             <div style="display:flex;gap:4px">
-              <select class="ai ig-visible-field" style="flex:1;padding:6px 4px" onchange="(function(v){const p=DATA.schedule[${i}].services[${si}];p.close=v===''?null:parseFloat(v);renderAll()})(this.value)">
+              <select class="ai ig-visible-field ig-hm-select" style="flex:1" onchange="(function(v){const p=DATA.schedule[${i}].services[${si}];p.close=v===''?null:parseFloat(v);renderAll()})(this.value)">
                 <option value="">--</option>
                 ${Array.from({length:24},(_,h)=>`<option value="${h}" ${s.close==h?'selected':''}>${String(h).padStart(2,'0')}h</option>`).join('')}
               </select>
-              <select class="ai ig-visible-field" style="width:60px;padding:6px 4px" onchange="(function(v){const p=DATA.schedule[${i}].services[${si}];if(p.close!=null){p.close=Math.floor(p.close)+parseFloat(v);renderAll();}})(this.value)">
+              <select class="ai ig-visible-field ig-hm-select" style="flex:1" onchange="(function(v){const p=DATA.schedule[${i}].services[${si}];if(p.close!=null){p.close=Math.floor(p.close)+parseFloat(v);renderAll();}})(this.value)">
                 <option value="0" ${(s.close%1||0)<0.1?'selected':''}>00</option>
                 <option value="0.25" ${Math.abs((s.close%1||0)-0.25)<0.1?'selected':''}>15</option>
                 <option value="0.5" ${Math.abs((s.close%1||0)-0.5)<0.1?'selected':''}>30</option>
