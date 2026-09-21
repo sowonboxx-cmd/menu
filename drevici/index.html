@@ -589,6 +589,11 @@ body.home-cover-showing{overflow:hidden}
    sombre (celui de la page, pas celui des cartes) pour qu'il ressorte
    davantage. */
 .ig-subpage-old-content .ig-service-btn{border:1px solid #5a5a5a!important;background:var(--ig-bg)!important}
+/* Champs numériques (quantité/prix double-offre) — flèches natives
+   passées en blanc par inversion, plutôt que masquées : plus simple
+   à lire, sans rajouter de bordure supplémentaire autour d'elles. */
+.ig-num-white-arrows::-webkit-inner-spin-button,
+.ig-num-white-arrows::-webkit-outer-spin-button{filter:invert(1);opacity:1}
 /* Boutons Visible/Masquée/Supprimer au niveau d'un onglet — fond
    coloré à faible opacité (vert/gris/rouge), pas de bordure du tout,
    plutôt qu'un simple contraste navy/gris comme avant. */
@@ -634,7 +639,7 @@ body.home-cover-showing{overflow:hidden}
 /* Bouton retour "interne" (liste des sections → détail d'une
    section), imbriqué dans le même contenu, distinct du bouton retour
    principal qui lui ramène à "Catégories". */
-.ig-inner-back-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.ig-inner-back-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-right:16px}
 /* Caption Instagram — un seul cadre, le libellé à l'intérieur, tout en
    haut, au-dessus de l'exemple/placeholder. */
 .ig-caption-wrap{border:1px solid #5a5a5a;border-radius:10px;padding:8px 10px;margin-top:10px}
@@ -643,6 +648,9 @@ body.home-cover-showing{overflow:hidden}
    liste. */
 .ig-add-btn-standalone{margin-top:16px!important}
 .ig-caption-label{font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px}
+/* Texte d'exemple un peu plus petit que le libellé au-dessus, pour
+   que "Caption Instagram (pré-enregistrée)" ressorte davantage. */
+.ig-caption-input::placeholder{font-size:10.5px}
 .ig-subpage-old-content .ig-caption-input{border:none!important;background:transparent!important;padding:0!important;width:100%}
 .ig-card-sect-title .adel{color:#ffb3ab!important}
 /* Boutons "+ Plat"/"+ Boisson"/"+ Variante"/"+ Nouvelle section" —
@@ -3168,7 +3176,7 @@ function priceFieldSimple(d, ti, ci, di){
   const numVal=(d.price||'').replace('€','').trim();
   return `<div class="af">
     <div style="display:flex;align-items:center;gap:6px">
-      <input class="ai ig-visible-field" type="number" min="0" step="0.5" value="${numVal}" placeholder="Prix" style="max-width:100px" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].price=this.value?this.value+'€':'';renderAll()">
+      <input class="ai ig-visible-field ig-num-white-arrows" type="number" min="0" step="0.5" value="${numVal}" placeholder="Prix" style="max-width:100px" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].price=this.value?this.value+'€':'';renderAll()">
       <span style="font-size:13px;color:var(--text3)">€</span>
       ${DATA.tabs[ti].id==='huitres'?`<label style='display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text3);cursor:pointer;margin-left:8px'><input type='checkbox' ${d.priceType==='dual'?'checked':''} onchange='DATA.tabs[${ti}].cards[${ci}].dishes[${di}].priceType=this.checked?"dual":"";renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)'> + Ajouter un prix</label>`:''}
     </div>
@@ -3179,10 +3187,10 @@ function priceField(d, ti, ci, di){
     const qty1=d.qty1||''; const p1=d.p1||''; const qty2=d.qty2||''; const p2=d.p2||'';
     return `<div class="af"><label class="al">Prix (double offre)</label>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;align-items:center">
-        <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Qté 1</div><input class="ai" type="number" value="${qty1}" placeholder="ex: 6" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].qty1=this.value;updateDualPrice(${ti},${ci},${di})"></div>
-        <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Prix 1 (€)</div><input class="ai" type="number" value="${p1}" placeholder="12" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].p1=this.value;updateDualPrice(${ti},${ci},${di})"></div>
-        <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Qté 2</div><input class="ai" type="number" value="${qty2}" placeholder="ex: 12" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].qty2=this.value;updateDualPrice(${ti},${ci},${di})"></div>
-        <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Prix 2 (€)</div><input class="ai" type="number" value="${p2}" placeholder="22" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].p2=this.value;updateDualPrice(${ti},${ci},${di})"></div>
+        <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Qté 1</div><input class="ai ig-visible-field ig-num-white-arrows" type="number" value="${qty1}" placeholder="ex: 6" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].qty1=this.value;updateDualPrice(${ti},${ci},${di})"></div>
+        <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Prix 1 (€)</div><input class="ai ig-visible-field ig-num-white-arrows" type="number" value="${p1}" placeholder="12" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].p1=this.value;updateDualPrice(${ti},${ci},${di})"></div>
+        <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Qté 2</div><input class="ai ig-visible-field ig-num-white-arrows" type="number" value="${qty2}" placeholder="ex: 12" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].qty2=this.value;updateDualPrice(${ti},${ci},${di})"></div>
+        <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Prix 2 (€)</div><input class="ai ig-visible-field ig-num-white-arrows" type="number" value="${p2}" placeholder="22" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].p2=this.value;updateDualPrice(${ti},${ci},${di})"></div>
       </div>
       <div style="font-size:11px;color:var(--text3);margin-top:4px">→ Affichage : <em>Les ${qty1||'?'} — ${p1||'?'}€ · Les ${qty2||'?'} — ${p2||'?'}€</em></div>
     </div>`;
@@ -3465,7 +3473,7 @@ function renderDishDetailBody(ti, ci, di){
     <div class="af"><input class="ai ig-visible-field" value="${escAttr(d.name[adminLang]||'')}" placeholder="Nom" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].name[adminLang]=this.value;renderAll()"></div>
     <div class="af"><textarea class="ai ig-visible-field" rows="2" style="resize:vertical" placeholder="Description" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].desc[adminLang]=this.value;renderAll()">${escAttr(d.desc[adminLang]||'')}</textarea></div>
     `+priceFieldSimple(d,ti,ci,di)+`
-    `+imgFieldHtml(d.img||'',`DATA.tabs[${ti}].cards[${ci}].dishes[${di}].img=this.value;renderAll()`,"Image visuelle principale")+`
+    `+imgFieldHtml(d.img||'',`DATA.tabs[${ti}].cards[${ci}].dishes[${di}].img=this.value;renderAll()`,"Image visuelle principale",1,true)+`
     <div class="ig-gallery-frame">`+dishGalleryHtml(d,ti,ci,di)+`</div>
     ${captionFieldHtml(d.caption||'', 'Ex: Nos huîtres Spéciales N°3 — iodées, fraîches, servies sur glace 🦪 Disponibles au bar ou à emporter.', `DATA.tabs[${ti}].cards[${ci}].dishes[${di}].caption=this.value`)}
     `+adminBadgeGroup(d,`DATA.tabs[${ti}].cards[${ci}].dishes[${di}]`)+`
@@ -7052,7 +7060,7 @@ function entityGalleryHtml(ti,ci,idx,kind,gallery){
   // Détail des 4 champs — replié par défaut, ça prend trop de place
   // affiché d'un coup. Flèche à droite (comme partout ailleurs), pas
   // le triangle natif à gauche.
-  h+=`<details class="ig-gallery-details" style="margin-top:${filled.length?'2':'10'}px"><summary>Voir toutes les photos<span class="ig-row-chevron ig-gallery-chevron">›</span></summary>`;
+  h+=`<details class="ig-gallery-details" style="margin-top:${filled.length?'4':'11'}px"><summary>Voir toutes les photos<span class="ig-row-chevron ig-gallery-chevron">›</span></summary>`;
   h+='<div class="ig-gallery-links" style="display:flex;flex-direction:column;gap:8px;margin-top:10px">';
   for(let gi=0;gi<4;gi++){
     const val=gallery[gi]||'';
@@ -7067,11 +7075,11 @@ function entityGalleryHtml(ti,ci,idx,kind,gallery){
   return h;
 }
 
-function imgFieldHtml(val, onchangeJs, placeholder, ratio=1){
+function imgFieldHtml(val, onchangeJs, placeholder, ratio=1, bordered=false){
   const previewStyle = val ? '' : 'display:none';
   // oninput = the SAME inline save+render that name/price use, then a clean preview sync call
   const handler = onchangeJs + ';syncImgPreview(this)';
-  return `<div class="af"><div class="ai-img-wrap"><input class="ai" value="${val||''}" placeholder="${placeholder||'Image URL'}" oninput="${handler}"><label class="ai-upload-btn" title="Uploader une image"><input type="file" accept="image/*" style="display:none" onchange="uploadImgFile(this,${ratio===null?'null':ratio})"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path></svg></label></div><img class="ai-img-preview" src="${val||''}" style="${previewStyle};width:100%;max-width:120px;aspect-ratio:1;object-fit:cover;border-radius:6px;margin-top:6px;border:1px solid var(--border)" onerror="this.style.display='none'"></div>`;
+  return `<div class="af"><div class="ai-img-wrap"><input class="ai${bordered?' ig-visible-field':''}" value="${val||''}" placeholder="${placeholder||'Image URL'}" oninput="${handler}"><label class="ai-upload-btn" title="Uploader une image"><input type="file" accept="image/*" style="display:none" onchange="uploadImgFile(this,${ratio===null?'null':ratio})"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path></svg></label></div><img class="ai-img-preview" src="${val||''}" style="${previewStyle};width:100%;max-width:120px;aspect-ratio:1;object-fit:cover;border-radius:6px;margin-top:6px;border:1px solid var(--border)" onerror="this.style.display='none'"></div>`;
 }
 
 function syncImgPreview(input){
