@@ -6222,8 +6222,8 @@ function renderPrintBody(){
       ${tabBtn('insta','Instagram')}
     </div>`;
 
-  const elementsAccordion = `<div class="admin-section collapsible collapsed" style="margin-bottom:10px;border:1px solid var(--border);border-radius:10px;overflow:hidden">
-    <div class="admin-sect-title" onclick="toggleAdminSection(this)" style="cursor:pointer">Personnaliser votre menu</div>
+  const elementsAccordion = `<div class="admin-section collapsible collapsed" style="margin-bottom:10px">
+    <div class="ig-card-sect-title" onclick="toggleAdminSection(this)" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer"><span>Personnaliser</span><span class="ig-row-chevron">›</span></div>
     <div class="admin-sect-body">
       <div class="af">
         ${logoSrc ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
@@ -6270,36 +6270,43 @@ function renderPrintBody(){
         ${printPages.map((p,i)=>`<span class="pdf-carousel-dot" data-idx="${i}" style="width:${i===0?7:6}px;height:${i===0?7:6}px;border-radius:50%;background:${i===0?'#fff':'#6e6e6e'}"></span>`).join('')}
       </div>
     </div>` : activeTab==='gbiz' ? renderGbizPagePreview() : activeTab==='insta' ? `
-    <div class="af">
-      <div class="ai ig-font-field" onclick="showFontGallery('insta')">
-        <span style="font-size:11.5px;color:var(--ig-text-dimmer,var(--text3))">Voir et choisir la police</span>
-        <div style="font-size:18.5px;color:var(--ig-text,#ececec);font-family:'${cfg.instaFont||'Playfair Display'}',serif!important;margin-top:2px">${cfg.instaFont||'Playfair Display'}</div>
-      </div>
-    </div>
-    <div class="af" style="display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-top:10px">
-      ${[
-        {key:'instaTitleColor', sizeKey:'instaTitleSize', label:'Titre', color:cfg.instaTitleColor||cfg.titleColor||'#10285E', size:cfg.instaTitleSize||45, min:24, max:80},
-        {key:'instaMenuColor', sizeKey:'instaMenuSize', label:'Menu', color:cfg.instaMenuColor||cfg.titleColor||'#10285E', size:cfg.instaMenuSize||21, min:14, max:40},
-        {key:'instaDescColor', sizeKey:'instaDescSize', label:'Description', color:cfg.instaDescColor||lightenHex(cfg.titleColor||'#10285E',0.28), size:cfg.instaDescSize||19, min:12, max:30},
-        {key:'instaBgColor', label:'Fond', color:cfg.instaBgColor||cfg.bgColor||'#FDFBF6', resettable:true}
-      ].map(r=>`
+    <div class="admin-section collapsible collapsed" style="margin-bottom:10px">
+      <div class="ig-card-sect-title" onclick="toggleAdminSection(this)" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer"><span>Personnaliser</span><span class="ig-row-chevron">›</span></div>
+      <div class="admin-sect-body">
         <div class="af">
-          <label class="al">${r.label}</label>
-          <div style="display:flex;align-items:center;gap:6px">
-            <input type="color" value="${/^#/.test(r.color)?r.color:'#10285E'}" oninput="setPdfCfg('${r.key}',this.value)" style="width:25px;height:25px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer">
-            ${r.sizeKey?`<input class="ai ig-num-white-arrows" type="number" min="${r.min}" max="${r.max}" value="${r.size}" oninput="setPdfCfg('${r.sizeKey}',parseInt(this.value)||${r.size})" style="width:60px;font-size:12px" title="Taille (px)">`:''}
-            ${r.resettable?`<button type="button" title="Réinitialiser" onclick="setPdfCfg('${r.key}','');renderAdminSection(adminCurrentTab)" style="width:28px;height:28px;border:none;border-radius:50%;background:var(--ig-card,#2f2f2f);color:var(--ig-text-dim,#b4b4b4);cursor:pointer;font-size:14px">↺</button>`:''}
+          <div class="ai ig-font-field" onclick="showFontGallery('insta')">
+            <span style="font-size:11.5px;color:var(--ig-text-dimmer,var(--text3))">Voir et choisir la police</span>
+            <div style="font-size:18.5px;color:var(--ig-text,#ececec);font-family:'${cfg.instaFont||'Playfair Display'}',serif!important;margin-top:2px">${cfg.instaFont||'Playfair Display'}</div>
           </div>
         </div>
-      `).join('')}
+        <div class="af" style="display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-top:10px">
+          ${[
+            {key:'instaTitleColor', sizeKey:'instaTitleSize', label:'Titre', color:cfg.instaTitleColor||cfg.titleColor||'#10285E', size:cfg.instaTitleSize||45},
+            {key:'instaMenuColor', sizeKey:'instaMenuSize', label:'Menu', color:cfg.instaMenuColor||cfg.titleColor||'#10285E', size:cfg.instaMenuSize||21},
+            {key:'instaDescColor', sizeKey:'instaDescSize', label:'Description', color:cfg.instaDescColor||lightenHex(cfg.titleColor||'#10285E',0.28), size:cfg.instaDescSize||19},
+            {key:'instaBgColor', label:'Fond', color:cfg.instaBgColor||cfg.bgColor||'#FDFBF6', resettable:true}
+          ].map(r=>`
+            <div class="af">
+              <label class="al">${r.label}</label>
+              <div style="display:flex;align-items:center;gap:6px">
+                <input type="color" value="${/^#/.test(r.color)?r.color:'#10285E'}" oninput="setPdfCfg('${r.key}',this.value)" style="width:25px;height:25px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer">
+                ${r.sizeKey?`<select class="ai ig-hm-select" style="width:70px;font-size:12px" title="Taille (px)" onchange="setPdfCfg('${r.sizeKey}',parseInt(this.value))">
+                  ${Array.from({length:101},(_,n)=>n).map(n=>`<option value="${n}" ${n===r.size?'selected':''}>${n}</option>`).join('')}
+                </select>`:''}
+                ${r.resettable?`<button type="button" title="Réinitialiser" onclick="setPdfCfg('${r.key}','');renderAdminSection(adminCurrentTab)" style="width:28px;height:28px;border:none;border-radius:50%;background:var(--ig-card,#2f2f2f);color:var(--ig-text-dim,#b4b4b4);cursor:pointer;font-size:14px">↺</button>`:''}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        ${(() => {
+          const bevTabs = DATA.tabs.filter(tb=>tb.id!=='__home' && tb.cards && tb.cards.some(c=>c.type==='bevs'));
+          if(!bevTabs.length) return '';
+          return `<div class="af" style="margin-top:12px">
+            ${bevTabs.map(tb=>`<label class="admin-toggle ig-pill" style="margin-top:4px"><input type="checkbox" ${tb.instaIncludeBevs?'checked':''} onchange="tb_setInstaBevs('${tb.id}',this.checked)"><label>Inclure les boissons de "${t(tb.label)}"</label></label>`).join('')}
+          </div>`;
+        })()}
+      </div>
     </div>
-    ${(() => {
-      const bevTabs = DATA.tabs.filter(tb=>tb.id!=='__home' && tb.cards && tb.cards.some(c=>c.type==='bevs'));
-      if(!bevTabs.length) return '';
-      return `<div class="af" style="margin-top:12px">
-        ${bevTabs.map(tb=>`<label class="admin-toggle ig-pill" style="margin-top:4px"><input type="checkbox" ${tb.instaIncludeBevs?'checked':''} onchange="tb_setInstaBevs('${tb.id}',this.checked)"><label>Inclure les boissons de "${t(tb.label)}"</label></label>`).join('')}
-      </div>`;
-    })()}
     ${renderInstaPagePreview()}` : '';
 
   const actionHtml = activeTab==='print'
@@ -7026,7 +7033,7 @@ const MANAGER_CATEGORIES_ROWS = [
 function renderPrintBodyWrapped(){ return `<div class="admin-section"><div class="admin-sect-body">${renderPrintBody()}</div></div>`; }
 const MENU_MANAGEMENT_ROWS = [
   { key:'export', label:'Export des menus', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>', fn: renderPrintBodyWrapped },
-  { key:'formules', label:'Création des menus spéciaux et des formules', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="14" y2="13"/></svg>', fn: renderFormulesSection }
+  { key:'formules', label:'Menus spéciaux et formules', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="14" y2="13"/></svg>', fn: renderFormulesSection }
 ];
 const HOME_GROUPS = [
   { label:'Informations générales', rows:INFO_GENERALE_ROWS },
