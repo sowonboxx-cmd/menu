@@ -618,8 +618,12 @@ body.home-cover-showing{overflow:hidden}
    même style que les lignes de "Changer l'ordre des onglets" (fond
    gris carte, nom en bleu clair), avec une petite flèche à droite
    plutôt qu'un dépliage sur place. */
-.ig-subpage-old-content .ig-section-row{display:flex;align-items:center;gap:8px;background:var(--ig-card)!important;border:none!important;padding:14px 14px;margin-bottom:8px;cursor:pointer}
 .ig-section-row-label{color:#8AB4F8!important;font-weight:500;flex:1;font-family:'Jost',sans-serif;font-size:14px}
+/* Nom de l'onglet — teinte très légère pour voir d'un coup d'œil si
+   la table est visible (vert) ou masquée (rouge), sans que ce soit
+   trop présent. */
+.ig-subpage-old-content .ig-tab-name-field.ig-tab-visible{background:rgba(76,175,80,0.10)!important}
+.ig-subpage-old-content .ig-tab-name-field.ig-tab-hidden{background:rgba(224,122,114,0.10)!important}
 /* Bouton retour "interne" (liste des sections → détail d'une
    section), imbriqué dans le même contenu, distinct du bouton retour
    principal qui lui ramène à "Catégories". */
@@ -3320,7 +3324,7 @@ function renderTabSectionList(ti){
   // Nom de l'onglet — juste le champ, pas d'accordéon. Visible/
   // Masquée/Supprimer simplifiés en œil + corbeille à droite.
   h+=`<div class="af" style="display:flex;align-items:center;gap:8px">
-    <input class="ai" style="flex:1" value="${escAttr(tab.label[adminLang]||'')}" placeholder="Nom de l'onglet" oninput="DATA.tabs[${ti}].label[adminLang]=this.value;renderAll()">
+    <input class="ai ig-tab-name-field ${tab.visible===false?'ig-tab-hidden':'ig-tab-visible'}" style="flex:1" value="${escAttr(tab.label[adminLang]||'')}" placeholder="Nom de l'onglet" oninput="DATA.tabs[${ti}].label[adminLang]=this.value;renderAll()">
     ${dishEyeDelButtons(tab.visible===false, `DATA.tabs[${ti}].visible=${tab.visible===false};renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)`, `askConfirm('Supprimer la tab « ${(tab.label.fr||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")} » et tout son contenu ?',()=>delTab(${ti}))`)}
   </div>`;
 
@@ -3329,12 +3333,14 @@ function renderTabSectionList(ti){
   // d'accordéon qui déplie tout sur place : trop d'informations d'un
   // coup quand il y a beaucoup de plats.
   h+=`<div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin:14px 0 8px">Section</div>`;
+  h+=`<div class="ig-list">`;
   tab.cards.forEach((card,ci)=>{
-    h+=`<div class="admin-card ig-section-row" onclick="openTabSection('${tab.id}',${ci})">
+    h+=`<div class="ig-row" onclick="openTabSection('${tab.id}',${ci})">
       <span class="ig-section-row-label">${t(card.label)||'(sans titre)'}</span>
       <span class="ig-row-chevron">›</span>
     </div>`;
   });
+  h+=`</div>`;
 
   h+=`<button class="aadd ig-add-btn" style="display:block;width:100%;padding:10px" onclick="addCard(${ti})">+ Nouvelle section dans cette tab</button>`;
 
