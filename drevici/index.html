@@ -609,6 +609,10 @@ body.home-cover-showing{overflow:hidden}
 /* Caption Instagram — un seul cadre, le libellé à l'intérieur, tout en
    haut, au-dessus de l'exemple/placeholder. */
 .ig-caption-wrap{border:1px solid #5a5a5a;border-radius:10px;padding:8px 10px;margin-top:10px}
+/* "+ Ajouter un plat" — bien détaché du bloc des plats au-dessus, pour
+   qu'on voie que c'est une action à part, pas un plat de plus dans la
+   liste. */
+.ig-add-btn-standalone{margin-top:16px!important}
 .ig-caption-label{font-size:10px;font-weight:600;color:var(--ig-text-dimmer,var(--text3));margin-bottom:4px}
 .ig-subpage-old-content .ig-caption-input{border:none!important;background:transparent!important;padding:0!important;width:100%}
 .ig-card-sect-title .adel{color:#ffb3ab!important}
@@ -3265,6 +3269,11 @@ function togglePin(tabId,ci,di){
 // clique dedans. tabSectionOpen retient, par tab, quelle section est
 // actuellement ouverte (ou aucune = on est sur la liste).
 let tabSectionOpen = {};
+// Un plat, dans une section de plats (pas boissons/variantes), ouvre
+// lui aussi sa propre page — même logique, un niveau plus profond.
+let dishDetailOpen = {};
+function openDishDetail(tabId, di){ dishDetailOpen[tabId] = di; refreshCurrentTabView(tabId); }
+function closeDishDetail(tabId){ dishDetailOpen[tabId] = null; refreshCurrentTabView(tabId); }
 // BUG FIX (retombe en light mode) : appeler renderAdminSection(tabId)
 // directement prend la branche générique de rendu (l'ancien accès
 // direct par onglet, sans l'habillage sombre) — alors qu'on est en
@@ -3274,7 +3283,7 @@ function refreshCurrentTabView(tabId){
   if(adminCurrentTab==='__global') renderAdminSection('__global');
   else renderAdminSection(tabId);
 }
-function openTabSection(tabId, ci){ tabSectionOpen[tabId] = ci; refreshCurrentTabView(tabId); }
+function openTabSection(tabId, ci){ tabSectionOpen[tabId] = ci; dishDetailOpen[tabId] = null; refreshCurrentTabView(tabId); }
 function closeTabSection(tabId){ tabSectionOpen[tabId] = null; refreshCurrentTabView(tabId); }
 
 function renderAdminTab(ti){
@@ -3380,26 +3389,50 @@ function renderTabSectionDetail(ti, ci){
     });
     h+=`<button class="aadd ig-add-btn" onclick="addVariant(${ti},${ci})">+ Variante</button>`;
   } else {
-    (card.dishes||[]).forEach((d,di)=>{
-      const dName=d.name&&(d.name[adminLang]||d.name.fr)||'';
-      h+=`<div class="admin-card collapsed" style="background:#fff;margin-top:6px" ondragover="onDragOver(event,${ti},${ci},${di})" ondragleave="onDragLeave(event)" ondrop="onDrop(event,${ti},${ci},${di})">
-        <div class="admin-card-hdr"><span class="drag-handle" title="Glisser pour réordonner" draggable="true" ondragstart="onDragStart(event,${ti},${ci},${di})" ondragend="onDragEndHandle(event)">⠿</span><span class="admin-card-num" style="cursor:pointer" onclick="this.closest('.admin-card').classList.toggle('collapsed')">Plat ${di+1}${dName?' — '+escAttr(dName):''}</span>${dishEyeDelButtons(!!d.hidden, `(function(){if(${!!d.hidden}){delete DATA.tabs[${ti}].cards[${ci}].dishes[${di}].hidden;}else{DATA.tabs[${ti}].cards[${ci}].dishes[${di}].hidden=true;}renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)})()`, `askConfirm('Supprimer « ${(d.name.fr||'ce plat').replace(/\\/g,'\\\\').replace(/'/g,"\\'")} » ?',()=>delDish(${ti},${ci},${di}))`)}</div>
-        <div class="admin-card-details">
-        <div class="af"><input class="ai ig-visible-field" value="${escAttr(d.name[adminLang]||'')}" placeholder="Nom" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].name[adminLang]=this.value;renderAll()"></div>
-        <div class="af"><textarea class="ai ig-visible-field" rows="2" style="resize:vertical" placeholder="Description" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].desc[adminLang]=this.value;renderAll()">${escAttr(d.desc[adminLang]||'')}</textarea></div>
-        `+priceFieldSimple(d,ti,ci,di)+`
-        `+imgFieldHtml(d.img||'',`DATA.tabs[${ti}].cards[${ci}].dishes[${di}].img=this.value;renderAll()`,"Image visuelle principale")+`
-        <div class="ig-gallery-frame">`+dishGalleryHtml(d,ti,ci,di)+`</div>
-        ${captionFieldHtml(d.caption||'', 'Ex: Nos huîtres Spéciales N°3 — iodées, fraîches, servies sur glace 🦪 Disponibles au bar ou à emporter.', `DATA.tabs[${ti}].cards[${ci}].dishes[${di}].caption=this.value`)}
-        `+adminBadgeGroup(d,`DATA.tabs[${ti}].cards[${ci}].dishes[${di}]`)+`
-        </div>
-      </div>`;
-    });
-    h+=`<button class="aadd ig-add-btn" onclick="addDish(${ti},${ci})">+ Plat</button>`;
+    const openDi = dishDetailOpen[tab.id];
+    if(openDi!=null && card.dishes[openDi]){
+      h+=renderDishDetailBody(ti, ci, openDi);
+    } else {
+      h+=`<div class="ig-list">`;
+      card.dishes.forEach((d,di)=>{
+        const dName=d.name&&(d.name[adminLang]||d.name.fr)||'';
+        h+=`<div class="ig-row" onclick="openDishDetail('${tab.id}',${di})">
+          <span class="ig-row-label">${escAttr(dName)||'(sans nom)'}</span>
+          <span class="ig-row-chevron">›</span>
+        </div>`;
+      });
+      h+=`</div>`;
+      h+=`</div>`; // ferme .admin-card avant le bouton séparé
+      h+=`<button class="aadd ig-add-btn ig-add-btn-standalone" onclick="addDish(${ti},${ci})">+ Ajouter un plat</button>`;
+      h+=adminSaveBar();
+      return h;
+    }
   }
 
   h+=`</div>`;
   h+=adminSaveBar();
+  return h;
+}
+
+// Un plat, une fois qu'on a cliqué dessus depuis la liste — page dédiée
+// (retour + œil/corbeille), plus de dépliage sur place.
+function renderDishDetailBody(ti, ci, di){
+  const tab=DATA.tabs[ti];
+  const d=tab.cards[ci].dishes[di];
+  let h=`<div class="ig-inner-back-row">
+    <button class="ig-back-btn" onclick="closeDishDetail('${tab.id}')">‹</button>
+    <span style="flex:1;color:var(--ig-text,#ececec);font-family:'Jost',sans-serif;font-size:14px">Plat</span>
+    ${dishEyeDelButtons(!!d.hidden, `(function(){if(${!!d.hidden}){delete DATA.tabs[${ti}].cards[${ci}].dishes[${di}].hidden;}else{DATA.tabs[${ti}].cards[${ci}].dishes[${di}].hidden=true;}renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)})()`, `askConfirm('Supprimer « ${(d.name.fr||'ce plat').replace(/\\/g,'\\\\').replace(/'/g,"\\'")} » ?',()=>{delDish(${ti},${ci},${di});dishDetailOpen['${tab.id}']=null;})`)}
+  </div>`;
+  h+=`<div class="admin-card">
+    <div class="af"><input class="ai ig-visible-field" value="${escAttr(d.name[adminLang]||'')}" placeholder="Nom" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].name[adminLang]=this.value;renderAll()"></div>
+    <div class="af"><textarea class="ai ig-visible-field" rows="2" style="resize:vertical" placeholder="Description" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].desc[adminLang]=this.value;renderAll()">${escAttr(d.desc[adminLang]||'')}</textarea></div>
+    `+priceFieldSimple(d,ti,ci,di)+`
+    `+imgFieldHtml(d.img||'',`DATA.tabs[${ti}].cards[${ci}].dishes[${di}].img=this.value;renderAll()`,"Image visuelle principale")+`
+    <div class="ig-gallery-frame">`+dishGalleryHtml(d,ti,ci,di)+`</div>
+    ${captionFieldHtml(d.caption||'', 'Ex: Nos huîtres Spéciales N°3 — iodées, fraîches, servies sur glace 🦪 Disponibles au bar ou à emporter.', `DATA.tabs[${ti}].cards[${ci}].dishes[${di}].caption=this.value`)}
+    `+adminBadgeGroup(d,`DATA.tabs[${ti}].cards[${ci}].dishes[${di}]`)+`
+  </div>`;
   return h;
 }
 
@@ -6977,12 +7010,12 @@ function adminBadgeGroup(obj, path){
 function entityGalleryHtml(ti,ci,idx,kind,gallery){
   gallery=gallery||[];
   const base=`DATA.tabs[${ti}].cards[${ci}].${kind}[${idx}]`;
-  let h='<div class="af"><label class="al" style="font-size:11px;font-weight:600;color:var(--text2)">Galerie réseaux sociaux (1–4 photos)</label>';
+  let h='<div class="af"><label class="al" style="font-size:11px;font-weight:600;color:var(--text2)">Galerie réseaux sociaux (1–5 photos)</label>';
   // Thumbnail strip — clickable previews of filled slots
   const filled=gallery.filter(Boolean);
   if(filled.length){
-    h+='<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">';
-    for(let gi=0;gi<4;gi++){
+    h+='<div style="display:flex;gap:6px;margin:10px 0 8px;flex-wrap:wrap">';
+    for(let gi=0;gi<5;gi++){
       const img=gallery[gi]||'';
       if(img){
         h+=`<div style="position:relative;width:60px;height:60px;border-radius:8px;overflow:hidden;border:2px solid var(--gold)">
@@ -6993,18 +7026,20 @@ function entityGalleryHtml(ti,ci,idx,kind,gallery){
     }
     h+='</div>';
   }
-  // Upload slots
-  h+='<div style="display:flex;flex-direction:column;gap:8px">';
-  for(let gi=0;gi<4;gi++){
+  // Détail des 5 champs — replié par défaut, ça prend trop de place
+  // affiché d'un coup.
+  h+=`<details style="margin-top:${filled.length?'4':'10'}px"><summary style="cursor:pointer;color:var(--ig-text-dimmer,var(--text3));font-size:11px;font-family:'Jost',sans-serif">Voir toutes les photos</summary>`;
+  h+='<div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">';
+  for(let gi=0;gi<5;gi++){
     const val=gallery[gi]||'';
     const cb=`if(!${base}.gallery)${base}.gallery=[];${base}.gallery[${gi}]=this.value;renderAll()`;
     h+=`<div style="display:flex;align-items:flex-start;gap:6px">
       <span style="font-size:10px;color:var(--text3);min-width:14px;text-align:center;padding-top:10px;flex:none">${gi+1}</span>`
       +imgFieldHtml(val,cb,`Photo ${gi+1} — URL ou upload`,9/16)
-      +(val?`<button onclick="${base}.gallery[${gi}]='';renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)" style="padding:4px 8px;font-size:11px;border:1px solid #fca5a5;border-radius:4px;color:#c62828;background:#fff;cursor:pointer;white-space:nowrap;align-self:center;flex:none">✕</button>`:'')
+      +(val?`<button onclick="${base}.gallery[${gi}]='';renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)" class="dish-eye-btn" style="align-self:center;flex:none;color:#fff" title="Supprimer cette photo">${TRASH_SVG}</button>`:'')
       +`</div>`;
   }
-  h+='</div></div>';
+  h+='</div></details></div>';
   return h;
 }
 
