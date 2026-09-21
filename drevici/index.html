@@ -572,6 +572,7 @@ body.home-cover-showing{overflow:hidden}
 /* Bouton supprimer un service — posé À L'INTÉRIEUR du champ (qui, lui,
    prend toute la largeur), plutôt qu'à côté comme un élément séparé. */
 .ig-service-del-btn{position:absolute!important;right:6px;top:50%;transform:translateY(-50%);margin:0!important}
+.ig-tab-eyedel-wrap{position:absolute;right:6px;top:50%;transform:translateY(-50%)}
 /* Heures/minutes — largeurs strictement égales (flex:1 des deux
    côtés, plus de largeur fixe différente), chiffres qui respirent
    (padding gauche), flèche native masquée puis redessinée en blanc
@@ -2708,7 +2709,7 @@ function renderTabContent(tab,lbOffset){
           const priceHtml=dishPriceDisplay(d);
           html+=`<div class="dish-row${d.img?' dish-row-clickable':''}" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${_cid}" data-di="${_did}"${d.img?` data-lbidx="${idx}"`:''}${di===0?' style="padding-top:0"':''}><div class="dish-text"><div class="dish-name-row"><span class="dish-name">${t(d.name)}</span>${badges?`<span class="dish-badges">${badges}</span>`:''}</div><div class="dish-desc">${t(d.desc)}</div><div class="dish-price">${priceHtml}</div></div>${d.img?`<span class="img-wrap"><img class="dish-img" src="${d.img}" alt="" loading="lazy"></span>`:''}</div>`;
         });
-        if(editMode) html+=`<button type="button" class="aadd" onclick="addDish(${DATA.tabs.indexOf(tab)},${_ciE})">+ Ajouter un plat</button>`;
+        if(editMode) html+=`<button type="button" class="aadd" onclick="addDish(${DATA.tabs.indexOf(tab)},${_ciE})">Ajouter un plat</button>`;
       }
       html+=`</div></div>`;
     });
@@ -2922,7 +2923,7 @@ function renderScheduleAdmin(){
         </div>
       </div>`;
     });
-    h+=`<div style="padding:0 10px"><button class="aadd ig-service-btn" style="width:100%" onclick="DATA.schedule[${i}].services.push({label:'',open:null,close:null});renderAll();renderAdminSection('__global')">+ Ajouter un service</button></div>
+    h+=`<div style="padding:0 10px"><button class="aadd ig-service-btn" style="width:100%" onclick="DATA.schedule[${i}].services.push({label:'',open:null,close:null});renderAll();renderAdminSection('__global')">Ajouter un service</button></div>
     </div>`;
   });
   h+=`</div></div>`;
@@ -3317,11 +3318,12 @@ function renderTabSectionList(ti){
   const tab=DATA.tabs[ti];
   let h='';
 
-  // Nom de l'onglet — juste le champ, pas d'accordéon. Visible/
-  // Masquée/Supprimer simplifiés en œil + corbeille à droite.
-  h+=`<div class="af" style="display:flex;align-items:center;gap:8px">
-    <input class="ai" style="flex:1" value="${escAttr(tab.label[adminLang]||'')}" placeholder="Nom de l'onglet" oninput="DATA.tabs[${ti}].label[adminLang]=this.value;renderAll()">
-    ${dishEyeDelButtons(tab.visible===false, `DATA.tabs[${ti}].visible=${tab.visible===false};renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)`, `askConfirm('Supprimer la tab « ${(tab.label.fr||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")} » et tout son contenu ?',()=>delTab(${ti}))`)}
+  // Nom de l'onglet — plein largeur, œil + corbeille intégrés à
+  // l'intérieur du champ (à droite), comme pour "Service" dans
+  // Horaires.
+  h+=`<div class="af" style="position:relative">
+    <input class="ai" style="width:100%;padding-right:66px" value="${escAttr(tab.label[adminLang]||'')}" placeholder="Nom de l'onglet" oninput="DATA.tabs[${ti}].label[adminLang]=this.value;renderAll()">
+    <div class="ig-tab-eyedel-wrap">${dishEyeDelButtons(tab.visible===false, `DATA.tabs[${ti}].visible=${tab.visible===false};renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)`, `askConfirm('Supprimer la tab « ${(tab.label.fr||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")} » et tout son contenu ?',()=>delTab(${ti}))`)}</div>
   </div>`;
 
   // Sections — un seul bloc cliquable chacune (nom en bleu clair,
@@ -3338,7 +3340,7 @@ function renderTabSectionList(ti){
   });
   h+=`</div>`;
 
-  h+=`<button class="aadd ig-add-btn ig-add-btn-standalone" style="display:block;width:100%;padding:10px" onclick="addCard(${ti})">+ Ajouter une nouvelle section</button>`;
+  h+=`<button class="aadd ig-add-btn ig-add-btn-standalone" style="display:block;width:100%;padding:10px" onclick="addCard(${ti})">Ajouter une nouvelle section</button>`;
 
   // Réordonner les sections (2+ sections seulement), tout en bas.
   if(tab.cards.length>=2){
@@ -3394,14 +3396,14 @@ function renderTabSectionDetail(ti, ci){
 
         <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:4px">Format, contenance & prix</div>
         ${sizeRows}
-        <button class="aadd ig-add-btn" style="margin-top:2px" onclick="if(!Array.isArray(DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes)){DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes=[];}DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes.push({format:'',cl:'',unit:'cl',price:''});renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)">+ Taille</button>
+        <button class="aadd ig-add-btn" style="margin-top:2px" onclick="if(!Array.isArray(DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes)){DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes=[];}DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes.push({format:'',cl:'',unit:'cl',price:''});renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)">Taille</button>
 
         ${captionFieldHtml(item.caption||'', 'Ex: Notre sélection du moment 🍷', `DATA.tabs[${ti}].cards[${ci}].items[${ii}].caption=this.value`)}
         <div class="ig-gallery-frame">${entityGalleryHtml(ti,ci,ii,'items',item.gallery)}</div>
         </div>
       </div>`;
     });
-    h+=`<button class="aadd ig-add-btn" style="margin-top:4px" onclick="addBev(${ti},${ci})">+ Boisson</button>`;
+    h+=`<button class="aadd ig-add-btn" style="margin-top:4px" onclick="addBev(${ti},${ci})">Boisson</button>`;
   } else if(card.type==='variants'){
     h+=imgFieldHtml(card.img||'',`DATA.tabs[${ti}].cards[${ci}].img=this.value;renderAll()`,"Image URL ou uploader");
     (card.variants||[]).forEach((v,vi)=>{
@@ -3409,7 +3411,7 @@ function renderTabSectionDetail(ti, ci){
       const vVal=typeof v.name==='object'?(v.name[adminLang]||''):v.name||'';
       h+=`<div class="ai-row" style="margin-top:4px" ondragover="onDragOver(event,${ti},${ci},${vi})" ondragleave="onDragLeave(event)" ondrop="onDropVariant(event,${ti},${ci},${vi})"><span class="drag-handle" title="Glisser pour réordonner" draggable="true" ondragstart="onDragVariant(event,${ti},${ci},${vi})" ondragend="onDragEndHandle(event)">⠿</span><input class="ai ig-visible-field" value="${vVal}" placeholder="${adminLang!=='fr'?vFr:''}" oninput="if(typeof DATA.tabs[${ti}].cards[${ci}].variants[${vi}].name!=='object'){DATA.tabs[${ti}].cards[${ci}].variants[${vi}].name={fr:DATA.tabs[${ti}].cards[${ci}].variants[${vi}].name};}DATA.tabs[${ti}].cards[${ci}].variants[${vi}].name[adminLang]=this.value;renderAll()"><input class="ai ai-sm ig-visible-field" value="${v.price||''}" oninput="DATA.tabs[${ti}].cards[${ci}].variants[${vi}].price=this.value;renderAll()"><button class="adel" onclick="askConfirm('Supprimer cette variante ?',()=>delVariant(${ti},${ci},${vi}))">×</button></div>`;
     });
-    h+=`<button class="aadd ig-add-btn" onclick="addVariant(${ti},${ci})">+ Variante</button>`;
+    h+=`<button class="aadd ig-add-btn" onclick="addVariant(${ti},${ci})">Variante</button>`;
   } else {
     const openDi = dishDetailOpen[tab.id];
     if(openDi!=null && card.dishes[openDi]){
@@ -3425,7 +3427,7 @@ function renderTabSectionDetail(ti, ci){
       });
       h+=`</div>`;
       h+=`</div>`; // ferme .admin-card avant le bouton séparé
-      h+=`<button class="aadd ig-add-btn ig-add-btn-standalone" onclick="addDish(${ti},${ci})">+ Ajouter un plat</button>`;
+      h+=`<button class="aadd ig-add-btn ig-add-btn-standalone" onclick="addDish(${ti},${ci})">Ajouter un plat</button>`;
       h+=adminSaveBar();
       return h;
     }
@@ -7003,8 +7005,8 @@ const EYE_OFF_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" 
 const TRASH_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
 function dishEyeDelButtons(hidden, toggleCode, delCode){
   return `<div style="display:flex;gap:2px;margin-left:auto;margin-right:4px">
-    <button class="dish-eye-btn" onclick="${toggleCode}" title="${hidden?'Masqué — cliquer pour afficher':'Visible — cliquer pour masquer'}">${hidden?EYE_OFF_SVG:EYE_SVG}</button>
-    <button class="dish-eye-btn" onclick="${delCode}" title="Supprimer">${TRASH_SVG}</button>
+    <button class="dish-eye-btn" style="color:#8fd99b" onclick="${toggleCode}" title="${hidden?'Masqué — cliquer pour afficher':'Visible — cliquer pour masquer'}">${hidden?EYE_OFF_SVG:EYE_SVG}</button>
+    <button class="dish-eye-btn" style="color:#f0a8a1" onclick="${delCode}" title="Supprimer">${TRASH_SVG}</button>
   </div>`;
 }
 
