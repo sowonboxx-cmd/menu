@@ -535,6 +535,9 @@ body.home-cover-showing{overflow:hidden}
    coche, pas le carré lui-même). On dessine la case nous-mêmes :
    fond noir par défaut, coche bleu clair dessinée à la main. */
 .ig-subpage-old-content input[type="checkbox"]{appearance:none;-webkit-appearance:none;width:15px;height:15px;flex:none;border-radius:4px;background:#3a3a3a!important;border:1px solid #5a5a5a;cursor:pointer;position:relative;margin:0}
+/* Curseur "Position sur mobile" — juste le bleu, sans le halo/contour
+   blanc que le curseur natif ajoute par défaut autour du curseur. */
+.ig-subpage-old-content input[type="range"]{accent-color:#8ab4f8}
 .ig-subpage-old-content input[type="checkbox"]:checked{border-color:var(--ig-navy-light)}
 .ig-subpage-old-content input[type="checkbox"]:checked::after{content:'';position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid var(--ig-navy-light);border-width:0 2px 2px 0;transform:rotate(45deg)}
 /* BUG FIX (contour bleu au survol) : .admin-toggle:hover met la
@@ -543,8 +546,7 @@ body.home-cover-showing{overflow:hidden}
    neutralise ici avec un survol neutre, comme sur "Publier". */
 .ig-subpage-old-content .admin-toggle:hover{border-color:transparent!important}
 .ig-subpage-old-content .ig-pill:hover{background:#3a3a3a!important}
-.ig-subpage-old-content .ai-upload-btn{background:var(--ig-card)!important;border:none!important;color:#fff!important;height:34px!important;width:34px!important}
-.ig-subpage-old-content .ai-img-wrap .ai{height:34px}
+.ig-subpage-old-content .ai-upload-btn{background:var(--ig-card)!important;border:none!important;color:#fff!important;height:auto!important;width:auto!important;aspect-ratio:1}
 /* "Voir et choisir la police" — même forme de champ (.ai) que les
    autres, cliquable, avec un tout petit libellé au-dessus du nom de
    la police pour qu'on comprenne encore que c'est cliquable. */
@@ -662,7 +664,7 @@ body.home-cover-showing{overflow:hidden}
 .af{margin-bottom:9px}
 .al{font-size:11px;font-weight:500;color:var(--text2);font-family:'Jost',sans-serif;margin-bottom:3px;display:block;letter-spacing:.04em}
 .ai{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13px;font-family:'Jost',sans-serif;color:var(--text);background:#fff;outline:none;transition:border-color .15s}
-.ai-img-wrap{display:flex;align-items:center;gap:6px}
+.ai-img-wrap{display:flex;align-items:stretch;gap:6px}
 .ai-img-wrap .ai,.ai-img-wrap .ei{flex:1}
 .ai-upload-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;cursor:pointer;color:var(--text3);background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);flex:none}
 .unit-sel{padding:9px 6px;border:1px solid var(--border);border-radius:8px;font-family:'Jost',sans-serif;font-size:13px;color:var(--text);background:#fff;flex:none;max-width:60px}
@@ -2105,12 +2107,11 @@ function renderAdminHomeCover(){
       <input class="ai" value="${escAttr(hc.video||'')}" placeholder="Vidéo — URL YouTube, Vimeo ou lien .mp4" oninput="DATA.homeCover.video=this.value.trim();renderAll();scheduleCoverAutoSave()">
     </div>
     ` : isSlideshow ? `
-    <div class="af"><label class="al">Diaporama — 3 photos, effet Ken Burns au choix pour chacune</label></div>
     ${hc.slideshow.map((slide,i)=>`
       <div class="af admin-card" style="padding:12px 14px;margin-bottom:10px">
         <label class="al">Photo ${i+1}</label>
         ${imgFieldHtml(slide.image||'', `DATA.homeCover.slideshow[${i}].image=this.value.trim();renderAll();renderAdminSection('__global');scheduleCoverAutoSave()`, 'https://... .jpg ou .webp', null)}
-        <select class="ai" style="font-size:13px;margin-top:8px" onchange="DATA.homeCover.slideshow[${i}].kenBurns=this.value;renderAll();scheduleCoverAutoSave()">
+        <select class="ai ig-hm-select ig-visible-field" style="font-size:13px;margin-top:8px" onchange="DATA.homeCover.slideshow[${i}].kenBurns=this.value;renderAll();scheduleCoverAutoSave()">
           ${KEN_BURNS_OPTIONS.map(o=>`<option value="${o.v}" ${(slide.kenBurns||'zoom-in')===o.v?'selected':''}>${o.l}</option>`).join('')}
         </select>
       </div>
@@ -2136,8 +2137,8 @@ function renderAdminHomeCover(){
     </div>
     <div class="af">
       <div class="ai ig-font-field" onclick="showFontGallery('cover')">
-        <span style="font-size:10px;color:var(--ig-text-dimmer)">Voir et choisir la police</span>
-        <div id="coverFontNameDisplay" style="font-size:16px;color:var(--ig-text);font-family:'${hc.headlineFont||'Jost'}',sans-serif!important;margin-top:2px">${hc.headlineFont||'Jost'}</div>
+        <span style="font-size:11.5px;color:var(--ig-text-dimmer)">Voir et choisir la police</span>
+        <div id="coverFontNameDisplay" style="font-size:18.5px;color:var(--ig-text);font-family:'${hc.headlineFont||'Jost'}',sans-serif!important;margin-top:2px">${hc.headlineFont||'Jost'}</div>
       </div>
     </div>
     <label class="al" style="display:block;margin-top:12px;font-size:11px;text-transform:uppercase;letter-spacing:.06em">1er bouton</label>
@@ -6655,8 +6656,8 @@ function restaurantSettingHtml(){
     </div>
     <div class="af">
       <div class="ai ig-font-field" onclick="showFontGallery()">
-        <span style="font-size:10px;color:var(--ig-text-dimmer)">Voir et choisir la police</span>
-        <div id="restoFontNameDisplay" style="font-size:16px;color:var(--ig-text);font-family:'${DATA.restoFont||'Cormorant Garamond'}',serif!important;margin-top:2px">${DATA.restoFont||'Cormorant Garamond'}</div>
+        <span style="font-size:11.5px;color:var(--ig-text-dimmer)">Voir et choisir la police</span>
+        <div id="restoFontNameDisplay" style="font-size:18.5px;color:var(--ig-text);font-family:'${DATA.restoFont||'Cormorant Garamond'}',serif!important;margin-top:2px">${DATA.restoFont||'Cormorant Garamond'}</div>
       </div>
     </div>
     ${imgFieldHtml(logo, "setRestaurantLogo(this.value.trim());applyRestaurantBranding()", "Logo de l'établissement", null)}
@@ -6696,7 +6697,7 @@ function renderBrandColorsSection(){
       +'<input class="ai" value="'+val+'" oninput="if(!DATA.brandColors)DATA.brandColors={};DATA.brandColors[&quot;'+key+'&quot;]=this.value;applyBrandColors()" style="flex:1;height:36px;font-family:monospace;font-size:12px;box-sizing:border-box">'
       +'</div></div>';
   });
-  h+='<button class="aadd" style="width:100%;padding:9px;margin-top:4px" onclick="resetBrandColors()">Réinitialiser les couleurs par défaut</button>';
+  h+='<button class="aadd ig-service-btn" style="width:100%;padding:9px;margin-top:4px" onclick="resetBrandColors()">Réinitialiser les couleurs par défaut</button>';
   h+='</div></div>';
   return h;
 }
