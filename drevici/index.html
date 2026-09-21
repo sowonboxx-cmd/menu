@@ -6037,13 +6037,46 @@ function showGbizResultGallery(images){
 // catégories/plats (à la main ou importés du vrai menu), couleurs
 // optionnelles (héritent de la marque par défaut, comme Instagram),
 // et export Impression/Story/Post en réutilisant le moteur existant.
+// Navigation en profondeur, même logique que pour les tabs/sections :
+// liste des formules (repliée par défaut) → une formule → une
+// catégorie de cette formule. Rien n'est déplié tant qu'on n'a pas
+// cliqué dessus.
+let formuleOpen = null;
+let formuleCatOpen = null;
+function openFormule(fid){ formuleOpen=fid; formuleCatOpen=null; renderAdminSection('__global'); }
+function closeFormule(){ formuleOpen=null; formuleCatOpen=null; renderAdminSection('__global'); }
+function openFormuleCat(catId){ formuleCatOpen=catId; renderAdminSection('__global'); }
+function closeFormuleCat(){ formuleCatOpen=null; renderAdminSection('__global'); }
+
 function renderFormulesSection(){
   formule_ensureInit();
+  if(formuleOpen){
+    const f = DATA.formules.find(x=>x.id===formuleOpen);
+    if(f){
+      if(formuleCatOpen){
+        const cat = f.tabs.find(c=>c.id===formuleCatOpen);
+        if(cat) return renderFormuleCatDetail(f, cat);
+        formuleCatOpen=null;
+      }
+      return renderFormuleDetail(f);
+    }
+    formuleOpen=null;
+  }
+  return renderFormuleList();
+}
+
+function renderFormuleList(){
+  return `<div class="ig-list">${DATA.formules.map(f=>`
+    <div class="ig-row" onclick="openFormule('${f.id}')">
+      <span class="ig-section-row-label">${escAttr(f.name)||'(sans nom)'}</span>
+      <span class="ig-row-chevron">›</span>
+    </div>`).join('')}${!DATA.formules.length?'<div style="padding:16px;color:var(--ig-text-dimmer,var(--text3));font-size:12.5px;text-align:center">Aucune formule pour l\'instant.</div>':''}</div>
+  <button class="aadd ig-add-btn ig-add-btn-standalone" onclick="formule_create()">Ajouter une nouvelle formule${DATA.formules.length>=10?' (remplacera la plus ancienne)':''}</button>`;
+}
+
+function renderFormuleDetail(f){
+  formule_ensureInit();
   const realDishes = formule_getRealDishes();
-  const importOptions = realDishes.map((d,i)=>`<option value="${i}">${d.name} — ${d.tabLabel}</option>`).join('');
-  // Vraies couleurs de marque actuelles (Drevici etc.) comme défaut de
-  // repli — pas un bleu générique — cohérent avec ce qu'affiche déjà
-  // Instagram quand rien n'est explicitement changé.
   const brandCfg = pdfCfg();
   const brandNavy = brandCfg.titleColor || '#10285E';
   const brandBg = brandCfg.bgColor || '#FDFBF6';
@@ -6051,39 +6084,19 @@ function renderFormulesSection(){
     : key==='instaDescColor' ? lightenHex(brandNavy, 0.28)
     : brandNavy;
 
-  // Charge tout de suite (sans attendre l'ouverture de la galerie) les
-  // polices actuellement utilisées par chaque formule, pour que le nom
-  // affiché juste au-dessus du bouton "Voir et choisir la police"
-  // s'affiche réellement dans cette police, pas dans une police de
-  // repli — demande explicite de Will pour que ce soit visible tout
-  // de suite. Recalculé à chaque rendu (pas juste à la création) pour
-  // que changer la police d'une formule mette bien à jour ce lien.
-  const usedFonts = [...new Set(DATA.formules.map(f=>f.instaFont||brandCfg.instaFont||'Playfair Display'))];
+  const usedFonts = [...new Set(DATA.formules.map(fo=>fo.instaFont||brandCfg.instaFont||'Playfair Display'))];
   if(usedFonts.length){
     let l = document.querySelector('link[data-formule-fonts]');
     if(!l){ l=document.createElement('link'); l.rel='stylesheet'; l.dataset.formuleFonts='1'; document.head.appendChild(l); }
     l.href='https://fonts.googleapis.com/css2?'+usedFonts.map(fo=>'family='+encodeURIComponent(fo)+':wght@400;700').join('&')+'&display=swap';
   }
 
-  // Colonnes couleur + taille — Titre/Plat/Description ont chacun
-  // leur propre curseur de taille (%) juste sous leur pastille de
-  // couleur, pour ajuster tout en un coup d'œil juste au-dessus de
-  // l'aperçu (demande explicite de Will). Fond n'a pas de taille
-  // (c'est juste une couleur). La protection "jamais plus large que le
-  // cadre" (rétrécissement automatique, jamais de retour à la ligne —
-  // même mécanisme que Export du menu) continue de s'appliquer quoi
-  // que ces curseurs demandent : un plat trop long au 150% choisi sera
-  // ramené à une taille qui rentre, jamais au-delà du cadre.
-  // Titre des catégories + Nom des plats sur une ligne (les deux
-  // réglages qu'on ajuste le plus souvent), Détails des plats +
-  // Couleur de fond sur une deuxième ligne en dessous — plus aéré que
-  // les 4 d'un coup, demande explicite de Will.
   const colorCell = c => `
       <div class="af" style="flex:1;min-width:0">
         <label class="al" style="font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block">${c.label}</label>
         <div style="display:flex;align-items:center;gap:3px">
-          <input type="color" value="${c.f[c.key]||defaultFor(c.key)}" oninput="formule_setColor('${c.f.id}','${c.key}',this.value)" style="width:26px;height:26px;flex:none;border:1px solid var(--border);border-radius:6px;padding:2px;cursor:pointer;background:#fff">
-          ${c.f[c.key]?`<button type="button" title="Réinitialiser" onclick="formule_setColor('${c.f.id}','${c.key}','')" style="width:22px;height:22px;flex:none;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text2);cursor:pointer;font-size:11px;padding:0">↺</button>`:''}
+          <input type="color" value="${c.f[c.key]||defaultFor(c.key)}" oninput="formule_setColor('${c.f.id}','${c.key}',this.value)" style="width:25px;height:25px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer">
+          ${c.f[c.key]?`<button type="button" title="Réinitialiser" onclick="formule_setColor('${c.f.id}','${c.key}','')" style="width:22px;height:22px;flex:none;border:none;border-radius:50%;background:var(--ig-card,#2f2f2f);color:var(--ig-text-dim,#b4b4b4);cursor:pointer;font-size:11px;padding:0">↺</button>`:''}
         </div>
         ${c.sizeKey?`
         <div style="display:flex;align-items:center;gap:4px;margin-top:5px">
@@ -6091,130 +6104,123 @@ function renderFormulesSection(){
           <span style="font-size:9.5px;color:var(--text3);flex:none;min-width:26px;text-align:right">${c.f[c.sizeKey] ?? 100}%</span>
         </div>`:''}
       </div>`;
-  const colorRow = f => `
+  const colorRow = fo => `
     <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:nowrap;align-items:flex-start">
-      ${colorCell({f, key:'instaTitleColor', sizeKey:'titleSizePct', label:'Titre des catégories'})}
-      ${colorCell({f, key:'instaMenuColor', sizeKey:'menuSizePct', label:'Nom des plats'})}
+      ${colorCell({f:fo, key:'instaTitleColor', sizeKey:'titleSizePct', label:'Titre des catégories'})}
+      ${colorCell({f:fo, key:'instaMenuColor', sizeKey:'menuSizePct', label:'Nom des plats'})}
     </div>
     <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:nowrap;align-items:flex-start">
-      ${colorCell({f, key:'instaDescColor', sizeKey:'descSizePct', label:'Détails des plats'})}
-      ${colorCell({f, key:'instaBgColor', sizeKey:null, label:'Couleur de fond'})}
+      ${colorCell({f:fo, key:'instaDescColor', sizeKey:'descSizePct', label:'Détails des plats'})}
+      ${colorCell({f:fo, key:'instaBgColor', sizeKey:null, label:'Couleur de fond'})}
     </div>`;
 
+  const sectionHeader = title => `<div style="text-align:right;text-transform:lowercase;font-size:10px;color:var(--ig-text-dimmer,var(--text3));margin:18px 0 8px;font-family:'Jost',sans-serif">${title}</div>`;
 
-  const sectionHeader = title => `<div style="text-align:center;text-transform:uppercase;font-weight:700;font-size:11px;letter-spacing:.06em;color:var(--navy);background:rgba(16,40,94,0.09);padding:8px 10px;margin:16px 0 12px;font-family:'Jost',sans-serif">${title}</div>`;
-  const formuleCard = f => `<div class="admin-section collapsible collapsed" style="margin-bottom:10px;border:1px solid var(--border);border-radius:10px;overflow:hidden">
-    <div class="admin-sect-title" onclick="toggleAdminSection(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center">
-      <span>${f.name||'Formule sans nom'}</span>
+  let h = `<div class="ig-inner-back-row">
+    <button class="ig-back-btn" onclick="closeFormule()">‹</button>
+    <input class="ai ig-visible-field" style="flex:1" value="${escAttr(f.name||'')}" placeholder="Ex : Menu du dimanche — 35€" oninput="formule_rename('${f.id}',this.value)">
+    <button class="adel" style="font-size:12px;padding:1px 0;flex:none;opacity:.6" onclick="if(confirm('Supprimer cette formule ?')){formule_delete('${f.id}');closeFormule();}">✕</button>
+  </div>
+  <div class="admin-card">
+    ${sectionHeader('informations générales')}
+    <div class="af">
+      <input class="ai ig-visible-field" value="${escAttr(f.title||'')}" placeholder="Titre affiché — Ex : MENU DU DIMANCHE" oninput="formule_setField('${f.id}','title',this.value)">
     </div>
-    <div class="admin-sect-body">
-      ${sectionHeader('Informations générales')}
-      <div class="af"><label class="al">Nom</label>
-        <input class="ai" value="${f.name||''}" placeholder="Ex : Menu du dimanche — 35€" oninput="formule_rename('${f.id}',this.value)">
-      </div>
+    <div class="af" style="margin-top:8px">
+      <textarea class="ai ig-visible-field" rows="3" placeholder="Texte libre (optionnel) — Ex : Servi du mardi au dimanche, 12h-14h" oninput="formule_setField('${f.id}','freeText',this.value)">${escAttr(f.freeText||'')}</textarea>
+    </div>
 
-      <div class="af" style="margin-top:14px"><label class="al">Titre affiché</label>
-        <input class="ai" value="${f.title||''}" placeholder="Ex : MENU DU DIMANCHE" oninput="formule_setField('${f.id}','title',this.value)">
+    <div class="af" style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div><label class="al">Catégorie</label>
+        <select class="ai ig-hm-select" onchange="formule_setField('${f.id}','catCase',this.value)">
+          <option value="upper" ${f.catCase!=='lower'?'selected':''}>Majuscule</option>
+          <option value="lower" ${f.catCase==='lower'?'selected':''}>Minuscule</option>
+        </select>
       </div>
-      <div class="af" style="margin-top:8px"><label class="al">Texte libre (optionnel)</label>
-        <textarea class="ai" rows="3" placeholder="Ex : Servi du mardi au dimanche, 12h-14h&#10;Entrée + Plat + Dessert — 35€" oninput="formule_setField('${f.id}','freeText',this.value)">${f.freeText||''}</textarea>
+      <div><label class="al">Nom des plats</label>
+        <select class="ai ig-hm-select" onchange="formule_setField('${f.id}','nameCase',this.value)">
+          <option value="upper" ${f.nameCase!=='lower'?'selected':''}>Majuscule</option>
+          <option value="lower" ${f.nameCase==='lower'?'selected':''}>Minuscule</option>
+        </select>
       </div>
+      <div><label class="al">Description</label>
+        <select class="ai ig-hm-select" onchange="formule_setField('${f.id}','descCase',this.value)">
+          <option value="lower" ${f.descCase!=='upper'?'selected':''}>Minuscule</option>
+          <option value="upper" ${f.descCase==='upper'?'selected':''}>Majuscule</option>
+        </select>
+      </div>
+    </div>
 
-      <label class="al" style="display:block;margin-top:12px">Casse</label>
-      <div style="display:flex;gap:8px;margin-top:4px">
-        <div class="af" style="flex:1"><label class="al">Catégorie</label>
-          <select class="ai" onchange="formule_setField('${f.id}','catCase',this.value)">
-            <option value="upper" ${f.catCase!=='lower'?'selected':''}>Majuscule</option>
-            <option value="lower" ${f.catCase==='lower'?'selected':''}>Minuscule</option>
-          </select>
-        </div>
-        <div class="af" style="flex:1"><label class="al">Nom des plats</label>
-          <select class="ai" onchange="formule_setField('${f.id}','nameCase',this.value)">
-            <option value="upper" ${f.nameCase!=='lower'?'selected':''}>Majuscule</option>
-            <option value="lower" ${f.nameCase==='lower'?'selected':''}>Minuscule</option>
-          </select>
-        </div>
-        <div class="af" style="flex:1"><label class="al">Description</label>
-          <select class="ai" onchange="formule_setField('${f.id}','descCase',this.value)">
-            <option value="lower" ${f.descCase!=='upper'?'selected':''}>Minuscule</option>
-            <option value="upper" ${f.descCase==='upper'?'selected':''}>Majuscule</option>
-          </select>
-        </div>
-      </div>
+    ${sectionHeader('éléments du menu')}
+    <div class="ig-list">
+      ${f.tabs.map(cat=>`
+        <div class="ig-row" onclick="openFormuleCat('${cat.id}')">
+          <span class="ig-section-row-label">${escAttr(t(cat.label))||'(sans titre)'}</span>
+          <span class="ig-row-chevron">›</span>
+        </div>`).join('')}
+    </div>
+    <button class="aadd ig-add-btn" style="margin-top:8px" onclick="formule_addCategory('${f.id}')">Catégorie</button>
 
-      ${sectionHeader('Éléments du menu')}
-      <div>
-        ${f.tabs.map((cat,catIdx)=>`
-          <div class="admin-card${cat._expanded?'':' collapsed'}" style="border:1px solid var(--border);border-radius:8px;padding:0;margin-top:8px;background:#fafafa"
-               draggable="true"
-               ondragstart="formule_onDragCat(event,'${f.id}',${catIdx})"
-               ondragend="onDragEnd(event)"
-               ondragover="onDragOver(event,0,0,${catIdx})"
-               ondragleave="onDragLeave(event)"
-               ondrop="formule_onDropCat(event,'${f.id}',${catIdx})">
-            <div class="admin-card-hdr" style="display:flex;gap:6px;align-items:center;padding:10px">
-              <span class="drag-handle" title="Glisser pour réordonner" style="cursor:grab;padding:2px 4px">⠿</span>
-              <input class="ai" style="flex:1;font-weight:600" value="${t(cat.label)||''}" placeholder="Nom de la catégorie (ex : Entrée)" oninput="formule_renameCategory('${f.id}','${cat.id}',this.value)">
-              <span class="collapse-chevron" style="cursor:pointer;padding:4px 6px;font-size:14px;color:var(--text3)" onclick="const c=this.closest('.admin-card');c.classList.toggle('collapsed');formule_toggleCategoryOpen('${f.id}','${cat.id}',!c.classList.contains('collapsed'))">▾</span>
-              <button title="Supprimer la catégorie" onclick="if(confirm('Supprimer cette catégorie et tous ses plats ?')) formule_removeCategory('${f.id}','${cat.id}')" style="width:30px;height:30px;flex:none;border:1px solid var(--border);border-radius:6px;background:#fff;color:#B31217;cursor:pointer">✕</button>
-            </div>
-            <div class="admin-card-details" style="padding:0 10px 10px">
-            ${(cat.cards[0].dishes||[]).map((d,di)=>`
-              <div style="display:flex;gap:6px;align-items:flex-start;margin-bottom:6px;padding:8px;background:#fff;border:1px solid var(--border);border-radius:6px">
-                <div style="flex:1">
-                  <div style="display:flex;gap:6px;margin-bottom:4px">
-                    <input class="ai" style="flex:1" placeholder="Nom du plat" value="${t(d.name)||''}" oninput="formule_updateDish('${f.id}','${cat.id}',${di},'name',this.value)">
-                    <input class="ai" style="width:70px" placeholder="Prix" value="${d.price||''}" oninput="formule_updateDish('${f.id}','${cat.id}',${di},'price',this.value)">
-                  </div>
-                  <textarea class="ai" rows="1" placeholder="Description (optionnel — plus court = plus de chances de tenir sur une page)" oninput="formule_updateDish('${f.id}','${cat.id}',${di},'desc',this.value)">${t(d.desc)||''}</textarea>
-                </div>
-                <button title="Supprimer le plat" onclick="formule_removeDish('${f.id}','${cat.id}',${di})" style="width:30px;height:30px;flex:none;border:1px solid var(--border);border-radius:6px;background:#fff;color:#B31217;cursor:pointer">✕</button>
-              </div>
-            `).join('')}
-            <div style="display:flex;gap:6px;margin-top:6px">
-              <button class="aadd" style="flex:1;padding:8px;font-size:11.5px" onclick="formule_addDish('${f.id}','${cat.id}')">+ Plat vierge</button>
-              <select class="ai" style="flex:1;font-size:11.5px" onchange="formule_importDish('${f.id}','${cat.id}',this)">
-                <option value="">+ Importer un plat existant…</option>
-                ${importOptions}
-              </select>
-            </div>
-            </div>
-          </div>`).join('')}
+    ${sectionHeader('personnalisation')}
+    <div class="af">
+      <div class="ai ig-font-field" onclick="showFontGallery('formule','${f.id}')">
+        <span style="font-size:11.5px;color:var(--ig-text-dimmer,var(--text3))">Voir et choisir la police</span>
+        <div style="font-size:18.5px;color:var(--ig-text,#ececec);font-family:'${f.instaFont||brandCfg.instaFont||'Playfair Display'}',serif!important;margin-top:2px">${f.instaFont||brandCfg.instaFont||'Playfair Display'}</div>
       </div>
-      <button class="aadd" style="width:100%;margin-top:10px;padding:9px;font-size:12px" onclick="formule_addCategory('${f.id}')">+ Catégorie</button>
+    </div>
+    <label class="admin-toggle ig-pill" style="margin-top:10px"><input type="checkbox" ${f.alignTitleLeft?'checked':''} onchange="formule_setField('${f.id}','alignTitleLeft',this.checked)"><label>Aligner le titre et le texte libre à gauche</label></label>
+    <label class="admin-toggle ig-pill" style="margin-top:8px"><input type="checkbox" ${f.alignContentLeft?'checked':''} onchange="formule_setField('${f.id}','alignContentLeft',this.checked)"><label>Aligner les catégories et les plats à gauche</label></label>
+    ${colorRow(f)}
 
-      ${sectionHeader('Personnalisation')}
-      <div class="af" style="cursor:pointer" onclick="showFontGallery('formule','${f.id}')">
-        <label class="al" style="color:rgba(16,40,94,0.55);text-decoration:underline;text-underline-offset:2px;cursor:pointer">Voir et choisir la police</label>
-        <div style="font-size:16px;color:var(--navy);font-family:'${f.instaFont||brandCfg.instaFont||'Playfair Display'}',serif!important;margin-top:4px">${f.instaFont||brandCfg.instaFont||'Playfair Display'}</div>
+    <div class="af" style="margin-top:14px">
+      <div id="formuleCarousel-${f.id}" style="display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+        ${['a4','story','post'].map(variant=>`
+          <div style="flex:0 0 80%;scroll-snap-align:start;border-radius:10px;overflow:hidden;background:#fff">
+            <iframe class="formule-preview-frame" data-fid="${f.id}" data-variant="${variant}" style="width:100%;aspect-ratio:1 / ${variant==='a4'?INSTA_A4_RATIO:variant==='post'?INSTA_POST_RATIO:INSTA_RATIO};border:none;display:block;background:#fff"></iframe>
+            <div style="text-align:center;font-size:10px;color:var(--text3);padding:4px 0;font-family:Jost,sans-serif;text-transform:uppercase;letter-spacing:.04em">${variant==='a4'?'A4':variant==='post'?'Post':'Story'}</div>
+          </div>
+        `).join('')}
       </div>
-      <label class="admin-toggle" style="margin-top:8px"><input type="checkbox" ${f.alignTitleLeft?'checked':''} onchange="formule_setField('${f.id}','alignTitleLeft',this.checked)"><label>Aligner le titre et le texte libre à gauche</label></label>
-      <label class="admin-toggle" style="margin-top:4px"><input type="checkbox" ${f.alignContentLeft?'checked':''} onchange="formule_setField('${f.id}','alignContentLeft',this.checked)"><label>Aligner les catégories et les plats à gauche</label></label>
-      ${colorRow(f)}
-
-      <div class="af" style="margin-top:14px">
-        <div id="formuleCarousel-${f.id}" style="display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:4px">
-          ${['a4','story','post'].map(variant=>`
-            <div style="flex:0 0 80%;scroll-snap-align:start;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#fff">
-              <iframe class="formule-preview-frame" data-fid="${f.id}" data-variant="${variant}" style="width:100%;aspect-ratio:1 / ${variant==='a4'?INSTA_A4_RATIO:variant==='post'?INSTA_POST_RATIO:INSTA_RATIO};border:none;display:block;background:#fff"></iframe>
-              <div style="text-align:center;font-size:10px;color:var(--text3);padding:4px 0;font-family:Jost,sans-serif;text-transform:uppercase;letter-spacing:.04em">${variant==='a4'?'A4':variant==='post'?'Post':'Story'}</div>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-      <div style="display:flex;gap:6px;margin-top:10px">
-        <button class="aadd" style="flex:1;padding:10px;font-size:12px;background:var(--navy);color:#fff;border:none" onclick="formule_exportInsta('${f.id}','a4')">A4</button>
-        <button class="aadd" style="flex:1;padding:10px;font-size:12px;background:var(--navy);color:#fff;border:none" onclick="formule_exportInsta('${f.id}','story')">Story</button>
-        <button class="aadd" style="flex:1;padding:10px;font-size:12px;background:var(--navy);color:#fff;border:none" onclick="formule_exportInsta('${f.id}','post')">Post</button>
-      </div>
-      <button class="aadd" style="width:100%;margin-top:8px;padding:8px;font-size:11px;background:#fff;color:#B31217;border:1px solid #B31217" onclick="if(confirm('Supprimer cette formule ?')) formule_delete('${f.id}')">Supprimer cette formule</button>
+    </div>
+    <div style="display:flex;gap:6px;margin-top:10px">
+      <button class="aadd ig-solid-action-btn" style="flex:1;padding:10px;font-size:12px" onclick="formule_exportInsta('${f.id}','a4')">A4</button>
+      <button class="aadd ig-solid-action-btn" style="flex:1;padding:10px;font-size:12px" onclick="formule_exportInsta('${f.id}','story')">Story</button>
+      <button class="aadd ig-solid-action-btn" style="flex:1;padding:10px;font-size:12px" onclick="formule_exportInsta('${f.id}','post')">Post</button>
     </div>
   </div>`;
+  return h;
+}
 
-  return `<div class="admin-section"><div class="admin-sect-body">
-    ${DATA.formules.length ? DATA.formules.map(formuleCard).join('') : '<div style="text-align:center;padding:20px;color:var(--text3);font-size:12.5px">Aucune formule pour l\'instant.</div>'}
-    <button class="aadd" style="width:100%;padding:12px;margin-top:6px;font-weight:700" onclick="formule_create()">+ Nouvelle formule${DATA.formules.length>=10?' (remplacera la plus ancienne)':''}</button>
-  </div></div>`;
+function renderFormuleCatDetail(f, cat){
+  const realDishes = formule_getRealDishes();
+  const importOptions = realDishes.map((d,i)=>`<option value="${i}">${d.name} — ${d.tabLabel}</option>`).join('');
+  let h = `<div class="ig-inner-back-row">
+    <button class="ig-back-btn" onclick="closeFormuleCat()">‹</button>
+    <input class="ai ig-visible-field" style="flex:1" value="${escAttr(t(cat.label)||'')}" placeholder="Nom de la catégorie (ex : Entrée)" oninput="formule_renameCategory('${f.id}','${cat.id}',this.value)">
+    <button class="adel" style="font-size:12px;padding:1px 0;flex:none;opacity:.6" onclick="if(confirm('Supprimer cette catégorie et tous ses plats ?')){formule_removeCategory('${f.id}','${cat.id}');closeFormuleCat();}">✕</button>
+  </div>
+  <div class="admin-card">
+    ${(cat.cards[0].dishes||[]).map((d,di)=>`
+      <div style="display:flex;gap:6px;align-items:flex-start;margin-bottom:8px;padding:10px;background:var(--ig-card,#2f2f2f);border-radius:10px">
+        <div style="flex:1">
+          <div style="display:flex;gap:6px;margin-bottom:4px">
+            <input class="ai ig-visible-field" style="flex:1" placeholder="Nom du plat" value="${escAttr(t(d.name))||''}" oninput="formule_updateDish('${f.id}','${cat.id}',${di},'name',this.value)">
+            <input class="ai ig-visible-field" style="width:70px" placeholder="Prix" value="${escAttr(d.price)||''}" oninput="formule_updateDish('${f.id}','${cat.id}',${di},'price',this.value)">
+          </div>
+          <textarea class="ai ig-visible-field" rows="1" placeholder="Description (optionnel)" oninput="formule_updateDish('${f.id}','${cat.id}',${di},'desc',this.value)">${escAttr(t(d.desc))||''}</textarea>
+        </div>
+        <button class="dish-eye-btn" title="Supprimer le plat" onclick="formule_removeDish('${f.id}','${cat.id}',${di})">${TRASH_SVG}</button>
+      </div>
+    `).join('')}
+    <div style="display:flex;gap:6px;margin-top:6px">
+      <button class="aadd ig-add-btn" style="flex:1;padding:8px;font-size:11.5px" onclick="formule_addDish('${f.id}','${cat.id}')">Plat vierge</button>
+      <select class="ai ig-hm-select" style="flex:1;font-size:11.5px" onchange="formule_importDish('${f.id}','${cat.id}',this)">
+        <option value="">Importer un plat existant…</option>
+        ${importOptions}
+      </select>
+    </div>
+  </div>`;
+  return h;
 }
 
 function renderPrintBody(){
