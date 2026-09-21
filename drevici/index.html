@@ -625,6 +625,11 @@ body.home-cover-showing{overflow:hidden}
    principale), pas partout (les autres boutons upload restent sans
    contour, volontairement). */
 .ig-subpage-old-content .ig-upload-btn-bordered{border:1px solid #5a5a5a!important}
+/* Page d'accueil (Vidéo, Diaporama) — pas de bordure du tout, plutôt
+   le fond de la page (plus sombre que les cartes) pour que le champ
+   ait l'air "posé dedans" au lieu d'être encadré. */
+.ig-subpage-old-content .ig-cover-field-flat{border:none!important;background:var(--ig-bg)!important}
+.ig-subpage-old-content select.ig-cover-field-flat{background-color:var(--ig-bg)!important}
 /* Champs de lien + bouton upload, dans le détail de la galerie —
    bordure grise comme partout ailleurs, sinon on ne les voit pas du
    tout sur le fond sombre. */
@@ -2130,8 +2135,8 @@ function renderAdminHomeCover(){
     ${isVideo ? `
     <div class="af">
       <div class="ai-img-wrap">
-        <input class="ai ig-visible-field" value="${escAttr(hc.video||'')}" placeholder="Vidéo — URL YouTube, Vimeo ou lien .mp4" oninput="DATA.homeCover.video=this.value.trim();renderAll();scheduleCoverAutoSave()">
-        <label class="ai-upload-btn" title="Uploader une vidéo (bientôt disponible)" onclick="event.preventDefault();showToast('⏳ Upload direct de vidéo bientôt disponible — utilisez un lien pour l\\'instant.')">
+        <input class="ai ig-cover-field-flat" value="${escAttr(hc.video||'')}" placeholder="Vidéo — URL YouTube, Vimeo ou lien .mp4" oninput="DATA.homeCover.video=this.value.trim();renderAll();scheduleCoverAutoSave()">
+        <label class="ai-upload-btn ig-cover-field-flat" title="Uploader une vidéo (bientôt disponible)" onclick="event.preventDefault();showToast('⏳ Upload direct de vidéo bientôt disponible — utilisez un lien pour l\\'instant.')">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path></svg>
         </label>
       </div>
@@ -2140,8 +2145,8 @@ function renderAdminHomeCover(){
     ${hc.slideshow.map((slide,i)=>`
       <div class="af admin-card" style="padding:12px 14px;margin-bottom:10px">
         <label class="al">Photo ${i+1}</label>
-        ${imgFieldHtml(slide.image||'', `DATA.homeCover.slideshow[${i}].image=this.value.trim();renderAll();renderAdminSection('__global');scheduleCoverAutoSave()`, `Mettre le lien de la photo ${i+1}`, null, true)}
-        <select class="ai ig-hm-select ig-visible-field" style="font-size:13px;margin-top:8px" onchange="DATA.homeCover.slideshow[${i}].kenBurns=this.value;renderAll();scheduleCoverAutoSave()">
+        ${imgFieldHtml(slide.image||'', `DATA.homeCover.slideshow[${i}].image=this.value.trim();renderAll();renderAdminSection('__global');scheduleCoverAutoSave()`, `Mettre le lien de la photo ${i+1}`, null, false, 'ig-cover-field-flat')}
+        <select class="ai ig-hm-select ig-cover-field-flat" style="font-size:13px;margin-top:8px" onchange="DATA.homeCover.slideshow[${i}].kenBurns=this.value;renderAll();scheduleCoverAutoSave()">
           ${KEN_BURNS_OPTIONS.map(o=>`<option value="${o.v}" ${(slide.kenBurns||'zoom-in')===o.v?'selected':''}>${o.l}</option>`).join('')}
         </select>
       </div>
@@ -7084,11 +7089,12 @@ function entityGalleryHtml(ti,ci,idx,kind,gallery){
   return h;
 }
 
-function imgFieldHtml(val, onchangeJs, placeholder, ratio=1, bordered=false){
+function imgFieldHtml(val, onchangeJs, placeholder, ratio=1, bordered=false, extraClass=''){
   const previewStyle = val ? '' : 'display:none';
   // oninput = the SAME inline save+render that name/price use, then a clean preview sync call
   const handler = onchangeJs + ';syncImgPreview(this)';
-  return `<div class="af"><div class="ai-img-wrap"><input class="ai${bordered?' ig-visible-field':''}" value="${val||''}" placeholder="${placeholder||'Image URL'}" oninput="${handler}"><label class="ai-upload-btn${bordered?' ig-upload-btn-bordered':''}" title="Uploader une image"><input type="file" accept="image/*" style="display:none" onchange="uploadImgFile(this,${ratio===null?'null':ratio})"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path></svg></label></div><img class="ai-img-preview" src="${val||''}" style="${previewStyle};width:100%;max-width:120px;aspect-ratio:1;object-fit:cover;border-radius:6px;margin-top:6px;border:1px solid var(--border)" onerror="this.style.display='none'"></div>`;
+  const cls = (bordered?' ig-visible-field':'') + (extraClass?' '+extraClass:'');
+  return `<div class="af"><div class="ai-img-wrap"><input class="ai${cls}" value="${val||''}" placeholder="${placeholder||'Image URL'}" oninput="${handler}"><label class="ai-upload-btn${bordered?' ig-upload-btn-bordered':''}${extraClass?' '+extraClass:''}" title="Uploader une image"><input type="file" accept="image/*" style="display:none" onchange="uploadImgFile(this,${ratio===null?'null':ratio})"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path></svg></label></div><img class="ai-img-preview" src="${val||''}" style="${previewStyle};width:100%;max-width:120px;aspect-ratio:1;object-fit:cover;border-radius:6px;margin-top:6px;border:1px solid var(--border)" onerror="this.style.display='none'"></div>`;
 }
 
 function syncImgPreview(input){
