@@ -3061,8 +3061,6 @@ function renderAdminTabDd(){
     +'<option value="__addtab_plats">+ Nouvelle tab (plats)</option>'
     +'<option value="__addtab_boissons">+ Nouvelle tab (boissons)</option>'
     +'<option value="__reorder">☰ Réordonner les tabs</option>'
-    +'<option value="__print">Export du menu</option>'
-    +'<option value="__formules">Menus spéciaux et formules</option>'
     +'<option value="__social" style="font-weight:600">★ Réseaux sociaux</option>';
   dd.value=adminCurrentTab;
 }
@@ -3071,8 +3069,6 @@ function adminGoTab(val){
   if(val==='__addtab_plats'){ addNewTab('plats'); return; }
   if(val==='__addtab_boissons'){ addNewTab('boissons'); return; }
   if(val==='__reorder'){ adminCurrentTab='__reorder'; renderAdminSection('__reorder'); return; }
-  if(val==='__print'){ adminCurrentTab='__print'; renderAdminSection('__print'); return; }
-  if(val==='__formules'){ adminCurrentTab='__formules'; renderAdminSection('__formules'); return; }
   if(val==='__social'){ adminCurrentTab='__social'; renderAdminSection('__social'); return; }
   adminCurrentTab=val;
   renderAdminSection(val);
@@ -3134,10 +3130,6 @@ function renderAdminSection(tid, _skipScroll){
     body.innerHTML=renderSocialSection()+adminSaveBar();
   } else if(tid==='__reorder'){
     body.innerHTML=renderTabReorder();
-  } else if(tid==='__print'){
-    body.innerHTML=`<div class="admin-section"><div class="admin-sect-body">${renderPrintBody()}</div></div>`;
-  } else if(tid==='__formules'){
-    body.innerHTML=renderFormulesSection()+adminSaveBar();
   } else {
     const ti=DATA.tabs.findIndex(tb=>tb.id===tid);
     if(ti<0){body.innerHTML='';return;}
@@ -3619,13 +3611,13 @@ function formule_create(){
     instaTitleColor:'', instaMenuColor:'', instaDescColor:'', instaBgColor:'',
     tabs: [{ id: id+'-cat1', label:{fr:'Entrée'}, cards:[{ label:{fr:''}, dishes:[] }], _expanded:true }]
   });
-  renderAdminSection('__formules');
+  renderAdminSection('__global');
   scheduleAutoSave(true);
 }
 function formule_delete(fid){
   formule_ensureInit();
   DATA.formules = DATA.formules.filter(f=>f.id!==fid);
-  renderAdminSection('__formules');
+  renderAdminSection('__global');
   publishNow(true);
 }
 function formule_rename(fid, name){
@@ -3658,7 +3650,7 @@ function formule_addCategory(fid){
   const f = DATA.formules.find(x=>x.id===fid);
   if(!f) return;
   f.tabs.push({ id: f.id+'-cat'+(f.tabs.length+1)+'-'+Date.now(), label:{fr:'Nouvelle catégorie'}, cards:[{ label:{fr:''}, dishes:[] }], _expanded:true });
-  renderAdminSection('__formules');
+  renderAdminSection('__global');
   scheduleAutoSave(true);
 }
 // Glisser-déposer pour réordonner les catégories d'une formule (ex :
@@ -3679,7 +3671,7 @@ function formule_onDropCat(e, fid, catIdx){
   const [moved] = f.tabs.splice(formuleDragCat.catIdx, 1);
   f.tabs.splice(catIdx, 0, moved);
   formuleDragCat = null;
-  renderAdminSection('__formules');
+  renderAdminSection('__global');
   showToast('Ordre mis à jour');
   scheduleAutoSave(true);
 }
@@ -3698,7 +3690,7 @@ function formule_removeCategory(fid, catId){
   const f = DATA.formules.find(x=>x.id===fid);
   if(!f) return;
   f.tabs = f.tabs.filter(c=>c.id!==catId);
-  renderAdminSection('__formules');
+  renderAdminSection('__global');
   publishNow(true);
 }
 function formule_renameCategory(fid, catId, name){
@@ -3714,7 +3706,7 @@ function formule_addDish(fid, catId){
   if(!cat) return;
   cat._expanded = true;
   cat.cards[0].dishes.push({ name:{fr:''}, desc:{fr:''}, price:'' });
-  renderAdminSection('__formules');
+  renderAdminSection('__global');
   scheduleAutoSave(true);
 }
 function formule_removeDish(fid, catId, idx){
@@ -3723,7 +3715,7 @@ function formule_removeDish(fid, catId, idx){
   if(!cat) return;
   cat._expanded = true;
   cat.cards[0].dishes.splice(idx,1);
-  renderAdminSection('__formules');
+  renderAdminSection('__global');
   publishNow(true);
 }
 function formule_updateDish(fid, catId, idx, field, value){
@@ -3765,7 +3757,7 @@ function formule_importDish(fid, catId, selectEl){
   // Copie indépendante — modifier le prix ou le texte ici ne touche
   // jamais le vrai plat du menu principal.
   cat.cards[0].dishes.push({ name:{fr:real.name}, desc:{fr:real.desc}, price:real.price });
-  renderAdminSection('__formules');
+  renderAdminSection('__global');
   scheduleAutoSave(true);
 }
 // Titre + texte libre optionnels, injectés en préambule de la
@@ -6829,7 +6821,7 @@ function showFontGallery(target, fid){
   const sampleText = (DATA.restaurantName||'Restaurant');
   const rows = fontList.map(f=>{
     const onclick = target==='formule'
-      ? `formule_setField('${fid}','instaFont','${f.replace(/'/g,"\\'")}');if(typeof initFormulePreviewFrames==='function')initFormulePreviewFrames();closeFontGallery();renderAdminSection('__formules')`
+      ? `formule_setField('${fid}','instaFont','${f.replace(/'/g,"\\'")}');if(typeof initFormulePreviewFrames==='function')initFormulePreviewFrames();closeFontGallery();renderAdminSection('__global')`
       : target==='insta'
       ? `setPdfCfg('instaFont','${f.replace(/'/g,"\\'")}');closeFontGallery();renderAdminSection(adminCurrentTab)`
       : `${target==='cover' ? 'setCoverHeadlineFont' : 'setRestoFont'}('${f.replace(/'/g,"\\'")}');closeFontGallery()`;
@@ -7002,11 +6994,17 @@ const MANAGER_CATEGORIES_ROWS = [
   { key:'newtab-boissons', label:'Nouvelle tab pour les boissons', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>', action:"addNewTab('boissons')" },
   { key:'reorder', label:'Réordonner les tabs', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>', fn: renderTabReorder }
 ];
+function renderPrintBodyWrapped(){ return `<div class="admin-section"><div class="admin-sect-body">${renderPrintBody()}</div></div>`; }
+const MENU_MANAGEMENT_ROWS = [
+  { key:'export', label:'Export des menus', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>', fn: renderPrintBodyWrapped },
+  { key:'formules', label:'Création des menus spéciaux et des formules', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="14" y2="13"/></svg>', fn: renderFormulesSection }
+];
 const HOME_GROUPS = [
   { label:'Informations générales', rows:INFO_GENERALE_ROWS },
   { label:'Site internet', rows:SITE_INTERNET_ROWS },
   { label:'Catégories', rows:categorieRows },
-  { label:'Manager les catégories', rows:MANAGER_CATEGORIES_ROWS }
+  { label:'Manager les catégories', rows:MANAGER_CATEGORIES_ROWS },
+  { label:'Gestion des menus', rows:MENU_MANAGEMENT_ROWS }
 ];
 function homeGroupRows(g){ return typeof g.rows === 'function' ? g.rows() : g.rows; }
 function openHomeRow(key){ homeSubpageKey = key; renderAdminSection('__global'); }
