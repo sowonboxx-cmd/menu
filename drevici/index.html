@@ -638,6 +638,9 @@ body.home-cover-showing{overflow:hidden}
    bandeau ; couleur bleu clair, comme les noms de sections dans
    "Changer l'ordre des onglets". */
 .ig-subpage-old-content .ig-card-title-input{background:transparent!important;color:#8AB4F8!important;font-weight:500}
+/* Nom de la formule, dans l'en-tête — même principe (pas de fond, pas
+   de bordure, juste la croix pour fermer) mais en gris, pas en bleu. */
+.ig-subpage-old-content .ig-formule-title-input{background:transparent!important;border:none!important;color:var(--ig-text,#ececec)!important;font-weight:500;padding-left:0}
 /* Cadre visible autour de la galerie réseaux sociaux — elle avait
    déjà son propre libellé, il ne lui manquait qu'un encadré pour bien
    la distinguer du reste. */
@@ -6093,7 +6096,7 @@ function renderFormuleDetail(f){
 
   const colorCell = c => `
       <div class="af" style="flex:1;min-width:0">
-        <label class="al" style="font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block">${c.label}</label>
+        <label class="al" style="font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;min-height:13px;line-height:13px">${c.label}</label>
         <div style="display:flex;align-items:center;gap:3px">
           <input type="color" value="${c.f[c.key]||defaultFor(c.key)}" oninput="formule_setColor('${c.f.id}','${c.key}',this.value)" style="width:25px;height:25px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer">
           ${c.f[c.key]?`<button type="button" title="Réinitialiser" onclick="formule_setColor('${c.f.id}','${c.key}','')" style="width:22px;height:22px;flex:none;border:none;border-radius:50%;background:var(--ig-card,#2f2f2f);color:var(--ig-text-dim,#b4b4b4);cursor:pointer;font-size:11px;padding:0">↺</button>`:''}
@@ -6114,15 +6117,15 @@ function renderFormuleDetail(f){
       ${colorCell({f:fo, key:'instaBgColor', sizeKey:null, label:'Couleur de fond'})}
     </div>`;
 
-  const sectionHeader = title => `<div style="text-align:right;text-transform:lowercase;font-size:10px;color:var(--ig-text-dimmer,var(--text3));margin:18px 0 8px;font-family:'Jost',sans-serif">${title}</div>`;
+  const sectionHeader = title => `<div style="text-align:left;font-size:12.5px;font-weight:600;color:var(--ig-text-dimmer,var(--text3));margin:18px 0 8px;font-family:'Jost',sans-serif">${title}</div>`;
 
   let h = `<div class="ig-inner-back-row">
     <button class="ig-back-btn" onclick="closeFormule()">‹</button>
-    <input class="ai ig-visible-field" style="flex:1" value="${escAttr(f.name||'')}" placeholder="Ex : Menu du dimanche — 35€" oninput="formule_rename('${f.id}',this.value)">
+    <input class="ai ig-formule-title-input" style="flex:1" value="${escAttr(f.name||'')}" placeholder="Ex : Menu du dimanche — 35€" oninput="formule_rename('${f.id}',this.value)">
     <button class="adel" style="font-size:12px;padding:1px 0;flex:none;opacity:.6" onclick="if(confirm('Supprimer cette formule ?')){formule_delete('${f.id}');closeFormule();}">✕</button>
   </div>
   <div class="admin-card">
-    ${sectionHeader('informations générales')}
+    ${sectionHeader('Informations générales')}
     <div class="af">
       <input class="ai ig-visible-field" value="${escAttr(f.title||'')}" placeholder="Titre affiché — Ex : MENU DU DIMANCHE" oninput="formule_setField('${f.id}','title',this.value)">
     </div>
@@ -6151,7 +6154,7 @@ function renderFormuleDetail(f){
       </div>
     </div>
 
-    ${sectionHeader('éléments du menu')}
+    ${sectionHeader('Éléments du menu')}
     <div class="ig-list">
       ${f.tabs.map(cat=>`
         <div class="ig-row" onclick="openFormuleCat('${cat.id}')">
@@ -6159,11 +6162,11 @@ function renderFormuleDetail(f){
           <span class="ig-row-chevron">›</span>
         </div>`).join('')}
     </div>
-    <button class="aadd ig-add-btn" style="margin-top:8px" onclick="formule_addCategory('${f.id}')">Catégorie</button>
+    <button class="aadd ig-add-btn" style="margin-top:8px" onclick="formule_addCategory('${f.id}')">Ajouter une catégorie</button>
 
-    ${sectionHeader('personnalisation')}
+    ${sectionHeader('Personnalisation')}
     <div class="af">
-      <div class="ai ig-font-field" onclick="showFontGallery('formule','${f.id}')">
+      <div class="ai ig-font-field ig-cover-field-flat" onclick="showFontGallery('formule','${f.id}')">
         <span style="font-size:11.5px;color:var(--ig-text-dimmer,var(--text3))">Voir et choisir la police</span>
         <div style="font-size:18.5px;color:var(--ig-text,#ececec);font-family:'${f.instaFont||brandCfg.instaFont||'Playfair Display'}',serif!important;margin-top:2px">${f.instaFont||brandCfg.instaFont||'Playfair Display'}</div>
       </div>
