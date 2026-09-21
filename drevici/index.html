@@ -55,6 +55,15 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 .font-gallery-row:hover{background:#faf9f6}
 .font-gallery-name{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);font-family:'Jost',sans-serif;margin-bottom:3px}
 .font-gallery-sample{font-size:22px;color:var(--text);line-height:1.2}
+/* Dark mode — uniquement quand ouverte depuis une partie déjà
+   redessinée (voir showFontGallery, marqueur .ig-dark-modal). */
+.font-gallery-overlay.ig-dark-modal .font-gallery-card{background:#212121}
+.font-gallery-overlay.ig-dark-modal .font-gallery-hdr{border-bottom-color:#424242;color:#ececec}
+.font-gallery-overlay.ig-dark-modal .font-gallery-hdr .lb-close{color:#ececec!important}
+.font-gallery-overlay.ig-dark-modal .font-gallery-row{border-bottom-color:rgba(255,255,255,.08)}
+.font-gallery-overlay.ig-dark-modal .font-gallery-row:hover{background:#2f2f2f}
+.font-gallery-overlay.ig-dark-modal .font-gallery-name{color:#8e8ea0}
+.font-gallery-overlay.ig-dark-modal .font-gallery-sample{color:#ececec}
 .lb-close:hover{opacity:1}
 
 /* ── LAYOUT ── */
@@ -524,7 +533,7 @@ body.home-cover-showing{overflow:hidden}
 .ig-subpage-old-content .ai:focus,
 .ig-subpage-old-content input:focus,
 .ig-subpage-old-content select:focus,
-.ig-subpage-old-content textarea:focus{outline:1px solid #6e6e6e}
+.ig-subpage-old-content textarea:focus{outline:none;box-shadow:0 0 0 1px #6e6e6e}
 .ig-subpage-old-content .ai::placeholder,
 .ig-subpage-old-content input::placeholder,
 .ig-subpage-old-content textarea::placeholder{color:var(--ig-text-dimmer)}
@@ -2135,8 +2144,8 @@ function renderAdminHomeCover(){
     ${isVideo ? `
     <div class="af">
       <div class="ai-img-wrap">
-        <input class="ai ig-cover-field-flat" value="${escAttr(hc.video||'')}" placeholder="Vidéo — URL YouTube, Vimeo ou lien .mp4" oninput="DATA.homeCover.video=this.value.trim();renderAll();scheduleCoverAutoSave()">
-        <label class="ai-upload-btn ig-cover-field-flat" title="Uploader une vidéo (bientôt disponible)" onclick="event.preventDefault();showToast('⏳ Upload direct de vidéo bientôt disponible — utilisez un lien pour l\\'instant.')">
+        <input class="ai" value="${escAttr(hc.video||'')}" placeholder="Vidéo — URL YouTube, Vimeo ou lien .mp4" oninput="DATA.homeCover.video=this.value.trim();renderAll();scheduleCoverAutoSave()">
+        <label class="ai-upload-btn" title="Uploader une vidéo (bientôt disponible)" onclick="event.preventDefault();showToast('⏳ Upload direct de vidéo bientôt disponible — utilisez un lien pour l\\'instant.')">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path></svg>
         </label>
       </div>
@@ -6832,6 +6841,12 @@ function showFontGallery(target, fid){
   const modal=document.createElement('div');
   modal.className='font-gallery-overlay';
   modal.id='fontGalleryOverlay';
+  // Dark mode : réutilise le même marqueur que le panneau admin
+  // (.ig-dark, posé sur #adminBody quand on est dans "Home") — cette
+  // fenêtre s'ouvre ailleurs aussi (Formules, Export), qui ne sont pas
+  // encore redessinés, donc on ne l'assombrit que dans ce contexte-là.
+  const adminBodyEl = document.getElementById('adminBody');
+  if(adminBodyEl && adminBodyEl.classList.contains('ig-dark')) modal.classList.add('ig-dark-modal');
   modal.innerHTML=`<div class="font-gallery-card">
     <div class="font-gallery-hdr"><span>Choisir une police</span><button type="button" class="lb-close" style="position:static;color:var(--text)" onclick="closeFontGallery()">✕</button></div>
     <div class="font-gallery-list">${rows}</div>
