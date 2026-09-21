@@ -615,6 +615,16 @@ body.home-cover-showing{overflow:hidden}
    déjà son propre libellé, il ne lui manquait qu'un encadré pour bien
    la distinguer du reste. */
 .ig-gallery-frame{border:1px solid #5a5a5a;border-radius:10px;padding:10px 12px;margin-top:8px}
+/* Champs de lien + bouton upload, dans le détail de la galerie —
+   bordure grise comme partout ailleurs, sinon on ne les voit pas du
+   tout sur le fond sombre. */
+.ig-gallery-links .ai{border:1px solid #5a5a5a!important}
+.ig-gallery-links .ai-upload-btn{border:1px solid #5a5a5a!important}
+/* "Voir toutes les photos" — triangle natif masqué, notre propre
+   flèche à droite (comme partout ailleurs) plutôt qu'à gauche. */
+.ig-gallery-details summary{cursor:pointer;color:var(--ig-text-dimmer,var(--text3));font-size:11px;font-family:'Jost',sans-serif;display:flex;align-items:center;justify-content:space-between;list-style:none}
+.ig-gallery-details summary::-webkit-details-marker{display:none}
+.ig-gallery-chevron{font-size:13px}
 /* Bloc "Section" — un seul bloc cliquable par section, exactement le
    même style que les lignes de "Changer l'ordre des onglets" (fond
    gris carte, nom en bleu clair), avec une petite flèche à droite
@@ -632,7 +642,7 @@ body.home-cover-showing{overflow:hidden}
    qu'on voie que c'est une action à part, pas un plat de plus dans la
    liste. */
 .ig-add-btn-standalone{margin-top:16px!important}
-.ig-caption-label{font-size:10px;font-weight:600;color:var(--ig-text-dimmer,var(--text3));margin-bottom:4px}
+.ig-caption-label{font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px}
 .ig-subpage-old-content .ig-caption-input{border:none!important;background:transparent!important;padding:0!important;width:100%}
 .ig-card-sect-title .adel{color:#ffb3ab!important}
 /* Boutons "+ Plat"/"+ Boisson"/"+ Variante"/"+ Nouvelle section" —
@@ -3158,7 +3168,7 @@ function priceFieldSimple(d, ti, ci, di){
   const numVal=(d.price||'').replace('€','').trim();
   return `<div class="af">
     <div style="display:flex;align-items:center;gap:6px">
-      <input class="ai" type="number" min="0" step="0.5" value="${numVal}" placeholder="Prix" style="max-width:100px" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].price=this.value?this.value+'€':'';renderAll()">
+      <input class="ai ig-visible-field" type="number" min="0" step="0.5" value="${numVal}" placeholder="Prix" style="max-width:100px" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].price=this.value?this.value+'€':'';renderAll()">
       <span style="font-size:13px;color:var(--text3)">€</span>
       ${DATA.tabs[ti].id==='huitres'?`<label style='display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text3);cursor:pointer;margin-left:8px'><input type='checkbox' ${d.priceType==='dual'?'checked':''} onchange='DATA.tabs[${ti}].cards[${ci}].dishes[${di}].priceType=this.checked?"dual":"";renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)'> + Ajouter un prix</label>`:''}
     </div>
@@ -7015,20 +7025,20 @@ function dishEyeDelButtons(hidden, toggleCode, delCode){
 
 function adminBadgeGroup(obj, path){
   obj=obj||{};
-  return `<div class="badge-group"><span style="width:100%;font-size:11px;font-weight:600;color:var(--text2);margin-bottom:2px">Informations alimentaires</span>`
+  return `<div class="ig-gallery-frame"><div class="badge-group"><span style="width:100%;font-size:11px;font-weight:600;color:var(--text2);margin-bottom:2px">Informations alimentaires</span>`
     + BADGE_DEFS.map(b=>`<label class="badge-check"><input type="checkbox" ${obj[b.key]?'checked':''} onchange="if(this.checked)${path}.${b.key}=true;else delete ${path}.${b.key};renderAll()"><span class="badge-emoji">${b.emoji}</span> ${b.label}</label>`).join('')
-    + `</div>`;
+    + `</div></div>`;
 }
 
 function entityGalleryHtml(ti,ci,idx,kind,gallery){
   gallery=gallery||[];
   const base=`DATA.tabs[${ti}].cards[${ci}].${kind}[${idx}]`;
-  let h='<div class="af"><label class="al" style="font-size:11px;font-weight:600;color:var(--text2)">Galerie réseaux sociaux (1–5 photos)</label>';
+  let h='<div class="af"><label class="al" style="font-size:11px;font-weight:600;color:var(--text2)">Galerie réseaux sociaux (1–4 photos)</label>';
   // Thumbnail strip — clickable previews of filled slots
   const filled=gallery.filter(Boolean);
   if(filled.length){
-    h+='<div style="display:flex;gap:6px;margin:10px 0 8px;flex-wrap:wrap">';
-    for(let gi=0;gi<5;gi++){
+    h+='<div style="display:flex;gap:6px;margin:10px 0 14px;flex-wrap:wrap">';
+    for(let gi=0;gi<4;gi++){
       const img=gallery[gi]||'';
       if(img){
         h+=`<div style="position:relative;width:60px;height:60px;border-radius:8px;overflow:hidden;border:2px solid var(--gold)">
@@ -7039,11 +7049,12 @@ function entityGalleryHtml(ti,ci,idx,kind,gallery){
     }
     h+='</div>';
   }
-  // Détail des 5 champs — replié par défaut, ça prend trop de place
-  // affiché d'un coup.
-  h+=`<details style="margin-top:${filled.length?'4':'10'}px"><summary style="cursor:pointer;color:var(--ig-text-dimmer,var(--text3));font-size:11px;font-family:'Jost',sans-serif">Voir toutes les photos</summary>`;
-  h+='<div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">';
-  for(let gi=0;gi<5;gi++){
+  // Détail des 4 champs — replié par défaut, ça prend trop de place
+  // affiché d'un coup. Flèche à droite (comme partout ailleurs), pas
+  // le triangle natif à gauche.
+  h+=`<details class="ig-gallery-details" style="margin-top:${filled.length?'2':'10'}px"><summary>Voir toutes les photos<span class="ig-row-chevron ig-gallery-chevron">›</span></summary>`;
+  h+='<div class="ig-gallery-links" style="display:flex;flex-direction:column;gap:8px;margin-top:10px">';
+  for(let gi=0;gi<4;gi++){
     const val=gallery[gi]||'';
     const cb=`if(!${base}.gallery)${base}.gallery=[];${base}.gallery[${gi}]=this.value;renderAll()`;
     h+=`<div style="display:flex;align-items:flex-start;gap:6px">
