@@ -711,6 +711,12 @@ body.home-cover-showing{overflow:hidden}
 .admin-section.collapsible>.admin-sect-title::after{content:'▾';font-size:14px}
 .admin-section.collapsible.collapsed>.admin-sect-title::after{content:'▸'}
 .admin-section.collapsible.collapsed>.admin-sect-body{display:none}
+/* Marqueur différent de "collapsible collapsed" — exprès, pour ne
+   pas être retiré par le regex qui force l'ouverture des cartes de
+   plats/sections dans renderHomeSubpage() (celui-là ne doit toucher
+   qu'à ces cartes-là, pas aux accordéons "Personnaliser" d'Export du
+   menu, qui eux doivent bien rester repliables). */
+.admin-section.ig-accordion.collapsed>.admin-sect-body{display:none}
 .admin-sect-body{padding:12px;background:#fff}
 .af{margin-bottom:9px}
 .al{font-size:11px;font-weight:500;color:var(--text2);font-family:'Jost',sans-serif;margin-bottom:3px;display:block;letter-spacing:.04em}
@@ -3029,14 +3035,18 @@ function openAdmin(){
   }
   document.getElementById('adminTabDd').style.display='';
   document.getElementById('adminLangDd').style.display='';
-  renderAdminTabDd();
-  const targetTab=DATA.tabs.find(t=>t.id===currentTabId);
-  if(targetTab){adminCurrentTab=currentTabId;document.getElementById('adminTabDd').value=currentTabId;}
-  // BUG FIX (panneau tout blanc à la première ouverture) : si quoi que
-  // ce soit plante pendant le rendu (donnée pas encore chargée, état
-  // d'une ancienne session invalide, etc.), on se rabat proprement sur
-  // Home plutôt que de laisser #adminBody vide/blanc sans explication.
+  // BUG FIX (panneau tout blanc à la première ouverture) : DATA.tabs
+  // peut ne pas encore exister à ce moment précis (site jamais publié,
+  // ou données pas encore chargées) — renderAdminTabDd()/le ciblage de
+  // l'onglet plantaient alors AVANT même d'atteindre le try/catch du
+  // rendu lui-même, laissant #adminBody tel quel (vide). On sécurise
+  // tout le bloc, du filtrage des tabs jusqu'au rendu, avec un même
+  // repli propre sur Home.
   try{
+    if(!Array.isArray(DATA.tabs)) DATA.tabs=[];
+    renderAdminTabDd();
+    const targetTab=DATA.tabs.find(t=>t.id===currentTabId);
+    if(targetTab){adminCurrentTab=currentTabId;document.getElementById('adminTabDd').value=currentTabId;}
     renderAdminSection(adminCurrentTab);
   }catch(e){
     console.error('Erreur de rendu admin, retour à Home :', e);
@@ -6222,7 +6232,7 @@ function renderPrintBody(){
       ${tabBtn('insta','Instagram')}
     </div>`;
 
-  const elementsAccordion = `<div class="admin-section collapsible collapsed" style="margin-bottom:10px">
+  const elementsAccordion = `<div class="admin-section ig-accordion collapsed" style="margin-bottom:10px">
     <div class="ig-card-sect-title" onclick="toggleAdminSection(this)" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer"><span>Personnaliser</span><span class="ig-row-chevron">›</span></div>
     <div class="admin-sect-body">
       <div class="af">
@@ -6270,7 +6280,7 @@ function renderPrintBody(){
         ${printPages.map((p,i)=>`<span class="pdf-carousel-dot" data-idx="${i}" style="width:${i===0?7:6}px;height:${i===0?7:6}px;border-radius:50%;background:${i===0?'#fff':'#6e6e6e'}"></span>`).join('')}
       </div>
     </div>` : activeTab==='gbiz' ? renderGbizPagePreview() : activeTab==='insta' ? `
-    <div class="admin-section collapsible collapsed" style="margin-bottom:10px">
+    <div class="admin-section ig-accordion collapsed" style="margin-bottom:10px">
       <div class="ig-card-sect-title" onclick="toggleAdminSection(this)" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer"><span>Personnaliser</span><span class="ig-row-chevron">›</span></div>
       <div class="admin-sect-body">
         <div class="af">
