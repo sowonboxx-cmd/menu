@@ -442,10 +442,13 @@ body.home-cover-showing{overflow:hidden}
    simplement plus spécifique. */
 #adminPanel, #adminPanel *{font-family:'Inter',sans-serif!important}
 .admin-panel.open{transform:translateX(0)}
-.admin-hdr{padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--navy);z-index:2}
-.admin-hdr-title{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:700;color:var(--navy)}
-.admin-hdr-right{display:flex;gap:6px;align-items:center}
-.admin-tab-dd{padding:0 28px 0 10px;height:34px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;font-size:12px;font-family:'Jost',sans-serif;color:#fff;background:rgba(255,255,255,0.1) url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M1 1l4 4 4-4' stroke='rgba(255,255,255,.7)' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>") no-repeat calc(100% - 8px) center;cursor:pointer;outline:none;max-width:180px;box-sizing:border-box;-webkit-appearance:none;appearance:none}
+.admin-hdr{padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.15);display:flex;align-items:center;gap:10px;position:sticky;top:0;background:var(--navy);z-index:2}
+.admin-hdr-title{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:700;color:var(--navy);flex:none}
+/* Le menu des sections occupe tout l'espace disponible entre la
+   pastille ADMIN et la croix — il est ainsi centré dans la barre et
+   les noms longs ne sont plus tronqués. */
+.admin-hdr-right{display:flex;gap:10px;align-items:center;flex:1;min-width:0}
+.admin-tab-dd{padding:0 28px 0 10px;height:34px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;font-size:12px;font-family:'Jost',sans-serif;color:#fff;background:rgba(255,255,255,0.1) url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M1 1l4 4 4-4' stroke='rgba(255,255,255,.7)' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>") no-repeat calc(100% - 8px) center;cursor:pointer;outline:none;flex:1;min-width:0;box-sizing:border-box;-webkit-appearance:none;appearance:none}
 .admin-close{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:6px;width:34px;height:34px;cursor:pointer;font-size:17px;color:#fff;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;box-sizing:border-box}
 /* Mobile — demande explicite de Will : plus de pastille "ADMIN"
    séparée (le menu déroulant des sections prend le relais, en
@@ -463,14 +466,9 @@ body.home-cover-showing{overflow:hidden}
   .admin-hdr-title{display:flex;align-items:center}
   /* BUG FIX (tailles différentes) : même police/taille que la
      pastille ADMIN (10px, Jost, gras, espacé), pas 12px. */
-  #adminTabDd{text-transform:uppercase;max-width:none;flex:1;min-width:0;font-weight:600;letter-spacing:.06em;font-size:10px;background-color:transparent;border-color:rgba(255,255,255,0.2)}
-  /* BUG FIX (écarts inégaux) : justify-content:space-between (règle
-     de base, desktop) étirait tout l'espace restant dans UN seul des
-     deux écarts. Un même gap partout — au niveau de la barre ET à
-     l'intérieur du groupe de droite — donne le même espacement entre
-     les 3 éléments (ADMIN / menu déroulant / fermer). */
-  .admin-hdr{justify-content:flex-start;gap:6px}
-  .admin-hdr-right{flex:1;gap:6px}
+  #adminTabDd{text-transform:uppercase;font-weight:600;letter-spacing:.06em;font-size:10px;background-color:transparent;border-color:rgba(255,255,255,0.2)}
+  .admin-hdr{gap:6px}
+  .admin-hdr-right{gap:6px}
   .admin-close{background:var(--navy);border:1px solid rgba(255,255,255,0.2)}
 }
 .admin-body{flex:1;overflow-y:auto;padding:16px}
@@ -3430,9 +3428,22 @@ function openAdmin(){
   try{
     if(!Array.isArray(DATA.tabs)) DATA.tabs=[];
     renderAdminTabDd();
-    const targetTab=DATA.tabs.find(t=>t.id===currentTabId);
-    if(targetTab){adminCurrentTab=currentTabId;document.getElementById('adminTabDd').value=currentTabId;}
-    renderAdminSection(adminCurrentTab);
+    // On entre toujours par la nouvelle navigation (sombre) : si on
+    // consultait une catégorie du menu, on ouvre directement SA page,
+    // avec "Menus et plats" empilé derrière pour que le retour
+    // remonte proprement. L'ancien rendu clair n'est plus une porte
+    // d'entrée.
+    const targetTab=DATA.tabs.find(t=>t.id===currentTabId && t.id!=='__home');
+    adminCurrentTab='__global';
+    if(targetTab){
+      homeSubpageKey=targetTab.id;
+      homeSubpageStack=['menus-et-plats'];
+      const dd=document.getElementById('adminTabDd'); if(dd) dd.value=targetTab.id;
+    }else{
+      homeSubpageKey=null;
+      homeSubpageStack=[];
+    }
+    renderAdminSection('__global');
   }catch(e){
     console.error('Erreur de rendu admin, retour à Home :', e);
     adminCurrentTab='__global';
@@ -3509,8 +3520,12 @@ function adminGoTab(val){
   if(val==='__addtab_boissons'){ addNewTab('boissons'); return; }
   if(val==='__reorder'){ adminCurrentTab='__reorder'; renderAdminSection('__reorder'); return; }
   if(val==='__social'){ adminCurrentTab='__social'; renderAdminSection('__social'); return; }
-  adminCurrentTab=val;
-  renderAdminSection(val);
+  // Une vraie catégorie : on passe par la navigation sombre, comme le
+  // bouton Paramètres — plus d'ancien écran clair.
+  adminCurrentTab='__global';
+  homeSubpageKey=val;
+  homeSubpageStack=['menus-et-plats'];
+  renderAdminSection('__global');
 }
 
 function adminSaveBar(){
@@ -3805,10 +3820,30 @@ function refreshCurrentTabView(tabId){
 function openTabSection(tabId, ci){ tabSectionOpen[tabId] = ci; dishDetailOpen[tabId] = null; refreshCurrentTabView(tabId); }
 function closeTabSection(tabId){ tabSectionOpen[tabId] = null; refreshCurrentTabView(tabId); }
 
+// Une catégorie n'a très souvent qu'une seule section, laissée sans
+// titre. Cliquer sur une ligne vide juste pour atteindre ses plats
+// n'apporte rien : dans ce cas précis on liste les plats directement
+// sur la page de la catégorie. Renvoie l'index de cette section, ou
+// null si la navigation normale (par sections) s'applique.
+function soloUntitledCardIndex(tab){
+  if(!tab || !Array.isArray(tab.cards) || tab.cards.length!==1) return null;
+  const c=tab.cards[0];
+  // Boissons et variantes ont leur propre éditeur, on n'y touche pas.
+  if(c.type==='bevs'||c.type==='variants') return null;
+  return (t(c.label)||'').trim() ? null : 0;
+}
 function renderAdminTab(ti){
   const tab=DATA.tabs[ti];
   const openCi = tabSectionOpen[tab.id];
   if(openCi!=null && tab.cards[openCi]) return renderTabSectionDetail(ti, openCi);
+  // Plats listés directement (voir soloUntitledCardIndex) : le détail
+  // d'un plat doit donc aussi pouvoir s'ouvrir depuis ce niveau.
+  const inlineCi = soloUntitledCardIndex(tab);
+  if(inlineCi!=null){
+    const openDi = dishDetailOpen[tab.id];
+    const dishes = tab.cards[inlineCi].dishes||[];
+    if(openDi!=null && dishes[openDi]) return renderDishDetailBody(ti, inlineCi, openDi);
+  }
   return renderTabSectionList(ti);
 }
 
@@ -3839,6 +3874,28 @@ function renderTabSectionList(ti){
   // petite flèche à droite), on entre dans le détail au clic. Plus
   // d'accordéon qui déplie tout sur place : trop d'informations d'un
   // coup quand il y a beaucoup de plats.
+  // Plats en accès direct quand il n'y a qu'une section sans titre —
+  // ou aucune section du tout (on la crée alors à la volée au premier
+  // plat ajouté). Placé au-dessus du bloc "Section".
+  const inlineCi = soloUntitledCardIndex(tab);
+  const isBevTab = tab.id==='boissons' || (tab.cards.length>0 && tab.cards.every(c=>c.type==='bevs'));
+  if(inlineCi!=null || (!tab.cards.length && !isBevTab)){
+    const dishes = inlineCi!=null ? (tab.cards[inlineCi].dishes||[]) : [];
+    h+=`<div class="ig-group-label" style="margin:30px 0 8px 4px;display:block;color:#8E8EA0!important">Plats</div>`;
+    if(dishes.length){
+      h+=`<div class="ig-list">`;
+      dishes.forEach((d,di)=>{
+        const dName=d.name&&(d.name[adminLang]||d.name.fr)||'';
+        h+=`<div class="ig-row" onclick="openDishDetail('${tab.id}',${di})">
+          <span class="ig-row-label">${escAttr(dName)||'(sans nom)'}</span>
+          <span class="ig-row-chevron">›</span>
+        </div>`;
+      });
+      h+=`</div>`;
+    }
+    h+=`<div class="ig-list" style="margin-top:${dishes.length?'14':'0'}px"><div class="ig-row" style="justify-content:center" onclick="addDishToSoloSection(${ti})"><span style="color:#3BA55D;font-weight:500">Ajouter un plat</span></div></div>`;
+  }
+
   h+=`<div class="ig-group-label" style="margin:30px 0 8px 4px;display:block;color:#8E8EA0!important">Section</div>`;
   h+=`<div class="ig-list">`;
   tab.cards.forEach((card,ci)=>{
@@ -3857,7 +3914,7 @@ function renderTabSectionList(ti){
     h+=`<div class="ig-group-label" style="margin:0 0 8px 4px;display:block;color:#8E8EA0!important">Changer l'ordre des onglets</div>`;
     h+=`<div id="sectionReorderList" data-ti="${ti}">`;
     tab.cards.forEach((card,ci)=>{
-      h+=`<div class="admin-card" style="display:flex;align-items:center;gap:10px;background:#fff;margin-bottom:6px;cursor:grab;touch-action:none"
+      h+=`<div class="admin-card" style="display:flex;align-items:center;gap:10px;background:var(--ig-card,#2f2f2f);margin-bottom:6px;cursor:grab;touch-action:none"
             data-ti="${ti}" data-ci="${ci}"
             draggable="true"
             ondragstart="onDragSectionRow(event,${ti},${ci})"
@@ -3865,9 +3922,9 @@ function renderTabSectionList(ti){
             ondragover="onDragSectionRowOver(event,${ti},${ci})"
             ondragleave="onDragLeave(event)"
             ondrop="onDropSectionRow(event,${ti},${ci})">
-        <span class="drag-handle" style="font-size:18px;padding:8px 6px">⠿</span>
-        <span style="font-family:Jost,sans-serif;font-size:13px;font-weight:500;color:var(--navy);flex:1">${t(card.label)}</span>
-        <span style="font-size:10px;color:var(--text3)">Section ${ci+1}</span>
+        <span class="drag-handle" style="font-size:18px;padding:8px 6px;color:var(--ig-text-dim,#b4b4b4)">⠿</span>
+        <span style="font-size:13.5px;font-weight:500;color:var(--ig-text,#ececec);flex:1">${t(card.label)}</span>
+        <span style="font-size:11px;color:var(--ig-text-dimmer,#8e8ea0)">Section ${ci+1}</span>
       </div>`;
     });
     h+=`</div></div></div>`;
@@ -3896,7 +3953,7 @@ function renderTabSectionDetail(ti, ci){
         return `<div class="ai-row" style="margin-bottom:4px;align-items:center"><select class="ai-unit-sel" onchange="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].format=this.value;const f=BEV_FORMATS.find(f=>f.key===this.value);if(f&&f.autoCl!=null){DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].cl=f.autoCl;DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].unit='cl';}renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)">${bevFormatOptionsHtml(s.format)}</select><input class="ai" type="number" min="0" placeholder="Contenance" value="${s.cl||''}" style="max-width:64px" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].cl=this.value;renderAll()"><select class="ai-unit-sel" onchange="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].unit=this.value;renderAll()"><option value="cl" ${unit==='cl'?'selected':''}>cl</option><option value="l" ${unit==='l'?'selected':''}>L</option></select><input class="ai" type="number" min="0" step="0.5" placeholder="prix" value="${s.price||''}" style="max-width:64px" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].price=this.value;renderAll()"><span style="font-size:11px;color:var(--text3);padding:0 4px">€</span><button class="adel" onclick="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes.splice(${si},1);renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)">×</button></div>`;
       }).join('');
       const bevName=typeof item.name==='object'?(item.name[adminLang]||item.name.fr||''):(item.name||'');
-      h+=`<div class="admin-card collapsed" style="background:#fff;margin-top:4px" ondragover="onDragOver(event,${ti},${ci},${ii})" ondragleave="onDragLeave(event)" ondrop="onDropBev(event,${ti},${ci},${ii})">
+      h+=`<div class="admin-card collapsed" style="background:var(--ig-card,#2f2f2f);margin-top:4px" ondragover="onDragOver(event,${ti},${ci},${ii})" ondragleave="onDragLeave(event)" ondrop="onDropBev(event,${ti},${ci},${ii})">
         <div class="admin-card-hdr"><span class="drag-handle" draggable="true" ondragstart="onDragBev(event,${ti},${ci},${ii})" ondragend="onDragEndHandle(event)">⠿</span><span class="admin-card-num" style="cursor:pointer" onclick="this.closest('.admin-card').classList.toggle('collapsed')">Boisson ${ii+1}${bevName?' — '+escAttr(bevName):''}</span>${dishEyeDelButtons(!!item.hidden, `(function(){if(${!!item.hidden}){delete DATA.tabs[${ti}].cards[${ci}].items[${ii}].hidden;}else{DATA.tabs[${ti}].cards[${ci}].items[${ii}].hidden=true;}renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)})()`, `askConfirm('Supprimer cette boisson ?',()=>delBev(${ti},${ci},${ii}))`)}</div>
         <div class="admin-card-details">
         <input class="ai ig-visible-field" style="margin-bottom:4px" placeholder="${adminLang!=='fr'&&typeof item.name==='object'?item.name.fr||'Nom':'Nom'}" value="${typeof item.name==='object'?(item.name[adminLang]||''):item.name||''}" oninput="if(typeof DATA.tabs[${ti}].cards[${ci}].items[${ii}].name!=='object'){DATA.tabs[${ti}].cards[${ci}].items[${ii}].name={fr:DATA.tabs[${ti}].cards[${ci}].items[${ii}].name};}DATA.tabs[${ti}].cards[${ci}].items[${ii}].name[adminLang]=this.value;renderAll()">
@@ -4069,6 +4126,17 @@ function addBev(ti,ci){
   refreshCurrentTabView(DATA.tabs[ti].id);
   const body=document.getElementById('adminBody');
   if(body) setTimeout(()=>body.scrollTop=body.scrollHeight,50);
+}
+// "Ajouter un plat" depuis la page d'une catégorie : si la catégorie
+// n'a encore aucune section, on en crée une sans titre pour accueillir
+// le plat — l'utilisateur n'a pas à passer par la création d'une
+// section pour commencer à saisir sa carte.
+function addDishToSoloSection(ti){
+  const tab=DATA.tabs[ti];
+  if(!Array.isArray(tab.cards)) tab.cards=[];
+  if(!tab.cards.length) tab.cards.push({label:{fr:'',en:''},dishes:[]});
+  addDish(ti,0);
+  renderAdminSection(adminCurrentTab);
 }
 function addCard(ti){
   const tab=DATA.tabs[ti];
