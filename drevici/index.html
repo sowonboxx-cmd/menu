@@ -576,7 +576,12 @@ body.home-cover-showing{overflow:hidden}
    neutralise ici avec un survol neutre, comme sur "Publier". */
 .ig-subpage-old-content .admin-toggle:hover{border-color:transparent!important}
 .ig-subpage-old-content .ig-pill:hover{background:#3a3a3a!important}
-.ig-subpage-old-content .ai-upload-btn{background:var(--ig-card)!important;border:none!important;border-radius:10px!important;color:#fff!important;width:52px!important;height:auto!important;flex:none!important;margin-right:2px}
+.ig-subpage-old-content .ai-upload-btn{background:var(--ig-card)!important;border:none!important;border-radius:10px!important;color:#fff!important;width:52px!important;height:38px!important;flex:none!important;margin-right:2px}
+/* BUG FIX (bouton d'upload plus haut que le champ) : le "stretch" sur
+   le conteneur ne matchait pas de façon fiable dans tous les
+   contextes. On fixe une hauteur identique, explicite, des deux
+   côtés plutôt que de compter sur l'étirement automatique. */
+.ig-subpage-old-content .ai-img-wrap .ai{height:38px!important}
 /* "Voir et choisir la police" — même forme de champ (.ai) que les
    autres, cliquable, avec un tout petit libellé au-dessus du nom de
    la police pour qu'on comprenne encore que c'est cliquable. */
@@ -1298,7 +1303,7 @@ function efImgField(id, val, label, ratio=1){
   const previewStyle = val ? '' : 'display:none';
   return `<div class="ef"><label class="el">${label}</label><div class="ai-img-wrap">
     <input class="ei" id="${id}" value="${escAttr(val||'')}" placeholder="Image URL" oninput="syncEfImgPreview(this)">
-    <label class="ai-upload-btn" title="Uploader une image"><input type="file" accept="image/*" style="display:none" onchange="uploadEditImgFile(this,${ratio===null?'null':ratio})"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg></label>
+    <label class="ai-upload-btn" title="Uploader une image"><input type="file" accept="image/*" style="display:none" onchange="uploadEditImgFile(this,${ratio===null?'null':ratio})"><svg width="18.4" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg></label>
   </div><img class="ai-img-preview" src="${escAttr(val||'')}" style="${previewStyle};width:100%;max-width:120px;aspect-ratio:1;object-fit:cover;border-radius:6px;margin-top:6px;border:1px solid var(--border)" onerror="this.style.display='none'"></div>`;
 }
 function uploadEditImgFile(fileInput, ratio){
@@ -2201,7 +2206,7 @@ function renderAdminHomeCover(){
       <div class="ai-img-wrap">
         <input class="ai" value="${escAttr(hc.video||'')}" placeholder="Vidéo — URL YouTube, Vimeo ou lien .mp4" oninput="DATA.homeCover.video=this.value.trim();renderAll();scheduleCoverAutoSave()">
         <label class="ai-upload-btn" title="Uploader une vidéo (bientôt disponible)" onclick="event.preventDefault();showToast('⏳ Upload direct de vidéo bientôt disponible — utilisez un lien pour l\\'instant.')">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg>
+          <svg width="18.4" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg>
         </label>
       </div>
     </div>
@@ -4170,7 +4175,7 @@ function renderSocialSection(){
   // Photo upload (when no dish selected)
   const photoField = !s.selectedDish ? `<div class="af"><label class="al">Photo (URL ou upload)</label>
     <div class="ai-img-wrap"><input class="ai" value="${s.photo}" placeholder="https://..." oninput="socState.photo=this.value;renderSocPreview()">
-    <label class="ai-upload-btn"><input type="file" accept="image/*" style="display:none" onchange="socLoadFile(this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg></label></div>
+    <label class="ai-upload-btn"><input type="file" accept="image/*" style="display:none" onchange="socLoadFile(this)"><svg width="18.4" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg></label></div>
   </div>` : '';
 
   // Corpo template presets
@@ -7204,7 +7209,7 @@ function imgFieldHtml(val, onchangeJs, placeholder, ratio=1, bordered=false, ext
   // oninput = the SAME inline save+render that name/price use, then a clean preview sync call
   const handler = onchangeJs + ';syncImgPreview(this)';
   const cls = (bordered?' ig-visible-field':'') + (extraClass?' '+extraClass:'');
-  return `<div class="af"><div class="ai-img-wrap"><input class="ai${cls}" value="${val||''}" placeholder="${placeholder||'Image URL'}" oninput="${handler}"><label class="ai-upload-btn${bordered?' ig-upload-btn-bordered':''}${extraClass?' '+extraClass:''}" title="Uploader une image"><input type="file" accept="image/*" style="display:none" onchange="uploadImgFile(this,${ratio===null?'null':ratio})"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg></label></div><img class="ai-img-preview" src="${val||''}" style="${previewStyle};width:100%;max-width:120px;aspect-ratio:1;object-fit:cover;border-radius:6px;margin-top:6px;border:1px solid var(--border)" onerror="this.style.display='none'"></div>`;
+  return `<div class="af"><div class="ai-img-wrap"><input class="ai${cls}" value="${val||''}" placeholder="${placeholder||'Image URL'}" oninput="${handler}"><label class="ai-upload-btn${bordered?' ig-upload-btn-bordered':''}${extraClass?' '+extraClass:''}" title="Uploader une image"><input type="file" accept="image/*" style="display:none" onchange="uploadImgFile(this,${ratio===null?'null':ratio})"><svg width="18.4" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg></label></div><img class="ai-img-preview" src="${val||''}" style="${previewStyle};width:100%;max-width:120px;aspect-ratio:1;object-fit:cover;border-radius:6px;margin-top:6px;border:1px solid var(--border)" onerror="this.style.display='none'"></div>`;
 }
 
 function syncImgPreview(input){
