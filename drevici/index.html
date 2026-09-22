@@ -717,10 +717,17 @@ body.home-cover-showing{overflow:hidden}
 .ig-day-body{padding:2px 16px 16px;border-top:1px solid rgba(255,255,255,.06);margin-top:2px}
 .ig-day-field-label{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ig-text-dim,#b4b4b4);margin:12px 0 6px;font-family:'Jost',sans-serif;min-height:14px}
 .ig-day-field-label svg{width:14px;height:14px;flex:none}
-.ig-time-field{width:100%}
+.ig-time-field{width:100%;text-align:left;padding:12px 14px!important}
+/* Masque l'icône horloge native (desktop uniquement, absente sur
+   mobile) et dessine notre propre flèche vers le bas à la place, dans
+   le même style que les autres sélecteurs du site. */
+.ig-time-field::-webkit-calendar-picker-indicator{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  filter:none;opacity:1;cursor:pointer;width:14px;height:14px;
+}
 .ig-round-btn{width:34px;height:34px;flex:none;border-radius:50%;border:none;background:var(--ig-bg,#212121);color:var(--ig-text-dim,#b4b4b4);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;padding:0}
 .ig-round-btn-danger{color:#e07a72}
-.ig-round-btn svg{width:14px;height:14px}
+.ig-round-btn svg{width:14px;height:14px;flex:none}
 .ig-subpage-old-content select.ig-cover-field-flat{background-color:var(--ig-bg)!important}
 /* Champs de lien + bouton upload, dans le détail de la galerie —
    bordure grise comme partout ailleurs, sinon on ne les voit pas du
@@ -3037,6 +3044,8 @@ function setDayActive(i, active){
 
 function renderScheduleAdmin(){
   const sch=DATA.schedule||[];
+  const PLUS_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+  const CROSS_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>';
   let h=`<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Horaires</div><div class="admin-sect-body">`;
   sch.forEach((d,i)=>{
     // Compat : migre l'ancien {open,close} vers services[], et déduit
@@ -3044,9 +3053,11 @@ function renderScheduleAdmin(){
     if(!d.services) d.services = (d.open!=null?[{label:'',open:d.open,close:d.close}]:[]);
     if(d.active==null) d.active = d.services.length>0;
     const svcs=d.services||[];
-    const isOpen = !!scheduleDayOpen[i];
+    // Un jour fermé n'a rien à déplier — pas de flèche, pas de clic,
+    // ça reste figé tant qu'il n'est pas activé.
+    const isOpen = d.active && !!scheduleDayOpen[i];
     h+=`<div class="ig-day-card" style="margin-bottom:12px">
-      <div class="ig-day-hdr" onclick="toggleScheduleDay(${i})">
+      <div class="ig-day-hdr" ${d.active?`onclick="toggleScheduleDay(${i})"`:''} style="${d.active?'':'cursor:default'}">
         <label class="ig-switch" onclick="event.stopPropagation()">
           <input type="checkbox" ${d.active?'checked':''} onchange="setDayActive(${i},this.checked)">
           <span class="ig-switch-track"><span class="ig-switch-thumb"></span></span>
@@ -3055,31 +3066,29 @@ function renderScheduleAdmin(){
           <div class="ig-day-name">${d.day}</div>
           <div class="ig-day-sub">${d.active?'Ouvert':'Fermé'}</div>
         </div>
-        <span class="ig-day-chevron">${isOpen?'⌃':'⌄'}</span>
+        ${d.active?'<span class="ig-row-chevron ig-day-chevron">›</span>':''}
       </div>`;
     if(isOpen){
       h+=`<div class="ig-day-body">`;
-      if(d.active){
-        if(!svcs.length){
-          h+=`<button class="ig-round-btn" style="width:100%;border-radius:10px" title="Ajouter un service" onclick="DATA.schedule[${i}].services.push({label:'',open:null,close:null});renderAll();renderAdminSection('__global')">+ Ajouter un service</button>`;
-        }
-        svcs.forEach((s,si)=>{
-          h+=`<div style="display:flex;gap:10px;margin-bottom:${si===svcs.length-1?'16':'10'}px">
-            <div style="flex:1"><div class="ig-day-field-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>Ouverture</div>
-              <input type="time" class="ai ig-visible-field ig-time-field" value="${decHourToTimeStr(s.open)}" onchange="DATA.schedule[${i}].services[${si}].open=timeStrToDecHour(this.value);renderAll()">
-            </div>
-            <div style="flex:1"><div class="ig-day-field-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>Fermeture</div>
-              <input type="time" class="ai ig-visible-field ig-time-field" value="${decHourToTimeStr(s.close)}" onchange="DATA.schedule[${i}].services[${si}].close=timeStrToDecHour(this.value);renderAll()">
-            </div>
-          </div>
-          <div class="ig-day-field-label" style="margin-top:${si===0?'0':'10'}px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 8 9-5 9 5-9 5-9-5Z"/><path d="m3 13 9 5 9-5"/></svg>${si===0?'Services':''}</div>
-          <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
-            <input class="ai ig-visible-field" style="flex:1" value="${escAttr(s.label||'')}" placeholder="Service (Midi, Soir, Brunch)" oninput="DATA.schedule[${i}].services[${si}].label=this.value;renderAll()">
-            <button class="ig-round-btn" title="Ajouter un service" onclick="DATA.schedule[${i}].services.push({label:'',open:null,close:null});renderAll();renderAdminSection('__global')">+</button>
-            <button class="ig-round-btn ig-round-btn-danger" title="Supprimer ce service" onclick="askConfirm('Supprimer ce service ?',()=>{DATA.schedule[${i}].services.splice(${si},1);renderAll();renderAdminSection('__global')})">${TRASH_SVG}</button>
-          </div>`;
-        });
+      if(!svcs.length){
+        h+=`<button class="ig-round-btn" style="width:100%;border-radius:10px" title="Ajouter un service" onclick="DATA.schedule[${i}].services.push({label:'',open:null,close:null});renderAll();renderAdminSection('__global')">+ Ajouter un service</button>`;
       }
+      svcs.forEach((s,si)=>{
+        h+=`<div style="display:flex;gap:14px;margin-bottom:${si===svcs.length-1?'16':'10'}px">
+          <div style="flex:1;min-width:0"><div class="ig-day-field-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>Ouverture</div>
+            <input type="time" class="ai ig-visible-field ig-time-field" value="${decHourToTimeStr(s.open)}" onchange="DATA.schedule[${i}].services[${si}].open=timeStrToDecHour(this.value);renderAll()">
+          </div>
+          <div style="flex:1;min-width:0"><div class="ig-day-field-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>Fermeture</div>
+            <input type="time" class="ai ig-visible-field ig-time-field" value="${decHourToTimeStr(s.close)}" onchange="DATA.schedule[${i}].services[${si}].close=timeStrToDecHour(this.value);renderAll()">
+          </div>
+        </div>
+        <div class="ig-day-field-label" style="margin-top:${si===0?'0':'10'}px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 8 9-5 9 5-9 5-9-5Z"/><path d="m3 13 9 5 9-5"/></svg>${si===0?'Services':''}</div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+          <input class="ai ig-visible-field ig-time-field" style="flex:1" value="${escAttr(s.label||'')}" placeholder="Service (Midi, Soir, Brunch)" oninput="DATA.schedule[${i}].services[${si}].label=this.value;renderAll()">
+          <button class="ig-round-btn" title="Ajouter un service" onclick="DATA.schedule[${i}].services.push({label:'',open:null,close:null});renderAll();renderAdminSection('__global')">${PLUS_SVG}</button>
+          <button class="ig-round-btn ig-round-btn-danger" title="Supprimer ce service" onclick="askConfirm('Supprimer ce service ?',()=>{DATA.schedule[${i}].services.splice(${si},1);renderAll();renderAdminSection('__global')})">${CROSS_SVG}</button>
+        </div>`;
+      });
       h+=`</div>`;
     }
     h+=`</div>`;
