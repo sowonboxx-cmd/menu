@@ -2243,12 +2243,12 @@ function scheduleCoverAutoSave(){ scheduleAutoSave(); }
 // pattern as the schedule day cards (scheduleDayOpen/toggleScheduleDay).
 let coverSlideOpen = {};
 function toggleCoverSlide(i){ coverSlideOpen[i] = !coverSlideOpen[i]; renderAdminSection('__global'); }
+function setCoverMediaType(key){ DATA.homeCover.mediaType=key; renderAll(); renderAdminSection('__global'); scheduleCoverAutoSave(); }
 function renderAdminHomeCover(){
   const hc=DATA.homeCover||(DATA.homeCover={active:false,mediaType:'photo',image:'',mobilePos:50,mobileImage:'',video:'',slideshow:[{image:'',kenBurns:'zoom-in'},{image:'',kenBurns:'pan-left'},{image:'',kenBurns:'pan-right'}],logo:'',headline:'',statusBarColor:'#000000',cta1Label:'Voir le menu',cta1Url:'',cta2Label:'Réserver',cta2Url:''});
   if(!hc.slideshow) hc.slideshow=[{image:'',kenBurns:'zoom-in'},{image:'',kenBurns:'pan-left'},{image:'',kenBurns:'pan-right'}];
   const mobPos=hc.mobilePos!=null?hc.mobilePos:50;
-  const isVideo=hc.mediaType==='video';
-  const isSlideshow=hc.mediaType==='slideshow';
+  const mediaType=hc.mediaType||'photo';
   const KEN_BURNS_OPTIONS=[
     {v:'zoom-in',l:'Zoom avant (centré)'},
     {v:'zoom-out',l:'Zoom arrière (centré)'},
@@ -2257,16 +2257,30 @@ function renderAdminHomeCover(){
     {v:'pan-left',l:'Zoom à gauche'},
     {v:'pan-right',l:'Zoom à droite'},
   ];
-  return `<div class="admin-section"><div class="admin-sect-title">Page d'accueil</div><div class="admin-sect-body">
-    ${imgFieldHtml(hc.logo||'', "DATA.homeCover.logo=this.value.trim();renderAll();renderAdminSection('__global');scheduleCoverAutoSave()", 'Uploadez votre logo', null)}
-    <div class="af"><label class="ig-group-label" style="margin:36px 0 8px 4px;display:block;color:#8AB4F8!important">Visuel d'accueil</label>
-      <div class="ig-segmented" style="margin-top:4px">
-        <label class="ig-seg-btn${!isVideo&&!isSlideshow?' active':''}"><input type="radio" name="coverMediaType" value="photo" ${!isVideo&&!isSlideshow?'checked':''} onchange="DATA.homeCover.mediaType='photo';renderAll();renderAdminSection('__global');scheduleCoverAutoSave()">Photo</label>
-        <label class="ig-seg-btn${isVideo?' active':''}"><input type="radio" name="coverMediaType" value="video" ${isVideo?'checked':''} onchange="DATA.homeCover.mediaType='video';renderAll();renderAdminSection('__global');scheduleCoverAutoSave()">Vidéo</label>
-        <label class="ig-seg-btn${isSlideshow?' active':''}"><input type="radio" name="coverMediaType" value="slideshow" ${isSlideshow?'checked':''} onchange="DATA.homeCover.mediaType='slideshow';renderAll();renderAdminSection('__global');scheduleCoverAutoSave()">Diaporama</label>
+  // The three media types are shown as a navigable list (same look as
+  // the Home groups) instead of a segmented control — clicking a row
+  // makes it the active media type and unfolds its own fields inline,
+  // the other two stay folded.
+  const MEDIA_TYPE_ROWS=[
+    {key:'photo',label:'Photo',icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m21 15-5-5-11 9"/></svg>'},
+    {key:'video',label:'Vidéo',icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M10 8.5v7l6-3.5-6-3.5Z" fill="currentColor" stroke="none"/></svg>'},
+    {key:'slideshow',label:'Diaporama',icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="12" height="12" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>'}
+  ];
+  const photoFieldsHtml = `
+    ${imgFieldHtml(hc.image||'', "DATA.homeCover.image=this.value.trim();renderAll();renderAdminSection('__global');scheduleCoverAutoSave()", 'Uploadez votre image', null)}
+    <div class="af admin-card" style="display:flex;gap:16px;align-items:center;padding:12px 14px">
+      <div style="flex:1;min-width:0">
+        <label class="al">Position sur mobile — <strong id="homeCoverMobilePosLabel">${mobPos}</strong>%</label>
+        <input type="range" min="0" max="100" value="${mobPos}" style="width:100%" oninput="updateHomeCoverMobilePreview(this.value)" onchange="DATA.homeCover.mobilePos=parseInt(this.value);renderAll();scheduleCoverAutoSave()">
+      </div>
+      <div style="width:96px;height:172px;border-radius:14px;overflow:hidden;border:3px solid #1D1D1F;background:#0b0b0b;flex:none;position:relative">
+        ${hc.image?`<img id="homeCoverMobilePreviewImg" src="${escAttr(hc.image)}" style="width:100%;height:100%;object-fit:cover;object-position:${mobPos}% center;display:block">`:`<div style="color:rgba(255,255,255,.5);font-size:10px;text-align:center;padding:10px">Aperçu mobile</div>`}
       </div>
     </div>
-    ${isVideo ? `
+    <div class="af">
+      ${imgFieldHtml(hc.mobileImage||'', "DATA.homeCover.mobileImage=this.value.trim();renderAll();scheduleCoverAutoSave()", 'Photo uniquement pour mobile (optionnel)', null)}
+    </div>`;
+  const videoFieldsHtml = `
     <div class="af">
       <div class="ai-img-wrap ig-merged-upload">
         <input class="ai ig-tall-field ig-placeholder-normal-size" style="width:100%;padding:14px 44px 14px 16px!important" value="${escAttr(hc.video||'')}" placeholder="Uploadez votre vidéo" oninput="DATA.homeCover.video=this.value.trim();renderAll();scheduleCoverAutoSave()">
@@ -2274,9 +2288,8 @@ function renderAdminHomeCover(){
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.22,20.75H5.78A2.64,2.64,0,0,1,3.25,18V15a.75.75,0,0,1,1.5,0v3a1.16,1.16,0,0,0,1,1.25H18.22a1.16,1.16,0,0,0,1-1.25V15a.75.75,0,0,1,1.5,0v3A2.64,2.64,0,0,1,18.22,20.75Z"/><path d="M16,8.75a.74.74,0,0,1-.53-.22L12,5.06,8.53,8.53A.75.75,0,0,1,7.47,7.47l4-4a.75.75,0,0,1,1.06,0l4,4a.75.75,0,0,1,0,1.06A.74.74,0,0,1,16,8.75Z"/><path d="M12,15.75a.76.76,0,0,1-.75-.75V4a.75.75,0,0,1,1.5,0V15A.76.76,0,0,1,12,15.75Z"/></svg>
         </label>
       </div>
-    </div>
-    ` : isSlideshow ? `
-    ${hc.slideshow.map((slide,i)=>{
+    </div>`;
+  const slideshowFieldsHtml = hc.slideshow.map((slide,i)=>{
       const open=!!coverSlideOpen[i];
       return `
       <div class="ig-day-card" style="margin-bottom:10px">
@@ -2292,40 +2305,44 @@ function renderAdminHomeCover(){
         </div>`:''}
       </div>
       `;
-    }).join('')}
-    ` : `
-    ${imgFieldHtml(hc.image||'', "DATA.homeCover.image=this.value.trim();renderAll();renderAdminSection('__global');scheduleCoverAutoSave()", 'Uploadez votre image', null)}
-    <div class="af admin-card" style="display:flex;gap:16px;align-items:center;padding:12px 14px">
-      <div style="flex:1;min-width:0">
-        <label class="al">Position sur mobile — <strong id="homeCoverMobilePosLabel">${mobPos}</strong>%</label>
-        <input type="range" min="0" max="100" value="${mobPos}" style="width:100%" oninput="updateHomeCoverMobilePreview(this.value)" onchange="DATA.homeCover.mobilePos=parseInt(this.value);renderAll();scheduleCoverAutoSave()">
-      </div>
-      <div style="width:96px;height:172px;border-radius:14px;overflow:hidden;border:3px solid #1D1D1F;background:#0b0b0b;flex:none;position:relative">
-        ${hc.image?`<img id="homeCoverMobilePreviewImg" src="${escAttr(hc.image)}" style="width:100%;height:100%;object-fit:cover;object-position:${mobPos}% center;display:block">`:`<div style="color:rgba(255,255,255,.5);font-size:10px;text-align:center;padding:10px">Aperçu mobile</div>`}
-      </div>
-    </div>
-    <div class="af">
-      ${imgFieldHtml(hc.mobileImage||'', "DATA.homeCover.mobileImage=this.value.trim();renderAll();scheduleCoverAutoSave()", 'Photo uniquement pour mobile (optionnel)', null)}
-    </div>
-    `}
-    <div class="af">
+    }).join('');
+  const MEDIA_FIELDS_HTML={ photo:photoFieldsHtml, video:videoFieldsHtml, slideshow:slideshowFieldsHtml };
+  const LINK_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" y1="12" x2="16" y2="12"/></svg>';
+  return `<div class="admin-section"><div class="admin-sect-title">Page d'accueil</div><div class="admin-sect-body">
+
+    <div class="af"><label class="ig-group-label" style="margin:0 0 8px 4px;display:block;color:#8E8EA0!important">Logo, titre, liens</label></div>
+    ${imgFieldHtml(hc.logo||'', "DATA.homeCover.logo=this.value.trim();renderAll();renderAdminSection('__global');scheduleCoverAutoSave()", 'Uploadez votre logo', null)}
+    <div class="af admin-card" style="padding:12px 14px">
+      <div class="ig-day-field-label" style="margin-top:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>Texte d'accroche</div>
       <textarea class="ai" rows="2" style="resize:vertical" placeholder="Texte affiché en bas de l'écran d'accueil" oninput="DATA.homeCover.headline=this.value;renderAll();scheduleCoverAutoSave()">${escAttr(hc.headline||'')}</textarea>
-    </div>
-    <div class="af">
+      <div class="ig-day-field-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg>Police</div>
       <div class="ai ig-font-field" onclick="showFontGallery('cover')">
         <span style="font-size:11.5px;color:var(--ig-text-dimmer)">Voir et choisir la police</span>
         <div id="coverFontNameDisplay" style="font-size:18.5px;color:var(--ig-text);font-family:'${hc.headlineFont||'Jost'}',sans-serif!important;margin-top:2px">${hc.headlineFont||'Jost'}</div>
       </div>
     </div>
-    <label class="al" style="display:block;margin-top:12px;font-size:11px;text-transform:uppercase;letter-spacing:.06em">1er bouton</label>
-    <div class="af" style="display:flex;gap:8px">
+    <div class="af admin-card" style="padding:12px 14px">
+      <div class="ig-day-field-label" style="margin-top:0">${LINK_ICON}Bouton 1</div>
       <input class="ai" value="${escAttr(hc.cta1Label||'')}" placeholder="Texte (ex: Voir le menu)" oninput="DATA.homeCover.cta1Label=this.value;renderAll();scheduleCoverAutoSave()">
-      <input class="ai" value="${escAttr(hc.cta1Url||'')}" placeholder="Lien (vide = ouvre le menu ici)" oninput="DATA.homeCover.cta1Url=this.value.trim();renderAll();scheduleCoverAutoSave()">
+      <input class="ai" style="margin-top:8px" value="${escAttr(hc.cta1Url||'')}" placeholder="Lien (vide = ouvre le menu ici)" oninput="DATA.homeCover.cta1Url=this.value.trim();renderAll();scheduleCoverAutoSave()">
     </div>
-    <label class="al" style="display:block;margin-top:12px;font-size:11px;text-transform:uppercase;letter-spacing:.06em">2e bouton</label>
-    <div class="af" style="display:flex;gap:8px">
+    <div class="af admin-card" style="padding:12px 14px">
+      <div class="ig-day-field-label" style="margin-top:0">${LINK_ICON}Bouton 2</div>
       <input class="ai" value="${escAttr(hc.cta2Label||'')}" placeholder="Texte (ex: Réserver)" oninput="DATA.homeCover.cta2Label=this.value;renderAll();scheduleCoverAutoSave()">
-      <input class="ai" value="${escAttr(hc.cta2Url||'')}" placeholder="Lien" oninput="DATA.homeCover.cta2Url=this.value.trim();renderAll();scheduleCoverAutoSave()">
+      <input class="ai" style="margin-top:8px" value="${escAttr(hc.cta2Url||'')}" placeholder="Lien" oninput="DATA.homeCover.cta2Url=this.value.trim();renderAll();scheduleCoverAutoSave()">
+    </div>
+
+    <div class="af"><label class="ig-group-label" style="margin:36px 0 8px 4px;display:block;color:#8E8EA0!important">Visuel d'accueil</label></div>
+    <div class="ig-list">
+      ${MEDIA_TYPE_ROWS.map(row=>{
+        const active = mediaType===row.key;
+        return `<div class="ig-row" style="align-items:flex-start;flex-wrap:wrap" onclick="setCoverMediaType('${row.key}')">
+          <span class="ig-row-icon" style="margin-top:1px">${row.icon}</span>
+          <span class="ig-row-label" style="flex:1">${row.label}</span>
+          <span class="ig-row-chevron" style="transition:transform .2s;transform:rotate(${active?90:0}deg)">›</span>
+          ${active?`<div style="flex:0 0 100%;width:100%;margin-top:14px" onclick="event.stopPropagation()">${MEDIA_FIELDS_HTML[row.key]}</div>`:''}
+        </div>`;
+      }).join('')}
     </div>
   </div></div>`;
 }
