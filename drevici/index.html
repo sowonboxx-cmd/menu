@@ -577,6 +577,13 @@ body.home-cover-showing{overflow:hidden}
 .ig-subpage-old-content .admin-toggle:hover{border-color:transparent!important}
 .ig-subpage-old-content .ig-pill:hover{background:#3a3a3a!important}
 .ig-subpage-old-content .ai-upload-btn{background:var(--ig-card)!important;border:none!important;border-radius:10px!important;color:#fff!important;width:52px!important;height:38px!important;flex:none!important;margin-right:2px}
+/* Test : upload intégré dans le même champ que le lien, plutôt qu'un
+   bouton séparé à côté — juste l'icône, posée à l'intérieur, à
+   droite. Scoppé à .ig-merged-upload pour ne toucher que ce champ
+   pour l'instant. */
+.ig-subpage-old-content .ig-merged-upload{position:relative;display:block}
+.ig-subpage-old-content .ig-inline-upload-icon{position:absolute;right:6px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--ig-text-dim,#b4b4b4);background:none;border:none;display:flex;align-items:center}
+.ig-subpage-old-content .ig-inline-upload-icon:hover{color:#fff}
 /* BUG FIX (bouton d'upload plus haut que le champ) : le "stretch" sur
    le conteneur ne matchait pas de façon fiable dans tous les
    contextes. On fixe une hauteur identique, explicite, des deux
@@ -6802,7 +6809,16 @@ function restaurantSettingHtml(){
         <div id="restoFontNameDisplay" style="font-size:18.5px;color:var(--ig-text);font-family:'${DATA.restoFont||'Cormorant Garamond'}',serif!important;margin-top:2px">${DATA.restoFont||'Cormorant Garamond'}</div>
       </div>
     </div>
-    ${imgFieldHtml(logo, "setRestaurantLogo(this.value.trim());applyRestaurantBranding()", "Lien du logo de l'établissement", null, false, 'ig-tall-field')}
+    <div class="af">
+      <div class="ai-img-wrap ig-merged-upload">
+        <input class="ai ig-tall-field" style="width:100%;padding-right:44px" value="${logo}" placeholder="Lien du logo de l'établissement" oninput="setRestaurantLogo(this.value.trim());applyRestaurantBranding();syncImgPreview(this)">
+        <label class="ig-inline-upload-icon" title="Uploader une image">
+          <input type="file" accept="image/*" style="display:none" onchange="uploadImgFile(this,null)">
+          <svg width="18.4" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg>
+        </label>
+      </div>
+      <img class="ai-img-preview" src="${logo||''}" style="${logo?'':'display:none'};width:100%;max-width:120px;aspect-ratio:1;object-fit:cover;border-radius:6px;margin-top:6px;border:1px solid var(--border)" onerror="this.style.display='none'">
+    </div>
 
     <div class="af"><label class="ig-group-label" style="margin:16px 0 8px 4px;display:block;color:#8E8EA0!important">Adresse & contact</label></div>
     <div class="af">
