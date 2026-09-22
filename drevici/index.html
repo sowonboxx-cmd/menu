@@ -717,7 +717,9 @@ body.home-cover-showing{overflow:hidden}
 .ig-day-body{padding:2px 16px 16px;border-top:1px solid rgba(255,255,255,.06);margin-top:2px}
 .ig-day-field-label{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ig-text-dim,#b4b4b4);margin:12px 0 6px;font-family:'Jost',sans-serif;min-height:14px}
 .ig-day-field-label svg{width:14px;height:14px;flex:none}
-.ig-time-field{width:100%;text-align:left;padding:12px 14px!important}
+.ig-time-field{width:100%;text-align:left}
+.ig-subpage-old-content select.ig-time-field,
+.ig-subpage-old-content input.ig-time-field{padding-top:12px!important;padding-bottom:12px!important}
 /* Masque l'icône horloge native (desktop uniquement, absente sur
    mobile) et dessine notre propre flèche vers le bas à la place, dans
    le même style que les autres sélecteurs du site. */
@@ -3031,6 +3033,22 @@ function timeStrToDecHour(str){
   const [hh,mm]=str.split(':').map(Number);
   return hh+(mm||0)/60;
 }
+// Menu déroulant maison (créneaux de 15 min, 00:00 à 23:45) — pour
+// avoir un rendu identique sur toutes les plateformes, contrairement
+// à <input type="time"> dont l'icône ne peut pas être repeinte de
+// façon fiable sur Safari iOS.
+function timeSelectOptions(selectedDec){
+  let opts='<option value="">--</option>';
+  for(let h=0;h<24;h++){
+    for(let m=0;m<60;m+=15){
+      const dec=h+m/60;
+      const label=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+      const sel=(selectedDec!=null&&Math.abs(selectedDec-dec)<0.01)?'selected':'';
+      opts+=`<option value="${dec}" ${sel}>${label}</option>`;
+    }
+  }
+  return opts;
+}
 // Un seul jour ouvert à la fois n'est pas obligatoire ici — chaque
 // jour retient son propre état plié/déplié.
 let scheduleDayOpen = {};
@@ -3076,10 +3094,10 @@ function renderScheduleAdmin(){
       svcs.forEach((s,si)=>{
         h+=`<div style="display:flex;gap:14px;margin-bottom:${si===svcs.length-1?'16':'10'}px">
           <div style="flex:1;min-width:0"><div class="ig-day-field-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>Ouverture</div>
-            <input type="time" class="ai ig-visible-field ig-time-field" value="${decHourToTimeStr(s.open)}" onchange="DATA.schedule[${i}].services[${si}].open=timeStrToDecHour(this.value);renderAll()">
+            <select class="ai ig-visible-field ig-time-field ig-hm-select" onchange="DATA.schedule[${i}].services[${si}].open=this.value===''?null:parseFloat(this.value);renderAll()">${timeSelectOptions(s.open)}</select>
           </div>
           <div style="flex:1;min-width:0"><div class="ig-day-field-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>Fermeture</div>
-            <input type="time" class="ai ig-visible-field ig-time-field" value="${decHourToTimeStr(s.close)}" onchange="DATA.schedule[${i}].services[${si}].close=timeStrToDecHour(this.value);renderAll()">
+            <select class="ai ig-visible-field ig-time-field ig-hm-select" onchange="DATA.schedule[${i}].services[${si}].close=this.value===''?null:parseFloat(this.value);renderAll()">${timeSelectOptions(s.close)}</select>
           </div>
         </div>
         <div class="ig-day-field-label" style="margin-top:${si===0?'0':'10'}px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 8 9-5 9 5-9 5-9-5Z"/><path d="m3 13 9 5 9-5"/></svg>${si===0?'Services':''}</div>
