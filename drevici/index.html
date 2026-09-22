@@ -461,7 +461,6 @@ body.home-cover-showing{overflow:hidden}
      correctement au milieu, comme les deux autres éléments. */
   .admin-badge{vertical-align:middle}
   .admin-hdr-title{display:flex;align-items:center}
-  #adminLangDd{display:none}
   /* BUG FIX (tailles différentes) : même police/taille que la
      pastille ADMIN (10px, Jost, gras, espacé), pas 12px. */
   #adminTabDd{text-transform:uppercase;max-width:none;flex:1;min-width:0;font-weight:600;letter-spacing:.06em;font-size:10px;background-color:transparent;border-color:rgba(255,255,255,0.2)}
@@ -475,6 +474,20 @@ body.home-cover-showing{overflow:hidden}
   .admin-close{background:var(--navy);border:1px solid rgba(255,255,255,0.2)}
 }
 .admin-body{flex:1;overflow-y:auto;padding:16px}
+/* Le panneau admin est sombre partout (voir .admin-body.ig-dark) : son
+   en-tête doit suivre, sinon la barre navy flotte au-dessus d'un fond
+   #212121. On marque le PANNEAU (et pas seulement le corps) pour
+   pouvoir habiller l'en-tête, qui est son frère dans le DOM. Les
+   boutons de la barre reprennent eux aussi ce fond : plus de pastilles
+   qui ressortent, tout est à plat. */
+.admin-panel.ig-dark-panel .admin-hdr{background:#212121;border-bottom-color:rgba(255,255,255,0.08)}
+.admin-panel.ig-dark-panel .admin-close,
+.admin-panel.ig-dark-panel .admin-badge,
+.admin-panel.ig-dark-panel #adminTabDd{background-color:#212121!important;background-image:none;border-color:rgba(255,255,255,0.18)!important;color:#ececec}
+.admin-panel.ig-dark-panel #adminTabDd{background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M1 1l4 4 4-4' stroke='rgba(255,255,255,.7)' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>")}
+/* Sélecteur de langue retiré de la barre — sur mobile comme sur
+   desktop (il n'était masqué qu'en mobile jusqu'ici). */
+#adminLangDd{display:none}
 
 /* ── "Informations générales" — redesign façon ChatGPT (Customize
    ChatGPT), dark mode — étape 1 d'une refonte progressive de tout
@@ -3422,7 +3435,26 @@ function adminLoginOnlyHtml(){
     </div>
   </div>`;
 }
-function closeAdmin(){ document.getElementById('adminOverlay').classList.remove('open'); document.getElementById('adminPanel').classList.remove('open'); }
+// La barre de statut (encoche iPhone) prend le fond de l'admin sombre
+// tant que ce panneau est ouvert, puis rend la main au cover ou à la
+// couleur de marque dès qu'on le ferme — sinon on garde une bande
+// navy au-dessus d'un panneau #212121.
+function syncAdminStatusBar(){
+  const meta=document.getElementById('themeColorMeta');
+  if(!meta) return;
+  const panel=document.getElementById('adminPanel');
+  if(panel && panel.classList.contains('open') && panel.classList.contains('ig-dark-panel')){
+    meta.setAttribute('content','#212121');
+    return;
+  }
+  if(isHomeCoverShowing()){
+    meta.setAttribute('content',(DATA.homeCover&&DATA.homeCover.statusBarColor)||'#000000');
+    return;
+  }
+  const primary=(DATA.brandColors&&DATA.brandColors.primary)||getComputedStyle(document.documentElement).getPropertyValue('--navy').trim();
+  if(primary) meta.setAttribute('content',primary);
+}
+function closeAdmin(){ document.getElementById('adminOverlay').classList.remove('open'); document.getElementById('adminPanel').classList.remove('open'); syncAdminStatusBar(); }
 
 function renderAdminTabDd(){
   const dd=document.getElementById('adminTabDd');
@@ -3495,6 +3527,9 @@ function renderAdminSection(tid, _skipScroll){
   // panneau assombri uniquement quand on est dans cette section,
   // le reste de l'admin n'est pas encore redessiné.
   if(body) body.classList.toggle('ig-dark', tid==='__global');
+  const panelEl=document.getElementById('adminPanel');
+  if(panelEl) panelEl.classList.toggle('ig-dark-panel', tid==='__global');
+  syncAdminStatusBar();
   if(tid==='__global'){
     body.innerHTML=renderAdminGlobal();
   } else if(tid==='__social'){
