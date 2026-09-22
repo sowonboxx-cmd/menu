@@ -718,8 +718,16 @@ body.home-cover-showing{overflow:hidden}
 .ig-day-field-label{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ig-text-dim,#b4b4b4);margin:12px 0 6px;font-family:'Jost',sans-serif;min-height:14px}
 .ig-day-field-label svg{width:14px;height:14px;flex:none}
 .ig-time-field{width:100%;text-align:left}
+.ig-time-picker{position:relative}
+.ig-time-picker-display{cursor:pointer;user-select:none}
+.ig-time-picker-panel{position:absolute;top:calc(100% + 4px);left:0;right:0;max-height:224px;overflow-y:auto;background:#3a3a3a;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.45);z-index:60;display:none;-webkit-overflow-scrolling:touch}
+.ig-time-picker-panel.open{display:block}
+.ig-time-picker-opt{padding:9px 14px;cursor:pointer;font-family:'Jost',sans-serif;font-size:14px;color:var(--ig-text,#ececec)}
+.ig-time-picker-opt:hover{background:#454545}
+.ig-time-picker-opt.selected{color:#8AB4F8;font-weight:600}
 .ig-subpage-old-content select.ig-time-field,
-.ig-subpage-old-content input.ig-time-field{padding-top:12px!important;padding-bottom:12px!important}
+.ig-subpage-old-content input.ig-time-field,
+.ig-subpage-old-content div.ig-time-field{padding-top:12px!important;padding-bottom:12px!important}
 /* Masque l'icône horloge native (desktop uniquement, absente sur
    mobile) et dessine notre propre flèche vers le bas à la place, dans
    le même style que les autres sélecteurs du site. */
@@ -3037,6 +3045,65 @@ function timeStrToDecHour(str){
 // avoir un rendu identique sur toutes les plateformes, contrairement
 // à <input type="time"> dont l'icône ne peut pas être repeinte de
 // façon fiable sur Safari iOS.
+// Menu déroulant maison (créneaux de 15 min, 00:00 à 23:45) — pour
+// avoir un rendu identique sur toutes les plateformes, contrairement
+// à <input type="time"> dont l'icône ne peut pas être repeinte de
+// façon fiable sur Safari iOS.
+// BUG FIX (le natif prend tout l'écran sur iPhone) : un <select> HTML
+// classique ouvre le même genre de plein écran natif sur iOS que
+// <input type="time"> — impossible à limiter en hauteur depuis le
+// CSS. On construit donc notre propre liste déroulante (une div
+// absolument positionnée, hauteur limitée à ~6-7 lignes, défilable),
+// entièrement sous notre contrôle sur toutes les plateformes.
+function nearestQuarterHourDec(){
+  const now = new Date();
+  let dec = now.getHours() + Math.round(now.getMinutes()/15)*(15/60);
+  if(dec >= 24) dec -= 24;
+  return dec;
+}
+function timePickerFieldHtml(id, dec, onChangeJs){
+  const label = decHourToTimeStr(dec) || '--';
+  let opts = '';
+  for(let hh=0; hh<24; hh++){
+    for(let mm=0; mm<60; mm+=15){
+      const d = hh + mm/60;
+      const lbl = String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0');
+      const isSel = dec!=null && Math.abs(dec-d)<0.01;
+      opts += `<div class="ig-time-picker-opt${isSel?' selected':''}" data-dec="${d}" onclick="selectTimePickerOpt('${id}',${d},'${lbl}')">${lbl}</div>`;
+    }
+  }
+  return `<div class="ig-time-picker" id="tp-${id}" data-onchange="${escAttr(onChangeJs)}">
+    <div class="ai ig-visible-field ig-time-field ig-time-picker-display" onclick="openTimePicker('${id}')">${label}</div>
+    <div class="ig-time-picker-panel" id="tp-panel-${id}">${opts}</div>
+  </div>`;
+}
+function closeAllTimePickers(){
+  document.querySelectorAll('.ig-time-picker-panel.open').forEach(p=>p.classList.remove('open'));
+  document.removeEventListener('click', onTimePickerOutsideClick, true);
+}
+function onTimePickerOutsideClick(e){
+  if(!e.target.closest('.ig-time-picker')) closeAllTimePickers();
+}
+function openTimePicker(id){
+  const alreadyOpen = document.getElementById('tp-panel-'+id).classList.contains('open');
+  closeAllTimePickers();
+  if(alreadyOpen) return;
+  const panel = document.getElementById('tp-panel-'+id);
+  panel.classList.add('open');
+  const sel = panel.querySelector('.ig-time-picker-opt.selected')
+    || panel.querySelector(`[data-dec="${nearestQuarterHourDec()}"]`)
+    || panel.firstElementChild;
+  if(sel && sel.scrollIntoView) sel.scrollIntoView({block:'center'});
+  setTimeout(()=>document.addEventListener('click', onTimePickerOutsideClick, true), 0);
+}
+function selectTimePickerOpt(id, dec, label){
+  const wrap = document.getElementById('tp-'+id);
+  wrap.querySelector('.ig-time-picker-display').textContent = label;
+  wrap.querySelectorAll('.ig-time-picker-opt').forEach(o=>o.classList.toggle('selected', Math.abs(parseFloat(o.dataset.dec)-dec)<0.01));
+  closeAllTimePickers();
+  const onChangeJs = wrap.dataset.onchange;
+  if(onChangeJs){ const v = dec; eval(onChangeJs); renderAll(); }
+}
 function timeSelectOptions(selectedDec){
   let opts='<option value="">--</option>';
   for(let h=0;h<24;h++){
@@ -3094,10 +3161,10 @@ function renderScheduleAdmin(){
       svcs.forEach((s,si)=>{
         h+=`<div style="display:flex;gap:14px;margin-bottom:${si===svcs.length-1?'16':'10'}px">
           <div style="flex:1;min-width:0"><div class="ig-day-field-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>Ouverture</div>
-            <select class="ai ig-visible-field ig-time-field ig-hm-select" onchange="DATA.schedule[${i}].services[${si}].open=this.value===''?null:parseFloat(this.value);renderAll()">${timeSelectOptions(s.open)}</select>
+            ${timePickerFieldHtml(`open-${i}-${si}`, s.open, `DATA.schedule[${i}].services[${si}].open=v`)}
           </div>
           <div style="flex:1;min-width:0"><div class="ig-day-field-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>Fermeture</div>
-            <select class="ai ig-visible-field ig-time-field ig-hm-select" onchange="DATA.schedule[${i}].services[${si}].close=this.value===''?null:parseFloat(this.value);renderAll()">${timeSelectOptions(s.close)}</select>
+            ${timePickerFieldHtml(`close-${i}-${si}`, s.close, `DATA.schedule[${i}].services[${si}].close=v`)}
           </div>
         </div>
         <div class="ig-day-field-label" style="margin-top:${si===0?'0':'10'}px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 8 9-5 9 5-9 5-9-5Z"/><path d="m3 13 9 5 9-5"/></svg>${si===0?'Services':''}</div>
