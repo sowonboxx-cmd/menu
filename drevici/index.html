@@ -490,6 +490,13 @@ body.home-cover-showing{overflow:hidden}
 .ig-list{background:var(--ig-card);border-radius:12px;overflow:hidden}
 .ig-row{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;color:var(--ig-text);font-family:'Jost',sans-serif;font-size:14.5px;border-bottom:1px solid var(--ig-border);transition:background .12s}
 .ig-row:last-child{border-bottom:none}
+/* Case à cocher en ligne de liste (avec traits de séparation), pour
+   remplacer les pastilles séparées dans "Présentation et affichage" —
+   même police/couleurs que .ig-row, juste avec une checkbox au lieu
+   d'un chevron. */
+.ig-row-toggle{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;font-family:'Jost',sans-serif;font-size:14.5px;border:none!important;border-radius:0!important;border-bottom:1px solid var(--ig-border)!important;margin:0!important;background:transparent!important}
+.ig-row-toggle:last-child{border-bottom:none!important}
+.ig-row-toggle label{color:var(--ig-text);cursor:pointer}
 .ig-row:hover{background:#3a3a3a}
 .ig-row-icon{width:20px;height:20px;flex:none;color:var(--ig-text-dim);display:flex;align-items:center;justify-content:center}
 /* Champ qui se fond dans une ligne de liste (icône + champ à
@@ -3454,13 +3461,18 @@ function updateDualPrice(ti,ci,di){
 
 function renderFirstTabExtrasSection(){
   let h='';
+  const introVal=(DATA.intro.text[adminLang]||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+  const introPh=(adminLang==='fr'?'':(DATA.intro.text.fr||'')).replace(/"/g,'&quot;');
   h+=`<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Présentation et affichage</div><div class="admin-sect-body">
-    `+biInput('Texte de présentation', DATA.intro.text.fr||'', DATA.intro.text[adminLang]||'', `DATA.intro.text[adminLang]=this.value;renderAll()`, true)+`
-    <div class="ig-list" style="margin-top:14px">
-      <label class="admin-toggle ig-pill"><input type="checkbox" ${DATA.intro.active?'checked':''} onchange="DATA.intro.active=this.checked;renderAll();renderAdminSection('__global')"><label>Afficher la présentation</label></label>
-      <label class="admin-toggle ig-pill" style="margin-top:8px"><input type="checkbox" ${DATA.showCurrency!==false?'checked':''} onchange="DATA.showCurrency=this.checked;renderAll()"><label>Afficher la devise (€)</label></label>
-      <label class="admin-toggle ig-pill" style="margin-top:8px"><input type="checkbox" ${(DATA.defaultView||'grid')==='grid'?'checked':''} onchange="if(this.checked){DATA.defaultView='grid';view='grid';}else{DATA.defaultView='list';view='list';}renderAll();renderAdminSection('__global')"><label>Afficher en grille</label></label>
-      <label class="admin-toggle ig-pill" style="margin-top:8px"><input type="checkbox" ${DATA.defaultView==='list'?'checked':''} onchange="if(this.checked){DATA.defaultView='list';view='list';}else{DATA.defaultView='grid';view='grid';}renderAll();renderAdminSection('__global')"><label>Afficher en liste</label></label>
+    <div class="ig-group-label" style="margin:0 0 8px 4px;display:block;color:#8E8EA0!important">Texte de présentation</div>
+    <textarea class="ai" rows="5" style="resize:vertical;min-height:90px;padding:8px" placeholder="${introPh}" oninput="DATA.intro.text[adminLang]=this.value;renderAll()">${introVal}</textarea>
+
+    <div class="ig-group-label" style="margin:24px 0 8px 4px;display:block;color:#8E8EA0!important">Affichage</div>
+    <div class="ig-list">
+      <label class="admin-toggle ig-row-toggle"><input type="checkbox" ${DATA.intro.active?'checked':''} onchange="DATA.intro.active=this.checked;renderAll();renderAdminSection('__global')"><label>Afficher la présentation</label></label>
+      <label class="admin-toggle ig-row-toggle"><input type="checkbox" ${DATA.showCurrency!==false?'checked':''} onchange="DATA.showCurrency=this.checked;renderAll()"><label>Afficher la devise (€)</label></label>
+      <label class="admin-toggle ig-row-toggle"><input type="checkbox" ${(DATA.defaultView||'grid')==='grid'?'checked':''} onchange="if(this.checked){DATA.defaultView='grid';view='grid';}else{DATA.defaultView='list';view='list';}renderAll();renderAdminSection('__global')"><label>Afficher en grille</label></label>
+      <label class="admin-toggle ig-row-toggle"><input type="checkbox" ${DATA.defaultView==='list'?'checked':''} onchange="if(this.checked){DATA.defaultView='list';view='list';}else{DATA.defaultView='grid';view='grid';}renderAll();renderAdminSection('__global')"><label>Afficher en liste</label></label>
     </div>
   </div></div>`;
 
