@@ -3475,18 +3475,18 @@ function renderFirstTabExtrasSection(){
         <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${DATA.intro.active?'checked':''} onchange="DATA.intro.active=this.checked;renderAll();renderAdminSection('__global')"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
       </div>
       <div class="ig-row" style="cursor:default">
-        <span class="ig-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 8.5h3.5a2 2 0 0 1 0 4H9m0 0h4M9 8.5V15m0-2.5h3"/></svg></span>
+        <span class="ig-row-icon" style="font-family:'Jost',sans-serif;font-weight:700;font-size:15px">€</span>
         <span class="ig-row-label">Afficher la devise (€)</span>
         <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${DATA.showCurrency!==false?'checked':''} onchange="DATA.showCurrency=this.checked;renderAll()"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
       </div>
       <div class="ig-row" style="cursor:default">
         <span class="ig-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
-        <span class="ig-row-label">Afficher en grille</span>
+        <span class="ig-row-label">Afficher le menu en grille</span>
         <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${(DATA.defaultView||'grid')==='grid'?'checked':''} onchange="if(this.checked){DATA.defaultView='grid';view='grid';}else{DATA.defaultView='list';view='list';}renderAll();renderAdminSection('__global')"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
       </div>
       <div class="ig-row" style="cursor:default">
         <span class="ig-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg></span>
-        <span class="ig-row-label">Afficher en liste</span>
+        <span class="ig-row-label">Afficher le menu en liste</span>
         <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${DATA.defaultView==='list'?'checked':''} onchange="if(this.checked){DATA.defaultView='list';view='list';}else{DATA.defaultView='grid';view='grid';}renderAll();renderAdminSection('__global')"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
       </div>
     </div>
@@ -7199,22 +7199,17 @@ function fetchCityFromZip(zip){
 
 function renderSocialAdminSection(){
   const soc=DATA.social||{};
-  return `<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Réseaux sociaux</div><div class="admin-sect-body" style="padding:14px 16px">
+  return `<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Réseaux sociaux</div><div class="admin-sect-body">
+    <div class="ig-group-label" style="margin:0 0 8px 4px;display:block;color:#8E8EA0!important">Nom du compte</div>
     <div class="af">
-      <div style="display:flex;align-items:center;gap:6px">
-        <span style="font-size:13px;color:var(--text3)">@</span>
-        <input class="ai" value="${soc.instagram||''}" placeholder="Instagram" oninput="if(!DATA.social)DATA.social={};DATA.social.instagram=this.value;renderAll()">
-      </div></div>
+      <input class="ai ig-tall-field" value="${escAttr(soc.instagram||'')}" placeholder="@Instagram" oninput="if(!DATA.social)DATA.social={};DATA.social.instagram=this.value;renderAll()">
+    </div>
     <div class="af">
-      <div style="display:flex;align-items:center;gap:6px">
-        <span style="font-size:13px;color:var(--text3)">@</span>
-        <input class="ai" value="${soc.tiktok||''}" placeholder="TikTok" oninput="if(!DATA.social)DATA.social={};DATA.social.tiktok=this.value;renderAll()">
-      </div></div>
+      <input class="ai ig-tall-field" value="${escAttr(soc.tiktok||'')}" placeholder="@TikTok" oninput="if(!DATA.social)DATA.social={};DATA.social.tiktok=this.value;renderAll()">
+    </div>
     <div class="af">
-      <div style="display:flex;align-items:center;gap:6px">
-        <span style="font-size:13px;color:var(--text3)">@</span>
-        <input class="ai" value="${soc.facebook||''}" placeholder="Facebook" oninput="if(!DATA.social)DATA.social={};DATA.social.facebook=this.value;renderAll()">
-      </div></div>
+      <input class="ai ig-tall-field" value="${escAttr(soc.facebook||'')}" placeholder="@Facebook" oninput="if(!DATA.social)DATA.social={};DATA.social.facebook=this.value;renderAll()">
+    </div>
   </div></div>`;
 }
 
@@ -7264,7 +7259,7 @@ const INFO_GENERALE_ROWS = [
 ];
 const SITE_INTERNET_ROWS = [
   { key:'accueil', label:"Page d'accueil", icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 4l9 6.5"/><path d="M5 10v9h14v-9"/><rect x="10" y="13" width="4" height="6"/></svg>', fn:renderAdminHomeCover },
-  { key:'menus-et-plats', label:'Menus et plats', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 12.3 12.3 20.6a2 2 0 0 1-2.8 0l-7.1-7.1a2 2 0 0 1 0-2.8L10.7 2.4A2 2 0 0 1 12.1 1.8H19a2 2 0 0 1 2 2v6.9a2 2 0 0 1-.6 1.4Z"/><circle cx="14.5" cy="6.5" r="1.2"/></svg>', fn: renderMenusEtPlats }
+  { key:'menus-et-plats', label:'Menus et plats', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4" r="1"/><path d="M4 16a8 8 0 0 1 16 0"/><rect x="2" y="16" width="20" height="3" rx="1"/></svg>', fn: renderMenusEtPlats }
 ];
 // "Apparence" est volontairement non-cliquable pour l'instant : tout
 // le panneau n'existe qu'en sombre aujourd'hui (pas de vrai mode
@@ -7323,8 +7318,8 @@ function renderMenusEtPlats(){
 }
 const HOME_GROUPS = [
   { label:'Informations générales', rows:INFO_GENERALE_ROWS },
-  { label:'Personnalisation', rows:PERSONNALISATION_ROWS },
   { label:'Gestion du site internet', rows:SITE_INTERNET_ROWS },
+  { label:'Personnalisation', rows:PERSONNALISATION_ROWS },
   // Ces deux groupes ne s'affichent plus dans la liste principale de
   // Home (voir renderHomeList — hidden:true) : leurs lignes restent
   // "cherchables" par findHomeRow pour que la navigation depuis
