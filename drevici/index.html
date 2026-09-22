@@ -699,6 +699,28 @@ body.home-cover-showing{overflow:hidden}
    le fond de la page (plus sombre que les cartes) pour que le champ
    ait l'air "posé dedans" au lieu d'être encadré. */
 .ig-subpage-old-content .ig-cover-field-flat{border:none!important;background:var(--ig-bg)!important}
+/* Horaires — nouveau design façon "réglages" (jour + interrupteur +
+   détail repliable), même système de couleurs que le reste (cartes
+   gris ig-card, fond ig-bg, bleu clair #8AB4F8 pour l'état actif). */
+.ig-day-card{background:var(--ig-card,#2f2f2f);border-radius:14px;overflow:hidden}
+.ig-day-hdr{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer}
+.ig-switch{position:relative;display:inline-block;width:44px;height:26px;flex:none}
+.ig-switch input{opacity:0;width:0;height:0;position:absolute}
+.ig-switch-track{position:absolute;inset:0;background:#575757;border-radius:13px;transition:background .15s;cursor:pointer}
+.ig-switch input:checked + .ig-switch-track{background:#8AB4F8}
+.ig-switch-thumb{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.ig-switch input:checked + .ig-switch-track .ig-switch-thumb{transform:translateX(18px)}
+.ig-day-title{flex:1;min-width:0}
+.ig-day-name{font-family:'Jost',sans-serif;font-size:15px;font-weight:600;color:var(--ig-text,#ececec)}
+.ig-day-sub{font-family:'Jost',sans-serif;font-size:12px;color:var(--ig-text-dim,#b4b4b4);margin-top:1px}
+.ig-day-chevron{color:var(--ig-text-dim,#b4b4b4);font-size:16px;flex:none}
+.ig-day-body{padding:2px 16px 16px;border-top:1px solid rgba(255,255,255,.06);margin-top:2px}
+.ig-day-field-label{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ig-text-dim,#b4b4b4);margin:12px 0 6px;font-family:'Jost',sans-serif;min-height:14px}
+.ig-day-field-label svg{width:14px;height:14px;flex:none}
+.ig-time-field{width:100%}
+.ig-round-btn{width:34px;height:34px;flex:none;border-radius:50%;border:none;background:var(--ig-bg,#212121);color:var(--ig-text-dim,#b4b4b4);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;padding:0}
+.ig-round-btn-danger{color:#e07a72}
+.ig-round-btn svg{width:14px;height:14px}
 .ig-subpage-old-content select.ig-cover-field-flat{background-color:var(--ig-bg)!important}
 /* Champs de lien + bouton upload, dans le détail de la galerie —
    bordure grise comme partout ailleurs, sinon on ne les voit pas du
@@ -2989,59 +3011,78 @@ function onDropTab(e,ti){
 // ═══════════════════════════════════════════
 // SCHEDULE ADMIN
 // ═══════════════════════════════════════════
+// Conversion heure décimale (12.5 = 12h30, format interne existant)
+// <-> "HH:MM" (format natif de <input type="time">, utilisé pour le
+// nouveau design des horaires).
+function decHourToTimeStr(dec){
+  if(dec==null||isNaN(dec)) return '';
+  const hh=Math.floor(dec), mm=Math.round((dec-hh)*60);
+  return String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0');
+}
+function timeStrToDecHour(str){
+  if(!str) return null;
+  const [hh,mm]=str.split(':').map(Number);
+  return hh+(mm||0)/60;
+}
+// Un seul jour ouvert à la fois n'est pas obligatoire ici — chaque
+// jour retient son propre état plié/déplié.
+let scheduleDayOpen = {};
+function toggleScheduleDay(i){ scheduleDayOpen[i] = !scheduleDayOpen[i]; renderAdminSection('__global'); }
+function setDayActive(i, active){
+  DATA.schedule[i].active = active;
+  if(active){ scheduleDayOpen[i] = true; if(!DATA.schedule[i].services || !DATA.schedule[i].services.length) DATA.schedule[i].services=[{label:'',open:null,close:null}]; }
+  else { scheduleDayOpen[i] = false; }
+  renderAll(); renderAdminSection('__global');
+}
+
 function renderScheduleAdmin(){
   const sch=DATA.schedule||[];
   let h=`<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Horaires</div><div class="admin-sect-body">`;
   sch.forEach((d,i)=>{
-    // Compat: migrate old {open,close} to services[]
+    // Compat : migre l'ancien {open,close} vers services[], et déduit
+    // "active" de l'existant si jamais posé encore.
     if(!d.services) d.services = (d.open!=null?[{label:'',open:d.open,close:d.close}]:[]);
+    if(d.active==null) d.active = d.services.length>0;
     const svcs=d.services||[];
-    h+=`<div class="admin-card" style="background:#fff;margin-bottom:14px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div style="font-size:12px;font-weight:600;color:var(--navy);font-family:Jost,sans-serif">${d.day}</div>
-        ${svcs.length===0?`<span style="font-size:11px;color:var(--text3)">Fermé</span>`:''}
-      </div>`;
-    svcs.forEach((s,si)=>{
-      h+=`<div class="admin-card" style="background:var(--bg);margin-bottom:6px;padding:8px 10px">
-        <div style="position:relative;margin-bottom:14px">
-          <input class="ai ig-visible-field" value="${s.label||''}" placeholder="Service (ex: Midi, Soir, Brunch)" style="width:100%;padding-right:38px"
-            oninput="DATA.schedule[${i}].services[${si}].label=this.value;renderAll()">
-          <button class="adel ig-service-del-btn" onclick="askConfirm('Supprimer ce service ?',()=>{DATA.schedule[${i}].services.splice(${si},1);renderAll();renderAdminSection('__global')})">×</button>
+    const isOpen = !!scheduleDayOpen[i];
+    h+=`<div class="ig-day-card" style="margin-bottom:12px">
+      <div class="ig-day-hdr" onclick="toggleScheduleDay(${i})">
+        <label class="ig-switch" onclick="event.stopPropagation()">
+          <input type="checkbox" ${d.active?'checked':''} onchange="setDayActive(${i},this.checked)">
+          <span class="ig-switch-track"><span class="ig-switch-thumb"></span></span>
+        </label>
+        <div class="ig-day-title">
+          <div class="ig-day-name">${d.day}</div>
+          <div class="ig-day-sub">${d.active?'Ouvert':'Fermé'}</div>
         </div>
-        <div class="ai-row" style="gap:12px">
-          <div style="flex:1"><div style="font-size:10px;color:var(--text3);margin-bottom:4px;text-align:left">Ouverture</div>
-            <div style="display:flex;gap:4px">
-              <select class="ai ig-visible-field ig-hm-select" style="flex:1" onchange="(function(v){const p=DATA.schedule[${i}].services[${si}];p.open=v===''?null:parseFloat(v);renderAll()})(this.value)">
-                <option value="">--</option>
-                ${Array.from({length:24},(_,h)=>`<option value="${h}" ${s.open==h?'selected':''}>${String(h).padStart(2,'0')}h</option>`).join('')}
-              </select>
-              <select class="ai ig-visible-field ig-hm-select" style="flex:1" onchange="(function(v){const p=DATA.schedule[${i}].services[${si}];if(p.open!=null){p.open=Math.floor(p.open)+parseFloat(v);renderAll();}})(this.value)">
-                <option value="0" ${(s.open%1||0)<0.1?'selected':''}>00</option>
-                <option value="0.25" ${Math.abs((s.open%1||0)-0.25)<0.1?'selected':''}>15</option>
-                <option value="0.5" ${Math.abs((s.open%1||0)-0.5)<0.1?'selected':''}>30</option>
-                <option value="0.75" ${Math.abs((s.open%1||0)-0.75)<0.1?'selected':''}>45</option>
-              </select>
+        <span class="ig-day-chevron">${isOpen?'⌃':'⌄'}</span>
+      </div>`;
+    if(isOpen){
+      h+=`<div class="ig-day-body">`;
+      if(d.active){
+        if(!svcs.length){
+          h+=`<button class="ig-round-btn" style="width:100%;border-radius:10px" title="Ajouter un service" onclick="DATA.schedule[${i}].services.push({label:'',open:null,close:null});renderAll();renderAdminSection('__global')">+ Ajouter un service</button>`;
+        }
+        svcs.forEach((s,si)=>{
+          h+=`<div style="display:flex;gap:10px;margin-bottom:${si===svcs.length-1?'16':'10'}px">
+            <div style="flex:1"><div class="ig-day-field-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>Ouverture</div>
+              <input type="time" class="ai ig-visible-field ig-time-field" value="${decHourToTimeStr(s.open)}" onchange="DATA.schedule[${i}].services[${si}].open=timeStrToDecHour(this.value);renderAll()">
+            </div>
+            <div style="flex:1"><div class="ig-day-field-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>Fermeture</div>
+              <input type="time" class="ai ig-visible-field ig-time-field" value="${decHourToTimeStr(s.close)}" onchange="DATA.schedule[${i}].services[${si}].close=timeStrToDecHour(this.value);renderAll()">
             </div>
           </div>
-          <div style="flex:1"><div style="font-size:10px;color:var(--text3);margin-bottom:4px;text-align:left">Fermeture</div>
-            <div style="display:flex;gap:4px">
-              <select class="ai ig-visible-field ig-hm-select" style="flex:1" onchange="(function(v){const p=DATA.schedule[${i}].services[${si}];p.close=v===''?null:parseFloat(v);renderAll()})(this.value)">
-                <option value="">--</option>
-                ${Array.from({length:24},(_,h)=>`<option value="${h}" ${s.close==h?'selected':''}>${String(h).padStart(2,'0')}h</option>`).join('')}
-              </select>
-              <select class="ai ig-visible-field ig-hm-select" style="flex:1" onchange="(function(v){const p=DATA.schedule[${i}].services[${si}];if(p.close!=null){p.close=Math.floor(p.close)+parseFloat(v);renderAll();}})(this.value)">
-                <option value="0" ${(s.close%1||0)<0.1?'selected':''}>00</option>
-                <option value="0.25" ${Math.abs((s.close%1||0)-0.25)<0.1?'selected':''}>15</option>
-                <option value="0.5" ${Math.abs((s.close%1||0)-0.5)<0.1?'selected':''}>30</option>
-                <option value="0.75" ${Math.abs((s.close%1||0)-0.75)<0.1?'selected':''}>45</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>`;
-    });
-    h+=`<div style="padding:0 10px"><button class="aadd ig-service-btn" style="width:100%" onclick="DATA.schedule[${i}].services.push({label:'',open:null,close:null});renderAll();renderAdminSection('__global')">Ajouter un service</button></div>
-    </div>`;
+          <div class="ig-day-field-label" style="margin-top:${si===0?'0':'10'}px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 8 9-5 9 5-9 5-9-5Z"/><path d="m3 13 9 5 9-5"/></svg>${si===0?'Services':''}</div>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+            <input class="ai ig-visible-field" style="flex:1" value="${escAttr(s.label||'')}" placeholder="Service (Midi, Soir, Brunch)" oninput="DATA.schedule[${i}].services[${si}].label=this.value;renderAll()">
+            <button class="ig-round-btn" title="Ajouter un service" onclick="DATA.schedule[${i}].services.push({label:'',open:null,close:null});renderAll();renderAdminSection('__global')">+</button>
+            <button class="ig-round-btn ig-round-btn-danger" title="Supprimer ce service" onclick="askConfirm('Supprimer ce service ?',()=>{DATA.schedule[${i}].services.splice(${si},1);renderAll();renderAdminSection('__global')})">${TRASH_SVG}</button>
+          </div>`;
+        });
+      }
+      h+=`</div>`;
+    }
+    h+=`</div>`;
   });
   h+=`</div></div>`;
   return h;
