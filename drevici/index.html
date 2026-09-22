@@ -508,6 +508,11 @@ body.home-cover-showing{overflow:hidden}
 .ig-row-icon svg{width:19px;height:19px}
 .ig-row-label{flex:1}
 .ig-row-chevron{color:var(--ig-text-dimmer);font-size:15px;flex:none}
+/* Pastille verte marquant, dans une liste de choix, celui qui est
+   réellement en place (ex : le visuel d'accueil affiché). Les autres
+   n'affichent rien du tout. */
+.ig-active-check{flex:none;width:19px;height:19px;border-radius:50%;background:#3BA55D;color:#fff;display:flex;align-items:center;justify-content:center;margin-right:2px}
+.ig-active-check svg{width:11px;height:11px}
 .ig-subpage-hdr{display:flex;align-items:center;gap:10px;padding:4px 0 16px;color:var(--ig-text);font-family:'Jost',sans-serif}
 .ig-back-btn{width:26px;height:26px;flex:none;background:transparent;border:none;color:var(--ig-text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:19px;padding:0}
 .ig-back-btn:hover{color:var(--ig-text-dim)}
@@ -543,17 +548,17 @@ body.home-cover-showing{overflow:hidden}
 .ig-subpage-old-content input,
 .ig-subpage-old-content select,
 .ig-subpage-old-content textarea{background:var(--ig-card)!important;border:none!important;border-radius:10px;color:var(--ig-text)!important}
-/* BUG FIX (contour au focus coupé à droite/gauche) : le champ touchait
-   pile le bord de son conteneur, donc l'anneau de focus (box-shadow)
-   n'avait nulle part où déborder proprement. On rétrécit chaque champ
-   de 2px de chaque côté pour lui laisser de la place. */
-.ig-subpage-old-content .ai,
-.ig-subpage-old-content input:not([type="checkbox"]):not([type="color"]):not([type="radio"]),
-.ig-subpage-old-content select,
-.ig-subpage-old-content textarea{margin-left:2px!important;margin-right:2px!important;max-width:calc(100% - 4px)!important}
+/* BUG FIX (champs plus étroits que les cartes) : pour éviter que
+   l'anneau de focus (box-shadow) soit coupé sur les bords, chaque
+   champ était rétréci de 2px de chaque côté — ce qui le rendait plus
+   court que tout ce qui l'entoure (.admin-card, .ig-list, .ig-day-card
+   sont à 100%), visible dès qu'un champ voisine une carte. On rend
+   donc la pleine largeur à tous les champs et on passe l'anneau de
+   focus en "inset" (voir plus bas) : il se dessine à l'intérieur du
+   champ, n'a plus rien à faire déborder, et plus rien n'est coupé. */
 /* BUG FIX (contour coupé en haut) : les tout premiers champs d'une
-   carte/section touchent aussi le bord du haut, même souci que sur
-   les côtés — un peu de marge verticale aussi. */
+   carte/section touchent aussi le bord du haut — un peu de marge
+   verticale, qui elle ne décale rien horizontalement. */
 .ig-subpage-old-content .ai,
 .ig-subpage-old-content input:not([type="checkbox"]):not([type="color"]):not([type="radio"]),
 .ig-subpage-old-content select,
@@ -561,7 +566,7 @@ body.home-cover-showing{overflow:hidden}
 .ig-subpage-old-content .ai:focus,
 .ig-subpage-old-content input:focus,
 .ig-subpage-old-content select:focus,
-.ig-subpage-old-content textarea:focus{outline:none;box-shadow:0 0 0 1px #6e6e6e}
+.ig-subpage-old-content textarea:focus{outline:none;box-shadow:inset 0 0 0 1px #6e6e6e}
 .ig-subpage-old-content .ai::placeholder,
 .ig-subpage-old-content input::placeholder,
 .ig-subpage-old-content textarea::placeholder{color:var(--ig-text-dimmer);font-size:12px}
@@ -604,14 +609,6 @@ body.home-cover-showing{overflow:hidden}
    (via son padding), pas les 38px fixes utilisés pour les paires
    champ+bouton séparés. */
 .ig-subpage-old-content .ig-merged-upload .ai{height:auto!important}
-/* BUG FIX (champ plus court que les cartes) : les 2px de marge
-   latérale posés sur TOUS les champs (pour laisser respirer l'anneau
-   de focus) rendaient les champs d'upload visiblement plus étroits que
-   les cartes .admin-card juste au-dessus/en dessous, qui elles font
-   100%. On leur rend la pleine largeur et on passe leur anneau de
-   focus en "inset" — il n'a donc plus besoin de déborder. */
-.ig-subpage-old-content .ig-merged-upload .ai{margin-left:0!important;margin-right:0!important;max-width:100%!important;width:100%!important}
-.ig-subpage-old-content .ig-merged-upload .ai:focus{box-shadow:inset 0 0 0 1px #6e6e6e}
 /* Trait de séparation léger à l'intérieur d'une carte, entre deux
    champs — même valeur que celui des lignes de liste. */
 .ig-subpage-old-content .ig-card-sep{border-top:1px solid var(--ig-border);margin:14px -14px 0}
@@ -2452,6 +2449,7 @@ function renderAdminHomeCover(){
       ${MEDIA_TYPE_ROWS.map(r=>`<div class="ig-row" onclick="openHomeCoverRow('${r.key}')">
         <span class="ig-row-icon">${r.icon}</span>
         <span class="ig-row-label">${r.label}</span>
+        ${(hc.mediaType||'photo')===r.key?`<span class="ig-active-check" title="Visuel actuellement affiché"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 12.5 10 17.5 19 7"/></svg></span>`:''}
         <span class="ig-row-chevron">›</span>
       </div>`).join('')}
     </div>
