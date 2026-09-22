@@ -3388,6 +3388,7 @@ function openAdmin(){
     console.error('Erreur de rendu admin, retour à Home :', e);
     adminCurrentTab='__global';
     homeSubpageKey=null;
+    homeSubpageStack=[];
     renderAdminSection('__global');
   }
 }
@@ -3744,12 +3745,23 @@ function renderTabSectionList(ti){
   const tab=DATA.tabs[ti];
   let h='';
 
-  // Nom de l'onglet — plein largeur, œil + corbeille intégrés à
-  // l'intérieur du champ (à droite), comme pour "Service" dans
-  // Horaires.
-  h+=`<div class="af" style="position:relative">
-    <input class="ai" style="width:100%;padding-right:66px" value="${escAttr(tab.label[adminLang]||'')}" placeholder="Nom de l'onglet" oninput="DATA.tabs[${ti}].label[adminLang]=this.value;renderAll()">
-    <div class="ig-tab-eyedel-wrap">${dishEyeDelButtons(tab.visible===false, `DATA.tabs[${ti}].visible=${tab.visible===false};renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)`, `askConfirm('Supprimer la tab « ${(tab.label.fr||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")} » et tout son contenu ?',()=>delTab(${ti}))`)}</div>
+  // Nom de la catégorie en champ pleine taille (même standard que
+  // partout ailleurs), puis deux lignes de liste dessous : masquer
+  // (interrupteur) et supprimer (rouge, avec confirmation).
+  const tabNameEsc=(tab.label.fr||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  h+=`<div class="af">
+    <input class="ai ig-tall-field ig-placeholder-normal-size" style="width:100%;padding:14px 16px!important" value="${escAttr(tab.label[adminLang]||'')}" placeholder="Nom de la catégorie" oninput="DATA.tabs[${ti}].label[adminLang]=this.value;renderAll()">
+  </div>
+  <div class="ig-list" style="margin-top:10px">
+    <div class="ig-row" style="cursor:default">
+      <span class="ig-row-icon">${tab.visible===false?EYE_OFF_SVG:EYE_SVG}</span>
+      <span class="ig-row-label">Masquer la catégorie</span>
+      <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${tab.visible===false?'checked':''} onchange="DATA.tabs[${ti}].visible=!this.checked;renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id);renderAdminSection('__global')"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
+    </div>
+    <div class="ig-row" onclick="askConfirm('Supprimer la catégorie « ${tabNameEsc} » et tout son contenu ?',()=>{delTab(${ti});adminCurrentTab='__global';closeHomeRow();})">
+      <span class="ig-row-icon" style="color:#E5484D">${TRASH_SVG}</span>
+      <span class="ig-row-label" style="color:#E5484D">Supprimer la catégorie</span>
+    </div>
   </div>`;
 
   // Sections — un seul bloc cliquable chacune (nom en bleu clair,
@@ -3766,7 +3778,7 @@ function renderTabSectionList(ti){
   });
   h+=`</div>`;
 
-  h+=`<button class="aadd ig-add-btn ig-add-btn-standalone" style="display:block;width:100%;padding:10px" onclick="addCard(${ti})">Ajouter une nouvelle section</button>`;
+  h+=`<div class="ig-list" style="margin-top:14px"><div class="ig-row" style="justify-content:center" onclick="addCard(${ti})"><span style="color:#3BA55D;font-weight:500">Ajouter une nouvelle section</span></div></div>`;
 
   // Réordonner les sections (2+ sections seulement), tout en bas.
   if(tab.cards.length>=2){
@@ -7167,7 +7179,7 @@ function renderBrandColorsSection(){
       +'</div>';
   });
   h+='</div>';
-  h+='<div class="ig-list" style="margin-top:14px"><div class="ig-row" style="justify-content:center" onclick="resetBrandColors()"><span style="color:#47aaff;font-weight:500">Réinitialiser les couleurs par défaut</span></div></div>';
+  h+='<div class="ig-list" style="margin-top:14px"><div class="ig-row" style="justify-content:center" onclick="resetBrandColors()"><span style="color:#8AB4F8;font-weight:500">Réinitialiser les couleurs par défaut</span></div></div>';
   h+='</div></div>';
   return h;
 }
@@ -7389,6 +7401,7 @@ const _origGlobal=renderAdminGlobal;
 // créant sa propre liste de lignes et en l'ajoutant à HOME_GROUPS —
 // rien d'autre à dupliquer.
 let homeSubpageKey = null;
+let homeSubpageStack = [];
 const INFO_GENERALE_ROWS = [
   { key:'connexion', label:'Connexion admin', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>', fn:ghSectionHtml },
   { key:'etablissement', label:'Mon établissement', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 9.5V20h14V9.5"/><path d="M9.5 20v-6h5v6"/></svg>', fn:restaurantSettingHtml },
@@ -7443,7 +7456,8 @@ function renderMenusEtPlats(){
   return `<div class="ig-group-label">Catégories</div>
     <div class="ig-list">${catRows.map(r=>`
       <div class="ig-row" onclick="openHomeRow('${r.key}')">
-        <span class="ig-section-row-label">${r.label}</span>
+        <span class="ig-row-icon">${r.icon}</span>
+        <span class="ig-row-label">${r.label}</span>
         <span class="ig-row-chevron">›</span>
       </div>`).join('')}${!catRows.length?'<div style="padding:16px;color:var(--ig-text-dimmer,var(--text3));font-size:12.5px;text-align:center">Aucune catégorie pour l\'instant.</div>':''}</div>
     <div class="ig-group-label" style="margin-top:38px">Manager les catégories</div>
@@ -7469,8 +7483,20 @@ const HOME_GROUPS = [
   { label:'Thème', rows:THEME_ROWS }
 ];
 function homeGroupRows(g){ return typeof g.rows === 'function' ? g.rows() : g.rows; }
-function openHomeRow(key){ homeSubpageKey = key; renderAdminSection('__global'); }
-function closeHomeRow(){ homeSubpageKey = null; renderAdminSection('__global'); }
+// BUG FIX (le retour ramenait toujours à l'accueil admin) : on ne
+// gardait qu'une seule clé de sous-page, donc entrer dans une
+// catégorie DEPUIS "Menus et plats" écrasait la trace de "Menus et
+// plats" et le bouton retour ne pouvait que revenir à la racine. On
+// empile désormais les pages traversées et le retour dépile.
+function openHomeRow(key){
+  if(homeSubpageKey && homeSubpageKey!==key) homeSubpageStack.push(homeSubpageKey);
+  homeSubpageKey = key;
+  renderAdminSection('__global');
+}
+function closeHomeRow(){
+  homeSubpageKey = homeSubpageStack.length ? homeSubpageStack.pop() : null;
+  renderAdminSection('__global');
+}
 function findHomeRow(key){
   for(const g of HOME_GROUPS){ const r = homeGroupRows(g).find(r=>r.key===key); if(r) return r; }
   return null;
