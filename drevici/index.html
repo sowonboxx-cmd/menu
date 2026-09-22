@@ -6844,18 +6844,21 @@ function restaurantSettingHtml(){
 
 function renderBrandColorsSection(){
   const bc=DATA.brandColors||{primary:'#10285E',accent:'#C6A24A',bg:'#F7F5F0'};
-  const labels={primary:'Couleur principale',accent:'Couleur accent',bg:'Couleur de fond',tabInactive:'Titres des tabs (non sélectionnés)'};
+  const labels={primary:'Couleur principale',accent:'Couleur secondaire',bg:'Couleur de fond',tabInactive:'Couleur des onglets'};
   const defaults={primary:'#10285E',accent:'#C6A24A',bg:'#F7F5F0',tabInactive:'#B3B3B3'};
   let h='<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Couleurs principales</div><div class="admin-sect-body">';
+  h+='<div class="ig-list">';
   ['primary','accent','bg','tabInactive'].forEach(key=>{
-    const val=bc[key]||defaults[key];
-    h+='<div class="af"><label class="al">'+labels[key]+'</label>'
-      +'<div style="display:flex;align-items:center;gap:8px">'
-      +'<input type="color" value="'+val+'" oninput="if(!DATA.brandColors)DATA.brandColors={};DATA.brandColors[&quot;'+key+'&quot;]=this.value;applyBrandColors()" style="width:25px;height:25px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer">'
-      +'<input class="ai" value="'+val+'" oninput="if(!DATA.brandColors)DATA.brandColors={};DATA.brandColors[&quot;'+key+'&quot;]=this.value;applyBrandColors()" style="flex:1;height:36px;font-family:monospace;font-size:12px;box-sizing:border-box">'
+    const val=(bc[key]||defaults[key]).toUpperCase();
+    h+='<div class="ig-row">'
+      +'<span class="ig-row-label">'+labels[key]+'</span>'
+      +'<div style="display:flex;align-items:center;gap:8px;flex:none">'
+      +'<input type="color" value="'+val+'" oninput="if(!DATA.brandColors)DATA.brandColors={};DATA.brandColors[&quot;'+key+'&quot;]=this.value;applyBrandColors();renderAdminSection(adminCurrentTab)" style="width:16px;height:16px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer">'
+      +'<span style="color:var(--ig-text-dimmer,var(--text3));font-family:monospace;font-size:13px">'+val+'</span>'
       +'</div></div>';
   });
-  h+='<button class="aadd ig-service-btn" style="width:100%;padding:9px;margin-top:4px" onclick="resetBrandColors()">Réinitialiser les couleurs par défaut</button>';
+  h+='</div>';
+  h+='<button class="aadd ig-service-btn" style="width:100%;padding:9px;margin-top:14px" onclick="resetBrandColors()">Réinitialiser les couleurs par défaut</button>';
   h+='</div></div>';
   return h;
 }
