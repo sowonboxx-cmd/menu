@@ -474,6 +474,42 @@ body.home-cover-showing{overflow:hidden}
   .admin-close{background:var(--navy);border:1px solid rgba(255,255,255,0.2)}
 }
 .admin-body{flex:1;overflow-y:auto;padding:16px}
+/* ── Fiche plat — champs "empilés" ────────────────────────────────
+   Chaque champ est un bloc arrondi qui contient SON libellé (petit,
+   gris) au-dessus de la valeur, au lieu d'un libellé posé à
+   l'extérieur : on lit le nom du champ et son contenu d'un seul coup
+   d'œil, et la page devient une suite de blocs réguliers. */
+.ig-stack-field{background:var(--ig-card,#2f2f2f);border-radius:14px;padding:11px 16px;margin-bottom:10px;position:relative}
+.ig-stack-label{font-size:12.5px;color:var(--ig-text-dimmer,#8e8ea0);display:block;margin-bottom:1px;line-height:1.5}
+.ig-subpage-old-content .ig-stack-field .ai{background:transparent!important;border:none!important;border-radius:0!important;padding:0!important;margin:0!important;width:100%;max-width:100%!important;height:auto!important;font-size:15.5px!important;color:var(--ig-text,#ececec)!important;line-height:1.5}
+.ig-subpage-old-content .ig-stack-field .ai:focus{box-shadow:none!important}
+.ig-subpage-old-content .ig-stack-field .ai::placeholder{font-size:15.5px;color:#6a6a72}
+.ig-stack-field .ig-inline-upload-icon{right:0}
+.ig-stack-field.has-upload .ai{padding-right:32px!important}
+/* Prix : bloc court, le symbole reste en dehors du champ. */
+.ig-price-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.ig-price-row .ig-stack-field{margin-bottom:0;flex:none;width:150px}
+.ig-price-cur{font-size:15.5px;color:var(--ig-text-dimmer,#8e8ea0)}
+/* Blocs "outil" (galerie, caption, infos alimentaires) : même carte,
+   avec une icône encadrée et un titre, puis le contenu dessous. */
+.ig-panel-card{background:var(--ig-card,#2f2f2f);border-radius:14px;padding:14px 16px;margin-bottom:10px}
+.ig-panel-hdr{display:flex;align-items:center;gap:12px}
+.ig-panel-icon{width:34px;height:34px;flex:none;border-radius:10px;border:1px solid var(--ig-border,#424242);display:flex;align-items:center;justify-content:center;color:var(--ig-text-dim,#b4b4b4)}
+.ig-panel-icon svg{width:18px;height:18px}
+.ig-panel-title{font-size:14.5px;color:var(--ig-text,#ececec);font-weight:500;flex:1;min-width:0}
+/* Dans ces blocs, les cadres internes hérités (galerie/caption) n'ont
+   plus lieu d'être : la carte fait déjà le cadre. */
+.ig-panel-card .ig-gallery-frame,
+.ig-panel-card .ig-caption-wrap{border:none!important;padding:0!important;margin-top:10px!important}
+.ig-panel-card .ig-caption-label,
+.ig-panel-card .badge-group>span:first-child,
+.ig-panel-card .af>.al:first-child{display:none!important}
+/* Badges alimentaires en pastilles arrondies, coche ronde verte. */
+.ig-subpage-old-content .ig-panel-card .badge-group{gap:8px;margin-top:12px}
+.ig-subpage-old-content .ig-panel-card .badge-check{background:var(--ig-bg,#212121);border-radius:999px;padding:7px 14px 7px 7px;gap:7px;font-size:12.5px;color:var(--ig-text,#ececec)}
+.ig-subpage-old-content .ig-panel-card .badge-check input[type="checkbox"]{width:18px;height:18px;border-radius:50%;background:#4a4a4a!important;border:none}
+.ig-subpage-old-content .ig-panel-card .badge-check input[type="checkbox"]:checked{background:#3BA55D!important}
+.ig-subpage-old-content .ig-panel-card .badge-check input[type="checkbox"]:checked::after{left:6px;top:4px;width:4px;height:8px;border-color:#fff}
 /* Le panneau admin est sombre partout (voir .admin-body.ig-dark) : son
    en-tête doit suivre, sinon la barre navy flotte au-dessus d'un fond
    #212121. On marque le PANNEAU (et pas seulement le corps) pour
@@ -3918,20 +3954,73 @@ function renderTabSectionDetail(ti, ci){
 // (retour + œil/corbeille), plus de dépliage sur place.
 function renderDishDetailBody(ti, ci, di){
   const tab=DATA.tabs[ti];
-  const d=tab.cards[ci].dishes[di];
+  const card=tab.cards[ci];
+  const d=card.dishes[di];
+  const base=`DATA.tabs[${ti}].cards[${ci}].dishes[${di}]`;
+  const numVal=(d.price||'').replace('€','').trim();
   let h=`<div class="ig-inner-back-row">
     <button class="ig-back-btn" onclick="closeDishDetail('${tab.id}')">‹</button>
-    <span style="flex:1;color:var(--ig-text,#ececec);font-family:'Jost',sans-serif;font-size:14px">Plat</span>
+    <span style="flex:1;color:var(--ig-text,#ececec);font-size:15px;font-weight:600">${escAttr(t(card.label))||'Plat'}</span>
   </div>`;
-  h+=`<div class="admin-card">
-    <div class="af"><input class="ai ig-visible-field" value="${escAttr(d.name[adminLang]||'')}" placeholder="Nom" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].name[adminLang]=this.value;renderAll()"></div>
-    <div class="af"><textarea class="ai ig-visible-field" rows="2" style="resize:vertical" placeholder="Description" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].desc[adminLang]=this.value;renderAll()">${escAttr(d.desc[adminLang]||'')}</textarea></div>
-    `+priceFieldSimple(d,ti,ci,di)+`
-    `+imgFieldHtml(d.img||'',`DATA.tabs[${ti}].cards[${ci}].dishes[${di}].img=this.value;renderAll()`,"Image visuelle principale",1,true)+`
-    <div class="ig-gallery-frame">`+dishGalleryHtml(d,ti,ci,di)+`</div>
-    ${captionFieldHtml(d.caption||'', 'Ex: Nos huîtres Spéciales N°3 — iodées, fraîches, servies sur glace 🦪 Disponibles au bar ou à emporter.', `DATA.tabs[${ti}].cards[${ci}].dishes[${di}].caption=this.value`)}
-    `+adminBadgeGroup(d,`DATA.tabs[${ti}].cards[${ci}].dishes[${di}]`)+`
+
+  h+=`<div class="ig-stack-field">
+    <span class="ig-stack-label">Titre du plat</span>
+    <input class="ai" value="${escAttr(d.name[adminLang]||'')}" placeholder="Nom du plat" oninput="${base}.name[adminLang]=this.value;renderAll()">
+  </div>
+  <div class="ig-stack-field">
+    <span class="ig-stack-label">Sous-titre / description courte</span>
+    <textarea class="ai" rows="2" style="resize:vertical" placeholder="Ex: À la sauce échalote &amp; frites" oninput="${base}.desc[adminLang]=this.value;renderAll()">${escAttr(d.desc[adminLang]||'')}</textarea>
   </div>`;
+
+  if(d.priceType==='dual'){
+    h+=priceField(d,ti,ci,di);
+  } else {
+    h+=`<div class="ig-price-row">
+      <div class="ig-stack-field">
+        <span class="ig-stack-label">Prix</span>
+        <input class="ai ig-num-white-arrows" type="number" min="0" step="0.5" value="${numVal}" placeholder="0" oninput="${base}.price=this.value?this.value+'€':'';renderAll()">
+      </div>
+      <span class="ig-price-cur">€</span>
+      ${tab.id==='huitres'?`<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ig-text-dimmer);cursor:pointer"><input type="checkbox" ${d.priceType==='dual'?'checked':''} onchange="${base}.priceType=this.checked?'dual':'';renderAll();refreshCurrentTabView('${tab.id}')"> Deuxième prix</label>`:''}
+    </div>`;
+  }
+
+  h+=`<div class="ig-stack-field has-upload">
+    <span class="ig-stack-label">Lien de l'image</span>
+    <div class="ai-img-wrap ig-merged-upload">
+      <input class="ai" value="${escAttr(d.img||'')}" placeholder="Collez un lien ou uploadez" oninput="${base}.img=this.value;renderAll();syncImgPreview(this)">
+      <label class="ig-inline-upload-icon" title="Uploader une image">
+        <input type="file" accept="image/*" style="display:none" onchange="uploadImgFile(this,1)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.22,20.75H5.78A2.64,2.64,0,0,1,3.25,18V15a.75.75,0,0,1,1.5,0v3a1.16,1.16,0,0,0,1,1.25H18.22a1.16,1.16,0,0,0,1-1.25V15a.75.75,0,0,1,1.5,0v3A2.64,2.64,0,0,1,18.22,20.75Z"/><path d="M16,8.75a.74.74,0,0,1-.53-.22L12,5.06,8.53,8.53A.75.75,0,0,1,7.47,7.47l4-4a.75.75,0,0,1,1.06,0l4,4a.75.75,0,0,1,0,1.06A.74.74,0,0,1,16,8.75Z"/><path d="M12,15.75a.76.76,0,0,1-.75-.75V4a.75.75,0,0,1,1.5,0V15A.76.76,0,0,1,12,15.75Z"/></svg>
+      </label>
+    </div>
+    <img class="ai-img-preview" src="${escAttr(d.img||'')}" style="${d.img?'':'display:none'};width:120px;aspect-ratio:1;object-fit:cover;border-radius:12px;margin-top:12px;display:block" onerror="this.style.display='none'">
+  </div>`;
+
+  h+=`<div class="ig-panel-card">
+    <div class="ig-panel-hdr">
+      <span class="ig-panel-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m21 15-5-5-11 9"/></svg></span>
+      <span class="ig-panel-title">Galerie réseaux sociaux (1–4 photos)</span>
+    </div>
+    ${dishGalleryHtml(d,ti,ci,di)}
+  </div>`;
+
+  h+=`<div class="ig-panel-card">
+    <div class="ig-panel-hdr">
+      <span class="ig-panel-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg></span>
+      <span class="ig-panel-title">Caption Instagram (pré-enregistrée)</span>
+    </div>
+    ${captionFieldHtml(d.caption||'', 'Ex: Nos huîtres Spéciales N°3 — iodées, fraîches, servies sur glace 🦪 Disponibles au bar ou à emporter.', `${base}.caption=this.value`)}
+  </div>`;
+
+  h+=`<div class="ig-panel-card">
+    <div class="ig-panel-hdr">
+      <span class="ig-panel-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/></svg></span>
+      <span class="ig-panel-title">Informations alimentaires</span>
+    </div>
+    <div class="badge-group">${BADGE_DEFS.map(b=>`<label class="badge-check"><input type="checkbox" ${d[b.key]?'checked':''} onchange="if(this.checked)${base}.${b.key}=true;else delete ${base}.${b.key};renderAll()"><span class="badge-emoji">${b.emoji}</span> ${b.label}</label>`).join('')}</div>
+  </div>`;
+
   // Masquer / supprimer en bas de page, en deux lignes de liste —
   // même disposition que sur la page d'une catégorie.
   const dishNameEsc=(d.name.fr||'ce plat').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
@@ -3939,7 +4028,7 @@ function renderDishDetailBody(ti, ci, di){
     <div class="ig-row" style="cursor:default">
       <span class="ig-row-icon">${d.hidden?EYE_OFF_SVG:EYE_SVG}</span>
       <span class="ig-row-label">Masquer le plat</span>
-      <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${d.hidden?'checked':''} onchange="if(this.checked){DATA.tabs[${ti}].cards[${ci}].dishes[${di}].hidden=true;}else{delete DATA.tabs[${ti}].cards[${ci}].dishes[${di}].hidden;}renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id);renderAdminSection(adminCurrentTab)"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
+      <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${d.hidden?'checked':''} onchange="if(this.checked){${base}.hidden=true;}else{delete ${base}.hidden;}renderAll();refreshCurrentTabView('${tab.id}');renderAdminSection(adminCurrentTab)"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
     </div>
     <div class="ig-row" onclick="askConfirm('Supprimer « ${dishNameEsc} » ?',()=>{delDish(${ti},${ci},${di});dishDetailOpen['${tab.id}']=null;renderAdminSection(adminCurrentTab)})">
       <span class="ig-row-icon" style="color:#E5484D">${TRASH_SVG}</span>
