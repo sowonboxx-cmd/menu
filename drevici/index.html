@@ -483,6 +483,23 @@ body.home-cover-showing{overflow:hidden}
 .ig-subpage-old-content .ig-stack-field .ai:focus{box-shadow:none!important}
 .ig-subpage-old-content .ig-stack-field .ai::placeholder{font-size:15.5px;color:#6a6a72}
 .ig-stack-field .ig-inline-upload-icon{right:0}
+/* BUG FIX (le lien passait sous l'icône) : l'icône est posée à 21px du
+   bord droit du champ (règle de base) et mesure 18px — elle occupe
+   donc jusqu'à ~39px. Réserver seulement 32px laissait le texte
+   courir dessous. On aligne l'icône sur le bord intérieur et on
+   réserve franchement la place. */
+.ig-subpage-old-content .ig-stack-field .ig-inline-upload-icon{right:0}
+.ig-stack-field.has-upload .ai{padding-right:34px!important}
+/* Galerie : champs pleine largeur, sans bordure, sur le fond de page.
+   Les deux icônes (corbeille + upload) vivent DANS le champ, donc la
+   largeur du champ ne change pas selon qu'une photo est remplie. */
+.ig-subpage-old-content .ig-gallery-field .ai.ig-flat-field{background:var(--ig-bg,#212121)!important;border:none!important;border-radius:10px;width:100%;max-width:100%!important;height:auto!important;padding:13px 44px 13px 14px!important;margin:0!important;color:var(--ig-text,#ececec)!important;font-size:13.5px!important}
+.ig-subpage-old-content .ig-gallery-field.has-del .ai.ig-flat-field{padding-right:74px!important}
+.ig-subpage-old-content .ig-gallery-field .ai.ig-flat-field:focus{box-shadow:inset 0 0 0 1px #6e6e6e}
+.ig-subpage-old-content .ig-gallery-field .ai.ig-flat-field::placeholder{font-size:13.5px}
+.ig-subpage-old-content .ig-gallery-field .ig-inline-upload-icon{right:14px}
+.ig-gallery-del{position:absolute;right:44px;top:50%;transform:translateY(-50%);background:none;border:none;padding:0;cursor:pointer;color:var(--ig-text-dim,#b4b4b4);display:flex;align-items:center}
+.ig-gallery-del:hover{color:#E5484D}
 .ig-stack-field.has-upload .ai{padding-right:32px!important}
 /* Prix : bloc court, le symbole reste en dehors du champ. */
 .ig-price-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
@@ -1000,6 +1017,29 @@ body.home-cover-showing{overflow:hidden}
     <div class="confirm-btns">
       <button class="confirm-cancel" onclick="closeConfirm()">Annuler</button>
       <button class="confirm-ok" id="confirmOk">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Suppression d'une section : supprimer une section n'a pas un seul
+     sens. Soit on jette la section ET ses plats, soit on veut juste
+     arrêter de regrouper ces plats dans une section et les conserver.
+     On demande donc explicitement, au lieu de choisir à la place de
+     l'utilisateur. -->
+<div class="confirm-modal" id="sectionDelModal">
+  <div class="confirm-box" style="max-width:360px">
+    <div class="confirm-title">Supprimer la section</div>
+    <div class="confirm-text" id="sectionDelText">Que faut-il faire de son contenu ?</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="confirm-cancel" id="sectionDelKeep" style="border-radius:10px;text-align:left;padding:12px 14px;line-height:1.4">
+        <strong style="display:block;color:var(--navy);font-size:13px">Garder les plats</strong>
+        <span style="font-size:11.5px;color:var(--text3)">La section disparaît, ses plats rejoignent la page précédente.</span>
+      </button>
+      <button class="confirm-ok" id="sectionDelAll" style="border-radius:10px;text-align:left;padding:12px 14px;line-height:1.4">
+        <strong style="display:block;font-size:13px">Tout supprimer</strong>
+        <span style="font-size:11.5px;opacity:.85">La section et ses plats sont effacés définitivement.</span>
+      </button>
+      <button class="confirm-cancel" onclick="closeSectionDel()" style="border-radius:10px">Annuler</button>
     </div>
   </div>
 </div>
@@ -1828,6 +1868,47 @@ function askConfirm(msg,cb){
   document.getElementById('confirmModal').classList.add('open');
 }
 function closeConfirm(){ document.getElementById('confirmModal').classList.remove('open'); }
+function closeSectionDel(){ document.getElementById('sectionDelModal').classList.remove('open'); }
+// Supprimer une section : on demande d'abord ce qu'il advient des
+// plats. "Garder" les déverse dans la section restante (ou, s'il n'en
+// reste aucune, dans une section sans titre — ils s'affichent alors
+// directement sur la page de la catégorie).
+function askSectionDelete(ti, ci){
+  const card=DATA.tabs[ti].cards[ci];
+  const count=(card.dishes||card.items||[]).length;
+  const name=t(card.label)||'cette section';
+  const txt=document.getElementById('sectionDelText');
+  if(txt) txt.textContent=count ? `« ${name} » contient ${count} élément${count>1?'s':''}. Que faut-il en faire ?` : `« ${name} » est vide.`;
+  const keepBtn=document.getElementById('sectionDelKeep');
+  const allBtn=document.getElementById('sectionDelAll');
+  if(keepBtn){
+    keepBtn.style.display = count ? '' : 'none';
+    keepBtn.onclick=()=>{ closeSectionDel(); deleteSection(ti,ci,true); };
+  }
+  if(allBtn) allBtn.onclick=()=>{ closeSectionDel(); deleteSection(ti,ci,false); };
+  document.getElementById('sectionDelModal').classList.add('open');
+}
+function deleteSection(ti, ci, keepContent){
+  const tab=DATA.tabs[ti];
+  const card=tab.cards[ci];
+  const moved = keepContent ? (card.dishes||[]).slice() : [];
+  tab.cards.splice(ci,1);
+  if(moved.length){
+    // On vise une section sans titre pour ne pas mélanger ces plats
+    // avec une section nommée par l'utilisateur ; sinon on en crée une.
+    let target=tab.cards.find(c=>c.type!=='bevs'&&c.type!=='variants'&&!(t(c.label)||'').trim());
+    if(!target){ target={label:{fr:'',en:''},dishes:[]}; tab.cards.unshift(target); }
+    if(!Array.isArray(target.dishes)) target.dishes=[];
+    target.dishes=target.dishes.concat(moved);
+  }
+  tabSectionOpen[tab.id]=null;
+  dishDetailOpen[tab.id]=null;
+  renderAll();
+  refreshCurrentTabView(tab.id);
+  renderAdminSection(adminCurrentTab);
+  publishNow();
+  showToast(keepContent&&moved.length?'Section supprimée, plats conservés':'Section supprimée');
+}
 
 // ═══════════════════════════════════════════
 // LIGHTBOX
@@ -2433,7 +2514,7 @@ function renderAdminHomeCover(){
   const videoFieldsHtml = `
     <div class="af">
       <div class="ai-img-wrap ig-merged-upload">
-        <input class="ai ig-tall-field ig-placeholder-normal-size" style="width:100%;padding:14px 44px 14px 16px!important" value="${escAttr(hc.video||'')}" placeholder="Uploadez votre vidéo" oninput="DATA.homeCover.video=this.value.trim();renderAll();scheduleCoverAutoSave()">
+        <input class="ai ig-tall-field ig-placeholder-normal-size" style="width:100%;padding:14px 50px 14px 16px!important" value="${escAttr(hc.video||'')}" placeholder="Uploadez votre vidéo" oninput="DATA.homeCover.video=this.value.trim();renderAll();scheduleCoverAutoSave()">
         <label class="ig-inline-upload-icon" title="Uploader une vidéo (bientôt disponible)" onclick="event.preventDefault();showToast('⏳ Upload direct de vidéo bientôt disponible — utilisez un lien pour l\\'instant.')">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.22,20.75H5.78A2.64,2.64,0,0,1,3.25,18V15a.75.75,0,0,1,1.5,0v3a1.16,1.16,0,0,0,1,1.25H18.22a1.16,1.16,0,0,0,1-1.25V15a.75.75,0,0,1,1.5,0v3A2.64,2.64,0,0,1,18.22,20.75Z"/><path d="M16,8.75a.74.74,0,0,1-.53-.22L12,5.06,8.53,8.53A.75.75,0,0,1,7.47,7.47l4-4a.75.75,0,0,1,1.06,0l4,4a.75.75,0,0,1,0,1.06A.74.74,0,0,1,16,8.75Z"/><path d="M12,15.75a.76.76,0,0,1-.75-.75V4a.75.75,0,0,1,1.5,0V15A.76.76,0,0,1,12,15.75Z"/></svg>
         </label>
@@ -2450,7 +2531,7 @@ function renderAdminHomeCover(){
         ${open?`<div class="ig-day-body ig-slide-body">
           <div class="af">
             <div class="ai-img-wrap ig-merged-upload">
-              <input class="ai ig-tall-field ig-placeholder-normal-size ig-cover-field-flat" style="width:100%;padding:14px 44px 14px 16px!important" value="${escAttr(slide.image||'')}" placeholder="Uploadez votre image" oninput="DATA.homeCover.slideshow[${i}].image=this.value.trim();renderAll();renderAdminSection('__global');scheduleCoverAutoSave();syncImgPreview(this)">
+              <input class="ai ig-tall-field ig-placeholder-normal-size ig-cover-field-flat" style="width:100%;padding:14px 50px 14px 16px!important" value="${escAttr(slide.image||'')}" placeholder="Uploadez votre image" oninput="DATA.homeCover.slideshow[${i}].image=this.value.trim();renderAll();renderAdminSection('__global');scheduleCoverAutoSave();syncImgPreview(this)">
               <label class="ig-inline-upload-icon" title="Uploader une image">
                 <input type="file" accept="image/*" style="display:none" onchange="uploadImgFile(this,null)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.22,20.75H5.78A2.64,2.64,0,0,1,3.25,18V15a.75.75,0,0,1,1.5,0v3a1.16,1.16,0,0,0,1,1.25H18.22a1.16,1.16,0,0,0,1-1.25V15a.75.75,0,0,1,1.5,0v3A2.64,2.64,0,0,1,18.22,20.75Z"/><path d="M16,8.75a.74.74,0,0,1-.53-.22L12,5.06,8.53,8.53A.75.75,0,0,1,7.47,7.47l4-4a.75.75,0,0,1,1.06,0l4,4a.75.75,0,0,1,0,1.06A.74.74,0,0,1,16,8.75Z"/><path d="M12,15.75a.76.76,0,0,1-.75-.75V4a.75.75,0,0,1,1.5,0V15A.76.76,0,0,1,12,15.75Z"/></svg>
@@ -3942,7 +4023,7 @@ function renderTabSectionDetail(ti, ci){
   h+=`<div class="ig-inner-back-row">
     <button class="ig-back-btn" onclick="closeTabSection('${tab.id}')">‹</button>
     <input class="ai ig-card-title-input" style="flex:1" value="${escAttr(card.label[adminLang]||'')}" placeholder="Titre de section" oninput="DATA.tabs[${ti}].cards[${ci}].label[adminLang]=this.value;renderAll()">
-    <button class="adel" style="font-size:12px;padding:1px 0;flex:none;opacity:.6" onclick="askConfirm('Supprimer cette section ?',()=>{DATA.tabs[${ti}].cards.splice(${ci},1);tabSectionOpen['${tab.id}']=null;renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id);publishNow()})">✕</button>
+    <button class="adel" style="font-size:12px;padding:1px 0;flex:none;opacity:.6" onclick="askSectionDelete(${ti},${ci})">✕</button>
   </div>`;
 
   if(card.type==='bevs'){
@@ -7339,7 +7420,7 @@ function restaurantSettingHtml(){
     </div>
     <div class="af">
       <div class="ai-img-wrap ig-merged-upload">
-        <input class="ai ig-tall-field ig-placeholder-normal-size" style="width:100%;padding:14px 44px 14px 16px!important" value="${logo}" placeholder="Lien du logo de l'établissement" oninput="setRestaurantLogo(this.value.trim());applyRestaurantBranding();syncImgPreview(this)">
+        <input class="ai ig-tall-field ig-placeholder-normal-size" style="width:100%;padding:14px 50px 14px 16px!important" value="${logo}" placeholder="Lien du logo de l'établissement" oninput="setRestaurantLogo(this.value.trim());applyRestaurantBranding();syncImgPreview(this)">
         <label class="ig-inline-upload-icon" title="Uploader une image">
           <input type="file" accept="image/*" style="display:none" onchange="uploadImgFile(this,null)">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.22,20.75H5.78A2.64,2.64,0,0,1,3.25,18V15a.75.75,0,0,1,1.5,0v3a1.16,1.16,0,0,0,1,1.25H18.22a1.16,1.16,0,0,0,1-1.25V15a.75.75,0,0,1,1.5,0v3A2.64,2.64,0,0,1,18.22,20.75Z"/><path d="M16,8.75a.74.74,0,0,1-.53-.22L12,5.06,8.53,8.53A.75.75,0,0,1,7.47,7.47l4-4a.75.75,0,0,1,1.06,0l4,4a.75.75,0,0,1,0,1.06A.74.74,0,0,1,16,8.75Z"/><path d="M12,15.75a.76.76,0,0,1-.75-.75V4a.75.75,0,0,1,1.5,0V15A.76.76,0,0,1,12,15.75Z"/></svg>
@@ -7785,12 +7866,15 @@ function entityGalleryHtml(ti,ci,idx,kind,gallery){
   h+='<div class="ig-gallery-links" style="display:flex;flex-direction:column;gap:8px;margin-top:10px">';
   for(let gi=0;gi<4;gi++){
     const val=gallery[gi]||'';
-    const cb=`if(!${base}.gallery)${base}.gallery=[];${base}.gallery[${gi}]=this.value;renderAll()`;
-    h+=`<div style="display:flex;align-items:flex-start;gap:6px">
-      <span style="font-size:10px;color:var(--text3);min-width:14px;text-align:center;padding-top:10px;flex:none">${gi+1}</span>`
-      +imgFieldHtml(val,cb,`Photo ${gi+1} — URL ou upload`,9/16)
-      +(val?`<button onclick="${base}.gallery[${gi}]='';renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)" class="dish-eye-btn" style="align-self:center;flex:none;color:#fff" title="Supprimer cette photo">${TRASH_SVG}</button>`:'')
-      +`</div>`;
+    const cb=`if(!${base}.gallery)${base}.gallery=[];${base}.gallery[${gi}]=this.value;renderAll();syncImgPreview(this)`;
+    // Champ pleine largeur, sans bordure, sur le fond de page : le
+    // numéro passe dans le placeholder et la corbeille se loge dans le
+    // champ (à côté de l'upload) au lieu de rogner sa largeur.
+    h+=`<div class="ai-img-wrap ig-merged-upload ig-gallery-field${val?' has-del':''}">
+      <input class="ai ig-flat-field ig-placeholder-normal-size" value="${escAttr(val)}" placeholder="Photo ${gi+1} — collez un lien ou uploadez" oninput="${cb}">
+      ${val?`<button class="ig-gallery-del" onclick="${base}.gallery[${gi}]='';renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)" title="Supprimer cette photo">${TRASH_SVG}</button>`:''}
+      <label class="ig-inline-upload-icon" title="Uploader une image"><input type="file" accept="image/*" style="display:none" onchange="uploadImgFile(this,${9/16})"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.22,20.75H5.78A2.64,2.64,0,0,1,3.25,18V15a.75.75,0,0,1,1.5,0v3a1.16,1.16,0,0,0,1,1.25H18.22a1.16,1.16,0,0,0,1-1.25V15a.75.75,0,0,1,1.5,0v3A2.64,2.64,0,0,1,18.22,20.75Z"/><path d="M16,8.75a.74.74,0,0,1-.53-.22L12,5.06,8.53,8.53A.75.75,0,0,1,7.47,7.47l4-4a.75.75,0,0,1,1.06,0l4,4a.75.75,0,0,1,0,1.06A.74.74,0,0,1,16,8.75Z"/><path d="M12,15.75a.76.76,0,0,1-.75-.75V4a.75.75,0,0,1,1.5,0V15A.76.76,0,0,1,12,15.75Z"/></svg></label>
+    </div>`;
   }
   h+='</div></details></div>';
   return h;
@@ -7805,7 +7889,7 @@ function imgFieldHtml(val, onchangeJs, placeholder, ratio=1, bordered=false, ext
   // (same treatment as the logo field in "Mon établissement") instead
   // of a separate square button next to the input — used everywhere
   // an image field appears in the admin.
-  return `<div class="af"><div class="ai-img-wrap ig-merged-upload"><input class="ai ig-tall-field ig-placeholder-normal-size${cls}" style="width:100%;padding:14px 44px 14px 16px!important" value="${val||''}" placeholder="${placeholder||'Image URL'}" oninput="${handler}"><label class="ig-inline-upload-icon" title="Uploader une image"><input type="file" accept="image/*" style="display:none" onchange="uploadImgFile(this,${ratio===null?'null':ratio})"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.22,20.75H5.78A2.64,2.64,0,0,1,3.25,18V15a.75.75,0,0,1,1.5,0v3a1.16,1.16,0,0,0,1,1.25H18.22a1.16,1.16,0,0,0,1-1.25V15a.75.75,0,0,1,1.5,0v3A2.64,2.64,0,0,1,18.22,20.75Z"/><path d="M16,8.75a.74.74,0,0,1-.53-.22L12,5.06,8.53,8.53A.75.75,0,0,1,7.47,7.47l4-4a.75.75,0,0,1,1.06,0l4,4a.75.75,0,0,1,0,1.06A.74.74,0,0,1,16,8.75Z"/><path d="M12,15.75a.76.76,0,0,1-.75-.75V4a.75.75,0,0,1,1.5,0V15A.76.76,0,0,1,12,15.75Z"/></svg></label></div><img class="ai-img-preview" src="${val||''}" style="${previewStyle};width:100%;max-width:120px;aspect-ratio:1;object-fit:cover;border-radius:6px;margin-top:6px;border:1px solid var(--border)" onerror="this.style.display='none'"></div>`;
+  return `<div class="af"><div class="ai-img-wrap ig-merged-upload"><input class="ai ig-tall-field ig-placeholder-normal-size${cls}" style="width:100%;padding:14px 50px 14px 16px!important" value="${val||''}" placeholder="${placeholder||'Image URL'}" oninput="${handler}"><label class="ig-inline-upload-icon" title="Uploader une image"><input type="file" accept="image/*" style="display:none" onchange="uploadImgFile(this,${ratio===null?'null':ratio})"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.22,20.75H5.78A2.64,2.64,0,0,1,3.25,18V15a.75.75,0,0,1,1.5,0v3a1.16,1.16,0,0,0,1,1.25H18.22a1.16,1.16,0,0,0,1-1.25V15a.75.75,0,0,1,1.5,0v3A2.64,2.64,0,0,1,18.22,20.75Z"/><path d="M16,8.75a.74.74,0,0,1-.53-.22L12,5.06,8.53,8.53A.75.75,0,0,1,7.47,7.47l4-4a.75.75,0,0,1,1.06,0l4,4a.75.75,0,0,1,0,1.06A.74.74,0,0,1,16,8.75Z"/><path d="M12,15.75a.76.76,0,0,1-.75-.75V4a.75.75,0,0,1,1.5,0V15A.76.76,0,0,1,12,15.75Z"/></svg></label></div><img class="ai-img-preview" src="${val||''}" style="${previewStyle};width:100%;max-width:120px;aspect-ratio:1;object-fit:cover;border-radius:6px;margin-top:6px;border:1px solid var(--border)" onerror="this.style.display='none'"></div>`;
 }
 
 function syncImgPreview(input){
