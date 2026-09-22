@@ -500,6 +500,15 @@ body.home-cover-showing{overflow:hidden}
 .ig-subpage-old-content .ig-gallery-field .ig-inline-upload-icon{right:14px}
 .ig-gallery-del{position:absolute;right:44px;top:50%;transform:translateY(-50%);background:none;border:none;padding:0;cursor:pointer;color:var(--ig-text-dim,#b4b4b4);display:flex;align-items:center}
 .ig-gallery-del:hover{color:#E5484D}
+/* Ligne format/contenance/prix d'une boisson — mêmes champs plats que
+   partout ailleurs, sur le fond de page puisqu'ils vivent dans une
+   carte. */
+.ig-subpage-old-content .ai.ig-bev-sel{background:var(--ig-bg,#212121)!important;border:none!important;border-radius:10px;height:auto!important;padding:11px 12px!important;margin:0!important;color:var(--ig-text,#ececec)!important;font-size:13px!important;max-width:none!important}
+.ig-subpage-old-content select.ig-hm-select.ig-bev-sel{padding:11px 26px 11px 12px!important}
+.ig-subpage-old-content .ai.ig-bev-sel:focus{box-shadow:inset 0 0 0 1px #6e6e6e}
+/* Même champ plat, mais posé directement sur la page : il prend alors
+   le gris des cartes pour rester visible sur le fond. */
+.ig-subpage-old-content .ig-gallery-field.ig-card-field .ai.ig-flat-field{background:var(--ig-card,#2f2f2f)!important}
 .ig-stack-field.has-upload .ai{padding-right:32px!important}
 /* Prix : bloc court, le symbole reste en dehors du champ. */
 .ig-price-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
@@ -3889,6 +3898,10 @@ let tabSectionOpen = {};
 let dishDetailOpen = {};
 function openDishDetail(tabId, di){ dishDetailOpen[tabId] = di; refreshCurrentTabView(tabId); }
 function closeDishDetail(tabId){ dishDetailOpen[tabId] = null; refreshCurrentTabView(tabId); }
+// Même mécanique pour les boissons.
+let bevDetailOpen = {};
+function openBevDetail(tabId, ii){ bevDetailOpen[tabId] = ii; refreshCurrentTabView(tabId); }
+function closeBevDetail(tabId){ bevDetailOpen[tabId] = null; refreshCurrentTabView(tabId); }
 // BUG FIX (retombe en light mode) : appeler renderAdminSection(tabId)
 // directement prend la branche générique de rendu (l'ancien accès
 // direct par onglet, sans l'habillage sombre) — alors qu'on est en
@@ -3898,7 +3911,7 @@ function refreshCurrentTabView(tabId){
   if(adminCurrentTab==='__global') renderAdminSection('__global');
   else renderAdminSection(tabId);
 }
-function openTabSection(tabId, ci){ tabSectionOpen[tabId] = ci; dishDetailOpen[tabId] = null; refreshCurrentTabView(tabId); }
+function openTabSection(tabId, ci){ tabSectionOpen[tabId] = ci; dishDetailOpen[tabId] = null; bevDetailOpen[tabId] = null; refreshCurrentTabView(tabId); }
 function closeTabSection(tabId){ tabSectionOpen[tabId] = null; refreshCurrentTabView(tabId); }
 
 // Une catégorie n'a très souvent qu'une seule section, laissée sans
@@ -4027,31 +4040,21 @@ function renderTabSectionDetail(ti, ci){
   </div>`;
 
   if(card.type==='bevs'){
-    h+=`<div class="admin-card">`;
+    const openBi = bevDetailOpen[tab.id];
+    if(openBi!=null && (card.items||[])[openBi]){
+      h+=renderBevDetailBody(ti, ci, openBi);
+      return h;
+    }
+    h+=`<div class="ig-list">`;
     (card.items||[]).forEach((item,ii)=>{
-      const sizeRows=(item.sizes||[]).map((s,si)=>{
-        const unit=s.unit||'cl';
-        return `<div class="ai-row" style="margin-bottom:4px;align-items:center"><select class="ai-unit-sel" onchange="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].format=this.value;const f=BEV_FORMATS.find(f=>f.key===this.value);if(f&&f.autoCl!=null){DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].cl=f.autoCl;DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].unit='cl';}renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)">${bevFormatOptionsHtml(s.format)}</select><input class="ai" type="number" min="0" placeholder="Contenance" value="${s.cl||''}" style="max-width:64px" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].cl=this.value;renderAll()"><select class="ai-unit-sel" onchange="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].unit=this.value;renderAll()"><option value="cl" ${unit==='cl'?'selected':''}>cl</option><option value="l" ${unit==='l'?'selected':''}>L</option></select><input class="ai" type="number" min="0" step="0.5" placeholder="prix" value="${s.price||''}" style="max-width:64px" oninput="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes[${si}].price=this.value;renderAll()"><span style="font-size:11px;color:var(--text3);padding:0 4px">€</span><button class="adel" onclick="DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes.splice(${si},1);renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)">×</button></div>`;
-      }).join('');
       const bevName=typeof item.name==='object'?(item.name[adminLang]||item.name.fr||''):(item.name||'');
-      h+=`<div class="admin-card collapsed" style="background:var(--ig-card,#2f2f2f);margin-top:4px" ondragover="onDragOver(event,${ti},${ci},${ii})" ondragleave="onDragLeave(event)" ondrop="onDropBev(event,${ti},${ci},${ii})">
-        <div class="admin-card-hdr"><span class="drag-handle" draggable="true" ondragstart="onDragBev(event,${ti},${ci},${ii})" ondragend="onDragEndHandle(event)">⠿</span><span class="admin-card-num" style="cursor:pointer" onclick="this.closest('.admin-card').classList.toggle('collapsed')">Boisson ${ii+1}${bevName?' — '+escAttr(bevName):''}</span>${dishEyeDelButtons(!!item.hidden, `(function(){if(${!!item.hidden}){delete DATA.tabs[${ti}].cards[${ci}].items[${ii}].hidden;}else{DATA.tabs[${ti}].cards[${ci}].items[${ii}].hidden=true;}renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)})()`, `askConfirm('Supprimer cette boisson ?',()=>delBev(${ti},${ci},${ii}))`)}</div>
-        <div class="admin-card-details">
-        <input class="ai ig-visible-field" style="margin-bottom:4px" placeholder="${adminLang!=='fr'&&typeof item.name==='object'?item.name.fr||'Nom':'Nom'}" value="${typeof item.name==='object'?(item.name[adminLang]||''):item.name||''}" oninput="if(typeof DATA.tabs[${ti}].cards[${ci}].items[${ii}].name!=='object'){DATA.tabs[${ti}].cards[${ci}].items[${ii}].name={fr:DATA.tabs[${ti}].cards[${ci}].items[${ii}].name};}DATA.tabs[${ti}].cards[${ci}].items[${ii}].name[adminLang]=this.value;renderAll()">
-        <textarea class="ai ig-visible-field" rows="2" style="resize:vertical;margin-bottom:4px;font-size:12px" placeholder="Description (notes de dégustation, etc.)" oninput="if(!DATA.tabs[${ti}].cards[${ci}].items[${ii}].desc||typeof DATA.tabs[${ti}].cards[${ci}].items[${ii}].desc!=='object'){DATA.tabs[${ti}].cards[${ci}].items[${ii}].desc={};}DATA.tabs[${ti}].cards[${ci}].items[${ii}].desc[adminLang]=this.value;renderAll()">${(item.desc&&item.desc[adminLang])||''}</textarea>
-        `+imgFieldHtml(item.img||'',`DATA.tabs[${ti}].cards[${ci}].items[${ii}].img=this.value;renderAll()`,"Image URL ou uploader")+`
-
-        <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:4px">Format, contenance & prix</div>
-        ${sizeRows}
-        <button class="aadd ig-add-btn" style="margin-top:2px" onclick="if(!Array.isArray(DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes)){DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes=[];}DATA.tabs[${ti}].cards[${ci}].items[${ii}].sizes.push({format:'',cl:'',unit:'cl',price:''});renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)">Taille</button>
-
-        ${captionFieldHtml(item.caption||'', 'Ex: Notre sélection du moment 🍷', `DATA.tabs[${ti}].cards[${ci}].items[${ii}].caption=this.value`)}
-        <div class="ig-gallery-frame">${entityGalleryHtml(ti,ci,ii,'items',item.gallery)}</div>
-        </div>
+      h+=`<div class="ig-row" onclick="openBevDetail('${tab.id}',${ii})">
+        <span class="ig-row-label">${escAttr(bevName)||'(sans nom)'}</span>
+        <span class="ig-row-chevron">›</span>
       </div>`;
     });
     h+=`</div>`;
-    h+=`<button class="aadd ig-add-btn ig-add-btn-standalone" style="margin-top:4px" onclick="addBev(${ti},${ci})">Boisson</button>`;
+    h+=`<div class="ig-list" style="margin-top:14px"><div class="ig-row" style="justify-content:center" onclick="addBev(${ti},${ci})"><span style="color:#3BA55D;font-weight:500">Ajouter une boisson</span></div></div>`;
   } else if(card.type==='variants'){
     h+=`<div class="admin-card">`;
     h+=imgFieldHtml(card.img||'',`DATA.tabs[${ti}].cards[${ci}].img=this.value;renderAll()`,"Image URL ou uploader");
@@ -4085,6 +4088,92 @@ function renderTabSectionDetail(ti, ci){
   }
 
   h+=adminSaveBar();
+  return h;
+}
+
+// Une boisson suit exactement le même modèle qu'un plat : sa propre
+// page, des champs "empilés" avec leur libellé intégré, et les mêmes
+// blocs outils. Seule différence de fond : une boisson a plusieurs
+// formats/contenances/prix au lieu d'un prix unique.
+function renderBevDetailBody(ti, ci, ii){
+  const tab=DATA.tabs[ti];
+  const card=tab.cards[ci];
+  const item=card.items[ii];
+  const base=`DATA.tabs[${ti}].cards[${ci}].items[${ii}]`;
+  const nameVal=typeof item.name==='object'?(item.name[adminLang]||''):(item.name||'');
+  const nameSetter=`if(typeof ${base}.name!=='object'){${base}.name={fr:${base}.name};}${base}.name[adminLang]=this.value;renderAll()`;
+  const descSetter=`if(!${base}.desc||typeof ${base}.desc!=='object'){${base}.desc={};}${base}.desc[adminLang]=this.value;renderAll()`;
+  let h=`<div class="ig-inner-back-row">
+    <button class="ig-back-btn" onclick="closeBevDetail('${tab.id}')">‹</button>
+    <span style="flex:1;color:var(--ig-text,#ececec);font-size:15px;font-weight:600">${escAttr(t(card.label))||'Boisson'}</span>
+  </div>`;
+
+  h+=`<div class="ig-stack-field">
+    <span class="ig-stack-label">Nom de la boisson</span>
+    <input class="ai" value="${escAttr(nameVal)}" placeholder="Ex: Sancerre blanc" oninput="${nameSetter}">
+  </div>
+  <div class="ig-stack-field">
+    <span class="ig-stack-label">Sous-titre / notes de dégustation</span>
+    <textarea class="ai" rows="2" style="resize:vertical" placeholder="Ex: Domaine Vacheron — vif et minéral" oninput="${descSetter}">${escAttr((item.desc&&item.desc[adminLang])||'')}</textarea>
+  </div>`;
+
+  h+=`<div class="ig-panel-card">
+    <div class="ig-panel-hdr">
+      <span class="ig-panel-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l-1 7a5 5 0 0 1-10 0Z"/><line x1="12" y1="14" x2="12" y2="20"/><line x1="8.5" y1="21" x2="15.5" y2="21"/></svg></span>
+      <span class="ig-panel-title">Formats, contenances &amp; prix</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">`;
+  (item.sizes||[]).forEach((s,si)=>{
+    const unit=s.unit||'cl';
+    h+=`<div style="display:flex;align-items:center;gap:6px">
+      <select class="ai ig-hm-select ig-bev-sel" style="flex:1;min-width:0" onchange="${base}.sizes[${si}].format=this.value;const f=BEV_FORMATS.find(f=>f.key===this.value);if(f&&f.autoCl!=null){${base}.sizes[${si}].cl=f.autoCl;${base}.sizes[${si}].unit='cl';}renderAll();refreshCurrentTabView('${tab.id}');renderAdminSection(adminCurrentTab)">${bevFormatOptionsHtml(s.format)}</select>
+      <input class="ai ig-bev-sel ig-num-white-arrows" type="number" min="0" placeholder="Cont." value="${s.cl||''}" style="width:68px;flex:none" oninput="${base}.sizes[${si}].cl=this.value;renderAll()">
+      <select class="ai ig-hm-select ig-bev-sel" style="width:62px;flex:none" onchange="${base}.sizes[${si}].unit=this.value;renderAll()"><option value="cl" ${unit==='cl'?'selected':''}>cl</option><option value="l" ${unit==='l'?'selected':''}>L</option></select>
+      <input class="ai ig-bev-sel ig-num-white-arrows" type="number" min="0" step="0.5" placeholder="Prix" value="${s.price||''}" style="width:72px;flex:none" oninput="${base}.sizes[${si}].price=this.value;renderAll()">
+      <button class="ig-gallery-del" style="position:static;transform:none;flex:none" title="Retirer ce format" onclick="${base}.sizes.splice(${si},1);renderAll();refreshCurrentTabView('${tab.id}');renderAdminSection(adminCurrentTab)">${TRASH_SVG}</button>
+    </div>`;
+  });
+  h+=`</div>
+    <div class="ig-list" style="margin-top:12px"><div class="ig-row" style="justify-content:center" onclick="if(!Array.isArray(${base}.sizes)){${base}.sizes=[];}${base}.sizes.push({format:'',cl:'',unit:'cl',price:''});renderAll();refreshCurrentTabView('${tab.id}');renderAdminSection(adminCurrentTab)"><span style="color:#3BA55D;font-weight:500">Ajouter un format</span></div></div>
+  </div>`;
+
+  h+=`<div class="ai-img-wrap ig-merged-upload ig-gallery-field ig-card-field" style="margin-bottom:10px">
+    <input class="ai ig-flat-field ig-placeholder-normal-size" value="${escAttr(item.img||'')}" placeholder="Lien de l'image — collez un lien ou uploadez" oninput="${base}.img=this.value;renderAll();syncImgPreview(this)">
+    <label class="ig-inline-upload-icon" title="Uploader une image">
+      <input type="file" accept="image/*" style="display:none" onchange="uploadImgFile(this,1)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.22,20.75H5.78A2.64,2.64,0,0,1,3.25,18V15a.75.75,0,0,1,1.5,0v3a1.16,1.16,0,0,0,1,1.25H18.22a1.16,1.16,0,0,0,1-1.25V15a.75.75,0,0,1,1.5,0v3A2.64,2.64,0,0,1,18.22,20.75Z"/><path d="M16,8.75a.74.74,0,0,1-.53-.22L12,5.06,8.53,8.53A.75.75,0,0,1,7.47,7.47l4-4a.75.75,0,0,1,1.06,0l4,4a.75.75,0,0,1,0,1.06A.74.74,0,0,1,16,8.75Z"/><path d="M12,15.75a.76.76,0,0,1-.75-.75V4a.75.75,0,0,1,1.5,0V15A.76.76,0,0,1,12,15.75Z"/></svg>
+    </label>
+  </div>
+  <img class="ai-img-preview" src="${escAttr(item.img||'')}" style="${item.img?'':'display:none'};width:120px;aspect-ratio:1;object-fit:cover;border-radius:12px;margin-bottom:10px;display:block" onerror="this.style.display='none'">`;
+
+  h+=`<div class="ig-panel-card">
+    <div class="ig-panel-hdr">
+      <span class="ig-panel-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m21 15-5-5-11 9"/></svg></span>
+      <span class="ig-panel-title">Galerie réseaux sociaux (1–4 photos)</span>
+    </div>
+    ${entityGalleryHtml(ti,ci,ii,'items',item.gallery)}
+  </div>`;
+
+  h+=`<div class="ig-panel-card">
+    <div class="ig-panel-hdr">
+      <span class="ig-panel-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg></span>
+      <span class="ig-panel-title">Caption Instagram (pré-enregistrée)</span>
+    </div>
+    ${captionFieldHtml(item.caption||'', 'Ex: Notre sélection du moment 🍷', `${base}.caption=this.value`)}
+  </div>`;
+
+  const bevNameEsc=((typeof item.name==='object'?item.name.fr:item.name)||'cette boisson').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  h+=`<div class="ig-list" style="margin-top:14px">
+    <div class="ig-row" style="cursor:default">
+      <span class="ig-row-icon">${item.hidden?EYE_OFF_SVG:EYE_SVG}</span>
+      <span class="ig-row-label">Masquer la boisson</span>
+      <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${item.hidden?'checked':''} onchange="if(this.checked){${base}.hidden=true;}else{delete ${base}.hidden;}renderAll();refreshCurrentTabView('${tab.id}');renderAdminSection(adminCurrentTab)"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
+    </div>
+    <div class="ig-row" onclick="askConfirm('Supprimer « ${bevNameEsc} » ?',()=>{delBev(${ti},${ci},${ii});bevDetailOpen['${tab.id}']=null;renderAdminSection(adminCurrentTab)})">
+      <span class="ig-row-icon" style="color:#E5484D">${TRASH_SVG}</span>
+      <span class="ig-row-label" style="color:#E5484D">Supprimer la boisson</span>
+    </div>
+  </div>`;
   return h;
 }
 
@@ -4123,17 +4212,14 @@ function renderDishDetailBody(ti, ci, di){
     </div>`;
   }
 
-  h+=`<div class="ig-stack-field has-upload">
-    <span class="ig-stack-label">Lien de l'image</span>
-    <div class="ai-img-wrap ig-merged-upload">
-      <input class="ai" value="${escAttr(d.img||'')}" placeholder="Collez un lien ou uploadez" oninput="${base}.img=this.value;renderAll();syncImgPreview(this)">
-      <label class="ig-inline-upload-icon" title="Uploader une image">
-        <input type="file" accept="image/*" style="display:none" onchange="uploadImgFile(this,1)">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.22,20.75H5.78A2.64,2.64,0,0,1,3.25,18V15a.75.75,0,0,1,1.5,0v3a1.16,1.16,0,0,0,1,1.25H18.22a1.16,1.16,0,0,0,1-1.25V15a.75.75,0,0,1,1.5,0v3A2.64,2.64,0,0,1,18.22,20.75Z"/><path d="M16,8.75a.74.74,0,0,1-.53-.22L12,5.06,8.53,8.53A.75.75,0,0,1,7.47,7.47l4-4a.75.75,0,0,1,1.06,0l4,4a.75.75,0,0,1,0,1.06A.74.74,0,0,1,16,8.75Z"/><path d="M12,15.75a.76.76,0,0,1-.75-.75V4a.75.75,0,0,1,1.5,0V15A.76.76,0,0,1,12,15.75Z"/></svg>
-      </label>
-    </div>
-    <img class="ai-img-preview" src="${escAttr(d.img||'')}" style="${d.img?'':'display:none'};width:120px;aspect-ratio:1;object-fit:cover;border-radius:12px;margin-top:12px;display:block" onerror="this.style.display='none'">
-  </div>`;
+  h+=`<div class="ai-img-wrap ig-merged-upload ig-gallery-field ig-card-field" style="margin-bottom:10px">
+    <input class="ai ig-flat-field ig-placeholder-normal-size" value="${escAttr(d.img||'')}" placeholder="Lien de l'image — collez un lien ou uploadez" oninput="${base}.img=this.value;renderAll();syncImgPreview(this)">
+    <label class="ig-inline-upload-icon" title="Uploader une image">
+      <input type="file" accept="image/*" style="display:none" onchange="uploadImgFile(this,1)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.22,20.75H5.78A2.64,2.64,0,0,1,3.25,18V15a.75.75,0,0,1,1.5,0v3a1.16,1.16,0,0,0,1,1.25H18.22a1.16,1.16,0,0,0,1-1.25V15a.75.75,0,0,1,1.5,0v3A2.64,2.64,0,0,1,18.22,20.75Z"/><path d="M16,8.75a.74.74,0,0,1-.53-.22L12,5.06,8.53,8.53A.75.75,0,0,1,7.47,7.47l4-4a.75.75,0,0,1,1.06,0l4,4a.75.75,0,0,1,0,1.06A.74.74,0,0,1,16,8.75Z"/><path d="M12,15.75a.76.76,0,0,1-.75-.75V4a.75.75,0,0,1,1.5,0V15A.76.76,0,0,1,12,15.75Z"/></svg>
+    </label>
+  </div>
+  <img class="ai-img-preview" src="${escAttr(d.img||'')}" style="${d.img?'':'display:none'};width:120px;aspect-ratio:1;object-fit:cover;border-radius:12px;margin-bottom:10px;display:block" onerror="this.style.display='none'">`;
 
   h+=`<div class="ig-panel-card">
     <div class="ig-panel-hdr">
