@@ -3768,17 +3768,17 @@ function renderTabSectionList(ti){
   // petite flèche à droite), on entre dans le détail au clic. Plus
   // d'accordéon qui déplie tout sur place : trop d'informations d'un
   // coup quand il y a beaucoup de plats.
-  h+=`<div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin:14px 0 8px">Section</div>`;
+  h+=`<div class="ig-group-label" style="margin:30px 0 8px 4px;display:block;color:#8E8EA0!important">Section</div>`;
   h+=`<div class="ig-list">`;
   tab.cards.forEach((card,ci)=>{
     h+=`<div class="ig-row" onclick="openTabSection('${tab.id}',${ci})">
-      <span class="ig-section-row-label">${t(card.label)||'(sans titre)'}</span>
+      <span class="ig-row-label">${t(card.label)||'(sans titre)'}</span>
       <span class="ig-row-chevron">›</span>
     </div>`;
   });
   h+=`</div>`;
 
-  h+=`<div class="ig-list" style="margin-top:14px"><div class="ig-row" style="justify-content:center" onclick="addCard(${ti})"><span style="color:#3BA55D;font-weight:500">Ajouter une nouvelle section</span></div></div>`;
+  h+=`<div class="ig-list" style="margin-top:14px"><div class="ig-row" style="justify-content:center" onclick="addCard(${ti})"><span style="color:var(--ig-text);font-weight:500">Ajouter une nouvelle section</span></div></div>`;
 
   // Réordonner les sections (2+ sections seulement), tout en bas.
   if(tab.cards.length>=2){
@@ -3864,12 +3864,12 @@ function renderTabSectionDetail(ti, ci){
       card.dishes.forEach((d,di)=>{
         const dName=d.name&&(d.name[adminLang]||d.name.fr)||'';
         h+=`<div class="ig-row" onclick="openDishDetail('${tab.id}',${di})">
-          <span class="ig-section-row-label">${escAttr(dName)||'(sans nom)'}</span>
+          <span class="ig-row-label">${escAttr(dName)||'(sans nom)'}</span>
           <span class="ig-row-chevron">›</span>
         </div>`;
       });
       h+=`</div>`;
-      h+=`<button class="aadd ig-add-btn ig-add-btn-standalone" onclick="addDish(${ti},${ci})">Ajouter un plat</button>`;
+      h+=`<div class="ig-list" style="margin-top:14px"><div class="ig-row" style="justify-content:center" onclick="addDish(${ti},${ci})"><span style="color:var(--ig-text);font-weight:500">Ajouter un plat</span></div></div>`;
       h+=adminSaveBar();
       return h;
     }
@@ -3887,7 +3887,6 @@ function renderDishDetailBody(ti, ci, di){
   let h=`<div class="ig-inner-back-row">
     <button class="ig-back-btn" onclick="closeDishDetail('${tab.id}')">‹</button>
     <span style="flex:1;color:var(--ig-text,#ececec);font-family:'Jost',sans-serif;font-size:14px">Plat</span>
-    ${dishEyeDelButtons(!!d.hidden, `(function(){if(${!!d.hidden}){delete DATA.tabs[${ti}].cards[${ci}].dishes[${di}].hidden;}else{DATA.tabs[${ti}].cards[${ci}].dishes[${di}].hidden=true;}renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)})()`, `askConfirm('Supprimer « ${(d.name.fr||'ce plat').replace(/\\/g,'\\\\').replace(/'/g,"\\'")} » ?',()=>{delDish(${ti},${ci},${di});dishDetailOpen['${tab.id}']=null;})`)}
   </div>`;
   h+=`<div class="admin-card">
     <div class="af"><input class="ai ig-visible-field" value="${escAttr(d.name[adminLang]||'')}" placeholder="Nom" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].name[adminLang]=this.value;renderAll()"></div>
@@ -3897,6 +3896,20 @@ function renderDishDetailBody(ti, ci, di){
     <div class="ig-gallery-frame">`+dishGalleryHtml(d,ti,ci,di)+`</div>
     ${captionFieldHtml(d.caption||'', 'Ex: Nos huîtres Spéciales N°3 — iodées, fraîches, servies sur glace 🦪 Disponibles au bar ou à emporter.', `DATA.tabs[${ti}].cards[${ci}].dishes[${di}].caption=this.value`)}
     `+adminBadgeGroup(d,`DATA.tabs[${ti}].cards[${ci}].dishes[${di}]`)+`
+  </div>`;
+  // Masquer / supprimer en bas de page, en deux lignes de liste —
+  // même disposition que sur la page d'une catégorie.
+  const dishNameEsc=(d.name.fr||'ce plat').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  h+=`<div class="ig-list" style="margin-top:14px">
+    <div class="ig-row" style="cursor:default">
+      <span class="ig-row-icon">${d.hidden?EYE_OFF_SVG:EYE_SVG}</span>
+      <span class="ig-row-label">Masquer le plat</span>
+      <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${d.hidden?'checked':''} onchange="if(this.checked){DATA.tabs[${ti}].cards[${ci}].dishes[${di}].hidden=true;}else{delete DATA.tabs[${ti}].cards[${ci}].dishes[${di}].hidden;}renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id);renderAdminSection(adminCurrentTab)"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
+    </div>
+    <div class="ig-row" onclick="askConfirm('Supprimer « ${dishNameEsc} » ?',()=>{delDish(${ti},${ci},${di});dishDetailOpen['${tab.id}']=null;renderAdminSection(adminCurrentTab)})">
+      <span class="ig-row-icon" style="color:#E5484D">${TRASH_SVG}</span>
+      <span class="ig-row-label" style="color:#E5484D">Supprimer le plat</span>
+    </div>
   </div>`;
   return h;
 }
