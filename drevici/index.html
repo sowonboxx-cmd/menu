@@ -4062,9 +4062,18 @@ function renderTabSectionList(ti){
   // plat ajouté). Placé au-dessus du bloc "Section".
   const inlineCi = soloUntitledCardIndex(tab);
   const isBevTab = tab.id==='boissons' || (tab.cards.length>0 && tab.cards.every(c=>c.type==='bevs'));
+  // Le tout premier bloc de la page colle au fil d'Ariane (comme la
+  // liste des plats dans une section) ; seuls les blocs SUIVANTS
+  // prennent la grande marge qui les sépare du précédent.
+  let firstBlock = true;
+  const groupLabel = txt => {
+    const mt = firstBlock ? '2' : '30';
+    firstBlock = false;
+    return `<div class="ig-group-label" style="margin:${mt}px 0 8px 4px;display:block;color:#8E8EA0!important">${txt}</div>`;
+  };
   if(inlineCi!=null || (!tab.cards.length && !isBevTab)){
     const dishes = inlineCi!=null ? (tab.cards[inlineCi].dishes||[]) : [];
-    h+=`<div class="ig-group-label" style="margin:30px 0 8px 4px;display:block;color:#8E8EA0!important">Plats</div>`;
+    h+=groupLabel('Plats');
     if(dishes.length){
       h+=`<div class="ig-list">`;
       dishes.forEach((d,di)=>{
@@ -4085,7 +4094,7 @@ function renderTabSectionList(ti){
   // au-dessus, donc on ne l'affiche pas ici comme "(sans titre)".
   const realCards = tab.cards.map((card,ci)=>({card,ci}))
     .filter(({card,ci}) => ci!==inlineCi);
-  h+=`<div class="ig-group-label" style="margin:30px 0 8px 4px;display:block;color:#8E8EA0!important">Section</div>`;
+  h+=groupLabel('Section');
   if(realCards.length){
     h+=`<div class="ig-list">`;
     realCards.forEach(({card,ci})=>{
