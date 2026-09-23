@@ -506,6 +506,12 @@ body.home-cover-showing{overflow:hidden}
 .ig-subpage-old-content .ai.ig-bev-sel{background:var(--ig-bg,#212121)!important;border:none!important;border-radius:10px;height:auto!important;padding:11px 12px!important;margin:0!important;color:var(--ig-text,#ececec)!important;font-size:13px!important;max-width:none!important}
 .ig-subpage-old-content select.ig-hm-select.ig-bev-sel{padding:11px 26px 11px 12px!important}
 .ig-subpage-old-content .ai.ig-bev-sel:focus{box-shadow:inset 0 0 0 1px #6e6e6e}
+/* Prix (simple ou double offre) posés directement sur la page : pas de
+   bordure, mais le gris des cartes en fond — sinon un champ sans
+   bordure sur un fond identique devient invisible. */
+.ig-subpage-old-content .ai.ig-dual-field{background:var(--ig-card,#2f2f2f)!important;border:none!important;border-radius:10px;height:auto!important;padding:12px 14px!important;margin:0!important;color:var(--ig-text,#ececec)!important;font-size:15px!important;font-weight:600;max-width:none!important;width:100%}
+.ig-subpage-old-content .ai.ig-dual-field:focus{box-shadow:inset 0 0 0 1px #6e6e6e}
+.ig-dual-sublabel{font-size:12px;color:var(--ig-text-dimmer,#8e8ea0);margin-bottom:5px}
 /* Même champ plat, mais posé directement sur la page : il prend alors
    le gris des cartes pour rester visible sur le fond. */
 .ig-subpage-old-content .ig-gallery-field.ig-card-field .ai.ig-flat-field{background:var(--ig-card,#2f2f2f)!important}
@@ -3835,7 +3841,7 @@ function priceFieldSimple(d, ti, ci, di){
   const numVal=(d.price||'').replace('€','').trim();
   return `<div class="af">
     <div style="display:flex;align-items:center;gap:6px">
-      <input class="ai ig-bev-sel ig-num-white-arrows" type="number" min="0" step="0.5" value="${numVal}" placeholder="Prix" style="max-width:100px" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].price=this.value?this.value+'€':'';renderAll()">
+      <input class="ai ig-dual-field ig-num-white-arrows" type="number" min="0" step="0.5" value="${numVal}" placeholder="Prix" style="max-width:100px" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].price=this.value?this.value+'€':'';renderAll()">
       <span style="font-size:13px;color:var(--text3)">€</span>
       ${DATA.tabs[ti].id==='huitres'?`<label style='display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text3);cursor:pointer;margin-left:8px'><input type='checkbox' ${d.priceType==='dual'?'checked':''} onchange='DATA.tabs[${ti}].cards[${ci}].dishes[${di}].priceType=this.checked?"dual":"";renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)'> + Ajouter un prix</label>`:''}
     </div>
@@ -3844,12 +3850,12 @@ function priceFieldSimple(d, ti, ci, di){
 function priceField(d, ti, ci, di){
   if(d.priceType==='dual'){
     const qty1=d.qty1||''; const p1=d.p1||''; const qty2=d.qty2||''; const p2=d.p2||'';
-    return `<div class="af"><label class="al">Prix (double offre)</label>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;align-items:center">
-        <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Qté 1</div><input class="ai ig-bev-sel ig-num-white-arrows" type="number" value="${qty1}" placeholder="ex: 6" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].qty1=this.value;updateDualPrice(${ti},${ci},${di})"></div>
-        <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Prix 1 (€)</div><input class="ai ig-bev-sel ig-num-white-arrows" type="number" value="${p1}" placeholder="12" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].p1=this.value;updateDualPrice(${ti},${ci},${di})"></div>
-        <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Qté 2</div><input class="ai ig-bev-sel ig-num-white-arrows" type="number" value="${qty2}" placeholder="ex: 12" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].qty2=this.value;updateDualPrice(${ti},${ci},${di})"></div>
-        <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Prix 2 (€)</div><input class="ai ig-bev-sel ig-num-white-arrows" type="number" value="${p2}" placeholder="22" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].p2=this.value;updateDualPrice(${ti},${ci},${di})"></div>
+    return `<div class="af" style="margin-bottom:10px"><div class="ig-group-label" style="margin:0 0 8px 4px;display:block;color:#8E8EA0!important">Prix (double offre)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;align-items:end">
+        <div><div class="ig-dual-sublabel">Qté 1</div><input class="ai ig-dual-field ig-num-white-arrows" type="number" value="${qty1}" placeholder="ex: 6" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].qty1=this.value;updateDualPrice(${ti},${ci},${di})"></div>
+        <div><div class="ig-dual-sublabel">Prix 1 (€)</div><input class="ai ig-dual-field ig-num-white-arrows" type="number" value="${p1}" placeholder="12" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].p1=this.value;updateDualPrice(${ti},${ci},${di})"></div>
+        <div><div class="ig-dual-sublabel">Qté 2</div><input class="ai ig-dual-field ig-num-white-arrows" type="number" value="${qty2}" placeholder="ex: 12" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].qty2=this.value;updateDualPrice(${ti},${ci},${di})"></div>
+        <div><div class="ig-dual-sublabel">Prix 2 (€)</div><input class="ai ig-dual-field ig-num-white-arrows" type="number" value="${p2}" placeholder="22" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].p2=this.value;updateDualPrice(${ti},${ci},${di})"></div>
       </div>
     </div>`;
   }
@@ -4042,13 +4048,10 @@ function renderTabSectionList(ti){
   const tab=DATA.tabs[ti];
   let h='';
 
-  // Nom de la catégorie en champ pleine taille (même standard que
-  // partout ailleurs), puis deux lignes de liste dessous : masquer
-  // (interrupteur) et supprimer (rouge, avec confirmation).
+  // Le nom de la catégorie, le masquage et la suppression vivent
+  // désormais dans le bloc "Gestion de la catégorie", tout en bas
+  // (voir plus loin) — le haut de page est réservé au contenu.
   const tabNameEsc=(tab.label.fr||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-  h+=`<div class="af">
-    <input class="ai ig-tall-field ig-placeholder-normal-size" style="width:100%;padding:14px 16px!important" value="${escAttr(tab.label[adminLang]||'')}" placeholder="Nom de la catégorie" oninput="DATA.tabs[${ti}].label[adminLang]=this.value;renderAll()">
-  </div>`;
 
   // Sections — un seul bloc cliquable chacune (nom en bleu clair,
   // petite flèche à droite), on entre dans le détail au clic. Plus
@@ -4120,6 +4123,10 @@ function renderTabSectionList(ti){
   // titre : ce sont des actions de fin de page, pas le point de départ
   // de l'édition.
   h+=`<div class="ig-group-label" style="margin:34px 0 8px 4px;display:block;color:#8E8EA0!important">Gestion de la catégorie</div>
+  <div class="ig-stack-field">
+    <span class="ig-stack-label">Nom de la catégorie</span>
+    <input class="ai" value="${escAttr(tab.label[adminLang]||'')}" placeholder="Ex: Entrées" oninput="DATA.tabs[${ti}].label[adminLang]=this.value;renderAll()">
+  </div>
   <div class="ig-list">
     <div class="ig-row" style="cursor:default">
       <span class="ig-row-icon">${tab.visible===false?EYE_OFF_SVG:EYE_SVG}</span>
@@ -4141,10 +4148,11 @@ function renderTabSectionList(ti){
 function sectionManageBlockHtml(ti, ci){
   const card=DATA.tabs[ti].cards[ci];
   return `<div class="ig-group-label" style="margin:34px 0 8px 4px;display:block;color:#8E8EA0!important">Gestion de la section</div>
-  <div class="af">
-    <input class="ai ig-tall-field ig-placeholder-normal-size" style="width:100%;padding:14px 16px!important" value="${escAttr(card.label[adminLang]||'')}" placeholder="Nom de la section" oninput="DATA.tabs[${ti}].cards[${ci}].label[adminLang]=this.value;renderAll()">
+  <div class="ig-stack-field">
+    <span class="ig-stack-label">Nom de la section</span>
+    <input class="ai" value="${escAttr(card.label[adminLang]||'')}" placeholder="Ex: Tartinades" oninput="DATA.tabs[${ti}].cards[${ci}].label[adminLang]=this.value;renderAll()">
   </div>
-  <div class="ig-list" style="margin-top:10px">
+  <div class="ig-list">
     <div class="ig-row" style="cursor:default">
       <span class="ig-row-icon">${card.hidden?EYE_OFF_SVG:EYE_SVG}</span>
       <span class="ig-row-label">Masquer la section</span>
@@ -7967,7 +7975,7 @@ function renderMenusEtPlats(){
         <span class="ig-row-label">${r.label}</span>
         <span class="ig-row-chevron">›</span>
       </div>`).join('')}${!catRows.length?'<div style="padding:16px;color:var(--ig-text-dimmer,var(--text3));font-size:12.5px;text-align:center">Aucune catégorie pour l\'instant.</div>':''}</div>
-    <div class="ig-group-label" style="margin-top:38px">Manager les catégories</div>
+    <div class="ig-group-label" style="margin-top:38px">Gestion des catégories</div>
     <div class="ig-list">${MANAGER_CATEGORIES_ROWS.map(r=>`
       <div class="ig-row" onclick="${r.action ? r.action : `openHomeRow('${r.key}')`}">
         <span class="ig-row-icon">${r.icon}</span>
