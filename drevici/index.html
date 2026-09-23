@@ -536,7 +536,7 @@ body.home-cover-showing{overflow:hidden}
 .ig-crumb-current{color:var(--ig-text);font-size:16px;font-weight:600;white-space:nowrap;flex:none}
 /* Boutons monter/descendre des sections — la solution tactile au
    glisser-déposer, qui ne marche pas au doigt. */
-.sec-move-btn{width:32px;height:32px;flex:none;border-radius:8px;border:1px solid var(--ig-border);background:var(--ig-bg);color:var(--ig-text-dim);font-size:11px;cursor:pointer;padding:0;line-height:1}
+.sec-move-btn{width:32px;height:32px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid var(--ig-border);background:var(--ig-bg);color:var(--ig-text-dim);font-size:11px;cursor:pointer;padding:0;line-height:1}
 .sec-move-btn:disabled{opacity:.3;cursor:default}
 .sec-move-btn:not(:disabled):active{background:var(--ig-card);color:var(--ig-text)}
 /* Blocs "outil" (galerie, caption, infos alimentaires) : même carte,
@@ -1506,6 +1506,18 @@ function goToTab(tabId){
 }
 // Handles browser Back/Forward and someone pasting a #tab link while the page is already open.
 window.addEventListener('popstate', ()=>{
+  // BUG FIX (geste "retour" dans l'admin) : balayer vers la droite
+  // quittait le panneau pour retourner sur le site, alors qu'on
+  // s'attend à remonter d'un cran DANS l'admin. Tant que le panneau
+  // est ouvert, le geste remonte la navigation interne, et ne ferme le
+  // panneau qu'une fois à la racine.
+  const panel=document.getElementById('adminPanel');
+  if(panel && panel.classList.contains('open')){
+    history.pushState(null,'',location.href);
+    if(adminBackStep()) return;
+    closeAdmin();
+    return;
+  }
   const raw=tabIdFromHash();
   // URL redevenue nue : on remonte au cover (cas du bouton Retour juste
   // après avoir cliqué "Voir le menu").
@@ -2650,6 +2662,12 @@ function setCoverMediaType(key){ DATA.homeCover.mediaType=key; renderAll(); sche
 // push/back pattern as openDishDetail/closeDishDetail (a list of rows,
 // clicking one shows just that row's page with a back arrow).
 let homeCoverSubpage = null;
+const HOME_COVER_ROW_LABELS={
+  infos:'Logo, description, boutons',
+  photo:'Photo (plein écran)',
+  video:'Vidéo (plein écran)',
+  slideshow:'Diaporama (3 photos)'
+};
 function openHomeCoverRow(key){
   homeCoverSubpage = key;
   if(key==='photo'||key==='video'||key==='slideshow') setCoverMediaType(key);
@@ -2755,17 +2773,11 @@ function renderAdminHomeCover(){
   // A row is open: show its back-header + its own fields only.
   if(homeCoverSubpage){
     const row=[...INFO_ROWS,...MEDIA_TYPE_ROWS].find(r=>r.key===homeCoverSubpage);
-    return `<div class="admin-section"><div class="admin-sect-title">Page d'accueil</div><div class="admin-sect-body">
-      <div class="ig-inner-back-row">
-        <button class="ig-back-btn" onclick="closeHomeCoverRow()">‹</button>
-        <span style="flex:1;color:var(--ig-text);font-family:'Jost',sans-serif;font-size:14px">${row?row.label:''}</span>
-      </div>
-      ${SUBPAGE_HTML[homeCoverSubpage]||''}
-    </div></div>`;
+    return SUBPAGE_HTML[homeCoverSubpage]||'';
   }
 
   // Otherwise: the two nav lists, same look as "Informations générales" on Home.
-  return `<div class="admin-section"><div class="admin-sect-title">Page d'accueil</div><div class="admin-sect-body">
+  return `
     <div class="af"><label class="ig-group-label" style="margin:0 0 8px 4px;display:block;color:var(--ig-text-dimmer)!important">Informations générales</label></div>
     <div class="ig-list">
       ${INFO_ROWS.map(r=>`<div class="ig-row" onclick="openHomeCoverRow('${r.key}')">
@@ -2782,8 +2794,7 @@ function renderAdminHomeCover(){
         ${(hc.mediaType||'photo')===r.key?`<span class="ig-active-check" title="Visuel actuellement affiché"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 12.5 10 17.5 19 7"/></svg></span>`:''}
         <span class="ig-row-chevron">›</span>
       </div>`).join('')}
-    </div>
-  </div></div>`;
+    </div>`;
 }
 
 // Home tab photo: respect the photo's own proportions rather than
@@ -3423,8 +3434,8 @@ function renderTabReorder(){
           ondrop="onDropTab(event,${ti})">
       <span class="drag-handle" draggable="true" style="font-size:18px;padding:8px 6px;color:var(--ig-text-dim);cursor:grab;touch-action:none" ondragstart="onDragTab(event,${ti})" ondragend="onDragEnd(event)">⠿</span>
       <span style="font-size:13.5px;font-weight:500;color:var(--ig-text);flex:1;min-width:0">${t(tab.label)}</span>
-      <button class="sec-move-btn" ${ti===0?'disabled':''} title="Monter" onclick="moveTab(${ti},-1)">▲</button>
-      <button class="sec-move-btn" ${ti===DATA.tabs.length-1?'disabled':''} title="Descendre" onclick="moveTab(${ti},1)">▼</button>
+      <button class="sec-move-btn" ${ti===0?'disabled':''} title="Monter" onclick="moveTab(${ti},-1)"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 6-6 6 6"/></svg></button>
+      <button class="sec-move-btn" ${ti===DATA.tabs.length-1?'disabled':''} title="Descendre" onclick="moveTab(${ti},1)"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 10 6 6 6-6"/></svg></button>
     </div>`;
   });
   h+=`</div>
@@ -3445,7 +3456,6 @@ function onDropTab(e,ti){
   dragTabSrc=null;
   currentTabId=DATA.tabs[0]?.id;
   renderAll(); renderAdminTabDd(); renderAdminSection('__reorder');
-  showToast('Ordre mis à jour');
 }
 
 // Touch drag for mobile reorder
@@ -3700,6 +3710,7 @@ let adminLang='fr'; // language being edited in admin
 function openAdmin(){
   document.getElementById('adminOverlay').classList.add('open');
   document.getElementById('adminPanel').classList.add('open');
+  armAdminBackGuard();
   if(!supaSession){
     document.getElementById('adminTabDd').style.display='none';
     document.getElementById('adminLangDd').style.display='none';
@@ -3748,6 +3759,7 @@ function openAdmin(){
 function openAdminSection(tid){
   document.getElementById('adminOverlay').classList.add('open');
   document.getElementById('adminPanel').classList.add('open');
+  armAdminBackGuard();
   if(!supaSession){
     document.getElementById('adminTabDd').style.display='none';
     document.getElementById('adminLangDd').style.display='none';
@@ -3799,6 +3811,7 @@ function syncAdminStatusBar(){
   if(primary) meta.setAttribute('content',primary);
 }
 function closeAdmin(){ document.getElementById('adminOverlay').classList.remove('open'); document.getElementById('adminPanel').classList.remove('open'); syncAdminStatusBar(); }
+function armAdminBackGuard(){ try{ history.pushState(null,'',location.href); }catch(e){} }
 
 function renderAdminTabDd(){
   const dd=document.getElementById('adminTabDd');
@@ -3817,6 +3830,20 @@ function renderAdminTabDd(){
 
 // Le bouton "Accueil" du bandeau ramène à la racine du panneau,
 // quelle que soit la profondeur de navigation.
+// Remonte d'un niveau dans l'admin (plat → sous-catégorie → catégorie
+// → accueil). Renvoie false s'il n'y avait plus rien à remonter.
+function adminBackStep(){
+  if(homeSubpageKey==='accueil' && homeCoverSubpage){ closeHomeCoverRow(); return true; }
+  const tab=DATA.tabs.find(t=>t.id===homeSubpageKey);
+  if(tab){
+    if(dishDetailOpen[tab.id]!=null){ closeDishDetail(tab.id); return true; }
+    if(bevDetailOpen[tab.id]!=null){ closeBevDetail(tab.id); return true; }
+    if(tabSectionOpen[tab.id]!=null){ closeTabSection(tab.id); return true; }
+  }
+  if(homeSubpageKey){ closeHomeRow(); return true; }
+  if(adminCurrentTab!=='__global'){ adminGoHome(); return true; }
+  return false;
+}
 function adminGoHome(){
   adminCurrentTab='__global';
   homeSubpageKey=null;
@@ -4244,8 +4271,8 @@ function renderTabSectionList(ti){
             ondrop="onDropSectionRow(event,${ti},${ci})">
         <span class="drag-handle" draggable="true" style="font-size:18px;padding:8px 6px;color:var(--ig-text-dim);cursor:grab;touch-action:none" ondragstart="onDragSectionRow(event,${ti},${ci})" ondragend="onDragSectionRowEnd(event)">⠿</span>
         <span style="font-size:13.5px;font-weight:500;color:var(--ig-text);flex:1;min-width:0">${t(card.label)||'(sans titre)'}</span>
-        <button class="sec-move-btn" ${ci===0?'disabled':''} title="Monter" onclick="moveSection(${ti},${ci},-1)">▲</button>
-        <button class="sec-move-btn" ${ci===tab.cards.length-1?'disabled':''} title="Descendre" onclick="moveSection(${ti},${ci},1)">▼</button>
+        <button class="sec-move-btn" ${ci===0?'disabled':''} title="Monter" onclick="moveSection(${ti},${ci},-1)"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 6-6 6 6"/></svg></button>
+        <button class="sec-move-btn" ${ci===tab.cards.length-1?'disabled':''} title="Descendre" onclick="moveSection(${ti},${ci},1)"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 10 6 6 6-6"/></svg></button>
       </div>`;
     });
     h+=`</div></div></div>`;
@@ -4532,7 +4559,7 @@ function captionFieldHtml(value, placeholder, onInputCode){
 }
 
 // ── ADMIN MUTATIONS ──
-function delTab(ti){ DATA.tabs.splice(ti,1); if(DATA.tabs.length>0)adminCurrentTab=DATA.tabs[0].id; else adminCurrentTab='__global'; renderAll(); renderAdminTabDd(); renderAdminSection(adminCurrentTab); showToast('Tab supprimée'); publishNow(); }
+function delTab(ti){ DATA.tabs.splice(ti,1); if(DATA.tabs.length>0)adminCurrentTab=DATA.tabs[0].id; else adminCurrentTab='__global'; renderAll(); renderAdminTabDd(); renderAdminSection(adminCurrentTab); publishNow(); }
 function delDish(ti,ci,di){ DATA.tabs[ti].cards[ci].dishes.splice(di,1); renderAll(); refreshCurrentTabView(DATA.tabs[ti].id); publishNow(); }
 function delVariant(ti,ci,vi){ DATA.tabs[ti].cards[ci].variants.splice(vi,1); renderAll(); refreshCurrentTabView(DATA.tabs[ti].id); publishNow(); }
 function delBev(ti,ci,ii){ DATA.tabs[ti].cards[ci].items.splice(ii,1); renderAll(); refreshCurrentTabView(DATA.tabs[ti].id); publishNow(); }
@@ -4834,11 +4861,15 @@ function formule_exportInsta(fid, variant){
 function addNewTab(type){
   let cards, labelFr, labelEn;
   if(type==='boissons'){
-    labelFr='Nouvelle tab boissons'; labelEn='New drinks tab';
-    cards=[{label:{fr:'Boissons',en:'Drinks'},type:'bevs',items:[]}];
+    labelFr='Nouvelle catégorie boissons'; labelEn='New drinks category';
+    cards=[{label:{fr:'',en:''},type:'bevs',items:[]}];
   } else {
-    labelFr='Nouvelle tab'; labelEn='New tab';
-    cards=[{label:{fr:'À la carte',en:'À la carte'},dishes:[]}];
+    // Sous-catégorie sans titre : ses plats s'affichent alors
+    // directement sur la page de la catégorie, avec "Ajouter un plat"
+    // en haut — comme partout ailleurs. Un titre par défaut ("À la
+    // carte") obligeait au contraire à entrer dans une sous-catégorie.
+    labelFr='Nouvelle catégorie'; labelEn='New category';
+    cards=[{label:{fr:'',en:''},dishes:[]}];
   }
   const id=uniqueTabId(slugifyTabId(labelFr));
   DATA.tabs.push({id,label:{fr:labelFr,en:labelEn},cards});
@@ -4846,9 +4877,14 @@ function addNewTab(type){
   currentTabId=id;
   renderAll();
   renderAdminTabDd();
-  document.getElementById('adminTabDd').value=id;
-  renderAdminSection(id);
-  showToast('Tab créée !');
+  const dd=document.getElementById('adminTabDd'); if(dd) dd.value=id;
+  // BUG FIX (fond clair) : renderAdminSection(id) repasse par l'ancien
+  // rendu, qui n'active pas le thème sombre. On ouvre la page de la
+  // catégorie via la navigation normale.
+  adminCurrentTab='__global';
+  homeSubpageKey=id;
+  homeSubpageStack=['menus-et-plats'];
+  renderAdminSection('__global');
 }
 
 // ═══════════════════════════════════════════
@@ -5259,8 +5295,8 @@ function renderSocialSection(){
           ${buildTplHTML(s.tplId, s.titre, s.desc, s.extra, s.photo, s.format, s.textPos, s.textColor, s.overlayOpacity, s)}
         </div>
         <div class="soc-dl-row">
-          <button class="soc-dl-btn post" onclick="downloadSocImg('post')">⬇ Post 3:4</button>
-          <button class="soc-dl-btn story" onclick="downloadSocImg('story')">⬇ Story 9:16</button>
+          <button class="soc-dl-btn post" onclick="downloadSocImg('post')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>Post 3:4</button>
+          <button class="soc-dl-btn story" onclick="downloadSocImg('story')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>Story 9:16</button>
         </div>
       </div>
     </div>
@@ -7191,7 +7227,7 @@ function renderFormuleDetail(f){
         <label class="al" style="font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;min-height:13px;line-height:13px">${c.label}</label>
         <div style="display:flex;align-items:center;gap:3px">
           <input type="color" value="${c.f[c.key]||defaultFor(c.key)}" oninput="formule_setColor('${c.f.id}','${c.key}',this.value)" style="width:25px;height:25px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer">
-          ${c.f[c.key]?`<button type="button" title="Réinitialiser" onclick="formule_setColor('${c.f.id}','${c.key}','')" style="width:22px;height:22px;flex:none;border:none;border-radius:50%;background:var(--ig-card);color:var(--ig-text-dim);cursor:pointer;font-size:11px;padding:0">↺</button>`:''}
+          ${c.f[c.key]?`<button type="button" title="Réinitialiser" onclick="formule_setColor('${c.f.id}','${c.key}','')" style="width:22px;height:22px;flex:none;border:none;border-radius:50%;background:var(--ig-card);color:var(--ig-text-dim);cursor:pointer;font-size:11px;padding:0;display:inline-flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button>`:''}
         </div>
         ${c.sizeKey?`
         <div style="display:flex;align-items:center;gap:4px;margin-top:5px">
@@ -7265,6 +7301,7 @@ function renderFormuleDetail(f){
     </div>
     <button class="aadd ig-add-btn" style="margin-top:8px" onclick="formule_addCategory('${f.id}')">Ajouter une catégorie</button>
 
+    ${(ensureGalleryFontsLoaded(),'')}
     ${sectionHeader('Personnalisation')}
     <div class="af">
       <div class="ai ig-font-field ig-cover-field-flat" onclick="showFontGallery('formule','${f.id}')">
@@ -7745,7 +7782,7 @@ function renderExportSection(){
           <option value="__all">Tout le menu</option>
           ${tabOpts}
         </select>
-        <button class="aadd" style="white-space:nowrap;padding:9px 14px" onclick="exportTabCSV(document.getElementById('csvTabSel').value)">⬇ CSV</button>
+        <button class="aadd" style="white-space:nowrap;padding:9px 14px" onclick="exportTabCSV(document.getElementById('csvTabSel').value)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>CSV</button>
       </div>
     </div>
   </div></div>`+renderPdfStyleSection();
@@ -7989,6 +8026,20 @@ const FONT_LIST = ["Jost", "Montserrat", "Oswald", "Raleway", "Poppins", "Merriw
 // popup that loads every font at once and shows the restaurant's own
 // name (or "Restaurant" as a fallback) set in each of them side by
 // side, so they can actually be compared at a glance.
+// Les polices de la galerie n'étaient chargées qu'à l'ouverture de
+// celle-ci. Résultat : dans "Menus spéciaux et formules", le nom de la
+// police choisie s'affichait avec la police de repli tant qu'on
+// n'avait pas ouvert la galerie au moins une fois. On sort le
+// chargement pour pouvoir le déclencher aussi au rendu de la page.
+function ensureGalleryFontsLoaded(){
+  if(document.querySelector('link[data-font-gallery]')) return;
+  const all=[...new Set([...FONT_LIST, ...INSTA_FONT_OPTIONS])];
+  const l=document.createElement('link');
+  l.rel='stylesheet';
+  l.dataset.fontGallery='1';
+  l.href='https://fonts.googleapis.com/css2?'+all.map(f=>'family='+f.replace(/ /g,'+')+':wght@400;700').join('&')+'&display=swap';
+  document.head.appendChild(l);
+}
 function showFontGallery(target, fid){
   target=target||'resto';
   // Google Fonts supports combining every family into one request —
@@ -8000,14 +8051,7 @@ function showFontGallery(target, fid){
   // affichées avec la police de repli du navigateur dans l'aperçu.
   // On charge maintenant systématiquement l'union des deux, une
   // seule fois, quel que soit le contexte d'ouverture de la galerie.
-  const allGalleryFonts = [...new Set([...FONT_LIST, ...INSTA_FONT_OPTIONS])];
-  if(!document.querySelector('link[data-font-gallery]')){
-    const l=document.createElement('link');
-    l.rel='stylesheet';
-    l.dataset.fontGallery='1';
-    l.href='https://fonts.googleapis.com/css2?'+allGalleryFonts.map(f=>'family='+encodeURIComponent(f)+':wght@400;700').join('&')+'&display=swap';
-    document.head.appendChild(l);
-  }
+  ensureGalleryFontsLoaded();
   // Menus et Formules : liste réduite (celle déjà proposée pour
   // Instagram, pensée pour ce format précis) plutôt que les 50
   // polices générales — mais même principe d'aperçu en direct.
@@ -8201,10 +8245,21 @@ function toggleThemeMenu(e){
   m.innerHTML=['system','light','dark'].map(k=>
     `<div class="ig-theme-opt" onclick="setAdminTheme('${k}')"><span class="ig-theme-check">${adminTheme===k?'✓':''}</span>${ADMIN_THEME_LABELS[k]}</div>`
   ).join('');
-  const row=e.currentTarget.getBoundingClientRect();
-  m.style.top=(row.bottom+6)+'px';
-  m.style.right=(window.innerWidth-row.right)+'px';
+  // Placement adaptatif : le menu se centre sur la ligne, et bascule
+  // au-dessus ou en dessous s'il n'y a pas la place — posé en bas de
+  // l'écran il sortait du cadre sur mobile.
   m.classList.add('open');
+  const row=e.currentTarget.getBoundingClientRect();
+  const mh=m.offsetHeight, mw=m.offsetWidth, pad=10;
+  let top=row.top+row.height/2-mh/2;
+  if(top+mh>window.innerHeight-pad) top=window.innerHeight-mh-pad;
+  if(top<pad) top=pad;
+  let left=row.right-mw;
+  if(left+mw>window.innerWidth-pad) left=window.innerWidth-mw-pad;
+  if(left<pad) left=pad;
+  m.style.top=top+'px';
+  m.style.left=left+'px';
+  m.style.right='auto';
   setTimeout(()=>document.addEventListener('click',closeThemeMenu,{once:true}),0);
 }
 function closeThemeMenu(){
@@ -8229,9 +8284,9 @@ function categorieRows(){
 // Actions directes (pas de sous-page) : cliquer crée tout de suite une
 // table, comme le fait déjà le "+" dans l'ancien menu déroulant.
 const MANAGER_CATEGORIES_ROWS = [
-  { key:'newtab-plats', label:'Nouvelle tab pour les plats', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>', action:"addNewTab('plats')" },
-  { key:'newtab-boissons', label:'Nouvelle tab pour les boissons', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>', action:"addNewTab('boissons')" },
-  { key:'reorder', label:'Réordonner les tabs', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>', fn: renderTabReorder }
+  { key:'newtab-plats', label:'Ajouter une catégorie pour les plats', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>', action:"addNewTab('plats')" },
+  { key:'newtab-boissons', label:'Ajouter une catégorie pour les boissons', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>', action:"addNewTab('boissons')" },
+  { key:'reorder', label:'Réordonner les catégories', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>', fn: renderTabReorder }
 ];
 // Les trois formats d'export ont chacun leur page : les empiler
 // derrière une barre d'onglets mélangeait leurs réglages et brouillait
@@ -8265,10 +8320,18 @@ const MENU_COLOR_PREVIEWS=[
   {variant:'print', label:'Impression'},
   {variant:'gbiz', label:'Google Business'},
   {variant:'post', label:'Instagram — Post'},
-  {variant:'story', label:'Instagram — Story'}
+  {variant:'story', label:'Instagram — Story'},
+  // Story montrant une sous-catégorie, pour juger de la couleur
+  // "Cadre et sous-catégories". Retirée du carrousel si le menu n'en
+  // contient aucune — une page identique à la précédente n'apprend rien.
+  {variant:'story-sub', label:'Story — sous-catégorie'}
 ];
+function menuHasSubcategories(){
+  return (DATA.tabs||[]).some(tb=>(tb.cards||[]).filter(c=>(t(c.label)||'').trim()).length>0);
+}
 // Une couleur laissée vide hérite d'un réglage du site : la pastille
 // doit alors montrer cette valeur héritée, pas un bleu arbitraire.
+function menuColorPreviews(){ return MENU_COLOR_PREVIEWS.filter(p=>p.variant!=='story-sub'||menuHasSubcategories()); }
 function menuColorValue(cfg, key){
   let v=cfg[key];
   if(key==='menuBgColor') v=v||cfg.bgColor||'#FFFDF8';
@@ -8294,7 +8357,7 @@ function renderMenuColorsPage(){
     ${group('Décoration', MENU_COLOR_FIELDS.deco)}
     <div class="af">
       <div id="menuColorsCarousel" onscroll="menuColorsOnScroll()" style="display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:4px">
-        ${MENU_COLOR_PREVIEWS.map((p,i)=>`
+        ${menuColorPreviews().map((p,i)=>`
           <div class="menucolor-slide" style="flex:0 0 92%;scroll-snap-align:start">
             <div style="font-size:11.5px;color:var(--ig-text-dimmer);margin-bottom:6px;text-align:center">${p.label}</div>
             <div style="border-radius:10px;overflow:hidden;background:#fff">
@@ -8303,7 +8366,7 @@ function renderMenuColorsPage(){
           </div>`).join('')}
       </div>
       <div id="menuColorsDots" style="display:flex;justify-content:center;gap:6px;margin-top:10px">
-        ${MENU_COLOR_PREVIEWS.map((p,i)=>`<span class="menucolor-dot" data-idx="${i}" style="width:${i===0?7:6}px;height:${i===0?7:6}px;border-radius:50%;background:${i===0?'var(--ig-text)':'var(--ig-focus)'}"></span>`).join('')}
+        ${menuColorPreviews().map((p,i)=>`<span class="menucolor-dot" data-idx="${i}" style="width:${i===0?7:6}px;height:${i===0?7:6}px;border-radius:50%;background:${i===0?'var(--ig-text)':'var(--ig-focus)'}"></span>`).join('')}
       </div>
     </div>
     <div class="ig-hint-block">Vos essais s'affichent tout de suite mais ne partent en ligne qu'une fois validés.</div>
@@ -8328,7 +8391,11 @@ function initMenuColorsFrames(){
       const ratio = v==='post' ? INSTA_POST_RATIO : INSTA_RATIO;
       const cfg={...pdfCfg(), format:'insta'};
       const pages=buildInstaPages(cfg, ratio);
-      if(pages[0]) frame.srcdoc=buildPreviewSlideDoc(buildInstaCSS(cfg, ratio), pages[0].html, pages[0].spaceScale, INSTA_RENDER_W, Math.round(INSTA_RENDER_W*ratio));
+      // Pour la variante "sous-catégorie", on affiche la première page
+      // qui en contient réellement une plutôt que la page 1.
+      let page=pages[0];
+      if(v==='story-sub'){ page=pages.find(pg=>/pdf-subcat/.test(pg.html))||pages[0]; }
+      if(page) frame.srcdoc=buildPreviewSlideDoc(buildInstaCSS(cfg, ratio), page.html, page.spaceScale, INSTA_RENDER_W, Math.round(INSTA_RENDER_W*ratio));
     }
   });
 }
@@ -8431,6 +8498,17 @@ function renderHomeList(){
 // désormais, construite ici à partir de l'état de navigation, et les
 // pages profondes n'affichent plus d'en-tête à elles.
 function adminCrumbParts(row){
+  // Page d'accueil : un niveau de sous-pages (logo/boutons, photo,
+  // vidéo, diaporama) qui rendait sa propre barre de retour sous le
+  // titre — deux lignes pour dire la même chose.
+  if(row.key==='accueil'){
+    if(!homeCoverSubpage) return null;
+    const sub=HOME_COVER_ROW_LABELS[homeCoverSubpage];
+    return [
+      {label:row.label, go:'closeHomeCoverRow()'},
+      {label:sub||''}
+    ];
+  }
   const tab=DATA.tabs.find(tb=>tb.id===row.key);
   if(!tab) return null;
   const id=tab.id;
