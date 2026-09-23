@@ -1038,8 +1038,14 @@ body.ig-admin-ui .confirm-title{font-family:'Inter',sans-serif;font-size:16px;fo
 body.ig-admin-ui .confirm-text,
 body.ig-admin-ui #sectionDelText,
 body.ig-admin-ui #newSectionPickWrap>div:first-child{font-family:'Inter',sans-serif;color:var(--ig-text-dim)}
-body.ig-admin-ui .confirm-cancel{font-family:'Inter',sans-serif;background:var(--ig-bg);border:none;color:var(--ig-text)}
-body.ig-admin-ui .confirm-ok{font-family:'Inter',sans-serif;font-weight:600;border:none}
+/* Boutons du modal : pas de bordure, et un arrondi rectangulaire
+   comme partout ailleurs dans le panneau (les pilules à 50px de rayon
+   venaient du site public, elles détonnaient ici). */
+body.ig-admin-ui .confirm-cancel,
+body.ig-admin-ui .confirm-ok{font-family:'Inter',sans-serif;border:none!important;border-radius:10px;padding:13px}
+body.ig-admin-ui .confirm-cancel{background:var(--ig-bg);color:var(--ig-text)}
+body.ig-admin-ui .confirm-ok{font-weight:600}
+body.ig-admin-ui .confirm-box{border-radius:14px}
 body.ig-admin-ui #sectionDelKeep strong{color:var(--ig-text)!important}
 body.ig-admin-ui #sectionDelKeep span{color:var(--ig-text-dimmer)!important}
 /* Champ et boutons du modal : même traitement — rempli, sans bordure
@@ -3391,17 +3397,18 @@ function renderTabReorder(){
   h+=`<div style="font-size:11px;color:var(--text3);font-family:Jost,sans-serif;margin-bottom:10px;line-height:1.5">Glissez les onglets pour changer leur ordre d'affichage.</div>`;
   h+=`<div id="tabReorderList">`;
   DATA.tabs.forEach((tab,ti)=>{
-    h+=`<div class="admin-card" style="display:flex;align-items:center;gap:10px;background:#fff;margin-bottom:6px;cursor:grab;touch-action:none"
+    // Mêmes règles que pour les sections : flèches (tactile) + glisser
+    // restreint à la poignée (souris), et couleurs en jetons pour
+    // suivre le thème.
+    h+=`<div class="admin-card" style="display:flex;align-items:center;gap:10px;background:var(--ig-card);margin-bottom:6px"
           data-ti="${ti}"
-          draggable="true"
-          ondragstart="onDragTab(event,${ti})"
-          ondragend="onDragEnd(event)"
           ondragover="onDragOver(event,0,0,${ti})"
           ondragleave="onDragLeave(event)"
           ondrop="onDropTab(event,${ti})">
-      <span class="drag-handle" style="font-size:18px;padding:8px 6px">⠿</span>
-      <span style="font-family:Jost,sans-serif;font-size:13px;font-weight:500;color:var(--navy);flex:1">${t(tab.label)}</span>
-      <span style="font-size:10px;color:var(--text3)">Tab ${ti+1}</span>
+      <span class="drag-handle" draggable="true" style="font-size:18px;padding:8px 6px;color:var(--ig-text-dim);cursor:grab;touch-action:none" ondragstart="onDragTab(event,${ti})" ondragend="onDragEnd(event)">⠿</span>
+      <span style="font-size:13.5px;font-weight:500;color:var(--ig-text);flex:1;min-width:0">${t(tab.label)}</span>
+      <button class="sec-move-btn" ${ti===0?'disabled':''} title="Monter" onclick="moveTab(${ti},-1)">▲</button>
+      <button class="sec-move-btn" ${ti===DATA.tabs.length-1?'disabled':''} title="Descendre" onclick="moveTab(${ti},1)">▼</button>
     </div>`;
   });
   h+=`</div>
@@ -4877,6 +4884,15 @@ let dragSectionRowSrc=null;
 // posé dessus empêchait en plus de scroller la page. Les flèches
 // fonctionnent partout ; le glisser reste disponible à la souris, via
 // la poignée seule.
+function moveTab(ti, dir){
+  const to=ti+dir;
+  if(to<0||to>=DATA.tabs.length) return;
+  const [moved]=DATA.tabs.splice(ti,1);
+  DATA.tabs.splice(to,0,moved);
+  renderAll();
+  renderAdminTabDd();
+  renderAdminSection(adminCurrentTab);
+}
 function moveSection(ti, ci, dir){
   const cards=DATA.tabs[ti].cards;
   const to=ci+dir;
