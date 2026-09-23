@@ -524,10 +524,15 @@ body.home-cover-showing{overflow:hidden}
    chemin sur UNE seule ligne, chaque niveau cliquable. */
 .ig-crumb-row{display:flex;align-items:center;gap:8px;margin-bottom:14px;min-width:0}
 .ig-crumb-path{display:flex;align-items:center;gap:6px;flex:1;min-width:0;overflow:hidden}
-.ig-crumb{color:var(--ig-text-dim,#b4b4b4);font-size:14px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:none;border:none;padding:0;font-family:inherit}
+.ig-crumb{color:var(--ig-text-dim,#b4b4b4);font-size:16px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:none;border:none;padding:0;font-family:inherit}
 .ig-crumb:hover{color:var(--ig-text,#ececec)}
-.ig-crumb-sep{color:var(--ig-text-dimmer,#8e8ea0);font-size:13px;flex:none}
-.ig-crumb-current{color:var(--ig-text,#ececec);font-size:14px;font-weight:600;white-space:nowrap;flex:none}
+.ig-crumb-sep{color:var(--ig-text-dimmer,#8e8ea0);font-size:15px;flex:none}
+.ig-crumb-current{color:var(--ig-text,#ececec);font-size:16px;font-weight:600;white-space:nowrap;flex:none}
+/* Boutons monter/descendre des sections — la solution tactile au
+   glisser-déposer, qui ne marche pas au doigt. */
+.sec-move-btn{width:32px;height:32px;flex:none;border-radius:8px;border:1px solid var(--ig-border,#424242);background:var(--ig-bg,#212121);color:var(--ig-text-dim,#b4b4b4);font-size:11px;cursor:pointer;padding:0;line-height:1}
+.sec-move-btn:disabled{opacity:.3;cursor:default}
+.sec-move-btn:not(:disabled):active{background:var(--ig-card,#2f2f2f);color:var(--ig-text,#ececec)}
 /* Blocs "outil" (galerie, caption, infos alimentaires) : même carte,
    avec une icône encadrée et un titre, puis le contenu dessous. */
 .ig-panel-card{background:var(--ig-card,#2f2f2f);border-radius:14px;padding:14px 16px;margin-bottom:10px}
@@ -3151,6 +3156,9 @@ function renderTabContent(tab,lbOffset){
     // grid rather than dropped.
     let bevsCardsHtml='';
     tab.cards.forEach(card=>{
+      // Une section masquée n'apparaît pas côté visiteur, mais reste
+      // visible en mode édition pour pouvoir la réafficher.
+      if(card.hidden && !editMode) return;
       if(card.type==='bevs'){
         const _ci=tab.cards.indexOf(card);
         bevsCardsHtml+=`<div class="card"><div class="card-hdr"><span class="card-label">${t(card.label)}</span></div><div class="card-body">`;
@@ -3196,6 +3204,9 @@ function renderTabContent(tab,lbOffset){
   } else {
     // list
     tab.cards.forEach(card=>{
+      // Une section masquée n'apparaît pas côté visiteur, mais reste
+      // visible en mode édition pour pouvoir la réafficher.
+      if(card.hidden && !editMode) return;
       const _ciE=tab.cards.indexOf(card);
       html+=`<div class="card"><div class="card-hdr"><span class="card-label">${t(card.label)}</span></div><div class="card-body">`;
 
@@ -3824,7 +3835,7 @@ function priceFieldSimple(d, ti, ci, di){
   const numVal=(d.price||'').replace('€','').trim();
   return `<div class="af">
     <div style="display:flex;align-items:center;gap:6px">
-      <input class="ai ig-visible-field ig-num-white-arrows" type="number" min="0" step="0.5" value="${numVal}" placeholder="Prix" style="max-width:100px" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].price=this.value?this.value+'€':'';renderAll()">
+      <input class="ai ig-bev-sel ig-num-white-arrows" type="number" min="0" step="0.5" value="${numVal}" placeholder="Prix" style="max-width:100px" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].price=this.value?this.value+'€':'';renderAll()">
       <span style="font-size:13px;color:var(--text3)">€</span>
       ${DATA.tabs[ti].id==='huitres'?`<label style='display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text3);cursor:pointer;margin-left:8px'><input type='checkbox' ${d.priceType==='dual'?'checked':''} onchange='DATA.tabs[${ti}].cards[${ci}].dishes[${di}].priceType=this.checked?"dual":"";renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)'> + Ajouter un prix</label>`:''}
     </div>
@@ -3835,10 +3846,10 @@ function priceField(d, ti, ci, di){
     const qty1=d.qty1||''; const p1=d.p1||''; const qty2=d.qty2||''; const p2=d.p2||'';
     return `<div class="af"><label class="al">Prix (double offre)</label>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;align-items:center">
-        <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Qté 1</div><input class="ai ig-visible-field ig-num-white-arrows" type="number" value="${qty1}" placeholder="ex: 6" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].qty1=this.value;updateDualPrice(${ti},${ci},${di})"></div>
-        <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Prix 1 (€)</div><input class="ai ig-visible-field ig-num-white-arrows" type="number" value="${p1}" placeholder="12" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].p1=this.value;updateDualPrice(${ti},${ci},${di})"></div>
-        <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Qté 2</div><input class="ai ig-visible-field ig-num-white-arrows" type="number" value="${qty2}" placeholder="ex: 12" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].qty2=this.value;updateDualPrice(${ti},${ci},${di})"></div>
-        <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Prix 2 (€)</div><input class="ai ig-visible-field ig-num-white-arrows" type="number" value="${p2}" placeholder="22" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].p2=this.value;updateDualPrice(${ti},${ci},${di})"></div>
+        <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Qté 1</div><input class="ai ig-bev-sel ig-num-white-arrows" type="number" value="${qty1}" placeholder="ex: 6" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].qty1=this.value;updateDualPrice(${ti},${ci},${di})"></div>
+        <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Prix 1 (€)</div><input class="ai ig-bev-sel ig-num-white-arrows" type="number" value="${p1}" placeholder="12" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].p1=this.value;updateDualPrice(${ti},${ci},${di})"></div>
+        <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Qté 2</div><input class="ai ig-bev-sel ig-num-white-arrows" type="number" value="${qty2}" placeholder="ex: 12" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].qty2=this.value;updateDualPrice(${ti},${ci},${di})"></div>
+        <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Prix 2 (€)</div><input class="ai ig-bev-sel ig-num-white-arrows" type="number" value="${p2}" placeholder="22" oninput="DATA.tabs[${ti}].cards[${ci}].dishes[${di}].p2=this.value;updateDualPrice(${ti},${ci},${di})"></div>
       </div>
     </div>`;
   }
@@ -4091,17 +4102,15 @@ function renderTabSectionList(ti){
     h+=`<div class="ig-group-label" style="margin:0 0 8px 4px;display:block;color:#8E8EA0!important">Changer l'ordre des onglets</div>`;
     h+=`<div id="sectionReorderList" data-ti="${ti}">`;
     tab.cards.forEach((card,ci)=>{
-      h+=`<div class="admin-card" style="display:flex;align-items:center;gap:10px;background:var(--ig-card,#2f2f2f);margin-bottom:6px;cursor:grab;touch-action:none"
+      h+=`<div class="admin-card sec-reorder-row" style="display:flex;align-items:center;gap:10px;background:var(--ig-card,#2f2f2f);margin-bottom:6px"
             data-ti="${ti}" data-ci="${ci}"
-            draggable="true"
-            ondragstart="onDragSectionRow(event,${ti},${ci})"
-            ondragend="onDragSectionRowEnd(event)"
             ondragover="onDragSectionRowOver(event,${ti},${ci})"
             ondragleave="onDragLeave(event)"
             ondrop="onDropSectionRow(event,${ti},${ci})">
-        <span class="drag-handle" style="font-size:18px;padding:8px 6px;color:var(--ig-text-dim,#b4b4b4)">⠿</span>
-        <span style="font-size:13.5px;font-weight:500;color:var(--ig-text,#ececec);flex:1">${t(card.label)}</span>
-        <span style="font-size:11px;color:var(--ig-text-dimmer,#8e8ea0)">Section ${ci+1}</span>
+        <span class="drag-handle" draggable="true" style="font-size:18px;padding:8px 6px;color:var(--ig-text-dim,#b4b4b4);cursor:grab;touch-action:none" ondragstart="onDragSectionRow(event,${ti},${ci})" ondragend="onDragSectionRowEnd(event)">⠿</span>
+        <span style="font-size:13.5px;font-weight:500;color:var(--ig-text,#ececec);flex:1;min-width:0">${t(card.label)||'(sans titre)'}</span>
+        <button class="sec-move-btn" ${ci===0?'disabled':''} title="Monter" onclick="moveSection(${ti},${ci},-1)">▲</button>
+        <button class="sec-move-btn" ${ci===tab.cards.length-1?'disabled':''} title="Descendre" onclick="moveSection(${ti},${ci},1)">▼</button>
       </div>`;
     });
     h+=`</div></div></div>`;
@@ -4127,16 +4136,30 @@ function renderTabSectionList(ti){
   return h;
 }
 
+// Actions sur la section elle-même — tout en bas de sa page, sous leur
+// propre titre, comme pour une catégorie ou un plat.
+function sectionManageBlockHtml(ti, ci){
+  const card=DATA.tabs[ti].cards[ci];
+  return `<div class="ig-group-label" style="margin:34px 0 8px 4px;display:block;color:#8E8EA0!important">Gestion de la section</div>
+  <div class="af">
+    <input class="ai ig-tall-field ig-placeholder-normal-size" style="width:100%;padding:14px 16px!important" value="${escAttr(card.label[adminLang]||'')}" placeholder="Nom de la section" oninput="DATA.tabs[${ti}].cards[${ci}].label[adminLang]=this.value;renderAll()">
+  </div>
+  <div class="ig-list" style="margin-top:10px">
+    <div class="ig-row" style="cursor:default">
+      <span class="ig-row-icon">${card.hidden?EYE_OFF_SVG:EYE_SVG}</span>
+      <span class="ig-row-label">Masquer la section</span>
+      <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${card.hidden?'checked':''} onchange="if(this.checked){DATA.tabs[${ti}].cards[${ci}].hidden=true;}else{delete DATA.tabs[${ti}].cards[${ci}].hidden;}renderAll();refreshCurrentTabView('${DATA.tabs[ti].id}');renderAdminSection(adminCurrentTab)"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
+    </div>
+    <div class="ig-row" onclick="askSectionDelete(${ti},${ci})">
+      <span class="ig-row-icon" style="color:#E5484D">${TRASH_SVG}</span>
+      <span class="ig-row-label" style="color:#E5484D">Supprimer la section</span>
+    </div>
+  </div>`;
+}
 function renderTabSectionDetail(ti, ci){
   const tab=DATA.tabs[ti];
   const card=tab.cards[ci];
   let h='';
-
-  h+=`<div class="ig-inner-back-row">
-    <button class="ig-back-btn" onclick="closeTabSection('${tab.id}')">‹</button>
-    <input class="ai ig-card-title-input" style="flex:1" value="${escAttr(card.label[adminLang]||'')}" placeholder="Titre de section" oninput="DATA.tabs[${ti}].cards[${ci}].label[adminLang]=this.value;renderAll()">
-    <button class="adel" style="font-size:12px;padding:1px 0;flex:none;opacity:.6" onclick="askSectionDelete(${ti},${ci})">✕</button>
-  </div>`;
 
   if(card.type==='bevs'){
     const openBi = bevDetailOpen[tab.id];
@@ -4154,6 +4177,7 @@ function renderTabSectionDetail(ti, ci){
     });
     h+=`</div>`;
     h+=`<div class="ig-list" style="margin-top:14px"><div class="ig-row" style="justify-content:center" onclick="addBev(${ti},${ci})"><span style="color:#3BA55D;font-weight:500">Ajouter une boisson</span></div></div>`;
+    h+=sectionManageBlockHtml(ti,ci);
   } else if(card.type==='variants'){
     h+=`<div class="admin-card">`;
     h+=imgFieldHtml(card.img||'',`DATA.tabs[${ti}].cards[${ci}].img=this.value;renderAll()`,"Image URL ou uploader");
@@ -4181,6 +4205,7 @@ function renderTabSectionDetail(ti, ci){
       });
       h+=`</div>`;
       h+=`<div class="ig-list" style="margin-top:14px"><div class="ig-row" style="justify-content:center" onclick="addDish(${ti},${ci})"><span style="color:#3BA55D;font-weight:500">Ajouter un plat</span></div></div>`;
+      h+=sectionManageBlockHtml(ti,ci);
       h+=adminSaveBar();
       return h;
     }
@@ -4202,16 +4227,7 @@ function renderBevDetailBody(ti, ci, ii){
   const nameVal=typeof item.name==='object'?(item.name[adminLang]||''):(item.name||'');
   const nameSetter=`if(typeof ${base}.name!=='object'){${base}.name={fr:${base}.name};}${base}.name[adminLang]=this.value;renderAll()`;
   const descSetter=`if(!${base}.desc||typeof ${base}.desc!=='object'){${base}.desc={};}${base}.desc[adminLang]=this.value;renderAll()`;
-  const bevSecLabel=(t(card.label)||'').trim();
-  let h=`<div class="ig-crumb-row">
-    <button class="ig-back-btn" onclick="closeBevDetail('${tab.id}')">‹</button>
-    <div class="ig-crumb-path">
-      <button class="ig-crumb" onclick="closeBevDetail('${tab.id}');closeTabSection('${tab.id}')">${escAttr(t(tab.label))||'Catégorie'}</button>
-      ${bevSecLabel?`<span class="ig-crumb-sep">/</span><button class="ig-crumb" onclick="closeBevDetail('${tab.id}')">${escAttr(bevSecLabel)}</button>`:''}
-      <span class="ig-crumb-sep">/</span>
-      <span class="ig-crumb-current">Boisson</span>
-    </div>
-  </div>`;
+  let h='';
 
   h+=`<div class="ig-stack-field">
     <span class="ig-stack-label">Nom de la boisson</span>
@@ -4290,20 +4306,7 @@ function renderDishDetailBody(ti, ci, di){
   const d=card.dishes[di];
   const base=`DATA.tabs[${ti}].cards[${ci}].dishes[${di}]`;
   const numVal=(d.price||'').replace('€','').trim();
-  // Fil d'Ariane sur une ligne : « ‹ Catégorie / Section / Plat », les
-  // niveaux parents étant cliquables. La section n'apparaît que si
-  // elle a un titre (une section technique "hors section" n'est pas un
-  // niveau du point de vue de l'utilisateur).
-  const secLabel=(t(card.label)||'').trim();
-  let h=`<div class="ig-crumb-row">
-    <button class="ig-back-btn" onclick="closeDishDetail('${tab.id}')">‹</button>
-    <div class="ig-crumb-path">
-      <button class="ig-crumb" onclick="closeDishDetail('${tab.id}');closeTabSection('${tab.id}')">${escAttr(t(tab.label))||'Catégorie'}</button>
-      ${secLabel?`<span class="ig-crumb-sep">/</span><button class="ig-crumb" onclick="closeDishDetail('${tab.id}')">${escAttr(secLabel)}</button>`:''}
-      <span class="ig-crumb-sep">/</span>
-      <span class="ig-crumb-current">Plat</span>
-    </div>
-  </div>`;
+  let h='';
 
   h+=`<div class="ig-stack-field">
     <span class="ig-stack-label">Titre du plat</span>
@@ -4769,6 +4772,22 @@ function onDragLeave(e){ e.currentTarget.classList.remove('drag-over'); }
 
 // ── Dedicated section-row reorder (mirrors the tab reorder pattern which works cleanly) ──
 let dragSectionRowSrc=null;
+// BUG FIX (réordonner impossible au doigt) : le glisser-déposer
+// reposait sur l'API HTML5 drag-and-drop, qui ne se déclenche pas sur
+// écran tactile — la ligne semblait "bloquée", et le touch-action:none
+// posé dessus empêchait en plus de scroller la page. Les flèches
+// fonctionnent partout ; le glisser reste disponible à la souris, via
+// la poignée seule.
+function moveSection(ti, ci, dir){
+  const cards=DATA.tabs[ti].cards;
+  const to=ci+dir;
+  if(to<0||to>=cards.length) return;
+  const [moved]=cards.splice(ci,1);
+  cards.splice(to,0,moved);
+  renderAll();
+  refreshCurrentTabView(DATA.tabs[ti].id);
+  renderAdminSection(adminCurrentTab);
+}
 function onDragSectionRow(e,ti,ci){
   if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT'){ e.preventDefault(); return; }
   dragSectionRowSrc={ti,ci};
@@ -6918,7 +6937,7 @@ function renderFormulesSection(){
 function renderFormuleList(){
   return `<div class="ig-list">${DATA.formules.map(f=>`
     <div class="ig-row" onclick="openFormule('${f.id}')">
-      <span class="ig-section-row-label">${escAttr(f.name)||'(sans nom)'}</span>
+      <span class="ig-row-label">${escAttr(f.name)||'(sans nom)'}</span>
       <span class="ig-row-chevron">›</span>
     </div>`).join('')}${!DATA.formules.length?'<div style="padding:16px;color:var(--ig-text-dimmer,var(--text3));font-size:12.5px;text-align:center">Aucune formule pour l\'instant.</div>':''}</div>
   <button class="aadd ig-add-btn ig-add-btn-standalone" onclick="formule_create()">Ajouter une nouvelle formule${DATA.formules.length>=10?' (remplacera la plus ancienne)':''}</button>`;
@@ -7014,7 +7033,7 @@ function renderFormuleDetail(f){
     <div class="ig-list">
       ${f.tabs.map(cat=>`
         <div class="ig-row" onclick="openFormuleCat('${cat.id}')">
-          <span class="ig-section-row-label">${escAttr(t(cat.label))||'(sans titre)'}</span>
+          <span class="ig-row-label">${escAttr(t(cat.label))||'(sans titre)'}</span>
           <span class="ig-row-chevron">›</span>
         </div>`).join('')}
     </div>
@@ -8000,15 +8019,48 @@ function renderHomeList(){
       </div>`).join('')}</div>
   `).join('')}</div>`;
 }
+// Fil d'Ariane de la sous-page. Les niveaux imbriqués (catégorie →
+// section → plat) rendaient chacun leur propre barre de retour, d'où
+// trois lignes répétant les mêmes noms. Une seule ligne les regroupe
+// désormais, construite ici à partir de l'état de navigation, et les
+// pages profondes n'affichent plus d'en-tête à elles.
+function adminCrumbParts(row){
+  const tab=DATA.tabs.find(tb=>tb.id===row.key);
+  if(!tab) return null;
+  const id=tab.id;
+  const ci=tabSectionOpen[id];
+  const card=(ci!=null)?tab.cards[ci]:null;
+  const inlineCi=soloUntitledCardIndex(tab);
+  const dishOpen=dishDetailOpen[id]!=null;
+  const bevOpen=bevDetailOpen[id]!=null;
+  const parts=[{label:t(tab.label)||'Catégorie', go:`closeDishDetail('${id}');closeBevDetail('${id}');closeTabSection('${id}')`}];
+  const secLabel=card?(t(card.label)||'').trim():'';
+  if(secLabel) parts.push({label:secLabel, go:`closeDishDetail('${id}');closeBevDetail('${id}')`});
+  if(card && card.type==='bevs' && bevOpen) parts.push({label:'Boisson'});
+  else if(dishOpen && (card||inlineCi!=null)) parts.push({label:'Plat'});
+  return parts;
+}
+function adminCrumbHtml(row){
+  const parts=adminCrumbParts(row);
+  // Page simple (pas une catégorie) : titre inchangé.
+  if(!parts) return `<button class="ig-back-btn" onclick="closeHomeRow()">‹</button><span class="ig-subpage-title">${row.label}</span>`;
+  // Le retour remonte d'un cran dans le fil, pas directement à Home.
+  const back = parts.length>1 ? parts[parts.length-2].go : 'closeHomeRow()';
+  const inner = parts.map((p,i)=>{
+    const last = i===parts.length-1;
+    if(last) return `<span class="ig-crumb-current">${escAttr(p.label)}</span>`;
+    return `<button class="ig-crumb" onclick="${p.go}">${escAttr(p.label)}</button>`;
+  }).join('<span class="ig-crumb-sep">/</span>');
+  return `<button class="ig-back-btn" onclick="${back}">‹</button><div class="ig-crumb-path">${inner}</div>`;
+}
 function renderHomeSubpage(){
   const row = findHomeRow(homeSubpageKey);
   if(!row) return renderHomeList();
+  const hdr = adminCrumbHtml(row);
+  const body = row.fn().replace(/\bcollapsible collapsed\b/g,'');
   return `<div class="ig-page">
-    <div class="ig-subpage-hdr">
-      <button class="ig-back-btn" onclick="closeHomeRow()">‹</button>
-      <span class="ig-subpage-title">${row.label}</span>
-    </div>
-  <div class="ig-subpage-old-content">${row.fn().replace(/\bcollapsible collapsed\b/g,'')}</div>
+    <div class="ig-subpage-hdr">${hdr}</div>
+  <div class="ig-subpage-old-content">${body}</div>
   </div>`;
 }
 renderAdminGlobal = function(){ return homeSubpageKey ? renderHomeSubpage() : renderHomeList(); };
