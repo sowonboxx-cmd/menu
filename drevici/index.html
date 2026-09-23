@@ -8244,7 +8244,7 @@ const EXPORT_ROWS = [
 ];
 // Détaché des trois formats : ces couleurs valent pour les trois à la
 // fois, ce n'est pas un quatrième format.
-const MENU_COLORS_ROW = { key:'menu-colors', label:'Couleurs des menus', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.2 0-.9.7-1.5 1.5-1.5H16a4 4 0 0 0 4-4c0-4.4-3.6-8-8-8Z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></svg>', fn: renderMenuColorsPage };
+const MENU_COLORS_ROW = { key:'menu-colors', label:'Configurez les couleurs des menus', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.2 0-.9.7-1.5 1.5-1.5H16a4 4 0 0 0 4-4c0-4.4-3.6-8-8-8Z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></svg>', fn: renderMenuColorsPage };
 // "Couleurs du menu" — un seul endroit pour les couleurs des trois
 // formats d'export, avec les quatre rendus côte à côte pour juger
 // immédiatement de l'effet.
@@ -8276,18 +8276,23 @@ function menuColorValue(cfg, key){
 }
 function renderMenuColorsPage(){
   const cfg=pdfCfg();
+  // Même respiration entre groupes que sur la page d'accueil du
+  // panneau (38px sous chaque liste) : 18px collait les deux blocs.
   const group=(title,fields)=>`
-    <div class="ig-group-label" style="margin:18px 0 8px 4px;display:block;color:var(--ig-text-dimmer)!important">${title}</div>
-    <div class="ig-list">${fields.map(f=>`
+    <div class="ig-group-label" style="margin:2px 0 10px 4px;display:block;color:var(--ig-text-dimmer)!important">${title}</div>
+    <div class="ig-list" style="margin-bottom:38px">${fields.map(f=>`
       <div class="ig-row" style="cursor:default">
         <span class="ig-row-label"><span>${f.label}</span>${f.hint?`<span class="ig-row-hint">${f.hint}</span>`:''}</span>
         <input type="color" data-menu-swatch="${f.key}" value="${menuColorValue(cfg,f.key)}" oninput="setPdfCfg('${f.key}',this.value)" style="width:18px;height:18px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer">
       </div>`).join('')}</div>`;
   const ratioOf=v=> v==='print' ? 1123/794 : v==='gbiz' ? GBIZ_PAGE_RATIO : v==='post' ? INSTA_POST_RATIO : INSTA_RATIO;
-  return `<div class="admin-section"><div class="admin-sect-body">
+  // Pas d'enveloppe .admin-section/.admin-sect-body ici : les pages
+  // construites directement (catégorie, section) n'en ont pas, et
+  // c'est elle qui creusait un écart sous le fil d'Ariane.
+  return `
     ${group('Texte', MENU_COLOR_FIELDS.text)}
     ${group('Décoration', MENU_COLOR_FIELDS.deco)}
-    <div class="af" style="margin-top:18px">
+    <div class="af">
       <div id="menuColorsCarousel" onscroll="menuColorsOnScroll()" style="display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:4px">
         ${MENU_COLOR_PREVIEWS.map((p,i)=>`
           <div class="menucolor-slide" style="flex:0 0 92%;scroll-snap-align:start">
@@ -8303,8 +8308,7 @@ function renderMenuColorsPage(){
     </div>
     <div class="ig-hint-block">Vos essais s'affichent tout de suite mais ne partent en ligne qu'une fois validés.</div>
     <div class="ig-list" style="margin-top:10px"><div class="ig-row" style="justify-content:center" onclick="confirmMenuColors()"><span style="color:var(--ig-green);font-weight:500">Valider les couleurs par défaut</span></div></div>
-    <div class="ig-list" style="margin-top:10px"><div class="ig-row" style="justify-content:center" onclick="resetMenuColors()"><span style="color:var(--ig-accent);font-weight:500">Réinitialiser les couleurs</span></div></div>
-  </div></div>`;
+    <div class="ig-list" style="margin-top:10px"><div class="ig-row" style="justify-content:center" onclick="resetMenuColors()"><span style="color:var(--ig-accent);font-weight:500">Réinitialiser les couleurs</span></div></div>`;
 }
 function menuColorsOnScroll(){ carouselOnScroll('menuColorsCarousel','menucolor-slide','menuColorsDots','menucolor-dot'); }
 function initMenuColorsFrames(){
