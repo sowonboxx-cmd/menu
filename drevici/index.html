@@ -1038,14 +1038,28 @@ body.ig-admin-ui .confirm-title{font-family:'Inter',sans-serif;font-size:16px;fo
 body.ig-admin-ui .confirm-text,
 body.ig-admin-ui #sectionDelText,
 body.ig-admin-ui #newSectionPickWrap>div:first-child{font-family:'Inter',sans-serif;color:var(--ig-text-dim)}
-body.ig-admin-ui .confirm-cancel{font-family:'Inter',sans-serif;background:var(--ig-bg);border-color:var(--ig-border);color:var(--ig-text)}
-body.ig-admin-ui .confirm-ok{font-family:'Inter',sans-serif;font-weight:600}
+body.ig-admin-ui .confirm-cancel{font-family:'Inter',sans-serif;background:var(--ig-bg);border:none;color:var(--ig-text)}
+body.ig-admin-ui .confirm-ok{font-family:'Inter',sans-serif;font-weight:600;border:none}
 body.ig-admin-ui #sectionDelKeep strong{color:var(--ig-text)!important}
 body.ig-admin-ui #sectionDelKeep span{color:var(--ig-text-dimmer)!important}
-body.ig-admin-ui #newSectionName{background:var(--ig-bg);border:none;border-radius:10px;padding:13px 14px;color:var(--ig-text);font-family:'Inter',sans-serif;font-size:14px}
-body.ig-admin-ui #newSectionName:focus{box-shadow:inset 0 0 0 1px var(--ig-focus)}
+/* Champ et boutons du modal : même traitement — rempli, sans bordure
+   ni anneau de focus gris, qui ressortait comme un cadre clair. */
+body.ig-admin-ui #newSectionName{background:var(--ig-bg);border:none!important;border-radius:10px;padding:13px 14px;color:var(--ig-text);font-family:'Inter',sans-serif;font-size:14px}
+body.ig-admin-ui #newSectionName:focus{box-shadow:none;outline:none}
 body.ig-admin-ui #newSectionPickList label{color:var(--ig-text)!important;font-family:'Inter',sans-serif!important}
-body.ig-admin-ui #newSectionPickList input[type="checkbox"]{accent-color:var(--ig-green)}
+/* Cases à cocher redessinées : carré arrondi rempli du fond de page,
+   qui passe au vert avec une coche blanche une fois cochée. Pas de
+   blanc plein, qui jurait avec le reste du panneau. */
+body.ig-admin-ui #newSectionPickList input[type="checkbox"]{
+  -webkit-appearance:none;appearance:none;width:20px;height:20px;flex:none;margin:0;
+  border-radius:6px;background:var(--ig-bg);border:1px solid var(--ig-hairline);
+  cursor:pointer;position:relative;transition:background .12s,border-color .12s;
+}
+body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked{background:var(--ig-green);border-color:var(--ig-green)}
+body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
+  content:'';position:absolute;left:6.5px;top:3px;width:4px;height:9px;
+  border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);
+}
 
 /* ── TOAST ── */
 #toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:9px 18px;border-radius:50px;font-size:12px;font-family:'Jost',sans-serif;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
@@ -2001,7 +2015,7 @@ function askNewSection(ti){
       const nm=(d.name&&(d.name[adminLang]||d.name.fr))||'(sans nom)';
       const row=document.createElement('label');
       row.style.cssText='display:flex;align-items:center;gap:8px;font-size:13px;font-family:\'Jost\',sans-serif;color:var(--text2);cursor:pointer';
-      row.innerHTML='<input type="checkbox" data-di="'+di+'" style="width:16px;height:16px;flex:none"><span></span>';
+      row.innerHTML='<input type="checkbox" data-di="'+di+'"><span></span>';
       row.querySelector('span').textContent=nm;
       list.appendChild(row);
     });
