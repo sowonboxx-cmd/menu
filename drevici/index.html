@@ -612,6 +612,14 @@ body.ig-admin-light{
   --ig-shadow:0 1px 2px rgba(0,0,0,.08); --ig-row-hover:#EAEAEF; --ig-hairline:#D8D8DE;
 }
 .ig-page{min-height:100%}
+/* Menus et formules — en-tête de groupe avec icône encadrée, repris
+   des blocs "outil" d'une fiche plat. */
+.ig-formule-group{display:flex;align-items:center;gap:10px;margin:30px 0 10px 2px;font-size:12.5px;font-weight:600;color:var(--ig-text-dimmer);font-family:'Jost',sans-serif}
+.ig-formule-group:first-child{margin-top:2px}
+.ig-formule-group-icon{width:26px;height:26px;flex:none;border-radius:8px;border:1px solid var(--ig-border);display:flex;align-items:center;justify-content:center;color:var(--ig-text-dim)}
+.ig-formule-group-icon svg{width:15px;height:15px}
+.ig-formule-font{display:flex;align-items:center;gap:10px;background:var(--ig-card)!important;border:none!important;border-radius:14px;padding:12px 16px!important;height:auto!important;max-width:100%!important;margin:0!important}
+.ig-formule-reset{width:22px;height:22px;flex:none;border:none;border-radius:50%;background:var(--ig-bg);color:var(--ig-text-dim);cursor:pointer;padding:0;display:inline-flex;align-items:center;justify-content:center;margin-right:6px}
 /* Sélecteur de taille compact — le panneau est plafonné à ~6 lignes
    et défile, au lieu d'une liste native de 101 entrées qui occupait
    tout l'écran. */
@@ -3834,6 +3842,10 @@ function renderAdminTabDd(){
 // → accueil). Renvoie false s'il n'y avait plus rien à remonter.
 function adminBackStep(){
   if(homeSubpageKey==='accueil' && homeCoverSubpage){ closeHomeCoverRow(); return true; }
+  if(homeSubpageKey==='formules'){
+    if(formuleCatOpen){ closeFormuleCat(); return true; }
+    if(formuleOpen){ closeFormule(); return true; }
+  }
   const tab=DATA.tabs.find(t=>t.id===homeSubpageKey);
   if(tab){
     if(dishDetailOpen[tab.id]!=null){ closeDishDetail(tab.id); return true; }
@@ -7235,98 +7247,124 @@ function renderFormuleDetail(f){
           <span style="font-size:9.5px;color:var(--text3);flex:none;min-width:26px;text-align:right">${c.f[c.sizeKey] ?? 100}%</span>
         </div>`:''}
       </div>`;
-  const colorRow = fo => `
-    <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:nowrap;align-items:flex-start">
-      ${colorCell({f:fo, key:'instaTitleColor', sizeKey:'titleSizePct', label:'Titre des catégories'})}
-      ${colorCell({f:fo, key:'instaMenuColor', sizeKey:'menuSizePct', label:'Nom des plats'})}
-    </div>
-    <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:nowrap;align-items:flex-start">
-      ${colorCell({f:fo, key:'instaDescColor', sizeKey:'descSizePct', label:'Détails des plats'})}
-      ${colorCell({f:fo, key:'instaBgColor', sizeKey:null, label:'Couleur de fond'})}
+  // Une ligne par couleur, pastille à droite — comme "Couleurs" et
+  // "Configurez les couleurs des menus". La taille passe sous le
+  // libellé, seulement là où elle existe.
+  const colorLine = c => `
+    <div class="ig-row" style="cursor:default;align-items:flex-start;flex-wrap:wrap;row-gap:8px">
+      <span class="ig-row-label"><span>${c.label}</span></span>
+      ${c.f[c.key]?`<button type="button" title="Réinitialiser" onclick="formule_setColor('${c.f.id}','${c.key}','')" class="ig-formule-reset"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button>`:''}
+      <input type="color" value="${c.f[c.key]||defaultFor(c.key)}" oninput="formule_setColor('${c.f.id}','${c.key}',this.value)" style="width:18px;height:18px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer">
+      ${c.sizeKey?`
+      <div style="flex:0 0 100%;display:flex;align-items:center;gap:8px">
+        <input type="range" min="50" max="150" step="1" value="${c.f[c.sizeKey] ?? 100}" oninput="this.nextElementSibling.textContent=this.value+'%';formule_setField('${c.f.id}','${c.sizeKey}',parseInt(this.value,10))" style="flex:1">
+        <span style="font-size:11px;color:var(--ig-text-dimmer);flex:none;min-width:32px;text-align:right">${c.f[c.sizeKey] ?? 100}%</span>
+      </div>`:''}
+    </div>`;
+  const colorRow = fo => `<div class="ig-list">
+      ${colorLine({f:fo, key:'instaTitleColor', sizeKey:'titleSizePct', label:'Titre des catégories'})}
+      ${colorLine({f:fo, key:'instaMenuColor', sizeKey:'menuSizePct', label:'Nom des plats'})}
+      ${colorLine({f:fo, key:'instaDescColor', sizeKey:'descSizePct', label:'Détails des plats'})}
+      ${colorLine({f:fo, key:'instaBgColor', sizeKey:null, label:'Arrière-plan'})}
     </div>`;
 
-  const sectionHeader = title => `<div style="text-align:left;font-size:12.5px;font-weight:600;color:var(--ig-text-dimmer);margin:18px 0 8px;font-family:'Jost',sans-serif">${title}</div>`;
+  // En-tête de groupe : icône encadrée + libellé, même repère visuel
+  // que les blocs "outil" d'une fiche plat.
+  const sectionHeader = (title, icon) => `<div class="ig-formule-group">${icon?`<span class="ig-formule-group-icon">${icon}</span>`:''}<span>${title}</span></div>`;
+  const ICO={
+    infos:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="14" y2="12"/><line x1="8" y1="16" x2="12" y2="16"/></svg>',
+    items:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/></svg>',
+    perso:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.2 0-.9.7-1.5 1.5-1.5H16a4 4 0 0 0 4-4c0-4.4-3.6-8-8-8Z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></svg>',
+    preview:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m21 15-5-5-11 9"/></svg>'
+  };
 
-  let h = `<div class="ig-inner-back-row">
-    <button class="ig-back-btn" onclick="closeFormule()">‹</button>
-    <input class="ai ig-formule-title-input" style="flex:1" value="${escAttr(f.name||'')}" placeholder="Ex : Menu du dimanche — 35€" oninput="formule_rename('${f.id}',this.value)">
-    <button class="adel" style="font-size:12px;padding:1px 0;flex:none;opacity:.6" onclick="if(confirm('Supprimer cette formule ?')){formule_delete('${f.id}');closeFormule();}">✕</button>
+  const font = f.instaFont||brandCfg.instaFont||'Playfair Display';
+  const caseSel = (key, val, upperFirst) => `
+    <div style="flex:1;min-width:0">
+      <label class="al">${key.label}</label>
+      <select class="ai ig-hm-select" style="width:100%" onchange="formule_setField('${f.id}','${key.field}',this.value)">
+        <option value="upper" ${val==='upper'?'selected':''}>Majuscule</option>
+        <option value="lower" ${val==='lower'?'selected':''}>Minuscule</option>
+      </select>
+    </div>`;
+
+  let h = `
+  ${sectionHeader('Informations générales', ICO.infos)}
+  <div class="ig-list">
+    <div class="ig-row" style="cursor:text">
+      <span class="ig-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25Z"/><path d="M14.06 6.19l3.75 3.75"/></svg></span>
+      <input class="ig-inline-row-field" value="${escAttr(f.name||'')}" placeholder="Nom du menu / formule" oninput="formule_rename('${f.id}',this.value)">
+    </div>
+    <div class="ig-row" style="cursor:text;align-items:flex-start">
+      <span class="ig-row-icon" style="margin-top:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/></svg></span>
+      <textarea class="ig-inline-row-field" rows="2" style="resize:vertical;padding-top:12px" placeholder="Description — entrée, plat, dessert…" oninput="formule_setField('${f.id}','freeText',this.value)">${escAttr(f.freeText||'')}</textarea>
+    </div>
   </div>
-  <div class="admin-card">
-    ${sectionHeader('Informations générales')}
-    <div class="ig-list">
-      <div class="ig-row" style="cursor:text">
-        <span class="ig-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25Z"/><path d="M14.06 6.19l3.75 3.75"/></svg></span>
-        <input class="ig-inline-row-field" value="${escAttr(f.name||'')}" placeholder="Nom du menu / formule" oninput="formule_rename('${f.id}',this.value)">
-      </div>
-      <div class="ig-row" style="cursor:text;align-items:flex-start">
-        <span class="ig-row-icon" style="margin-top:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/></svg></span>
-        <textarea class="ig-inline-row-field" rows="2" style="resize:vertical;padding-top:12px" placeholder="Description — entrée, plat, dessert…" oninput="formule_setField('${f.id}','freeText',this.value)">${escAttr(f.freeText||'')}</textarea>
-      </div>
-      <div class="ig-row" style="cursor:default;flex-direction:column;align-items:stretch;gap:10px;padding-top:12px;padding-bottom:12px">
-        <div style="display:flex;align-items:center;gap:12px">
-          <span class="ig-row-icon" style="font-family:'Jost',sans-serif;font-weight:700;font-size:13px">Aa</span>
-          <span class="ig-row-label">Casse</span>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding-left:32px">
-          <div><label class="al">Catégorie</label>
-            <select class="ai ig-hm-select" onchange="formule_setField('${f.id}','catCase',this.value)">
-              <option value="upper" ${f.catCase!=='lower'?'selected':''}>Majuscule</option>
-              <option value="lower" ${f.catCase==='lower'?'selected':''}>Minuscule</option>
-            </select>
-          </div>
-          <div><label class="al">Nom des plats</label>
-            <select class="ai ig-hm-select" onchange="formule_setField('${f.id}','nameCase',this.value)">
-              <option value="upper" ${f.nameCase!=='lower'?'selected':''}>Majuscule</option>
-              <option value="lower" ${f.nameCase==='lower'?'selected':''}>Minuscule</option>
-            </select>
-          </div>
-          <div><label class="al">Description</label>
-            <select class="ai ig-hm-select" onchange="formule_setField('${f.id}','descCase',this.value)">
-              <option value="lower" ${f.descCase!=='upper'?'selected':''}>Minuscule</option>
-              <option value="upper" ${f.descCase==='upper'?'selected':''}>Majuscule</option>
-            </select>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    ${sectionHeader('Éléments du menu')}
-    <div class="ig-list">
-      ${f.tabs.map(cat=>`
-        <div class="ig-row" onclick="openFormuleCat('${cat.id}')">
-          <span class="ig-row-label">${escAttr(t(cat.label))||'(sans titre)'}</span>
-          <span class="ig-row-chevron">›</span>
-        </div>`).join('')}
-    </div>
-    <button class="aadd ig-add-btn" style="margin-top:8px" onclick="formule_addCategory('${f.id}')">Ajouter une catégorie</button>
+  ${sectionHeader('Casse', '<span style="font-family:\'Jost\',sans-serif;font-weight:700;font-size:12px">Aa</span>')}
+  <div class="af" style="display:flex;gap:10px;align-items:flex-start">
+    ${caseSel({label:'Catégorie', field:'catCase'}, f.catCase==='lower'?'lower':'upper')}
+    ${caseSel({label:'Nom des plats', field:'nameCase'}, f.nameCase==='lower'?'lower':'upper')}
+    ${caseSel({label:'Description', field:'descCase'}, f.descCase==='upper'?'upper':'lower')}
+  </div>
 
-    ${(ensureGalleryFontsLoaded(),'')}
-    ${sectionHeader('Personnalisation')}
-    <div class="af">
-      <div class="ai ig-font-field ig-cover-field-flat" onclick="showFontGallery('formule','${f.id}')">
-        <span style="font-size:11.5px;color:var(--ig-text-dimmer)">Voir et choisir la police</span>
-        <div style="font-size:18.5px;color:var(--ig-text);font-family:'${f.instaFont||brandCfg.instaFont||'Playfair Display'}',serif!important;margin-top:2px">${f.instaFont||brandCfg.instaFont||'Playfair Display'}</div>
-      </div>
-    </div>
-    <label class="admin-toggle ig-pill" style="margin-top:10px"><input type="checkbox" ${f.alignTitleLeft?'checked':''} onchange="formule_setField('${f.id}','alignTitleLeft',this.checked)"><label>Aligner le titre et le texte libre à gauche</label></label>
-    <label class="admin-toggle ig-pill" style="margin-top:8px"><input type="checkbox" ${f.alignContentLeft?'checked':''} onchange="formule_setField('${f.id}','alignContentLeft',this.checked)"><label>Aligner les catégories et les plats à gauche</label></label>
-    ${colorRow(f)}
+  ${sectionHeader('Éléments du menu', ICO.items)}
+  <div class="ig-list">
+    ${f.tabs.map(cat=>`
+      <div class="ig-row" onclick="openFormuleCat('${cat.id}')">
+        <span class="ig-row-label">${escAttr(t(cat.label))||'(sans titre)'}</span>
+        <span class="ig-row-chevron">›</span>
+      </div>`).join('')}
+  </div>
+  <div class="ig-list" style="margin-top:10px"><div class="ig-row" style="justify-content:center" onclick="formule_addCategory('${f.id}')"><span style="color:var(--ig-green);font-weight:500">Ajouter une catégorie</span></div></div>
 
-    <div class="af" style="margin-top:14px">
-      <div id="formuleCarousel-${f.id}" style="display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:4px">
-        ${['a4','story','post'].map(variant=>`
-          <div style="flex:0 0 80%;scroll-snap-align:start;border-radius:10px;overflow:hidden;background:#fff">
+  ${(ensureGalleryFontsLoaded(),'')}
+  ${sectionHeader('Personnalisation', ICO.perso)}
+  <div class="ai ig-font-field ig-formule-font" onclick="showFontGallery('formule','${f.id}')">
+    <div style="flex:1;min-width:0">
+      <span style="font-size:11.5px;color:var(--ig-text-dimmer)">Voir et choisir la police</span>
+      <div style="font-size:19px;color:var(--ig-text);font-family:'${font}',serif!important;margin-top:2px">${font}</div>
+    </div>
+    <span class="ig-row-chevron">›</span>
+  </div>
+  <div class="ig-list" style="margin-top:10px">
+    <div class="ig-row" style="cursor:default">
+      <span class="ig-row-label">Aligner le titre et le texte libre à gauche</span>
+      <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${f.alignTitleLeft?'checked':''} onchange="formule_setField('${f.id}','alignTitleLeft',this.checked)"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
+    </div>
+    <div class="ig-row" style="cursor:default">
+      <span class="ig-row-label">Aligner les catégories et les plats à gauche</span>
+      <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${f.alignContentLeft?'checked':''} onchange="formule_setField('${f.id}','alignContentLeft',this.checked)"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
+    </div>
+  </div>
+
+  ${sectionHeader('Couleurs et style', ICO.perso)}
+  ${colorRow(f)}
+
+  ${sectionHeader('Aperçu et export', ICO.preview)}
+  <div class="af">
+    <div id="formuleCarousel-${f.id}" style="display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+      ${['a4','story','post'].map(variant=>`
+        <div style="flex:0 0 80%;scroll-snap-align:start">
+          <div style="font-size:11.5px;color:var(--ig-text-dimmer);margin-bottom:6px;text-align:center">${variant==='a4'?'A4':variant==='post'?'Post':'Story'}</div>
+          <div style="border-radius:10px;overflow:hidden;background:#fff">
             <iframe class="formule-preview-frame" data-fid="${f.id}" data-variant="${variant}" style="width:100%;aspect-ratio:1 / ${variant==='a4'?INSTA_A4_RATIO:variant==='post'?INSTA_POST_RATIO:INSTA_RATIO};border:none;display:block;background:#fff"></iframe>
-            <div style="text-align:center;font-size:10px;color:var(--text3);padding:4px 0;font-family:Jost,sans-serif;text-transform:uppercase;letter-spacing:.04em">${variant==='a4'?'A4':variant==='post'?'Post':'Story'}</div>
           </div>
-        `).join('')}
-      </div>
+        </div>
+      `).join('')}
     </div>
-    <div style="display:flex;gap:6px;margin-top:10px">
-      <button class="aadd ig-solid-action-btn" style="flex:1;padding:10px;font-size:12px" onclick="formule_exportInsta('${f.id}','a4')">A4</button>
-      <button class="aadd ig-solid-action-btn" style="flex:1;padding:10px;font-size:12px" onclick="formule_exportInsta('${f.id}','story')">Story</button>
-      <button class="aadd ig-solid-action-btn" style="flex:1;padding:10px;font-size:12px" onclick="formule_exportInsta('${f.id}','post')">Post</button>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:12px">
+    <button class="aadd ig-solid-action-btn" style="flex:1;padding:12px;font-size:12.5px" onclick="formule_exportInsta('${f.id}','a4')">A4</button>
+    <button class="aadd ig-solid-action-btn" style="flex:1;padding:12px;font-size:12.5px" onclick="formule_exportInsta('${f.id}','story')">Story</button>
+    <button class="aadd ig-solid-action-btn" style="flex:1;padding:12px;font-size:12.5px" onclick="formule_exportInsta('${f.id}','post')">Post</button>
+  </div>
+
+  <div class="ig-group-label" style="margin:34px 0 8px 4px;display:block;color:var(--ig-text-dimmer)!important">Gestion de la formule</div>
+  <div class="ig-list">
+    <div class="ig-row" onclick="askConfirm('Supprimer la formule « ${(f.name||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")} » ?',()=>{formule_delete('${f.id}');closeFormule();})">
+      <span class="ig-row-icon" style="color:var(--ig-red)">${TRASH_SVG}</span>
+      <span class="ig-row-label" style="color:var(--ig-red)">Supprimer la formule</span>
     </div>
   </div>`;
   return h;
@@ -7335,10 +7373,13 @@ function renderFormuleDetail(f){
 function renderFormuleCatDetail(f, cat){
   const realDishes = formule_getRealDishes();
   const importOptions = realDishes.map((d,i)=>`<option value="${i}">${d.name} — ${d.tabLabel}</option>`).join('');
-  let h = `<div class="ig-inner-back-row">
-    <button class="ig-back-btn" onclick="closeFormuleCat()">‹</button>
-    <input class="ai ig-card-title-input" style="flex:1" value="${escAttr(t(cat.label)||'')}" placeholder="Nom de la catégorie (ex : Entrée)" oninput="formule_renameCategory('${f.id}','${cat.id}',this.value)">
-    <button class="adel" style="font-size:12px;padding:1px 0;flex:none;opacity:.6" onclick="if(confirm('Supprimer cette catégorie et tous ses plats ?')){formule_removeCategory('${f.id}','${cat.id}');closeFormuleCat();}">✕</button>
+  // Nom et suppression descendent en bas de page, sous "Gestion de la
+  // catégorie", comme partout ailleurs — le fil d'Ariane assure le
+  // retour.
+  let h = `
+  <div class="ig-stack-field">
+    <span class="ig-stack-label">Nom de la catégorie</span>
+    <input class="ai" value="${escAttr(t(cat.label)||'')}" placeholder="Ex : Entrée" oninput="formule_renameCategory('${f.id}','${cat.id}',this.value)">
   </div>
   <div class="admin-card">
     ${(cat.cards[0].dishes||[]).map((d,di)=>`
@@ -7353,12 +7394,19 @@ function renderFormuleCatDetail(f, cat){
         <button class="dish-eye-btn" title="Supprimer le plat" onclick="formule_removeDish('${f.id}','${cat.id}',${di})">${TRASH_SVG}</button>
       </div>
     `).join('')}
-    <div style="display:flex;gap:6px;margin-top:6px">
-      <button class="aadd ig-add-btn" style="flex:1;padding:8px;font-size:11.5px" onclick="formule_addDish('${f.id}','${cat.id}')">Plat vierge</button>
-      <select class="ai ig-hm-select" style="flex:1;font-size:11.5px" onchange="formule_importDish('${f.id}','${cat.id}',this)">
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <select class="ai ig-hm-select" style="flex:1;font-size:12px" onchange="formule_importDish('${f.id}','${cat.id}',this)">
         <option value="">Importer un plat existant…</option>
         ${importOptions}
       </select>
+    </div>
+  </div>
+  <div class="ig-list" style="margin-top:10px"><div class="ig-row" style="justify-content:center" onclick="formule_addDish('${f.id}','${cat.id}')"><span style="color:var(--ig-green);font-weight:500">Ajouter un plat</span></div></div>
+  <div class="ig-group-label" style="margin:34px 0 8px 4px;display:block;color:var(--ig-text-dimmer)!important">Gestion de la catégorie</div>
+  <div class="ig-list">
+    <div class="ig-row" onclick="askConfirm('Supprimer cette catégorie et tous ses plats ?',()=>{formule_removeCategory('${f.id}','${cat.id}');closeFormuleCat();})">
+      <span class="ig-row-icon" style="color:var(--ig-red)">${TRASH_SVG}</span>
+      <span class="ig-row-label" style="color:var(--ig-red)">Supprimer la catégorie</span>
     </div>
   </div>`;
   return h;
@@ -8516,6 +8564,23 @@ function adminCrumbParts(row){
       {label:row.label, go:'closeHomeCoverRow()'},
       {label:sub||''}
     ];
+  }
+  // Menus et formules : la page d'une formule rendait sa propre barre
+  // de retour ; elle passe maintenant par le fil d'Ariane, comme le
+  // reste.
+  if(row.key==='formules'){
+    if(!formuleOpen) return null;
+    const f=(DATA.formules||[]).find(x=>x.id===formuleOpen);
+    const parts=[{label:row.label, go:'closeFormule()'}];
+    if(!f) return parts;
+    if(formuleCatOpen){
+      const cat=(f.tabs||[]).find(c=>c.id===formuleCatOpen);
+      parts.push({label:f.name||'(sans nom)', go:'closeFormuleCat()'});
+      parts.push({label:(cat&&t(cat.label))||'Catégorie'});
+    } else {
+      parts.push({label:f.name||'(sans nom)'});
+    }
+    return parts;
   }
   const tab=DATA.tabs.find(tb=>tb.id===row.key);
   if(!tab) return null;
