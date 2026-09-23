@@ -630,9 +630,9 @@ body.ig-admin-light{
 .ig-row-updown{color:var(--ig-text-dimmer);flex:none;display:flex;align-items:center}
 .ig-row-updown svg{width:12px;height:18px}
 /* Menu flottant du thème, positionné sous la ligne au clic. */
-.ig-theme-menu{position:fixed;display:none;z-index:9400;min-width:190px;background:var(--ig-card);border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.35);border:1px solid var(--ig-border)}
+.ig-theme-menu{position:fixed;display:none;z-index:9400;box-sizing:border-box;background:var(--ig-card);border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.35);border:1px solid var(--ig-border)}
 .ig-theme-menu.open{display:block}
-.ig-theme-opt{display:flex;align-items:center;gap:10px;padding:13px 16px;color:var(--ig-text);font-family:'Inter',sans-serif;font-size:15px;cursor:pointer;border-bottom:1px solid var(--ig-sep)}
+.ig-theme-opt{display:flex;align-items:center;gap:10px;padding:13px 16px;white-space:nowrap;color:var(--ig-text);font-family:'Inter',sans-serif;font-size:15px;cursor:pointer;border-bottom:1px solid var(--ig-sep)}
 .ig-theme-opt:last-child{border-bottom:none}
 .ig-theme-opt:hover{background:var(--ig-bg)}
 .ig-theme-check{width:14px;flex:none;color:var(--ig-text)}
@@ -4256,7 +4256,7 @@ function renderTabSectionList(ti){
     h+=`</div>`;
   }
 
-  h+=`<div class="ig-list" style="margin-top:${realCards.length?'14':'0'}px"><div class="ig-row" style="justify-content:center" onclick="askNewSection(${ti})"><span style="color:var(--ig-green);font-weight:500">Ajouter une nouvelle sous-catégorie</span></div></div>`;
+  h+=`<div class="ig-list" style="margin-top:${realCards.length?'14':'0'}px"><div class="ig-row" style="justify-content:center" onclick="askNewSection(${ti})"><span style="color:var(--ig-green);font-weight:500">Ajouter une sous-catégorie</span></div></div>`;
 
   // Réordonner les sections (2+ sections seulement), tout en bas.
   if(tab.cards.length>=2){
@@ -7677,8 +7677,8 @@ function renderGbizPagePreview(){
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:var(--ig-card);border:none;border-radius:10px;margin-top:6px;flex-wrap:wrap">
           <div style="font-size:12.5px;font-family:Jost,sans-serif;color:var(--ig-accent)"><strong>${t(tb.label)}</strong></div>
           <div style="display:flex;gap:5px">
-            ${pageIdx>0?`<button style="${btnStyle(!!tb.gbizPullPrevious)}" onclick="tb_setGbizPull('${tb.id}',${tb.gbizPullPrevious?'false':'true'})">◀ Page ${pageIdx}</button>`:''}
-            ${pageIdx<pages.length-1?`<button style="${btnStyle(!!tb.pdfPageBreakBefore)}" onclick="tb_setPageBreak('${tb.id}',${tb.pdfPageBreakBefore?'false':'true'})">Page ${pageIdx+2} ▶</button>`:''}
+            ${pageIdx>0?`<button style="${btnStyle(!!tb.gbizPullPrevious)}" onclick="tb_setGbizPull('${tb.id}',${tb.gbizPullPrevious?'false':'true'})"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:5px"><path d="m14 6-6 6 6 6"/></svg>Page ${pageIdx}</button>`:''}
+            ${pageIdx<pages.length-1?`<button style="${btnStyle(!!tb.pdfPageBreakBefore)}" onclick="tb_setPageBreak('${tb.id}',${tb.pdfPageBreakBefore?'false':'true'})">Page ${pageIdx+2}<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-left:5px"><path d="m10 6 6 6-6 6"/></svg></button>`:''}
           </div>
         </div>
         ${pullFailures.includes(tb.id)?`<div style="font-size:11px;color:#B31217;background:#fdecea;border:1px solid #f3c6c2;border-radius:6px;padding:6px 10px;margin-top:4px;font-family:Jost,sans-serif">⚠️ Impossible de faire rentrer "${t(tb.label)}" dans la page précédente sans dépasser 18% de compression — ça abîmerait la mise en page. Elle reste sur sa propre page.</div>`:''}
@@ -8245,18 +8245,26 @@ function toggleThemeMenu(e){
   m.innerHTML=['system','light','dark'].map(k=>
     `<div class="ig-theme-opt" onclick="setAdminTheme('${k}')"><span class="ig-theme-check">${adminTheme===k?'✓':''}</span>${ADMIN_THEME_LABELS[k]}</div>`
   ).join('');
-  // Placement adaptatif : le menu se centre sur la ligne, et bascule
-  // au-dessus ou en dessous s'il n'y a pas la place — posé en bas de
-  // l'écran il sortait du cadre sur mobile.
+  // Placement adaptatif : le menu se centre sur la ligne et se recale
+  // s'il dépasse un bord. On impose sa largeur au lieu de la mesurer :
+  // lue juste après l'affichage, offsetWidth pouvait encore valoir 0,
+  // et le menu partait alors vers la droite hors de l'écran.
+  const W=210, pad=10;
+  m.style.width=W+'px';
   m.classList.add('open');
   const row=e.currentTarget.getBoundingClientRect();
-  const mh=m.offsetHeight, mw=m.offsetWidth, pad=10;
+  const mh=m.offsetHeight||150;
+  // On reste dans le panneau admin quand il est là : il est ancré à
+  // droite sur desktop, donc le bord de l'écran n'est pas la limite
+  // pertinente.
+  const panel=document.getElementById('adminPanel');
+  const box=(panel && panel.classList.contains('open')) ? panel.getBoundingClientRect() : {left:0,right:window.innerWidth};
   let top=row.top+row.height/2-mh/2;
   if(top+mh>window.innerHeight-pad) top=window.innerHeight-mh-pad;
   if(top<pad) top=pad;
-  let left=row.right-mw;
-  if(left+mw>window.innerWidth-pad) left=window.innerWidth-mw-pad;
-  if(left<pad) left=pad;
+  let left=row.right-W;
+  if(left+W>box.right-pad) left=box.right-W-pad;
+  if(left<box.left+pad) left=box.left+pad;
   m.style.top=top+'px';
   m.style.left=left+'px';
   m.style.right='auto';
