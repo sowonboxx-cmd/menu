@@ -1157,7 +1157,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
      l'utilisateur. -->
 <div class="confirm-modal" id="sectionDelModal">
   <div class="confirm-box" style="max-width:360px">
-    <div class="confirm-title">Supprimer la section</div>
+    <div class="confirm-title">Supprimer la sous-catégorie</div>
     <div class="confirm-text" id="sectionDelText">Que faut-il faire de son contenu ?</div>
     <div style="display:flex;flex-direction:column;gap:8px">
       <button class="confirm-cancel" id="sectionDelKeep" style="border-radius:10px;text-align:left;padding:12px 14px;line-height:1.4">
@@ -1178,8 +1178,8 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
      manuel plat par plat après coup. -->
 <div class="confirm-modal" id="newSectionModal">
   <div class="confirm-box" style="max-width:380px;text-align:left">
-    <div class="confirm-title" style="text-align:left">Nouvelle section</div>
-    <input class="ai" id="newSectionName" placeholder="Nom de la section" style="width:100%;margin-bottom:14px">
+    <div class="confirm-title" style="text-align:left">Nouvelle sous-catégorie</div>
+    <input class="ai" id="newSectionName" placeholder="Nom de la sous-catégorie" style="width:100%;margin-bottom:14px">
     <div id="newSectionPickWrap" style="display:none">
       <div style="font-size:12px;color:var(--text3);font-family:'Jost',sans-serif;margin-bottom:8px">Plats à incorporer (optionnel)</div>
       <div id="newSectionPickList" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:16px"></div>
@@ -2109,7 +2109,7 @@ function deleteSection(ti, ci, keepContent){
   refreshCurrentTabView(tab.id);
   renderAdminSection(adminCurrentTab);
   publishNow();
-  showToast(keepContent&&moved.length?'Section supprimée, plats conservés':'Section supprimée');
+  showToast(keepContent&&moved.length?'Sous-catégorie supprimée, plats conservés':'Sous-catégorie supprimée');
 }
 
 // ═══════════════════════════════════════════
@@ -4217,7 +4217,7 @@ function renderTabSectionList(ti){
   // au-dessus, donc on ne l'affiche pas ici comme "(sans titre)".
   const realCards = tab.cards.map((card,ci)=>({card,ci}))
     .filter(({card,ci}) => ci!==inlineCi);
-  h+=groupLabel('Section');
+  h+=groupLabel('Sous-catégorie');
   if(realCards.length){
     h+=`<div class="ig-list">`;
     realCards.forEach(({card,ci})=>{
@@ -4229,12 +4229,12 @@ function renderTabSectionList(ti){
     h+=`</div>`;
   }
 
-  h+=`<div class="ig-list" style="margin-top:${realCards.length?'14':'0'}px"><div class="ig-row" style="justify-content:center" onclick="askNewSection(${ti})"><span style="color:var(--ig-green);font-weight:500">Ajouter une nouvelle section</span></div></div>`;
+  h+=`<div class="ig-list" style="margin-top:${realCards.length?'14':'0'}px"><div class="ig-row" style="justify-content:center" onclick="askNewSection(${ti})"><span style="color:var(--ig-green);font-weight:500">Ajouter une nouvelle sous-catégorie</span></div></div>`;
 
   // Réordonner les sections (2+ sections seulement), tout en bas.
   if(tab.cards.length>=2){
-    h+=`<div class="admin-section collapsible collapsed" style="margin-top:20px"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Ordre des sections</div><div class="admin-sect-body">`;
-    h+=`<div class="ig-group-label" style="margin:0 0 8px 4px;display:block;color:var(--ig-text-dimmer)!important">Changer l'ordre des onglets</div>`;
+    h+=`<div class="admin-section collapsible collapsed" style="margin-top:20px"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Ordre des sous-catégories</div><div class="admin-sect-body">`;
+    h+=`<div class="ig-group-label" style="margin:0 0 8px 4px;display:block;color:var(--ig-text-dimmer)!important">Changer l'ordre des sous-catégories</div>`;
     h+=`<div id="sectionReorderList" data-ti="${ti}">`;
     tab.cards.forEach((card,ci)=>{
       h+=`<div class="admin-card sec-reorder-row" style="display:flex;align-items:center;gap:10px;background:var(--ig-card);margin-bottom:6px"
@@ -4279,20 +4279,20 @@ function renderTabSectionList(ti){
 // propre titre, comme pour une catégorie ou un plat.
 function sectionManageBlockHtml(ti, ci){
   const card=DATA.tabs[ti].cards[ci];
-  return `<div class="ig-group-label" style="margin:34px 0 8px 4px;display:block;color:var(--ig-text-dimmer)!important">Gestion de la section</div>
+  return `<div class="ig-group-label" style="margin:34px 0 8px 4px;display:block;color:var(--ig-text-dimmer)!important">Gestion de la sous-catégorie</div>
   <div class="ig-stack-field">
-    <span class="ig-stack-label">Nom de la section</span>
+    <span class="ig-stack-label">Nom de la sous-catégorie</span>
     <input class="ai" value="${escAttr(card.label[adminLang]||'')}" placeholder="Ex: Tartinades" oninput="DATA.tabs[${ti}].cards[${ci}].label[adminLang]=this.value;renderAll()">
   </div>
   <div class="ig-list">
     <div class="ig-row" style="cursor:default">
       <span class="ig-row-icon">${card.hidden?EYE_OFF_SVG:EYE_SVG}</span>
-      <span class="ig-row-label">Masquer la section</span>
+      <span class="ig-row-label">Masquer la sous-catégorie</span>
       <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${card.hidden?'checked':''} onchange="if(this.checked){DATA.tabs[${ti}].cards[${ci}].hidden=true;}else{delete DATA.tabs[${ti}].cards[${ci}].hidden;}renderAll();refreshCurrentTabView('${DATA.tabs[ti].id}');renderAdminSection(adminCurrentTab)"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
     </div>
     <div class="ig-row" onclick="askSectionDelete(${ti},${ci})">
       <span class="ig-row-icon" style="color:var(--ig-red)">${TRASH_SVG}</span>
-      <span class="ig-row-label" style="color:var(--ig-red)">Supprimer la section</span>
+      <span class="ig-row-label" style="color:var(--ig-red)">Supprimer la sous-catégorie</span>
     </div>
   </div>`;
 }
@@ -4566,8 +4566,8 @@ function addDishToSoloSection(ti){
 function addCard(ti){
   const tab=DATA.tabs[ti];
   const isBev=tab.id==='boissons'||tab.cards.every(c=>c.type==='bevs');
-  if(isBev) DATA.tabs[ti].cards.push({label:{fr:'Nouvelle section',en:'New section'},type:'bevs',items:[]});
-  else DATA.tabs[ti].cards.push({label:{fr:'Nouvelle section',en:'New section'},dishes:[]});
+  if(isBev) DATA.tabs[ti].cards.push({label:{fr:'Nouvelle sous-catégorie',en:'New sub-category'},type:'bevs',items:[]});
+  else DATA.tabs[ti].cards.push({label:{fr:'Nouvelle sous-catégorie',en:'New sub-category'},dishes:[]});
   renderAll();
   refreshCurrentTabView(DATA.tabs[ti].id);
   const body=document.getElementById('adminBody');
@@ -4962,7 +4962,7 @@ function onDropSectionRow(e,ti,ci){
   dragSectionRowSrc=null;
   renderAll();
   refreshCurrentTabView(DATA.tabs[ti].id);
-  showToast('Ordre des sections mis à jour');
+  showToast('Ordre des sous-catégories mis à jour');
 }
 function onDrop(e,ti,ci,di){
   e.preventDefault(); e.currentTarget.classList.remove('drag-over');
