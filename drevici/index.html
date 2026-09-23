@@ -30,7 +30,7 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 /* ── LIGHTBOX ── */
 .lb{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9100;display:none;align-items:center;justify-content:center}
 .lb.open{display:flex}
-.lb-card{position:relative;width:min(420px,92vw);border-radius:16px;overflow:hidden;background:#10285E;margin-top:44px}
+.lb-card{position:relative;width:min(420px,92vw);border-radius:16px;overflow:hidden;background:var(--navy);margin-top:44px}
 .lb-zone{position:absolute;top:0;bottom:0;width:45%;z-index:3;cursor:pointer}
 .lb-zone-left{left:0}
 .lb-zone-right{right:0}
@@ -657,6 +657,11 @@ body.ig-admin-light{
 .ig-inline-row-field::placeholder{color:var(--ig-text-dim)}
 .ig-row-icon svg{width:19px;height:19px}
 .ig-row-label{flex:1}
+/* Sous-titre d'une ligne de réglage : ce que la couleur touche
+   réellement, en petit sous son nom. */
+.ig-row-label>span:first-child{display:block}
+.ig-row-hint{display:block;font-size:11.5px;color:var(--ig-text-dimmer);margin-top:2px;line-height:1.4}
+.ig-hint-block{font-size:11.5px;color:var(--ig-text-dimmer);line-height:1.5;margin:12px 4px 0}
 .ig-row-chevron{color:var(--ig-text-dimmer);font-size:15px;flex:none}
 /* Pastille verte marquant, dans une liste de choix, celui qui est
    réellement en place (ex : le visuel d'accueil affiché). Les autres
@@ -1192,7 +1197,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 <div class="admin-overlay" id="adminOverlay" onclick="closeAdmin()"></div>
 <aside class="admin-panel" id="adminPanel">
   <div class="admin-hdr">
-    <span class="admin-hdr-title"><span class="admin-badge">ADMIN</span></span>
+    <span class="admin-hdr-title"><button class="admin-badge" onclick="adminGoHome()" title="Revenir à l'accueil du panneau">Accueil</button></span>
     <div class="admin-hdr-right">
       <select class="admin-tab-dd" id="adminTabDd" onchange="adminGoTab(this.value)"></select>
       <select class="admin-tab-dd" id="adminLangDd" onchange="setAdminLang(this.value)" title="Langue d'édition" style="width:60px">
@@ -3804,12 +3809,20 @@ function renderAdminTabDd(){
   // apporter.
   dd.innerHTML='<option value="__global">Home</option>'
     +tabOpts
-    +'<option value="__go_export">⬇ Exportez vos menus</option>'
-    +'<option value="__go_formules">☰ Menus spéciaux et formules</option>'
-    +'<option value="__social" style="font-weight:600">★ Réseaux sociaux</option>';
+    +'<option value="__go_export">Exportez vos menus</option>'
+    +'<option value="__go_formules">Menus spéciaux et formules</option>'
+    +'<option value="__social">Réseaux sociaux</option>';
   dd.value=adminCurrentTab;
 }
 
+// Le bouton "Accueil" du bandeau ramène à la racine du panneau,
+// quelle que soit la profondeur de navigation.
+function adminGoHome(){
+  adminCurrentTab='__global';
+  homeSubpageKey=null;
+  homeSubpageStack=[];
+  renderAdminSection('__global');
+}
 function adminGoTab(val){
   if(val==='__social'){ adminCurrentTab='__social'; renderAdminSection('__social'); return; }
   // Accès direct : on ouvre la page comme si on y était arrivé depuis
@@ -3902,6 +3915,7 @@ function renderAdminSection(tid, _skipScroll){
   if(document.getElementById('gbizCarousel')) setTimeout(()=>{ if(typeof initGbizCarouselFrames==='function') initGbizCarouselFrames(); }, 100);
   if(document.getElementById('pdfCarousel')) setTimeout(()=>{ if(typeof initPdfCarouselFrames==='function') initPdfCarouselFrames(); }, 100);
   if(document.getElementById('instaCarousel')) setTimeout(()=>{ if(typeof initInstaCarouselFrames==='function') initInstaCarouselFrames(); }, 100);
+  if(document.getElementById('menuColorsCarousel')) setTimeout(()=>{ if(typeof initMenuColorsFrames==='function') initMenuColorsFrames(); }, 100);
   if(document.querySelector('.formule-preview-frame')) setTimeout(()=>{ if(typeof initFormulePreviewFrames==='function') initFormulePreviewFrames(); }, 100);
 }
 
@@ -5655,6 +5669,14 @@ function pdfCfg(){
     instaBgColor: d.instaBgColor || '',            // vide = hérite de la couleur de fond générale
     instaMenuColor: d.instaMenuColor || d.titleColor || '#10285E',
     instaDescColor: d.instaDescColor || '',        // vide = dérivé automatiquement du navy (voir buildInstaCSS)
+    // "Couleurs du menu" — un seul jeu partagé par les trois formats
+    // (impression, Google Business, Instagram) : les couleurs du menu
+    // exporté ne devraient pas différer d'un support à l'autre.
+    menuTitleColor: d.menuTitleColor || d.titleColor || (DATA.brandColors && DATA.brandColors.primary) || '#10285E',
+    menuNameColor: d.menuNameColor || '#1D1D1F',
+    menuDescColor: d.menuDescColor || '#6E6E73',
+    menuFrameColor: d.menuFrameColor || d.accentColor || (DATA.brandColors && DATA.brandColors.accent) || '#C6A24A',
+    menuSepColor: d.menuSepColor || '#CCCCCC',
     instaTitleSize: d.instaTitleSize || 45,
     instaMenuSize: d.instaMenuSize || 21,
     instaDescSize: d.instaDescSize || 19
@@ -5705,25 +5727,6 @@ function pickSize(e, key, n){
 // vidées, elles retombent sur les couleurs de marque choisies dans
 // Couleurs. Mise à jour des pastilles sur place — un re-rendu
 // refermerait l'accordéon "Personnaliser".
-function resetInstaColors(){
-  ['instaTitleColor','instaMenuColor','instaDescColor','instaBgColor'].forEach(k=>{
-    if(!DATA.pdfStyle) DATA.pdfStyle={};
-    DATA.pdfStyle[k]='';
-  });
-  updatePdfPreview();
-  schedulePreviewRefresh();
-  const cfg=pdfCfg();
-  const vals={
-    instaTitleColor:cfg.titleColor||'#10285E',
-    instaMenuColor:cfg.titleColor||'#10285E',
-    instaDescColor:lightenHex(cfg.titleColor||'#10285E',0.28),
-    instaBgColor:cfg.bgColor||'#FDFBF6'
-  };
-  Object.keys(vals).forEach(k=>{
-    const sw=document.querySelector(`[data-insta-swatch="${k}"]`);
-    if(sw && /^#/.test(vals[k])) sw.value=vals[k];
-  });
-}
 function setPdfCfg(key, val){
   if(!DATA.pdfStyle) DATA.pdfStyle = {};
   DATA.pdfStyle[key] = val;
@@ -5743,6 +5746,7 @@ function schedulePreviewRefresh(){
     try{ initPdfCarouselFrames(); }catch(e){}
     try{ initGbizCarouselFrames(); }catch(e){}
     try{ initInstaCarouselFrames(); }catch(e){}
+    try{ initMenuColorsFrames(); }catch(e){}
   },120);
 }
 
@@ -6045,9 +6049,10 @@ function buildInstaCSS(cfg, ratio){
   // 3 couleurs et 3 tailles indépendantes (titre / menu / description)
   // — réglables dans l'admin, uniquement pour Instagram. Défauts
   // calqués sur le rendu initial si rien n'est explicitement choisi.
-  const titleColor = cfg.instaTitleColor || navy;
-  const menuColor = cfg.instaMenuColor || navy;
-  const descColor = cfg.instaDescColor || lightenHex(navy, 0.28);
+  // Mêmes couleurs que les autres formats (voir "Couleurs du menu").
+  const titleColor = cfg.menuTitleColor || navy;
+  const menuColor = cfg.menuNameColor || navy;
+  const descColor = cfg.menuDescColor || lightenHex(navy, 0.28);
   const { titleSize, catTitleSize, formuleTitleSize, menuSize, descSize } = instaSizesFor(cfg);
   // 100px pour la story normale, 50px pour le post ET pour toute
   // formule (A4/Story/Post confondus) — demande explicite de Will :
@@ -6474,27 +6479,27 @@ function buildPdfCSS(cfg){
      so the two always match — one standard recipe, no per-client tweaking. */
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
   .pdf-page{--space-scale:1;--top-pad-trim:0px;--solo-scale:.92;font-family:'Open Sans',sans-serif;color:#1a1a1a;background:${cfg.bgColor||'#FFFDF8'};width:${pageW}px;${pageH?`min-height:${pageH}px;`:''}padding-top:calc(${pad}px - var(--top-pad-trim));padding-right:${pad}px;padding-bottom:${pad}px;padding-left:${pad}px;margin:0 auto;position:relative}
-  ${cfg.showFrame!==false?`.pdf-page::before{content:'';position:absolute;inset:${px(14)}px;border:1.5px solid ${cfg.accentColor};opacity:.4;pointer-events:none}`:''}
+  ${cfg.showFrame!==false?`.pdf-page::before{content:'';position:absolute;inset:${px(14)}px;border:1.5px solid ${cfg.menuFrameColor};opacity:.4;pointer-events:none}`:''}
   .pdf-header{text-align:center;margin-bottom:calc(${isGbiz?18:px(33)}px * var(--space-scale));position:relative}
   .pdf-logo-text{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?24.86:px(22)}px;font-weight:700;color:var(--navy,#10285E);margin:0 auto 12px;display:block;text-align:center}
 .pdf-logo{max-width:${isGbiz?100:px(180)}px;max-height:${isGbiz?70:px(120)}px;object-fit:contain;margin:0 auto 8px;display:block}
-  .pdf-title{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?49.72:px(32)}px;font-weight:700;color:${cfg.titleColor};line-height:1.1}
+  .pdf-title{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?49.72:px(32)}px;font-weight:700;color:${cfg.menuTitleColor};line-height:1.1}
   .pdf-sub{font-size:${isGbiz?14.69:px(11)}px;letter-spacing:.16em;text-transform:uppercase;color:#999;margin-top:6px}
   .pdf-section{margin-bottom:calc(${isGbiz?100:px(52)}px * var(--space-scale));break-inside:avoid;page-break-inside:avoid}
-  .pdf-cat{font-family:'Playfair Display',serif;font-size:${isGbiz?29.38:px(20)}px;font-weight:600;color:${cfg.titleColor};margin:calc(${isGbiz?14:px(20)}px * var(--space-scale)) 0 calc(${isGbiz?16:px(12)}px * var(--space-scale));padding-bottom:6px;border-bottom:1.5px solid ${maritime?cfg.accentColor:'#e2e2e2'};display:flex;align-items:center;gap:10px}
-  .pdf-subcat{font-size:${isGbiz?14.69:px(11)}px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:${cfg.accentColor};margin:calc(${isGbiz?18:px(14)}px * var(--space-scale)) 0 calc(${isGbiz?10:px(8)}px * var(--space-scale))}
+  .pdf-cat{font-family:'Playfair Display',serif;font-size:${isGbiz?29.38:px(20)}px;font-weight:600;color:${cfg.menuTitleColor};margin:calc(${isGbiz?14:px(20)}px * var(--space-scale)) 0 calc(${isGbiz?16:px(12)}px * var(--space-scale));padding-bottom:6px;border-bottom:1.5px solid ${maritime?cfg.menuFrameColor:'#e2e2e2'};display:flex;align-items:center;gap:10px}
+  .pdf-subcat{font-size:${isGbiz?14.69:px(11)}px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:${cfg.menuFrameColor};margin:calc(${isGbiz?18:px(14)}px * var(--space-scale)) 0 calc(${isGbiz?10:px(8)}px * var(--space-scale))}
   .pdf-dish{margin-bottom:calc(${isGbiz?13:px(10)}px * var(--space-scale));break-inside:avoid;page-break-inside:avoid}
   .pdf-dish-line{display:flex;align-items:baseline;gap:6px}
-  .pdf-dish-name{font-size:${isGbiz?18.08:px(13)}px;font-weight:600;white-space:nowrap;color:#1D1D1F}
-  .pdf-dots{flex:1;border-bottom:1px dotted #ccc;transform:translateY(-3px);min-width:18px}
+  .pdf-dish-name{font-size:${isGbiz?18.08:px(13)}px;font-weight:600;white-space:nowrap;color:${cfg.menuNameColor}}
+  .pdf-dots{flex:1;border-bottom:1px dotted ${cfg.menuSepColor};transform:translateY(-3px);min-width:18px}
   .pdf-dots-off{flex:1;min-width:18px}
   .pdf-dish-price{font-size:${isGbiz?18.08:px(13)}px;font-weight:600;color:${cfg.accentColor};white-space:nowrap;flex:none}
-  .pdf-dish-desc{font-size:${isGbiz?13.56:px(10.5)}px;font-weight:400;color:#6E6E73;margin-top:2px;line-height:1.4;max-width:88%;text-align:left}
+  .pdf-dish-desc{font-size:${isGbiz?13.56:px(10.5)}px;font-weight:400;color:${cfg.menuDescColor};margin-top:2px;line-height:1.4;max-width:88%;text-align:left}
   /* Catégorie solo (un seul plat) — resserre le plat, jamais .pdf-cat */
   .pdf-dish.pdf-dish-solo{margin-bottom:calc(${isGbiz?13:px(10)}px * var(--space-scale) * var(--solo-scale))}
   .pdf-dish.pdf-dish-solo .pdf-dish-name,.pdf-dish.pdf-dish-solo .pdf-dish-price{font-size:calc(${isGbiz?18.08:px(13)}px * var(--solo-scale))}
   .pdf-dish.pdf-dish-solo .pdf-dish-desc{font-size:calc(${isGbiz?13.56:px(10.5)}px * var(--solo-scale))}
-  .pdf-footer{margin-top:${isGbiz?44:px(30)}px;padding-top:${isGbiz?20:px(14)}px;border-top:1px solid ${maritime?cfg.accentColor:'#e2e2e2'};text-align:center}
+  .pdf-footer{margin-top:${isGbiz?44:px(30)}px;padding-top:${isGbiz?20:px(14)}px;border-top:1px solid ${maritime?cfg.menuFrameColor:'#e2e2e2'};text-align:center}
   .pdf-footer-text{font-size:${isGbiz?13.56:px(10)}px;color:#999;letter-spacing:.04em;line-height:1.6}
   @media print{
     html,body{margin:0!important;padding:0!important;background:${cfg.bgColor||'#FFFDF8'}!important}
@@ -7393,27 +7398,22 @@ function renderPrintBody(forcedTab){
           </div>
         </div>
         ${(()=>{
-          // Deux lignes de deux : la couleur des titres de catégorie
-          // va avec l'arrière-plan de la page (les deux réglages
-          // "décor"), les deux réglages de texte des plats en dessous.
-          const F={
-            title:{key:'instaTitleColor', sizeKey:'instaTitleSize', label:'Titre des catégories', color:cfg.instaTitleColor||cfg.titleColor||'#10285E', size:cfg.instaTitleSize||45},
-            name:{key:'instaMenuColor', sizeKey:'instaMenuSize', label:'Nom des plats', color:cfg.instaMenuColor||cfg.titleColor||'#10285E', size:cfg.instaMenuSize||21},
-            desc:{key:'instaDescColor', sizeKey:'instaDescSize', label:'Description des plats', color:cfg.instaDescColor||lightenHex(cfg.titleColor||'#10285E',0.28), size:cfg.instaDescSize||19},
-            bg:{key:'instaBgColor', label:'Arrière-plan de la page', color:cfg.instaBgColor||cfg.bgColor||'#FDFBF6'}
-          };
-          const cell=(r)=>`
-            <div style="flex:1;min-width:0">
-              <label class="al">${r.label}</label>
-              <div style="display:flex;align-items:center;gap:6px">
-                <input type="color" data-insta-swatch="${r.key}" value="${/^#/.test(r.color)?r.color:'#10285E'}" oninput="setPdfCfg('${r.key}',this.value)" style="width:25px;height:25px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer">
-                ${r.sizeKey?sizePickerHtml(r.sizeKey,r.size):''}
-              </div>
-            </div>`;
+          // Les COULEURS ont migré vers "Couleurs du menu" (partagées
+          // par les trois formats) : il ne reste ici que ce qui est
+          // propre à Instagram, les tailles de police.
+          const sizes=[
+            {sizeKey:'instaTitleSize', label:'Titre des catégories', size:cfg.instaTitleSize||45},
+            {sizeKey:'instaMenuSize', label:'Nom des plats', size:cfg.instaMenuSize||21},
+            {sizeKey:'instaDescSize', label:'Description des plats', size:cfg.instaDescSize||19}
+          ];
           return `
-          <div class="af" style="display:flex;gap:14px;margin-top:10px;align-items:flex-start">${cell(F.title)}${cell(F.bg)}</div>
-          <div class="af" style="display:flex;gap:14px;margin-top:12px;align-items:flex-start">${cell(F.name)}${cell(F.desc)}</div>
-          <div class="ig-list" style="margin-top:12px"><div class="ig-row" style="justify-content:center" onclick="resetInstaColors()"><span style="color:var(--ig-accent);font-weight:500">Réinitialiser les couleurs</span></div></div>`;
+          <div class="af" style="display:flex;gap:14px;margin-top:10px;align-items:flex-start">
+            ${sizes.map(r=>`
+              <div style="flex:1;min-width:0">
+                <label class="al">${r.label}</label>
+                ${sizePickerHtml(r.sizeKey,r.size)}
+              </div>`).join('')}
+          </div>`;
         })()}
         ${(() => {
           const bevTabs = DATA.tabs.filter(tb=>tb.id!=='__home' && tb.cards && tb.cards.some(c=>c.type==='bevs'));
@@ -7890,21 +7890,44 @@ function restaurantSettingHtml(){
 
 function renderBrandColorsSection(){
   const bc=DATA.brandColors||{primary:'#10285E',accent:'#C6A24A',bg:'#F7F5F0'};
-  const labels={primary:'Couleur principale',accent:'Couleur secondaire',bg:'Couleur de fond',tabInactive:'Couleur des onglets'};
   const defaults={primary:'#10285E',accent:'#C6A24A',bg:'#F7F5F0',tabInactive:'#B3B3B3'};
+  // Une ligne par couleur, avec sous son nom les éléments qu'elle
+  // touche réellement : "couleur principale" ne dit pas ce qui change.
+  const rows=[
+    {key:'primary', label:'Couleur principale', hint:'Bandeau, noms des plats, boutons'},
+    {key:'accent', label:'Couleur secondaire', hint:'Prix'},
+    {key:'bg', label:"Couleur d'arrière-plan", hint:''},
+    {key:'tabInactive', label:'Couleur des onglets', hint:''}
+  ];
   let h='<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Couleurs</div><div class="admin-sect-body">';
   h+='<div class="ig-list">';
-  ['primary','accent','bg','tabInactive'].forEach(key=>{
-    const val=(bc[key]||defaults[key]).toUpperCase();
-    h+='<div class="ig-row">'
-      +'<span class="ig-row-label">'+labels[key]+'</span>'
-      +'<input type="color" value="'+val+'" oninput="if(!DATA.brandColors)DATA.brandColors={};DATA.brandColors[&quot;'+key+'&quot;]=this.value;applyBrandColors();renderAdminSection(adminCurrentTab)" style="width:18px;height:18px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer">'
+  rows.forEach(r=>{
+    const val=(bc[r.key]||defaults[r.key]).toUpperCase();
+    h+='<div class="ig-row" style="cursor:default">'
+      +'<span class="ig-row-label"><span>'+r.label+'</span>'
+      +(r.hint?'<span class="ig-row-hint">'+r.hint+'</span>':'')
+      +'</span>'
+      +'<input type="color" value="'+val+'" oninput="setBrandColor(&quot;'+r.key+'&quot;,this.value)" style="width:18px;height:18px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer">'
       +'</div>';
   });
   h+='</div>';
-  h+='<div class="ig-list" style="margin-top:14px"><div class="ig-row" style="justify-content:center" onclick="resetBrandColors()"><span style="color:var(--ig-accent);font-weight:500">Réinitialiser les couleurs par défaut</span></div></div>';
+  h+='<div class="ig-hint-block">Les changements sont visibles tout de suite pour vous, mais ne sont enregistrés qu\'une fois validés — vous pouvez donc essayer librement.</div>';
+  h+='<div class="ig-list" style="margin-top:10px"><div class="ig-row" style="justify-content:center" onclick="confirmBrandColors()"><span style="color:var(--ig-green);font-weight:500">Valider les couleurs par défaut</span></div></div>';
+  h+='<div class="ig-list" style="margin-top:10px"><div class="ig-row" style="justify-content:center" onclick="resetBrandColors()"><span style="color:var(--ig-accent);font-weight:500">Réinitialiser les couleurs</span></div></div>';
   h+='</div></div>';
   return h;
+}
+// Les essais de couleur restent locaux : ils s'appliquent à l'écran
+// mais ne partent en ligne qu'au clic sur "Valider".
+function setBrandColor(key, val){
+  if(!DATA.brandColors) DATA.brandColors={};
+  DATA.brandColors[key]=val;
+  applyBrandColors();
+  renderAll();
+}
+function confirmBrandColors(){
+  publishNow();
+  showToast('✅ Couleurs enregistrées');
 }
 
 function renderCorpoTemplatesSection(){
@@ -8213,13 +8236,105 @@ const EXPORT_ROWS = [
   { key:'export-gbiz', label:'Pour votre fiche Google Business', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg>', fn: () => renderExportTabWrapped('gbiz') },
   { key:'export-insta', label:'Pour Instagram (post et story)', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg>', fn: () => renderExportTabWrapped('insta') }
 ];
+// Détaché des trois formats : ces couleurs valent pour les trois à la
+// fois, ce n'est pas un quatrième format.
+const MENU_COLORS_ROW = { key:'menu-colors', label:'Couleurs du menu', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.2 0-.9.7-1.5 1.5-1.5H16a4 4 0 0 0 4-4c0-4.4-3.6-8-8-8Z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></svg>', fn: renderMenuColorsPage };
+// "Couleurs du menu" — un seul endroit pour les couleurs des trois
+// formats d'export, avec les quatre rendus côte à côte pour juger
+// immédiatement de l'effet.
+const MENU_COLOR_FIELDS={
+  text:[
+    {key:'menuTitleColor', label:'Titre des catégories'},
+    {key:'menuNameColor', label:'Nom des plats'},
+    {key:'menuDescColor', label:'Description des plats'}
+  ],
+  deco:[
+    {key:'menuFrameColor', label:'Cadre et Section'},
+    {key:'menuSepColor', label:'Séparateur'}
+  ]
+};
+const MENU_COLOR_PREVIEWS=[
+  {variant:'print', label:'Impression'},
+  {variant:'gbiz', label:'Google Business'},
+  {variant:'post', label:'Instagram — Post'},
+  {variant:'story', label:'Instagram — Story'}
+];
+function renderMenuColorsPage(){
+  const cfg=pdfCfg();
+  const group=(title,fields)=>`
+    <div class="ig-group-label" style="margin:18px 0 8px 4px;display:block;color:var(--ig-text-dimmer)!important">${title}</div>
+    <div class="ig-list">${fields.map(f=>`
+      <div class="ig-row" style="cursor:default">
+        <span class="ig-row-label">${f.label}</span>
+        <input type="color" data-menu-swatch="${f.key}" value="${/^#/.test(cfg[f.key]||'')?cfg[f.key]:'#10285E'}" oninput="setPdfCfg('${f.key}',this.value)" style="width:18px;height:18px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer">
+      </div>`).join('')}</div>`;
+  const ratioOf=v=> v==='print' ? 1123/794 : v==='gbiz' ? GBIZ_PAGE_RATIO : v==='post' ? INSTA_POST_RATIO : INSTA_RATIO;
+  return `<div class="admin-section"><div class="admin-sect-body">
+    ${group('Texte', MENU_COLOR_FIELDS.text)}
+    ${group('Décoration', MENU_COLOR_FIELDS.deco)}
+    <div class="af" style="margin-top:18px">
+      <div id="menuColorsCarousel" onscroll="menuColorsOnScroll()" style="display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+        ${MENU_COLOR_PREVIEWS.map((p,i)=>`
+          <div class="menucolor-slide" style="flex:0 0 92%;scroll-snap-align:start">
+            <div style="font-size:11.5px;color:var(--ig-text-dimmer);margin-bottom:6px;text-align:center">${p.label}</div>
+            <div style="border-radius:10px;overflow:hidden;background:#fff">
+              <iframe class="menucolor-frame" data-variant="${p.variant}" style="width:100%;aspect-ratio:1 / ${ratioOf(p.variant)};border:none;display:block;background:#fff"></iframe>
+            </div>
+          </div>`).join('')}
+      </div>
+      <div id="menuColorsDots" style="display:flex;justify-content:center;gap:6px;margin-top:10px">
+        ${MENU_COLOR_PREVIEWS.map((p,i)=>`<span class="menucolor-dot" data-idx="${i}" style="width:${i===0?7:6}px;height:${i===0?7:6}px;border-radius:50%;background:${i===0?'var(--ig-text)':'var(--ig-focus)'}"></span>`).join('')}
+      </div>
+    </div>
+    <div class="ig-hint-block">Vos essais s'affichent tout de suite mais ne partent en ligne qu'une fois validés.</div>
+    <div class="ig-list" style="margin-top:10px"><div class="ig-row" style="justify-content:center" onclick="confirmMenuColors()"><span style="color:var(--ig-green);font-weight:500">Valider les couleurs par défaut</span></div></div>
+    <div class="ig-list" style="margin-top:10px"><div class="ig-row" style="justify-content:center" onclick="resetMenuColors()"><span style="color:var(--ig-accent);font-weight:500">Réinitialiser les couleurs</span></div></div>
+  </div></div>`;
+}
+function menuColorsOnScroll(){ carouselOnScroll('menuColorsCarousel','menucolor-slide','menuColorsDots','menucolor-dot'); }
+function initMenuColorsFrames(){
+  const container=document.getElementById('menuColorsCarousel');
+  if(!container) return;
+  container.querySelectorAll('.menucolor-frame').forEach(frame=>{
+    const v=frame.dataset.variant;
+    if(v==='print'){
+      const cfg=pdfCfg();
+      const pages=paginatePdfPages(cfg);
+      if(pages[0]) frame.srcdoc=buildPreviewSlideDoc(buildPdfCSS(cfg), pages[0].html, pages[0].spaceScale, 794, 1123);
+    } else if(v==='gbiz'){
+      const cfg={...pdfCfg(), format:'gbiz'};
+      const { pages }=paginateGbizPages(cfg);
+      if(pages[0]) frame.srcdoc=buildGbizPreviewDoc(buildPdfCSS(cfg), pages[0].html, pages[0].spaceScale);
+    } else {
+      const ratio = v==='post' ? INSTA_POST_RATIO : INSTA_RATIO;
+      const cfg={...pdfCfg(), format:'insta'};
+      const pages=buildInstaPages(cfg, ratio);
+      if(pages[0]) frame.srcdoc=buildPreviewSlideDoc(buildInstaCSS(cfg, ratio), pages[0].html, pages[0].spaceScale, INSTA_RENDER_W, Math.round(INSTA_RENDER_W*ratio));
+    }
+  });
+}
+function confirmMenuColors(){
+  publishNow();
+  showToast('✅ Couleurs du menu enregistrées');
+}
+function resetMenuColors(){
+  if(!DATA.pdfStyle) DATA.pdfStyle={};
+  ['menuTitleColor','menuNameColor','menuDescColor','menuFrameColor','menuSepColor'].forEach(k=>{ DATA.pdfStyle[k]=''; });
+  const cfg=pdfCfg();
+  [...MENU_COLOR_FIELDS.text,...MENU_COLOR_FIELDS.deco].forEach(f=>{
+    const sw=document.querySelector(`[data-menu-swatch="${f.key}"]`);
+    if(sw && /^#/.test(cfg[f.key]||'')) sw.value=cfg[f.key];
+  });
+  schedulePreviewRefresh();
+}
 function renderPrintBodyWrapped(){
-  return `<div class="ig-list">${EXPORT_ROWS.map(r=>`
-    <div class="ig-row" onclick="openHomeRow('${r.key}')">
+  const row=r=>`<div class="ig-row" onclick="openHomeRow('${r.key}')">
       <span class="ig-row-icon">${r.icon}</span>
       <span class="ig-row-label">${r.label}</span>
       <span class="ig-row-chevron">›</span>
-    </div>`).join('')}</div>`;
+    </div>`;
+  return `<div class="ig-list">${EXPORT_ROWS.map(row).join('')}</div>
+    <div class="ig-list" style="margin-top:22px">${row(MENU_COLORS_ROW)}</div>`;
 }
 const MENU_MANAGEMENT_ROWS = [
   { key:'export', label:'Exportez vos menus', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>', fn: renderPrintBodyWrapped },
@@ -8256,7 +8371,7 @@ const HOME_GROUPS = [
   // redondantes au niveau racine.
   { label:'Catégories', rows:categorieRows, hidden:true },
   { label:'Manager les catégories', rows:MANAGER_CATEGORIES_ROWS, hidden:true },
-  { label:'Formats d\'export', rows:EXPORT_ROWS, hidden:true },
+  { label:'Formats d\'export', rows:()=>[...EXPORT_ROWS, MENU_COLORS_ROW], hidden:true },
   { label:'Gestion des menus', rows:MENU_MANAGEMENT_ROWS },
   { label:'Thème', rows:THEME_ROWS }
 ];
