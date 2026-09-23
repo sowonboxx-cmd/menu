@@ -514,6 +514,20 @@ body.home-cover-showing{overflow:hidden}
 .ig-price-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .ig-price-row .ig-stack-field{margin-bottom:0;flex:none;width:150px}
 .ig-price-cur{font-size:15.5px;color:var(--ig-text-dimmer,#8e8ea0)}
+/* Variante "sur une ligne" : le libellé reste à gauche, la valeur
+   juste à côté — pour les champs courts comme le prix, où empiler
+   gaspille une ligne entière. */
+.ig-stack-field.ig-stack-inline{display:flex;align-items:center;gap:12px;width:auto;min-width:200px}
+.ig-stack-field.ig-stack-inline .ig-stack-label{margin-bottom:0;flex:none}
+.ig-subpage-old-content .ig-stack-field.ig-stack-inline .ai{width:70px;flex:none;text-align:right}
+/* Fil d'Ariane du détail d'un plat/boisson : flèche retour puis le
+   chemin sur UNE seule ligne, chaque niveau cliquable. */
+.ig-crumb-row{display:flex;align-items:center;gap:8px;margin-bottom:14px;min-width:0}
+.ig-crumb-path{display:flex;align-items:center;gap:6px;flex:1;min-width:0;overflow:hidden}
+.ig-crumb{color:var(--ig-text-dim,#b4b4b4);font-size:14px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:none;border:none;padding:0;font-family:inherit}
+.ig-crumb:hover{color:var(--ig-text,#ececec)}
+.ig-crumb-sep{color:var(--ig-text-dimmer,#8e8ea0);font-size:13px;flex:none}
+.ig-crumb-current{color:var(--ig-text,#ececec);font-size:14px;font-weight:600;white-space:nowrap;flex:none}
 /* Blocs "outil" (galerie, caption, infos alimentaires) : même carte,
    avec une icône encadrée et un titre, puis le contenu dessous. */
 .ig-panel-card{background:var(--ig-card,#2f2f2f);border-radius:14px;padding:14px 16px;margin-bottom:10px}
@@ -1049,6 +1063,24 @@ body.home-cover-showing{overflow:hidden}
         <span style="font-size:11.5px;opacity:.85">La section et ses plats sont effacés définitivement.</span>
       </button>
       <button class="confirm-cancel" onclick="closeSectionDel()" style="border-radius:10px">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<!-- Création d'une section : si des plats traînent hors section, on
+     propose de les y ranger plutôt que de forcer un déplacement
+     manuel plat par plat après coup. -->
+<div class="confirm-modal" id="newSectionModal">
+  <div class="confirm-box" style="max-width:380px;text-align:left">
+    <div class="confirm-title" style="text-align:left">Nouvelle section</div>
+    <input class="ai" id="newSectionName" placeholder="Nom de la section" style="width:100%;margin-bottom:14px">
+    <div id="newSectionPickWrap" style="display:none">
+      <div style="font-size:12px;color:var(--text3);font-family:'Jost',sans-serif;margin-bottom:8px">Plats à incorporer (optionnel)</div>
+      <div id="newSectionPickList" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:16px"></div>
+    </div>
+    <div class="confirm-btns">
+      <button class="confirm-cancel" onclick="closeNewSection()">Annuler</button>
+      <button class="confirm-ok" id="newSectionOk" style="background:#3BA55D">Créer</button>
     </div>
   </div>
 </div>
@@ -1878,6 +1910,59 @@ function askConfirm(msg,cb){
 }
 function closeConfirm(){ document.getElementById('confirmModal').classList.remove('open'); }
 function closeSectionDel(){ document.getElementById('sectionDelModal').classList.remove('open'); }
+function closeNewSection(){ document.getElementById('newSectionModal').classList.remove('open'); }
+// Créer une section. Quand la catégorie contient déjà des plats hors
+// section, on les liste pour pouvoir les y ranger à la création —
+// sinon la section naît vide et on y ajoute des plats normalement.
+function askNewSection(ti){
+  const tab=DATA.tabs[ti];
+  const looseCi=soloUntitledCardIndex(tab);
+  const loose=looseCi!=null?(tab.cards[looseCi].dishes||[]):[];
+  const nameInput=document.getElementById('newSectionName');
+  if(nameInput) nameInput.value='';
+  const wrap=document.getElementById('newSectionPickWrap');
+  const list=document.getElementById('newSectionPickList');
+  if(list) list.innerHTML='';
+  if(wrap) wrap.style.display=loose.length?'':'none';
+  if(loose.length && list){
+    loose.forEach((d,di)=>{
+      const nm=(d.name&&(d.name[adminLang]||d.name.fr))||'(sans nom)';
+      const row=document.createElement('label');
+      row.style.cssText='display:flex;align-items:center;gap:8px;font-size:13px;font-family:\'Jost\',sans-serif;color:var(--text2);cursor:pointer';
+      row.innerHTML='<input type="checkbox" data-di="'+di+'" style="width:16px;height:16px;flex:none"><span></span>';
+      row.querySelector('span').textContent=nm;
+      list.appendChild(row);
+    });
+  }
+  const ok=document.getElementById('newSectionOk');
+  if(ok) ok.onclick=()=>{
+    const name=(nameInput&&nameInput.value.trim())||'';
+    const picked=list?Array.from(list.querySelectorAll('input:checked')).map(cb=>parseInt(cb.dataset.di,10)):[];
+    closeNewSection();
+    createSection(ti, name, looseCi, picked);
+  };
+  document.getElementById('newSectionModal').classList.add('open');
+  setTimeout(()=>{ if(nameInput) nameInput.focus(); },50);
+}
+function createSection(ti, name, looseCi, pickedDis){
+  const tab=DATA.tabs[ti];
+  if(!Array.isArray(tab.cards)) tab.cards=[];
+  const moved=[];
+  if(looseCi!=null && pickedDis.length){
+    const src=tab.cards[looseCi];
+    // On retire du plus grand index au plus petit pour que les index
+    // restants restent valides pendant la boucle.
+    pickedDis.slice().sort((a,b)=>b-a).forEach(di=>{
+      if(src.dishes[di]) moved.unshift(src.dishes.splice(di,1)[0]);
+    });
+  }
+  tab.cards.push({label:{fr:name,en:name},dishes:moved});
+  // Si la section "hors section" s'est vidée, elle n'a plus lieu d'être.
+  if(looseCi!=null && !(tab.cards[looseCi].dishes||[]).length) tab.cards.splice(looseCi,1);
+  renderAll();
+  refreshCurrentTabView(tab.id);
+  renderAdminSection(adminCurrentTab);
+}
 // Supprimer une section : on demande d'abord ce qu'il advient des
 // plats. "Garder" les déverse dans la section restante (ou, s'il n'en
 // reste aucune, dans une section sans titre — ils s'affichent alors
@@ -3920,11 +4005,12 @@ function closeTabSection(tabId){ tabSectionOpen[tabId] = null; refreshCurrentTab
 // sur la page de la catégorie. Renvoie l'index de cette section, ou
 // null si la navigation normale (par sections) s'applique.
 function soloUntitledCardIndex(tab){
-  if(!tab || !Array.isArray(tab.cards) || tab.cards.length!==1) return null;
-  const c=tab.cards[0];
-  // Boissons et variantes ont leur propre éditeur, on n'y touche pas.
-  if(c.type==='bevs'||c.type==='variants') return null;
-  return (t(c.label)||'').trim() ? null : 0;
+  if(!tab || !Array.isArray(tab.cards)) return null;
+  // La section "hors section" est simplement la première sans titre :
+  // elle peut coexister avec de vraies sections nommées (typiquement
+  // après avoir rangé une partie seulement des plats).
+  const i=tab.cards.findIndex(c=>c.type!=='bevs'&&c.type!=='variants'&&!(t(c.label)||'').trim());
+  return i===-1?null:i;
 }
 function renderAdminTab(ti){
   const tab=DATA.tabs[ti];
@@ -3951,17 +4037,6 @@ function renderTabSectionList(ti){
   const tabNameEsc=(tab.label.fr||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   h+=`<div class="af">
     <input class="ai ig-tall-field ig-placeholder-normal-size" style="width:100%;padding:14px 16px!important" value="${escAttr(tab.label[adminLang]||'')}" placeholder="Nom de la catégorie" oninput="DATA.tabs[${ti}].label[adminLang]=this.value;renderAll()">
-  </div>
-  <div class="ig-list" style="margin-top:10px">
-    <div class="ig-row" style="cursor:default">
-      <span class="ig-row-icon">${tab.visible===false?EYE_OFF_SVG:EYE_SVG}</span>
-      <span class="ig-row-label">Masquer la catégorie</span>
-      <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${tab.visible===false?'checked':''} onchange="DATA.tabs[${ti}].visible=!this.checked;renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id);renderAdminSection('__global')"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
-    </div>
-    <div class="ig-row" onclick="askConfirm('Supprimer la catégorie « ${tabNameEsc} » et tout son contenu ?',()=>{delTab(${ti});adminCurrentTab='__global';closeHomeRow();})">
-      <span class="ig-row-icon" style="color:#E5484D">${TRASH_SVG}</span>
-      <span class="ig-row-label" style="color:#E5484D">Supprimer la catégorie</span>
-    </div>
   </div>`;
 
   // Sections — un seul bloc cliquable chacune (nom en bleu clair,
@@ -3990,17 +4065,25 @@ function renderTabSectionList(ti){
     h+=`<div class="ig-list" style="margin-top:${dishes.length?'14':'0'}px"><div class="ig-row" style="justify-content:center" onclick="addDishToSoloSection(${ti})"><span style="color:#3BA55D;font-weight:500">Ajouter un plat</span></div></div>`;
   }
 
+  // Les sections réellement nommées. Une section sans titre créée pour
+  // héberger des plats "hors section" n'est pas une vraie section du
+  // point de vue de l'utilisateur : ses plats sont déjà listés
+  // au-dessus, donc on ne l'affiche pas ici comme "(sans titre)".
+  const realCards = tab.cards.map((card,ci)=>({card,ci}))
+    .filter(({card,ci}) => ci!==inlineCi);
   h+=`<div class="ig-group-label" style="margin:30px 0 8px 4px;display:block;color:#8E8EA0!important">Section</div>`;
-  h+=`<div class="ig-list">`;
-  tab.cards.forEach((card,ci)=>{
-    h+=`<div class="ig-row" onclick="openTabSection('${tab.id}',${ci})">
-      <span class="ig-row-label">${t(card.label)||'(sans titre)'}</span>
-      <span class="ig-row-chevron">›</span>
-    </div>`;
-  });
-  h+=`</div>`;
+  if(realCards.length){
+    h+=`<div class="ig-list">`;
+    realCards.forEach(({card,ci})=>{
+      h+=`<div class="ig-row" onclick="openTabSection('${tab.id}',${ci})">
+        <span class="ig-row-label">${t(card.label)||'(sans titre)'}</span>
+        <span class="ig-row-chevron">›</span>
+      </div>`;
+    });
+    h+=`</div>`;
+  }
 
-  h+=`<div class="ig-list" style="margin-top:14px"><div class="ig-row" style="justify-content:center" onclick="addCard(${ti})"><span style="color:#3BA55D;font-weight:500">Ajouter une nouvelle section</span></div></div>`;
+  h+=`<div class="ig-list" style="margin-top:${realCards.length?'14':'0'}px"><div class="ig-row" style="justify-content:center" onclick="askNewSection(${ti})"><span style="color:#3BA55D;font-weight:500">Ajouter une nouvelle section</span></div></div>`;
 
   // Réordonner les sections (2+ sections seulement), tout en bas.
   if(tab.cards.length>=2){
@@ -4023,6 +4106,22 @@ function renderTabSectionList(ti){
     });
     h+=`</div></div></div>`;
   }
+
+  // Actions sur la catégorie elle-même — tout en bas, sous leur propre
+  // titre : ce sont des actions de fin de page, pas le point de départ
+  // de l'édition.
+  h+=`<div class="ig-group-label" style="margin:34px 0 8px 4px;display:block;color:#8E8EA0!important">Gestion de la catégorie</div>
+  <div class="ig-list">
+    <div class="ig-row" style="cursor:default">
+      <span class="ig-row-icon">${tab.visible===false?EYE_OFF_SVG:EYE_SVG}</span>
+      <span class="ig-row-label">Masquer la catégorie</span>
+      <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${tab.visible===false?'checked':''} onchange="DATA.tabs[${ti}].visible=!this.checked;renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id);renderAdminSection('__global')"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
+    </div>
+    <div class="ig-row" onclick="askConfirm('Supprimer la catégorie « ${tabNameEsc} » et tout son contenu ?',()=>{delTab(${ti});adminCurrentTab='__global';closeHomeRow();})">
+      <span class="ig-row-icon" style="color:#E5484D">${TRASH_SVG}</span>
+      <span class="ig-row-label" style="color:#E5484D">Supprimer la catégorie</span>
+    </div>
+  </div>`;
 
   h+=adminSaveBar();
   return h;
@@ -4103,9 +4202,15 @@ function renderBevDetailBody(ti, ci, ii){
   const nameVal=typeof item.name==='object'?(item.name[adminLang]||''):(item.name||'');
   const nameSetter=`if(typeof ${base}.name!=='object'){${base}.name={fr:${base}.name};}${base}.name[adminLang]=this.value;renderAll()`;
   const descSetter=`if(!${base}.desc||typeof ${base}.desc!=='object'){${base}.desc={};}${base}.desc[adminLang]=this.value;renderAll()`;
-  let h=`<div class="ig-inner-back-row">
+  const bevSecLabel=(t(card.label)||'').trim();
+  let h=`<div class="ig-crumb-row">
     <button class="ig-back-btn" onclick="closeBevDetail('${tab.id}')">‹</button>
-    <span style="flex:1;color:var(--ig-text,#ececec);font-size:15px;font-weight:600">${escAttr(t(card.label))||'Boisson'}</span>
+    <div class="ig-crumb-path">
+      <button class="ig-crumb" onclick="closeBevDetail('${tab.id}');closeTabSection('${tab.id}')">${escAttr(t(tab.label))||'Catégorie'}</button>
+      ${bevSecLabel?`<span class="ig-crumb-sep">/</span><button class="ig-crumb" onclick="closeBevDetail('${tab.id}')">${escAttr(bevSecLabel)}</button>`:''}
+      <span class="ig-crumb-sep">/</span>
+      <span class="ig-crumb-current">Boisson</span>
+    </div>
   </div>`;
 
   h+=`<div class="ig-stack-field">
@@ -4185,9 +4290,19 @@ function renderDishDetailBody(ti, ci, di){
   const d=card.dishes[di];
   const base=`DATA.tabs[${ti}].cards[${ci}].dishes[${di}]`;
   const numVal=(d.price||'').replace('€','').trim();
-  let h=`<div class="ig-inner-back-row">
+  // Fil d'Ariane sur une ligne : « ‹ Catégorie / Section / Plat », les
+  // niveaux parents étant cliquables. La section n'apparaît que si
+  // elle a un titre (une section technique "hors section" n'est pas un
+  // niveau du point de vue de l'utilisateur).
+  const secLabel=(t(card.label)||'').trim();
+  let h=`<div class="ig-crumb-row">
     <button class="ig-back-btn" onclick="closeDishDetail('${tab.id}')">‹</button>
-    <span style="flex:1;color:var(--ig-text,#ececec);font-size:15px;font-weight:600">${escAttr(t(card.label))||'Plat'}</span>
+    <div class="ig-crumb-path">
+      <button class="ig-crumb" onclick="closeDishDetail('${tab.id}');closeTabSection('${tab.id}')">${escAttr(t(tab.label))||'Catégorie'}</button>
+      ${secLabel?`<span class="ig-crumb-sep">/</span><button class="ig-crumb" onclick="closeDishDetail('${tab.id}')">${escAttr(secLabel)}</button>`:''}
+      <span class="ig-crumb-sep">/</span>
+      <span class="ig-crumb-current">Plat</span>
+    </div>
   </div>`;
 
   h+=`<div class="ig-stack-field">
@@ -4203,11 +4318,11 @@ function renderDishDetailBody(ti, ci, di){
     h+=priceField(d,ti,ci,di);
   } else {
     h+=`<div class="ig-price-row">
-      <div class="ig-stack-field">
+      <div class="ig-stack-field ig-stack-inline">
         <span class="ig-stack-label">Prix</span>
         <input class="ai ig-num-white-arrows" type="number" min="0" step="0.5" value="${numVal}" placeholder="0" oninput="${base}.price=this.value?this.value+'€':'';renderAll()">
+        <span class="ig-price-cur">€</span>
       </div>
-      <span class="ig-price-cur">€</span>
       ${tab.id==='huitres'?`<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ig-text-dimmer);cursor:pointer"><input type="checkbox" ${d.priceType==='dual'?'checked':''} onchange="${base}.priceType=this.checked?'dual':'';renderAll();refreshCurrentTabView('${tab.id}')"> Deuxième prix</label>`:''}
     </div>`;
   }
@@ -7782,7 +7897,12 @@ const INFO_GENERALE_ROWS = [
 ];
 const SITE_INTERNET_ROWS = [
   { key:'accueil', label:"Page d'accueil", icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 4l9 6.5"/><path d="M5 10v9h14v-9"/><rect x="10" y="13" width="4" height="6"/></svg>', fn:renderAdminHomeCover },
-  { key:'menus-et-plats', label:'Menus et plats', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4" r="1"/><path d="M4 16a8 8 0 0 1 16 0"/><rect x="2" y="16" width="20" height="3" rx="1"/></svg>', fn: renderMenusEtPlats }
+  { key:'menus-et-plats', label:'Menus et plats', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4" r="1"/><path d="M4 16a8 8 0 0 1 16 0"/><rect x="2" y="16" width="20" height="3" rx="1"/></svg>', fn: renderMenusEtPlats },
+  // Anciennement dans un groupe "Personnalisation" à part : ces deux
+  // réglages portent sur le site lui-même, ils sont donc rattachés ici
+  // plutôt que dans leur propre section.
+  { key:'presentation', label:'Présentation et affichage', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m21 15-5-5-11 9"/></svg>', fn:renderFirstTabExtrasSection },
+  { key:'couleurs', label:'Couleurs', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.2 0-.9.7-1.5 1.5-1.5H16a4 4 0 0 0 4-4c0-4.4-3.6-8-8-8Z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></svg>', fn:renderBrandColorsSection }
 ];
 // "Apparence" est volontairement non-cliquable pour l'instant : tout
 // le panneau n'existe qu'en sombre aujourd'hui (pas de vrai mode
@@ -7790,10 +7910,6 @@ const SITE_INTERNET_ROWS = [
 // ne changerait rien, on affiche juste l'état actuel, honnêtement.
 const THEME_ROWS = [
   { key:'apparence', label:'Apparence', value:'Sombre', static:true, icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.5A9 9 0 1 1 11.5 3 7 7 0 0 0 21 12.5Z"/></svg>' }
-];
-const PERSONNALISATION_ROWS = [
-  { key:'couleurs', label:'Couleurs', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.2 0-.9.7-1.5 1.5-1.5H16a4 4 0 0 0 4-4c0-4.4-3.6-8-8-8Z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></svg>', fn:renderBrandColorsSection },
-  { key:'presentation', label:'Présentation et affichage', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m21 15-5-5-11 9"/></svg>', fn:renderFirstTabExtrasSection }
 ];
 // Dynamique — reconstruite à chaque affichage pour toujours refléter
 // les vraies catégories du menu (ajout/suppression/renommage), pas une
@@ -7843,7 +7959,6 @@ function renderMenusEtPlats(){
 const HOME_GROUPS = [
   { label:'Informations générales', rows:INFO_GENERALE_ROWS },
   { label:'Gestion du site internet', rows:SITE_INTERNET_ROWS },
-  { label:'Personnalisation', rows:PERSONNALISATION_ROWS },
   // Ces deux groupes ne s'affichent plus dans la liste principale de
   // Home (voir renderHomeList — hidden:true) : leurs lignes restent
   // "cherchables" par findHomeRow pour que la navigation depuis
