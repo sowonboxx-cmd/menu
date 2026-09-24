@@ -448,7 +448,7 @@ body.home-cover-showing{overflow:hidden}
    pastille ADMIN et la croix — il est ainsi centré dans la barre et
    les noms longs ne sont plus tronqués. */
 .admin-hdr-right{display:flex;gap:10px;align-items:center;flex:1;min-width:0}
-.admin-tab-dd{padding:0 28px 0 10px;height:34px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;font-size:12px;font-family:'Jost',sans-serif;color:#fff;background:rgba(255,255,255,0.1) url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M1 1l4 4 4-4' stroke='rgba(255,255,255,.7)' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>") no-repeat calc(100% - 8px) center;cursor:pointer;outline:none;flex:1;min-width:0;box-sizing:border-box;-webkit-appearance:none;appearance:none}
+.admin-tab-dd{padding:0 28px 0 12px;height:34px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;font-size:12px;font-family:'Inter',sans-serif;color:#fff;background:rgba(255,255,255,0.1) url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M1 1l4 4 4-4' stroke='rgba(255,255,255,.7)' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>") no-repeat calc(100% - 8px) center;cursor:pointer;outline:none;flex:1;min-width:0;box-sizing:border-box;-webkit-appearance:none;appearance:none}
 .admin-close{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:6px;width:34px;height:34px;cursor:pointer;font-size:17px;color:#fff;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;box-sizing:border-box}
 /* Mobile — demande explicite de Will : plus de pastille "ADMIN"
    séparée (le menu déroulant des sections prend le relais, en
@@ -466,7 +466,7 @@ body.home-cover-showing{overflow:hidden}
   .admin-hdr-title{display:flex;align-items:center}
   /* BUG FIX (tailles différentes) : même police/taille que la
      pastille ADMIN (10px, Jost, gras, espacé), pas 12px. */
-  #adminTabDd{text-transform:uppercase;font-weight:600;letter-spacing:.06em;font-size:10px;background-color:transparent;border-color:rgba(255,255,255,0.2)}
+  #adminTabDd{font-weight:500;font-size:12px;background-color:transparent;border-color:rgba(255,255,255,0.2)}
   .admin-hdr{gap:6px}
   .admin-hdr-right{gap:6px}
   .admin-close{background:var(--navy);border:1px solid rgba(255,255,255,0.2)}
@@ -503,7 +503,7 @@ body.home-cover-showing{overflow:hidden}
 /* Ligne format/contenance/prix d'une boisson — mêmes champs plats que
    partout ailleurs, sur le fond de page puisqu'ils vivent dans une
    carte. */
-.ig-subpage-old-content .ai.ig-bev-sel{background:var(--ig-bg)!important;border:none!important;border-radius:10px;height:auto!important;padding:11px 12px!important;margin:0!important;color:var(--ig-text)!important;font-size:13px!important;max-width:none!important}
+.ig-subpage-old-content .ai.ig-bev-sel{background-color:var(--ig-bg)!important;border:none!important;border-radius:10px;height:auto!important;padding:11px 12px!important;margin:0!important;color:var(--ig-text)!important;font-size:13px!important;max-width:none!important}
 .ig-subpage-old-content select.ig-hm-select.ig-bev-sel{padding:11px 26px 11px 12px!important}
 .ig-subpage-old-content .ai.ig-bev-sel:focus{box-shadow:inset 0 0 0 1px var(--ig-focus)}
 /* Prix (simple ou double offre) posés directement sur la page : pas de
@@ -1035,7 +1035,7 @@ body.ig-admin-light{
 .admin-toggle:hover{border-color:var(--navy)}
 .admin-toggle input[type=checkbox]{accent-color:var(--navy);cursor:pointer}
 .admin-toggle label{font-size:12px;font-family:'Jost',sans-serif;color:var(--text);cursor:pointer;flex:1}
-.admin-badge{display:inline-block;font-size:10px;font-weight:600;padding:0 12px;height:34px;line-height:34px;border-radius:6px;background:var(--navy);color:#fff;font-family:'Jost',sans-serif;letter-spacing:.08em;box-sizing:border-box;border:1px solid rgba(255,255,255,0.2);cursor:pointer}
+.admin-badge{display:inline-block;font-size:12px;font-weight:600;padding:0 14px;height:34px;line-height:34px;border-radius:6px;background:var(--navy);color:#fff;font-family:'Inter',sans-serif;letter-spacing:.06em;text-transform:uppercase;box-sizing:border-box;border:1px solid rgba(255,255,255,0.2);cursor:pointer}
 .badge-group{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:8px}
 .badge-check{display:flex;align-items:center;gap:4px;font-size:11px;font-family:'Jost',sans-serif;color:var(--text2);cursor:pointer}
 .badge-check img{width:16px;height:16px;object-fit:contain}
@@ -4694,7 +4694,12 @@ function formule_delete(fid){
 }
 function formule_rename(fid, name){
   const f = DATA.formules.find(x=>x.id===fid);
-  if(f) f.name = name;
+  // BUG FIX : le nom affiché dans la liste (f.name) et le titre imprimé
+  // sur le menu exporté (f.title) étaient deux champs distincts, donc
+  // renommer une formule ne changeait pas son titre à l'export. Un
+  // seul champ pilote désormais les deux.
+  if(f){ f.name = name; f.title = name; }
+  formule_schedulePreviewRefresh();
   scheduleAutoSave(true);
 }
 
@@ -4836,9 +4841,10 @@ function formule_importDish(fid, catId, selectEl){
 // première page — voir buildInstaPages (cfg.formulePreamble). Comptent
 // dans le calcul "tout tenir sur une page", comme le reste.
 function formule_buildPreamble(f, cfg){
-  if(!f.title && !f.freeText) return '';
+  const title = f.title || f.name || '';
+  if(!title && !f.freeText) return '';
   const css = buildInstaCSS(cfg);
-  return `${f.title?`<div class="formule-title">${f.title}</div>`:''}${f.freeText?`<div class="formule-freetext">${f.freeText.replace(/\n/g,'<br>')}</div>`:''}`;
+  return `${title?`<div class="formule-title">${title}</div>`:''}${f.freeText?`<div class="formule-freetext">${f.freeText.replace(/\n/g,'<br>')}</div>`:''}`;
 }
 // Config Instagram/Formule partagée entre l'export et l'aperçu — un
 // seul endroit où les couleurs, la police, l'alignement, la casse ET
@@ -7270,7 +7276,7 @@ function renderFormuleDetail(f){
       </div>`:''}
     </div>`;
   const colorRow = fo => `<div class="ig-list">
-      ${colorLine({f:fo, key:'instaTitleColor', sizeKey:'titleSizePct', label:'Titre des catégories'})}
+      ${colorLine({f:fo, key:'instaTitleColor', sizeKey:'titleSizePct', label:'Titre des sections'})}
       ${colorLine({f:fo, key:'instaMenuColor', sizeKey:'menuSizePct', label:'Nom des plats'})}
       ${colorLine({f:fo, key:'instaDescColor', sizeKey:'descSizePct', label:'Détails des plats'})}
       ${colorLine({f:fo, key:'instaBgColor', sizeKey:null, label:'Arrière-plan'})}
@@ -7302,14 +7308,14 @@ function renderFormuleDetail(f){
     </div>
   </div>
 
-  ${sectionHeader('Casse')}
+  ${sectionHeader('Majuscules & minuscules')}
   <div class="ig-panel-card" style="display:flex;gap:10px;align-items:flex-start">
-    ${caseSel({label:'Catégorie', field:'catCase'}, f.catCase==='lower'?'lower':'upper')}
+    ${caseSel({label:'Section', field:'catCase'}, f.catCase==='lower'?'lower':'upper')}
     ${caseSel({label:'Nom des plats', field:'nameCase'}, f.nameCase==='lower'?'lower':'upper')}
     ${caseSel({label:'Description', field:'descCase'}, f.descCase==='upper'?'upper':'lower')}
   </div>
 
-  ${sectionHeader('Éléments du menu')}
+  ${sectionHeader('Sections du menu')}
   <div class="ig-list">
     ${f.tabs.map(cat=>`
       <div class="ig-row" onclick="openFormuleCat('${cat.id}')">
@@ -7334,7 +7340,7 @@ function renderFormuleDetail(f){
       <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${f.alignTitleLeft?'checked':''} onchange="formule_setField('${f.id}','alignTitleLeft',this.checked)"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
     </div>
     <div class="ig-row" style="cursor:default">
-      <span class="ig-row-label">Aligner les catégories et les plats à gauche</span>
+      <span class="ig-row-label">Aligner les sections et les plats à gauche</span>
       <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${f.alignContentLeft?'checked':''} onchange="formule_setField('${f.id}','alignContentLeft',this.checked)"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
     </div>
   </div>
@@ -7383,13 +7389,20 @@ function renderFormuleCatDetail(f, cat){
   </div>
   <div class="admin-card">
     ${(cat.cards[0].dishes||[]).map((d,di)=>`
-      <div style="display:flex;gap:6px;align-items:flex-start;margin-bottom:8px;padding:10px;background:var(--ig-card);border-radius:10px">
-        <div style="flex:1">
-          <div style="display:flex;gap:6px;margin-bottom:4px">
-            <input class="ai ig-visible-field" style="flex:1" placeholder="Nom du plat" value="${escAttr(t(d.name))||''}" oninput="formule_updateDish('${f.id}','${cat.id}',${di},'name',this.value)">
-            <input class="ai ig-visible-field" style="width:70px" placeholder="Prix" value="${escAttr(d.price)||''}" oninput="formule_updateDish('${f.id}','${cat.id}',${di},'price',this.value)">
+      <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:10px;padding:12px;background:var(--ig-card);border-radius:12px">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <div style="flex:1;min-width:0">
+              <label class="al" style="margin:0 0 6px 12px">Nom du plat</label>
+              <input class="ai ig-bev-sel" style="width:100%" placeholder="Nom du plat" value="${escAttr(t(d.name))||''}" oninput="formule_updateDish('${f.id}','${cat.id}',${di},'name',this.value)">
+            </div>
+            <div style="width:86px;flex:none">
+              <label class="al" style="margin:0 0 6px 12px">Prix</label>
+              <input class="ai ig-bev-sel" style="width:100%" placeholder="0" value="${escAttr(d.price)||''}" oninput="formule_updateDish('${f.id}','${cat.id}',${di},'price',this.value)">
+            </div>
           </div>
-          <textarea class="ai ig-visible-field" rows="1" placeholder="Description (optionnel)" oninput="formule_updateDish('${f.id}','${cat.id}',${di},'desc',this.value)">${escAttr(t(d.desc))||''}</textarea>
+          <label class="al" style="margin:0 0 6px 12px">Description (optionnel)</label>
+          <textarea class="ai ig-bev-sel" rows="2" style="width:100%;resize:vertical" placeholder="Description (optionnel)" oninput="formule_updateDish('${f.id}','${cat.id}',${di},'desc',this.value)">${escAttr(t(d.desc))||''}</textarea>
         </div>
         <button class="dish-eye-btn" title="Supprimer le plat" onclick="formule_removeDish('${f.id}','${cat.id}',${di})">${TRASH_SVG}</button>
       </div>
