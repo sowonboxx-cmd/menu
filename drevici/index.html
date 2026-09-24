@@ -617,6 +617,15 @@ body.ig-admin-light{
 .ig-align-btn{width:32px;height:28px;flex:none;border:none;border-radius:7px;background:transparent;color:var(--ig-text-dimmer);cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;transition:background .12s,color .12s}
 .ig-align-btn svg{width:16px;height:16px}
 .ig-align-btn.active{background:var(--ig-card);color:var(--ig-text)}
+/* Les curseurs de la liste ne sont là que pour montrer où l'on en est :
+   toute la ligne ouvre l'écran de réglage, donc les rendre
+   manipulables créerait deux façons de faire la même chose — et
+   rendrait le tap sur la ligne imprécis. */
+.formule-color-row input[type="range"]{pointer-events:none}
+.formule-color-row input[type="range"]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:var(--ig-track)}
+.formule-color-row input[type="range"]::-moz-range-track{height:4px;border-radius:2px;background:var(--ig-track)}
+.formule-color-row input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--ig-accent);margin-top:-6px;box-shadow:none}
+.formule-color-row input[type="range"]::-moz-range-thumb{width:16px;height:16px;border:none;border-radius:50%;background:var(--ig-accent)}
 /* ── Écran de réglage plein écran ────────────────────────────────── */
 .formule-tuner{position:fixed;inset:0;z-index:9500;display:none;flex-direction:column;background:var(--ig-bg)}
 .formule-tuner.open{display:flex}
@@ -628,7 +637,9 @@ body.tuner-open{overflow:hidden}
 .formule-tuner-btn.is-ok{background:var(--ig-green);color:#fff;font-size:16px;font-weight:700}
 /* Nom du format courant, au-dessus de l'aperçu — les points seuls ne
    disent pas lequel on regarde. */
-.formule-tuner-format{flex:none;text-align:center;color:var(--ig-text-dimmer);font-family:'Jost',sans-serif;font-size:12px;letter-spacing:.04em;padding-bottom:8px}
+.formule-tuner-format{flex:none;display:flex;justify-content:center;gap:6px;padding:0 14px 10px}
+.formule-fmt-tab{border:none;background:transparent;color:var(--ig-text-dimmer);font-family:'Jost',sans-serif;font-size:13.5px;font-weight:500;padding:5px 14px;border-radius:8px;cursor:pointer;transition:background .12s,color .12s}
+.formule-fmt-tab.active{background:var(--ig-card);color:var(--ig-text)}
 /* L'aperçu prend toute la hauteur restante : c'est lui qu'on regarde. */
 .formule-tuner-stage{flex:1;min-height:0;overflow:hidden}
 /* Les trois formats côte à côte, balayables, avec accroche. */
@@ -660,11 +671,6 @@ body.tuner-open{overflow:hidden}
 .formule-tuner-row{display:flex;align-items:center;gap:14px;padding:4px 2px}
 .formule-tuner-row + .formule-tuner-row{margin-top:6px}
 .formule-tuner-label{flex:0 0 64px;color:var(--ig-text-dim);font-family:'Jost',sans-serif;font-size:13px}
-.formule-tuner-row input[type="range"]{flex:1;min-width:0;-webkit-appearance:none;appearance:none;background:transparent;border:none;outline:none;height:26px}
-.formule-tuner-row input[type="range"]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:var(--ig-track)}
-.formule-tuner-row input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--ig-accent);margin-top:-9px;box-shadow:0 1px 3px rgba(0,0,0,.25)}
-.formule-tuner-row input[type="range"]::-moz-range-track{height:4px;border-radius:2px;background:var(--ig-track)}
-.formule-tuner-row input[type="range"]::-moz-range-thumb{width:22px;height:22px;border:none;border-radius:50%;background:var(--ig-accent)}
 .formule-tuner-row input[type="color"]{width:30px;height:30px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer;background:none}
 .formule-tuner-pct{flex:none;min-width:40px;text-align:right;color:var(--ig-text-dimmer);font-size:12px}
 
@@ -1288,6 +1294,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
     <button type="button" class="formule-tuner-btn is-ok" title="Valider" onclick="formuleTunerValidate()">✓</button>
   </div>
   <div class="formule-tuner-format" id="formuleTunerFormat"></div>
+  <!-- rempli par formuleTunerBuildCarousel -->
   <div class="formule-tuner-stage">
     <div class="formule-tuner-carousel" id="formuleTunerCarousel" onscroll="formuleTunerOnScroll()"></div>
   </div>
@@ -4768,7 +4775,6 @@ let _formulePreviewTimer = null;
 // l'aperçu en grand tout en haut, le seul réglage concerné en bas
 // sous le pouce. Plus besoin de faire défiler pour voir l'effet.
 let _tunerState=null;
-function formuleTunerSupported(){ return window.matchMedia && window.matchMedia('(max-width:640px)').matches; }
 function formuleTunerOpen(fid, key, sizeKey, label){
   const f = DATA.formules && DATA.formules.find(x=>x.id===fid);
   if(!f) return;
@@ -4825,16 +4831,20 @@ function formuleTunerBuildCarousel(fid){
   });
   document.getElementById('formuleTunerDots').innerHTML=TUNER_VARIANTS.map((t,i)=>
     `<span class="formule-tuner-dot${i===0?' active':''}"></span>`).join('');
-  document.getElementById('formuleTunerFormat').textContent=TUNER_VARIANTS[0].label;
+  document.getElementById('formuleTunerFormat').innerHTML=TUNER_VARIANTS.map((t,i)=>
+    `<button type="button" class="formule-fmt-tab${i===0?' active':''}" onclick="formuleTunerGoTo(${i})">${t.label}</button>`).join('');
   car.scrollLeft=0;
+}
+function formuleTunerGoTo(i){
+  const car=document.getElementById('formuleTunerCarousel');
+  if(car) car.scrollTo({left:i*car.clientWidth, behavior:'smooth'});
 }
 function formuleTunerOnScroll(){
   const car=document.getElementById('formuleTunerCarousel');
   if(!car) return;
   const idx=Math.round(car.scrollLeft/Math.max(1,car.clientWidth));
   document.querySelectorAll('.formule-tuner-dot').forEach((d,i)=>d.classList.toggle('active', i===idx));
-  const lbl=document.getElementById('formuleTunerFormat');
-  if(lbl && TUNER_VARIANTS[idx]) lbl.textContent=TUNER_VARIANTS[idx].label;
+  document.querySelectorAll('.formule-fmt-tab').forEach((b,i)=>b.classList.toggle('active', i===idx));
 }
 function tunerSetStep(idx){
   if(!_tunerState || !_tunerState.sizeKey) return;
@@ -7524,7 +7534,7 @@ function renderFormuleDetail(f){
   // La réinitialisation est globale, en bas — plus de petit bouton par
   // ligne, qui apparaissait et disparaissait selon la surcharge.
   const colorLine = c => `
-    <div class="ig-row formule-color-row" style="gap:10px" onclick="if(formuleTunerSupported()&&!event.target.closest('input'))formuleTunerOpen('${c.f.id}','${c.key}',${c.sizeKey?`'${c.sizeKey}'`:'null'},'${c.label}')">
+    <div class="ig-row formule-color-row" style="gap:10px" onclick="if(!event.target.closest('input[type=color]'))formuleTunerOpen('${c.f.id}','${c.key}',${c.sizeKey?`'${c.sizeKey}'`:'null'},'${c.label}')">
       <span class="ig-row-label" style="flex:0 0 88px;min-width:0">${c.label}</span>
       ${c.sizeKey?`
       <input type="range" min="50" max="150" step="1" value="${c.f[c.sizeKey] ?? 100}" oninput="this.nextElementSibling.textContent=this.value+'%';formule_setField('${c.f.id}','${c.sizeKey}',parseInt(this.value,10))" style="flex:1;min-width:0">
@@ -7610,7 +7620,7 @@ function renderFormuleDetail(f){
     ${caseSel({label:'Description', field:'descCase'}, f.descCase==='upper'?'upper':'lower')}
   </div>
 
-  ${sectionHeader('Couleurs et style')}
+  ${sectionHeader('Choisir la taille du texte et les couleurs')}
   ${colorRow(f)}
 
   ${sectionHeader('Aperçu et export')}
