@@ -613,7 +613,7 @@ body.ig-admin-light{
 }
 .ig-page{min-height:100%}
 /* Sélecteur d'alignement : deux icônes côte à côte, l'active remplie. */
-.ig-align-group{display:flex;gap:4px;flex:none;background:var(--ig-bg);border-radius:9px;padding:3px}
+.ig-align-group{display:flex;gap:4px;flex:none;background:var(--ig-bg);border-radius:9px;padding:3px;height:40px;box-sizing:border-box;align-items:center}
 .ig-align-btn{width:32px;height:28px;flex:none;border:none;border-radius:7px;background:transparent;color:var(--ig-text-dimmer);cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;transition:background .12s,color .12s}
 .ig-align-btn svg{width:16px;height:16px}
 .ig-align-btn.active{background:var(--ig-card);color:var(--ig-text)}
@@ -631,19 +631,16 @@ body.ig-admin-light{
 .formule-tuner.open{display:flex}
 body.tuner-open{overflow:hidden}
 .formule-tuner-bar{display:flex;align-items:center;gap:8px;padding:12px 14px;padding-top:max(12px,env(safe-area-inset-top));flex:none}
-.formule-tuner-select{flex:1;min-width:0;text-align:left;text-align-last:left;color:var(--ig-text);font-family:'Inter',sans-serif;font-size:15px;font-weight:600;background:var(--ig-card);border:none;border-radius:10px;height:34px;padding:0 12px;cursor:pointer;outline:none;-webkit-appearance:none;appearance:none;padding-right:30px;background-repeat:no-repeat;background-position:right 10px center;background-size:12px}
+.formule-tuner-select{flex:1;min-width:0;text-align:left;text-align-last:left;color:var(--ig-text);font-family:'Inter',sans-serif;font-size:15px;font-weight:600;background:var(--ig-bg);border:none;border-radius:9px;height:40px;padding:0 12px;cursor:pointer;outline:none;-webkit-appearance:none;appearance:none;padding-right:30px;background-repeat:no-repeat;background-position:right 10px center;background-size:12px}
 body.ig-admin-dark .formule-tuner-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ececec' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")}
 body.ig-admin-light .formule-tuner-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231C1C1E' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")}
-.formule-tuner-btn{width:34px;height:34px;flex:none;border:none;border-radius:50%;background:var(--ig-card);color:var(--ig-text-dim);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s,color .12s}
+.formule-tuner-btn{width:38px;height:38px;flex:none;border:none;border-radius:10px;background:var(--ig-card);color:var(--ig-text-dim);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s,color .12s}
 .formule-tuner-btn:active{background:var(--ig-row-hover)}
-.formule-tuner-btn.is-ok{background:var(--ig-green);color:#fff;font-size:16px;font-weight:700}
 /* Nom du format courant, au-dessus de l'aperçu — les points seuls ne
    disent pas lequel on regarde. */
 .formule-tuner-format{flex:1;display:flex;justify-content:center;gap:4px;background:var(--ig-card);border-radius:10px;padding:3px}
 .formule-fmt-tab{flex:1;border:none;background:transparent;color:var(--ig-text-dimmer);font-family:'Jost',sans-serif;font-size:13.5px;font-weight:600;padding:6px 10px;border-radius:8px;cursor:pointer;transition:background .12s,color .12s}
 .formule-fmt-tab.active{background:var(--ig-bg);color:var(--ig-text)}
-/* Actions en bas à droite, sous les réglages. */
-.formule-tuner-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
 /* Le sélecteur ne prend plus toute la barre : l'alignement se place
    juste à sa droite. */
 .formule-tuner-row #formuleTunerAlign{flex:none}
@@ -1293,11 +1290,13 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 
 <!-- Réglage d'une couleur / taille en plein écran (mobile) : l'aperçu
      occupe tout le haut, le réglage seul est posé en bas sous le
-     pouce. Valider conserve, fermer annule. -->
+     pouce. Les réglages sont conservés au fil de l'eau, comme
+     partout ailleurs dans le panneau. -->
 <div class="formule-tuner" id="formuleTuner">
   <div class="formule-tuner-bar">
-    <button type="button" class="formule-tuner-btn" title="Fermer" onclick="formuleTunerCancel()">✕</button>
+    <button type="button" class="formule-tuner-btn" title="Fermer" onclick="formuleTunerValidate()">✕</button>
     <div class="formule-tuner-format" id="formuleTunerFormat"></div>
+    <button type="button" class="formule-tuner-btn" title="Télécharger ce format" onclick="formuleTunerDownload()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg></button>
   </div>
   <div class="formule-tuner-stage">
     <div class="formule-tuner-carousel" id="formuleTunerCarousel" onscroll="formuleTunerOnScroll()"></div>
@@ -1308,10 +1307,6 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
       <div id="formuleTunerAlign"></div>
     </div>
     <div id="formuleTunerCtrl"></div>
-    <div class="formule-tuner-actions">
-      <button type="button" class="formule-tuner-btn" title="Télécharger ce format" onclick="formuleTunerDownload()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg></button>
-      <button type="button" class="formule-tuner-btn is-ok" title="Valider" onclick="formuleTunerValidate()">✓</button>
-    </div>
   </div>
 </div>
 
@@ -4778,8 +4773,7 @@ let _tunerState=null;
 function formuleTunerOpen(fid, key, sizeKey, label){
   const f = DATA.formules && DATA.formules.find(x=>x.id===fid);
   if(!f) return;
-  // Instantané des valeurs, pour pouvoir annuler.
-  _tunerState={ fid, key, sizeKey, before:{ [key]: f[key], [sizeKey||'_']: sizeKey?f[sizeKey]:undefined } };
+  _tunerState={ fid, key, sizeKey };
   const sel=document.getElementById('formuleTunerSelect');
   sel.innerHTML=FORMULE_COLOR_FIELDS.map(d=>`<option value="${d.key}" ${d.key===key?'selected':''}>${d.label}</option>`).join('');
   formuleTunerBuildCarousel(fid);
@@ -4879,8 +4873,7 @@ function formuleTunerSwitch(key){
   const d=FORMULE_COLOR_FIELDS.find(x=>x.key===key);
   const f=DATA.formules.find(x=>x.id===_tunerState.fid);
   if(!d || !f) return;
-  _tunerState={ fid:_tunerState.fid, key:d.key, sizeKey:d.sizeKey,
-    before:{ [d.key]: f[d.key], [d.sizeKey||'_']: d.sizeKey?f[d.sizeKey]:undefined } };
+  _tunerState={ fid:_tunerState.fid, key:d.key, sizeKey:d.sizeKey };
   formuleTunerRenderCtrl(f, d.key, d.sizeKey);
   formuleTunerRenderAlign(f, d.key);
 }
@@ -4945,20 +4938,6 @@ function formuleTunerClose(){
 }
 function formuleTunerValidate(){
   scheduleAutoSave(true);
-  formuleTunerClose();
-  renderAdminSection(adminCurrentTab);
-}
-function formuleTunerCancel(){
-  if(_tunerState){
-    const f=DATA.formules.find(x=>x.id===_tunerState.fid);
-    if(f){
-      const b=_tunerState.before;
-      if(b[_tunerState.key]===undefined) delete f[_tunerState.key]; else f[_tunerState.key]=b[_tunerState.key];
-      if(_tunerState.sizeKey){
-        if(b[_tunerState.sizeKey]===undefined) delete f[_tunerState.sizeKey]; else f[_tunerState.sizeKey]=b[_tunerState.sizeKey];
-      }
-    }
-  }
   formuleTunerClose();
   renderAdminSection(adminCurrentTab);
 }
