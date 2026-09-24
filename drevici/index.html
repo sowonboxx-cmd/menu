@@ -623,8 +623,12 @@ body.ig-admin-light{
 body.tuner-open{overflow:hidden}
 .formule-tuner-bar{display:flex;align-items:center;gap:8px;padding:12px 14px;padding-top:max(12px,env(safe-area-inset-top));flex:none}
 .formule-tuner-title{flex:1;min-width:0;text-align:center;color:var(--ig-text);font-family:'Inter',sans-serif;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.formule-tuner-btn{width:36px;height:36px;flex:none;border:none;border-radius:10px;background:var(--ig-card);color:var(--ig-text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.formule-tuner-btn.is-ok{background:var(--ig-green);color:#fff;font-weight:700}
+.formule-tuner-btn{width:34px;height:34px;flex:none;border:none;border-radius:50%;background:var(--ig-card);color:var(--ig-text-dim);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s,color .12s}
+.formule-tuner-btn:active{background:var(--ig-row-hover)}
+.formule-tuner-btn.is-ok{background:var(--ig-green);color:#fff;font-size:16px;font-weight:700}
+/* Nom du format courant, au-dessus de l'aperçu — les points seuls ne
+   disent pas lequel on regarde. */
+.formule-tuner-format{flex:none;text-align:center;color:var(--ig-text-dimmer);font-family:'Jost',sans-serif;font-size:12px;letter-spacing:.04em;padding-bottom:8px}
 /* L'aperçu prend toute la hauteur restante : c'est lui qu'on regarde. */
 .formule-tuner-stage{flex:1;min-height:0;overflow:hidden}
 /* Les trois formats côte à côte, balayables, avec accroche. */
@@ -637,10 +641,20 @@ body.tuner-open{overflow:hidden}
 .formule-tuner-dot.active{background:var(--ig-text);width:7px;height:7px}
 /* Taille : cinq crans, du plus petit au plus grand. Pas de
    pourcentage affiché, les deux A suffisent à dire le sens. */
-.formule-size-steps{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
-.formule-size-steps input[type="range"]{flex:1;min-width:0;-webkit-appearance:none;appearance:none;background:transparent;border:none;outline:none;height:28px}
-.formule-size-small{font-size:12px;color:var(--ig-text-dimmer);flex:none}
-.formule-size-big{font-size:19px;color:var(--ig-text-dimmer);flex:none}
+.formule-size-steps{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
+.formule-size-btn{width:34px;height:34px;flex:none;border:none;border-radius:50%;background:var(--ig-bg);color:var(--ig-text);font-size:18px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.formule-size-btn:active{background:var(--ig-accent);color:#fff}
+/* Piste à graduations : on voit à quel cran on se trouve, et on peut
+   viser un trait directement. */
+.formule-size-track{position:relative;flex:1;min-width:0;height:34px;display:flex;align-items:center}
+.formule-size-ticks{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;pointer-events:none;padding:0 9px}
+.formule-size-ticks span{width:2px;height:12px;border-radius:1px;background:var(--ig-track)}
+.formule-size-ticks span:nth-child(3){height:18px;background:var(--ig-text-dimmer)}
+.formule-size-track input[type="range"]{position:relative;z-index:1;width:100%;-webkit-appearance:none;appearance:none;background:transparent;border:none;outline:none;height:34px;margin:0}
+.formule-size-track input[type="range"]::-webkit-slider-runnable-track{height:2px;background:transparent}
+.formule-size-track input[type="range"]::-moz-range-track{height:2px;background:transparent}
+.formule-size-track input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--ig-accent);margin-top:-9px;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.formule-size-track input[type="range"]::-moz-range-thumb{width:20px;height:20px;border:none;border-radius:50%;background:var(--ig-accent)}
 /* Le réglage reste en bas, sous le pouce. */
 .formule-tuner-ctrl{flex:none;padding:14px;padding-bottom:max(14px,env(safe-area-inset-bottom));background:var(--ig-card);border-radius:16px 16px 0 0;margin-top:12px}
 .formule-tuner-row{display:flex;align-items:center;gap:14px;padding:4px 2px}
@@ -1273,6 +1287,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
     <span class="formule-tuner-title" id="formuleTunerTitle"></span>
     <button type="button" class="formule-tuner-btn is-ok" title="Valider" onclick="formuleTunerValidate()">✓</button>
   </div>
+  <div class="formule-tuner-format" id="formuleTunerFormat"></div>
   <div class="formule-tuner-stage">
     <div class="formule-tuner-carousel" id="formuleTunerCarousel" onscroll="formuleTunerOnScroll()"></div>
   </div>
@@ -4768,9 +4783,12 @@ function formuleTunerOpen(fid, key, sizeKey, label){
     <div class="formule-tuner-row">
       ${sizeKey?`
       <div class="formule-size-steps">
-        <span class="formule-size-small">A</span>
-        <input type="range" min="0" max="${TUNER_STEPS.length-1}" step="1" value="${tunerStepIndexFor(f[sizeKey])}" list="tunerTicks" oninput="tunerSetStep(parseInt(this.value,10))">
-        <span class="formule-size-big">A</span>
+        <button type="button" class="formule-size-btn" onclick="tunerNudge(-1)">−</button>
+        <div class="formule-size-track">
+          <div class="formule-size-ticks">${TUNER_STEPS.map(()=>'<span></span>').join('')}</div>
+          <input type="range" id="formuleTunerRange" min="0" max="${TUNER_STEPS.length-1}" step="1" value="${tunerStepIndexFor(f[sizeKey])}" oninput="tunerSetStep(parseInt(this.value,10))">
+        </div>
+        <button type="button" class="formule-size-btn" onclick="tunerNudge(1)">+</button>
       </div>`:'<span style="flex:1"></span>'}
       <input type="color" value="${colorVal}" oninput="formule_setColor('${fid}','${key}',this.value)">
     </div>`;
@@ -4780,7 +4798,7 @@ function formuleTunerOpen(fid, key, sizeKey, label){
 // Les trois formats sont côte à côte dans un carrousel qui se balaie,
 // avec des points en dessous — même principe que les aperçus de la
 // page principale.
-const TUNER_VARIANTS=[{v:'story',r:null},{v:'post',r:null},{v:'a4',r:null}];
+const TUNER_VARIANTS=[{v:'story',label:'Story'},{v:'post',label:'Post'},{v:'a4',label:'A4'}];
 // Cinq crans de taille plutôt qu'un pourcentage libre : viser une
 // valeur au pouce est pénible, et cinq choix couvrent le besoin.
 const TUNER_STEPS=[70,85,100,120,140];
@@ -4807,6 +4825,7 @@ function formuleTunerBuildCarousel(fid){
   });
   document.getElementById('formuleTunerDots').innerHTML=TUNER_VARIANTS.map((t,i)=>
     `<span class="formule-tuner-dot${i===0?' active':''}"></span>`).join('');
+  document.getElementById('formuleTunerFormat').textContent=TUNER_VARIANTS[0].label;
   car.scrollLeft=0;
 }
 function formuleTunerOnScroll(){
@@ -4814,10 +4833,22 @@ function formuleTunerOnScroll(){
   if(!car) return;
   const idx=Math.round(car.scrollLeft/Math.max(1,car.clientWidth));
   document.querySelectorAll('.formule-tuner-dot').forEach((d,i)=>d.classList.toggle('active', i===idx));
+  const lbl=document.getElementById('formuleTunerFormat');
+  if(lbl && TUNER_VARIANTS[idx]) lbl.textContent=TUNER_VARIANTS[idx].label;
 }
 function tunerSetStep(idx){
   if(!_tunerState || !_tunerState.sizeKey) return;
   formule_setField(_tunerState.fid, _tunerState.sizeKey, TUNER_STEPS[idx]);
+}
+// Les boutons − / + déplacent le curseur d'un cran : on peut viser le
+// trait directement ou passer par eux, au choix.
+function tunerNudge(dir){
+  const r=document.getElementById('formuleTunerRange');
+  if(!r) return;
+  const next=Math.max(0, Math.min(TUNER_STEPS.length-1, parseInt(r.value,10)+dir));
+  if(next===parseInt(r.value,10)) return;
+  r.value=next;
+  tunerSetStep(next);
 }
 function formuleTunerClose(){
   document.getElementById('formuleTuner').classList.remove('open');
