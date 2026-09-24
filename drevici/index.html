@@ -659,7 +659,7 @@ body.ig-admin-light{
 .ig-row-updown{color:var(--ig-text-dimmer);flex:none;display:flex;align-items:center}
 .ig-row-updown svg{width:12px;height:18px}
 /* Menu flottant du thème, positionné sous la ligne au clic. */
-.ig-theme-menu{position:fixed;display:none;z-index:9400;box-sizing:border-box;background:var(--ig-card);border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.35);border:1px solid var(--ig-border)}
+.ig-theme-menu{position:fixed;display:none;z-index:9400;box-sizing:border-box;background:var(--ig-card);border-radius:14px;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.14);border:1px solid var(--ig-border)}
 .ig-theme-menu.open{display:block}
 .ig-theme-opt{display:flex;align-items:center;gap:10px;padding:13px 16px;white-space:nowrap;color:var(--ig-text);font-family:'Inter',sans-serif;font-size:15px;cursor:pointer;border-bottom:1px solid var(--ig-sep)}
 .ig-theme-opt:last-child{border-bottom:none}
@@ -8361,6 +8361,13 @@ function toggleThemeMenu(e){
   // lue juste après l'affichage, offsetWidth pouvait encore valoir 0,
   // et le menu partait alors vers la droite hors de l'écran.
   const W=210, pad=10;
+  // BUG FIX (menu coupé à droite sur desktop) : .admin-panel porte un
+  // transform pour son animation d'ouverture, ce qui en fait le
+  // référentiel de tout position:fixed placé à l'intérieur. Les
+  // coordonnées calculées en repère écran étaient donc appliquées
+  // depuis le bord du panneau, et le menu partait hors cadre. On le
+  // rattache au <body> avant de le positionner.
+  if(m.parentElement!==document.body) document.body.appendChild(m);
   m.style.width=W+'px';
   m.classList.add('open');
   const row=e.currentTarget.getBoundingClientRect();
@@ -8374,8 +8381,10 @@ function toggleThemeMenu(e){
   if(top+mh>window.innerHeight-pad) top=window.innerHeight-mh-pad;
   if(top<pad) top=pad;
   let left=row.right-W;
-  if(left+W>box.right-pad) left=box.right-W-pad;
-  if(left<box.left+pad) left=box.left+pad;
+  const maxRight=Math.min(box.right, window.innerWidth)-pad;
+  const minLeft=Math.max(box.left, 0)+pad;
+  if(left+W>maxRight) left=maxRight-W;
+  if(left<minLeft) left=minLeft;
   m.style.top=top+'px';
   m.style.left=left+'px';
   m.style.right='auto';
