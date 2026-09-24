@@ -565,10 +565,16 @@ body.home-cover-showing{overflow:hidden}
    pouvoir habiller l'en-tête, qui est son frère dans le DOM. Les
    boutons de la barre reprennent eux aussi ce fond : plus de pastilles
    qui ressortent, tout est à plat. */
-.admin-panel.ig-dark-panel .admin-hdr{background:var(--ig-bg);border-bottom-color:var(--ig-hdr-border)}
+/* La barre reprend le dessin de l'en-tête de l'aperçu : fond de page,
+   pas de filet, et des commandes posées sur le gris des cartes avec le
+   même arrondi — au lieu de contours gris qui alourdissaient. */
+.admin-panel.ig-dark-panel .admin-hdr{background:var(--ig-bg);border-bottom:none}
 .admin-panel.ig-dark-panel .admin-close,
 .admin-panel.ig-dark-panel .admin-badge,
-.admin-panel.ig-dark-panel #adminTabDd{background-color:var(--ig-bg)!important;background-image:none;border-color:var(--ig-border)!important;color:var(--ig-text)!important}
+.admin-panel.ig-dark-panel #adminTabDd{background-color:var(--ig-card)!important;background-image:none;border:none!important;border-radius:10px!important;color:var(--ig-text)!important}
+.admin-panel.ig-dark-panel .admin-close{width:38px;height:38px}
+.admin-panel.ig-dark-panel .admin-badge,
+.admin-panel.ig-dark-panel #adminTabDd{height:38px;line-height:38px}
 /* La flèche du menu est une image SVG : sa couleur ne peut pas suivre
    currentColor, il en faut donc une par thème. */
 body.ig-admin-dark .admin-panel.ig-dark-panel #adminTabDd{background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M1 1l4 4 4-4' stroke='rgba(255,255,255,.7)' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>")}
@@ -738,7 +744,10 @@ body.ig-admin-light .formule-tuner-select{background-image:url("data:image/svg+x
 .ig-row-toggle{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;font-family:'Jost',sans-serif;font-size:14.5px;border:none!important;border-radius:0!important;border-bottom:1px solid var(--ig-border)!important;margin:0!important;background:transparent!important}
 .ig-row-toggle:last-child{border-bottom:none!important}
 .ig-row-toggle label{color:var(--ig-text);cursor:pointer}
-.ig-row:hover{background:var(--ig-row-hover)}
+/* BUG FIX (une ligne restait surlignée) : sur écran tactile, l'état de
+   survol se fige après un tap et donne l'impression d'une sélection.
+   On le réserve aux appareils qui savent vraiment survoler. */
+@media (hover:hover){ .ig-row:hover{background:var(--ig-row-hover)} }
 .ig-row-icon{width:20px;height:20px;flex:none;color:var(--ig-text-dim);display:flex;align-items:center;justify-content:center}
 /* Champ qui se fond dans une ligne de liste (icône + champ à
    remplir directement, sans flèche puisqu'on ne navigue nulle part) —
@@ -6489,7 +6498,12 @@ function buildInstaCSS(cfg, ratio){
   .pdf-subcat{font-family:'${font}',serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.06em;color:${cfg.menuFrameColor||gold};margin:30px 0 18px}
   .pdf-dish{margin-bottom:calc(${cfg.tabsSource?7.05:30}px * var(--space-scale));width:100%}
   ${cfg.tabsSource ? '' : `.pdf-dish + .pdf-dish::before{content:'';display:block;width:64px;height:1px;background:${cfg.menuInstaSepColor||gold};margin:0 auto calc(26px * var(--space-scale));opacity:.8}`}
-  .pdf-dish-line{display:flex;justify-content:center;align-items:baseline;gap:14px}
+    /* BUG FIX (écarts inégaux entre les plats) : chaque nom reçoit sa
+     propre taille de police pour tenir sur une ligne, ce qui changeait
+     la hauteur de sa ligne — donc l'écart perçu d'un plat à l'autre.
+     Une hauteur de ligne fixe, calée sur la taille de référence, rend
+     l'espacement identique partout et dans les trois formats. */
+  .pdf-dish-line{display:flex;justify-content:center;align-items:baseline;gap:14px${cfg.tabsSource?`;line-height:${Math.round(menuSize*1.38)}px`:''}}
   .pdf-dish-line-group{width:100%}
   .pdf-dish-line-cont{margin-top:2px}
   .pdf-dish-name{font-family:'${font}',serif;font-weight:800;font-size:${menuSize}px;text-transform:${cfg.tabsSource?'none':'uppercase'};letter-spacing:.01em;color:${menuColor}}
@@ -7616,6 +7630,31 @@ function closeFormulePane(){ formulePane=null; renderAdminSection('__global'); }
 // Sous-pages de la formule : titre/sous-titre d'un côté, sections et
 // plats de l'autre.
 function renderFormulePane(f){
+  const font = f.instaFont||pdfCfg().instaFont||'Playfair Display';
+  const caseSel = (label, field, val) => `
+    <div style="flex:1;min-width:0">
+      <label class="al" style="margin:0 0 7px 0;padding-left:max(0px,calc(12px - 5%))">${label}</label>
+      <select class="ai ig-hm-select ig-bev-sel" style="width:100%" onchange="formule_setField('${f.id}','${field}',this.value)">
+        <option value="upper" ${val==='upper'?'selected':''}>Majuscule</option>
+        <option value="lower" ${val==='lower'?'selected':''}>Minuscule</option>
+      </select>
+    </div>`;
+  if(formulePane==='perso'){
+    ensureGalleryFontsLoaded();
+    return `
+    <div class="ai ig-font-field ig-formule-font" onclick="showFontGallery('formule','${f.id}')">
+      <div style="flex:1;min-width:0">
+        <span style="font-size:11.5px;color:var(--ig-text-dimmer)">Voir et choisir la police</span>
+        <div style="font-size:19px;color:var(--ig-text);font-family:'${font}',serif!important;margin-top:2px">${font}</div>
+      </div>
+      <span class="ig-row-chevron">›</span>
+    </div>
+    <div class="ig-panel-card" style="display:flex;gap:10px;align-items:flex-start;margin-top:10px">
+      ${caseSel('Nom des sections','catCase', f.catCase==='lower'?'lower':'upper')}
+      ${caseSel('Nom des plats','nameCase', f.nameCase==='lower'?'lower':'upper')}
+      ${caseSel('Description','descCase', f.descCase==='upper'?'upper':'lower')}
+    </div>`;
+  }
   if(formulePane==='infos'){
     return `
     <div class="ig-stack-field">
@@ -7686,50 +7725,32 @@ function renderFormuleDetail(f){
   // En-tête de groupe, libellé seul.
   const sectionHeader = title => `<div class="ig-formule-group"><span>${title}</span></div>`;
 
-  const font = f.instaFont||brandCfg.instaFont||'Playfair Display';
-  const caseSel = (key, val, upperFirst) => `
-    <div style="flex:1;min-width:0">
-      <label class="al" style="margin:0 0 7px 0;padding-left:max(0px,calc(12px - 5%))">${key.label}</label>
-      <select class="ai ig-hm-select ig-bev-sel" style="width:100%" onchange="formule_setField('${f.id}','${key.field}',this.value)">
-        <option value="upper" ${val==='upper'?'selected':''}>Majuscule</option>
-        <option value="lower" ${val==='lower'?'selected':''}>Minuscule</option>
-      </select>
-    </div>`;
-
-  // Trois portes d'entrée plutôt qu'une longue page : on ne voit que
-  // ce qu'on vient faire. Police, casse et réinitialisation restent
-  // ici en attendant de trouver leur place.
+  // Quatre portes d'entrée plutôt qu'une longue page : on ne voit que
+  // ce qu'on vient faire. L'export est détaché en bas, c'est une
+  // action, pas un réglage de plus.
   let h = `
+  ${sectionHeader('Informations générales')}
   <div class="ig-list">
     <div class="ig-row" onclick="openFormulePane('infos')">
       <span class="ig-row-label"><span>Titre et sous-titre du menu</span></span>
       <span class="ig-row-chevron">›</span>
     </div>
     <div class="ig-row" onclick="openFormulePane('sections')">
-      <span class="ig-row-label"><span>Sections et plats du menu</span></span>
+      <span class="ig-row-label"><span>Plats du menu</span></span>
       <span class="ig-row-chevron">›</span>
     </div>
-    <div class="ig-row" onclick="formuleTunerOpen('${f.id}','formuleTitleColor','formuleTitlePct','Titre')">
-      <span class="ig-row-label"><span>Exporter le menu</span><span class="ig-row-hint">Police, taille, alignement et couleurs des textes</span></span>
+    <div class="ig-row" onclick="openFormulePane('perso')">
+      <span class="ig-row-label"><span>Personnalisation</span><span class="ig-row-hint">Police, majuscules et minuscules</span></span>
       <span class="ig-row-chevron">›</span>
     </div>
   </div>
 
-  ${(ensureGalleryFontsLoaded(),'')}
-  ${sectionHeader('Personnalisation')}
-  <div class="ai ig-font-field ig-formule-font" onclick="showFontGallery('formule','${f.id}')">
-    <div style="flex:1;min-width:0">
-      <span style="font-size:11.5px;color:var(--ig-text-dimmer)">Voir et choisir la police</span>
-      <div style="font-size:19px;color:var(--ig-text);font-family:'${font}',serif!important;margin-top:2px">${font}</div>
+  <div class="ig-list" style="margin-top:22px">
+    <div class="ig-row" onclick="formuleTunerOpen('${f.id}','formuleTitleColor','formuleTitlePct','Titre')">
+      <span class="ig-row-label"><span style="color:var(--ig-accent);font-weight:500">Export du menu (Impression et Réseaux Sociaux)</span><span class="ig-row-hint">Taille, alignement et couleurs des textes</span></span>
+      <span class="ig-row-chevron">›</span>
     </div>
-    <span class="ig-row-chevron">›</span>
   </div>
-  <div class="ig-panel-card" style="display:flex;gap:10px;align-items:flex-start;margin-top:10px">
-    ${caseSel({label:'Nom des sections', field:'catCase'}, f.catCase==='lower'?'lower':'upper')}
-    ${caseSel({label:'Nom des plats', field:'nameCase'}, f.nameCase==='lower'?'lower':'upper')}
-    ${caseSel({label:'Description', field:'descCase'}, f.descCase==='upper'?'upper':'lower')}
-  </div>
-  <div class="ig-list" style="margin-top:10px"><div class="ig-row" style="justify-content:center" onclick="formule_resetColors('${f.id}')"><span style="color:var(--ig-accent);font-weight:500">Réinitialiser les couleurs</span></div></div>
 
   <div class="ig-list" style="margin-top:34px">
     <div class="ig-row" onclick="askConfirm('Supprimer la formule « ${(f.name||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")} » ?',()=>{formule_delete('${f.id}');closeFormule();})">
@@ -8979,7 +9000,7 @@ function adminCrumbParts(row){
     const f=(DATA.formules||[]).find(x=>x.id===formuleOpen);
     const parts=[{label:row.label, go:'closeFormule()'}];
     if(!f) return parts;
-    const PANE_LABELS={infos:'Titre et sous-titre', sections:'Sections et plats'};
+    const PANE_LABELS={infos:'Titre et sous-titre', sections:'Plats du menu', perso:'Personnalisation'};
     if(formuleCatOpen){
       const cat=(f.tabs||[]).find(c=>c.id===formuleCatOpen);
       parts.push({label:f.name||'(sans nom)', go:'closeFormulePane()'});
