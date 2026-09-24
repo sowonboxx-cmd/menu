@@ -648,7 +648,7 @@ body.ig-admin-light .formule-tuner-select{background-image:url("data:image/svg+x
 .formule-tuner-carousel{display:flex;height:100%;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .formule-tuner-carousel::-webkit-scrollbar{display:none}
 .formule-tuner-slide{flex:0 0 100%;scroll-snap-align:center;height:100%;display:flex;align-items:center;justify-content:center;padding:0 14px;box-sizing:border-box}
-.formule-tuner-slide iframe{height:100%;max-width:100%;border:none;border-radius:12px;background:#fff;display:block}
+.formule-tuner-slide iframe{border:none;border-radius:12px;background:#fff;display:block}
 .formule-tuner-dots{display:flex;justify-content:center;gap:6px;flex:none;padding:10px 0 2px}
 .formule-tuner-dot{width:6px;height:6px;border-radius:50%;background:var(--ig-focus)}
 .formule-tuner-dot.active{background:var(--ig-text);width:7px;height:7px}
@@ -3840,21 +3840,13 @@ function openAdmin(){
   try{
     if(!Array.isArray(DATA.tabs)) DATA.tabs=[];
     renderAdminTabDd();
-    // On entre toujours par la nouvelle navigation (sombre) : si on
-    // consultait une catégorie du menu, on ouvre directement SA page,
-    // avec "Menus et plats" empilé derrière pour que le retour
-    // remonte proprement. L'ancien rendu clair n'est plus une porte
-    // d'entrée.
-    const targetTab=DATA.tabs.find(t=>t.id===currentTabId && t.id!=='__home');
+    // Le bouton Paramètres ouvre l'accueil du panneau, pas la page de
+    // la catégorie consultée : entrer d'emblée dans l'édition d'une
+    // catégorie surprend quand on voulait juste les réglages.
     adminCurrentTab='__global';
-    if(targetTab){
-      homeSubpageKey=targetTab.id;
-      homeSubpageStack=['menus-et-plats'];
-      const dd=document.getElementById('adminTabDd'); if(dd) dd.value=targetTab.id;
-    }else{
-      homeSubpageKey=null;
-      homeSubpageStack=[];
-    }
+    homeSubpageKey=null;
+    homeSubpageStack=[];
+    const dd=document.getElementById('adminTabDd'); if(dd) dd.value='__global';
     renderAdminSection('__global');
   }catch(e){
     console.error('Erreur de rendu admin, retour à Home :', e);
@@ -4788,6 +4780,7 @@ function formuleTunerOpen(fid, key, sizeKey, label){
   formuleTunerRenderCtrl(f, key, sizeKey);
   document.body.classList.add('tuner-open');
   document.getElementById('formuleTuner').classList.add('open');
+  requestAnimationFrame(formuleTunerFitFrames);
 }
 // Les trois formats sont côte à côte dans un carrousel qui se balaie,
 // avec des points en dessous — même principe que les aperçus de la
@@ -4831,12 +4824,30 @@ function formuleTunerBuildCarousel(fid){
     const built=buildFormulePage(formule_buildCfg(f), ratio);
     frame.srcdoc=buildPreviewSlideDoc(built.css, built.pages[0].html, built.pages[0].spaceScale, INSTA_RENDER_W, Math.round(INSTA_RENDER_W*ratio));
   });
+  formuleTunerFitFrames();
   document.getElementById('formuleTunerDots').innerHTML=TUNER_VARIANTS.map((t,i)=>
     `<span class="formule-tuner-dot${i===0?' active':''}"></span>`).join('');
   document.getElementById('formuleTunerFormat').innerHTML=TUNER_VARIANTS.map((t,i)=>
     `<button type="button" class="formule-fmt-tab${i===0?' active':''}" onclick="formuleTunerGoTo(${i})">${t.label}</button>`).join('');
   car.scrollLeft=0;
 }
+// Chaque aperçu occupe la place disponible en respectant son format :
+// on prend la contrainte qui s'applique (hauteur ou largeur) au lieu
+// d'en fixer une et de laisser l'autre déborder.
+function formuleTunerFitFrames(){
+  const car=document.getElementById('formuleTunerCarousel');
+  if(!car) return;
+  const availH=car.clientHeight, availW=car.clientWidth-28;
+  if(!availH || !availW) return;
+  car.querySelectorAll('.formule-preview-frame').forEach(frame=>{
+    const ratio=tunerRatioFor(frame.dataset.variant);
+    let h=availH, w=h/ratio;
+    if(w>availW){ w=availW; h=w*ratio; }
+    frame.style.width=Math.round(w)+'px';
+    frame.style.height=Math.round(h)+'px';
+  });
+}
+window.addEventListener('resize', ()=>{ if(document.getElementById('formuleTuner').classList.contains('open')) formuleTunerFitFrames(); });
 function formuleTunerGoTo(i){
   const car=document.getElementById('formuleTunerCarousel');
   if(car) car.scrollTo({left:i*car.clientWidth, behavior:'smooth'});
@@ -5176,9 +5187,16 @@ function formule_buildCfg(f){
     instaFont: f.instaFont || base.instaFont,
     alignContentLeft: !!f.alignContentLeft, alignTitleLeft: !!f.alignTitleLeft,
     catCase: f.catCase, descCase: f.descCase, nameCase: f.nameCase,
-    instaTitleSize: Math.round((base.instaTitleSize||45) * (f.titleSizePct ?? 100)/100),
-    instaMenuSize: Math.round((base.instaMenuSize||21) * (f.menuSizePct ?? 100)/100),
-    instaDescSize: Math.round((base.instaDescSize||19) * 1.10 * (f.descSizePct ?? 100)/100),
+    // BUG FIX (le + / − des sections et des plats restait sans effet) :
+    // le pourcentage était fondu dans la taille AVANT l'ajustement
+    // automatique, qui cherche la plus grande police tenant sur une
+    // page. Agrandir poussait donc l'ajustement à réduire d'autant, et
+    // les deux s'annulaient. Le pourcentage voyage désormais à part et
+    // s'applique après, une fois l'échelle de base trouvée.
+    instaTitleSize: Math.round(base.instaTitleSize||45),
+    instaMenuSize: Math.round(base.instaMenuSize||21),
+    instaDescSize: Math.round((base.instaDescSize||19) * 1.10),
+    fmtPct: { title: f.titleSizePct ?? 100, menu: f.menuSizePct ?? 100, desc: f.descSizePct ?? 100 },
     // BUG FIX : le titre et le sous-titre se calculaient à partir des
     // tailles ci-dessus, donc "Sections" déplaçait aussi le titre et
     // "Description" déplaçait aussi le sous-titre. On repart des
@@ -6668,7 +6686,7 @@ function buildFormulePage(cfg, ratio){
   holder.style.cssText = 'position:fixed;left:-99999px;top:0;visibility:hidden;';
   document.body.appendChild(holder);
 
-  let finalHtml = null, finalScale = 1, finalCss = null;
+  let finalHtml = null, finalScale = 1, finalCss = null, finalFontScale = 1;
   outer:
   for(const fontScale of FONT_SCALE_STEPS){
     const scaledCfg = {
@@ -6690,7 +6708,7 @@ function buildFormulePage(cfg, ratio){
       measureEl.style.setProperty('--space-scale', scale);
       measureEl.innerHTML = wholeHtml;
       if(measureEl.offsetHeight <= pageH){
-        finalHtml = wholeHtml; finalScale = scale; finalCss = css;
+        finalFontScale = fontScale; finalHtml = wholeHtml; finalScale = scale; finalCss = css;
         break outer;
       }
     }
@@ -6706,6 +6724,27 @@ function buildFormulePage(cfg, ratio){
     const fixedBlocks = contentBlocks.map(b=>({ ...b, html: fitInstaOneLiners(b.html, holder, scaledCfg) }));
     finalHtml = (cfg.formulePreamble || '') + fixedBlocks.map(b=>b.html).join('');
     finalScale = 0.34;
+    finalFontScale = 0.54;
+  }
+
+  // Les réglages de l'utilisateur sont appliqués ici, sur l'échelle
+  // que l'ajustement vient de retenir : ils ne peuvent donc plus être
+  // repris par celui-ci. Le contenu peut déborder un peu si on
+  // agrandit beaucoup, ce qui est exactement l'effet demandé.
+  const pct = cfg.fmtPct;
+  if(pct && (pct.title!==100 || pct.menu!==100 || pct.desc!==100)){
+    const appliedCfg = {
+      ...cfg,
+      instaTitleSize: Math.max(12, Math.round(baseTitleSize*finalFontScale*pct.title/100)),
+      instaMenuSize:  Math.max(9,  Math.round(baseMenuSize *finalFontScale*pct.menu /100)),
+      instaDescSize:  Math.max(8,  Math.round(baseDescSize *finalFontScale*pct.desc /100))
+    };
+    finalCss = buildInstaCSS(appliedCfg, ratio);
+    const { contentBlocks } = buildPdfBlocks(appliedCfg);
+    if(contentBlocks.length){
+      const fixedBlocks = contentBlocks.map(b=>({ ...b, html: fitInstaOneLiners(b.html, holder, appliedCfg) }));
+      finalHtml = (cfg.formulePreamble || '') + fixedBlocks.map(b=>b.html).join('');
+    }
   }
 
   document.body.removeChild(holder);
