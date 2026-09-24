@@ -631,7 +631,7 @@ body.ig-admin-light{
 .formule-tuner.open{display:flex}
 body.tuner-open{overflow:hidden}
 .formule-tuner-bar{display:flex;align-items:center;gap:8px;padding:12px 14px;padding-top:max(12px,env(safe-area-inset-top));flex:none}
-.formule-tuner-select{flex:1;min-width:0;max-width:220px;margin:0 auto;text-align:center;text-align-last:center;color:var(--ig-text);font-family:'Inter',sans-serif;font-size:15px;font-weight:600;background:var(--ig-card);border:none;border-radius:10px;height:34px;padding:0 12px;cursor:pointer;outline:none;-webkit-appearance:none;appearance:none;padding-right:30px;background-repeat:no-repeat;background-position:right 10px center;background-size:12px}
+.formule-tuner-select{flex:1;min-width:0;text-align:left;text-align-last:left;color:var(--ig-text);font-family:'Inter',sans-serif;font-size:15px;font-weight:600;background:var(--ig-card);border:none;border-radius:10px;height:34px;padding:0 12px;cursor:pointer;outline:none;-webkit-appearance:none;appearance:none;padding-right:30px;background-repeat:no-repeat;background-position:right 10px center;background-size:12px}
 body.ig-admin-dark .formule-tuner-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ececec' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")}
 body.ig-admin-light .formule-tuner-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231C1C1E' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")}
 .formule-tuner-btn{width:34px;height:34px;flex:none;border:none;border-radius:50%;background:var(--ig-card);color:var(--ig-text-dim);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s,color .12s}
@@ -639,9 +639,14 @@ body.ig-admin-light .formule-tuner-select{background-image:url("data:image/svg+x
 .formule-tuner-btn.is-ok{background:var(--ig-green);color:#fff;font-size:16px;font-weight:700}
 /* Nom du format courant, au-dessus de l'aperçu — les points seuls ne
    disent pas lequel on regarde. */
-.formule-tuner-format{flex:none;display:flex;justify-content:center;gap:6px;padding:0 14px 10px}
-.formule-fmt-tab{border:none;background:transparent;color:var(--ig-text-dimmer);font-family:'Jost',sans-serif;font-size:13.5px;font-weight:500;padding:5px 14px;border-radius:8px;cursor:pointer;transition:background .12s,color .12s}
-.formule-fmt-tab.active{background:var(--ig-card);color:var(--ig-text)}
+.formule-tuner-format{flex:1;display:flex;justify-content:center;gap:4px;background:var(--ig-card);border-radius:10px;padding:3px}
+.formule-fmt-tab{flex:1;border:none;background:transparent;color:var(--ig-text-dimmer);font-family:'Jost',sans-serif;font-size:13.5px;font-weight:600;padding:6px 10px;border-radius:8px;cursor:pointer;transition:background .12s,color .12s}
+.formule-fmt-tab.active{background:var(--ig-bg);color:var(--ig-text)}
+/* Actions en bas à droite, sous les réglages. */
+.formule-tuner-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+/* Le sélecteur ne prend plus toute la barre : l'alignement se place
+   juste à sa droite. */
+.formule-tuner-row #formuleTunerAlign{flex:none}
 /* L'aperçu prend toute la hauteur restante : c'est lui qu'on regarde. */
 .formule-tuner-stage{flex:1;min-height:0;overflow:hidden}
 /* Les trois formats côte à côte, balayables, avec accroche. */
@@ -1291,18 +1296,23 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
      pouce. Valider conserve, fermer annule. -->
 <div class="formule-tuner" id="formuleTuner">
   <div class="formule-tuner-bar">
-    <button type="button" class="formule-tuner-btn" title="Annuler" onclick="formuleTunerCancel()">✕</button>
-    <select class="formule-tuner-select" id="formuleTunerSelect" onchange="formuleTunerSwitch(this.value)"></select>
-    <button type="button" class="formule-tuner-btn" title="Télécharger ce format" onclick="formuleTunerDownload()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg></button>
-    <button type="button" class="formule-tuner-btn is-ok" title="Valider" onclick="formuleTunerValidate()">✓</button>
+    <button type="button" class="formule-tuner-btn" title="Fermer" onclick="formuleTunerCancel()">✕</button>
+    <div class="formule-tuner-format" id="formuleTunerFormat"></div>
   </div>
-  <div class="formule-tuner-format" id="formuleTunerFormat"></div>
-  <!-- rempli par formuleTunerBuildCarousel -->
   <div class="formule-tuner-stage">
     <div class="formule-tuner-carousel" id="formuleTunerCarousel" onscroll="formuleTunerOnScroll()"></div>
   </div>
-  <div class="formule-tuner-dots" id="formuleTunerDots"></div>
-  <div class="formule-tuner-ctrl" id="formuleTunerCtrl"></div>
+  <div class="formule-tuner-ctrl">
+    <div class="formule-tuner-row">
+      <select class="formule-tuner-select" id="formuleTunerSelect" onchange="formuleTunerSwitch(this.value)"></select>
+      <div id="formuleTunerAlign"></div>
+    </div>
+    <div id="formuleTunerCtrl"></div>
+    <div class="formule-tuner-actions">
+      <button type="button" class="formule-tuner-btn" title="Télécharger ce format" onclick="formuleTunerDownload()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg></button>
+      <button type="button" class="formule-tuner-btn is-ok" title="Valider" onclick="formuleTunerValidate()">✓</button>
+    </div>
+  </div>
 </div>
 
 <!-- ADMIN -->
@@ -3934,6 +3944,7 @@ function adminBackStep(){
   if(homeSubpageKey==='accueil' && homeCoverSubpage){ closeHomeCoverRow(); return true; }
   if(homeSubpageKey==='formules'){
     if(formuleCatOpen){ closeFormuleCat(); return true; }
+    if(formulePane){ closeFormulePane(); return true; }
     if(formuleOpen){ closeFormule(); return true; }
   }
   const tab=DATA.tabs.find(t=>t.id===homeSubpageKey);
@@ -4773,6 +4784,7 @@ function formuleTunerOpen(fid, key, sizeKey, label){
   sel.innerHTML=FORMULE_COLOR_FIELDS.map(d=>`<option value="${d.key}" ${d.key===key?'selected':''}>${d.label}</option>`).join('');
   formuleTunerBuildCarousel(fid);
   formuleTunerRenderCtrl(f, key, sizeKey);
+  formuleTunerRenderAlign(f, key);
   document.body.classList.add('tuner-open');
   document.getElementById('formuleTuner').classList.add('open');
   requestAnimationFrame(formuleTunerFitFrames);
@@ -4820,8 +4832,6 @@ function formuleTunerBuildCarousel(fid){
     frame.srcdoc=buildPreviewSlideDoc(built.css, built.pages[0].html, built.pages[0].spaceScale, INSTA_RENDER_W, Math.round(INSTA_RENDER_W*ratio));
   });
   formuleTunerFitFrames();
-  document.getElementById('formuleTunerDots').innerHTML=TUNER_VARIANTS.map((t,i)=>
-    `<span class="formule-tuner-dot${i===0?' active':''}"></span>`).join('');
   document.getElementById('formuleTunerFormat').innerHTML=TUNER_VARIANTS.map((t,i)=>
     `<button type="button" class="formule-fmt-tab${i===0?' active':''}" onclick="formuleTunerGoTo(${i})">${t.label}</button>`).join('');
   car.scrollLeft=0;
@@ -4860,7 +4870,6 @@ function formuleTunerOnScroll(){
   const car=document.getElementById('formuleTunerCarousel');
   if(!car) return;
   const idx=Math.round(car.scrollLeft/Math.max(1,car.clientWidth));
-  document.querySelectorAll('.formule-tuner-dot').forEach((d,i)=>d.classList.toggle('active', i===idx));
   document.querySelectorAll('.formule-fmt-tab').forEach((b,i)=>b.classList.toggle('active', i===idx));
 }
 // Passer d'un réglage à l'autre depuis le sélecteur : on garde
@@ -4873,6 +4882,7 @@ function formuleTunerSwitch(key){
   _tunerState={ fid:_tunerState.fid, key:d.key, sizeKey:d.sizeKey,
     before:{ [d.key]: f[d.key], [d.sizeKey||'_']: d.sizeKey?f[d.sizeKey]:undefined } };
   formuleTunerRenderCtrl(f, d.key, d.sizeKey);
+  formuleTunerRenderAlign(f, d.key);
 }
 function tunerSetStep(idx){
   if(!_tunerState || !_tunerState.sizeKey) return;
@@ -4890,6 +4900,24 @@ function tunerNudge(dir){
 }
 // Une seule ligne : les crans de taille à gauche, la pastille tout à
 // droite. Les libellés "Couleur" / "Taille" n'apprenaient rien.
+// Le titre et le sous-titre vont ensemble, les sections/plats/
+// descriptions aussi : ce sont deux blocs de mise en page, les aligner
+// séparément n'aurait pas de sens visuel.
+const TITLE_GROUP_KEYS=['formuleTitleColor','formuleSubColor'];
+function formuleAlignFieldFor(key){ return TITLE_GROUP_KEYS.includes(key) ? 'alignTitleLeft' : 'alignContentLeft'; }
+function formuleTunerRenderAlign(f, key){
+  const host=document.getElementById('formuleTunerAlign');
+  if(!host) return;
+  if(key==='instaBgColor'){ host.innerHTML=''; return; }
+  const field=formuleAlignFieldFor(key);
+  const isLeft=!!f[field];
+  const LEFT='<svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="4" width="18" height="2.4" rx="1.2"/><rect x="3" y="9" width="11" height="2.4" rx="1.2"/><rect x="3" y="14" width="18" height="2.4" rx="1.2"/><rect x="3" y="19" width="11" height="2.4" rx="1.2"/></svg>';
+  const CENTER='<svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="4" width="18" height="2.4" rx="1.2"/><rect x="6.5" y="9" width="11" height="2.4" rx="1.2"/><rect x="3" y="14" width="18" height="2.4" rx="1.2"/><rect x="6.5" y="19" width="11" height="2.4" rx="1.2"/></svg>';
+  host.innerHTML=`<div class="ig-align-group">
+    <button type="button" class="ig-align-btn${isLeft?' active':''}" title="Aligné à gauche" onclick="formule_setAlign(this,'${f.id}','${field}',true)">${LEFT}</button>
+    <button type="button" class="ig-align-btn${isLeft?'':' active'}" title="Centré" onclick="formule_setAlign(this,'${f.id}','${field}',false)">${CENTER}</button>
+  </div>`;
+}
 function formuleTunerRenderCtrl(f, key, sizeKey){
   const colorVal = f[key] || formule_defaultColorFor(key);
   document.getElementById('formuleTunerCtrl').innerHTML=`
@@ -6475,12 +6503,12 @@ function buildInstaCSS(cfg, ratio){
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
   .pdf-page{--space-scale:1;font-family:'${font}',serif;color:${titleColor};background:${bg};width:${INSTA_RENDER_W}px;height:${Math.round(INSTA_RENDER_W*ratio)}px;padding:${padTop}px ${padSide}px;margin:0 auto;position:relative;overflow:hidden;text-align:center;display:flex;flex-direction:column;align-items:center}
   .pdf-page::before{content:'';position:absolute;inset:20px;border:1.5px solid ${gold};pointer-events:none}
-  .pdf-cat{font-family:'${font}',serif;font-weight:800;font-size:${catTitleSize}px;line-height:1.1;text-transform:${cfg.tabsSource?'none':'uppercase'};letter-spacing:.01em;color:${titleColor};margin-bottom:${cfg.tabsSource?14.7:44}px;border:none}
+  .pdf-cat{font-family:'${font}',serif;font-weight:800;font-size:${catTitleSize}px;line-height:1.1;text-transform:${cfg.tabsSource?'none':'uppercase'};letter-spacing:.01em;color:${titleColor};margin-bottom:${cfg.tabsSource?13.2:44}px;border:none}
   .pdf-cat:has(+ .pdf-subcat){margin-bottom:22px}
   .pdf-cat + .pdf-subcat{margin-top:15px}
-  ${cfg.tabsSource ? '.pdf-dish + .pdf-cat{margin-top:38px}' : ''}
+  ${cfg.tabsSource ? '.pdf-dish + .pdf-cat{margin-top:34px}' : ''}
   .pdf-subcat{font-family:'${font}',serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.06em;color:${cfg.menuFrameColor||gold};margin:30px 0 18px}
-  .pdf-dish{margin-bottom:calc(${cfg.tabsSource?7.83:30}px * var(--space-scale));width:100%}
+  .pdf-dish{margin-bottom:calc(${cfg.tabsSource?7.05:30}px * var(--space-scale));width:100%}
   ${cfg.tabsSource ? '' : `.pdf-dish + .pdf-dish::before{content:'';display:block;width:64px;height:1px;background:${cfg.menuInstaSepColor||gold};margin:0 auto calc(26px * var(--space-scale));opacity:.8}`}
   .pdf-dish-line{display:flex;justify-content:center;align-items:baseline;gap:14px}
   .pdf-dish-line-group{width:100%}
@@ -6580,17 +6608,24 @@ function fitInstaOneLiners(html, holder, cfg){
       size -= 1;
       test.style.fontSize = size+'px';
     }
+    const fits = test.scrollWidth <= availableW;
     measureEl.removeChild(test);
-    return size;
+    return { size, fits };
   }
 
+  // BUG FIX (texte qui sortait du cadre à droite) : une fois la police
+  // descendue à son plancher, le texte restait en "pas de retour à la
+  // ligne" et débordait, alors que la marge gauche, elle, était
+  // respectée. S'il ne tient toujours pas, on l'autorise à passer à la
+  // ligne — la marge droite vaut alors la marge gauche.
+  const wrapStyle = fit => fit.fits ? 'white-space:nowrap' : 'white-space:normal';
   let out = html.replace(/<h2 class="pdf-cat"([^>]*)>([\s\S]*?)<\/h2>/, (m, attrs, inner)=>{
-    const size = fitOne(inner, 'h2', 'pdf-cat', catTitleSize, Math.min(13, catTitleSize));
-    return `<h2 class="pdf-cat"${attrs} style="font-size:${size}px;white-space:nowrap">${inner}</h2>`;
+    const fit = fitOne(inner, 'h2', 'pdf-cat', catTitleSize, Math.min(13, catTitleSize));
+    return `<h2 class="pdf-cat"${attrs} style="font-size:${fit.size}px;${wrapStyle(fit)}">${inner}</h2>`;
   });
   out = out.replace(/<h3 class="pdf-subcat">([\s\S]*?)<\/h3>/g, (m, inner)=>{
-    const size = fitOne(inner, 'h3', 'pdf-subcat', 22, 13);
-    return `<h3 class="pdf-subcat" style="font-size:${size}px;white-space:nowrap">${inner}</h3>`;
+    const fit = fitOne(inner, 'h3', 'pdf-subcat', 22, 13);
+    return `<h3 class="pdf-subcat" style="font-size:${fit.size}px;${wrapStyle(fit)}">${inner}</h3>`;
   });
   // BUG FIX (chevauchement) : le retour à la ligne d'un nom de plat
   // recasse la mise en page à l'export — confirmé que ça arrive aussi
@@ -6604,10 +6639,10 @@ function fitInstaOneLiners(html, holder, cfg){
   // ça dans la pratique) — cette taille devient le plancher, jamais
   // rétréci davantage même pour un nom encore plus long.
   if(!cfg.tabsSource){
-    const worstCaseFloor = fitOne('Maquereau au poivre de Sichuan', 'span', 'pdf-dish-name', menuSize, 10);
+    const worstCaseFloor = fitOne('Maquereau au poivre de Sichuan', 'span', 'pdf-dish-name', menuSize, 10).size;
     out = out.replace(/<span class="pdf-dish-name">([\s\S]*?)<\/span>/g, (m, inner)=>{
-      const size = fitOne(inner, 'span', 'pdf-dish-name', menuSize, worstCaseFloor);
-      return `<span class="pdf-dish-name" style="font-size:${size}px;white-space:nowrap">${inner}</span>`;
+      const fit = fitOne(inner, 'span', 'pdf-dish-name', menuSize, worstCaseFloor);
+      return `<span class="pdf-dish-name" style="font-size:${fit.size}px;${wrapStyle(fit)}">${inner}</span>`;
     });
     return out;
   }
@@ -7563,8 +7598,8 @@ function showGbizResultGallery(images){
 // cliqué dessus.
 let formuleOpen = null;
 let formuleCatOpen = null;
-function openFormule(fid){ formuleOpen=fid; formuleCatOpen=null; renderAdminSection('__global'); }
-function closeFormule(){ formuleOpen=null; formuleCatOpen=null; renderAdminSection('__global'); }
+function openFormule(fid){ formuleOpen=fid; formuleCatOpen=null; formulePane=null; renderAdminSection('__global'); }
+function closeFormule(){ formuleOpen=null; formulePane=null; formuleCatOpen=null; renderAdminSection('__global'); }
 function openFormuleCat(catId){ formuleCatOpen=catId; renderAdminSection('__global'); }
 function closeFormuleCat(){ formuleCatOpen=null; renderAdminSection('__global'); }
 
@@ -7578,6 +7613,7 @@ function renderFormulesSection(){
         if(cat) return renderFormuleCatDetail(f, cat);
         formuleCatOpen=null;
       }
+      if(formulePane) return renderFormulePane(f);
       return renderFormuleDetail(f);
     }
     formuleOpen=null;
@@ -7595,6 +7631,33 @@ function renderFormuleList(){
   ${DATA.formules.length>=10?'<div class="ig-hint-block">La limite de 10 est atteinte : en ajouter un nouveau remplacera le plus ancien.</div>':''}`;
 }
 
+let formulePane=null;
+function openFormulePane(p){ formulePane=p; renderAdminSection('__global'); }
+function closeFormulePane(){ formulePane=null; renderAdminSection('__global'); }
+// Sous-pages de la formule : titre/sous-titre d'un côté, sections et
+// plats de l'autre.
+function renderFormulePane(f){
+  if(formulePane==='infos'){
+    return `
+    <div class="ig-stack-field">
+      <span class="ig-stack-label">Titre du menu</span>
+      <input class="ai" value="${escAttr(f.name||'')}" placeholder="Ex : Le Truffaut" oninput="formule_rename('${f.id}',this.value)">
+    </div>
+    <div class="ig-stack-field">
+      <span class="ig-stack-label">Sous-titre (description)</span>
+      <textarea class="ai" rows="3" style="resize:vertical" placeholder="Ex : Entrée, plat &amp; dessert — 40€" oninput="formule_setField('${f.id}','freeText',this.value)">${escAttr(f.freeText||'')}</textarea>
+    </div>`;
+  }
+  return `
+  <div class="ig-list">
+    ${f.tabs.map(cat=>`
+      <div class="ig-row" onclick="openFormuleCat('${cat.id}')">
+        <span class="ig-row-label">${escAttr(t(cat.label))||'(sans titre)'}</span>
+        <span class="ig-row-chevron">›</span>
+      </div>`).join('')}
+  </div>
+  <div class="ig-list" style="margin-top:10px"><div class="ig-row" style="justify-content:center" onclick="formule_addCategory('${f.id}')"><span style="color:var(--ig-green);font-weight:500">Ajouter une section</span></div></div>`;
+}
 function renderFormuleDetail(f){
   formule_ensureInit();
   const realDishes = formule_getRealDishes();
@@ -7654,26 +7717,24 @@ function renderFormuleDetail(f){
       </select>
     </div>`;
 
+  // Trois portes d'entrée plutôt qu'une longue page : on ne voit que
+  // ce qu'on vient faire. Police, casse et réinitialisation restent
+  // ici en attendant de trouver leur place.
   let h = `
-  ${sectionHeader('Informations générales')}
-  <div class="ig-stack-field">
-    <span class="ig-stack-label">Titre du menu</span>
-    <input class="ai" value="${escAttr(f.name||'')}" placeholder="Ex : Le Truffaut" oninput="formule_rename('${f.id}',this.value)">
-  </div>
-  <div class="ig-stack-field">
-    <span class="ig-stack-label">Sous-titre (description)</span>
-    <textarea class="ai" rows="2" style="resize:vertical" placeholder="Ex : Entrée, plat &amp; dessert — 40€" oninput="formule_setField('${f.id}','freeText',this.value)">${escAttr(f.freeText||'')}</textarea>
-  </div>
-
-  ${sectionHeader('Sections du menu')}
   <div class="ig-list">
-    ${f.tabs.map(cat=>`
-      <div class="ig-row" onclick="openFormuleCat('${cat.id}')">
-        <span class="ig-row-label">${escAttr(t(cat.label))||'(sans titre)'}</span>
-        <span class="ig-row-chevron">›</span>
-      </div>`).join('')}
+    <div class="ig-row" onclick="openFormulePane('infos')">
+      <span class="ig-row-label"><span>Titre et sous-titre du menu</span></span>
+      <span class="ig-row-chevron">›</span>
+    </div>
+    <div class="ig-row" onclick="openFormulePane('sections')">
+      <span class="ig-row-label"><span>Sections et plats du menu</span></span>
+      <span class="ig-row-chevron">›</span>
+    </div>
+    <div class="ig-row" onclick="formuleTunerOpen('${f.id}','formuleTitleColor','formuleTitlePct','Titre')">
+      <span class="ig-row-label"><span>Exporter le menu</span><span class="ig-row-hint">Police, taille, alignement et couleurs des textes</span></span>
+      <span class="ig-row-chevron">›</span>
+    </div>
   </div>
-  <div class="ig-list" style="margin-top:10px"><div class="ig-row" style="justify-content:center" onclick="formule_addCategory('${f.id}')"><span style="color:var(--ig-green);font-weight:500">Ajouter une section</span></div></div>
 
   ${(ensureGalleryFontsLoaded(),'')}
   ${sectionHeader('Personnalisation')}
@@ -7684,52 +7745,12 @@ function renderFormuleDetail(f){
     </div>
     <span class="ig-row-chevron">›</span>
   </div>
-  ${(()=>{
-    // Deux boutons "centré / à gauche" plutôt qu'un interrupteur : on
-    // voit d'un coup d'œil le réglage actif et ce qu'il fait, là où un
-    // interrupteur obligeait à déduire le contraire de son libellé.
-    const CENTER=`<svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="4" width="18" height="2.4" rx="1.2"/><rect x="6.5" y="9" width="11" height="2.4" rx="1.2"/><rect x="3" y="14" width="18" height="2.4" rx="1.2"/><rect x="6.5" y="19" width="11" height="2.4" rx="1.2"/></svg>`, LEFT=`<svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="4" width="18" height="2.4" rx="1.2"/><rect x="3" y="9" width="11" height="2.4" rx="1.2"/><rect x="3" y="14" width="18" height="2.4" rx="1.2"/><rect x="3" y="19" width="11" height="2.4" rx="1.2"/></svg>`;
-    const picker=(field, isLeft, label)=>`
-      <div class="ig-row" style="cursor:default">
-        <span class="ig-row-label">${label}</span>
-        <div class="ig-align-group">
-          <button type="button" class="ig-align-btn${isLeft?' active':''}" title="Aligné à gauche" onclick="formule_setAlign(this,'${f.id}','${field}',true)">${LEFT}</button>
-          <button type="button" class="ig-align-btn${isLeft?'':' active'}" title="Centré" onclick="formule_setAlign(this,'${f.id}','${field}',false)">${CENTER}</button>
-        </div>
-      </div>`;
-    return `<div class="ig-list" style="margin-top:10px">
-      ${picker('alignTitleLeft', !!f.alignTitleLeft, 'Alignement du titre et du sous-titre')}
-      ${picker('alignContentLeft', !!f.alignContentLeft, 'Alignement des sections et des plats')}
-    </div>`;
-  })()}
-
   <div class="ig-panel-card" style="display:flex;gap:10px;align-items:flex-start;margin-top:10px">
     ${caseSel({label:'Nom des sections', field:'catCase'}, f.catCase==='lower'?'lower':'upper')}
     ${caseSel({label:'Nom des plats', field:'nameCase'}, f.nameCase==='lower'?'lower':'upper')}
     ${caseSel({label:'Description', field:'descCase'}, f.descCase==='upper'?'upper':'lower')}
   </div>
-
-  ${sectionHeader('Taille du texte et couleur')}
-  ${colorRow(f)}
-
-  ${sectionHeader('Aperçu et export')}
-  <div class="af formule-preview-wrap">
-    <div id="formuleCarousel-${f.id}" style="display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:4px">
-      ${['a4','story','post'].map(variant=>`
-        <div style="flex:0 0 80%;scroll-snap-align:start">
-          <div style="font-size:11.5px;color:var(--ig-text-dimmer);margin-bottom:6px;text-align:center">${variant==='a4'?'A4':variant==='post'?'Post':'Story'}</div>
-          <div style="border-radius:10px;overflow:hidden;background:#fff">
-            <iframe class="formule-preview-frame" data-fid="${f.id}" data-variant="${variant}" style="width:100%;aspect-ratio:1 / ${variant==='a4'?INSTA_A4_RATIO:variant==='post'?INSTA_POST_RATIO:INSTA_RATIO};border:none;display:block;background:#fff"></iframe>
-          </div>
-        </div>
-      `).join('')}
-    </div>
-  </div>
-  <div style="display:flex;gap:8px;margin-top:12px">
-    <button class="aadd ig-solid-action-btn" style="flex:1;padding:13px;font-size:13.5px;font-weight:700;color:var(--ig-text)" onclick="formule_exportInsta('${f.id}','a4')">A4</button>
-    <button class="aadd ig-solid-action-btn" style="flex:1;padding:13px;font-size:13.5px;font-weight:700;color:var(--ig-text)" onclick="formule_exportInsta('${f.id}','story')">Story</button>
-    <button class="aadd ig-solid-action-btn" style="flex:1;padding:13px;font-size:13.5px;font-weight:700;color:var(--ig-text)" onclick="formule_exportInsta('${f.id}','post')">Post</button>
-  </div>
+  <div class="ig-list" style="margin-top:10px"><div class="ig-row" style="justify-content:center" onclick="formule_resetColors('${f.id}')"><span style="color:var(--ig-accent);font-weight:500">Réinitialiser les couleurs</span></div></div>
 
   <div class="ig-list" style="margin-top:34px">
     <div class="ig-row" onclick="askConfirm('Supprimer la formule « ${(f.name||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")} » ?',()=>{formule_delete('${f.id}');closeFormule();})">
@@ -7748,7 +7769,7 @@ function renderFormuleCatDetail(f, cat){
   // retour.
   let h = `
   <div class="ig-stack-field">
-    <span class="ig-stack-label">Nom de la catégorie</span>
+    <span class="ig-stack-label">Nom de la section</span>
     <input class="ai" value="${escAttr(t(cat.label)||'')}" placeholder="Ex : Entrée" oninput="formule_renameCategory('${f.id}','${cat.id}',this.value)">
   </div>
   <div class="admin-card">
@@ -7772,9 +7793,9 @@ function renderFormuleCatDetail(f, cat){
     </div>
   </div>
   <div class="ig-list" style="margin-top:10px"><div class="ig-row" style="justify-content:center" onclick="formule_addDish('${f.id}','${cat.id}')"><span style="color:var(--ig-green);font-weight:500">Ajouter un plat</span></div></div>
-  <div class="ig-group-label" style="margin:34px 0 8px 4px;display:block;color:var(--ig-text-dimmer)!important">Gestion de la catégorie</div>
+  <div class="ig-group-label" style="margin:34px 0 8px 4px;display:block;color:var(--ig-text-dimmer)!important">Gestion de la section</div>
   <div class="ig-list">
-    <div class="ig-row" onclick="askConfirm('Supprimer cette catégorie et tous ses plats ?',()=>{formule_removeCategory('${f.id}','${cat.id}');closeFormuleCat();})">
+    <div class="ig-row" onclick="askConfirm('Supprimer cette section et tous ses plats ?',()=>{formule_removeCategory('${f.id}','${cat.id}');closeFormuleCat();})">
       <span class="ig-row-icon" style="color:var(--ig-red)">${TRASH_SVG}</span>
       <span class="ig-row-label" style="color:var(--ig-red)">Supprimer la catégorie</span>
     </div>
@@ -8979,10 +9000,15 @@ function adminCrumbParts(row){
     const f=(DATA.formules||[]).find(x=>x.id===formuleOpen);
     const parts=[{label:row.label, go:'closeFormule()'}];
     if(!f) return parts;
+    const PANE_LABELS={infos:'Titre et sous-titre', sections:'Sections et plats'};
     if(formuleCatOpen){
       const cat=(f.tabs||[]).find(c=>c.id===formuleCatOpen);
-      parts.push({label:f.name||'(sans nom)', go:'closeFormuleCat()'});
-      parts.push({label:(cat&&t(cat.label))||'Catégorie'});
+      parts.push({label:f.name||'(sans nom)', go:'closeFormulePane()'});
+      parts.push({label:PANE_LABELS.sections, go:'closeFormuleCat()'});
+      parts.push({label:(cat&&t(cat.label))||'Section'});
+    } else if(formulePane){
+      parts.push({label:f.name||'(sans nom)', go:'closeFormulePane()'});
+      parts.push({label:PANE_LABELS[formulePane]||''});
     } else {
       parts.push({label:f.name||'(sans nom)'});
     }
