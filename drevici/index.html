@@ -631,7 +631,9 @@ body.ig-admin-light{
 .formule-tuner.open{display:flex}
 body.tuner-open{overflow:hidden}
 .formule-tuner-bar{display:flex;align-items:center;gap:8px;padding:12px 14px;padding-top:max(12px,env(safe-area-inset-top));flex:none}
-.formule-tuner-select{flex:1;min-width:0;max-width:220px;margin:0 auto;text-align:center;text-align-last:center;color:var(--ig-text);font-family:'Inter',sans-serif;font-size:15px;font-weight:600;background:var(--ig-card);border:none;border-radius:10px;height:34px;padding:0 12px;cursor:pointer;outline:none;-webkit-appearance:none;appearance:none}
+.formule-tuner-select{flex:1;min-width:0;max-width:220px;margin:0 auto;text-align:center;text-align-last:center;color:var(--ig-text);font-family:'Inter',sans-serif;font-size:15px;font-weight:600;background:var(--ig-card);border:none;border-radius:10px;height:34px;padding:0 12px;cursor:pointer;outline:none;-webkit-appearance:none;appearance:none;padding-right:30px;background-repeat:no-repeat;background-position:right 10px center;background-size:12px}
+body.ig-admin-dark .formule-tuner-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ececec' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")}
+body.ig-admin-light .formule-tuner-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231C1C1E' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")}
 .formule-tuner-btn{width:34px;height:34px;flex:none;border:none;border-radius:50%;background:var(--ig-card);color:var(--ig-text-dim);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s,color .12s}
 .formule-tuner-btn:active{background:var(--ig-row-hover)}
 .formule-tuner-btn.is-ok{background:var(--ig-green);color:#fff;font-size:16px;font-weight:700}
@@ -658,10 +660,10 @@ body.tuner-open{overflow:hidden}
 /* Piste à graduations : on voit à quel cran on se trouve, et on peut
    viser un trait directement. */
 .formule-size-track{position:relative;flex:1;min-width:0;height:34px;display:flex;align-items:center}
-.formule-size-ticks{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;pointer-events:none;padding:0 9px}
-.formule-size-ticks span{width:2px;height:10px;border-radius:1px;background:var(--ig-bg);opacity:.9}
-.formule-size-ticks span:nth-child(3){height:16px;background:var(--ig-text-dimmer);opacity:1}
-.formule-size-track input[type="range"]{position:relative;z-index:1;width:100%;-webkit-appearance:none;appearance:none;background:transparent;border:none;outline:none;height:34px;margin:0}
+.formule-size-ticks{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:space-between;pointer-events:none;padding:0 9px}
+.formule-size-ticks span{width:2px;height:14px;border-radius:1px;background:var(--ig-text-dimmer)}
+.formule-size-ticks span:nth-child(3){height:20px;background:var(--ig-text)}
+.formule-size-track input[type="range"]{position:relative;z-index:3;width:100%;-webkit-appearance:none;appearance:none;background:transparent;border:none;outline:none;height:34px;margin:0}
 .formule-size-track input[type="range"]::-webkit-slider-runnable-track{height:4px;border:none;border-radius:2px;background:var(--ig-track)}
 .formule-size-track input[type="range"]::-moz-range-track{height:4px;border:none;border-radius:2px;background:var(--ig-track)}
 .formule-size-track input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border:none;border-radius:50%;background:var(--ig-accent);margin-top:-8px;box-shadow:0 1px 4px rgba(0,0,0,.3)}
@@ -4809,7 +4811,9 @@ function tunerStepValue(pct){ return TUNER_STEPS[tunerStepIndexFor(pct)]; }
 function tunerRatioFor(v){ return v==='a4' ? INSTA_A4_RATIO : v==='post' ? INSTA_POST_RATIO : INSTA_RATIO; }
 function tunerStepIndexFor(pct){
   const p = pct ?? 100;
-  let best=2, d=Infinity;
+  const min=TUNER_STEPS[0], max=TUNER_STEPS[TUNER_STEPS.length-1];
+  if(p<min || p>max) return TUNER_STEPS.indexOf(100); // hors échelle = neutre
+  let best=TUNER_STEPS.indexOf(100), d=Infinity;
   TUNER_STEPS.forEach((v,i)=>{ const dd=Math.abs(v-p); if(dd<d){ d=dd; best=i; } });
   return best;
 }
@@ -4915,6 +4919,11 @@ function formuleTunerCancel(){
   formuleTunerClose();
   renderAdminSection(adminCurrentTab);
 }
+let _formuleFullTimer=null;
+function formule_scheduleFullPreview(){
+  clearTimeout(_formuleFullTimer);
+  _formuleFullTimer=setTimeout(()=>{ if(typeof initFormulePreviewFrames==='function') initFormulePreviewFrames(); },90);
+}
 let _formuleFastTimer=null;
 function formule_scheduleFastPreview(){
   clearTimeout(_formuleFastTimer);
@@ -5005,7 +5014,15 @@ function formule_setField(fid, field, value){
   // donc reconstruisait les trois aperçus à CHAQUE pixel parcouru par
   // un curseur de taille — d'où le glissement dur. On regroupe les
   // rafraîchissements, assez court pour rester instantané au clic.
-  formule_scheduleFastPreview();
+  // BUG FIX (les tailles ne changeaient pas) : la mise à jour à chaud
+  // ne remplace que la feuille de style, or les tailles des plats et
+  // des sections sont écrites EN DUR dans le HTML généré (l'ajustement
+  // automatique calcule une taille par ligne pour qu'elle tienne).
+  // Une nouvelle CSS ne pouvait donc rien changer — seul l'espacement
+  // bougeait. Les réglages de taille reconstruisent l'aperçu ; les
+  // couleurs et l'alignement, purement CSS, gardent la voie rapide.
+  if(typeof key==='string' && /Pct$/.test(key)) formule_scheduleFullPreview();
+  else formule_scheduleFastPreview();
   scheduleAutoSave(true);
 }
 function formule_addCategory(fid){
@@ -7642,7 +7659,7 @@ function renderFormuleDetail(f){
     ${caseSel({label:'Description', field:'descCase'}, f.descCase==='upper'?'upper':'lower')}
   </div>
 
-  ${sectionHeader('Choisir la taille du texte et les couleurs')}
+  ${sectionHeader('Taille du texte et couleur')}
   ${colorRow(f)}
 
   ${sectionHeader('Aperçu et export')}
