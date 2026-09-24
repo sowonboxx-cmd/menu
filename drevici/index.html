@@ -612,6 +612,11 @@ body.ig-admin-light{
   --ig-shadow:0 1px 2px rgba(0,0,0,.08); --ig-row-hover:#EAEAEF; --ig-hairline:#D8D8DE;
 }
 .ig-page{min-height:100%}
+/* Sélecteur d'alignement : deux icônes côte à côte, l'active remplie. */
+.ig-align-group{display:flex;gap:4px;flex:none;background:var(--ig-bg);border-radius:9px;padding:3px}
+.ig-align-btn{width:32px;height:28px;flex:none;border:none;border-radius:7px;background:transparent;color:var(--ig-text-dimmer);cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;transition:background .12s,color .12s}
+.ig-align-btn svg{width:16px;height:16px}
+.ig-align-btn.active{background:var(--ig-card);color:var(--ig-text)}
 /* Curseurs : ils héritaient du style générique des champs (bordure
    grise + anneau de focus), ce qui leur dessinait un cadre autour de
    la piste. On les sort de ce moule et on dessine piste + poignée. */
@@ -4763,7 +4768,7 @@ function formule_setField(fid, field, value){
 function formule_addCategory(fid){
   const f = DATA.formules.find(x=>x.id===fid);
   if(!f) return;
-  f.tabs.push({ id: f.id+'-cat'+(f.tabs.length+1)+'-'+Date.now(), label:{fr:'Nouvelle catégorie'}, cards:[{ label:{fr:''}, dishes:[] }], _expanded:true });
+  f.tabs.push({ id: f.id+'-cat'+(f.tabs.length+1)+'-'+Date.now(), label:{fr:'Nouvelle section'}, cards:[{ label:{fr:''}, dishes:[] }], _expanded:true });
   renderAdminSection('__global');
   scheduleAutoSave(true);
 }
@@ -7357,7 +7362,7 @@ function renderFormuleDetail(f){
         <span class="ig-row-chevron">›</span>
       </div>`).join('')}
   </div>
-  <div class="ig-list" style="margin-top:10px"><div class="ig-row" style="justify-content:center" onclick="formule_addCategory('${f.id}')"><span style="color:var(--ig-green);font-weight:500">Ajouter un élément</span></div></div>
+  <div class="ig-list" style="margin-top:10px"><div class="ig-row" style="justify-content:center" onclick="formule_addCategory('${f.id}')"><span style="color:var(--ig-green);font-weight:500">Ajouter une section</span></div></div>
 
   ${(ensureGalleryFontsLoaded(),'')}
   ${sectionHeader('Personnalisation')}
@@ -7368,16 +7373,24 @@ function renderFormuleDetail(f){
     </div>
     <span class="ig-row-chevron">›</span>
   </div>
-  <div class="ig-list" style="margin-top:10px">
-    <div class="ig-row" style="cursor:default">
-      <span class="ig-row-label">Aligner le titre et le texte libre à gauche</span>
-      <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${f.alignTitleLeft?'checked':''} onchange="formule_setField('${f.id}','alignTitleLeft',this.checked)"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
-    </div>
-    <div class="ig-row" style="cursor:default">
-      <span class="ig-row-label">Aligner les sections et les plats à gauche</span>
-      <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${f.alignContentLeft?'checked':''} onchange="formule_setField('${f.id}','alignContentLeft',this.checked)"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
-    </div>
-  </div>
+  ${(()=>{
+    // Deux boutons "centré / à gauche" plutôt qu'un interrupteur : on
+    // voit d'un coup d'œil le réglage actif et ce qu'il fait, là où un
+    // interrupteur obligeait à déduire le contraire de son libellé.
+    const CENTER=`<svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="4" width="18" height="2.4" rx="1.2"/><rect x="6.5" y="9" width="11" height="2.4" rx="1.2"/><rect x="3" y="14" width="18" height="2.4" rx="1.2"/><rect x="6.5" y="19" width="11" height="2.4" rx="1.2"/></svg>`, LEFT=`<svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="4" width="18" height="2.4" rx="1.2"/><rect x="3" y="9" width="11" height="2.4" rx="1.2"/><rect x="3" y="14" width="18" height="2.4" rx="1.2"/><rect x="3" y="19" width="11" height="2.4" rx="1.2"/></svg>`;
+    const picker=(field, isLeft, label)=>`
+      <div class="ig-row" style="cursor:default">
+        <span class="ig-row-label">${label}</span>
+        <div class="ig-align-group">
+          <button type="button" class="ig-align-btn${isLeft?'':' active'}" title="Centré" onclick="formule_setField('${f.id}','${field}',false);renderAdminSection(adminCurrentTab)">${CENTER}</button>
+          <button type="button" class="ig-align-btn${isLeft?' active':''}" title="Aligné à gauche" onclick="formule_setField('${f.id}','${field}',true);renderAdminSection(adminCurrentTab)">${LEFT}</button>
+        </div>
+      </div>`;
+    return `<div class="ig-list" style="margin-top:10px">
+      ${picker('alignTitleLeft', !!f.alignTitleLeft, 'Alignement du titre et sous-titre')}
+      ${picker('alignContentLeft', !!f.alignContentLeft, 'Alignement des sections et des plats')}
+    </div>`;
+  })()}
 
   <div class="ig-panel-card" style="display:flex;gap:10px;align-items:flex-start;margin-top:10px">
     ${caseSel({label:'Nom des sections', field:'catCase'}, f.catCase==='lower'?'lower':'upper')}
