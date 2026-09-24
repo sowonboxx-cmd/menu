@@ -654,6 +654,7 @@ body.ig-admin-light .formule-tuner-select{background-image:url("data:image/svg+x
 .formule-tuner-font{width:40px;height:40px;flex:none;border:none;border-radius:9px;background:var(--ig-bg);color:var(--ig-text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
 .formule-tuner-font svg{width:19px;height:19px}
 .formule-tuner-font:active{color:var(--ig-text)}
+.formule-tuner-font.active{background:var(--ig-accent);color:#fff}
 /* L'aperçu prend toute la hauteur restante : c'est lui qu'on regarde. */
 .formule-tuner-stage{flex:1;min-height:0;overflow:hidden}
 /* Les trois formats côte à côte, balayables, avec accroche. */
@@ -1318,6 +1319,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
     <div class="formule-tuner-row">
       <select class="formule-tuner-select" id="formuleTunerSelect" onchange="formuleTunerSwitch(this.value)"></select>
       <div id="formuleTunerAlign"></div>
+      <button type="button" class="formule-tuner-font" id="formuleTunerGap" title="Espace entre les plats" onclick="formuleTunerToggleGap()"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 2.6 2.2 5.6a.8.8 0 0 0 1.2 1.1L4.2 5.8v12.4l-.8-.9a.8.8 0 1 0-1.2 1.1L5 21.4l2.8-3a.8.8 0 1 0-1.2-1.1l-.8.9V5.8l.8.9a.8.8 0 1 0 1.2-1.1L5 2.6Z"/><rect x="10" y="4" width="12" height="2.2" rx="1.1"/><rect x="10" y="9" width="8" height="2.2" rx="1.1"/><rect x="10" y="14" width="12" height="2.2" rx="1.1"/><rect x="10" y="19" width="8" height="2.2" rx="1.1"/></svg></button>
       <button type="button" class="formule-tuner-font" id="formuleTunerFont" title="Choisir la police" onclick="formuleTunerPickFont()"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.6 20 7.4 5.4h2.9L15.1 20h-2.5l-1.1-3.5H6.2L5.1 20H2.6Zm4.2-5.5h3.9L8.8 8.2 6.8 14.5Z"/><path d="M19.9 20v-1.1a3 3 0 0 1-2.3 1.3c-1.7 0-2.9-1.1-2.9-2.7 0-1.8 1.3-2.8 3.6-2.8h1.5v-.4c0-1-.5-1.5-1.6-1.5-.9 0-1.5.4-1.7 1.1l-1.9-.5c.4-1.5 1.7-2.4 3.7-2.4 2.3 0 3.6 1.1 3.6 3.2V20h-2Zm-.1-3.9h-1.4c-1.1 0-1.7.4-1.7 1.2 0 .7.5 1.1 1.3 1.1.9 0 1.6-.5 1.8-1.3v-1Z"/></svg></button>
     </div>
     <div id="formuleTunerCtrl"></div>
@@ -4904,6 +4906,18 @@ function tunerSetStep(idx){
 }
 // Les boutons − / + déplacent le curseur d'un cran : on peut viser le
 // trait directement ou passer par eux, au choix.
+function tunerSetGap(idx){
+  if(!_tunerState) return;
+  formule_setField(_tunerState.fid, 'dishGapPct', TUNER_STEPS[idx]);
+}
+function tunerNudgeGap(dir){
+  const r=document.getElementById('formuleTunerRange');
+  if(!r) return;
+  const next=Math.max(0, Math.min(TUNER_STEPS.length-1, parseInt(r.value,10)+dir));
+  if(next===parseInt(r.value,10)) return;
+  r.value=next;
+  tunerSetGap(next);
+}
 function tunerNudge(dir){
   const r=document.getElementById('formuleTunerRange');
   if(!r) return;
@@ -4932,7 +4946,32 @@ function formuleTunerRenderAlign(f, key){
     <button type="button" class="ig-align-btn${isLeft?'':' active'}" title="Centré" onclick="formule_setAlign(this,'${f.id}','${field}',false)">${CENTER}</button>
   </div>`;
 }
+// L'icône d'espacement bascule ce que règle le pas du bas : la taille
+// du texte, ou l'écart entre les plats. Un seul curseur, deux usages —
+// plutôt qu'une ligne de plus qui mangerait l'aperçu.
+let _tunerGapMode=false;
+function formuleTunerToggleGap(){
+  _tunerGapMode=!_tunerGapMode;
+  const btn=document.getElementById('formuleTunerGap');
+  if(btn) btn.classList.toggle('active', _tunerGapMode);
+  const f=DATA.formules.find(x=>x.id===_tunerState.fid);
+  if(f) formuleTunerRenderCtrl(f, _tunerState.key, _tunerState.sizeKey);
+}
 function formuleTunerRenderCtrl(f, key, sizeKey){
+  if(_tunerGapMode){
+    document.getElementById('formuleTunerCtrl').innerHTML=`
+      <div class="formule-tuner-row">
+        <div class="formule-size-steps">
+          <button type="button" class="formule-size-btn" onclick="tunerNudgeGap(-1)">−</button>
+          <div class="formule-size-track">
+            <div class="formule-size-ticks">${TUNER_STEPS.map(()=>'<span></span>').join('')}</div>
+            <input type="range" id="formuleTunerRange" min="0" max="${TUNER_STEPS.length-1}" step="1" value="${tunerStepIndexFor(f.dishGapPct)}" oninput="tunerSetGap(parseInt(this.value,10))">
+          </div>
+          <button type="button" class="formule-size-btn" onclick="tunerNudgeGap(1)">+</button>
+        </div>
+      </div>`;
+    return;
+  }
   const colorVal = f[key] || formule_defaultColorFor(key);
   document.getElementById('formuleTunerCtrl').innerHTML=`
     <div class="formule-tuner-row">
@@ -5064,7 +5103,7 @@ function formule_setField(fid, field, value){
   // Une nouvelle CSS ne pouvait donc rien changer — seul l'espacement
   // bougeait. Les réglages de taille reconstruisent l'aperçu ; les
   // couleurs et l'alignement, purement CSS, gardent la voie rapide.
-  if(typeof field==='string' && /Pct$/.test(field)) formule_scheduleFullPreview();
+  if(typeof field==='string' && /Pct$/.test(field) && field!=='dishGapPct') formule_scheduleFullPreview();
   else formule_scheduleFastPreview();
   scheduleAutoSave(true);
 }
@@ -5229,6 +5268,7 @@ function formule_buildCfg(f){
     instaMenuSize: Math.round(base.instaMenuSize||21),
     instaDescSize: Math.round((base.instaDescSize||19) * 1.10),
     fmtPct: { title: f.titleSizePct ?? 100, menu: f.menuSizePct ?? 100, desc: f.descSizePct ?? 100 },
+    dishGapPct: f.dishGapPct ?? 100,
     // BUG FIX : le titre et le sous-titre se calculaient à partir des
     // tailles ci-dessus, donc "Sections" déplaçait aussi le titre et
     // "Description" déplaçait aussi le sous-titre. On repart des
@@ -6508,7 +6548,7 @@ function buildInstaCSS(cfg, ratio){
   .pdf-cat + .pdf-subcat{margin-top:15px}
   ${cfg.tabsSource ? '.pdf-dish + .pdf-cat{margin-top:34px}' : ''}
   .pdf-subcat{font-family:'${font}',serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.06em;color:${cfg.menuFrameColor||gold};margin:30px 0 18px}
-  .pdf-dish{margin-bottom:calc(${cfg.tabsSource?7.05:30}px * var(--space-scale));width:100%}
+  .pdf-dish{margin-bottom:calc(${cfg.tabsSource?(7.05*((cfg.dishGapPct ?? 100)/100)).toFixed(2):30}px * var(--space-scale));width:100%}
   ${cfg.tabsSource ? '' : `.pdf-dish + .pdf-dish::before{content:'';display:block;width:64px;height:1px;background:${cfg.menuInstaSepColor||gold};margin:0 auto calc(26px * var(--space-scale));opacity:.8}`}
     /* BUG FIX (écarts inégaux entre les plats) : chaque nom reçoit sa
      propre taille de police pour tenir sur une ligne, ce qui changeait
@@ -6520,7 +6560,7 @@ function buildInstaCSS(cfg, ratio){
   .pdf-dish-line-cont{margin-top:2px}
   .pdf-dish-name{font-family:'${font}',serif;font-weight:800;font-size:${menuSize}px;text-transform:${cfg.tabsSource?'none':'uppercase'};letter-spacing:.01em;color:${menuColor}}
   .pdf-dots,.pdf-dots-off{display:none}
-  .pdf-dish-price{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${Math.max(14,menuSize-1)}px;color:${menuColor}}
+  .pdf-dish-price{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${cfg.tabsSource?Math.max(10,menuSize-1):Math.max(14,menuSize-1)}px;line-height:inherit;color:${menuColor}}
   .pdf-dish-desc{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${descSize}px;line-height:1.35;color:${descColor};margin-top:6px;max-width:76%;margin-left:auto;margin-right:auto;text-wrap:balance}
   .pdf-footer{display:none}
   /* Menus et Formules uniquement — titre + texte libre optionnels,
@@ -6785,9 +6825,14 @@ function buildFormulePage(cfg, ratio){
   // le réglage de l'utilisateur s'applique toujours.
   const pct = cfg.fmtPct;
   if(pct && (pct.title!==100 || pct.menu!==100 || pct.desc!==100)){
-    if(pct.desc!==100){
+    // BUG FIX (prix plus gros que les noms) : seuls les noms étaient
+    // mis à l'échelle. Le prix, lui, gardait sa taille et un plancher,
+    // donc il ressortait dès qu'on réduisait. On rebâtit la CSS avec
+    // la taille des plats corrigée : le prix la suit.
+    if(pct.desc!==100 || pct.menu!==100){
       finalCss = buildInstaCSS({ ...cfg,
-        instaTitleSize: baseTitleSize, instaMenuSize: baseMenuSize,
+        instaTitleSize: baseTitleSize,
+        instaMenuSize: Math.max(8, Math.round(baseMenuSize*pct.menu/100)),
         instaDescSize: Math.max(8, Math.round(baseDescSize*pct.desc/100))
       }, ratio);
     }
@@ -7966,10 +8011,15 @@ html,body{overflow:hidden;margin:0}
 <script>
 (function(){
   function fit(){
+    // BUG FIX (cadre coupé à droite) : la mise à l'échelle ne tenait
+    // compte que de la largeur. Dès que la hauteur disponible était la
+    // contrainte la plus serrée, le contenu débordait. On prend la
+    // plus petite des deux et on recentre.
     var vw = document.documentElement.clientWidth;
-    var scale = vw / ${pageW};
+    var vh = document.documentElement.clientHeight;
+    var scale = Math.min(vw / ${pageW}, vh / ${pageH});
     var stage = document.getElementById('stage');
-    stage.style.transform = 'scale(' + scale + ')';
+    stage.style.transform = 'translateX(' + ((vw - ${pageW} * scale) / 2) + 'px) scale(' + scale + ')';
     document.body.style.height = (${pageH} * scale) + 'px';
   }
   fit();
