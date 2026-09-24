@@ -6543,10 +6543,10 @@ function buildInstaCSS(cfg, ratio){
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
   .pdf-page{--space-scale:1;font-family:'${font}',serif;color:${titleColor};background:${bg};width:${INSTA_RENDER_W}px;height:${Math.round(INSTA_RENDER_W*ratio)}px;padding:${padTop}px ${padSide}px;margin:0 auto;position:relative;overflow:hidden;text-align:center;display:flex;flex-direction:column;align-items:center}
   .pdf-page::before{content:'';position:absolute;inset:20px;border:1.5px solid ${gold};pointer-events:none}
-  .pdf-cat{font-family:'${font}',serif;font-weight:800;font-size:${catTitleSize}px;line-height:1.1;text-transform:${cfg.tabsSource?'none':'uppercase'};letter-spacing:.01em;color:${titleColor};margin-bottom:${cfg.tabsSource?13.2:44}px;border:none}
+  .pdf-cat{font-family:'${font}',serif;font-weight:800;font-size:${catTitleSize}px;line-height:1.1;text-transform:${cfg.tabsSource?'none':'uppercase'};letter-spacing:.01em;color:${titleColor};margin-bottom:${cfg.tabsSource?'calc(13.2px * var(--space-scale))':'44px'};border:none}
   .pdf-cat:has(+ .pdf-subcat){margin-bottom:22px}
   .pdf-cat + .pdf-subcat{margin-top:15px}
-  ${cfg.tabsSource ? '.pdf-dish + .pdf-cat{margin-top:34px}' : ''}
+  ${cfg.tabsSource ? '.pdf-dish + .pdf-cat{margin-top:calc(34px * var(--space-scale))}' : ''}
   .pdf-subcat{font-family:'${font}',serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.06em;color:${cfg.menuFrameColor||gold};margin:30px 0 18px}
   .pdf-dish{margin-bottom:calc(${cfg.tabsSource?(7.05*((cfg.dishGapPct ?? 100)/100)).toFixed(2):30}px * var(--space-scale));width:100%}
   ${cfg.tabsSource ? '' : `.pdf-dish + .pdf-dish::before{content:'';display:block;width:64px;height:1px;background:${cfg.menuInstaSepColor||gold};margin:0 auto calc(26px * var(--space-scale));opacity:.8}`}
@@ -6842,6 +6842,28 @@ function buildFormulePage(cfg, ratio){
     finalHtml = scaleInline(finalHtml, 'pdf-cat', pct.title);
     finalHtml = scaleInline(finalHtml, 'pdf-dish-name', pct.menu);
   }
+
+  // Rattrapage : l'ajustement automatique a choisi son échelle AVANT
+  // que les réglages de l'utilisateur soient appliqués, donc un menu
+  // très agrandi peut désormais déborder du cadre. On resserre alors
+  // les écarts — entre les plats, et entre une section et ses plats —
+  // jusqu'à ce que tout rentre. La taille du texte, elle, n'est jamais
+  // touchée : c'est le choix de l'utilisateur, il doit être respecté.
+  try{
+    const styleEl=holder.querySelector('style');
+    if(styleEl) styleEl.textContent=finalCss;
+    // measureEl est local à la boucle ci-dessus : on le reprend ici.
+    const measure=holder.querySelector('#__instaMeasure');
+    if(!measure) throw 0;
+    measure.innerHTML=finalHtml;
+    const TIGHTEN=[finalScale, 0.9, 0.8, 0.7, 0.6, 0.5, 0.42, 0.34, 0.28, 0.22, 0.16];
+    for(const sc of TIGHTEN){
+      if(sc>finalScale) continue;
+      measure.style.setProperty('--space-scale', sc);
+      if(measure.offsetHeight <= pageH){ finalScale = sc; break; }
+      finalScale = sc; // même au plancher, on garde le plus serré
+    }
+  }catch(e){}
 
   document.body.removeChild(holder);
   return { pages: [{ html: finalHtml, spaceScale: finalScale, tabLabel: 'formule' }], css: finalCss };
