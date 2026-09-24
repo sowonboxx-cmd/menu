@@ -617,22 +617,35 @@ body.ig-admin-light{
 .ig-align-btn{width:32px;height:28px;flex:none;border:none;border-radius:7px;background:transparent;color:var(--ig-text-dimmer);cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;transition:background .12s,color .12s}
 .ig-align-btn svg{width:16px;height:16px}
 .ig-align-btn.active{background:var(--ig-card);color:var(--ig-text)}
-/* Mise au point pendant le réglage (mobile) : l'aperçu se colle sous
-   l'en-tête et seule la ligne manipulée reste visible, pour voir
-   l'effet sans avoir à faire défiler la page. */
+/* ── Écran de réglage plein écran ────────────────────────────────── */
+.formule-tuner{position:fixed;inset:0;z-index:9500;display:none;flex-direction:column;background:var(--ig-bg)}
+.formule-tuner.open{display:flex}
+body.tuner-open{overflow:hidden}
+.formule-tuner-bar{display:flex;align-items:center;gap:8px;padding:12px 14px;padding-top:max(12px,env(safe-area-inset-top));flex:none}
+.formule-tuner-title{flex:1;min-width:0;color:var(--ig-text);font-family:'Inter',sans-serif;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.formule-tuner-btn{width:36px;height:36px;flex:none;border:none;border-radius:10px;background:var(--ig-card);color:var(--ig-text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.formule-tuner-btn.is-ok{background:var(--ig-green);color:#fff;font-weight:700}
+/* L'aperçu prend toute la hauteur restante : c'est lui qu'on regarde. */
+.formule-tuner-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:0 14px}
+.formule-tuner-stage iframe{height:100%;aspect-ratio:1 / 1.7778;max-width:100%;border:none;border-radius:12px;background:#fff;display:block}
+/* Le réglage reste en bas, sous le pouce. */
+.formule-tuner-ctrl{flex:none;padding:14px;padding-bottom:max(14px,env(safe-area-inset-bottom));background:var(--ig-card);border-radius:16px 16px 0 0;margin-top:12px}
+.formule-tuner-row{display:flex;align-items:center;gap:12px;padding:6px 2px}
+.formule-tuner-row + .formule-tuner-row{margin-top:6px}
+.formule-tuner-label{flex:0 0 64px;color:var(--ig-text-dim);font-family:'Jost',sans-serif;font-size:13px}
+.formule-tuner-row input[type="range"]{flex:1;min-width:0;-webkit-appearance:none;appearance:none;background:transparent;border:none;outline:none;height:26px}
+.formule-tuner-row input[type="range"]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:var(--ig-track)}
+.formule-tuner-row input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--ig-accent);margin-top:-9px;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.formule-tuner-row input[type="range"]::-moz-range-track{height:4px;border-radius:2px;background:var(--ig-track)}
+.formule-tuner-row input[type="range"]::-moz-range-thumb{width:22px;height:22px;border:none;border-radius:50%;background:var(--ig-accent)}
+.formule-tuner-row input[type="color"]{width:30px;height:30px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer;background:none}
+.formule-tuner-pct{flex:none;min-width:40px;text-align:right;color:var(--ig-text-dimmer);font-size:12px}
+/* Sur mobile, la ligne ouvre l'écran dédié : ses contrôles en ligne
+   feraient doublon et rendraient le tap imprécis. */
 @media(max-width:640px){
-  body.formule-focus .formule-preview-wrap{
-    position:fixed;top:58px;left:10px;right:10px;z-index:60;margin:0;
-    background:var(--ig-bg);border-radius:12px;padding:8px;
-    box-shadow:0 6px 18px rgba(0,0,0,.18);
-  }
-  /* Un seul format affiché : plus lisible en réduit, et trois fois
-     moins de rendu à chaque mouvement du curseur. */
-  body.formule-focus .formule-preview-wrap > div > div:not(:first-child){display:none}
-  body.formule-focus .formule-preview-wrap > div{overflow:visible}
-  body.formule-focus .formule-preview-wrap > div > div:first-child{flex:0 0 100%;max-width:150px;margin:0 auto}
-  body.formule-focus .formule-colors-list .formule-color-row:not(.is-active){display:none}
-  body.formule-focus .formule-colors-list{margin-top:190px}
+  .formule-color-row input[type="range"],
+  .formule-color-row > span[style*="min-width:34px"]{display:none}
+}
 }
 /* Curseurs : ils héritaient du style générique des champs (bordure
    grise + anneau de focus), ce qui leur dessinait un cadre autour de
@@ -1242,6 +1255,19 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 </div>
 
 <div class="ig-theme-menu" id="themeMenu"></div>
+
+<!-- Réglage d'une couleur / taille en plein écran (mobile) : l'aperçu
+     occupe tout le haut, le réglage seul est posé en bas sous le
+     pouce. Valider conserve, fermer annule. -->
+<div class="formule-tuner" id="formuleTuner">
+  <div class="formule-tuner-bar">
+    <span class="formule-tuner-title" id="formuleTunerTitle"></span>
+    <button type="button" class="formule-tuner-btn" id="formuleTunerCancel" title="Annuler" onclick="formuleTunerCancel()">✕</button>
+    <button type="button" class="formule-tuner-btn is-ok" title="Valider" onclick="formuleTunerValidate()">✓</button>
+  </div>
+  <div class="formule-tuner-stage"><iframe class="formule-preview-frame" id="formuleTunerFrame"></iframe></div>
+  <div class="formule-tuner-ctrl" id="formuleTunerCtrl"></div>
+</div>
 
 <!-- ADMIN -->
 <div class="admin-overlay" id="adminOverlay" onclick="closeAdmin()"></div>
@@ -4711,36 +4737,69 @@ function formule_ensureInit(){ if(!DATA.formules) DATA.formules = []; }
 // reconstruire l'aperçu à chaque frappe (buildFormulePage fait
 // plusieurs passes de mesure, ça ralentirait sinon).
 let _formulePreviewTimer = null;
-// Mode "mise au point" (mobile uniquement) : pendant qu'on manipule un
-// curseur de taille ou une pastille de couleur, les autres lignes
-// s'effacent et l'aperçu vient se coller en haut de l'écran. On ne
-// déplace rien dans le DOM — les iframes se rechargeraient — c'est
-// seulement leur positionnement qui change.
-let _formuleFocusTimer=null;
-function formuleFocusSupported(){ return window.matchMedia && window.matchMedia('(max-width:640px)').matches; }
-function formuleFocusOn(row){
-  if(!formuleFocusSupported() || !row) return;
-  clearTimeout(_formuleFocusTimer);
-  document.querySelectorAll('.formule-color-row.is-active').forEach(r=>r.classList.remove('is-active'));
-  row.classList.add('is-active');
-  document.body.classList.add('formule-focus');
+// ── Réglage plein écran d'une couleur / taille (mobile) ──────────
+// Toucher une ligne de "Couleurs et style" ouvre un écran dédié :
+// l'aperçu en grand tout en haut, le seul réglage concerné en bas
+// sous le pouce. Plus besoin de faire défiler pour voir l'effet.
+let _tunerState=null;
+function formuleTunerSupported(){ return window.matchMedia && window.matchMedia('(max-width:640px)').matches; }
+function formuleTunerOpen(fid, key, sizeKey, label){
+  const f = DATA.formules && DATA.formules.find(x=>x.id===fid);
+  if(!f) return;
+  // Instantané des valeurs, pour pouvoir annuler.
+  _tunerState={ fid, key, sizeKey, before:{ [key]: f[key], [sizeKey||'_']: sizeKey?f[sizeKey]:undefined } };
+  document.getElementById('formuleTunerTitle').textContent=label;
+  const frame=document.getElementById('formuleTunerFrame');
+  frame.dataset.fid=fid;
+  frame.dataset.variant='story';
+  const ratio=INSTA_RATIO;
+  const built=buildFormulePage(formule_buildCfg(f), ratio);
+  frame.srcdoc=buildPreviewSlideDoc(built.css, built.pages[0].html, built.pages[0].spaceScale, INSTA_RENDER_W, Math.round(INSTA_RENDER_W*ratio));
+  const pct = sizeKey ? (f[sizeKey] ?? 100) : null;
+  const colorVal = f[key] || formule_defaultColorFor(key);
+  document.getElementById('formuleTunerCtrl').innerHTML=`
+    <div class="formule-tuner-row">
+      <span class="formule-tuner-label">Couleur</span>
+      <input type="color" value="${colorVal}" oninput="formule_setColor('${fid}','${key}',this.value)">
+    </div>
+    ${sizeKey?`
+    <div class="formule-tuner-row">
+      <span class="formule-tuner-label">Taille</span>
+      <input type="range" min="50" max="150" step="1" value="${pct}" oninput="this.nextElementSibling.textContent=this.value+'%';formule_setField('${fid}','${sizeKey}',parseInt(this.value,10))">
+      <span class="formule-tuner-pct">${pct}%</span>
+    </div>`:''}`;
+  document.body.classList.add('tuner-open');
+  document.getElementById('formuleTuner').classList.add('open');
 }
-function formuleFocusOff(){
-  if(!document.body.classList.contains('formule-focus')) return;
-  clearTimeout(_formuleFocusTimer);
-  // Court délai : passer d'un curseur à l'autre ne doit pas faire
-  // clignoter l'aperçu.
-  _formuleFocusTimer=setTimeout(()=>{
-    document.body.classList.remove('formule-focus');
-    document.querySelectorAll('.formule-color-row.is-active').forEach(r=>r.classList.remove('is-active'));
-  },700);
+function formuleTunerClose(){
+  document.getElementById('formuleTuner').classList.remove('open');
+  document.body.classList.remove('tuner-open');
+  // L'iframe est vidée : laissée en place, elle continuerait d'être
+  // rafraîchie par les mises à jour à chaud pour rien.
+  const frame=document.getElementById('formuleTunerFrame');
+  frame.removeAttribute('data-fid');
+  frame.srcdoc='';
+  _tunerState=null;
 }
-document.addEventListener('pointerdown', e=>{
-  const row=e.target.closest && e.target.closest('.formule-color-row');
-  if(row && (e.target.type==='range' || e.target.type==='color')) formuleFocusOn(row);
-}, true);
-['pointerup','pointercancel'].forEach(ev=>document.addEventListener(ev, ()=>formuleFocusOff(), true));
-document.addEventListener('change', e=>{ if(e.target && e.target.type==='color') formuleFocusOff(); }, true);
+function formuleTunerValidate(){
+  scheduleAutoSave(true);
+  formuleTunerClose();
+  renderAdminSection(adminCurrentTab);
+}
+function formuleTunerCancel(){
+  if(_tunerState){
+    const f=DATA.formules.find(x=>x.id===_tunerState.fid);
+    if(f){
+      const b=_tunerState.before;
+      if(b[_tunerState.key]===undefined) delete f[_tunerState.key]; else f[_tunerState.key]=b[_tunerState.key];
+      if(_tunerState.sizeKey){
+        if(b[_tunerState.sizeKey]===undefined) delete f[_tunerState.sizeKey]; else f[_tunerState.sizeKey]=b[_tunerState.sizeKey];
+      }
+    }
+  }
+  formuleTunerClose();
+  renderAdminSection(adminCurrentTab);
+}
 let _formuleFastTimer=null;
 function formule_scheduleFastPreview(){
   clearTimeout(_formuleFastTimer);
@@ -4792,6 +4851,15 @@ function formule_setAlign(btn, fid, field, value){
   const group = btn.parentElement;
   if(group) group.querySelectorAll('.ig-align-btn').forEach(b=>b.classList.toggle('active', b===btn));
   formule_setField(fid, field, value);
+}
+// Couleur affichée quand la formule ne surcharge rien : celle
+// configurée pour les menus.
+function formule_defaultColorFor(key){
+  const cfg = pdfCfg();
+  const navy = cfg.titleColor || '#10285E';
+  if(key==='instaBgColor') return cfg.bgColor || '#FDFBF6';
+  if(key==='instaDescColor' || key==='formuleSubColor') return lightenHex(navy, 0.28);
+  return navy;
 }
 function formule_resetColors(fid){
   const f = DATA.formules.find(x=>x.id===fid);
@@ -7344,9 +7412,7 @@ function renderFormuleDetail(f){
   const brandCfg = pdfCfg();
   const brandNavy = brandCfg.titleColor || '#10285E';
   const brandBg = brandCfg.bgColor || '#FDFBF6';
-  const defaultFor = key => key==='instaBgColor' ? brandBg
-    : (key==='instaDescColor'||key==='formuleSubColor') ? lightenHex(brandNavy, 0.28)
-    : brandNavy;
+  const defaultFor = formule_defaultColorFor;
 
   const usedFonts = [...new Set(DATA.formules.map(fo=>fo.instaFont||brandCfg.instaFont||'Playfair Display'))];
   if(usedFonts.length){
@@ -7373,7 +7439,7 @@ function renderFormuleDetail(f){
   // La réinitialisation est globale, en bas — plus de petit bouton par
   // ligne, qui apparaissait et disparaissait selon la surcharge.
   const colorLine = c => `
-    <div class="ig-row formule-color-row" style="cursor:default;gap:10px">
+    <div class="ig-row formule-color-row" style="gap:10px" onclick="if(formuleTunerSupported()&&!event.target.closest('input'))formuleTunerOpen('${c.f.id}','${c.key}',${c.sizeKey?`'${c.sizeKey}'`:'null'},'${c.label}')">
       <span class="ig-row-label" style="flex:0 0 88px;min-width:0">${c.label}</span>
       ${c.sizeKey?`
       <input type="range" min="50" max="150" step="1" value="${c.f[c.sizeKey] ?? 100}" oninput="this.nextElementSibling.textContent=this.value+'%';formule_setField('${c.f.id}','${c.sizeKey}',parseInt(this.value,10))" style="flex:1;min-width:0">
