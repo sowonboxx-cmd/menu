@@ -616,8 +616,6 @@ body.ig-admin-light{
    des blocs "outil" d'une fiche plat. */
 .ig-formule-group{display:flex;align-items:center;gap:10px;margin:30px 0 10px 2px;font-size:12.5px;font-weight:600;color:var(--ig-text-dimmer);font-family:'Jost',sans-serif}
 .ig-formule-group:first-child{margin-top:2px}
-.ig-formule-group-icon{width:26px;height:26px;flex:none;border-radius:8px;border:1px solid var(--ig-border);display:flex;align-items:center;justify-content:center;color:var(--ig-text-dim)}
-.ig-formule-group-icon svg{width:15px;height:15px}
 .ig-formule-font{display:flex;align-items:center;gap:10px;background:var(--ig-card)!important;border:none!important;border-radius:14px;padding:12px 16px!important;height:auto!important;max-width:100%!important;margin:0!important}
 .ig-formule-reset{width:22px;height:22px;flex:none;border:none;border-radius:50%;background:var(--ig-bg);color:var(--ig-text-dim);cursor:pointer;padding:0;display:inline-flex;align-items:center;justify-content:center;margin-right:6px}
 /* Sélecteur de taille compact — le panneau est plafonné à ~6 lignes
@@ -4851,8 +4849,18 @@ function formule_buildCfg(f){
   const base = pdfCfg();
   const cfg = {
     ...base, format:'insta', tabsSource: f.tabs,
+    // BUG FIX : depuis l'unification des couleurs d'export, le moteur
+    // Instagram lit menuTitleColor/menuNameColor/menuDescColor/
+    // menuBgColor. La formule ne renseignait que les anciennes clés
+    // insta*, donc aucun de ses réglages de couleur n'avait d'effet —
+    // c'est le jeu global qui s'appliquait. On mappe les deux, en
+    // retombant sur le réglage global quand la formule ne surcharge pas.
     instaTitleColor: f.instaTitleColor, instaMenuColor: f.instaMenuColor,
     instaDescColor: f.instaDescColor, instaBgColor: f.instaBgColor,
+    menuTitleColor: f.instaTitleColor || base.menuTitleColor,
+    menuNameColor: f.instaMenuColor || base.menuNameColor,
+    menuDescColor: f.instaDescColor || base.menuDescColor,
+    menuBgColor: f.instaBgColor || base.menuBgColor,
     instaFont: f.instaFont || base.instaFont,
     alignContentLeft: !!f.alignContentLeft, alignTitleLeft: !!f.alignTitleLeft,
     catCase: f.catCase, descCase: f.descCase, nameCase: f.nameCase,
@@ -7268,20 +7276,13 @@ function renderFormuleDetail(f){
       ${colorLine({f:fo, key:'instaBgColor', sizeKey:null, label:'Arrière-plan'})}
     </div>`;
 
-  // En-tête de groupe : icône encadrée + libellé, même repère visuel
-  // que les blocs "outil" d'une fiche plat.
-  const sectionHeader = (title, icon) => `<div class="ig-formule-group">${icon?`<span class="ig-formule-group-icon">${icon}</span>`:''}<span>${title}</span></div>`;
-  const ICO={
-    infos:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="14" y2="12"/><line x1="8" y1="16" x2="12" y2="16"/></svg>',
-    items:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/></svg>',
-    perso:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.2 0-.9.7-1.5 1.5-1.5H16a4 4 0 0 0 4-4c0-4.4-3.6-8-8-8Z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></svg>',
-    preview:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m21 15-5-5-11 9"/></svg>'
-  };
+  // En-tête de groupe, libellé seul.
+  const sectionHeader = title => `<div class="ig-formule-group"><span>${title}</span></div>`;
 
   const font = f.instaFont||brandCfg.instaFont||'Playfair Display';
   const caseSel = (key, val, upperFirst) => `
     <div style="flex:1;min-width:0">
-      <label class="al">${key.label}</label>
+      <label class="al" style="margin:0 0 7px 12px">${key.label}</label>
       <select class="ai ig-hm-select ig-bev-sel" style="width:100%" onchange="formule_setField('${f.id}','${key.field}',this.value)">
         <option value="upper" ${val==='upper'?'selected':''}>Majuscule</option>
         <option value="lower" ${val==='lower'?'selected':''}>Minuscule</option>
@@ -7289,11 +7290,11 @@ function renderFormuleDetail(f){
     </div>`;
 
   let h = `
-  ${sectionHeader('Informations générales', ICO.infos)}
+  ${sectionHeader('Informations générales')}
   <div class="ig-list">
     <div class="ig-row" style="cursor:text">
       <span class="ig-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25Z"/><path d="M14.06 6.19l3.75 3.75"/></svg></span>
-      <input class="ig-inline-row-field" value="${escAttr(f.name||'')}" placeholder="Nom du menu / formule" oninput="formule_rename('${f.id}',this.value)">
+      <input class="ig-inline-row-field" value="${escAttr(f.name||'')}" placeholder="Titre du menu (affiché sur la page)" oninput="formule_rename('${f.id}',this.value)">
     </div>
     <div class="ig-row" style="cursor:text;align-items:flex-start">
       <span class="ig-row-icon" style="margin-top:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/></svg></span>
@@ -7301,14 +7302,14 @@ function renderFormuleDetail(f){
     </div>
   </div>
 
-  ${sectionHeader('Casse', '<span style="font-family:\'Jost\',sans-serif;font-weight:700;font-size:12px">Aa</span>')}
+  ${sectionHeader('Casse')}
   <div class="ig-panel-card" style="display:flex;gap:10px;align-items:flex-start">
     ${caseSel({label:'Catégorie', field:'catCase'}, f.catCase==='lower'?'lower':'upper')}
     ${caseSel({label:'Nom des plats', field:'nameCase'}, f.nameCase==='lower'?'lower':'upper')}
     ${caseSel({label:'Description', field:'descCase'}, f.descCase==='upper'?'upper':'lower')}
   </div>
 
-  ${sectionHeader('Éléments du menu', ICO.items)}
+  ${sectionHeader('Éléments du menu')}
   <div class="ig-list">
     ${f.tabs.map(cat=>`
       <div class="ig-row" onclick="openFormuleCat('${cat.id}')">
@@ -7319,7 +7320,7 @@ function renderFormuleDetail(f){
   <div class="ig-list" style="margin-top:10px"><div class="ig-row" style="justify-content:center" onclick="formule_addCategory('${f.id}')"><span style="color:var(--ig-green);font-weight:500">Ajouter un élément</span></div></div>
 
   ${(ensureGalleryFontsLoaded(),'')}
-  ${sectionHeader('Personnalisation', ICO.perso)}
+  ${sectionHeader('Personnalisation')}
   <div class="ai ig-font-field ig-formule-font" onclick="showFontGallery('formule','${f.id}')">
     <div style="flex:1;min-width:0">
       <span style="font-size:11.5px;color:var(--ig-text-dimmer)">Voir et choisir la police</span>
@@ -7338,10 +7339,10 @@ function renderFormuleDetail(f){
     </div>
   </div>
 
-  ${sectionHeader('Couleurs et style', ICO.perso)}
+  ${sectionHeader('Couleurs et style')}
   ${colorRow(f)}
 
-  ${sectionHeader('Aperçu et export', ICO.preview)}
+  ${sectionHeader('Aperçu et export')}
   <div class="af">
     <div id="formuleCarousel-${f.id}" style="display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:4px">
       ${['a4','story','post'].map(variant=>`
@@ -7394,7 +7395,7 @@ function renderFormuleCatDetail(f, cat){
       </div>
     `).join('')}
     <div style="display:flex;gap:8px;margin-top:8px">
-      <select class="ai ig-hm-select" style="flex:1;font-size:12px" onchange="formule_importDish('${f.id}','${cat.id}',this)">
+      <select class="ai ig-hm-select ig-bev-sel" style="flex:1;font-size:12.5px" onchange="formule_importDish('${f.id}','${cat.id}',this)">
         <option value="">Importer un plat existant…</option>
         ${importOptions}
       </select>
