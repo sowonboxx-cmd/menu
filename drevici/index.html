@@ -840,11 +840,15 @@ body.ig-admin-light{
 .ig-subpage-old-content select.ig-hm-select{
   appearance:none;-webkit-appearance:none;-moz-appearance:none;
   padding:6px 26px 6px 12px!important;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")!important;
   background-repeat:no-repeat!important;
   background-position:right 8px center!important;
   background-size:13px!important;
 }
+/* BUG FIX (flèche invisible en mode clair) : le chevron était dessiné
+   en blanc en dur dans le SVG. Une image par thème, comme pour le
+   menu du bandeau. */
+body.ig-admin-dark .ig-subpage-old-content select.ig-hm-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")!important}
+body.ig-admin-light .ig-subpage-old-content select.ig-hm-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6E73' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")!important}
 /* "+ Service" — trait continu plutôt que pointillé, et fond plus
    sombre (celui de la page, pas celui des cartes) pour qu'il ressorte
    davantage. */
@@ -7382,12 +7386,12 @@ function renderFormuleDetail(f){
       <div class="ig-row" style="cursor:default">
         <span class="ig-row-label">${label}</span>
         <div class="ig-align-group">
-          <button type="button" class="ig-align-btn${isLeft?'':' active'}" title="Centré" onclick="formule_setField('${f.id}','${field}',false);renderAdminSection(adminCurrentTab)">${CENTER}</button>
           <button type="button" class="ig-align-btn${isLeft?' active':''}" title="Aligné à gauche" onclick="formule_setField('${f.id}','${field}',true);renderAdminSection(adminCurrentTab)">${LEFT}</button>
+          <button type="button" class="ig-align-btn${isLeft?'':' active'}" title="Centré" onclick="formule_setField('${f.id}','${field}',false);renderAdminSection(adminCurrentTab)">${CENTER}</button>
         </div>
       </div>`;
     return `<div class="ig-list" style="margin-top:10px">
-      ${picker('alignTitleLeft', !!f.alignTitleLeft, 'Alignement du titre et sous-titre')}
+      ${picker('alignTitleLeft', !!f.alignTitleLeft, 'Alignement du titre et du sous-titre')}
       ${picker('alignContentLeft', !!f.alignContentLeft, 'Alignement des sections et des plats')}
     </div>`;
   })()}
@@ -7445,17 +7449,10 @@ function renderFormuleCatDetail(f, cat){
       <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:10px;padding:12px;background:var(--ig-card);border-radius:12px">
         <div style="flex:1;min-width:0">
           <div style="display:flex;gap:8px;margin-bottom:8px">
-            <div style="flex:1;min-width:0">
-              <label class="al" style="margin:0 0 6px 12px">Nom du plat</label>
-              <input class="ai ig-bev-sel" style="width:100%" placeholder="Nom du plat" value="${escAttr(t(d.name))||''}" oninput="formule_updateDish('${f.id}','${cat.id}',${di},'name',this.value)">
-            </div>
-            <div style="width:86px;flex:none">
-              <label class="al" style="margin:0 0 6px 12px">Prix</label>
-              <input class="ai ig-bev-sel" style="width:100%" placeholder="0" value="${escAttr(d.price)||''}" oninput="formule_updateDish('${f.id}','${cat.id}',${di},'price',this.value)">
-            </div>
+            <input class="ai ig-bev-sel" style="flex:1;min-width:0" placeholder="Nom du plat" value="${escAttr(t(d.name))||''}" oninput="formule_updateDish('${f.id}','${cat.id}',${di},'name',this.value)">
+            <input class="ai ig-bev-sel" style="width:86px;flex:none" placeholder="Prix" value="${escAttr(d.price)||''}" oninput="formule_updateDish('${f.id}','${cat.id}',${di},'price',this.value)">
           </div>
-          <label class="al" style="margin:0 0 6px 12px">Description (optionnel)</label>
-          <textarea class="ai ig-bev-sel" rows="2" style="width:100%;resize:vertical" placeholder="Description (optionnel)" oninput="formule_updateDish('${f.id}','${cat.id}',${di},'desc',this.value)">${escAttr(t(d.desc))||''}</textarea>
+          <textarea class="ai ig-bev-sel" rows="2" style="width:100%;resize:vertical" placeholder="Description — à éviter si le menu compte beaucoup de sections, le tout ne tiendrait plus sur une page" oninput="formule_updateDish('${f.id}','${cat.id}',${di},'desc',this.value)">${escAttr(t(d.desc))||''}</textarea>
         </div>
         <button class="dish-eye-btn" title="Supprimer le plat" onclick="formule_removeDish('${f.id}','${cat.id}',${di})">${TRASH_SVG}</button>
       </div>
