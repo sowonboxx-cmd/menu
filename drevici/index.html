@@ -448,7 +448,7 @@ body.home-cover-showing{overflow:hidden}
    pastille ADMIN et la croix — il est ainsi centré dans la barre et
    les noms longs ne sont plus tronqués. */
 .admin-hdr-right{display:flex;gap:10px;align-items:center;flex:1;min-width:0}
-.admin-tab-dd{padding:0 28px 0 12px;height:34px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;color:#fff;background:rgba(255,255,255,0.1) url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M1 1l4 4 4-4' stroke='rgba(255,255,255,.7)' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>") no-repeat calc(100% - 8px) center;cursor:pointer;outline:none;flex:1;min-width:0;box-sizing:border-box;-webkit-appearance:none;appearance:none}
+.admin-tab-dd{padding:0 28px 0 12px;height:34px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;color:#fff;background:rgba(255,255,255,0.1) url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M1 1l4 4 4-4' stroke='rgba(255,255,255,.7)' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>") no-repeat calc(100% - 8px) center;cursor:pointer;outline:none;flex:1;min-width:0;box-sizing:border-box;-webkit-appearance:none;appearance:none}
 .admin-close{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:6px;width:34px;height:34px;cursor:pointer;font-size:17px;color:#fff;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;box-sizing:border-box}
 /* Mobile — demande explicite de Will : plus de pastille "ADMIN"
    séparée (le menu déroulant des sections prend le relais, en
@@ -466,7 +466,7 @@ body.home-cover-showing{overflow:hidden}
   .admin-hdr-title{display:flex;align-items:center}
   /* BUG FIX (tailles différentes) : même police/taille que la
      pastille ADMIN (10px, Jost, gras, espacé), pas 12px. */
-  #adminTabDd{font-weight:500;font-size:13px;background-color:transparent;border-color:rgba(255,255,255,0.2)}
+  #adminTabDd{font-weight:600;font-size:13px;background-color:transparent;border-color:rgba(255,255,255,0.2)}
   .admin-hdr{gap:6px}
   .admin-hdr-right{gap:6px}
   .admin-close{background:var(--navy);border:1px solid rgba(255,255,255,0.2)}
@@ -479,7 +479,7 @@ body.home-cover-showing{overflow:hidden}
    d'œil, et la page devient une suite de blocs réguliers. */
 .ig-stack-field{background:var(--ig-card);border-radius:14px;padding:11px 16px;margin-bottom:10px;position:relative}
 .ig-stack-label{font-size:12.5px;color:var(--ig-text-dimmer);display:block;margin-bottom:1px;line-height:1.5}
-.ig-subpage-old-content .ig-stack-field .ai{background:transparent!important;border:none!important;border-radius:0!important;padding:0!important;margin:0!important;width:100%;max-width:100%!important;height:auto!important;font-size:15.5px!important;color:var(--ig-text)!important;line-height:1.5}
+.ig-subpage-old-content .ig-stack-field .ai{background:transparent!important;border:none!important;border-radius:0!important;padding:0!important;margin:0!important;width:100%;max-width:100%!important;height:auto!important;font-size:15.5px!important;font-weight:400!important;color:var(--ig-text)!important;line-height:1.5}
 .ig-subpage-old-content .ig-stack-field .ai:focus{box-shadow:none!important}
 .ig-subpage-old-content .ig-stack-field .ai::placeholder{font-size:15.5px;color:#6a6a72}
 .ig-stack-field .ig-inline-upload-icon{right:0}
@@ -1053,7 +1053,7 @@ body.ig-admin-light{
 .admin-toggle:hover{border-color:var(--navy)}
 .admin-toggle input[type=checkbox]{accent-color:var(--navy);cursor:pointer}
 .admin-toggle label{font-size:12px;font-family:'Jost',sans-serif;color:var(--text);cursor:pointer;flex:1}
-.admin-badge{display:inline-block;font-size:11px;font-weight:600;padding:0 14px;height:34px;line-height:34px;border-radius:6px;background:var(--navy);color:#fff;font-family:'Inter',sans-serif;letter-spacing:.06em;text-transform:uppercase;box-sizing:border-box;border:1px solid rgba(255,255,255,0.2);cursor:pointer}
+.admin-badge{display:inline-block;font-size:13px;font-weight:600;padding:0 14px;height:34px;line-height:34px;border-radius:6px;background:var(--navy);color:#fff;font-family:'Inter',sans-serif;box-sizing:border-box;border:1px solid rgba(255,255,255,0.2);cursor:pointer}
 .badge-group{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:8px}
 .badge-check{display:flex;align-items:center;gap:4px;font-size:11px;font-family:'Jost',sans-serif;color:var(--text2);cursor:pointer}
 .badge-check img{width:16px;height:16px;object-fit:contain}
@@ -4726,6 +4726,16 @@ function formule_rename(fid, name){
   scheduleAutoSave(true);
 }
 
+// Vide toutes les surcharges de couleur d'une formule : elle retombe
+// alors sur les couleurs configurées pour les menus.
+function formule_resetColors(fid){
+  const f = DATA.formules.find(x=>x.id===fid);
+  if(!f) return;
+  ['formuleTitleColor','formuleSubColor','instaTitleColor','instaMenuColor','instaDescColor','instaBgColor']
+    .forEach(k=>{ delete f[k]; });
+  scheduleAutoSave(true);
+  renderAdminSection(adminCurrentTab);
+}
 function formule_setColor(fid, key, value){
   const f = DATA.formules.find(x=>x.id===fid);
   // BUG FIX (sélecteur de couleur qui se ferme) : un re-rendu complet
@@ -7292,19 +7302,18 @@ function renderFormuleDetail(f){
           <span style="font-size:9.5px;color:var(--text3);flex:none;min-width:26px;text-align:right">${c.f[c.sizeKey] ?? 100}%</span>
         </div>`:''}
       </div>`;
-  // Une ligne par couleur, pastille à droite — comme "Couleurs" et
-  // "Configurez les couleurs des menus". La taille passe sous le
-  // libellé, seulement là où elle existe.
+  // Tout sur une ligne : libellé, curseur + son %, pastille. Empilé,
+  // chaque réglage prenait deux lignes et la section devenait longue.
+  // La réinitialisation est globale, en bas — plus de petit bouton par
+  // ligne, qui apparaissait et disparaissait selon la surcharge.
   const colorLine = c => `
-    <div class="ig-row" style="cursor:default;align-items:flex-start;flex-wrap:wrap;row-gap:8px">
-      <span class="ig-row-label"><span>${c.label}</span></span>
-      ${c.f[c.key]?`<button type="button" title="Réinitialiser" onclick="formule_setColor('${c.f.id}','${c.key}','')" class="ig-formule-reset"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button>`:''}
-      <input type="color" value="${c.f[c.key]||defaultFor(c.key)}" oninput="formule_setColor('${c.f.id}','${c.key}',this.value)" style="width:18px;height:18px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer">
+    <div class="ig-row" style="cursor:default;gap:10px">
+      <span class="ig-row-label" style="flex:0 0 88px;min-width:0">${c.label}</span>
       ${c.sizeKey?`
-      <div style="flex:0 0 100%;display:flex;align-items:center;gap:8px">
-        <input type="range" min="50" max="150" step="1" value="${c.f[c.sizeKey] ?? 100}" oninput="this.nextElementSibling.textContent=this.value+'%';formule_setField('${c.f.id}','${c.sizeKey}',parseInt(this.value,10))" style="flex:1">
-        <span style="font-size:11px;color:var(--ig-text-dimmer);flex:none;min-width:32px;text-align:right">${c.f[c.sizeKey] ?? 100}%</span>
-      </div>`:''}
+      <input type="range" min="50" max="150" step="1" value="${c.f[c.sizeKey] ?? 100}" oninput="this.nextElementSibling.textContent=this.value+'%';formule_setField('${c.f.id}','${c.sizeKey}',parseInt(this.value,10))" style="flex:1;min-width:0">
+      <span style="font-size:11px;color:var(--ig-text-dimmer);flex:none;min-width:34px;text-align:right">${c.f[c.sizeKey] ?? 100}%</span>
+      `:'<span style="flex:1"></span>'}
+      <input type="color" value="${c.f[c.key]||defaultFor(c.key)}" oninput="formule_setColor('${c.f.id}','${c.key}',this.value)" style="width:20px;height:20px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer">
     </div>`;
   const colorRow = fo => `<div class="ig-list">
       ${colorLine({f:fo, key:'formuleTitleColor', sizeKey:'formuleTitlePct', label:'Titre'})}
@@ -7313,7 +7322,8 @@ function renderFormuleDetail(f){
       ${colorLine({f:fo, key:'instaMenuColor', sizeKey:'menuSizePct', label:'Plats'})}
       ${colorLine({f:fo, key:'instaDescColor', sizeKey:'descSizePct', label:'Description'})}
       ${colorLine({f:fo, key:'instaBgColor', sizeKey:null, label:'Arrière-plan'})}
-    </div>`;
+    </div>
+    <div class="ig-list" style="margin-top:10px"><div class="ig-row" style="justify-content:center" onclick="formule_resetColors('${fo.id}')"><span style="color:var(--ig-accent);font-weight:500">Réinitialiser les couleurs</span></div></div>`;
 
   // En-tête de groupe, libellé seul.
   const sectionHeader = title => `<div class="ig-formule-group"><span>${title}</span></div>`;
@@ -7337,13 +7347,6 @@ function renderFormuleDetail(f){
   <div class="ig-stack-field">
     <span class="ig-stack-label">Sous-titre (description)</span>
     <textarea class="ai" rows="2" style="resize:vertical" placeholder="Ex : Entrée, plat &amp; dessert — 40€" oninput="formule_setField('${f.id}','freeText',this.value)">${escAttr(f.freeText||'')}</textarea>
-  </div>
-
-  ${sectionHeader('Majuscules & minuscules')}
-  <div class="ig-panel-card" style="display:flex;gap:10px;align-items:flex-start">
-    ${caseSel({label:'Nom des sections', field:'catCase'}, f.catCase==='lower'?'lower':'upper')}
-    ${caseSel({label:'Nom des plats', field:'nameCase'}, f.nameCase==='lower'?'lower':'upper')}
-    ${caseSel({label:'Description', field:'descCase'}, f.descCase==='upper'?'upper':'lower')}
   </div>
 
   ${sectionHeader('Sections du menu')}
@@ -7374,6 +7377,12 @@ function renderFormuleDetail(f){
       <span class="ig-row-label">Aligner les sections et les plats à gauche</span>
       <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${f.alignContentLeft?'checked':''} onchange="formule_setField('${f.id}','alignContentLeft',this.checked)"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
     </div>
+  </div>
+
+  <div class="ig-panel-card" style="display:flex;gap:10px;align-items:flex-start;margin-top:10px">
+    ${caseSel({label:'Nom des sections', field:'catCase'}, f.catCase==='lower'?'lower':'upper')}
+    ${caseSel({label:'Nom des plats', field:'nameCase'}, f.nameCase==='lower'?'lower':'upper')}
+    ${caseSel({label:'Description', field:'descCase'}, f.descCase==='upper'?'upper':'lower')}
   </div>
 
   ${sectionHeader('Couleurs et style')}
