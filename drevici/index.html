@@ -4067,6 +4067,7 @@ function renderAdminSection(tid, _skipScroll){
   if(document.getElementById('pdfCarousel')) setTimeout(()=>{ if(typeof initPdfCarouselFrames==='function') initPdfCarouselFrames(); }, 100);
   if(document.getElementById('instaCarousel')) setTimeout(()=>{ if(typeof initInstaCarouselFrames==='function') initInstaCarouselFrames(); }, 100);
   if(document.getElementById('menuColorsCarousel')) setTimeout(()=>{ if(typeof initMenuColorsFrames==='function') initMenuColorsFrames(); }, 100);
+  if(document.querySelector('textarea.ig-autogrow')) requestAnimationFrame(autoGrowAll);
   if(document.querySelector('.formule-preview-frame')) setTimeout(()=>{ if(typeof initFormulePreviewFrames==='function') initFormulePreviewFrames(); }, 100);
 }
 
@@ -5036,6 +5037,14 @@ function formule_delete(fid){
   renderAdminSection('__global');
   publishNow(true);
 }
+// Un champ multiligne qui garde toujours trois lignes laisse un grand
+// vide quand le texte n'en fait qu'une. Celui-ci suit son contenu.
+function autoGrow(el){
+  if(!el) return;
+  el.style.height='auto';
+  el.style.height=el.scrollHeight+'px';
+}
+function autoGrowAll(){ document.querySelectorAll('textarea.ig-autogrow').forEach(autoGrow); }
 function formule_rename(fid, name){
   const f = DATA.formules.find(x=>x.id===fid);
   // BUG FIX : le nom affiché dans la liste (f.name) et le titre imprimé
@@ -7779,17 +7788,16 @@ function renderFormuleDetail(f){
   // directement ici plutôt que derrière deux sous-pages, qui ne
   // faisaient qu'ajouter des clics pour un contenu court.
   let h = `
-  ${sectionHeader('Titre et sous-titre du menu')}
   <div class="ig-stack-field">
     <span class="ig-stack-label">Titre du menu</span>
     <input class="ai" value="${escAttr(f.name||'')}" placeholder="Ex : Le Truffaut" oninput="formule_rename('${f.id}',this.value)">
   </div>
   <div class="ig-stack-field">
     <span class="ig-stack-label">Sous-titre (description)</span>
-    <textarea class="ai" rows="3" style="resize:vertical" placeholder="Ex : Entrée, plat &amp; dessert — 40€" oninput="formule_setField('${f.id}','freeText',this.value)">${escAttr(f.freeText||'')}</textarea>
+    <textarea class="ai ig-autogrow" rows="1" style="resize:vertical;overflow:hidden" placeholder="Ex : Entrée, plat &amp; dessert — 40€" oninput="autoGrow(this);formule_setField('${f.id}','freeText',this.value)">${escAttr(f.freeText||'')}</textarea>
   </div>
 
-  ${sectionHeader('Plats du menu')}
+  ${sectionHeader('Sections du menu')}
   <div class="ig-list">
     ${f.tabs.map(cat=>`
       <div class="ig-row" onclick="openFormuleCat('${cat.id}')">
@@ -7800,16 +7808,16 @@ function renderFormuleDetail(f){
   <div class="ig-list" style="margin-top:10px"><div class="ig-row" style="justify-content:center" onclick="formule_addCategory('${f.id}')"><span style="color:var(--ig-green);font-weight:500">Ajouter une section</span></div></div>
 
   <div class="ig-list" style="margin-top:22px">
-    <div class="ig-row" onclick="openFormulePane('perso')">
-      <span class="ig-row-label"><span>Majuscules et minuscules</span></span>
+    <div class="ig-row" onclick="formuleTunerOpen('${f.id}','formuleTitleColor','formuleTitlePct','Titre')">
+      <span class="ig-row-icon" style="color:var(--ig-accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg></span>
+      <span class="ig-row-label"><span style="color:var(--ig-accent);font-weight:500">Export du menu (A4, Post, Story)</span><span class="ig-row-hint">Police, taille, alignement et couleurs des textes</span></span>
       <span class="ig-row-chevron">›</span>
     </div>
   </div>
 
   <div class="ig-list" style="margin-top:14px">
-    <div class="ig-row" onclick="formuleTunerOpen('${f.id}','formuleTitleColor','formuleTitlePct','Titre')">
-      <span class="ig-row-icon" style="color:var(--ig-accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg></span>
-      <span class="ig-row-label"><span style="color:var(--ig-accent);font-weight:500">Export du menu (A4, Post, Story)</span><span class="ig-row-hint">Police, taille, alignement et couleurs des textes</span></span>
+    <div class="ig-row" onclick="openFormulePane('perso')">
+      <span class="ig-row-label"><span>Majuscules et minuscules</span></span>
       <span class="ig-row-chevron">›</span>
     </div>
   </div>
