@@ -7706,8 +7706,7 @@ function renderFormuleList(){
 let formulePane=null;
 function openFormulePane(p){ formulePane=p; renderAdminSection('__global'); }
 function closeFormulePane(){ formulePane=null; renderAdminSection('__global'); }
-// Sous-pages de la formule : titre/sous-titre d'un côté, sections et
-// plats de l'autre.
+// Seule sous-page restante : la casse.
 function renderFormulePane(f){
   const caseSel = (label, field, val) => `
     <div style="flex:1;min-width:0">
@@ -7717,34 +7716,12 @@ function renderFormulePane(f){
         <option value="lower" ${val==='lower'?'selected':''}>Minuscule</option>
       </select>
     </div>`;
-  if(formulePane==='perso'){
-    return `
+  return `
     <div class="ig-panel-card" style="display:flex;gap:10px;align-items:flex-start">
       ${caseSel('Nom des sections','catCase', f.catCase==='lower'?'lower':'upper')}
       ${caseSel('Nom des plats','nameCase', f.nameCase==='lower'?'lower':'upper')}
       ${caseSel('Description','descCase', f.descCase==='upper'?'upper':'lower')}
     </div>`;
-  }
-  if(formulePane==='infos'){
-    return `
-    <div class="ig-stack-field">
-      <span class="ig-stack-label">Titre du menu</span>
-      <input class="ai" value="${escAttr(f.name||'')}" placeholder="Ex : Le Truffaut" oninput="formule_rename('${f.id}',this.value)">
-    </div>
-    <div class="ig-stack-field">
-      <span class="ig-stack-label">Sous-titre (description)</span>
-      <textarea class="ai" rows="3" style="resize:vertical" placeholder="Ex : Entrée, plat &amp; dessert — 40€" oninput="formule_setField('${f.id}','freeText',this.value)">${escAttr(f.freeText||'')}</textarea>
-    </div>`;
-  }
-  return `
-  <div class="ig-list">
-    ${f.tabs.map(cat=>`
-      <div class="ig-row" onclick="openFormuleCat('${cat.id}')">
-        <span class="ig-row-label">${escAttr(t(cat.label))||'(sans titre)'}</span>
-        <span class="ig-row-chevron">›</span>
-      </div>`).join('')}
-  </div>
-  <div class="ig-list" style="margin-top:10px"><div class="ig-row" style="justify-content:center" onclick="formule_addCategory('${f.id}')"><span style="color:var(--ig-green);font-weight:500">Ajouter une section</span></div></div>`;
 }
 function renderFormuleDetail(f){
   formule_ensureInit();
@@ -7798,24 +7775,38 @@ function renderFormuleDetail(f){
   // Quatre portes d'entrée plutôt qu'une longue page : on ne voit que
   // ce qu'on vient faire. L'export est détaché en bas, c'est une
   // action, pas un réglage de plus.
+  // La page tient largement : titre, sous-titre et sections sont posés
+  // directement ici plutôt que derrière deux sous-pages, qui ne
+  // faisaient qu'ajouter des clics pour un contenu court.
   let h = `
-  ${sectionHeader('Informations générales')}
+  ${sectionHeader('Titre et sous-titre du menu')}
+  <div class="ig-stack-field">
+    <span class="ig-stack-label">Titre du menu</span>
+    <input class="ai" value="${escAttr(f.name||'')}" placeholder="Ex : Le Truffaut" oninput="formule_rename('${f.id}',this.value)">
+  </div>
+  <div class="ig-stack-field">
+    <span class="ig-stack-label">Sous-titre (description)</span>
+    <textarea class="ai" rows="3" style="resize:vertical" placeholder="Ex : Entrée, plat &amp; dessert — 40€" oninput="formule_setField('${f.id}','freeText',this.value)">${escAttr(f.freeText||'')}</textarea>
+  </div>
+
+  ${sectionHeader('Plats du menu')}
   <div class="ig-list">
-    <div class="ig-row" onclick="openFormulePane('infos')">
-      <span class="ig-row-label"><span>Titre et sous-titre du menu</span></span>
-      <span class="ig-row-chevron">›</span>
-    </div>
-    <div class="ig-row" onclick="openFormulePane('sections')">
-      <span class="ig-row-label"><span>Plats du menu</span></span>
-      <span class="ig-row-chevron">›</span>
-    </div>
+    ${f.tabs.map(cat=>`
+      <div class="ig-row" onclick="openFormuleCat('${cat.id}')">
+        <span class="ig-row-label">${escAttr(t(cat.label))||'(sans titre)'}</span>
+        <span class="ig-row-chevron">›</span>
+      </div>`).join('')}
+  </div>
+  <div class="ig-list" style="margin-top:10px"><div class="ig-row" style="justify-content:center" onclick="formule_addCategory('${f.id}')"><span style="color:var(--ig-green);font-weight:500">Ajouter une section</span></div></div>
+
+  <div class="ig-list" style="margin-top:22px">
     <div class="ig-row" onclick="openFormulePane('perso')">
       <span class="ig-row-label"><span>Majuscules et minuscules</span></span>
       <span class="ig-row-chevron">›</span>
     </div>
   </div>
 
-  <div class="ig-list" style="margin-top:22px">
+  <div class="ig-list" style="margin-top:14px">
     <div class="ig-row" onclick="formuleTunerOpen('${f.id}','formuleTitleColor','formuleTitlePct','Titre')">
       <span class="ig-row-icon" style="color:var(--ig-accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg></span>
       <span class="ig-row-label"><span style="color:var(--ig-accent);font-weight:500">Export du menu (A4, Post, Story)</span><span class="ig-row-hint">Police, taille, alignement et couleurs des textes</span></span>
@@ -9083,11 +9074,10 @@ function adminCrumbParts(row){
     const f=(DATA.formules||[]).find(x=>x.id===formuleOpen);
     const parts=[{label:row.label, go:'closeFormule()'}];
     if(!f) return parts;
-    const PANE_LABELS={infos:'Titre et sous-titre', sections:'Plats du menu', perso:'Majuscules et minuscules'};
+    const PANE_LABELS={perso:'Majuscules et minuscules'};
     if(formuleCatOpen){
       const cat=(f.tabs||[]).find(c=>c.id===formuleCatOpen);
-      parts.push({label:f.name||'(sans nom)', go:'closeFormulePane()'});
-      parts.push({label:PANE_LABELS.sections, go:'closeFormuleCat()'});
+      parts.push({label:f.name||'(sans nom)', go:'closeFormuleCat()'});
       parts.push({label:(cat&&t(cat.label))||'Section'});
     } else if(formulePane){
       parts.push({label:f.name||'(sans nom)', go:'closeFormulePane()'});
