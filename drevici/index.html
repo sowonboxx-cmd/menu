@@ -627,7 +627,16 @@ body.tuner-open{overflow:hidden}
 .formule-tuner-btn.is-ok{background:var(--ig-green);color:#fff;font-weight:700}
 /* L'aperçu prend toute la hauteur restante : c'est lui qu'on regarde. */
 .formule-tuner-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:0 14px}
-.formule-tuner-stage iframe{height:100%;aspect-ratio:1 / 1.7778;max-width:100%;border:none;border-radius:12px;background:#fff;display:block}
+.formule-tuner-stage iframe{height:100%;max-width:100%;border:none;border-radius:12px;background:#fff;display:block}
+/* Onglets de format au-dessus de l'aperçu. */
+.formule-tuner-tabs{display:flex;gap:4px;flex:none;margin:0 14px 10px;background:var(--ig-card);border-radius:10px;padding:3px}
+.formule-tuner-tab{flex:1;height:30px;border:none;border-radius:8px;background:transparent;color:var(--ig-text-dimmer);font-family:'Jost',sans-serif;font-size:12.5px;font-weight:500;cursor:pointer}
+.formule-tuner-tab.active{background:var(--ig-bg);color:var(--ig-text)}
+/* Pas de taille : deux boutons larges, faciles à viser au pouce. */
+.formule-step{display:flex;align-items:center;gap:10px;flex:1;justify-content:flex-end}
+.formule-step-btn{width:46px;height:38px;flex:none;border:none;border-radius:10px;background:var(--ig-bg);color:var(--ig-text);font-size:20px;line-height:1;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:none}
+.formule-step-btn:active{background:var(--ig-accent);color:#fff}
+.formule-step-val{min-width:54px;text-align:center;color:var(--ig-text);font-family:'Jost',sans-serif;font-size:14px;font-weight:600}
 /* Le réglage reste en bas, sous le pouce. */
 .formule-tuner-ctrl{flex:none;padding:14px;padding-bottom:max(14px,env(safe-area-inset-bottom));background:var(--ig-card);border-radius:16px 16px 0 0;margin-top:12px}
 .formule-tuner-row{display:flex;align-items:center;gap:12px;padding:6px 2px}
@@ -640,12 +649,7 @@ body.tuner-open{overflow:hidden}
 .formule-tuner-row input[type="range"]::-moz-range-thumb{width:22px;height:22px;border:none;border-radius:50%;background:var(--ig-accent)}
 .formule-tuner-row input[type="color"]{width:30px;height:30px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer;background:none}
 .formule-tuner-pct{flex:none;min-width:40px;text-align:right;color:var(--ig-text-dimmer);font-size:12px}
-/* Sur mobile, la ligne ouvre l'écran dédié : ses contrôles en ligne
-   feraient doublon et rendraient le tap imprécis. */
-@media(max-width:640px){
-  .formule-color-row input[type="range"],
-  .formule-color-row > span[style*="min-width:34px"]{display:none}
-}
+
 }
 /* Curseurs : ils héritaient du style générique des champs (bordure
    grise + anneau de focus), ce qui leur dessinait un cadre autour de
@@ -1264,6 +1268,11 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
     <span class="formule-tuner-title" id="formuleTunerTitle"></span>
     <button type="button" class="formule-tuner-btn" id="formuleTunerCancel" title="Annuler" onclick="formuleTunerCancel()">✕</button>
     <button type="button" class="formule-tuner-btn is-ok" title="Valider" onclick="formuleTunerValidate()">✓</button>
+  </div>
+  <div class="formule-tuner-tabs" id="formuleTunerTabs">
+    <button type="button" class="formule-tuner-tab active" data-variant="story" onclick="formuleTunerSetVariant('story')">Story</button>
+    <button type="button" class="formule-tuner-tab" data-variant="post" onclick="formuleTunerSetVariant('post')">Post</button>
+    <button type="button" class="formule-tuner-tab" data-variant="a4" onclick="formuleTunerSetVariant('a4')">A4</button>
   </div>
   <div class="formule-tuner-stage"><iframe class="formule-preview-frame" id="formuleTunerFrame"></iframe></div>
   <div class="formule-tuner-ctrl" id="formuleTunerCtrl"></div>
@@ -4749,14 +4758,12 @@ function formuleTunerOpen(fid, key, sizeKey, label){
   // Instantané des valeurs, pour pouvoir annuler.
   _tunerState={ fid, key, sizeKey, before:{ [key]: f[key], [sizeKey||'_']: sizeKey?f[sizeKey]:undefined } };
   document.getElementById('formuleTunerTitle').textContent=label;
-  const frame=document.getElementById('formuleTunerFrame');
-  frame.dataset.fid=fid;
-  frame.dataset.variant='story';
-  const ratio=INSTA_RATIO;
-  const built=buildFormulePage(formule_buildCfg(f), ratio);
-  frame.srcdoc=buildPreviewSlideDoc(built.css, built.pages[0].html, built.pages[0].spaceScale, INSTA_RENDER_W, Math.round(INSTA_RENDER_W*ratio));
+  formuleTunerRender(fid, _tunerVariant);
   const pct = sizeKey ? (f[sizeKey] ?? 100) : null;
   const colorVal = f[key] || formule_defaultColorFor(key);
+  // Boutons − / + plutôt qu'un curseur : viser une poignée fine du
+  // pouce est imprécis, et chaque pixel parcouru déclenchait un rendu.
+  // Ici un appui = un pas net, et maintenir accélère.
   document.getElementById('formuleTunerCtrl').innerHTML=`
     <div class="formule-tuner-row">
       <span class="formule-tuner-label">Couleur</span>
@@ -4765,12 +4772,64 @@ function formuleTunerOpen(fid, key, sizeKey, label){
     ${sizeKey?`
     <div class="formule-tuner-row">
       <span class="formule-tuner-label">Taille</span>
-      <input type="range" min="50" max="150" step="1" value="${pct}" oninput="this.nextElementSibling.textContent=this.value+'%';formule_setField('${fid}','${sizeKey}',parseInt(this.value,10))">
-      <span class="formule-tuner-pct">${pct}%</span>
+      <div class="formule-step">
+        <button type="button" class="formule-step-btn" onpointerdown="tunerStepStart(event,-1)">−</button>
+        <span class="formule-step-val" id="formuleTunerPct">${pct}%</span>
+        <button type="button" class="formule-step-btn" onpointerdown="tunerStepStart(event,1)">+</button>
+      </div>
     </div>`:''}`;
+  document.querySelectorAll('.formule-tuner-tab').forEach(b=>b.classList.toggle('active', b.dataset.variant===_tunerVariant));
   document.body.classList.add('tuner-open');
   document.getElementById('formuleTuner').classList.add('open');
 }
+// Appui maintenu : un premier pas immédiat, puis répétition de plus en
+// plus rapide. Relâcher arrête net.
+let _tunerVariant='story';
+function tunerRatioFor(v){ return v==='a4' ? INSTA_A4_RATIO : v==='post' ? INSTA_POST_RATIO : INSTA_RATIO; }
+function formuleTunerRender(fid, variant){
+  const f=DATA.formules && DATA.formules.find(x=>x.id===fid);
+  const frame=document.getElementById('formuleTunerFrame');
+  if(!f || !frame) return;
+  frame.dataset.fid=fid;
+  frame.dataset.variant=variant;
+  const ratio=tunerRatioFor(variant);
+  frame.style.aspectRatio='1 / '+ratio;
+  const built=buildFormulePage(formule_buildCfg(f), ratio);
+  frame.srcdoc=buildPreviewSlideDoc(built.css, built.pages[0].html, built.pages[0].spaceScale, INSTA_RENDER_W, Math.round(INSTA_RENDER_W*ratio));
+}
+function formuleTunerSetVariant(v){
+  _tunerVariant=v;
+  document.querySelectorAll('.formule-tuner-tab').forEach(b=>b.classList.toggle('active', b.dataset.variant===v));
+  if(_tunerState) formuleTunerRender(_tunerState.fid, v);
+}
+let _stepTimer=null, _stepRepeat=null;
+function tunerStepApply(dir){
+  if(!_tunerState || !_tunerState.sizeKey) return;
+  const f=DATA.formules.find(x=>x.id===_tunerState.fid);
+  if(!f) return;
+  const cur = f[_tunerState.sizeKey] ?? 100;
+  const next = Math.max(50, Math.min(150, cur+dir));
+  if(next===cur) return;
+  const lbl=document.getElementById('formuleTunerPct');
+  if(lbl) lbl.textContent=next+'%';
+  formule_setField(_tunerState.fid, _tunerState.sizeKey, next);
+}
+function tunerStepStart(e, dir){
+  e.preventDefault();
+  tunerStepStop();
+  tunerStepApply(dir);
+  let delay=420;
+  const tick=()=>{
+    tunerStepApply(dir);
+    delay=Math.max(45, delay*0.72);
+    _stepRepeat=setTimeout(tick, delay);
+  };
+  _stepTimer=setTimeout(tick, delay);
+  const stop=()=>{ tunerStepStop(); document.removeEventListener('pointerup',stop); document.removeEventListener('pointercancel',stop); };
+  document.addEventListener('pointerup',stop);
+  document.addEventListener('pointercancel',stop);
+}
+function tunerStepStop(){ clearTimeout(_stepTimer); clearTimeout(_stepRepeat); _stepTimer=_stepRepeat=null; }
 function formuleTunerClose(){
   document.getElementById('formuleTuner').classList.remove('open');
   document.body.classList.remove('tuner-open');
@@ -5046,7 +5105,14 @@ function formule_buildCfg(f){
     catCase: f.catCase, descCase: f.descCase, nameCase: f.nameCase,
     instaTitleSize: Math.round((base.instaTitleSize||45) * (f.titleSizePct ?? 100)/100),
     instaMenuSize: Math.round((base.instaMenuSize||21) * (f.menuSizePct ?? 100)/100),
-    instaDescSize: Math.round((base.instaDescSize||19) * 1.10 * (f.descSizePct ?? 100)/100)
+    instaDescSize: Math.round((base.instaDescSize||19) * 1.10 * (f.descSizePct ?? 100)/100),
+    // BUG FIX : le titre et le sous-titre se calculaient à partir des
+    // tailles ci-dessus, donc "Sections" déplaçait aussi le titre et
+    // "Description" déplaçait aussi le sous-titre. On repart des
+    // tailles de référence, non modulées, pour qu'ils ne dépendent que
+    // de leur propre réglage.
+    formuleTitleBase: Math.round((base.instaTitleSize||45) * 0.8),
+    formuleSubBase: Math.round((base.instaDescSize||19) * 1.10 * 0.85)
   };
   cfg.formulePreamble = formule_buildPreamble(f, cfg);
   return cfg;
@@ -6331,8 +6397,8 @@ function buildInstaCSS(cfg, ratio){
   .pdf-footer{display:none}
   /* Menus et Formules uniquement — titre + texte libre optionnels,
      affichés avant les catégories (voir formule_buildPreamble). */
-  .formule-title{font-family:'${font}',serif;font-weight:800;font-size:${Math.round(formuleTitleSize*((cfg.formuleTitlePct ?? 100)/100))}px;line-height:1.15;text-transform:uppercase;letter-spacing:.01em;color:${cfg.formuleTitleColor||titleColor};margin-bottom:9px;text-align:center}
-  .formule-freetext{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${Math.round(descSize*0.85*((cfg.formuleSubPct ?? 100)/100))}px;line-height:1.4;color:${cfg.formuleSubColor||descColor};white-space:pre-wrap;text-align:center;margin-bottom:34px;max-width:82%;margin-left:auto;margin-right:auto}
+  .formule-title{font-family:'${font}',serif;font-weight:800;font-size:${Math.round((cfg.formuleTitleBase ?? formuleTitleSize)*((cfg.formuleTitlePct ?? 100)/100))}px;line-height:1.15;text-transform:uppercase;letter-spacing:.01em;color:${cfg.formuleTitleColor||titleColor};margin-bottom:9px;text-align:center}
+  .formule-freetext{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${Math.round((cfg.formuleSubBase ?? Math.round(descSize*0.85))*((cfg.formuleSubPct ?? 100)/100))}px;line-height:1.4;color:${cfg.formuleSubColor||descColor};white-space:pre-wrap;text-align:center;margin-bottom:34px;max-width:82%;margin-left:auto;margin-right:auto}
   /* Deux options d'alignement indépendantes, demandées séparément par
      Will : le contenu (catégories/plats) d'un côté, le titre + texte
      libre de l'autre — chacun peut être aligné à gauche ou rester
