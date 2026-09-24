@@ -617,6 +617,23 @@ body.ig-admin-light{
 .ig-align-btn{width:32px;height:28px;flex:none;border:none;border-radius:7px;background:transparent;color:var(--ig-text-dimmer);cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;transition:background .12s,color .12s}
 .ig-align-btn svg{width:16px;height:16px}
 .ig-align-btn.active{background:var(--ig-card);color:var(--ig-text)}
+/* Mise au point pendant le réglage (mobile) : l'aperçu se colle sous
+   l'en-tête et seule la ligne manipulée reste visible, pour voir
+   l'effet sans avoir à faire défiler la page. */
+@media(max-width:640px){
+  body.formule-focus .formule-preview-wrap{
+    position:fixed;top:58px;left:10px;right:10px;z-index:60;margin:0;
+    background:var(--ig-bg);border-radius:12px;padding:8px;
+    box-shadow:0 6px 18px rgba(0,0,0,.18);
+  }
+  /* Un seul format affiché : plus lisible en réduit, et trois fois
+     moins de rendu à chaque mouvement du curseur. */
+  body.formule-focus .formule-preview-wrap > div > div:not(:first-child){display:none}
+  body.formule-focus .formule-preview-wrap > div{overflow:visible}
+  body.formule-focus .formule-preview-wrap > div > div:first-child{flex:0 0 100%;max-width:150px;margin:0 auto}
+  body.formule-focus .formule-colors-list .formule-color-row:not(.is-active){display:none}
+  body.formule-focus .formule-colors-list{margin-top:190px}
+}
 /* Curseurs : ils héritaient du style générique des champs (bordure
    grise + anneau de focus), ce qui leur dessinait un cadre autour de
    la piste. On les sort de ce moule et on dessine piste + poignée. */
@@ -4694,10 +4711,40 @@ function formule_ensureInit(){ if(!DATA.formules) DATA.formules = []; }
 // reconstruire l'aperçu à chaque frappe (buildFormulePage fait
 // plusieurs passes de mesure, ça ralentirait sinon).
 let _formulePreviewTimer = null;
+// Mode "mise au point" (mobile uniquement) : pendant qu'on manipule un
+// curseur de taille ou une pastille de couleur, les autres lignes
+// s'effacent et l'aperçu vient se coller en haut de l'écran. On ne
+// déplace rien dans le DOM — les iframes se rechargeraient — c'est
+// seulement leur positionnement qui change.
+let _formuleFocusTimer=null;
+function formuleFocusSupported(){ return window.matchMedia && window.matchMedia('(max-width:640px)').matches; }
+function formuleFocusOn(row){
+  if(!formuleFocusSupported() || !row) return;
+  clearTimeout(_formuleFocusTimer);
+  document.querySelectorAll('.formule-color-row.is-active').forEach(r=>r.classList.remove('is-active'));
+  row.classList.add('is-active');
+  document.body.classList.add('formule-focus');
+}
+function formuleFocusOff(){
+  if(!document.body.classList.contains('formule-focus')) return;
+  clearTimeout(_formuleFocusTimer);
+  // Court délai : passer d'un curseur à l'autre ne doit pas faire
+  // clignoter l'aperçu.
+  _formuleFocusTimer=setTimeout(()=>{
+    document.body.classList.remove('formule-focus');
+    document.querySelectorAll('.formule-color-row.is-active').forEach(r=>r.classList.remove('is-active'));
+  },700);
+}
+document.addEventListener('pointerdown', e=>{
+  const row=e.target.closest && e.target.closest('.formule-color-row');
+  if(row && (e.target.type==='range' || e.target.type==='color')) formuleFocusOn(row);
+}, true);
+['pointerup','pointercancel'].forEach(ev=>document.addEventListener(ev, ()=>formuleFocusOff(), true));
+document.addEventListener('change', e=>{ if(e.target && e.target.type==='color') formuleFocusOff(); }, true);
 let _formuleFastTimer=null;
 function formule_scheduleFastPreview(){
   clearTimeout(_formuleFastTimer);
-  _formuleFastTimer=setTimeout(()=>{ if(typeof initFormulePreviewFrames==='function') initFormulePreviewFrames(); },120);
+  _formuleFastTimer=setTimeout(()=>{ if(typeof formule_liveStyleUpdate==='function') formule_liveStyleUpdate(); },30);
 }
 function formule_schedulePreviewRefresh(){
   if(_formulePreviewTimer) clearTimeout(_formulePreviewTimer);
@@ -4737,6 +4784,15 @@ function formule_rename(fid, name){
 
 // Vide toutes les surcharges de couleur d'une formule : elle retombe
 // alors sur les couleurs configurées pour les menus.
+// BUG FIX (latence au clic sur l'alignement) : ces boutons
+// relançaient un rendu complet de la section pour ne changer qu'une
+// classe. On bascule la classe sur place et on met l'aperçu à jour à
+// chaud — le clic devient instantané.
+function formule_setAlign(btn, fid, field, value){
+  const group = btn.parentElement;
+  if(group) group.querySelectorAll('.ig-align-btn').forEach(b=>b.classList.toggle('active', b===btn));
+  formule_setField(fid, field, value);
+}
 function formule_resetColors(fid){
   const f = DATA.formules.find(x=>x.id===fid);
   if(!f) return;
@@ -7278,7 +7334,8 @@ function renderFormuleList(){
       <span class="ig-row-label">${escAttr(f.name)||'(sans nom)'}</span>
       <span class="ig-row-chevron">›</span>
     </div>`).join('')}${!DATA.formules.length?'<div style="padding:16px;color:var(--ig-text-dimmer);font-size:12.5px;text-align:center">Aucune formule pour l\'instant.</div>':''}</div>
-  <button class="aadd ig-add-btn ig-add-btn-standalone" onclick="formule_create()">Ajouter une nouvelle formule${DATA.formules.length>=10?' (remplacera la plus ancienne)':''}</button>`;
+  <div class="ig-list" style="margin-top:14px"><div class="ig-row" style="justify-content:center" onclick="formule_create()"><span style="color:var(--ig-green);font-weight:500">Ajouter un nouveau menu</span></div></div>
+  ${DATA.formules.length>=10?'<div class="ig-hint-block">La limite de 10 est atteinte : en ajouter un nouveau remplacera le plus ancien.</div>':''}`;
 }
 
 function renderFormuleDetail(f){
@@ -7316,7 +7373,7 @@ function renderFormuleDetail(f){
   // La réinitialisation est globale, en bas — plus de petit bouton par
   // ligne, qui apparaissait et disparaissait selon la surcharge.
   const colorLine = c => `
-    <div class="ig-row" style="cursor:default;gap:10px">
+    <div class="ig-row formule-color-row" style="cursor:default;gap:10px">
       <span class="ig-row-label" style="flex:0 0 88px;min-width:0">${c.label}</span>
       ${c.sizeKey?`
       <input type="range" min="50" max="150" step="1" value="${c.f[c.sizeKey] ?? 100}" oninput="this.nextElementSibling.textContent=this.value+'%';formule_setField('${c.f.id}','${c.sizeKey}',parseInt(this.value,10))" style="flex:1;min-width:0">
@@ -7324,7 +7381,7 @@ function renderFormuleDetail(f){
       `:'<span style="flex:1"></span>'}
       <input type="color" value="${c.f[c.key]||defaultFor(c.key)}" oninput="formule_setColor('${c.f.id}','${c.key}',this.value)" style="width:20px;height:20px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer">
     </div>`;
-  const colorRow = fo => `<div class="ig-list">
+  const colorRow = fo => `<div class="ig-list formule-colors-list">
       ${colorLine({f:fo, key:'formuleTitleColor', sizeKey:'formuleTitlePct', label:'Titre'})}
       ${colorLine({f:fo, key:'formuleSubColor', sizeKey:'formuleSubPct', label:'Sous-titre'})}
       ${colorLine({f:fo, key:'instaTitleColor', sizeKey:'titleSizePct', label:'Sections'})}
@@ -7386,8 +7443,8 @@ function renderFormuleDetail(f){
       <div class="ig-row" style="cursor:default">
         <span class="ig-row-label">${label}</span>
         <div class="ig-align-group">
-          <button type="button" class="ig-align-btn${isLeft?' active':''}" title="Aligné à gauche" onclick="formule_setField('${f.id}','${field}',true);renderAdminSection(adminCurrentTab)">${LEFT}</button>
-          <button type="button" class="ig-align-btn${isLeft?'':' active'}" title="Centré" onclick="formule_setField('${f.id}','${field}',false);renderAdminSection(adminCurrentTab)">${CENTER}</button>
+          <button type="button" class="ig-align-btn${isLeft?' active':''}" title="Aligné à gauche" onclick="formule_setAlign(this,'${f.id}','${field}',true)">${LEFT}</button>
+          <button type="button" class="ig-align-btn${isLeft?'':' active'}" title="Centré" onclick="formule_setAlign(this,'${f.id}','${field}',false)">${CENTER}</button>
         </div>
       </div>`;
     return `<div class="ig-list" style="margin-top:10px">
@@ -7406,7 +7463,7 @@ function renderFormuleDetail(f){
   ${colorRow(f)}
 
   ${sectionHeader('Aperçu et export')}
-  <div class="af">
+  <div class="af formule-preview-wrap">
     <div id="formuleCarousel-${f.id}" style="display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:4px">
       ${['a4','story','post'].map(variant=>`
         <div style="flex:0 0 80%;scroll-snap-align:start">
@@ -7627,7 +7684,7 @@ function buildPreviewSlideDoc(css, pageHtml, spaceScale, pageW, pageH){
   return `<!DOCTYPE html><html><head>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Lovelo:wght@400;700&family=Open+Sans:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><meta charset="UTF-8"><style>${css}
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Lovelo:wght@400;700&family=Open+Sans:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><meta charset="UTF-8"><style id="liveCss">${css}</style><style>
 html,body{overflow:hidden;margin:0}
 #stage{width:${pageW}px;height:${pageH}px;overflow:hidden;transform-origin:top left}
 </style></head><body><div id="stage" class="pdf-page" style="${scaleStyle}">${pageHtml}</div>
@@ -7698,6 +7755,33 @@ function buildInstaPreviewDoc(css, pageHtml, spaceScale){
 // direct à chaque frappe (uniquement au chargement/après une action
 // qui re-rend la section) — suffisant pour se faire une idée avant
 // d'exporter.
+// BUG FIX (curseurs et alignement lents) : chaque modification
+// reconstruisait le srcdoc des TROIS aperçus, donc rechargeait trois
+// documents complets — d'où la latence au clic et le glissement dur.
+// Couleurs, tailles, alignement et casse ne changent que du CSS : on
+// remplace la feuille de style à l'intérieur des iframes déjà
+// chargées. Aucun rechargement, effet immédiat.
+function formule_liveStyleUpdate(){
+  let allLive = true;
+  document.querySelectorAll('.formule-preview-frame').forEach(frame=>{
+    const fid = frame.dataset.fid;
+    const f = DATA.formules && DATA.formules.find(x=>x.id===fid);
+    if(!f){ return; }
+    let doc=null;
+    try{ doc = frame.contentDocument; }catch(e){}
+    const styleEl = doc && doc.getElementById('liveCss');
+    const stage = doc && doc.getElementById('stage');
+    if(!styleEl || !stage){ allLive = false; return; }
+    const variant = frame.dataset.variant || 'story';
+    const ratio = variant==='a4' ? INSTA_A4_RATIO : variant==='post' ? INSTA_POST_RATIO : INSTA_RATIO;
+    const built = buildFormulePage(formule_buildCfg(f), ratio);
+    styleEl.textContent = built.css;
+    const sc = built.pages[0].spaceScale;
+    stage.style.setProperty('--space-scale', (sc && sc!==1) ? sc : '');
+  });
+  // Une iframe pas encore chargée : on retombe sur la reconstruction.
+  if(!allLive) initFormulePreviewFrames();
+}
 function initFormulePreviewFrames(){
   document.querySelectorAll('.formule-preview-frame').forEach(frame=>{
     const fid = frame.dataset.fid;
