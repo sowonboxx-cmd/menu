@@ -6731,20 +6731,27 @@ function buildFormulePage(cfg, ratio){
   // que l'ajustement vient de retenir : ils ne peuvent donc plus être
   // repris par celui-ci. Le contenu peut déborder un peu si on
   // agrandit beaucoup, ce qui est exactement l'effet demandé.
+  // BUG FIX (le + / − des sections et des plats restait sans effet) :
+  // reconstruire avec une taille plus grande ne servait à rien, parce
+  // que fitInstaOneLiners refixe la taille de CHAQUE titre et de
+  // CHAQUE nom de plat en dur dans le HTML, pour qu'ils tiennent sur
+  // une ligne — un plafond qui dépend de la largeur du texte, pas du
+  // réglage. On met donc à l'échelle les tailles que cet ajustement
+  // vient d'écrire : la proportion entre les lignes est conservée, et
+  // le réglage de l'utilisateur s'applique toujours.
   const pct = cfg.fmtPct;
   if(pct && (pct.title!==100 || pct.menu!==100 || pct.desc!==100)){
-    const appliedCfg = {
-      ...cfg,
-      instaTitleSize: Math.max(12, Math.round(baseTitleSize*finalFontScale*pct.title/100)),
-      instaMenuSize:  Math.max(9,  Math.round(baseMenuSize *finalFontScale*pct.menu /100)),
-      instaDescSize:  Math.max(8,  Math.round(baseDescSize *finalFontScale*pct.desc /100))
-    };
-    finalCss = buildInstaCSS(appliedCfg, ratio);
-    const { contentBlocks } = buildPdfBlocks(appliedCfg);
-    if(contentBlocks.length){
-      const fixedBlocks = contentBlocks.map(b=>({ ...b, html: fitInstaOneLiners(b.html, holder, appliedCfg) }));
-      finalHtml = (cfg.formulePreamble || '') + fixedBlocks.map(b=>b.html).join('');
+    if(pct.desc!==100){
+      finalCss = buildInstaCSS({ ...cfg,
+        instaTitleSize: baseTitleSize, instaMenuSize: baseMenuSize,
+        instaDescSize: Math.max(8, Math.round(baseDescSize*pct.desc/100))
+      }, ratio);
     }
+    const scaleInline = (html, cls, factor) => factor===100 ? html :
+      html.replace(new RegExp('(class="'+cls+'"[^>]*?font-size:)(\\d+(?:\\.\\d+)?)px','g'),
+        (m,head,n)=>head+Math.max(8, Math.round(parseFloat(n)*factor/100))+'px');
+    finalHtml = scaleInline(finalHtml, 'pdf-cat', pct.title);
+    finalHtml = scaleInline(finalHtml, 'pdf-dish-name', pct.menu);
   }
 
   document.body.removeChild(holder);
