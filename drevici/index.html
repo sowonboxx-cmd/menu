@@ -54,14 +54,14 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 .lb-prev{left:10px}.lb-next{right:10px}
 .lb-footer{background:none;padding:0}
 .lb-cat-row{display:flex;align-items:center;justify-content:center;gap:10px;margin:0}
-.lb-cat-line{flex:1;height:1px;background:rgba(255,255,255,0.45);max-width:40px}
-.lb-cat-label{font-family:'Open Sans',sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,0.45)}
+.lb-cat-line{flex:1;height:1px;background:rgba(255,255,255,0.85);max-width:40px}
+.lb-cat-label{font-family:'Open Sans',sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#fff}
 .lb-dish-name{font-family:'Open Sans',sans-serif;font-size:18px;color:#fff;font-weight:600;line-height:1.25;text-align:center;text-transform:uppercase;letter-spacing:.04em;margin-bottom:0}
 .lb-dish-desc{font-size:13.5px;color:rgba(255,255,255,0.72);font-family:'Open Sans',sans-serif;font-weight:400;line-height:1.55;text-align:center;margin-bottom:0}
 .lb-desc-probe{position:absolute;left:0;right:0;visibility:hidden;pointer-events:none;min-height:0!important}
 .lb-footer-row{display:flex;align-items:center;justify-content:center}
-.lb-count{position:absolute;left:14px;font-size:11px;color:rgba(255,255,255,.4);letter-spacing:.08em;font-family:'Jost',sans-serif;background:none;padding:0}
-.lb-close{position:absolute;right:2px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(255,255,255,.7);font-size:18px;cursor:pointer;line-height:1;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:color .15s}
+.lb-count{position:absolute;left:14px;font-size:11px;color:#fff;letter-spacing:.08em;font-family:'Jost',sans-serif;background:none;padding:0}
+.lb-close{position:absolute;right:2px;top:50%;transform:translateY(-50%);background:none;border:none;color:#fff;font-size:19px;cursor:pointer;line-height:1;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:opacity .15s}
 .font-gallery-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9600;display:flex;align-items:center;justify-content:center;padding:20px}
 .font-gallery-card{background:#fff;border-radius:14px;width:min(560px,100%);max-height:85vh;display:flex;flex-direction:column;overflow:hidden}
 .font-gallery-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);font-family:'Jost',sans-serif;font-weight:500;font-size:15px;color:var(--text)}
@@ -249,8 +249,8 @@ body.hdr-band .hdr-sched .resto-badge-inline svg{color:rgba(255,255,255,.82)!imp
    que l'ordre de lecture reste correct au clavier et au lecteur
    d'écran. */
 .dish-row .img-wrap{order:-1}
-.dish-top-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-.dish-price-inline{font-size:13px;font-weight:500;color:var(--gold);white-space:nowrap;flex:none;margin-top:1px}
+.dish-top-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.dish-price-inline{font-size:13px;font-weight:500;color:var(--gold);white-space:nowrap;flex:none}
 /* Bouton « incontournable » dans la fiche du plat (mode modification) */
 .ef-pin{display:flex;align-items:center;gap:11px;width:100%;text-align:left;padding:11px 13px;margin-bottom:14px;border:1px solid var(--border);border-radius:10px;background:#fff;cursor:pointer;font-family:'Jost',sans-serif}
 .ef-pin-on{border-color:var(--gold);background:rgba(198,162,74,.08)}
@@ -322,10 +322,15 @@ body.hdr-band .hdr-sched .resto-badge-inline svg{color:rgba(255,255,255,.82)!imp
 
 /* ── DISH LIST ── */
 .dish-row{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid rgba(0,0,0,0.05)}
-.dish-row-clickable{cursor:pointer;transition:background .15s;border-radius:6px;margin:0 -6px;padding-left:6px;padding-right:6px}
+.dish-row-clickable{cursor:pointer;transition:background .15s;border-radius:0;margin:0 -16px;padding-left:16px;padding-right:16px}
 .dish-row-clickable:hover{background:rgba(16,40,94,0.03)}
 .dish-row:first-child{padding-top:0}
 .dish-row:last-child{border-bottom:none;padding-bottom:0}
+/* Au survol, on ne veut QUE la bande : les filets de séparation
+   juste au-dessus et juste en dessous s'effacent, sinon ils
+   dessinent deux traits qui semblent déborder de la bande. */
+.dish-row-clickable:hover{border-bottom-color:transparent}
+.dish-row:has(+ .dish-row-clickable:hover){border-bottom-color:transparent}
 .dish-text{flex:1;min-width:0}
 .dish-name-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .dish-name{font-family:'Open Sans',sans-serif;font-size:14px;font-weight:600;color:var(--navy);line-height:1.2}
@@ -1711,6 +1716,31 @@ function migratePins(){
   });
   DATA.pinnedDishes=migrated;
 }
+// BUG FIX (épingles perdues au rechargement) : une épingle pointe un
+// plat par son identifiant interne (_pid). Si ce plat est recréé
+// ailleurs dans l'appli — réimport, duplication, migration — il
+// reçoit un NOUVEL identifiant, et l'épingle pointe alors dans le
+// vide : les incontournables disparaissent silencieusement au
+// rechargement. On retient donc aussi le nom du plat, et si
+// l'identifiant ne répond plus, on retrouve le plat par son nom
+// dans sa catégorie et on réécrit l'identifiant au passage. Une
+// épingle vraiment orpheline (plat supprimé) est retirée.
+function repairPins(){
+  ensureAllDishPids();
+  const pins=DATA.pinnedDishes||[];
+  const kept=[];
+  pins.forEach(p=>{
+    if(resolvePin(p)){ kept.push(p); return; }
+    if(!p.name) return;
+    const tb=DATA.tabs.find(tt=>tt.id===p.tabId);
+    if(!tb) return;
+    for(const card of (tb.cards||[])){
+      const d=(card.dishes||[]).find(dd=>t(dd.name)===p.name);
+      if(d){ ensureDishPid(d); p.pid=d._pid; kept.push(p); return; }
+    }
+  });
+  DATA.pinnedDishes=kept;
+}
 // Resolve a pin to its live dish (searches by stable id, so it's immune to
 // any later reordering of sections/dishes). Returns null if the dish was
 // deleted since being pinned.
@@ -2493,7 +2523,7 @@ function openPinLb(idx){
   pinLbIdx=Math.min(idx,pinLbDishes.length-1);
   renderPinLb();
   document.getElementById('lb').classList.add('open');
-  sizeLbDesc(pinLbDishes.map(d=>t(d.desc)||''));
+  sizeLbDesc(pinLbDishes.map(d=>t(d.desc)||''), pinLbDishes.map(d=>t(d.name)||''));
   document.body.style.overflow='hidden';
 }
 function renderPinLb(){
@@ -2514,7 +2544,7 @@ function openLb(idx){ if(editMode) return; lbMode='normal'; collectLbImages(); l
   document.getElementById('lb').classList.add('open');
   // La mesure n'est fiable qu'une fois la carte affichée (sa largeur
   // n'existe pas avant).
-  sizeLbDesc(lbImages.map(i=>i.desc||''));
+  sizeLbDesc(lbImages.map(i=>i.desc||''), lbImages.map(i=>i.name||''));
   document.body.style.overflow='hidden'; }
 function closeLb(){ document.getElementById('lb').classList.remove('open'); document.body.style.overflow=''; lbMode='normal'; }
 // Route lbStep to the right mode
@@ -2523,16 +2553,28 @@ function lbStep(d){ if(lbMode==='pin'){ stepPinLb(d); } else { lbIdx=(lbIdx+d+lb
 // précaution, le cadre grandit et rapetisse à chaque glissement. On
 // mesure donc toutes les descriptions du lot une fois à l'ouverture
 // et on réserve la hauteur de la plus longue.
-function sizeLbDesc(list){
-  const el=document.getElementById('lbDesc'); if(!el) return;
+function sizeLbBlock(el, texts, minLines){
+  if(!el) return;
   el.style.minHeight='';
   const probe=document.createElement('div');
-  probe.className='lb-dish-desc lb-desc-probe';
+  probe.className=el.className+' lb-desc-probe';
   el.parentNode.appendChild(probe);
-  let max=0;
-  (list||[]).forEach(txt=>{ probe.textContent=txt||''; max=Math.max(max, probe.offsetHeight); });
+  // Plancher : toujours réserver au moins deux lignes, même si tous les
+  // textes du lot tiennent sur une. Sans ça, le jour où le
+  // restaurateur ajoute une description un peu plus longue, la carte se
+  // remet à sauter.
+  const lh=parseFloat(getComputedStyle(probe).lineHeight)||18;
+  let max=lh*(minLines||2);
+  (texts||[]).forEach(txt=>{ probe.textContent=txt||''; max=Math.max(max, probe.offsetHeight); });
   probe.remove();
-  if(max) el.style.minHeight=max+'px';
+  el.style.minHeight=Math.ceil(max)+'px';
+}
+// Le nom ET la description peuvent tenir sur une ou deux lignes : on
+// fige les deux, sinon la carte grandit et rapetisse à chaque
+// glissement — ce qui fait tout sauf professionnel.
+function sizeLbDesc(descs, names){
+  sizeLbBlock(document.getElementById('lbName'), names, 2);
+  sizeLbBlock(document.getElementById('lbDesc'), descs, 2);
 }
 function renderLbSlide(){
   const item=lbImages[lbIdx];
@@ -3363,7 +3405,7 @@ function renderInfoBanner(ib){
     if(!el) return true;                 // pas de bandeau : rien à protéger
     const r=el.getBoundingClientRect();
     if(!r.height) return true;
-    return r.bottom <= r.height/2;       // plus de la moitié est passée en haut
+    return r.bottom <= r.height*0.65;    // un peu avant la moitié, dès que l'on descend
   }
   // On décide UNE fois, au poser du doigt : si la page bouge pendant le
   // geste, la réponse ne doit pas changer en cours de route.
@@ -4538,14 +4580,18 @@ function togglePin(tabId,ci,di){
   const pins=DATA.pinnedDishes||[];
   const idx=pins.findIndex(p=>p.tabId===tabId&&p.pid===dish._pid);
   if(idx>=0){ pins.splice(idx,1); }
-  else if(pinCountForTab(tabId)<PIN_MAX_PER_TAB){ pins.push({tabId,pid:dish._pid}); }
+  else if(pinCountForTab(tabId)<PIN_MAX_PER_TAB){ pins.push({tabId,pid:dish._pid,name:t(dish.name)}); }
   else { showToast(`${PIN_MAX_PER_TAB} incontournables maximum par catégorie`); return; }
   DATA.pinnedDishes=pins;
   renderAll();
   // La fiche ouverte doit refléter l'étoile tout de suite.
   if(editCtx && editCtx.type==='dish') openEditDish(editCtx.ti, editCtx.ci, editCtx.di);
   renderAdminSection(adminCurrentTab);
-  scheduleAutoSave(true);
+  // Enregistrement IMMÉDIAT, pas au bout des 900 ms habituelles :
+  // épingler est un geste ponctuel, souvent suivi d'un rechargement
+  // pour vérifier le rendu — et le délai avalait justement le
+  // changement qu'on venait de faire.
+  publishNow(true);
 }
 
 // Une tab est maintenant une vraie navigation à deux niveaux : la
@@ -5823,6 +5869,8 @@ async function loadFromSupabase(){
     if(!DATA.homeCover) DATA.homeCover={};
     DATA.homeCover.active=true;
     migrateTabIds();
+    migratePins();
+    repairPins();
     { const hashTid=tabIdFromHash();
       currentTabId=(hashTid && DATA.tabs.some(tb=>tb.id===hashTid && tb.visible!==false)) ? hashTid : (DATA.tabs[0]?.id||'huitres');
     }
@@ -8850,7 +8898,7 @@ function renderBrandColorsSection(){
   return h;
 }
 function setHeaderStyle(mode){
-  DATA.headerStyle = (mode==='band') ? 'band' : 'light';
+  DATA.headerStyle = (mode==='light') ? 'light' : 'band';
   applyHeaderStyle();
   applyBrandColors();
   renderAll();
@@ -8892,7 +8940,7 @@ function renderCorpoTemplatesSection(){
 // identique dans les deux cas, ce n'est pas deux designs mais une
 // bascule. Pilote aussi la barre de statut (encoche iPhone), qui doit
 // toujours prendre la couleur réellement affichée en haut de page.
-function headerStyle(){ return (DATA.headerStyle==='band') ? 'band' : 'light'; }
+function headerStyle(){ return (DATA.headerStyle==='light') ? 'light' : 'band'; }
 function applyHeaderStyle(){
   const band = headerStyle()==='band';
   document.body.classList.toggle('hdr-band', band);
