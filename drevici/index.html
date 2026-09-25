@@ -36,10 +36,10 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 .lb{position:fixed;inset:0;background:rgba(0,0,0,.86);z-index:9100;display:none;align-items:center;justify-content:center;padding:18px}
 .lb.open{display:flex}
 .lb-card{position:relative;width:100%;max-width:440px;max-height:calc(100dvh - 36px);display:flex;flex-direction:column;background:var(--lbBg,#0B1A3D);border-radius:18px;overflow:hidden;margin:0}
-.lb-top{position:absolute;top:0;left:0;right:0;z-index:4;height:52px;display:flex;align-items:center;justify-content:flex-end;padding:0 4px;pointer-events:none}
+.lb-cat-bar{position:relative;flex:none;display:flex;align-items:center;justify-content:center;padding:13px 6px 11px;background:var(--lbBg,#0B1A3D)}
 .lb-top-spacer{display:none}
 .lb-media{position:relative;flex:none;line-height:0}
-.lb-info{padding:16px 22px 0;display:flex;flex-direction:column;gap:8px;text-align:center}
+.lb-info{padding:16px 22px 20px;display:flex;flex-direction:column;gap:7px;text-align:center}
 .lb-head{display:flex;flex-direction:column;align-items:center;gap:4px}
 .lb-dish-price{font-family:'Open Sans',sans-serif;font-size:17px;font-weight:500;color:#fff;white-space:nowrap}
 .lb-dots{padding:14px 20px 18px;display:flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap}
@@ -53,14 +53,15 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 .lb-nav:hover{opacity:.75}
 .lb-prev{left:10px}.lb-next{right:10px}
 .lb-footer{background:none;padding:0}
-.lb-cat-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:2px}
+.lb-cat-row{display:flex;align-items:center;justify-content:center;gap:10px;margin:0}
 .lb-cat-line{flex:1;height:1px;background:rgba(255,255,255,0.45);max-width:40px}
 .lb-cat-label{font-family:'Open Sans',sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,0.45)}
 .lb-dish-name{font-family:'Open Sans',sans-serif;font-size:18px;color:#fff;font-weight:600;line-height:1.25;text-align:center;text-transform:uppercase;letter-spacing:.04em;margin-bottom:0}
 .lb-dish-desc{font-size:13.5px;color:rgba(255,255,255,0.72);font-family:'Open Sans',sans-serif;font-weight:400;line-height:1.55;text-align:center;margin-bottom:0}
+.lb-desc-probe{position:absolute;left:0;right:0;visibility:hidden;pointer-events:none;min-height:0!important}
 .lb-footer-row{display:flex;align-items:center;justify-content:center}
-.lb-count{font-size:12px;color:rgba(255,255,255,.62);letter-spacing:.1em;font-family:'Jost',sans-serif;background:none;padding:14px 0 18px;text-align:center}
-.lb-close{position:static;background:none;border:none;color:#fff;font-size:20px;cursor:pointer;line-height:1;width:44px;height:44px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;pointer-events:auto;text-shadow:0 1px 8px rgba(0,0,0,.6);opacity:.9;transition:opacity .15s}
+.lb-count{position:absolute;left:14px;font-size:11px;color:rgba(255,255,255,.4);letter-spacing:.08em;font-family:'Jost',sans-serif;background:none;padding:0}
+.lb-close{position:absolute;right:2px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(255,255,255,.7);font-size:18px;cursor:pointer;line-height:1;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:color .15s}
 .font-gallery-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9600;display:flex;align-items:center;justify-content:center;padding:20px}
 .font-gallery-card{background:#fff;border-radius:14px;width:min(560px,100%);max-height:85vh;display:flex;flex-direction:column;overflow:hidden}
 .font-gallery-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);font-family:'Jost',sans-serif;font-weight:500;font-size:15px;color:var(--text)}
@@ -239,7 +240,7 @@ body.hdr-band .hdr-sched .resto-badge-inline svg{color:rgba(255,255,255,.82)!imp
 .rail-pin-on{color:var(--gold)}
 .rail-img{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:20px;display:block;background:#ece8e1;transition:opacity .15s}
 .rail-card:active .rail-img{opacity:.85}
-.rail-meta{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:10px}
+.rail-meta{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:10px;padding:0 5%}
 .rail-name{font-family:'Open Sans',sans-serif;font-size:14px;font-weight:600;color:var(--navy);line-height:1.3}
 .rail-price{font-size:13px;font-weight:500;color:var(--navy);white-space:nowrap;flex:none}
 .dish-star{color:var(--gold);font-size:11px;line-height:1}
@@ -1356,7 +1357,13 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
        ailleurs, fermeture à gauche, position dans la catégorie au
        centre, et des points en bas pour dire qu'on peut glisser. -->
   <div class="lb-card">
-    <div class="lb-top">
+    <!-- La catégorie remonte au-dessus de l'image, sur la couleur du
+         restaurant : il ne reste plus que le nom et la description à
+         lire en bas. Le compteur et la croix encadrent ce bandeau, ce
+         qui laisse la catégorie parfaitement centrée. -->
+    <div class="lb-cat-bar">
+      <span class="lb-count" id="lbCount"></span>
+      <div class="lb-cat-row"><div class="lb-cat-line"></div><div class="lb-cat-label" id="lbCat"></div><div class="lb-cat-line"></div></div>
       <button class="lb-close" onclick="closeLb()" aria-label="Fermer">✕</button>
     </div>
     <div class="lb-media">
@@ -1365,14 +1372,9 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
       <img id="lbImg" src="" alt=""/>
     </div>
     <div class="lb-info" id="lbFooter">
-      <div class="lb-cat-row"><div class="lb-cat-line"></div><div class="lb-cat-label" id="lbCat"></div><div class="lb-cat-line"></div></div>
-      <div class="lb-head">
-        <div class="lb-dish-name" id="lbName"></div>
-      </div>
+      <div class="lb-dish-name" id="lbName"></div>
       <div class="lb-dish-desc" id="lbDesc"></div>
-      <div class="lb-count" id="lbCount"></div>
     </div>
-    <div class="lb-dots" id="lbDots" hidden></div>
   </div>
 </div>
 
@@ -2453,7 +2455,7 @@ function renderCategoryRail(tab){
     ? `<div class="rail-hdr"><span class="rail-star">★</span><span class="rail-title">Nos incontournables</span></div>`
     : '';
   const cards=items.map(s=>{
-    const d=s.dish, price=dishPriceDisplay(d);
+    const d=s.dish, price=dishPriceShort(d);
     return `<div class="rail-card" data-edit="dish" data-ti="${ti}" data-ci="${s.ci}" data-di="${s.di}" data-lbidx="${s.lb}">`
       + `<img class="rail-img" src="${d.img}" alt="" loading="lazy">`
       + (editMode?`<span class="rail-pin${isPinnedDish(d)?' rail-pin-on':''}">${isPinnedDish(d)?'★':'☆'}</span>`:'')
@@ -2491,6 +2493,7 @@ function openPinLb(idx){
   pinLbIdx=Math.min(idx,pinLbDishes.length-1);
   renderPinLb();
   document.getElementById('lb').classList.add('open');
+  sizeLbDesc(pinLbDishes.map(d=>t(d.desc)||''));
   document.body.style.overflow='hidden';
 }
 function renderPinLb(){
@@ -2507,10 +2510,30 @@ function stepPinLb(dir){
   renderPinLb();
 }
 
-function openLb(idx){ if(editMode) return; lbMode='normal'; collectLbImages(); lbIdx=idx; renderLbSlide(); document.getElementById('lb').classList.add('open'); document.body.style.overflow='hidden'; }
+function openLb(idx){ if(editMode) return; lbMode='normal'; collectLbImages(); lbIdx=idx; renderLbSlide();
+  document.getElementById('lb').classList.add('open');
+  // La mesure n'est fiable qu'une fois la carte affichée (sa largeur
+  // n'existe pas avant).
+  sizeLbDesc(lbImages.map(i=>i.desc||''));
+  document.body.style.overflow='hidden'; }
 function closeLb(){ document.getElementById('lb').classList.remove('open'); document.body.style.overflow=''; lbMode='normal'; }
 // Route lbStep to the right mode
 function lbStep(d){ if(lbMode==='pin'){ stepPinLb(d); } else { lbIdx=(lbIdx+d+lbImages.length)%lbImages.length; renderLbSlide(); } }
+// La description fait une, deux ou trois lignes selon le plat : sans
+// précaution, le cadre grandit et rapetisse à chaque glissement. On
+// mesure donc toutes les descriptions du lot une fois à l'ouverture
+// et on réserve la hauteur de la plus longue.
+function sizeLbDesc(list){
+  const el=document.getElementById('lbDesc'); if(!el) return;
+  el.style.minHeight='';
+  const probe=document.createElement('div');
+  probe.className='lb-dish-desc lb-desc-probe';
+  el.parentNode.appendChild(probe);
+  let max=0;
+  (list||[]).forEach(txt=>{ probe.textContent=txt||''; max=Math.max(max, probe.offsetHeight); });
+  probe.remove();
+  if(max) el.style.minHeight=max+'px';
+}
 function renderLbSlide(){
   const item=lbImages[lbIdx];
   document.getElementById('lbImg').src=item.src;
@@ -2779,6 +2802,16 @@ function dishPriceDisplay(d){
   const raw=(d.price||'').toString();
   const withCurrency = raw.includes('€') ? raw : (d.price ? raw+'€' : '');
   return fmtCurrency(withCurrency);
+}
+// Le bandeau n'a la place que d'un prix : pour un plat à double
+// tarif (huîtres « Les 6 — 12€ · Les 12 — 22€ »), on ne garde que
+// le premier. Les deux restent affichés dans la liste en dessous,
+// où la ligne entière est disponible.
+function dishPriceShort(d){
+  const full=dishPriceDisplay(d);
+  if(!full) return '';
+  if(d.priceType!=='dual') return full;
+  return full.split('\u00b7')[0].trim();
 }
 function variantsPriceInfo(variants){
   const list=variants||[];
@@ -3317,12 +3350,24 @@ function renderInfoBanner(ib){
   let navIndicatorEl=null,navActiveLeft=0,navActiveWidth=0,navNeighborLeft=0,navNeighborWidth=0;
   let navActiveTabElRef=null,navNeighborTabElRef=null;
   // DÉCISION PRODUIT (Will) : le geste horizontal appartient au
-  // bandeau « Nos incontournables ». Deux glissements horizontaux sur
-  // le même écran, et on ne sait plus lequel on déclenche — le
-  // carrousel de plats ou le changement de catégorie. Les catégories
-  // changent donc au TAP seulement. Tout le mécanisme ci-dessous est
-  // conservé, simplement désactivé par ce drapeau.
-  const TAB_SWIPE_ENABLED=false;
+  // bandeau « Nos incontournables » TANT QU'ON LE VOIT. Deux
+  // glissements horizontaux au même endroit, et on ne sait plus
+  // lequel on déclenche. Mais une fois le bandeau dépassé à plus de
+  // moitié, le conflit disparaît : l'utilisateur est descendu dans la
+  // liste, il voit les onglets en haut et glisser devient le geste
+  // naturel pour changer de catégorie plutôt que de remonter cliquer.
+  // Une catégorie sans bandeau (vins, cafés) autorise le glissement
+  // d'emblée.
+  function tabSwipeAllowed(){
+    const el=document.querySelector('.tab-content.active .rail');
+    if(!el) return true;                 // pas de bandeau : rien à protéger
+    const r=el.getBoundingClientRect();
+    if(!r.height) return true;
+    return r.bottom <= r.height/2;       // plus de la moitié est passée en haut
+  }
+  // On décide UNE fois, au poser du doigt : si la page bouge pendant le
+  // geste, la réponse ne doit pas changer en cours de route.
+  let swipeAllowed=false;
   const THRESHOLD=0.12; // 12% of screen width to commit — light swipe enough
 
   function resetPanel(el){
@@ -3346,7 +3391,8 @@ function renderInfoBanner(ib){
   }
 
   document.addEventListener('touchstart',e=>{
-    if(!TAB_SWIPE_ENABLED) return;
+    swipeAllowed=tabSwipeAllowed();
+    if(!swipeAllowed) return;
     if(document.getElementById('adminPanel')?.classList.contains('open')) return;
     // Don't intercept touches on nav-bar, lightbox, admin, inputs
     if(e.target.closest('.nav-bar,.rail,.lb,.admin-panel,input,textarea,select,button')) return;
@@ -3357,7 +3403,7 @@ function renderInfoBanner(ib){
   },{passive:true});
 
   document.addEventListener('touchmove',e=>{
-    if(!TAB_SWIPE_ENABLED) return;
+    if(!swipeAllowed) return;
     if(document.getElementById('adminPanel')?.classList.contains('open')) return;
     if(dragLocked) return;
     if(e.target.closest('.nav-bar,.rail,.lb,.admin-panel,input,textarea,select')) return;
@@ -3433,7 +3479,7 @@ function renderInfoBanner(ib){
   },{passive:true});
 
   document.addEventListener('touchend',e=>{
-    if(!TAB_SWIPE_ENABLED) return;
+    if(!swipeAllowed) return;
     const wasDragging=isDragging;
     isDragging=false;
     dragLocked=false;
