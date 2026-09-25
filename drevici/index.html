@@ -28,25 +28,34 @@ html,body{touch-action:manipulation}
 body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-size:14px}
 
 /* ── LIGHTBOX ── */
-.lb{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9100;display:none;align-items:center;justify-content:center}
+.lb{position:fixed;inset:0;background:var(--lbBg,#0B1A3D);z-index:9100;display:none;align-items:stretch;justify-content:center}
 .lb.open{display:flex}
-.lb-card{position:relative;width:min(420px,92vw);border-radius:16px;overflow:hidden;background:var(--navy);margin-top:44px}
-.lb-zone{position:absolute;top:0;bottom:0;width:45%;z-index:3;cursor:pointer}
+.lb-card{position:relative;width:100%;max-width:520px;display:flex;flex-direction:column;background:none;border-radius:0;overflow:visible;margin:0}
+.lb-top{flex:none;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 12px 0 8px;margin-top:env(safe-area-inset-top)}
+.lb-top-spacer{width:44px;flex:none}
+.lb-media{position:relative;padding:0 20px;flex:none}
+.lb-info{padding:22px 20px 0;display:flex;flex-direction:column;gap:9px}
+.lb-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px}
+.lb-dish-price{font-family:'Open Sans',sans-serif;font-size:17px;font-weight:500;color:#fff;white-space:nowrap}
+.lb-dots{margin-top:auto;padding:24px 20px calc(30px + env(safe-area-inset-bottom));display:flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap}
+.lb-dot{width:5px;height:5px;border-radius:999px;background:rgba(255,255,255,.3);transition:width .18s}
+.lb-dot.on{width:18px;background:rgba(255,255,255,.85)}
+.lb-zone{position:absolute;top:0;bottom:0;width:38%;z-index:3;cursor:pointer}
 .lb-zone-left{left:0}
 .lb-zone-right{right:0}
-.lb img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block}
+.lb img{width:100%;aspect-ratio:4/5;object-fit:cover;display:block;border-radius:20px;background:rgba(255,255,255,.06)}
 .lb-nav{position:absolute;top:50%;transform:translateY(-50%);background:none;border:none;color:#fff;width:44px;height:44px;cursor:pointer;font-size:28px;display:flex;align-items:center;justify-content:center;text-shadow:0 1px 6px rgba(0,0,0,0.6);transition:opacity .15s;z-index:2}
 .lb-nav:hover{opacity:.75}
 .lb-prev{left:10px}.lb-next{right:10px}
-.lb-footer{background:#10285E;padding:14px 20px 20px}
+.lb-footer{background:none;padding:0}
 .lb-cat-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px}
 .lb-cat-line{flex:1;height:1px;background:rgba(255,255,255,0.45);max-width:40px}
 .lb-cat-label{font-family:'Open Sans',sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,0.45)}
-.lb-dish-name{font-family:'Open Sans',sans-serif;font-size:16px;color:#fff;font-weight:600;line-height:1.2;text-align:center;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em}
-.lb-dish-desc{font-size:13px;color:rgba(255,255,255,0.65);font-family:'Open Sans',sans-serif;font-weight:400;line-height:1.55;text-align:center;margin-bottom:10px}
+.lb-dish-name{font-family:'Open Sans',sans-serif;font-size:21px;color:#fff;font-weight:600;line-height:1.25;text-align:left;margin-bottom:0}
+.lb-dish-desc{font-size:14px;color:rgba(255,255,255,0.74);font-family:'Open Sans',sans-serif;font-weight:400;line-height:1.65;text-align:left;margin-bottom:0}
 .lb-footer-row{display:flex;align-items:center;justify-content:center}
-.lb-count{font-size:11px;color:#fff;letter-spacing:.12em;font-family:'Open Sans',sans-serif;background:none;padding:2px 0}
-.lb-close{position:absolute;top:-40px;right:0;background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:3;opacity:.8;transition:opacity .15s}
+.lb-count{font-size:12px;color:rgba(255,255,255,.62);letter-spacing:.1em;font-family:'Jost',sans-serif;background:none;padding:0}
+.lb-close{position:static;background:none;border:none;color:#fff;font-size:20px;cursor:pointer;line-height:1;width:44px;height:44px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:3;opacity:.9;transition:opacity .15s}
 .font-gallery-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9600;display:flex;align-items:center;justify-content:center;padding:20px}
 .font-gallery-card{background:#fff;border-radius:14px;width:min(560px,100%);max-height:85vh;display:flex;flex-direction:column;overflow:hidden}
 .font-gallery-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);font-family:'Jost',sans-serif;font-weight:500;font-size:15px;color:var(--text)}
@@ -191,7 +200,10 @@ body.hdr-band .nav-indicator{top:auto;bottom:0;height:2px;background:var(--gold)
 body.hdr-band .view-bar{display:none}
 .hdr-sched{display:flex;justify-content:center;padding:4px 0 10px}
 .hdr-sched .sched-pin-frame{border:none;background:transparent;padding:4px 8px}
-body.hdr-band .hdr-sched .resto-badge-inline span{color:var(--text2)}
+/* En bandeau, le badge horaires est posé SUR la couleur : son texte
+   et son épingle doivent passer en clair, sinon ils disparaissent. */
+body.hdr-band .hdr-sched .resto-badge-inline > span{color:rgba(255,255,255,.82)!important}
+body.hdr-band .hdr-sched .resto-badge-inline svg{color:rgba(255,255,255,.82)!important;fill:currentColor}
 /* Réserver : une pastille flottante, présente en permanence sous le
    pouce. Grosse par le contraste, pas par la surface — une barre pleine
    largeur mange l'écran à chaque scroll et fait « appli de livraison ». */
@@ -211,11 +223,11 @@ body.hdr-band .hdr-sched .resto-badge-inline span{color:var(--text2)}
    deux pixels qui faisait « pas terrible ». */
 .rail-hdr{display:flex;align-items:baseline;gap:6px;margin-bottom:11px}
 .rail-star{color:var(--gold);font-size:10px;line-height:1}
-.rail-title{font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);font-family:'Jost',sans-serif;line-height:1}
+.rail-title{font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--navy);font-family:'Jost',sans-serif;line-height:1}
 /* Marge négative + padding : le bandeau file jusqu'aux bords de
    l'écran et laisse dépasser la carte suivante — c'est ce dépassement
    qui dit « ça défile » sans aucune flèche ni indicateur. */
-.rail{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin:0 -16px;padding:0 16px 2px}
+.rail{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-left:0;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin:0 -16px 0 0;padding:0 16px 2px 0}
 .rail::-webkit-scrollbar{display:none}
 .rail-card{flex:0 0 69%;max-width:300px;scroll-snap-align:start;cursor:pointer;position:relative}
 .rail-pin{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;line-height:1;pointer-events:none}
@@ -290,7 +302,7 @@ body.hdr-band .hdr-sched .resto-badge-inline span{color:var(--text2)}
 .featured-item-price-inline{font-size:10px;font-weight:500;color:var(--gold);white-space:nowrap;flex-shrink:0;margin-top:1px}
 
 /* ── CARD ── */
-.card{background:#fff;border-radius:var(--r);border:1px solid var(--border)}
+.card{background:#fff;border-radius:var(--r)}
 .card-hdr{padding:14px 16px 0;display:flex;align-items:center;justify-content:space-between}
 .card-label{font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);font-family:'Jost',sans-serif}
 .card-body{padding:14px 16px 16px}
@@ -1326,23 +1338,30 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 
 <!-- LIGHTBOX -->
 <div class="lb" id="lb">
+  <!-- Vue plein écran d'un plat : fond à la couleur du restaurant (le
+       plus grand aplat de sa couleur du site, et il arrive pile au
+       moment où l'on désire le plat), photo en 4:5 comme partout
+       ailleurs, fermeture à gauche, position dans la catégorie au
+       centre, et des points en bas pour dire qu'on peut glisser. -->
   <div class="lb-card">
-    <button class="lb-close" onclick="closeLb()">✕</button>
-    <div style="position:relative">
+    <div class="lb-top">
+      <button class="lb-close" onclick="closeLb()" aria-label="Fermer">✕</button>
+      <span class="lb-count" id="lbCount"></span>
+      <span class="lb-top-spacer"></span>
+    </div>
+    <div class="lb-media">
       <div class="lb-zone lb-zone-left" onclick="lbStep(-1)"></div>
       <div class="lb-zone lb-zone-right" onclick="lbStep(1)"></div>
-      <button class="lb-nav lb-prev" onclick="lbStep(-1)">&#8249;</button>
       <img id="lbImg" src="" alt=""/>
-      <button class="lb-nav lb-next" onclick="lbStep(1)">&#8250;</button>
     </div>
-    <div class="lb-footer" id="lbFooter">
-      <div class="lb-cat-row"><div class="lb-cat-line"></div><div class="lb-cat-label" id="lbCat"></div><div class="lb-cat-line"></div></div>
-      <div class="lb-dish-name" id="lbName"></div>
-      <div class="lb-dish-desc" id="lbDesc"></div>
-      <div class="lb-footer-row">
-        <span class="lb-count" id="lbCount"></span>
+    <div class="lb-info" id="lbFooter">
+      <div class="lb-head">
+        <div class="lb-dish-name" id="lbName"></div>
+        <div class="lb-dish-price" id="lbPrice"></div>
       </div>
+      <div class="lb-dish-desc" id="lbDesc"></div>
     </div>
+    <div class="lb-dots" id="lbDots"></div>
   </div>
 </div>
 
@@ -2439,8 +2458,8 @@ function collectLbImages(){
   if(!tab) return;
   const cat=t(tab.label);
   tab.cards.forEach(card=>{
-    if(card.dishes) card.dishes.filter(d=>!d.hidden).forEach(d=>{ if(d.img) lbImages.push({src:d.img,name:t(d.name),desc:t(d.desc)||'',cat}); });
-    if(card.img && !card.dishes) lbImages.push({src:card.img,name:t(card.label),desc:'',cat});
+    if(card.dishes) card.dishes.filter(d=>!d.hidden).forEach(d=>{ if(d.img) lbImages.push({src:d.img,name:t(d.name),desc:t(d.desc)||'',price:dishPriceDisplay(d)||'',cat}); });
+    if(card.img && !card.dishes) lbImages.push({src:card.img,name:t(card.label),desc:'',price:'',cat});
   });
 }
 // ── LIGHTBOX MODE FLAG ──
@@ -2469,8 +2488,9 @@ function renderPinLb(){
   document.getElementById('lbImg').src=d.img||'';
   document.getElementById('lbName').textContent=t(d.name);
   document.getElementById('lbDesc').textContent=t(d.desc)||'';
-  document.getElementById('lbCount').textContent=(pinLbIdx+1)+' / '+pinLbDishes.length;
-  const catEl=document.getElementById('lbCat'); if(catEl) catEl.textContent='Incontournables';
+  setLbPrice(dishPriceDisplay(d)||'');
+  document.getElementById('lbCount').textContent='Incontournables \u00b7 '+(pinLbIdx+1)+' / '+pinLbDishes.length;
+  renderLbDots(pinLbDishes.length, pinLbIdx);
 }
 function stepPinLb(dir){
   pinLbIdx=(pinLbIdx+dir+pinLbDishes.length)%pinLbDishes.length;
@@ -2481,22 +2501,31 @@ function openLb(idx){ if(editMode) return; lbMode='normal'; collectLbImages(); l
 function closeLb(){ document.getElementById('lb').classList.remove('open'); document.body.style.overflow=''; lbMode='normal'; }
 // Route lbStep to the right mode
 function lbStep(d){ if(lbMode==='pin'){ stepPinLb(d); } else { lbIdx=(lbIdx+d+lbImages.length)%lbImages.length; renderLbSlide(); } }
+// Points de position : au-delà d'une dizaine de plats ils deviennent
+// illisibles, le compteur en haut suffit alors.
+function renderLbDots(total, idx){
+  const el=document.getElementById('lbDots'); if(!el) return;
+  if(total<2 || total>12){ el.innerHTML=''; return; }
+  let h='';
+  for(let i=0;i<total;i++) h+='<span class="lb-dot'+(i===idx?' on':'')+'"></span>';
+  el.innerHTML=h;
+}
+function setLbPrice(v){ const el=document.getElementById('lbPrice'); if(el) el.innerHTML=v||''; }
 function renderLbSlide(){
   const item=lbImages[lbIdx];
   document.getElementById('lbImg').src=item.src;
   document.getElementById('lbName').textContent=item.name;
   document.getElementById('lbDesc').textContent=item.desc||'';
-  document.getElementById('lbCount').textContent=(lbIdx+1)+' / '+lbImages.length;
-  const catEl=document.getElementById('lbCat'); if(catEl) catEl.textContent=item.cat||'';
+  setLbPrice(item.price||'');
+  document.getElementById('lbCount').textContent=(item.cat?item.cat+' \u00b7 ':'')+(lbIdx+1)+' / '+lbImages.length;
+  renderLbDots(lbImages.length, lbIdx);
 }
-document.getElementById('lb').addEventListener('click',e=>{ if(!e.target.closest('.lb-card')) closeLb(); });
+// Plein écran : il n'y a plus de fond à cliquer, la croix ferme.
+document.getElementById('lb').addEventListener('click',e=>{ if(e.target.id==='lb') closeLb(); });
 // Tap left/right on footer to navigate
-document.getElementById('lbFooter').addEventListener('click',e=>{
-  const rect=e.currentTarget.getBoundingClientRect();
-  const x=e.clientX-rect.left;
-  if(x < rect.width/2) lbStep(-1); else lbStep(1);
-  e.stopPropagation();
-});
+// Le bloc texte n'est plus une zone de navigation : on y lit la
+// description, un tap involontaire ne doit pas changer de plat.
+document.getElementById('lbFooter').addEventListener('click',e=>{ e.stopPropagation(); });
 document.addEventListener('keydown',e=>{ const lb=document.getElementById('lb'); if(!lb.classList.contains('open'))return; if(e.key==='Escape')closeLb(); if(e.key==='ArrowLeft')lbStep(-1); if(e.key==='ArrowRight')lbStep(1); });
 // Swipe support
 (function(){
@@ -3287,6 +3316,13 @@ function renderInfoBanner(ib){
   let activeEl=null,neighborEl=null,containerEl=null,prevContainerStyle=null;
   let navIndicatorEl=null,navActiveLeft=0,navActiveWidth=0,navNeighborLeft=0,navNeighborWidth=0;
   let navActiveTabElRef=null,navNeighborTabElRef=null;
+  // DÉCISION PRODUIT (Will) : le geste horizontal appartient au
+  // bandeau « Nos incontournables ». Deux glissements horizontaux sur
+  // le même écran, et on ne sait plus lequel on déclenche — le
+  // carrousel de plats ou le changement de catégorie. Les catégories
+  // changent donc au TAP seulement. Tout le mécanisme ci-dessous est
+  // conservé, simplement désactivé par ce drapeau.
+  const TAB_SWIPE_ENABLED=false;
   const THRESHOLD=0.12; // 12% of screen width to commit — light swipe enough
 
   function resetPanel(el){
@@ -3310,9 +3346,10 @@ function renderInfoBanner(ib){
   }
 
   document.addEventListener('touchstart',e=>{
+    if(!TAB_SWIPE_ENABLED) return;
     if(document.getElementById('adminPanel')?.classList.contains('open')) return;
     // Don't intercept touches on nav-bar, lightbox, admin, inputs
-    if(e.target.closest('.nav-bar,.lb,.admin-panel,input,textarea,select,button')) return;
+    if(e.target.closest('.nav-bar,.rail,.lb,.admin-panel,input,textarea,select,button')) return;
     tsX=e.touches[0].clientX;
     tsY=e.touches[0].clientY;
     isDragging=false;
@@ -3320,9 +3357,10 @@ function renderInfoBanner(ib){
   },{passive:true});
 
   document.addEventListener('touchmove',e=>{
+    if(!TAB_SWIPE_ENABLED) return;
     if(document.getElementById('adminPanel')?.classList.contains('open')) return;
     if(dragLocked) return;
-    if(e.target.closest('.nav-bar,.lb,.admin-panel,input,textarea,select')) return;
+    if(e.target.closest('.nav-bar,.rail,.lb,.admin-panel,input,textarea,select')) return;
     const dx=e.touches[0].clientX-tsX;
     const dy=e.touches[0].clientY-tsY;
     const W=window.innerWidth;
@@ -3395,6 +3433,7 @@ function renderInfoBanner(ib){
   },{passive:true});
 
   document.addEventListener('touchend',e=>{
+    if(!TAB_SWIPE_ENABLED) return;
     const wasDragging=isDragging;
     isDragging=false;
     dragLocked=false;
@@ -4363,6 +4402,11 @@ function renderFirstTabExtrasSection(){
         <span class="ig-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg></span>
         <span class="ig-row-label">Afficher le menu en liste</span>
         <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${DATA.defaultView==='list'?'checked':''} onchange="if(this.checked){DATA.defaultView='list';view='list';}else{DATA.defaultView='grid';view='grid';}renderAll();renderAdminSection('__global')"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
+      </div>
+      <div class="ig-row" style="cursor:default">
+        <span class="ig-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg></span>
+        <span class="ig-row-label"><span>Bandeau coloré en haut</span><span class="ig-row-hint">Sinon, le nom reste sur fond clair</span></span>
+        <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${headerStyle()==='band'?'checked':''} onchange="setHeaderStyle(this.checked?'band':'light')"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
       </div>
     </div>
   </div></div>`;
@@ -8736,20 +8780,11 @@ function renderBrandColorsSection(){
     {key:'bg', label:"Couleur d'arrière-plan", hint:''},
     {key:'tabInactive', label:'Couleur des onglets', hint:''}
   ];
+  // Le choix « bandeau coloré ou fond clair » vit dans
+  // « Présentation et affichage > Affichage », avec les autres
+  // décisions de mise en page — pas ici, où l'on ne choisit que des
+  // couleurs.
   let h='';
-  // Style d'en-tête : « Clair » ou « Bandeau coloré ». Ce n'est pas
-  // deux designs mais une bascule — tout ce qui est SOUS l'en-tête est
-  // rigoureusement identique. Pilote aussi la barre de statut du
-  // téléphone, qui doit toujours prendre la couleur réellement
-  // affichée en haut de page.
-  const hs = headerStyle();
-  h+='<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">En-tête du site</div><div class="admin-sect-body">';
-  h+='<div class="ig-segmented" style="margin-bottom:10px">'
-    +'<div class="ig-seg-btn'+(hs==='light'?' active':'')+'" onclick="setHeaderStyle(\'light\')">Clair</div>'
-    +'<div class="ig-seg-btn'+(hs==='band'?' active':'')+'" onclick="setHeaderStyle(\'band\')">Bandeau coloré</div>'
-    +'</div>';
-  h+='<div class="ig-hint-block">En clair, la couleur du restaurant passe en accent : logo, noms des plats, prix et bouton Réserver. En bandeau, elle reprend le haut de l\'écran.</div>';
-  h+='</div></div>';
   h+='<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Couleurs</div><div class="admin-sect-body">';
   h+='<div class="ig-list">';
   rows.forEach(r=>{
@@ -8818,10 +8853,22 @@ function applyHeaderStyle(){
   document.body.classList.toggle('hdr-light', !band);
 }
 
+// Fond de la vue plein écran : la couleur du restaurant, assombrie,
+// plutôt qu'un noir neutre. C'est le plus grand aplat de sa couleur de
+// tout le site, et il arrive pile au moment où le client désire le plat.
+function darkenHex(hex, amount){
+  const m=/^#?([0-9a-f]{6})$/i.exec((hex||'').trim());
+  if(!m) return '#0B1A3D';
+  const n=parseInt(m[1],16);
+  const f=v=>Math.max(0, Math.round(v*(1-amount)));
+  return '#'+[f(n>>16&255), f(n>>8&255), f(n&255)].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+
 function applyBrandColors(){
   const bc=DATA.brandColors||{};
   const root=document.documentElement;
   applyHeaderStyle();
+  root.style.setProperty('--lbBg', darkenHex(bc.primary||getComputedStyle(root).getPropertyValue('--navy').trim()||'#10285E', 0.3));
   if(bc.primary) root.style.setProperty('--navy',bc.primary);
   if(bc.accent)  root.style.setProperty('--gold',bc.accent);
   if(bc.bg)      root.style.setProperty('--bg',bc.bg);
