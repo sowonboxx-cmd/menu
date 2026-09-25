@@ -8045,7 +8045,14 @@ function buildPreviewSlideDoc(css, pageHtml, spaceScale, pageW, pageH){
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Lovelo:wght@400;700&family=Open+Sans:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><meta charset="UTF-8"><style id="liveCss">${css}</style><style>
 html,body{overflow:hidden;margin:0;background:transparent}
-#stage{width:${pageW}px;height:${pageH}px;transform-origin:top left;box-shadow:0 2px 14px rgba(0,0,0,.18)}
+/* BUG FIX (page collée à droite et coupée sur iPad/desktop) :
+   .pdf-page porte un margin:0 auto qui la centrait DÉJÀ dans le corps
+   de l'iframe, et le transform de mise à l'échelle ajoutait par-dessus
+   son propre décalage de centrage — d'où un double décalage vers la
+   droite. Invisible sur mobile, où la largeur de l'écran vaut presque
+   celle de la page et où ce premier décalage est donc nul. On annule
+   la marge : un seul centrage, celui du transform. */
+#stage{width:${pageW}px;height:${pageH}px;margin:0!important;transform-origin:top left;box-shadow:0 2px 14px rgba(0,0,0,.18)}
 </style></head><body><div id="stage" class="pdf-page" style="${scaleStyle}">${pageHtml}</div>
 <script>
 (function(){
