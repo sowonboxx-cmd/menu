@@ -208,7 +208,7 @@ body.hdr-band .hdr-sched .resto-badge-inline svg{color:rgba(255,255,255,.82)!imp
    pouce. Grosse par le contraste, pas par la surface — une barre pleine
    largeur mange l'écran à chaque scroll et fait « appli de livraison ». */
 .reserve-float{display:flex;justify-content:center;padding:10px 0 calc(14px + env(safe-area-inset-bottom))}
-.reserve-pill{display:inline-flex;align-items:center;justify-content:center;height:52px;padding:0 34px;border-radius:999px;background:var(--navy);color:#fff;text-decoration:none;font-family:'Jost',sans-serif;font-size:14px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;box-shadow:0 8px 26px rgba(16,40,94,.28);transition:transform .15s}
+.reserve-pill{display:inline-flex;align-items:center;justify-content:center;height:44px;padding:0 29px;border-radius:999px;background:var(--navy);color:#fff;text-decoration:none;font-family:'Jost',sans-serif;font-size:13px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;box-shadow:0 8px 26px rgba(16,40,94,.28);transition:transform .15s}
 .reserve-pill:active{transform:scale(.97)}
 /* ═══ BANDEAU PHOTO EN TÊTE DE CATÉGORIE ═══
    Le 4:5 est invariant : bandeau, vignettes de liste et vue plein
@@ -223,7 +223,7 @@ body.hdr-band .hdr-sched .resto-badge-inline svg{color:rgba(255,255,255,.82)!imp
    deux pixels qui faisait « pas terrible ». */
 .rail-hdr{display:flex;align-items:baseline;gap:6px;margin-bottom:11px}
 .rail-star{color:var(--gold);font-size:10px;line-height:1}
-.rail-title{font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--navy);font-family:'Jost',sans-serif;line-height:1}
+.rail-title{font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--navy);font-family:'Jost',sans-serif;line-height:1}
 /* Marge négative + padding : le bandeau file jusqu'aux bords de
    l'écran et laisse dépasser la carte suivante — c'est ce dépassement
    qui dit « ça défile » sans aucune flèche ni indicateur. */
@@ -234,10 +234,15 @@ body.hdr-band .hdr-sched .resto-badge-inline svg{color:rgba(255,255,255,.82)!imp
 .rail-pin-on{color:var(--gold)}
 .rail-img{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:20px;display:block;background:#ece8e1;transition:opacity .15s}
 .rail-card:active .rail-img{opacity:.85}
-.rail-meta{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-top:10px}
-.rail-name{font-family:'Open Sans',sans-serif;font-size:16px;font-weight:600;color:var(--navy);line-height:1.25}
+.rail-meta{display:flex;align-items:baseline;margin-top:10px}
+.rail-name{font-family:'Open Sans',sans-serif;font-size:14px;font-weight:600;color:var(--navy);line-height:1.3}
 .rail-price{font-size:14px;font-weight:500;color:var(--navy);white-space:nowrap}
 .dish-star{color:var(--gold);font-size:11px;line-height:1}
+/* TEST (Will) : la photo passe à GAUCHE et le texte à droite dans
+   la liste. On inverse l'ordre visuel sans toucher au balisage, pour
+   que l'ordre de lecture reste correct au clavier et au lecteur
+   d'écran. */
+.dish-row .img-wrap{order:-1}
 /* Bouton « incontournable » dans la fiche du plat (mode modification) */
 .ef-pin{display:flex;align-items:center;gap:11px;width:100%;text-align:left;padding:11px 13px;margin-bottom:14px;border:1px solid var(--border);border-radius:10px;background:#fff;cursor:pointer;font-family:'Jost',sans-serif}
 .ef-pin-on{border-color:var(--gold);background:rgba(198,162,74,.08)}
@@ -2442,13 +2447,11 @@ function renderCategoryRail(tab){
     ? `<div class="rail-hdr"><span class="rail-star">★</span><span class="rail-title">Nos incontournables</span></div>`
     : '';
   const cards=items.map(s=>{
-    const d=s.dish, price=dishPriceDisplay(d);
+    const d=s.dish;
     return `<div class="rail-card" data-edit="dish" data-ti="${ti}" data-ci="${s.ci}" data-di="${s.di}" data-lbidx="${s.lb}">`
       + `<img class="rail-img" src="${d.img}" alt="" loading="lazy">`
       + (editMode?`<span class="rail-pin${isPinnedDish(d)?' rail-pin-on':''}">${isPinnedDish(d)?'★':'☆'}</span>`:'')
-      + `<div class="rail-meta"><div class="rail-name">${t(d.name)}</div>`
-      + (price?`<div class="rail-price">${price}</div>`:'')
-      + `</div></div>`;
+      + `<div class="rail-meta"><div class="rail-name">${t(d.name)}</div></div></div>`;
   }).join('');
   return `<div class="rail-wrap">${head}<div class="rail">${cards}</div></div>`;
 }
