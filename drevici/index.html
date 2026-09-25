@@ -687,6 +687,20 @@ body.ig-admin-light .formule-tuner-select{background-image:url("data:image/svg+x
 .formule-tuner-row + .formule-tuner-row{margin-top:6px}
 .formule-tuner-label{flex:0 0 64px;color:var(--ig-text-dim);font-family:'Jost',sans-serif;font-size:13px}
 .formule-tuner-row input[type="color"]{width:30px;height:30px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer;background:none}
+/* BUG FIX (pastille carrée avec un contour gris sur desktop/iPad) :
+   sur ces moteurs, <input type="color"> dessine son propre encadré
+   interne que border-radius seul n'arrondit pas — d'où le petit
+   rectangle bordé. Sur mobile le rendu natif est déjà rond, ce qui
+   masquait le problème. On neutralise l'apparence native et on
+   arrondit la pastille interne elle-même. */
+.ig-swatch,
+.formule-tuner-row input[type="color"]{-webkit-appearance:none;appearance:none;border:none;padding:0;background:none}
+.ig-swatch::-webkit-color-swatch-wrapper,
+.formule-tuner-row input[type="color"]::-webkit-color-swatch-wrapper{padding:0;border-radius:50%;overflow:hidden}
+.ig-swatch::-webkit-color-swatch,
+.formule-tuner-row input[type="color"]::-webkit-color-swatch{border:none;border-radius:50%}
+.ig-swatch::-moz-color-swatch,
+.formule-tuner-row input[type="color"]::-moz-color-swatch{border:none;border-radius:50%}
 .formule-tuner-pct{flex:none;min-width:40px;text-align:right;color:var(--ig-text-dimmer);font-size:12px}
 
 }
@@ -5239,7 +5253,19 @@ function formule_buildPreamble(f, cfg){
   const title = f.title || f.name || '';
   if(!title && !f.freeText) return '';
   const css = buildInstaCSS(cfg);
-  return `${title?`<div class="formule-title">${title}</div>`:''}${f.freeText?`<div class="formule-freetext">${f.freeText.replace(/\n/g,'<br>')}</div>`:''}`;
+  // RÈGLE DE BASE (Will) : jamais un mot seul sur la dernière ligne.
+  // On soude les deux derniers mots de chaque ligne par une espace
+  // insécable — ils passent alors à la ligne ensemble. Le texte libre
+  // peut contenir des retours forcés : on traite chaque segment à part.
+  const noOrphan = txt => {
+    const parts = txt.trim().split(/\s+/);
+    if(parts.length < 3) return txt;
+    return parts.slice(0,-2).join(' ') + ' ' + parts.slice(-2).join(' ');
+  };
+  const subHtml = f.freeText
+    ? f.freeText.split('\n').map(noOrphan).join('<br>')
+    : '';
+  return `${title?`<div class="formule-title">${noOrphan(title)}</div>`:''}${f.freeText?`<div class="formule-freetext">${subHtml}</div>`:''}`;
 }
 // Config Instagram/Formule partagée entre l'export et l'aperçu — un
 // seul endroit où les couleurs, la police, l'alignement, la casse ET
@@ -6694,6 +6720,14 @@ function fitInstaOneLiners(html, holder, cfg){
     const fit = fitOne(inner, 'h3', 'pdf-subcat', 22, 13);
     return `<h3 class="pdf-subcat" style="font-size:${fit.size}px;${wrapStyle(fit)}">${inner}</h3>`;
   });
+  // RÈGLE DE BASE (Will) : jamais un mot seul sur la dernière ligne.
+  // Les descriptions, elles, passent bien à la ligne (contrairement
+  // aux noms de plats) : on soude simplement leurs deux derniers mots
+  // par une espace insécable, ils descendent alors ensemble.
+  out = out.replace(/<div class="pdf-dish-desc">([\s\S]*?)<\/div>/g,
+    (m, inner)=>`<div class="pdf-dish-desc">${bindOrphan(inner)}</div>`);
+  out = out.replace(/<div class="pdf-sub">([\s\S]*?)<\/div>/g,
+    (m, inner)=>`<div class="pdf-sub">${bindOrphan(inner)}</div>`);
   // BUG FIX (chevauchement) : le retour à la ligne d'un nom de plat
   // recasse la mise en page à l'export — confirmé que ça arrive aussi
   // en inline-block, pas seulement en flex ; html2canvas mesure mal la
@@ -6749,12 +6783,26 @@ function fitInstaOneLiners(html, holder, cfg){
       for(let i=words.length-1;i>=1;i--){
         if(widthOfName(words.slice(0,i).join(' '), menuSize) <= availableW - priceW - gap){ splitIdx = i; break; }
       }
+      // RÈGLE DE BASE (Will) : jamais un seul mot orphelin sur la
+      // deuxième ligne. La boucle ci-dessus remplit la première ligne
+      // au maximum, ce qui laissait souvent un mot seul en dessous
+      // ("… confit au / soja"). On descend un mot de plus pour que la
+      // deuxième ligne en compte toujours au moins deux. Si ça n'est
+      // pas possible (il ne resterait rien sur la première ligne), on
+      // ne coupe pas du tout : on rétrécit le nom pour le garder sur
+      // une seule ligne, ce qui vaut mieux qu'un orphelin.
+      if(splitIdx > 0 && words.length - splitIdx === 1){
+        splitIdx = splitIdx - 1 >= 1 ? splitIdx - 1 : 0;
+      }
       if(splitIdx===0){
-        // Un seul mot déjà trop long même seul pour la 1ère ligne avec
-        // le prix — dernier recours : rétrécir cette ligne, plutôt que
-        // de la couper au milieu d'un mot.
+        // Pas de découpe possible sans laisser un orphelin (ou un seul
+        // mot déjà trop long) — dernier recours : rétrécir cette ligne,
+        // plutôt que de la couper au milieu d'un mot. On vise la place
+        // réellement libre, prix compris, pour que le prix reste aligné
+        // à droite au lieu d'être repoussé hors du cadre.
+        const room = Math.max(60, availableW - priceW - gap);
         let size = menuSize;
-        while(widthOfName(nameInner,size) > availableW && size>10) size -= 1;
+        while(widthOfName(nameInner,size) > room && size>10) size -= 1;
         return `<div class="pdf-dish-line"><span class="pdf-dish-name" style="font-size:${size}px;white-space:nowrap">${nameInner}</span>${dotsInner}<span class="pdf-dish-price">${priceInner}</span></div>`;
       }
       const line1 = words.slice(0,splitIdx).join(' ');
@@ -7765,7 +7813,7 @@ function renderFormuleDetail(f){
       <div class="af" style="flex:1;min-width:0">
         <label class="al" style="font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;min-height:13px;line-height:13px">${c.label}</label>
         <div style="display:flex;align-items:center;gap:3px">
-          <input type="color" value="${c.f[c.key]||defaultFor(c.key)}" oninput="formule_setColor('${c.f.id}','${c.key}',this.value)" style="width:25px;height:25px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer">
+          <input type="color" class="ig-swatch" value="${c.f[c.key]||defaultFor(c.key)}" oninput="formule_setColor('${c.f.id}','${c.key}',this.value)" style="width:25px;height:25px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer">
           ${c.f[c.key]?`<button type="button" title="Réinitialiser" onclick="formule_setColor('${c.f.id}','${c.key}','')" style="width:22px;height:22px;flex:none;border:none;border-radius:50%;background:var(--ig-card);color:var(--ig-text-dim);cursor:pointer;font-size:11px;padding:0;display:inline-flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button>`:''}
         </div>
         ${c.sizeKey?`
@@ -7785,7 +7833,7 @@ function renderFormuleDetail(f){
       <input type="range" min="0" max="${TUNER_STEPS.length-1}" step="1" value="${tunerStepIndexFor(c.f[c.sizeKey])}" style="flex:1;min-width:0" tabindex="-1" aria-hidden="true">
       <span style="font-size:11px;color:var(--ig-text-dimmer);flex:none;min-width:34px;text-align:right">${tunerStepValue(c.f[c.sizeKey])}%</span>
       `:'<span style="flex:1"></span>'}
-      <input type="color" value="${c.f[c.key]||defaultFor(c.key)}" oninput="formule_setColor('${c.f.id}','${c.key}',this.value)" style="width:20px;height:20px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer">
+      <input type="color" class="ig-swatch" value="${c.f[c.key]||defaultFor(c.key)}" oninput="formule_setColor('${c.f.id}','${c.key}',this.value)" style="width:20px;height:20px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer">
     </div>`;
   const colorRow = fo => `<div class="ig-list formule-colors-list">
       ${FORMULE_COLOR_FIELDS.map(d=>colorLine({f:fo, ...d})).join('')}
@@ -8522,7 +8570,7 @@ function renderBrandColorsSection(){
       +'<span class="ig-row-label"><span>'+r.label+'</span>'
       +(r.hint?'<span class="ig-row-hint">'+r.hint+'</span>':'')
       +'</span>'
-      +'<input type="color" value="'+val+'" oninput="setBrandColor(&quot;'+r.key+'&quot;,this.value)" style="width:18px;height:18px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer">'
+      +'<input type="color" class="ig-swatch" value="'+val+'" oninput="setBrandColor(&quot;'+r.key+'&quot;,this.value)" style="width:18px;height:18px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer">'
       +'</div>';
   });
   h+='</div>';
@@ -8942,7 +8990,7 @@ function renderMenuColorsPage(){
     <div class="ig-list" style="margin-bottom:38px">${fields.map(f=>`
       <div class="ig-row" style="cursor:default">
         <span class="ig-row-label"><span>${f.label}</span>${f.hint?`<span class="ig-row-hint">${f.hint}</span>`:''}</span>
-        <input type="color" data-menu-swatch="${f.key}" value="${menuColorValue(cfg,f.key)}" oninput="setPdfCfg('${f.key}',this.value)" style="width:18px;height:18px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer">
+        <input type="color" class="ig-swatch" data-menu-swatch="${f.key}" value="${menuColorValue(cfg,f.key)}" oninput="setPdfCfg('${f.key}',this.value)" style="width:18px;height:18px;flex:none;border:none;border-radius:50%;padding:0;cursor:pointer">
       </div>`).join('')}</div>`;
   const ratioOf=v=> v==='print' ? 1123/794 : v==='gbiz' ? GBIZ_PAGE_RATIO : v==='post' ? INSTA_POST_RATIO : INSTA_RATIO;
   // Pas d'enveloppe .admin-section/.admin-sect-body ici : les pages
