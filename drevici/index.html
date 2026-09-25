@@ -43,7 +43,7 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 .lb-text{display:flex;flex-direction:column;gap:6px}
 .lb-head{display:flex;flex-direction:column;align-items:center;gap:4px}
 .lb-dish-price{font-family:'Open Sans',sans-serif;font-size:17px;font-weight:500;color:#fff;white-space:nowrap}
-.lb-dots{padding:14px 20px 18px;display:flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap}
+.lb-dots{padding:0 20px 18px;display:flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap}
 .lb-dot{width:5px;height:5px;border-radius:999px;background:rgba(255,255,255,.3);transition:width .18s}
 .lb-dot.on{width:18px;background:rgba(255,255,255,.85)}
 .lb-zone{position:absolute;top:0;bottom:0;width:38%;z-index:3;cursor:pointer}
@@ -207,6 +207,9 @@ body.hdr-band .nav-indicator{top:auto;bottom:0;height:2px;background:var(--gold)
 body.hdr-band .view-bar{display:none}
 .hdr-sched{display:flex;justify-content:center;padding:0 0 8px;margin-top:-2px}
 .hdr-sched .sched-pin-frame{border:none;background:transparent;padding:4px 8px}
+/* Le badge horaires heritait d'un 11px pose en ligne, trop petit
+   par rapport au reste de la page. */
+.hdr-sched .resto-badge-inline > span{font-size:12px!important}
 /* En bandeau, le badge horaires est posé SUR la couleur : son texte
    et son épingle doivent passer en clair, sinon ils disparaissent. */
 body.hdr-band .hdr-sched .resto-badge-inline > span{color:rgba(255,255,255,.82)!important}
@@ -234,9 +237,14 @@ body.hdr-band .hdr-sched .resto-badge-inline svg{color:rgba(255,255,255,.82)!imp
 /* Marge négative + padding : le bandeau file jusqu'aux bords de
    l'écran et laisse dépasser la carte suivante — c'est ce dépassement
    qui dit « ça défile » sans aucune flèche ni indicateur. */
-.rail{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-left:0;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin:0 -16px 0 0;padding:0 16px 2px 0}
+.rail{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-left:0;overscroll-behavior-x:contain;scrollbar-width:none;margin:0 -16px 0 0;padding:0 16px 2px 0}
 .rail::-webkit-scrollbar{display:none}
-.rail-card{flex:0 0 69%;max-width:300px;scroll-snap-align:start;cursor:pointer;position:relative}
+/* Reactivite facon Apple : scroll-snap-stop garantit qu'une
+   impulsion vive s'arrete NET sur la carte suivante au lieu de
+   deriver mollement, et overscroll-behavior empeche le geste de
+   partir dans la page. L'ancien -webkit-overflow-scrolling:touch,
+   qui ajoutait une inertie flottante, est retire. */
+.rail-card{flex:0 0 69%;max-width:300px;scroll-snap-align:start;scroll-snap-stop:always;cursor:pointer;position:relative}
 .rail-pin{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;line-height:1;pointer-events:none}
 .rail-pin-on{color:var(--gold)}
 .rail-img{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:20px;display:block;background:#ece8e1;transition:opacity .15s}
@@ -1404,6 +1412,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
         <div class="lb-dish-desc" id="lbDesc"></div>
       </div>
     </div>
+    <div class="lb-dots" id="lbDots"></div>
   </div>
 </div>
 
@@ -2567,6 +2576,7 @@ function renderPinLb(){
   document.getElementById('lbDesc').textContent=t(d.desc)||'';
   const catEl2=document.getElementById('lbCat'); if(catEl2) catEl2.textContent='Incontournables';
   document.getElementById('lbCount').textContent=(pinLbIdx+1)+' / '+pinLbDishes.length;
+  renderLbDots(pinLbDishes.length, pinLbIdx);
 }
 function stepPinLb(dir){
   pinLbIdx=(pinLbIdx+dir+pinLbDishes.length)%pinLbDishes.length;
@@ -2591,6 +2601,17 @@ function lbStep(d){ if(lbMode==='pin'){ stepPinLb(d); } else { lbIdx=(lbIdx+d+lb
 // titre court, et la description se retrouvait décrochée, avec un trou
 // au milieu. Ici elle reste collée sous le titre et c'est le bas du
 // bloc qui absorbe la différence — la carte, elle, ne bouge plus.
+// Le compteur en haut est discret : des points en bas donnent le
+// meme repere sous une forme qu'on percoit d'un coup d'oeil, sans
+// avoir a lire un chiffre. Au-dela d'une douzaine de plats ils
+// deviennent illisibles : le compteur prend alors le relais seul.
+function renderLbDots(total, idx){
+  const el=document.getElementById('lbDots'); if(!el) return;
+  if(total<2 || total>12){ el.innerHTML=''; return; }
+  let h='';
+  for(let i=0;i<total;i++) h+='<span class="lb-dot'+(i===idx?' on':'')+'"></span>';
+  el.innerHTML=h;
+}
 function sizeLbDesc(descs, names){
   const wrap=document.getElementById('lbText');
   if(!wrap) return;
@@ -2627,6 +2648,7 @@ function renderLbSlide(){
   document.getElementById('lbDesc').textContent=item.desc||'';
   const catEl=document.getElementById('lbCat'); if(catEl) catEl.textContent=item.cat||'';
   document.getElementById('lbCount').textContent=(lbIdx+1)+' / '+lbImages.length;
+  renderLbDots(lbImages.length, lbIdx);
 }
 // Taper n'importe où en dehors de la carte ferme la fiche — bien plus
 // simple à viser que la croix, surtout à la souris.
@@ -3444,13 +3466,13 @@ function renderInfoBanner(ib){
   // naturel pour changer de catégorie plutôt que de remonter cliquer.
   // Une catégorie sans bandeau (vins, cafés) autorise le glissement
   // d'emblée.
-  function tabSwipeAllowed(){
-    const el=document.querySelector('.tab-content.active .rail');
-    if(!el) return true;                 // pas de bandeau : rien à protéger
-    const r=el.getBoundingClientRect();
-    if(!r.height) return true;
-    return r.bottom <= r.height*0.65;    // un peu avant la moitié, dès que l'on descend
-  }
+  // Chaque zone repond au geste qui lui appartient : un glissement qui
+  // DEMARRE sur le bandeau fait defiler le bandeau (celui-ci est exclu
+  // des ecouteurs plus bas), partout ailleurs il change de categorie.
+  // Plus besoin de conditionner au defilement de la page : c'est
+  // l'endroit ou le doigt se pose qui decide, et c'est bien plus
+  // previsible.
+  function tabSwipeAllowed(){ return true; }
   // On décide UNE fois, au poser du doigt : si la page bouge pendant le
   // geste, la réponse ne doit pas changer en cours de route.
   let swipeAllowed=false;
