@@ -6679,9 +6679,20 @@ function fitInstaOneLiners(html, holder, cfg){
   // respectée. S'il ne tient toujours pas, on l'autorise à passer à la
   // ligne — la marge droite vaut alors la marge gauche.
   const wrapStyle = fit => fit.fits ? 'white-space:nowrap' : 'white-space:normal';
+  // Quand un nom passe à la ligne, il finit souvent par un mot seul,
+  // ce qui déséquilibre le bloc. On soude les deux derniers mots par
+  // une espace insécable : ils descendent ensemble, et la dernière
+  // ligne compte au moins deux mots.
+  const bindOrphan = txt => {
+    if(/[<>]/.test(txt)) return txt;              // balises : on ne touche pas
+    const parts = txt.trim().split(/\s+/);
+    if(parts.length < 3) return txt;
+    return parts.slice(0, -2).join(' ') + (parts.length>2?' ':'') + parts.slice(-2).join('\u00A0');
+  };
   let out = html.replace(/<h2 class="pdf-cat"([^>]*)>([\s\S]*?)<\/h2>/, (m, attrs, inner)=>{
     const fit = fitOne(inner, 'h2', 'pdf-cat', catTitleSize, Math.min(13, catTitleSize));
-    return `<h2 class="pdf-cat"${attrs} style="font-size:${fit.size}px;${wrapStyle(fit)}">${inner}</h2>`;
+    const text = fit.fits ? inner : bindOrphan(inner);
+    return `<h2 class="pdf-cat"${attrs} style="font-size:${fit.size}px;${wrapStyle(fit)}">${text}</h2>`;
   });
   out = out.replace(/<h3 class="pdf-subcat">([\s\S]*?)<\/h3>/g, (m, inner)=>{
     const fit = fitOne(inner, 'h3', 'pdf-subcat', 22, 13);
@@ -6702,7 +6713,8 @@ function fitInstaOneLiners(html, holder, cfg){
     const worstCaseFloor = fitOne('Maquereau au poivre de Sichuan', 'span', 'pdf-dish-name', menuSize, 10).size;
     out = out.replace(/<span class="pdf-dish-name">([\s\S]*?)<\/span>/g, (m, inner)=>{
       const fit = fitOne(inner, 'span', 'pdf-dish-name', menuSize, worstCaseFloor);
-      return `<span class="pdf-dish-name" style="font-size:${fit.size}px;${wrapStyle(fit)}">${inner}</span>`;
+      const text = fit.fits ? inner : bindOrphan(inner);
+      return `<span class="pdf-dish-name" style="font-size:${fit.size}px;${wrapStyle(fit)}">${text}</span>`;
     });
     return out;
   }
@@ -8037,7 +8049,7 @@ function buildPreviewSlideDoc(css, pageHtml, spaceScale, pageW, pageH){
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Lovelo:wght@400;700&family=Open+Sans:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><meta charset="UTF-8"><style id="liveCss">${css}</style><style>
 html,body{overflow:hidden;margin:0}
-#stage{width:${pageW}px;height:${pageH}px;overflow:hidden;transform-origin:top left}
+#stage{width:${pageW}px;height:${pageH}px;transform-origin:top left}
 </style></head><body><div id="stage" class="pdf-page" style="${scaleStyle}">${pageHtml}</div>
 <script>
 (function(){
@@ -8048,13 +8060,19 @@ html,body{overflow:hidden;margin:0}
     // plus petite des deux et on recentre.
     var vw = document.documentElement.clientWidth;
     var vh = document.documentElement.clientHeight;
-    var scale = Math.min(vw / ${pageW}, vh / ${pageH});
+    // Une marge de sécurité de 0,5% : sans elle, l'arrondi au pixel
+    // près rognait le filet doré collé au bord de la page.
+    var scale = Math.min(vw / ${pageW}, vh / ${pageH}) * 0.995;
     var stage = document.getElementById('stage');
-    stage.style.transform = 'translateX(' + ((vw - ${pageW} * scale) / 2) + 'px) scale(' + scale + ')';
-    document.body.style.height = (${pageH} * scale) + 'px';
+    stage.style.transform = 'translate(' + ((vw - ${pageW} * scale) / 2) + 'px,' + ((vh - ${pageH} * scale) / 2) + 'px) scale(' + scale + ')';
+    document.body.style.height = vh + 'px';
   }
   fit();
   window.addEventListener('resize', fit);
+  // Les polices arrivent après le premier rendu et changent les
+  // hauteurs : on recalcule une fois qu'elles sont prêtes.
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+  window.addEventListener('load', fit);
 })();
 <\/script>
 </body></html>`;
