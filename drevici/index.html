@@ -39,7 +39,8 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 .lb-cat-bar{position:relative;flex:none;display:flex;align-items:center;justify-content:center;padding:13px 6px 11px;background:var(--lbBg,#0B1A3D)}
 .lb-top-spacer{display:none}
 .lb-media{position:relative;flex:none;line-height:0}
-.lb-info{padding:16px 22px 20px;display:flex;flex-direction:column;gap:7px;text-align:center}
+.lb-info{padding:16px 22px 20px;display:flex;flex-direction:column;text-align:center}
+.lb-text{display:flex;flex-direction:column;gap:6px}
 .lb-head{display:flex;flex-direction:column;align-items:center;gap:4px}
 .lb-dish-price{font-family:'Open Sans',sans-serif;font-size:17px;font-weight:500;color:#fff;white-space:nowrap}
 .lb-dots{padding:14px 20px 18px;display:flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap}
@@ -244,6 +245,23 @@ body.hdr-band .hdr-sched .resto-badge-inline svg{color:rgba(255,255,255,.82)!imp
 .rail-name{font-family:'Open Sans',sans-serif;font-size:14px;font-weight:600;color:var(--navy);line-height:1.3}
 .rail-price{font-size:13px;font-weight:500;color:var(--navy);white-space:nowrap;flex:none}
 .dish-star{color:var(--gold);font-size:11px;line-height:1}
+/* ═══ DESKTOP ═══
+   Les incontournables passent EN BAS et en liste : en haut et en
+   carrousel, ils feraient doublon avec la grille de photos juste en
+   dessous. En bas, en liste compacte et dans leur propre bloc, ils
+   redeviennent une recommandation qui se distingue au lieu de
+   répéter ce qu'on vient de voir. */
+@media (min-width:768px){
+  .tab-content > .container{display:flex;flex-direction:column}
+  .rail-wrap{order:9;background:#fff;border-radius:var(--r);padding:16px 18px 8px;margin:26px 0 0}
+  .rail-hdr{margin-bottom:12px;padding-bottom:11px;border-bottom:1px solid rgba(198,162,74,.35)}
+  .rail{flex-direction:column;gap:0;overflow:visible;margin:0;padding:0;scroll-snap-type:none}
+  .rail-card{flex:none;max-width:none;width:100%;display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.05)}
+  .rail-card:last-child{border-bottom:none}
+  .rail-img{width:64px;height:80px;flex:none;border-radius:10px}
+  .rail-meta{flex:1;margin-top:0;padding:0}
+  .rail-name{font-size:15px}
+}
 /* TEST (Will) : la photo passe à GAUCHE et le texte à droite dans
    la liste. On inverse l'ordre visuel sans toucher au balisage, pour
    que l'ordre de lecture reste correct au clavier et au lecteur
@@ -1377,8 +1395,14 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
       <img id="lbImg" src="" alt=""/>
     </div>
     <div class="lb-info" id="lbFooter">
-      <div class="lb-dish-name" id="lbName"></div>
-      <div class="lb-dish-desc" id="lbDesc"></div>
+      <!-- Nom + description forment UN bloc dont seule la hauteur
+           totale est figée : la description reste donc toujours
+           collée sous le titre, qu'il tienne sur une ou deux lignes,
+           et c'est l'espace vide qui se reporte en bas. -->
+      <div class="lb-text" id="lbText">
+        <div class="lb-dish-name" id="lbName"></div>
+        <div class="lb-dish-desc" id="lbDesc"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -1711,8 +1735,8 @@ function migratePins(){
     const tb=DATA.tabs.find(t=>t.id===p.tabId);
     const card=tb&&tb.cards[p.cardIdx];
     const d=card&&card.dishes&&card.dishes[p.dishIdx];
-    if(d){ ensureDishPid(d); migrated.push({tabId:p.tabId, pid:d._pid}); }
-    // else: dish no longer exists at that position — drop the stale pin
+    if(d){ ensureDishPid(d); migrated.push({tabId:p.tabId, pid:d._pid, name:t(d.name)}); }
+    else { migrated.push(p); }   // on garde : repairPins() tentera par le nom
   });
   DATA.pinnedDishes=migrated;
 }
@@ -1728,18 +1752,27 @@ function migratePins(){
 function repairPins(){
   ensureAllDishPids();
   const pins=DATA.pinnedDishes||[];
-  const kept=[];
   pins.forEach(p=>{
-    if(resolvePin(p)){ kept.push(p); return; }
+    if(resolvePin(p)) return;
     if(!p.name) return;
-    const tb=DATA.tabs.find(tt=>tt.id===p.tabId);
-    if(!tb) return;
-    for(const card of (tb.cards||[])){
-      const d=(card.dishes||[]).find(dd=>t(dd.name)===p.name);
-      if(d){ ensureDishPid(d); p.pid=d._pid; kept.push(p); return; }
+    // On cherche le plat par son nom dans TOUTES les categories, pas
+    // seulement celle memorisee : une categorie renommee change d'id,
+    // et l'epingle pointerait alors sur une categorie disparue. On
+    // reecrit au passage l'identifiant ET la categorie.
+    for(const tb of (DATA.tabs||[])){
+      for(const card of (tb.cards||[])){
+        const d=(card.dishes||[]).find(dd=>t(dd.name)===p.name);
+        if(d){ ensureDishPid(d); p.pid=d._pid; p.tabId=tb.id; return; }
+      }
     }
   });
-  DATA.pinnedDishes=kept;
+  // REGLE : on ne supprime JAMAIS une epingle ici. Une epingle qu'on
+  // n'arrive pas a resoudre ne s'affiche simplement pas, mais elle
+  // reste dans les donnees -- sinon le moindre faux negatif au
+  // chargement l'effacerait definitivement a l'enregistrement suivant.
+  // C'etait tres probablement la cause des incontournables qui
+  // sautaient.
+  DATA.pinnedDishes=pins;
 }
 // Resolve a pin to its live dish (searches by stable id, so it's immune to
 // any later reordering of sections/dishes). Returns null if the dish was
@@ -2553,28 +2586,39 @@ function lbStep(d){ if(lbMode==='pin'){ stepPinLb(d); } else { lbIdx=(lbIdx+d+lb
 // précaution, le cadre grandit et rapetisse à chaque glissement. On
 // mesure donc toutes les descriptions du lot une fois à l'ouverture
 // et on réserve la hauteur de la plus longue.
-function sizeLbBlock(el, texts, minLines){
-  if(!el) return;
-  el.style.minHeight='';
-  const probe=document.createElement('div');
-  probe.className=el.className+' lb-desc-probe';
-  el.parentNode.appendChild(probe);
-  // Plancher : toujours réserver au moins deux lignes, même si tous les
-  // textes du lot tiennent sur une. Sans ça, le jour où le
-  // restaurateur ajoute une description un peu plus longue, la carte se
-  // remet à sauter.
-  const lh=parseFloat(getComputedStyle(probe).lineHeight)||18;
-  let max=lh*(minLines||2);
-  (texts||[]).forEach(txt=>{ probe.textContent=txt||''; max=Math.max(max, probe.offsetHeight); });
-  probe.remove();
-  el.style.minHeight=Math.ceil(max)+'px';
-}
-// Le nom ET la description peuvent tenir sur une ou deux lignes : on
-// fige les deux, sinon la carte grandit et rapetisse à chaque
-// glissement — ce qui fait tout sauf professionnel.
+// On fige la hauteur TOTALE du bloc nom + description, pas celle de
+// chacun : figer le titre séparément réservait deux lignes même pour un
+// titre court, et la description se retrouvait décrochée, avec un trou
+// au milieu. Ici elle reste collée sous le titre et c'est le bas du
+// bloc qui absorbe la différence — la carte, elle, ne bouge plus.
 function sizeLbDesc(descs, names){
-  sizeLbBlock(document.getElementById('lbName'), names, 2);
-  sizeLbBlock(document.getElementById('lbDesc'), descs, 2);
+  const wrap=document.getElementById('lbText');
+  if(!wrap) return;
+  wrap.style.minHeight='';
+  // Seul le BLOC porte une hauteur imposee : une hauteur posee sur le
+  // titre decrocherait la description de celui-ci.
+  const nEl=document.getElementById('lbName'); if(nEl) nEl.style.minHeight='';
+  const dEl=document.getElementById('lbDesc'); if(dEl) dEl.style.minHeight='';
+  const probe=document.createElement('div');
+  probe.className='lb-text lb-desc-probe';
+  const pn=document.createElement('div'); pn.className='lb-dish-name';
+  const pd=document.createElement('div'); pd.className='lb-dish-desc';
+  probe.appendChild(pn); probe.appendChild(pd);
+  wrap.parentNode.appendChild(probe);
+  // Plancher : deux lignes de titre et deux de description, même si
+  // tout le lot tient sur une. Le jour où le restaurateur allonge un
+  // texte, rien ne bouge.
+  const lhN=parseFloat(getComputedStyle(pn).lineHeight)||22;
+  const lhD=parseFloat(getComputedStyle(pd).lineHeight)||20;
+  let max=lhN*2+lhD*2+6;
+  const n=Math.max((descs||[]).length,(names||[]).length);
+  for(let i=0;i<n;i++){
+    pn.textContent=(names&&names[i])||'';
+    pd.textContent=(descs&&descs[i])||'';
+    max=Math.max(max, probe.offsetHeight);
+  }
+  probe.remove();
+  wrap.style.minHeight=Math.ceil(max)+'px';
 }
 function renderLbSlide(){
   const item=lbImages[lbIdx];
@@ -3578,7 +3622,16 @@ function renderInfoBanner(ib){
   });
 })();
 
+// Sur desktop, la vue en liste laisse d'immenses vides : une ligne de
+// texte perdue sur 680px de large. La grille est la seule mise en
+// page qui tient sur grand écran, quel que soit le réglage du
+// restaurateur — lequel ne concerne donc que le mobile.
+function isWideScreen(){
+  try{ return window.matchMedia('(min-width:768px)').matches; }catch(e){ return false; }
+}
+function effectiveView(){ return isWideScreen() ? 'grid' : (view||'list'); }
 function renderTabContent(tab,lbOffset){
+  const view=effectiveView();   // masque volontairement la variable globale
   let imgIdx=lbOffset;
   let html='<div class="cards-stack">';
 
@@ -4483,12 +4536,12 @@ function renderFirstTabExtrasSection(){
       </div>
       <div class="ig-row" style="cursor:default">
         <span class="ig-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
-        <span class="ig-row-label">Afficher le menu en grille</span>
+        <span class="ig-row-label"><span>Afficher le menu en grille</span><span class="ig-row-hint">Sur mobile. Sur ordinateur, toujours la grille.</span></span>
         <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${(DATA.defaultView||'list')==='grid'?'checked':''} onchange="if(this.checked){DATA.defaultView='grid';view='grid';}else{DATA.defaultView='list';view='list';}renderAll();renderAdminSection('__global')"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
       </div>
       <div class="ig-row" style="cursor:default">
         <span class="ig-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg></span>
-        <span class="ig-row-label">Afficher le menu en liste</span>
+        <span class="ig-row-label"><span>Afficher le menu en liste</span><span class="ig-row-hint">Sur mobile uniquement</span></span>
         <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${DATA.defaultView==='list'?'checked':''} onchange="if(this.checked){DATA.defaultView='list';view='list';}else{DATA.defaultView='grid';view='grid';}renderAll();renderAdminSection('__global')"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
       </div>
       <div class="ig-row" style="cursor:default">
@@ -9829,6 +9882,11 @@ if(window.matchMedia){
   }catch(e){}
 }
 
+// Passer d'une fenêtre étroite à large change la mise en page : on
+// redessine au franchissement du seuil, pas à chaque pixel.
+try{
+  window.matchMedia('(min-width:768px)').addEventListener('change',()=>renderAll());
+}catch(e){}
 const _preFetchSnapshot=JSON.stringify(DATA);
 loadFromSupabase().then(()=>{
   if(JSON.stringify(DATA)!==_preFetchSnapshot){
