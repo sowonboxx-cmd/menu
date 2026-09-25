@@ -660,8 +660,8 @@ body.ig-admin-light .formule-tuner-select{background-image:url("data:image/svg+x
 /* Les trois formats côte à côte, balayables, avec accroche. */
 .formule-tuner-carousel{display:flex;height:100%;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .formule-tuner-carousel::-webkit-scrollbar{display:none}
-.formule-tuner-slide{flex:0 0 100%;scroll-snap-align:center;height:100%;display:flex;align-items:center;justify-content:center;padding:0 14px;box-sizing:border-box}
-.formule-tuner-slide iframe{border:none;border-radius:12px;background:#fff;display:block}
+.formule-tuner-slide{flex:0 0 100%;scroll-snap-align:center;height:100%;padding:0 14px;box-sizing:border-box}
+.formule-tuner-slide iframe{width:100%;height:100%;border:none;background:transparent;display:block}
 .formule-tuner-dots{display:flex;justify-content:center;gap:6px;flex:none;padding:10px 0 2px}
 .formule-tuner-dot{width:6px;height:6px;border-radius:50%;background:var(--ig-focus)}
 .formule-tuner-dot.active{background:var(--ig-text);width:7px;height:7px}
@@ -4841,7 +4841,7 @@ function formuleTunerBuildCarousel(fid){
   // Le document est posé via la propriété srcdoc plutôt que dans le
   // HTML : pas d'échappement d'attribut à gérer sur un document entier.
   car.innerHTML=TUNER_VARIANTS.map(t=>
-    `<div class="formule-tuner-slide"><iframe class="formule-preview-frame" data-fid="${fid}" data-variant="${t.v}" style="aspect-ratio:1 / ${tunerRatioFor(t.v)}"></iframe></div>`
+    `<div class="formule-tuner-slide"><iframe class="formule-preview-frame" data-fid="${fid}" data-variant="${t.v}"></iframe></div>`
   ).join('');
   car.querySelectorAll('.formule-preview-frame').forEach(frame=>{
     const ratio=tunerRatioFor(frame.dataset.variant);
@@ -4856,19 +4856,15 @@ function formuleTunerBuildCarousel(fid){
 // Chaque aperçu occupe la place disponible en respectant son format :
 // on prend la contrainte qui s'applique (hauteur ou largeur) au lieu
 // d'en fixer une et de laisser l'autre déborder.
-function formuleTunerFitFrames(){
-  const car=document.getElementById('formuleTunerCarousel');
-  if(!car) return;
-  const availH=car.clientHeight, availW=car.clientWidth-28;
-  if(!availH || !availW) return;
-  car.querySelectorAll('.formule-preview-frame').forEach(frame=>{
-    const ratio=tunerRatioFor(frame.dataset.variant);
-    let h=availH, w=h/ratio;
-    if(w>availW){ w=availW; h=w*ratio; }
-    frame.style.width=Math.round(w)+'px';
-    frame.style.height=Math.round(h)+'px';
-  });
-}
+// BUG FIX (aperçu rogné à droite et en bas) : on calait la boîte de
+// l'iframe sur le rapport exact du format, puis le document se mettait
+// à l'échelle sur cette boîte. Au moindre écart d'arrondi entre les
+// deux calculs, la page dépassait d'un ou deux pixels et le filet doré
+// se retrouvait coupé. L'iframe prend maintenant toute la place
+// disponible et c'est la mise à l'échelle interne, qui connaît les
+// dimensions réelles, qui centre et contient la page. Un seul calcul,
+// donc plus de désaccord possible.
+function formuleTunerFitFrames(){}
 window.addEventListener('resize', ()=>{ if(document.getElementById('formuleTuner').classList.contains('open')) formuleTunerFitFrames(); });
 // Télécharge le format affiché à l'instant : on vient de juger le
 // rendu, autant pouvoir l'exporter sans repasser par la page.
@@ -8048,8 +8044,8 @@ function buildPreviewSlideDoc(css, pageHtml, spaceScale, pageW, pageH){
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Lovelo:wght@400;700&family=Open+Sans:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><meta charset="UTF-8"><style id="liveCss">${css}</style><style>
-html,body{overflow:hidden;margin:0}
-#stage{width:${pageW}px;height:${pageH}px;transform-origin:top left}
+html,body{overflow:hidden;margin:0;background:transparent}
+#stage{width:${pageW}px;height:${pageH}px;transform-origin:top left;box-shadow:0 2px 14px rgba(0,0,0,.18)}
 </style></head><body><div id="stage" class="pdf-page" style="${scaleStyle}">${pageHtml}</div>
 <script>
 (function(){
