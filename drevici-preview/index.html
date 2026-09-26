@@ -364,7 +364,11 @@ body.hdr-band .hdr-sched .resto-badge-inline svg{color:rgba(255,255,255,.82)!imp
 .dish-top-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
 .dish-price-inline{font-size:13px;font-weight:500;color:var(--gold);white-space:nowrap;flex:none}
 /* Bouton « incontournable » dans la fiche du plat (mode modification) */
-.ef-pin{display:flex;align-items:center;gap:11px;width:100%;text-align:left;padding:11px 13px;margin-bottom:14px;border:1px solid var(--border);border-radius:10px;background:#fff;cursor:pointer;font-family:'Jost',sans-serif}
+.ef-pin{display:flex;align-items:center;gap:11px;width:100%;padding:11px 13px;margin-bottom:14px;border:1px solid var(--border);border-radius:10px;background:#fff;font-family:'Jost',sans-serif}
+/* La ligne porte maintenant des boutons de rang a droite : l'etoile et
+   son libelle deviennent donc un bouton A PART, un bouton ne pouvant
+   pas en contenir d'autres. */
+.ef-pin-main{display:flex;align-items:center;gap:11px;flex:1;min-width:0;padding:0;border:none;background:none;text-align:left;cursor:pointer;font-family:inherit;color:inherit}
 .ef-pin-on{border-color:var(--gold);background:rgba(198,162,74,.08)}
 .ef-pin-star{font-size:19px;line-height:1;color:var(--text3);flex:none}
 .ef-pin-on .ef-pin-star{color:var(--gold)}
@@ -1489,6 +1493,14 @@ body.ig-admin-light .ig-subpage-old-content select.ig-hm-select{background-image
 
 /* Incontournable : meme carte que le reste, l'etoile seule porte l'or. */
 .edit-pop .ef-pin{border:none;background:var(--ig-card);border-radius:14px;padding:13px 16px;margin-bottom:10px;font-family:'Inter',sans-serif;gap:13px}
+.edit-pop .ef-pin-main{gap:13px}
+/* Les numeros disent la place dans le bandeau, et le rempli dit lequel
+   est le sien : une pastille par position, jamais plus qu'il n'y a
+   d'incontournables. Choisir un numero deja pris echange les deux. */
+.ef-pin-ranks{display:flex;gap:4px;flex:none;background:var(--ig-bg);border-radius:9px;padding:3px}
+.ef-rank{width:30px;height:28px;flex:none;border:none;border-radius:7px;background:transparent;color:var(--ig-text-dimmer);font-family:'Inter',sans-serif;font-size:13px;font-weight:500;cursor:pointer;padding:0;transition:background .12s,color .12s}
+.ef-rank:hover{color:var(--ig-text)}
+.ef-rank-on{background:var(--gold);color:#fff}
 .edit-pop .ef-pin-on{background:var(--ig-card)}
 .edit-pop .ef-pin-star{color:var(--ig-text-dimmer);font-size:20px}
 .edit-pop .ef-pin-on .ef-pin-star{color:var(--gold)}
@@ -2316,53 +2328,41 @@ function efVisRow(hidden, kind){
 // en mode modification : c'est là qu'on a le plat sous les yeux, donc
 // c'est là que la décision se prend. Les incontournables alimentent le
 // bandeau photo en tête de sa catégorie.
-// Les plats reellement montres par le bandeau d'une categorie, DANS
-// L'ORDRE OU il les montre. renderCategoryRail filtre la carte sans
-// jamais consulter l'ordre d'epinglage : le rang vient donc de la
-// place du plat dans la categorie, pas du moment ou on l'a epingle.
-// Un plat epingle mais masque, ou sans photo, n'y figure pas du tout.
-function pinnedRailDishes(tabId){
-  const tab=(DATA.tabs||[]).find(tb=>tb.id===tabId);
-  if(!tab) return [];
-  const pinIds=new Set((DATA.pinnedDishes||[]).filter(p=>p.tabId===tabId).map(p=>p.pid));
-  const out=[];
-  (tab.cards||[]).forEach(card=>{
-    (card.dishes||[]).forEach(dd=>{
-      if(dd.hidden || !dd.img) return;
-      if(dd._pid && pinIds.has(dd._pid)) out.push(dd);
-    });
-  });
-  return out;
-}
-function ordinalFr(n){ return n===1 ? '1er' : n+'e'; }
 function efPinRow(ti,ci,di,d){
   const tabId=DATA.tabs[ti] && DATA.tabs[ti].id;
   const on=isPinnedDish(d);
   const n=pinCountForTab(tabId);
+  const rank=on ? pinRankOf(tabId, d._pid) : 0;
   // Une etoile allumee ne disait pas ou le plat allait atterrir dans le
-  // bandeau — ni meme S'IL allait y atterrir. Le rang est donc affiche,
-  // avec la regle qui le determine, pour qu'on sache comment le changer.
+  // bandeau — ni meme S'IL allait y atterrir. Deux cas restaient
+  // totalement muets : sans photo ou masque, il n'y figure pas du tout.
   let hint;
   if(on){
-    if(!d.img){
-      hint='Ajoutez une photo pour qu\'il apparaisse dans le bandeau';
-    } else if(d.hidden){
-      hint='Masqué : il n\'apparaît pas dans le bandeau';
-    } else {
-      const order=pinnedRailDishes(tabId);
-      const rank=order.indexOf(d)+1;
-      hint = rank>0
-        ? `${ordinalFr(rank)} sur ${order.length} dans le bandeau · l'ordre suit celui de la carte`
-        : 'Mis en avant en haut de cette catégorie';
-    }
+    if(!d.img) hint='Ajoutez une photo pour qu\'il apparaisse dans le bandeau';
+    else if(d.hidden) hint='Masqué : il n\'apparaît pas dans le bandeau';
+    else if(n>1) hint='Sa place dans le bandeau';
+    else hint='Seul incontournable de cette catégorie';
   } else {
     hint = n>=PIN_MAX_PER_TAB ? `${PIN_MAX_PER_TAB} incontournables déjà choisis ici`
                               : 'Le mettre en avant en haut de cette catégorie';
   }
-  return `<button type="button" class="ef-pin${on?' ef-pin-on':''}" onclick="togglePin('${escAttr(tabId)}',${ci},${di})">
-    <span class="ef-pin-star">${on?'★':'☆'}</span>
-    <span class="ef-pin-text"><span class="ef-pin-label">Plat incontournable</span><span class="ef-pin-hint">${hint}</span></span>
-  </button>`;
+  // Les numeros ne valent que s'il y a un ordre a arbitrer : a un seul
+  // incontournable, un bouton « 1 » unique ne servirait a rien. On n'en
+  // propose donc que N, jamais un rang inatteignable.
+  let ranks='';
+  if(on && n>1 && d.img && !d.hidden){
+    let btns='';
+    for(let r=1;r<=n;r++){
+      btns+=`<button type="button" class="ef-rank${r===rank?' ef-rank-on':''}" aria-pressed="${r===rank}" title="Position ${r}" onclick="setPinRank('${escAttr(tabId)}','${escAttr(d._pid||'')}',${r})">${r}</button>`;
+    }
+    ranks=`<div class="ef-pin-ranks">${btns}</div>`;
+  }
+  return `<div class="ef-pin${on?' ef-pin-on':''}">
+    <button type="button" class="ef-pin-main" onclick="togglePin('${escAttr(tabId)}',${ci},${di})">
+      <span class="ef-pin-star">${on?'★':'☆'}</span>
+      <span class="ef-pin-text"><span class="ef-pin-label">Plat incontournable</span><span class="ef-pin-hint">${hint}</span></span>
+    </button>${ranks}
+  </div>`;
 }
 function efSetHidden(val){
   if(!editCtx) return;
@@ -2842,8 +2842,12 @@ function renderCategoryRail(tab){
     } else if(card.img){ idx++; }
   });
   if(!shots.length) return '';
-  const pinIds=new Set((DATA.pinnedDishes||[]).filter(p=>p.tabId===tab.id).map(p=>p.pid));
-  const pinned=shots.filter(s=>pinIds.has(s.dish._pid));
+  // L'ordre du bandeau EST celui de la liste d'epingles : le rang choisi
+  // dans la fiche (1, 2, 3) est la position de l'entree dans ce tableau.
+  // Avant, on filtrait la carte de haut en bas et le rang subissait donc
+  // la place du plat dans la categorie, sans qu'on puisse y toucher.
+  const pinOrder=(DATA.pinnedDishes||[]).filter(p=>p.tabId===tab.id).map(p=>p.pid);
+  const pinned=pinOrder.map(pid=>shots.find(sh=>sh.dish._pid===pid)).filter(Boolean);
   const items=pinned.length?pinned:shots.slice(0,6);
   const head=pinned.length
     ? `<div class="rail-hdr"><span class="rail-star">★</span><span class="rail-title">Nos incontournables</span></div>`
@@ -4981,6 +4985,39 @@ function onDropPin(e,pi){
 const PIN_MAX_PER_TAB = 3;
 function pinCountForTab(tabId){
   return (DATA.pinnedDishes||[]).filter(p=>p.tabId===tabId).length;
+}
+// Le rang n'est pas un champ a part : c'est la place de l'entree parmi
+// celles de sa categorie, dans DATA.pinnedDishes. Rien a migrer sur les
+// donnees deja enregistrees, et la section « incontournables » de la
+// page d'accueil, qui lisait deja ce tableau dans l'ordre, suit toute
+// seule.
+function tabPinSlots(tabId){
+  const pins=DATA.pinnedDishes||[];
+  const out=[];
+  pins.forEach((p,i)=>{ if(p.tabId===tabId) out.push(i); });
+  return out;
+}
+function pinRankOf(tabId,pid){
+  const slots=tabPinSlots(tabId);
+  const k=slots.findIndex(i=>DATA.pinnedDishes[i].pid===pid);
+  return k<0 ? 0 : k+1;
+}
+// Choisir un rang deja pris echange les deux plats : les numeros
+// restent donc toujours 1..N, sans doublon ni trou, et sans avoir a
+// renumeroter quoi que ce soit.
+function setPinRank(tabId,pid,rank){
+  const pins=DATA.pinnedDishes||[];
+  const slots=tabPinSlots(tabId);
+  const from=slots.findIndex(i=>pins[i].pid===pid);
+  const to=rank-1;
+  if(from<0 || to<0 || to>=slots.length || to===from) return;
+  const a=slots[from], b=slots[to];
+  const tmp=pins[a]; pins[a]=pins[b]; pins[b]=tmp;
+  DATA.pinnedDishes=pins;
+  renderAll();
+  if(editCtx && editCtx.type==='dish') openEditDish(editCtx.ti, editCtx.ci, editCtx.di);
+  renderAdminSection(adminCurrentTab);
+  publishNow(true);
 }
 function togglePin(tabId,ci,di){
   const tb=DATA.tabs.find(t=>t.id===tabId);
