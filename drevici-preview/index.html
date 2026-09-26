@@ -3363,7 +3363,7 @@ function renderScheduleInline(suffix){
     ? phoneDigits.replace(/(\d{2})(?=\d)/g,'$1 ').trim()
     : phone;
   const phoneHtml = phone
-    ? `<div style="margin-top:12px;padding-top:12px;border-top:.5px solid rgba(255,255,255,.14)"><div class="resto-popup-title" style="margin-bottom:5px;color:${suffix==='Cover'?'var(--gold)':'#fff'}">Téléphone</div><a href="tel:${escAttr(phoneDigits)}" style="display:flex;align-items:center;gap:6px;color:#fff;font-size:17px;font-weight:600;letter-spacing:.02em;text-decoration:none">${escapeHtmlLocal(phonePretty)}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex:none;opacity:.7"><path d="M9 6l6 6-6 6"/></svg></a></div>`
+    ? `<div style="margin-top:12px;padding-top:12px;border-top:.5px solid rgba(255,255,255,.14);display:flex;align-items:baseline;gap:8px;flex-wrap:nowrap"><span class="resto-popup-title" style="margin-bottom:0;flex:none;color:${suffix==='Cover'?'var(--gold)':'#fff'}">Téléphone&nbsp;:</span><a href="tel:${escAttr(phoneDigits)}" style="display:inline-flex;align-items:center;gap:5px;color:#fff;font-size:15px;font-weight:400;letter-spacing:.02em;text-decoration:none;white-space:nowrap">${escapeHtmlLocal(phonePretty)}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex:none;opacity:.7"><path d="M9 6l6 6-6 6"/></svg></a></div>`
     : '';
   return `<div class="sched-pin-frame">
     <div class="resto-badge-inline" id="schedBadge${suffix}" onclick="toggleSchedPopup(event,'${suffix}')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
@@ -4416,6 +4416,14 @@ function toggleSchedPopup(e,suffix){
   // horaires et le telephone s'y lisent d'un coup, et un clic a cote la
   // referme. C'est aussi le seul placement qui ne depende pas de l'endroit
   // ou se trouve le bouton.
+  // BUG FIX (la fiche paraissait bleu delave, « semi-transparente ») :
+  // elle est opaque, mais elle vit DANS .sticky-reserve, qui porte
+  // z-index:100 et position:fixed — donc un contexte d'empilement. Son
+  // propre z-index:9999 n'a de valeur qu'a l'interieur de ce contexte :
+  // vu de la page, elle plafonne a 100, et le voile a 9998 se dessinait
+  // PAR-DESSUS. Ce qu'on voyait, c'etait le bleu a travers 45% de noir.
+  // On la rattache au <body> : elle retrouve alors son vrai rang.
+  if(p.parentElement!==document.body) document.body.appendChild(p);
   if(vw<=640){
     p.classList.add('resto-popup-centered');
     p.style.left=''; p.style.top=''; p.style.transform='';
@@ -4441,7 +4449,11 @@ function toggleSchedPopup(e,suffix){
 // BUG FIX : seul #schedPopup, sans suffixe, etait referme — les bulles
 // de l'en-tete, de la barre du bas et de la couverture portent un
 // suffixe dans leur id et restaient donc ouvertes.
-document.addEventListener('click', function(){
+document.addEventListener('click', function(e){
+  // Un clic a l'interieur de la fiche la laisse ouverte : sinon le lien
+  // Maps et le numero se fermaient sous le doigt au moment ou on les
+  // touche. Le voile, lui, compte comme « a cote ».
+  if(e.target && e.target.closest && e.target.closest('.resto-popup')) return;
   document.querySelectorAll('.resto-popup.visible').forEach(el=>el.classList.remove('visible'));
   document.body.classList.remove('sched-modal');
 });
