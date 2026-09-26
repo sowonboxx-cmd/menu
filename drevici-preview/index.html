@@ -6544,7 +6544,7 @@ function formule_buildPreamble(f, cfg){
   // logo en tete sans rien serrer. Le post est carre et court, un logo
   // y mangerait la place des plats.
   const wantLogo = cfg && FORMULE_LOGO_FORMATS.includes(cfg.formuleVariant) && f.showLogo;
-  const logoUrl = wantLogo ? ((DATA.pdfStyle && DATA.pdfStyle.logoData) || getRestaurantLogo() || '') : '';
+  const logoUrl = wantLogo ? exportLogoUrl() : '';
   const logoHtml = logoUrl ? `<img class="formule-logo" src="${escAttr(logoUrl)}" onerror="this.style.display='none'">` : '';
   // Le logo REMPLACE le grand titre, il ne s'ajoute pas au-dessus : le
   // champ « Titre du menu » sert le plus souvent a nommer
@@ -7658,7 +7658,7 @@ function buildPdfBlocks(cfg){
   // catégories — chaque story ne montre qu'UNE catégorie à la fois.
   const isGbizFmt = cfg.format === 'gbiz' || cfg.format === 'insta';
   // Logo: PDF-specific upload > restaurant logo already stored > nothing
-  const logoUrl = (DATA.pdfStyle && DATA.pdfStyle.logoData) || getRestaurantLogo() || '';
+  const logoUrl = exportLogoUrl();
   const icData = DATA.icones||{};
   const showMainIc = cfg.showIcons!==false && icData.main && !cfg.showLogo;
   const showSecIc  = cfg.showIcons!==false && !!icData.secondary;
@@ -8557,6 +8557,89 @@ function doPdfExport(){
   }
 }
 
+// ═══ LOGO DANS LES EXPORTS IMAGE ═══
+// BUG : un logo renseigne par un LIEN (le champ « Lien du logo » de
+// « Mon etablissement ») s'affiche parfaitement sur le site mais
+// disparaissait de tous les exports image.
+// Pourquoi : une balise <img> ordinaire n'a besoin d'aucune permission
+// pour afficher une image d'un autre domaine. Mais la DESSINER dans un
+// canvas, si : html2canvas est appele avec useCORS:true, il repose donc
+// l'image en crossOrigin="anonymous", et un serveur qui ne renvoie pas
+// d'en-tete Access-Control-Allow-Origin (un WordPress par defaut, par
+// exemple) fait echouer ce second chargement. html2canvas ne leve
+// aucune erreur : il saute simplement l'image. D'ou un export sans
+// logo, sans le moindre message.
+// Ce qu'on fait : juste avant un export image, on tente de rapatrier
+// l'image et de la convertir en data: — une image ainsi embarquee n'a
+// plus d'origine distante, donc plus de refus possible. Si le serveur
+// refuse aussi ce rapatriement, on ne peut rien faire cote navigateur :
+// on retombe alors sur le nom du restaurant, ce que l'export faisait
+// deja quand aucun logo n'est defini. Un trou silencieux devient un
+// repli visible.
+let _logoInlineCache = {};
+let _exportLogoOverride = null;   // non nul uniquement pendant un export image
+function rawLogoUrl(){
+  return (DATA.pdfStyle && DATA.pdfStyle.logoData) || getRestaurantLogo() || '';
+}
+function exportLogoUrl(){
+  return _exportLogoOverride !== null ? _exportLogoOverride : rawLogoUrl();
+}
+async function inlineLogoForCanvas(){
+  const raw = rawLogoUrl();
+  if(!raw || raw.indexOf('data:') === 0) return raw;
+  if(_logoInlineCache[raw] !== undefined) return _logoInlineCache[raw] || '';
+  try{
+    const r = await fetch(raw, {mode:'cors'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const blob = await r.blob();
+    const data = await new Promise((res,rej)=>{
+      const fr = new FileReader();
+      fr.onload = ()=>res(fr.result); fr.onerror = rej;
+      fr.readAsDataURL(blob);
+    });
+    _logoInlineCache[raw] = data;
+    return data;
+  }catch(e){
+    _logoInlineCache[raw] = false;
+    console.warn('[menu] logo non exportable ('+e.message+') — '+raw);
+    return '';
+  }
+}
+// Verifie le logo courant et previent DANS L'ADMIN s'il ne pourra pas
+// sortir dans les exports image — au moment ou on le saisit, pas le
+// jour ou on exporte. Un fichier uploade est toujours exportable : on
+// ne teste donc que les liens.
+// L'utilisateur tape son lien caractere par caractere : sans ce delai,
+// chaque frappe declencherait une requete sur une URL incomplete.
+let _logoCheckTimer = null;
+function scheduleLogoCheck(){
+  if(_logoCheckTimer) clearTimeout(_logoCheckTimer);
+  _logoCheckTimer = setTimeout(checkLogoExportable, 700);
+}
+async function checkLogoExportable(){
+  const el = document.getElementById('logoExportWarn');
+  if(!el) return;
+  const raw = rawLogoUrl();
+  if(!raw || raw.indexOf('data:') === 0){ el.style.display='none'; return; }
+  const ok = await inlineLogoForCanvas();
+  const cible = document.getElementById('logoExportWarn');
+  if(!cible) return;
+  if(ok){ cible.style.display='none'; return; }
+  cible.style.display='block';
+  cible.textContent = "⚠️ Ce lien s'affiche sur le site, mais le serveur qui l'héberge n'autorise pas sa copie : le logo n'apparaîtra pas dans vos exports image. Utilisez le bouton d'upload ci-dessus pour l'intégrer pour de bon.";
+}
+// Enveloppe commune aux exports image : prepare le logo, lance
+// l'export, et remet l'etat en place quoi qu'il arrive.
+async function withExportLogo(fn){
+  const raw = rawLogoUrl();
+  _exportLogoOverride = await inlineLogoForCanvas();
+  const echoue = !!raw && !_exportLogoOverride;
+  try{ return await fn(); }
+  finally{
+    _exportLogoOverride = null;
+    if(echoue) showToast("⚠️ Logo absent de l'export : ce lien n'autorise pas la copie. Uploadez le fichier dans « Mon établissement ».");
+  }
+}
 function exportA4Print(cfg){
   const css = buildPdfCSS(cfg);
   const pages = paginatePdfPages(cfg);
@@ -8956,6 +9039,9 @@ async function renderInstaPageToBlob(css, pages, i, restName, bg, ratio, variant
 // multi-pages, compression d'espacement) n'est dupliquée, tout
 // continue de s'appliquer tel quel avec ce nouveau ratio.
 async function exportInstaImages(cfg, variant){
+  return withExportLogo(()=>_exportInstaImages(cfg, variant));
+}
+async function _exportInstaImages(cfg, variant){
   variant = variant || 'story';
   const ratio = variant === 'post' ? INSTA_POST_RATIO : variant === 'a4' ? INSTA_A4_RATIO : INSTA_RATIO;
   const targetW = variant === 'a4' ? 1600 : 1080; // A4 : un peu plus de résolution pour l'impression
@@ -9009,6 +9095,9 @@ async function exportInstaImages(cfg, variant){
 }
 
 async function exportGbizImage(cfg){
+  return withExportLogo(()=>_exportGbizImage(cfg));
+}
+async function _exportGbizImage(cfg){
   if(typeof html2canvas === 'undefined'){ showToast('⚠ html2canvas non chargé'); return; }
   showToast('Génération des images en cours…');
   const css = buildPdfCSS(cfg);
@@ -9912,6 +10001,9 @@ function applyRestaurantBranding(){
 }
 
 function restaurantSettingHtml(){
+  // Meme procede que renderHistorySection : on rend la coquille, et le
+  // test du lien remplit l'avertissement quand il revient.
+  setTimeout(checkLogoExportable, 0);
   const name=getRestaurantName();
   const logo=getRestaurantLogo();
   return `<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Mon établissement</div><div class="admin-sect-body">
@@ -9926,13 +10018,18 @@ function restaurantSettingHtml(){
     </div>
     <div class="af">
       <div class="ai-img-wrap ig-merged-upload">
-        <input class="ai ig-tall-field ig-placeholder-normal-size" style="width:100%;padding:14px 50px 14px 16px!important" value="${logo}" placeholder="Lien du logo de l'établissement" oninput="setRestaurantLogo(this.value.trim());applyRestaurantBranding();syncImgPreview(this)">
+        <input class="ai ig-tall-field ig-placeholder-normal-size" style="width:100%;padding:14px 50px 14px 16px!important" value="${logo}" placeholder="Lien du logo de l'établissement" oninput="setRestaurantLogo(this.value.trim());applyRestaurantBranding();syncImgPreview(this);scheduleLogoCheck()">
         <label class="ig-inline-upload-icon" title="Uploader une image">
           <input type="file" accept="image/*" style="display:none" onchange="uploadImgFile(this,null)">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.22,20.75H5.78A2.64,2.64,0,0,1,3.25,18V15a.75.75,0,0,1,1.5,0v3a1.16,1.16,0,0,0,1,1.25H18.22a1.16,1.16,0,0,0,1-1.25V15a.75.75,0,0,1,1.5,0v3A2.64,2.64,0,0,1,18.22,20.75Z"/><path d="M16,8.75a.74.74,0,0,1-.53-.22L12,5.06,8.53,8.53A.75.75,0,0,1,7.47,7.47l4-4a.75.75,0,0,1,1.06,0l4,4a.75.75,0,0,1,0,1.06A.74.74,0,0,1,16,8.75Z"/><path d="M12,15.75a.76.76,0,0,1-.75-.75V4a.75.75,0,0,1,1.5,0V15A.76.76,0,0,1,12,15.75Z"/></svg>
         </label>
       </div>
       <img class="ai-img-preview" src="${logo||''}" style="${logo?'':'display:none'};width:100%;max-width:120px;aspect-ratio:1;object-fit:cover;border-radius:6px;margin-top:6px;border:1px solid var(--border)" onerror="this.style.display='none'">
+      <!-- Un logo renseigne par un lien s'affiche sur le site mais peut
+           etre refuse par les exports image (voir inlineLogoForCanvas).
+           On teste le lien ici, au moment ou on le saisit, plutot que de
+           laisser la surprise pour le jour de l'export. -->
+      <div id="logoExportWarn" style="display:none;margin-top:8px;font-size:11.5px;line-height:1.45;color:#B3261E"></div>
     </div>
 
     <div class="af"><label class="ig-group-label" style="margin:36px 0 8px 4px;display:block;color:var(--ig-text-dimmer)!important">Adresse & contact</label></div>
