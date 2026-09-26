@@ -61,7 +61,14 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
 .lb-dish-desc{font-size:13.5px;color:rgba(255,255,255,0.72);font-family:'Open Sans',sans-serif;font-weight:400;line-height:1.55;text-align:center;margin-bottom:0}
 .lb-desc-probe{position:absolute;left:0;right:0;visibility:hidden;pointer-events:none;min-height:0!important}
 .lb-footer-row{display:flex;align-items:center;justify-content:center}
-.lb-count{position:absolute;left:14px;font-size:11px;font-weight:600;color:#fff;letter-spacing:.08em;font-family:'Jost',sans-serif;background:none;padding:0}
+/* Le compteur et la categorie demandaient tous deux du 600, mais pas
+   dans la meme police : Jost n'est chargee qu'en 300/400/500, donc son
+   600 etait un GRAS SYNTHETIQUE — un epaississement calcule par le
+   navigateur, toujours plus lourd qu'un vrai demi-gras. C'etait donc le
+   compteur qui etait anormalement epais, pas la categorie qui etait
+   legere. Meme famille et meme graisse REELLE pour les deux, en Open
+   Sans 600, et la barre redevient d'un seul bloc. */
+.lb-count{position:absolute;left:14px;font-size:10px;font-weight:600;color:#fff;letter-spacing:.08em;font-family:'Open Sans',sans-serif;background:none;padding:0}
 .lb-close{position:absolute;right:2px;top:50%;transform:translateY(-50%);background:none;border:none;color:#fff;font-size:19px;cursor:pointer;line-height:1;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:opacity .15s}
 .font-gallery-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9600;display:flex;align-items:center;justify-content:center;padding:20px}
 .font-gallery-card{background:#fff;border-radius:14px;width:min(560px,100%);max-height:85vh;display:flex;flex-direction:column;overflow:hidden}
@@ -110,7 +117,11 @@ body.is-admin .header-top-right, body.admin-entry-visible .header-top-right{visi
 .admin-btn{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border:none;outline:none;box-shadow:none;-webkit-appearance:none;appearance:none;border-radius:6px;cursor:pointer;background:transparent;color:#fff;transition:background .15s;flex:none}
 .admin-btn:hover{background:rgba(255,255,255,0.15)}
 .mode-btn{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border:none;outline:none;box-shadow:none;-webkit-appearance:none;appearance:none;border-radius:6px;cursor:pointer;background:transparent;color:#fff;transition:all .15s;flex:none}
-.mode-btn svg{width:15px;height:15px}
+/* L'icone de bascule porte l'action principale de la barre — elle
+   passe donc un cran au-dessus des autres, dans les deux etats : la
+   faire grandir seulement sur l'oeil ferait sauter la rangee a chaque
+   changement de mode. */
+.mode-btn svg{width:16px;height:16px}
 .mode-btn.active{opacity:1;background:rgba(255,255,255,0.15)}
 /* edit popup */
 .edit-pop{position:fixed;inset:0;z-index:9200;display:none;align-items:center;justify-content:center;background:rgba(16,40,94,0.55);padding:16px}
@@ -225,7 +236,15 @@ body.hdr-band .hdr-sched .resto-badge-inline svg{color:rgba(255,255,255,.82)!imp
 /* Réserver : une pastille flottante, présente en permanence sous le
    pouce. Grosse par le contraste, pas par la surface — une barre pleine
    largeur mange l'écran à chaque scroll et fait « appli de livraison ». */
-.reserve-float{display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 0 calc(14px + env(safe-area-inset-bottom))}
+/* La bande n'a plus de degrade : elle est opaque de son filet jusqu'en
+   bas, donc le centre vu redevient le centre geometrique et les deux
+   marges sont a nouveau egales — la compensation optique n'a plus lieu
+   d'etre. Reste un point : sur un telephone a encoche, la bande est
+   peinte jusqu'au bas de l'ecran, reserve comprise. Ajoutee entierement
+   sous le bouton, elle le remonterait de sa moitie ; elle est donc
+   repartie de part et d'autre, et le centrage tient avec encoche comme
+   sans. */
+.reserve-float{display:flex;align-items:center;justify-content:center;gap:10px;padding:calc(14px + env(safe-area-inset-bottom)/2) 0}
 /* Raccourcis administrateur : jamais visibles pour un visiteur, et
    sur mobile uniquement — sur ordinateur, ils vivent déjà dans
    l'en-tête et rien ne change là-bas. Plat, mais bien détaché du
@@ -234,8 +253,52 @@ body.hdr-band .hdr-sched .resto-badge-inline svg{color:rgba(255,255,255,.82)!imp
 .admin-quick .mode-link{width:40px;height:40px;padding:0;justify-content:center;background:none;color:var(--navy);opacity:1}
 .admin-quick .mode-link:active{opacity:.5}
 .admin-quick .mode-link svg{width:19px;height:19px}
-.reserve-pill{display:inline-flex;align-items:center;justify-content:center;height:40px;padding:0 26px;border-radius:999px;background:var(--navy);color:#fff;text-decoration:none;font-family:'Jost',sans-serif;font-size:12.5px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;transition:transform .15s}
+.admin-quick #modeLinkEdit svg{width:22px;height:22px}
+/* 10% de moins sur toutes les dimensions : hauteur, corps du texte et
+   marges laterales, pour que la pilule reste proportionnee. */
+.reserve-pill{display:inline-flex;align-items:center;justify-content:center;height:36px;padding:0 23px;border-radius:999px;background:var(--navy);color:#fff;text-decoration:none;font-family:'Jost',sans-serif;font-size:11.5px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;transition:transform .15s}
 .reserve-pill:active{transform:scale(.97)}
+/* Sur ordinateur, personne ne va chercher un bouton flottant en bas :
+   le reflexe est en haut a droite. Reserver y remonte donc, et les
+   raccourcis administrateur passent a gauche — le logo garde sa place
+   au centre et rien ne se chevauche. La barre du bas disparait. */
+.reserve-desk{display:none}
+@media(min-width:641px){
+  .reserve-desk{display:inline-flex;align-items:center;justify-content:center;height:31px;padding:0 18px;border-radius:999px;background:var(--navy);color:#fff;text-decoration:none;font-family:'Jost',sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;white-space:nowrap;transition:opacity .15s}
+  .reserve-desk:hover{opacity:.88}
+  body.hdr-band .reserve-desk{background:#fff;color:var(--navy)}
+  /* Les deux cotes etaient centres sur la seule ligne du logo, alors
+     que le bloc d'en-tete descend jusqu'aux horaires : ils paraissaient
+     donc trop hauts. On les sort du flux et on les centre sur la
+     hauteur reelle de l'en-tete. Le logo, seul enfant restant, se
+     recentre de lui-meme et ne bouge pas selon qu'on soit visiteur ou
+     administrateur. */
+  .header .container{position:relative}
+  /* .header-top porte un position:relative : c'est donc LUI qui servait
+     d'ancrage, et les deux cotes se calaient sur la seule ligne du logo,
+     tout en haut. On le repasse en statique pour que l'ancrage devienne
+     le bloc d'en-tete complet, horaires comprises. Sa hauteur minimale
+     compense les deux elements qui ont quitte le flux, sinon la barre se
+     tasse et le logo vient toucher les horaires. */
+  /* La hauteur minimale vaut exactement celle du bouton, c'est-a-dire ce
+     que les deux cotes apportaient quand ils etaient encore dans le
+     flux : l'en-tete garde donc rigoureusement sa hauteur d'avant, sans
+     espace ajoute en haut. */
+  .header-top{position:static;justify-content:center;min-height:31px}
+  /* Le logo etait cale sur .header-top par un top:50%. En passant celui-ci
+     en statique, son ancrage est devenu le bloc d'en-tete entier, horaires
+     comprises : il se centrait donc sur les DEUX lignes et descendait sur
+     « Ouvre a 17h ». On le remet simplement dans le flux — .header-top est
+     deja en justify-content:center, il se centre donc tout seul — et il
+     redonne sa hauteur a la barre, comme avant. */
+  .logo-centered{position:static;left:auto;top:auto;transform:none;pointer-events:auto}
+  .header-top-left,
+  .header-top-right{position:absolute;top:50%;transform:translateY(-50%);margin:0}
+  .header-top-right{left:16px}
+  .header-top-left{right:16px}
+  .sticky-reserve{display:none}
+  .page{padding-bottom:32px}
+}
 /* ═══ BANDEAU PHOTO EN TÊTE DE CATÉGORIE ═══
    Le 4:5 est invariant : bandeau, vignettes de liste et vue plein
    écran partagent le même cadrage. C'est aussi le format Instagram,
@@ -261,14 +324,12 @@ body.hdr-band .hdr-sched .resto-badge-inline svg{color:rgba(255,255,255,.82)!imp
    partir dans la page. L'ancien -webkit-overflow-scrolling:touch,
    qui ajoutait une inertie flottante, est retire. */
 .rail-card{flex:0 0 63%;max-width:280px;scroll-snap-align:start;scroll-snap-stop:always;cursor:pointer;position:relative}
-.rail-pin{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;line-height:1;pointer-events:none}
-.rail-pin-on{color:var(--gold)}
 .rail-img{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:20px;display:block;background:#ece8e1;transition:opacity .15s}
 .rail-card:active .rail-img{opacity:.85}
 .rail-meta{display:flex;align-items:baseline;justify-content:center;gap:10px;margin-top:10px;padding:0 5%}
 .rail-name{font-family:'Open Sans',sans-serif;font-size:12px;font-weight:600;color:var(--navy);line-height:1.3;text-align:center}
 .rail-price{display:none;font-size:13px;font-weight:500;color:var(--navy);white-space:nowrap;flex:none}
-.dish-star{color:var(--gold);font-size:11px;line-height:1}
+.dish-star{color:var(--gold);font-size:11px;line-height:1;white-space:nowrap}
 .rail-desc{display:none}
 /* ═══ DESKTOP ═══
    Les incontournables passent EN BAS et en liste : en haut et en
@@ -278,6 +339,9 @@ body.hdr-band .hdr-sched .resto-badge-inline svg{color:rgba(255,255,255,.82)!imp
    répéter ce qu'on vient de voir. */
 @media (min-width:768px){
   .tab-content > .container{display:flex;flex-direction:column}
+  /* Le bandeau remonte en tete sur desktop, mais « À propos » doit
+     rester avant lui : c'est la presentation du restaurant. */
+  .intro-card{order:-2;margin-bottom:18px}
   .rail-wrap{order:-1;background:#fff;border-radius:var(--r);padding:16px 18px 8px;margin:0 0 18px}
   .rail-hdr{margin-bottom:12px;padding-bottom:11px;border-bottom:1px solid rgba(198,162,74,.35)}
   .rail{flex-direction:column;gap:0;overflow:visible;margin:0;padding:0;scroll-snap-type:none}
@@ -295,15 +359,22 @@ body.hdr-band .hdr-sched .resto-badge-inline svg{color:rgba(255,255,255,.82)!imp
      du conteneur, pas celui absorbe par les rangees elles-memes. Le nom
      et la description vivent desormais dans un meme bloc, pose a cote
      de la vignette : plus aucune rangee ne peut s'intercaler. */
-  .rail-card{flex:none;max-width:none;width:100%;display:flex;align-items:flex-start;gap:14px;padding:12px 0;border-bottom:1px solid rgba(0,0,0,.05)}
-  .rail-card:last-child{border-bottom:none}
+  .rail-card{flex:none;max-width:none;width:100%;display:flex;align-items:flex-start;gap:14px;padding:12px 0}
   /* Deux incontournables suffisent sur grand ecran : en liste, au-dessus
      de la grille, trois lignes commencent a peser. */
   .rail-card:nth-child(n+3){display:none}
+  /* Le filet se pose ENTRE deux cartes, jamais sous la derniere : porte
+     par la carte suivante, il n'existe que s'il y a quelque chose a
+     separer. Un border-bottom sur chaque carte laissait un trait sous la
+     seconde, qui ne separait plus rien puisqu'il n'y en a pas de
+     troisieme. */
+  .rail-card+.rail-card{border-top:1px solid var(--border)}
   .rail-img{width:72px;height:72px;aspect-ratio:auto;flex:none;border-radius:10px}
   .rail-text{flex:1;min-width:0}
-  .rail-meta{margin-top:0;padding:0;justify-content:space-between}
-  .rail-price{display:block}
+  /* Pas de prix dans le bandeau : il est deja sur la meme ligne dans la
+     carte juste en dessous, et le repeter transforme la mise en avant en
+     ligne de tarif. Le nom reprend donc toute la largeur. */
+  .rail-meta{margin-top:0;padding:0;justify-content:flex-start}
   .rail-name{font-size:15px;text-align:left}
   .rail-desc{display:block;font-family:'Open Sans',sans-serif;font-size:12.5px;font-weight:400;color:var(--text2);line-height:1.5;margin-top:2px}
 }
@@ -315,7 +386,11 @@ body.hdr-band .hdr-sched .resto-badge-inline svg{color:rgba(255,255,255,.82)!imp
 .dish-top-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
 .dish-price-inline{font-size:13px;font-weight:500;color:var(--gold);white-space:nowrap;flex:none}
 /* Bouton « incontournable » dans la fiche du plat (mode modification) */
-.ef-pin{display:flex;align-items:center;gap:11px;width:100%;text-align:left;padding:11px 13px;margin-bottom:14px;border:1px solid var(--border);border-radius:10px;background:#fff;cursor:pointer;font-family:'Jost',sans-serif}
+.ef-pin{display:flex;align-items:center;gap:11px;width:100%;padding:11px 13px;margin-bottom:14px;border:1px solid var(--border);border-radius:10px;background:#fff;font-family:'Jost',sans-serif}
+/* La ligne porte maintenant des boutons de rang a droite : l'etoile et
+   son libelle deviennent donc un bouton A PART, un bouton ne pouvant
+   pas en contenir d'autres. */
+.ef-pin-main{display:flex;align-items:center;gap:11px;flex:1;min-width:0;padding:0;border:none;background:none;text-align:left;cursor:pointer;font-family:inherit;color:inherit}
 .ef-pin-on{border-color:var(--gold);background:rgba(198,162,74,.08)}
 .ef-pin-star{font-size:19px;line-height:1;color:var(--text3);flex:none}
 .ef-pin-on .ef-pin-star{color:var(--gold)}
@@ -348,7 +423,7 @@ body.hdr-band .hdr-sched .resto-badge-inline svg{color:rgba(255,255,255,.82)!imp
 .cards-stack{display:flex;flex-direction:column;gap:12px}
 
 /* ── INTRO CARD ── */
-.intro-card{background:#fff;border-radius:var(--r);border:1px solid var(--border);padding:18px 20px}
+.intro-card{background:#fff;border-radius:var(--r);padding:18px 20px}
 .intro-card-label{font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);font-family:'Jost',sans-serif;margin-bottom:8px}
 .intro-card-text{font-family:'Open Sans',sans-serif;font-size:12px;color:var(--text);line-height:1.7}
 .social-icons{display:flex;gap:14px;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid rgba(0,0,0,0.06)}
@@ -572,11 +647,25 @@ body.home-cover-showing{overflow:hidden}
 .resto-popup-row.today .rday{color:rgba(255,255,255,.85)}
 
 /* ── STICKY RESERVE ── */
-.sticky-reserve{position:sticky;bottom:0;z-index:100;background:var(--bg)}
+/* BUG FIX (le bouton Reserver se retrouvait au milieu de la page) :
+   position:sticky depend du contexte de defilement et de chaque
+   ancetre — un overflow ou une mise a l'echelle quelque part au-dessus
+   suffit a le neutraliser, et l'element retombe alors dans le flux, au
+   milieu du contenu. En positionnement fixe, il est ancre au bas de la
+   fenetre quoi qu'il arrive. La place lui est reservee par le
+   padding-bas de .page, donc rien ne passe dessous en fin de page. */
+.sticky-reserve{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--bg)}
 .sticky-reserve .container{display:block}
 .reserve-btn{display:block;width:100%;padding:15px;background:var(--navy);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:500;font-family:'Jost',sans-serif;letter-spacing:.06em;cursor:pointer;text-align:center;text-decoration:none}
 @media(max-width:640px){
-  .sticky-reserve{position:fixed;bottom:0;left:0;right:0;z-index:100;background:linear-gradient(to top,var(--bg) 80%,transparent)}
+  /* Le degrade du haut de la barre est remis : sans lui, le contenu
+     s'arrete net sur un bord franc quand on fait defiler. Il avait saute
+     en meme temps que le passage de sticky a fixed. */
+  /* Will : ni degrade ni filet. La bande prend le fond de la page, donc
+     aucun bord ne se dessine : le contenu qui defile disparait
+     simplement dessous, d'un coup net. Pour l'administrateur comme pour
+     un client, c'est la meme barre. */
+  .sticky-reserve{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--bg);border-top:none}
   .sticky-reserve .container{padding:0 0}
   .reserve-btn{border-radius:0;padding:17px 16px}
   /* BUG FIX: 130px reserved way more space than the sticky bar (reserve
@@ -596,6 +685,7 @@ body.home-cover-showing{overflow:hidden}
      to compensate (bar padding 14->11, link padding 5->2) so the extra
      icon height doesn't grow the black bar itself. */
   .mode-link svg{width:21px;height:21px}
+  #modeLinkEdit svg{width:24px;height:24px}
   .mode-link{padding:2px 6px}
   body.is-admin .admin-quick, body.admin-entry-visible .admin-quick{display:flex}
   /* Un restaurateur ne reserve pas sa propre table : en mode
@@ -783,6 +873,10 @@ body.ig-admin-dark{
   --ig-sep:rgba(255,255,255,.07); --ig-hdr-border:rgba(255,255,255,.08);
   --ig-text:#ececec; --ig-text-dim:#b4b4b4; --ig-text-dimmer:#8e8ea0;
   --ig-input:#171717; --ig-accent:#8ab4f8; --ig-focus:#6e6e6e;
+  /* Bleu d'action plein : l'accent sert a teinter de petites surfaces
+     (interrupteurs, liens) ; etale sur un bouton pleine largeur il
+     eclaire toute la fiche. Version assombrie pour ces aplats-la. */
+  --ig-accent-solid:#3B6FD4;
   --ig-green:#3BA55D; --ig-red:#E5484D; --ig-track:#575757;
   --ig-shadow:0 1px 2px rgba(0,0,0,.3); --ig-row-hover:#3a3a3a; --ig-hairline:#5a5a5a;
 }
@@ -793,6 +887,7 @@ body.ig-admin-light{
   --ig-sep:rgba(0,0,0,.08); --ig-hdr-border:rgba(0,0,0,.10);
   --ig-text:#1C1C1E; --ig-text-dim:#6E6E73; --ig-text-dimmer:#8E8E93;
   --ig-input:#FFFFFF; --ig-accent:#0A84FF; --ig-focus:#C7C7CC;
+  --ig-accent-solid:#0761C4;
   --ig-green:#2E9E52; --ig-red:#E5484D; --ig-track:#D1D1D6;
   --ig-shadow:0 1px 2px rgba(0,0,0,.08); --ig-row-hover:#EAEAEF; --ig-hairline:#D8D8DE;
 }
@@ -1329,6 +1424,127 @@ body.ig-admin-light .ig-subpage-old-content select.ig-hm-select{background-image
 .dish-hid-btn.dish-hid-active{background:#f5f5f5;color:var(--text2);border-color:#bbb}
 .dish-del-btn{color:#c62828;border-color:#ef9a9a}
 .dish-del-btn:hover{background:#ffebee}
+
+/* ═══ FICHES DE MODIFICATION — LE LANGAGE DU BACK-OFFICE ═══
+   Will : « que ce soit similaire, au niveau des icones comme de la
+   police ». Ces fiches vivaient dans le langage du SITE (carte
+   blanche, Jost, bleu marine, contours gris) alors qu'on ne les ouvre
+   qu'en mode administrateur : deux univers pour un meme geste. Elles
+   reprennent donc exactement les jetons --ig-* du panneau, Inter, les
+   cartes arrondies a 14px sans contour, et le libelle pose AU-DESSUS
+   de sa valeur plutot qu'un champ encadre.
+   Ces jetons sont declares sur <body> en permanence (applyAdminTheme
+   tourne au demarrage), donc la fiche suit Clair / Sombre comme le
+   panneau, sans avoir a etre ouverte depuis lui. */
+/* Les jetons du SITE sont remappes sur ceux du panneau a l'entree de
+   la fiche : les quelques couleurs posees en style en ligne dans le
+   balisage (mentions grises, liserés) suivent alors le theme sans
+   qu'il faille les traquer une par une. */
+.edit-pop{background:rgba(0,0,0,.55);
+  --text:var(--ig-text); --text2:var(--ig-text-dim); --text3:var(--ig-text-dimmer);
+  --border:var(--ig-sep); --bg:var(--ig-bg)}
+.edit-pop, .edit-pop input, .edit-pop textarea, .edit-pop select, .edit-pop button{font-family:'Inter',sans-serif}
+.edit-pop-box{background:var(--ig-bg);border-radius:16px;max-width:560px;max-height:92vh;box-shadow:0 24px 60px rgba(0,0,0,.45)}
+.edit-pop-hdr{background:var(--ig-bg);border-bottom:1px solid var(--ig-sep);border-radius:16px 16px 0 0;padding:15px 16px}
+.edit-pop-title{font-family:'Inter',sans-serif;font-size:17px;font-weight:600;letter-spacing:0;color:var(--ig-text)}
+.edit-pop-close{width:30px;height:30px;border-radius:50%;background:var(--ig-card);color:var(--ig-text-dim);font-size:13px}
+.edit-pop-body{padding:14px 16px 4px;background:var(--ig-bg)}
+.edit-pop-foot{background:var(--ig-bg);border-top:1px solid var(--ig-sep);border-radius:0 0 16px 16px;padding:12px 16px 16px}
+.edit-save{background:var(--ig-accent-solid);color:#fff;border-radius:12px;font-family:'Inter',sans-serif;font-size:15px;font-weight:600;letter-spacing:0;padding:14px}
+
+/* Le champ EST la carte : libelle en petit gris, valeur dessous. */
+.edit-pop .ef{background:var(--ig-card);border-radius:14px;padding:11px 16px;margin-bottom:10px}
+.edit-pop .el{display:block;font-family:'Inter',sans-serif;font-size:12.5px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--ig-text-dimmer);margin-bottom:1px;line-height:1.5}
+.edit-pop .ei{width:100%;padding:0;border:none;border-radius:0;background:transparent;font-family:'Inter',sans-serif;font-size:15.5px;color:var(--ig-text);line-height:1.5;box-shadow:none}
+.edit-pop .ei:focus{outline:none;border:none;box-shadow:none}
+.edit-pop .ei::placeholder{color:var(--ig-text-dimmer)}
+.edit-pop textarea.ei{min-height:52px}
+/* Les libelles poses seuls entre deux cartes (« Format, contenance »)
+   redeviennent des intertitres de groupe, comme dans le panneau. */
+.edit-pop .edit-pop-body>.el{padding:0 4px;font-size:12px;font-weight:600;color:var(--ig-text-dimmer)}
+.edit-pop .efrow{display:flex;gap:10px}
+.edit-pop .efrow>.ef{flex:1;min-width:0}
+
+/* Pastilles alimentaires : la pilule du panneau, avec sa gommette
+   ronde qui passe au vert — pas un contour bleu marine. */
+.edit-pop .ei-badges{gap:8px;margin-top:8px}
+.edit-pop .badge-toggle{border:none;background:var(--ig-bg);border-radius:999px;padding:7px 14px 7px 7px;gap:7px;font-family:'Inter',sans-serif;font-size:12.5px;font-weight:400;color:var(--ig-text)}
+.edit-pop .badge-toggle::before{content:'';width:18px;height:18px;border-radius:50%;background:var(--ig-track);flex:none;transition:background .15s}
+.edit-pop .badge-toggle.on{background:var(--ig-bg);color:var(--ig-text);font-weight:400}
+.edit-pop .badge-toggle.on::before{background:var(--ig-green)}
+
+/* Cases a cocher isolees (double tarif, afficher le bloc). */
+.edit-pop .ei-check{gap:11px;padding:0}
+.edit-pop .ei-check span{font-family:'Inter',sans-serif;font-size:15px;color:var(--ig-text)}
+.edit-pop .ei-check input{width:18px;height:18px;accent-color:var(--ig-green)}
+
+/* Image : le champ garde sa carte, l'apercu perd son liseré. */
+.edit-pop .ai-img-wrap{align-items:center;gap:10px;margin-top:2px}
+.edit-pop .ai-upload-btn{width:26px;height:26px;border:none;background:transparent;color:var(--ig-text-dim);border-radius:8px}
+.edit-pop .ai-upload-btn svg{width:16px;height:16px}
+.edit-pop .ai-img-preview{border:none!important;border-radius:10px!important;margin-top:10px!important}
+
+/* Galerie repliee : une carte, pas un cadre. L'en-tete reprend la
+   tuile d'icone des cartes du panneau. */
+.edit-pop .ef-acc{border:none;border-radius:14px;background:var(--ig-card);margin-bottom:10px}
+.edit-pop .ef-acc>summary{font-family:'Inter',sans-serif;font-size:15px;font-weight:400;color:var(--ig-text);padding:13px 16px;gap:12px}
+.edit-pop .ef-acc>summary::after{color:var(--ig-text-dimmer)}
+.edit-pop .ef-acc-icon{width:34px;height:34px;flex:none;border-radius:10px;border:1px solid var(--ig-border);display:flex;align-items:center;justify-content:center;color:var(--ig-text-dim)}
+.edit-pop .ef-acc-icon svg{width:18px;height:18px}
+.edit-pop .ef-acc-title{flex:1;min-width:0}
+.edit-pop .ef-acc .acc-body{padding:0 10px 10px}
+.edit-pop .ef-acc .ef{background:var(--ig-bg)}
+
+/* Galerie : chaque photo est une pastille a elle, PLUS CLAIRE que la
+   carte qui la porte — c'est ce cadre qui dit ou coller le lien. Le
+   texte d'attente nomme la photo ET l'action, donc plus besoin d'un
+   libelle au-dessus : quatre lignes « Image URL » a la suite ne
+   disaient ni de laquelle il s'agissait ni quoi en faire. */
+.edit-pop .ef-gal{padding:10px}
+.edit-pop .ef-gal-row+.ef-gal-row{margin-top:8px}
+.edit-pop .ef-gal-field{display:flex;align-items:center;gap:8px;background:var(--ig-card);border-radius:10px;padding:12px 12px 12px 14px}
+.edit-pop .ef-gal-field .ei{flex:1;min-width:0;font-size:13.5px}
+.edit-pop .ef-gal-field .ei::placeholder{font-size:13.5px;color:var(--ig-text-dimmer)}
+.edit-pop .ef-gal-field:focus-within{box-shadow:inset 0 0 0 1px var(--ig-focus)}
+.edit-pop .ef-gal-row .ai-img-preview{width:100%;max-width:92px;aspect-ratio:1;object-fit:cover;border-radius:10px;margin:8px 0 0 2px!important;display:block}
+.edit-pop .ef-acc .badge-toggle,
+.edit-pop .ef-acc .ef-acc{background:var(--ig-card)}
+
+/* Lignes « Format, contenance & prix » : les listes deroulantes
+   reprennent la carte, comme les champs a cote d'elles. */
+.edit-pop .unit-sel{background:var(--ig-card);border:none;border-radius:12px;color:var(--ig-text);font-family:'Inter',sans-serif;font-size:14px;padding:12px 10px;height:auto;flex:none;outline:none}
+.edit-pop .unit-sel:focus{outline:none;box-shadow:none}
+.edit-pop .efrow[data-srow] .ei{font-size:14px}
+.edit-pop .aadd{border:none;background:var(--ig-card);border-radius:12px;color:var(--ig-accent);font-family:'Inter',sans-serif;font-size:14px;padding:13px}
+.edit-pop .aadd:hover{background:var(--ig-row-hover);color:var(--ig-accent)}
+
+/* Incontournable : meme carte que le reste, l'etoile seule porte l'or. */
+.edit-pop .ef-pin{border:none;background:var(--ig-card);border-radius:14px;padding:13px 16px;margin-bottom:10px;font-family:'Inter',sans-serif;gap:13px}
+.edit-pop .ef-pin-main{gap:13px}
+/* Les numeros disent la place dans le bandeau, et le rempli dit lequel
+   est le sien : une pastille par position, jamais plus qu'il n'y a
+   d'incontournables. Choisir un numero deja pris echange les deux. */
+.ef-pin-ranks{display:flex;gap:4px;flex:none;background:var(--ig-bg);border-radius:9px;padding:3px}
+.ef-rank{width:30px;height:28px;flex:none;border:none;border-radius:7px;background:transparent;color:var(--ig-text-dimmer);font-family:'Inter',sans-serif;font-size:13px;font-weight:500;cursor:pointer;padding:0;transition:background .12s,color .12s}
+.ef-rank:hover{color:var(--ig-text)}
+.ef-rank-on{background:var(--gold);color:#fff}
+.edit-pop .ef-pin-on{background:var(--ig-card)}
+.edit-pop .ef-pin-star{color:var(--ig-text-dimmer);font-size:20px}
+.edit-pop .ef-pin-on .ef-pin-star{color:var(--gold)}
+.edit-pop .ef-pin-label{font-size:15px;font-weight:400;color:var(--ig-text)}
+.edit-pop .ef-pin-hint{font-size:12.5px;color:var(--ig-text-dimmer)}
+
+/* Masquer / Supprimer : la liste du panneau — un interrupteur pour un
+   etat, une ligne rouge pour l'action destructrice. */
+.ef-vis{background:var(--ig-card);border-radius:14px;overflow:hidden;margin:18px 0 4px}
+.ef-vis-row{display:flex;align-items:center;gap:13px;width:100%;box-sizing:border-box;padding:13px 16px;background:none;border:none;text-align:left;font-family:'Inter',sans-serif;color:var(--ig-text)}
+.ef-vis-row+.ef-vis-row{border-top:1px solid var(--ig-sep)}
+.ef-vis-icon{width:20px;height:20px;flex:none;display:flex;align-items:center;justify-content:center;color:var(--ig-text-dim)}
+.ef-vis-icon svg{width:19px;height:19px}
+.ef-vis-label{flex:1;font-size:15px}
+.ef-del-row{cursor:pointer;color:var(--ig-red)}
+.ef-del-row .ef-vis-icon{color:var(--ig-red)}
+.ef-del-row:hover{background:var(--ig-row-hover)}
 .aadd{width:100%;padding:9px;border:1.5px dashed var(--border);border-radius:var(--rs);background:none;color:var(--text3);font-size:12px;font-family:'Jost',sans-serif;cursor:pointer;transition:all .15s;margin-top:4px}
 .aadd:hover{border-color:var(--navy);color:var(--navy)}
 .asave{width:100%;padding:12px;background:var(--navy);color:#fff;border:none;border-radius:50px;font-size:13px;font-weight:500;font-family:'Jost',sans-serif;cursor:pointer;margin-top:6px;letter-spacing:.04em}
@@ -1392,7 +1608,14 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 }
 
 /* ── TOAST ── */
-#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:9px 18px;border-radius:50px;font-size:12px;font-family:'Jost',sans-serif;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+/* Le message remonte au quart de l'ecran : il etait a une centaine de
+   pixels du bas, donc a hauteur du pouce et du bouton Reserver, la ou
+   on ne regarde pas. Le plancher de 90px le garde au-dessus de la barre
+   du bas sur un ecran tres court (paysage).
+   Il passe en Inter 600 : Jost n'est chargee qu'en 300/400/500, son
+   gras serait donc synthetique — epaissi par le navigateur, et plus
+   sale qu'un vrai demi-gras. */
+#toast{position:fixed;bottom:max(90px,25vh);left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:11px 20px;border-radius:50px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
 .img-wrap{position:relative;display:inline-block;flex:none;cursor:pointer}
 .img-wrap .zoom-ic{display:none}
 .gc-wrap{position:relative;cursor:pointer;display:block}
@@ -1567,7 +1790,9 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
   <div class="header">
     <div class="container">
       <div class="header-top">
-        <div class="header-top-left"></div>
+        <div class="header-top-left">
+          <a class="reserve-desk" href="https://sowonboxx-cmd.github.io/menu/drevici/resa">Réserver une table</a>
+        </div>
         <div class="logo-centered" style="display:flex;flex-direction:column;align-items:center;cursor:pointer;pointer-events:auto" onclick="returnToHomeCover()">
           <img class="logo-img" src="https://drevicioyster.com/wp-content/uploads/2026/06/Drevici-Oyster-white-HD.png" alt="Drevici Oyster" onerror="this.style.display='none'"/>
           <span class="logo-text" id="logoText">Drevici Oyster</span>
@@ -1682,6 +1907,7 @@ let DATA = {
   pinnedDishes: [], // array of {tabId, pid} — pid is a dish's stable id (see resolvePin)
   pinnedShowHome: true,
   pinnedShowFirst: true,
+  pinnedShowRail: true, // bandeau photo en tete de categorie
   tabs: [
     {
       id:'huitres', isHome:true,
@@ -1978,7 +2204,7 @@ function setEditMode(on){
     btn.classList.toggle('active', on);
   });
   if(!on) closeEditPop();
-  showToast(on?'Mode modification — cliquez un élément':'Mode lecture');
+  showToast(on?'Mode modification — cliquez sur un élément':'Mode lecture');
 }
 
 function escAttr(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
@@ -2045,17 +2271,31 @@ function efCaptionField(caption, placeholder){
 }
 // ---- Collapsed accordion holding the social gallery + caption ----
 function efSocialAccordion(gallery, caption, placeholder){
-  return `<details class="ef-acc"><summary>Galerie réseaux sociaux</summary><div class="acc-body">`
+  return `<details class="ef-acc"><summary><span class="ef-acc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></span><span class="ef-acc-title">Galerie réseaux sociaux (1–4 photos)</span></summary><div class="acc-body">`
     + efGalleryField(gallery||[])
     + efCaptionField(caption, placeholder)
     + `</div></details>`;
 }
 
 // ---- Popup image field (URL + upload button + preview) — mirrors admin's imgFieldHtml ----
-function efImgField(id, val, label, ratio=1){
+// `flat` : la pastille de la galerie du panneau admin — un cadre a lui
+// seul, plus clair que la carte qui le porte, dont le texte d'attente
+// dit a la fois DE QUOI il s'agit et QUOI en faire. Sans ce cadre,
+// quatre lignes « Image URL » identiques se fondaient dans le noir et
+// rien ne montrait ou coller le lien.
+function efImgField(id, val, label, ratio=1, flat){
   const previewStyle = val ? '' : 'display:none';
+  if(flat){
+    return `<div class="ef-gal-row">
+      <div class="ai-img-wrap ef-gal-field">
+        <input class="ei" id="${id}" value="${escAttr(val||'')}" placeholder="${escAttr(label)} — collez un lien ou uploadez" oninput="syncEfImgPreview(this)">
+        <label class="ai-upload-btn" title="Uploader une image"><input type="file" accept="image/*" style="display:none" onchange="uploadEditImgFile(this,${ratio===null?'null':ratio})"><svg width="18.4" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.22,20.75H5.78A2.64,2.64,0,0,1,3.25,18V15a.75.75,0,0,1,1.5,0v3a1.16,1.16,0,0,0,1,1.25H18.22a1.16,1.16,0,0,0,1-1.25V15a.75.75,0,0,1,1.5,0v3A2.64,2.64,0,0,1,18.22,20.75Z"/><path d="M16,8.75a.74.74,0,0,1-.53-.22L12,5.06,8.53,8.53A.75.75,0,0,1,7.47,7.47l4-4a.75.75,0,0,1,1.06,0l4,4a.75.75,0,0,1,0,1.06A.74.74,0,0,1,16,8.75Z"/><path d="M12,15.75a.76.76,0,0,1-.75-.75V4a.75.75,0,0,1,1.5,0V15A.76.76,0,0,1,12,15.75Z"/></svg></label>
+      </div>
+      <img class="ai-img-preview" src="${escAttr(val||'')}" style="${previewStyle}" onerror="this.style.display='none'">
+    </div>`;
+  }
   return `<div class="ef"><label class="el">${label}</label><div class="ai-img-wrap">
-    <input class="ei" id="${id}" value="${escAttr(val||'')}" placeholder="Image URL" oninput="syncEfImgPreview(this)">
+    <input class="ei" id="${id}" value="${escAttr(val||'')}" placeholder="Collez un lien ou uploadez" oninput="syncEfImgPreview(this)">
     <label class="ai-upload-btn" title="Uploader une image"><input type="file" accept="image/*" style="display:none" onchange="uploadEditImgFile(this,${ratio===null?'null':ratio})"><svg width="18.4" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.22,20.75H5.78A2.64,2.64,0,0,1,3.25,18V15a.75.75,0,0,1,1.5,0v3a1.16,1.16,0,0,0,1,1.25H18.22a1.16,1.16,0,0,0,1-1.25V15a.75.75,0,0,1,1.5,0v3A2.64,2.64,0,0,1,18.22,20.75Z"/><path d="M16,8.75a.74.74,0,0,1-.53-.22L12,5.06,8.53,8.53A.75.75,0,0,1,7.47,7.47l4-4a.75.75,0,0,1,1.06,0l4,4a.75.75,0,0,1,0,1.06A.74.74,0,0,1,16,8.75Z"/><path d="M12,15.75a.76.76,0,0,1-.75-.75V4a.75.75,0,0,1,1.5,0V15A.76.76,0,0,1,12,15.75Z"/></svg></label>
   </div><img class="ai-img-preview" src="${escAttr(val||'')}" style="${previewStyle};width:100%;max-width:120px;aspect-ratio:1;object-fit:cover;border-radius:6px;margin-top:6px;border:1px solid var(--border)" onerror="this.style.display='none'"></div>`;
 }
@@ -2082,9 +2322,9 @@ function syncEfImgPreview(input){
 // ---- Popup gallery field (up to 4 photos, used for social posts) ----
 function efGalleryField(gallery){
   gallery=gallery||[];
-  let h='<div class="ef"><label class="el">Galerie réseaux sociaux (1–4 photos)</label>';
+  let h='<div class="ef ef-gal">';
   for(let gi=0; gi<4; gi++){
-    h+=`<div style="margin-bottom:8px">`+efImgField(`ed-gal-${gi}`, gallery[gi]||'', 'Photo '+(gi+1), 9/16)+`</div>`;
+    h+=efImgField(`ed-gal-${gi}`, gallery[gi]||'', 'Photo '+(gi+1), 9/16, true);
   }
   h+='</div>';
   return h;
@@ -2099,12 +2339,24 @@ function readGalleryFields(){
   return out;
 }
 
-// ---- Visible / Masquée / Supprimer row — mirrors admin panel buttons ----
-function efVisRow(hidden){
-  return `<div class="ef" style="display:flex;gap:6px;margin-bottom:14px">
-    <button type="button" class="dish-vis-btn ${!hidden?'dish-vis-active':''}" onclick="efSetHidden(false)">Visible</button>
-    <button type="button" class="dish-vis-btn dish-hid-btn ${hidden?'dish-hid-active':''}" onclick="efSetHidden(true)">Masquée</button>
-    <button type="button" class="dish-vis-btn dish-del-btn" style="margin-left:auto" onclick="efDeleteCurrent()">✕ Supprimer</button>
+// ---- Masquer / Supprimer — mêmes formes que le panneau admin ----
+// Trois petits boutons alignes (Visible / Masquee / Supprimer) etaient
+// le langage du site, pas celui du back-office : celui-ci pose un
+// interrupteur pour un etat, et une ligne rouge a part pour une action
+// destructrice. Une bascule dit aussi mieux qu'un couple de boutons
+// qu'il n'y a que deux etats possibles.
+function efVisRow(hidden, kind){
+  const noun = kind==='bev' ? 'la boisson' : 'le plat';
+  return `<div class="ef-vis">
+    <div class="ef-vis-row">
+      <span class="ef-vis-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></span>
+      <span class="ef-vis-label">Masquer ${noun}</span>
+      <label class="ig-switch"><input type="checkbox" ${hidden?'checked':''} onchange="efSetHidden(this.checked)"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
+    </div>
+    <button type="button" class="ef-vis-row ef-del-row" onclick="efDeleteCurrent()">
+      <span class="ef-vis-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13"/><path d="M9 7V4h6v3"/></svg></span>
+      <span class="ef-vis-label">Supprimer ${noun}</span>
+    </button>
   </div>`;
 }
 // Épingler un plat en « incontournable » directement depuis la fiche,
@@ -2115,12 +2367,37 @@ function efPinRow(ti,ci,di,d){
   const tabId=DATA.tabs[ti] && DATA.tabs[ti].id;
   const on=isPinnedDish(d);
   const n=pinCountForTab(tabId);
-  const hint=on ? 'Mis en avant en haut de cette catégorie'
-                : (n>=PIN_MAX_PER_TAB ? `${PIN_MAX_PER_TAB} incontournables déjà choisis ici` : 'Le mettre en avant en haut de cette catégorie');
-  return `<button type="button" class="ef-pin${on?' ef-pin-on':''}" onclick="togglePin('${escAttr(tabId)}',${ci},${di})">
-    <span class="ef-pin-star">${on?'★':'☆'}</span>
-    <span class="ef-pin-text"><span class="ef-pin-label">Plat incontournable</span><span class="ef-pin-hint">${hint}</span></span>
-  </button>`;
+  const rank=on ? pinRankOf(tabId, d._pid) : 0;
+  // Une etoile allumee ne disait pas ou le plat allait atterrir dans le
+  // bandeau — ni meme S'IL allait y atterrir. Deux cas restaient
+  // totalement muets : sans photo ou masque, il n'y figure pas du tout.
+  let hint;
+  if(on){
+    if(!d.img) hint='Ajoutez une photo pour qu\'il apparaisse dans le bandeau';
+    else if(d.hidden) hint='Masqué : il n\'apparaît pas dans le bandeau';
+    else if(n>1) hint='Sa place dans le bandeau';
+    else hint='Seul incontournable de cette catégorie';
+  } else {
+    hint = n>=PIN_MAX_PER_TAB ? `${PIN_MAX_PER_TAB} incontournables déjà choisis ici`
+                              : 'Le mettre en avant en haut de cette catégorie';
+  }
+  // Les numeros ne valent que s'il y a un ordre a arbitrer : a un seul
+  // incontournable, un bouton « 1 » unique ne servirait a rien. On n'en
+  // propose donc que N, jamais un rang inatteignable.
+  let ranks='';
+  if(on && n>1 && d.img && !d.hidden){
+    let btns='';
+    for(let r=1;r<=n;r++){
+      btns+=`<button type="button" class="ef-rank${r===rank?' ef-rank-on':''}" aria-pressed="${r===rank}" title="Position ${r}" onclick="setPinRank('${escAttr(tabId)}','${escAttr(d._pid||'')}',${r})">${r}</button>`;
+    }
+    ranks=`<div class="ef-pin-ranks">${btns}</div>`;
+  }
+  return `<div class="ef-pin${on?' ef-pin-on':''}">
+    <button type="button" class="ef-pin-main" onclick="togglePin('${escAttr(tabId)}',${ci},${di})">
+      <span class="ef-pin-star">${on?'★':'☆'}</span>
+      <span class="ef-pin-text"><span class="ef-pin-label">Plat incontournable</span><span class="ef-pin-hint">${hint}</span></span>
+    </button>${ranks}
+  </div>`;
 }
 function efSetHidden(val){
   if(!editCtx) return;
@@ -2240,18 +2517,11 @@ function closeEditPop(){
 }
 document.getElementById('editPop').addEventListener('click',e=>{ if(e.target===e.currentTarget) closeEditPop(); });
 
-// ---- DISH ----
-function openEditDish(ti,ci,di){
-  const d=DATA.tabs[ti]?.cards[ci]?.dishes?.[di]; if(!d) return;
-  editCtx={type:'dish',ti,ci,di};
-  const isHuitres=DATA.tabs[ti].id==='huitres';
-  let h='';
-  h+=efVisRow(!!d.hidden);
-  h+=efPinRow(ti,ci,di,d);
-  h+=efBi('Nom du plat', d.name&&d.name.fr, d.name&&d.name[lang]);
-  h+=efBi('Description', d.desc&&d.desc.fr, d.desc&&d.desc[lang], true);
+// ---- Bloc de prix : simple, ou deux couples quantite/prix ----
+function efPriceBlockHtml(d){
+  d=d||{};
   if(d.priceType==='dual'){
-    h+=`<div class="efrow">
+    return `<div class="efrow">
       <div class="ef"><label class="el">Quantité 1</label><input class="ei" id="ed-q1" type="number" value="${escAttr(d.qty1||'')}" placeholder="6"></div>
       <div class="ef"><label class="el">Prix 1 (€)</label><input class="ei" id="ed-p1" type="number" value="${escAttr(d.p1||'')}" placeholder="12"></div>
     </div>
@@ -2259,16 +2529,47 @@ function openEditDish(ti,ci,di){
       <div class="ef"><label class="el">Quantité 2</label><input class="ei" id="ed-q2" type="number" value="${escAttr(d.qty2||'')}" placeholder="12"></div>
       <div class="ef"><label class="el">Prix 2 (€)</label><input class="ei" id="ed-p2" type="number" value="${escAttr(d.p2||'')}" placeholder="22"></div>
     </div>`;
+  }
+  const numVal=(d.price||'').toString().replace('€','').trim();
+  return `<div class="ef"><label class="el">Prix (€)</label><input class="ei" id="ed-price" type="number" step="0.5" style="max-width:140px" value="${escAttr(numVal)}"></div>`;
+}
+// On ne redessine QUE le bloc de prix : le reste de la fiche, y compris
+// ce qui vient d'etre tape, reste en place. Le prix deja saisi est
+// reporte sur le premier palier, et inversement, pour ne pas obliger a
+// le retaper apres un aller-retour.
+function efToggleDual(cb){
+  const block=document.getElementById('ed-price-block');
+  if(!block) return;
+  const gv=id=>{ const e=document.getElementById(id); return e?e.value:''; };
+  if(cb.checked){
+    const single=gv('ed-price');
+    block.innerHTML=efPriceBlockHtml({priceType:'dual', p1:single});
   } else {
-    const numVal=(d.price||'').toString().replace('€','').trim();
-    h+=`<div class="ef"><label class="el">Prix (€)</label><input class="ei" id="ed-price" type="number" step="0.5" style="max-width:140px" value="${escAttr(numVal)}"></div>`;
+    const first=gv('ed-p1');
+    block.innerHTML=efPriceBlockHtml({price:first});
   }
-  if(isHuitres){
-    h+=`<div class="ef"><label class="ei-check"><input type="checkbox" id="ed-dual" ${d.priceType==='dual'?'checked':''}><span>Double tarif (ex : Les 6 / Les 12)</span></label></div>`;
-  }
+}
+// ---- DISH ----
+function openEditDish(ti,ci,di){
+  const d=DATA.tabs[ti]?.cards[ci]?.dishes?.[di]; if(!d) return;
+  editCtx={type:'dish',ti,ci,di};
+  let h='';
+  h+=efPinRow(ti,ci,di,d);
+  h+=efBi('Nom du plat', d.name&&d.name.fr, d.name&&d.name[lang]);
+  h+=efBi('Description', d.desc&&d.desc.fr, d.desc&&d.desc[lang], true);
+  // Le double tarif n'etait propose que dans la categorie « huitres »,
+  // alors qu'une planche, un pichet ou une portion se vendent en deux
+  // tailles dans a peu pres toutes les cartes. La case est donc offerte
+  // partout, sous le prix, et basculer refait le bloc de prix sur place
+  // — sans fermer la fiche ni perdre le nom en cours de frappe.
+  h+=`<div id="ed-price-block">${efPriceBlockHtml(d)}</div>`;
+  h+=`<div class="ef"><label class="ei-check"><input type="checkbox" id="ed-dual" ${d.priceType==='dual'?'checked':''} onchange="efToggleDual(this)"><span>Double tarif (ex : Les 6 / Les 12)</span></label></div>`;
   h+=efImgField('ed-img', d.img||'', 'Image principale');
   h+=efBadgesField(d);
   h+=efSocialAccordion(d.gallery||[], d.caption||'', 'Ex: Nos huîtres Spéciales N°3 — iodées, fraîches, servies sur glace 🦪 Disponibles au bar ou à emporter.');
+  // Masquer / Supprimer ferment la fiche, comme dans le panneau admin :
+  // on ne met pas une action destructrice sur le trajet du regard.
+  h+=efVisRow(!!d.hidden);
   document.getElementById('editPopBody').innerHTML=h;
   showEditPop(t(d.name)||'Modifier le plat');
 }
@@ -2301,7 +2602,6 @@ function openEditBev(ti,ci,ii){
   const ifr=typeof item.name==='object'?(item.name.fr||''):(item.name||'');
   let h='';
   const isFr=lang==='fr';
-  h+=efVisRow(!!item.hidden);
   h+=`<div class="ef"><label class="el">Nom${isFr?'':' ('+lang.toUpperCase()+')'}</label><input class="ei" id="ed-bname" value="${escAttr(iname)}" placeholder="${escAttr(isFr?'':ifr)}"></div>`;
   h+=efBi('Description (notes de dégustation, etc.)', item.desc&&item.desc.fr, item.desc&&item.desc[lang], true);
   h+=efImgField('ed-img', item.img||'', 'Image (optionnel)');
@@ -2310,6 +2610,7 @@ function openEditBev(ti,ci,ii){
   if(!(item.sizes||[]).length){ h+=efSizeRowHtml(0,{}); }
   h+=`</div><button type="button" class="aadd" onclick="efAddSizeRow()" style="margin-bottom:14px">+ Taille</button>`;
   h+=efSocialAccordion(item.gallery||[], item.caption||'', 'Ex: Notre sélection du moment 🍷');
+  h+=efVisRow(!!item.hidden,'bev');
   document.getElementById('editPopBody').innerHTML=h;
   showEditPop(iname||'Modifier la boisson');
 }
@@ -2365,12 +2666,11 @@ function saveEditPop(silent){
       d.name[lang]=readEf(0);
       d.desc[lang]=readEf(1);
       const dualCb=document.getElementById('ed-dual');
-      if(dualCb&&dualCb.checked){
+      // La case pilote seule le format : decochee, le bloc de prix a
+      // deja ete remplace, donc ed-q1 n'existe plus. La seconde
+      // condition n'est qu'un filet si la case n'etait pas rendue.
+      if((dualCb && dualCb.checked) || (!dualCb && document.getElementById('ed-q1'))){
         d.priceType='dual';
-        d.qty1=v('ed-q1'); d.p1=v('ed-p1'); d.qty2=v('ed-q2'); d.p2=v('ed-p2');
-        d.price=`Les ${d.qty1||'?'} — ${d.p1||'?'}€ · Les ${d.qty2||'?'} — ${d.p2||'?'}€`;
-      } else if(document.getElementById('ed-q1')){
-        // was dual, still dual (non-huitres path keeps dual fields)
         d.qty1=v('ed-q1'); d.p1=v('ed-p1'); d.qty2=v('ed-q2'); d.p2=v('ed-p2');
         d.price=`Les ${d.qty1||'?'} — ${d.p1||'?'}€ · Les ${d.qty2||'?'} — ${d.p2||'?'}€`;
       } else {
@@ -2561,6 +2861,14 @@ function isPinnedDish(d){
   return (DATA.pinnedDishes||[]).some(p=>p.pid===d._pid);
 }
 function renderCategoryRail(tab){
+  // Tout le monde ne veut pas d'un bandeau en tete de categorie. Quand
+  // il est coupe, la liste commence directement par les plats — les
+  // etoiles, elles, restent a cote des noms : choisir ses
+  // incontournables et les MONTRER en haut sont deux decisions
+  // differentes. Coupe aussi le repli sans epingle (les six premieres
+  // photos) : c'est le meme bandeau, sinon l'interrupteur ne ferait
+  // rien de visible dans une categorie sans incontournable.
+  if(DATA.pinnedShowRail===false) return '';
   // On parcourt la catégorie exactement comme collectLbImages(), pour
   // que data-lbidx désigne bien la même image dans la visionneuse.
   // On retient aussi ci/di : en mode modification, taper une carte du
@@ -2577,8 +2885,12 @@ function renderCategoryRail(tab){
     } else if(card.img){ idx++; }
   });
   if(!shots.length) return '';
-  const pinIds=new Set((DATA.pinnedDishes||[]).filter(p=>p.tabId===tab.id).map(p=>p.pid));
-  const pinned=shots.filter(s=>pinIds.has(s.dish._pid));
+  // L'ordre du bandeau EST celui de la liste d'epingles : le rang choisi
+  // dans la fiche (1, 2, 3) est la position de l'entree dans ce tableau.
+  // Avant, on filtrait la carte de haut en bas et le rang subissait donc
+  // la place du plat dans la categorie, sans qu'on puisse y toucher.
+  const pinOrder=(DATA.pinnedDishes||[]).filter(p=>p.tabId===tab.id).map(p=>p.pid);
+  const pinned=pinOrder.map(pid=>shots.find(sh=>sh.dish._pid===pid)).filter(Boolean);
   const items=pinned.length?pinned:shots.slice(0,6);
   const head=pinned.length
     ? `<div class="rail-hdr"><span class="rail-star">★</span><span class="rail-title">Nos incontournables</span></div>`
@@ -2587,7 +2899,6 @@ function renderCategoryRail(tab){
     const d=s.dish, price=dishPriceShort(d);
     return `<div class="rail-card" data-edit="dish" data-ti="${ti}" data-ci="${s.ci}" data-di="${s.di}" data-lbidx="${s.lb}">`
       + `<img class="rail-img" src="${d.img}" alt="" loading="lazy">`
-      + (editMode?`<span class="rail-pin${isPinnedDish(d)?' rail-pin-on':''}">${isPinnedDish(d)?'★':'☆'}</span>`:'')
       + `<div class="rail-text"><div class="rail-meta"><div class="rail-name">${t(d.name)}</div>`
       // Sur mobile, pas de prix ici : le nom occupe toute la carte, il
       // se lit en entier et rien ne detourne l'oeil. Le prix reste dans
@@ -3880,8 +4191,8 @@ function renderTabContent(tab,lbOffset){
         // compact top-right slot — those keep the price on its own
         // line below the description, same as before this change.
         const gcBody=d.priceType==='dual'
-          ? `<div class="gc-name">${t(d.name)}${isPinnedDish(d)?' <span class="dish-star">\u2605</span>':''}${badges?` <span class="dish-badges" style="display:inline-flex">${badges}</span>`:''}</div><div class="gc-desc">${t(d.desc)}</div><div class="gc-price">${priceHtml}</div>`
-          : `<div class="gc-top-row"><div class="gc-name">${t(d.name)}${isPinnedDish(d)?' <span class="dish-star">\u2605</span>':''}${badges?` <span class="dish-badges" style="display:inline-flex">${badges}</span>`:''}</div>${priceHtml?`<span class="gc-price-inline">${priceHtml}</span>`:''}</div><div class="gc-desc">${t(d.desc)}</div>`;
+          ? `<div class="gc-name">${t(d.name)}${isPinnedDish(d)?'&nbsp;<span class="dish-star">\u2605</span>':''}${badges?` <span class="dish-badges" style="display:inline-flex">${badges}</span>`:''}</div><div class="gc-desc">${t(d.desc)}</div><div class="gc-price">${priceHtml}</div>`
+          : `<div class="gc-top-row"><div class="gc-name">${t(d.name)}${isPinnedDish(d)?'&nbsp;<span class="dish-star">\u2605</span>':''}${badges?` <span class="dish-badges" style="display:inline-flex">${badges}</span>`:''}</div>${priceHtml?`<span class="gc-price-inline">${priceHtml}</span>`:''}</div><div class="gc-desc">${t(d.desc)}</div>`;
         gridItems.push(`<div class="gc" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${ci}" data-di="${di}"${d.img?` data-lbidx="${idx}"`:''}><div class="gc-wrap">${d.img?`<img class="gc-img" src="${d.img}" alt="" loading="lazy">`:'<div style="aspect-ratio:1;background:#ece8e1"></div>'}</div><div class="gc-body">${gcBody}</div></div>`);
       });
     });
@@ -3931,7 +4242,7 @@ function renderTabContent(tab,lbOffset){
           const badges=badgeIconsHtml(d);
           const _cid=tab.cards.indexOf(card); const _did=card.dishes.indexOf(d);
           const priceHtml=dishPriceDisplay(d);
-          html+=`<div class="dish-row${d.img?' dish-row-clickable':''}" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${_cid}" data-di="${_did}"${d.img?` data-lbidx="${idx}"`:''}${di===0?' style="padding-top:0"':''}><div class="dish-text"><div class="dish-top-row"><div class="dish-name-row"><span class="dish-name">${t(d.name)}</span>${isPinnedDish(d)?'<span class="dish-star">\u2605</span>':''}${badges?`<span class="dish-badges">${badges}</span>`:''}</div>${(priceHtml && d.priceType!=='dual')?`<span class="dish-price-inline">${priceHtml}</span>`:''}</div><div class="dish-desc">${t(d.desc)}</div>${(priceHtml && d.priceType==='dual')?`<div class="dish-price">${priceHtml}</div>`:''}</div>${d.img?`<span class="img-wrap"><img class="dish-img" src="${d.img}" alt="" loading="lazy"></span>`:''}</div>`;
+          html+=`<div class="dish-row${d.img?' dish-row-clickable':''}" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${_cid}" data-di="${_did}"${d.img?` data-lbidx="${idx}"`:''}${di===0?' style="padding-top:0"':''}><div class="dish-text"><div class="dish-top-row"><div class="dish-name-row"><span class="dish-name">${t(d.name)}${isPinnedDish(d)?'&nbsp;<span class="dish-star">\u2605</span>':''}</span>${badges?`<span class="dish-badges">${badges}</span>`:''}</div>${(priceHtml && d.priceType!=='dual')?`<span class="dish-price-inline">${priceHtml}</span>`:''}</div><div class="dish-desc">${t(d.desc)}</div>${(priceHtml && d.priceType==='dual')?`<div class="dish-price">${priceHtml}</div>`:''}</div>${d.img?`<span class="img-wrap"><img class="dish-img" src="${d.img}" alt="" loading="lazy"></span>`:''}</div>`;
         });
         if(editMode) html+=`<button type="button" class="aadd" onclick="addDish(${DATA.tabs.indexOf(tab)},${_ciE})">Ajouter un plat</button>`;
       }
@@ -3972,7 +4283,11 @@ function toggleSchedPopup(e,suffix){
   // guessing a constant — the popup's min/max-width means its actual
   // width varies with content, and a fixed guess drifted off the badge's
   // true center.
-  const pw=p.offsetWidth||260;
+  // Meme conversion que pour le menu d'apparence : au-dessus de 641px,
+  // html porte un zoom:1.1, donc une mesure ecran ecrite telle quelle
+  // dans style.left / style.top est remultipliee au rendu.
+  const z=visualScaleOf(p);
+  const pw=(p.offsetWidth||260)*z;
   const vw=window.innerWidth;
   // Centered directly under the button itself (its horizontal midpoint),
   // clamped so it never runs off either edge of the viewport. Works the
@@ -3981,8 +4296,8 @@ function toggleSchedPopup(e,suffix){
   let left=rect.left+rect.width/2-pw/2;
   left=Math.max(12, Math.min(left, vw-pw-12));
   const top=rect.bottom+10+(vw<=640?20:8);
-  p.style.left=left+'px';
-  p.style.top=top+'px';
+  p.style.left=(left/z)+'px';
+  p.style.top=(top/z)+'px';
   p.style.transform='none';
   p.classList.add('visible');
 }
@@ -4616,25 +4931,33 @@ function renderFirstTabExtrasSection(){
         <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${DATA.intro.active?'checked':''} onchange="DATA.intro.active=this.checked;renderAll();renderAdminSection('__global')"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
       </div>
       <div class="ig-row" style="cursor:default">
+        <span class="ig-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6l2.5 5.2 5.5.8-4 3.9 1 5.5-5-2.7-5 2.7 1-5.5-4-3.9 5.5-.8z"/></svg></span>
+        <span class="ig-row-label"><span>Afficher les incontournables</span><span class="ig-row-hint">Le bandeau photo en haut de chaque catégorie. Les étoiles restent sur les plats.</span></span>
+        <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${DATA.pinnedShowRail!==false?'checked':''} onchange="DATA.pinnedShowRail=this.checked;renderAll();renderAdminSection('__global');scheduleAutoSave(true)"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
+      </div>
+      <div class="ig-row" style="cursor:default">
         <span class="ig-row-icon" style="font-family:'Jost',sans-serif;font-weight:700;font-size:15px">€</span>
         <span class="ig-row-label">Afficher la devise (€)</span>
         <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${DATA.showCurrency!==false?'checked':''} onchange="DATA.showCurrency=this.checked;renderAll()"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
       </div>
+      <!-- Deux interrupteurs pour DEUX etats qui s'excluent : cocher
+           l'un decochait l'autre, donc la moitie des gestes ne servait
+           a rien et rien ne disait qu'il fallait choisir. Un seul
+           selecteur a deux segments le dit tout seul — c'est aussi le
+           composant deja utilise ailleurs dans le panneau. -->
       <div class="ig-row" style="cursor:default">
         <span class="ig-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
-        <span class="ig-row-label"><span>Afficher le menu en grille</span><span class="ig-row-hint">Sur mobile. Sur ordinateur, toujours la grille.</span></span>
-        <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${(DATA.defaultView||'list')==='grid'?'checked':''} onchange="if(this.checked){DATA.defaultView='grid';view='grid';}else{DATA.defaultView='list';view='list';}renderAll();renderAdminSection('__global')"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
+        <span class="ig-row-label"><span>Affichage du menu</span><span class="ig-row-hint">Sur mobile. Sur ordinateur, toujours la grille.</span></span>
+        <div class="ig-align-group" style="margin-left:auto">
+          <button type="button" class="ig-align-btn${(DATA.defaultView||'list')==='list'?' active':''}" title="Liste" aria-label="Liste" onclick="setDefaultView('list')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg></button>
+          <button type="button" class="ig-align-btn${(DATA.defaultView||'list')==='grid'?' active':''}" title="Grille" aria-label="Grille" onclick="setDefaultView('grid')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></button>
+        </div>
       </div>
-      <div class="ig-row" style="cursor:default">
-        <span class="ig-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg></span>
-        <span class="ig-row-label"><span>Afficher le menu en liste</span><span class="ig-row-hint">Sur mobile uniquement</span></span>
-        <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${DATA.defaultView==='list'?'checked':''} onchange="if(this.checked){DATA.defaultView='list';view='list';}else{DATA.defaultView='grid';view='grid';}renderAll();renderAdminSection('__global')"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
-      </div>
-      <div class="ig-row" style="cursor:default">
-        <span class="ig-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg></span>
-        <span class="ig-row-label"><span>Bandeau coloré en haut</span><span class="ig-row-hint">Sinon, le nom reste sur fond clair</span></span>
-        <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${headerStyle()==='band'?'checked':''} onchange="setHeaderStyle(this.checked?'band':'light')"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
-      </div>
+      <!-- Will : l'option « Bandeau colore en haut » est retiree. Le
+           bandeau est desormais systematique. Choisir sa couleur de
+           fond suffit a le comprendre ; un reglage de plus pour un
+           effet que peu de gens savaient nommer ajoutait surtout du
+           doute. -->
     </div>
   </div></div>`;
 
@@ -4710,6 +5033,39 @@ function onDropPin(e,pi){
 const PIN_MAX_PER_TAB = 3;
 function pinCountForTab(tabId){
   return (DATA.pinnedDishes||[]).filter(p=>p.tabId===tabId).length;
+}
+// Le rang n'est pas un champ a part : c'est la place de l'entree parmi
+// celles de sa categorie, dans DATA.pinnedDishes. Rien a migrer sur les
+// donnees deja enregistrees, et la section « incontournables » de la
+// page d'accueil, qui lisait deja ce tableau dans l'ordre, suit toute
+// seule.
+function tabPinSlots(tabId){
+  const pins=DATA.pinnedDishes||[];
+  const out=[];
+  pins.forEach((p,i)=>{ if(p.tabId===tabId) out.push(i); });
+  return out;
+}
+function pinRankOf(tabId,pid){
+  const slots=tabPinSlots(tabId);
+  const k=slots.findIndex(i=>DATA.pinnedDishes[i].pid===pid);
+  return k<0 ? 0 : k+1;
+}
+// Choisir un rang deja pris echange les deux plats : les numeros
+// restent donc toujours 1..N, sans doublon ni trou, et sans avoir a
+// renumeroter quoi que ce soit.
+function setPinRank(tabId,pid,rank){
+  const pins=DATA.pinnedDishes||[];
+  const slots=tabPinSlots(tabId);
+  const from=slots.findIndex(i=>pins[i].pid===pid);
+  const to=rank-1;
+  if(from<0 || to<0 || to>=slots.length || to===from) return;
+  const a=slots[from], b=slots[to];
+  const tmp=pins[a]; pins[a]=pins[b]; pins[b]=tmp;
+  DATA.pinnedDishes=pins;
+  renderAll();
+  if(editCtx && editCtx.type==='dish') openEditDish(editCtx.ti, editCtx.ci, editCtx.di);
+  renderAdminSection(adminCurrentTab);
+  publishNow(true);
 }
 function togglePin(tabId,ci,di){
   const tb=DATA.tabs.find(t=>t.id===tabId);
@@ -5935,7 +6291,12 @@ const SUPABASE_URL      = 'https://fdbzzkzfipzabryfanun.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_9PaqDuXnWV3aOCBPk9ImmQ_4YgYTU9n';
 // Detect client slug from URL: /menu/drevici → 'drevici'
 const _pathParts = window.location.pathname.replace(/\/+$/,'').replace(/^\/+/,'').split('/');
-const CLIENT_SLUG = _pathParts[_pathParts.length - 1] || 'default';
+// Le suffixe "-preview" designe un dossier de recette (…/drevici-preview/)
+// : meme code, meme base, mais une URL a part pour verifier une version
+// avant de la publier. On le retire pour que la preview lise bien les
+// donnees du vrai client au lieu d'en chercher un qui n'existe pas.
+// Aucun deploiement reel ne se termine par "-preview".
+const CLIENT_SLUG = (_pathParts[_pathParts.length - 1] || 'default').replace(/-preview$/, '');
 // Reservations admin dashboard for this restaurant (admin.html) — a
 // per-deployment value, since the reservation module lives in its own
 // folder/slug (e.g. 'drevici-paris'), separate from this menu's own
@@ -9036,8 +9397,20 @@ function renderBrandColorsSection(){
   h+='</div></div>';
   return h;
 }
+// Liste ou grille : un seul reglage, deux valeurs. Le selecteur du
+// panneau appelle ceci plutot que de reconstruire l'etat inverse a
+// partir d'une case cochee.
+function setDefaultView(v){
+  const next = (v==='grid') ? 'grid' : 'list';
+  if(DATA.defaultView===next) return;
+  DATA.defaultView = next;
+  view = next;
+  renderAll();
+  renderAdminSection(adminCurrentTab);
+  scheduleAutoSave(true);
+}
 function setHeaderStyle(mode){
-  DATA.headerStyle = (mode==='light') ? 'light' : 'band';
+  DATA.headerStyle = 'band';
   applyHeaderStyle();
   applyBrandColors();
   renderAll();
@@ -9079,7 +9452,11 @@ function renderCorpoTemplatesSection(){
 // identique dans les deux cas, ce n'est pas deux designs mais une
 // bascule. Pilote aussi la barre de statut (encoche iPhone), qui doit
 // toujours prendre la couleur réellement affichée en haut de page.
-function headerStyle(){ return (DATA.headerStyle==='light') ? 'light' : 'band'; }
+// Le bandeau colore n'est plus une option (voir la section
+// Affichage) : il est systematique. La fonction reste en place
+// pour ses appelants, et une ancienne valeur 'light' enregistree
+// chez un client n'a plus d'effet.
+function headerStyle(){ return 'band'; }
 function applyHeaderStyle(){
   const band = headerStyle()==='band';
   document.body.classList.toggle('hdr-band', band);
@@ -9358,6 +9735,25 @@ function applyAdminTheme(){
   document.body.classList.toggle('ig-admin-light',!dark);
   syncAdminStatusBar();
 }
+/* BUG FIX (le choix Clair/Sombre ne repondait plus sur desktop) :
+   a partir de 641px, le site entier porte un html{zoom:1.1}.
+   getBoundingClientRect() et innerWidth/innerHeight repondent en pixels
+   ECRAN, deja multiplies par ce zoom, alors qu'une valeur ecrite dans
+   style.left / style.top est relue dans l'espace de l'element, donc
+   remultipliee par 1,1 au moment du rendu. Un menu calcule a 1212px se
+   dessinait a 1334px, et un menu de 133px de haut en occupait 147 : il
+   sortait de l'ecran par la droite et par le bas, invisible et donc
+   inclicable. Sur mobile le zoom vaut 1 et rien ne se voyait.
+   On mesure le facteur sur l'element lui-meme — aucune hypothese sur le
+   navigateur ni sur le point de rupture — pour convertir dans un sens
+   comme dans l'autre. */
+function visualScaleOf(el){
+  const r=el.getBoundingClientRect();
+  const w=el.offsetWidth;
+  if(!w||!r.width) return 1;
+  const s=r.width/w;
+  return (s>0.2&&s<5)?s:1;
+}
 function toggleThemeMenu(e){
   e.stopPropagation();
   const m=document.getElementById('themeMenu');
@@ -9380,8 +9776,12 @@ function toggleThemeMenu(e){
   if(m.parentElement!==document.body) document.body.appendChild(m);
   m.style.width=W+'px';
   m.classList.add('open');
+  // Tout le calcul se fait en pixels ECRAN : on convertit donc la
+  // largeur et la hauteur du menu, mesurees dans son propre espace.
+  const z=visualScaleOf(m);
+  const Wv=W*z;
   const row=e.currentTarget.getBoundingClientRect();
-  const mh=m.offsetHeight||150;
+  const mh=(m.offsetHeight||150)*z;
   // On reste dans le panneau admin quand il est là : il est ancré à
   // droite sur desktop, donc le bord de l'écran n'est pas la limite
   // pertinente.
@@ -9390,13 +9790,14 @@ function toggleThemeMenu(e){
   let top=row.top+row.height/2-mh/2;
   if(top+mh>window.innerHeight-pad) top=window.innerHeight-mh-pad;
   if(top<pad) top=pad;
-  let left=row.right-W;
+  let left=row.right-Wv;
   const maxRight=Math.min(box.right, window.innerWidth)-pad;
   const minLeft=Math.max(box.left, 0)+pad;
-  if(left+W>maxRight) left=maxRight-W;
+  if(left+Wv>maxRight) left=maxRight-Wv;
   if(left<minLeft) left=minLeft;
-  m.style.top=top+'px';
-  m.style.left=left+'px';
+  // Retour dans l'espace de l'element pour l'ecriture.
+  m.style.top=(top/z)+'px';
+  m.style.left=(left/z)+'px';
   m.style.right='auto';
   setTimeout(()=>document.addEventListener('click',closeThemeMenu,{once:true}),0);
 }
