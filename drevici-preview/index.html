@@ -673,13 +673,22 @@ body.home-cover-showing{overflow:hidden}
    d'ancrage ecrit encore left/top/transform en ligne sur desktop. */
 .sched-scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .18s ease}
 body.sched-modal .sched-scrim{opacity:1;visibility:visible;pointer-events:auto}
-/* Centree, la fiche est posee sur la page et non plus accrochee a un
-   bouton : son fond devient opaque, sinon le menu se lit au travers. */
-.resto-popup.resto-popup-centered{background:#0F1932;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;width:min(330px,calc(100vw - 40px));max-width:none;min-width:0;padding:18px 20px}
+/* Centree, la fiche est posee SUR la page et non plus accrochee a un
+   bouton : son fond devient la couleur du restaurant, pleinement
+   opaque. Le rgba(...,.96) d'origine laissait le menu transparaitre —
+   invisible sur une bulle accrochee, genant sur une fenetre de cette
+   taille. */
+.resto-popup.resto-popup-centered{background:var(--navy);border-color:rgba(255,255,255,.14);left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;width:min(330px,calc(100vw - 40px));max-width:none;min-width:0;padding:18px 20px}
 .resto-popup{visibility:hidden;opacity:0;pointer-events:none;position:fixed;bottom:auto;left:auto;transform:none;transition:opacity .18s ease,transform .18s ease;background:rgba(15,25,50,.96);border:.5px solid rgba(255,255,255,.2);border-radius:12px;padding:14px 18px;min-width:210px;max-width:260px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.3)}
 .resto-popup.visible{visibility:visible;opacity:1;pointer-events:auto}
 .resto-popup-arrow{display:none}
 .resto-popup-title{font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;color:#fff}
+/* « Adresse » et « Horaires d'ouverture » etaient de deux couleurs
+   differentes — la seconde prenait le vert/orange/rouge de l'etat. Dans
+   la fenetre centree, les deux sont des intertitres de meme niveau et
+   partagent donc le meme blanc ; l'etat reste porte par la pastille. */
+.resto-popup-centered .resto-popup-title{color:#fff!important}
+.resto-popup-centered a:active{opacity:.7}
 .resto-popup-row{display:flex;justify-content:space-between;padding:5px 0;font-size:13px;color:rgba(255,255,255,.75);border-bottom:.5px solid rgba(255,255,255,.07)}
 .resto-popup-row:last-child{border-bottom:none}
 .resto-popup-row.today{color:#fff;font-weight:600}
@@ -730,8 +739,11 @@ body.sched-modal .sched-scrim{opacity:1;visibility:visible;pointer-events:auto}
      rangee peut passer sur deux lignes plutot que de rogner un texte. */
   .sched-bar{flex:none}
   .reserve-float{flex-wrap:wrap}
-  .sched-bar .sched-pin-frame{height:36px;padding:0 13px}
+  .sched-bar .sched-pin-frame{height:36px;padding:0 11px 0 13px}
   .sched-bar .resto-badge-inline svg{display:none}
+  /* Un chevron apres le libelle : sans lui, la pastille ressemblait a
+     une simple etiquette d'etat et rien n'invitait a la toucher. */
+  .sched-bar .resto-badge-inline::after{content:'';width:6px;height:6px;border-right:1.8px solid currentColor;border-bottom:1.8px solid currentColor;transform:rotate(-45deg);margin-left:1px;opacity:.75;flex:none}
   body.is-admin .sched-bar, body.admin-entry-visible .sched-bar{display:none}
   .mode-links-bar{display:none!important}
   /* Icons 50% bigger (14px -> 21px) — padding above/below is reduced
@@ -3312,7 +3324,10 @@ function renderScheduleInline(suffix){
     // Dans la barre du bas, le mot « Ouvert » fait doublon avec la
     // pastille verte juste a cote, et c'est lui qui poussait le badge a
     // passer sur une deuxieme ligne a cote de « Reserver une table ».
-    if(hour>=s.open&&hour<effectiveClose){state='open';label=(suffix==='Bar'?"Jusqu'à ":"Ouvert jusqu'à ")+fmtCloseHour(s.close);break;}
+    // Dans la barre du bas, « Ouvert » suffit : la pastille verte dit
+    // deja l'etat, l'heure de fermeture est dans la fiche qui s'ouvre au
+    // clic, et un libelle court laisse la place a « Reserver une table ».
+    if(hour>=s.open&&hour<effectiveClose){state='open';label=(suffix==='Bar'?'Ouvert':"Ouvert jusqu'à "+fmtCloseHour(s.close));break;}
     if(hour<s.open){state='soon';label='Ouvre à '+s.open+'h';}
   }
   const dotClass=state==='open'?'open':state==='soon'?'soon':'closed';
@@ -3331,15 +3346,24 @@ function renderScheduleInline(suffix){
   const addrText = [addr.street, addr.zip, addr.city].filter(Boolean).join(', ');
   const addrHtml = addrText
     ? (mapsUrl
-        ? `<a href="${escAttr(mapsUrl)}" target="_blank" rel="noopener" style="display:block;color:rgba(255,255,255,.75);font-size:13px;text-decoration:none;margin-bottom:10px;padding-bottom:10px;border-bottom:.5px solid rgba(255,255,255,.07)">${escapeHtmlLocal(addrText)}</a>`
-        : `<div style="color:rgba(255,255,255,.75);font-size:13px;margin-bottom:10px;padding-bottom:10px;border-bottom:.5px solid rgba(255,255,255,.07)">${escapeHtmlLocal(addrText)}</div>`)
+        ? `<a href="${escAttr(mapsUrl)}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:6px;color:#fff;font-size:14px;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(255,255,255,.45);margin-bottom:12px;padding-bottom:12px;border-bottom:.5px solid rgba(255,255,255,.14)">${escapeHtmlLocal(addrText)}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex:none;opacity:.7"><path d="M9 6l6 6-6 6"/></svg></a>`
+        : `<div style="color:#fff;font-size:14px;margin-bottom:12px;padding-bottom:12px;border-bottom:.5px solid rgba(255,255,255,.14)">${escapeHtmlLocal(addrText)}</div>`)
     : '';
   const pinIconHtml = mapsUrl ? `<span style="display:inline-flex;align-items:center;color:var(--navy)">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 7 12 7.29 12.29a1 1 0 0 0 1.42 0C13 22 20 15.25 20 10c0-4.42-3.58-8-8-8zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>
   </span>` : '';
   const phone = addr.phone;
+  // Groupe par deux chiffres : c'est ainsi qu'on lit et qu'on dicte un
+  // numero francais. On ne regroupe que si le numero est bien une suite
+  // de chiffres de longueur paire, sinon on laisse tel quel — un
+  // indicatif international ou une notation inhabituelle ne doit pas
+  // etre recoupe n'importe comment.
+  const phoneDigits = phone ? String(phone).replace(/[^\d+]/g,'') : '';
+  const phonePretty = (/^0\d{9}$/.test(phoneDigits))
+    ? phoneDigits.replace(/(\d{2})(?=\d)/g,'$1 ').trim()
+    : phone;
   const phoneHtml = phone
-    ? `<div style="margin-top:10px;display:flex;align-items:baseline;gap:5px;flex-wrap:wrap"><span class="resto-popup-title" style="margin-bottom:0;color:${suffix==='Cover'?'var(--gold)':'#fff'}">Tel&nbsp;:</span><a href="tel:${escAttr(phone.replace(/\s+/g,''))}" style="color:rgba(255,255,255,.75);text-decoration:none;font-size:14px">${escapeHtmlLocal(phone)}</a></div>`
+    ? `<div style="margin-top:12px;padding-top:12px;border-top:.5px solid rgba(255,255,255,.14)"><div class="resto-popup-title" style="margin-bottom:5px;color:${suffix==='Cover'?'var(--gold)':'#fff'}">Téléphone</div><a href="tel:${escAttr(phoneDigits)}" style="display:flex;align-items:center;gap:6px;color:#fff;font-size:17px;font-weight:600;letter-spacing:.02em;text-decoration:none">${escapeHtmlLocal(phonePretty)}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex:none;opacity:.7"><path d="M9 6l6 6-6 6"/></svg></a></div>`
     : '';
   return `<div class="sched-pin-frame">
     <div class="resto-badge-inline" id="schedBadge${suffix}" onclick="toggleSchedPopup(event,'${suffix}')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
