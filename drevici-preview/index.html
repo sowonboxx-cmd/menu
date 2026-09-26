@@ -925,6 +925,8 @@ body.ig-admin-light .formule-tuner-select{background-image:url("data:image/svg+x
    juste à sa droite. */
 .formule-tuner-row #formuleTunerAlign{flex:none}
 /* Bouton police : même gabarit que le groupe d'alignement à sa gauche. */
+.formule-tuner-fmtbtn{flex:none;border:none;border-radius:9px;background:var(--ig-bg);color:var(--ig-text-dim);font-family:'Jost',sans-serif;font-size:13px;font-weight:600;padding:9px 16px;cursor:pointer;transition:background .12s,color .12s}
+.formule-tuner-fmtbtn.active{background:var(--ig-accent);color:#fff}
 .formule-tuner-font{width:40px;height:40px;flex:none;border:none;border-radius:9px;background:var(--ig-bg);color:var(--ig-text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
 .formule-tuner-font svg{width:19px;height:19px}
 .formule-tuner-font:active{color:var(--ig-text)}
@@ -1760,6 +1762,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
       <select class="formule-tuner-select" id="formuleTunerSelect" onchange="formuleTunerSwitch(this.value)"></select>
       <div id="formuleTunerAlign"></div>
       <button type="button" class="formule-tuner-font" id="formuleTunerGap" title="Espace entre les plats" onclick="formuleTunerToggleGap()"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 2.6 2.2 5.6a.8.8 0 0 0 1.2 1.1L4.2 5.8v12.4l-.8-.9a.8.8 0 1 0-1.2 1.1L5 21.4l2.8-3a.8.8 0 1 0-1.2-1.1l-.8.9V5.8l.8.9a.8.8 0 1 0 1.2-1.1L5 2.6Z"/><rect x="10" y="4" width="12" height="2.2" rx="1.1"/><rect x="10" y="9" width="8" height="2.2" rx="1.1"/><rect x="10" y="14" width="12" height="2.2" rx="1.1"/><rect x="10" y="19" width="8" height="2.2" rx="1.1"/></svg></button>
+      <button type="button" class="formule-tuner-font" id="formuleTunerLogo" title="Logo (A4 uniquement)" onclick="formuleTunerToggleLogo()" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M7 15l3.2-3.6L13 14l2-2.2L17 15"/><circle cx="9" cy="8.6" r="1.2"/></svg></button>
       <button type="button" class="formule-tuner-font" id="formuleTunerFont" title="Choisir la police" onclick="formuleTunerPickFont()"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.6 20 7.4 5.4h2.9L15.1 20h-2.5l-1.1-3.5H6.2L5.1 20H2.6Zm4.2-5.5h3.9L8.8 8.2 6.8 14.5Z"/><path d="M19.9 20v-1.1a3 3 0 0 1-2.3 1.3c-1.7 0-2.9-1.1-2.9-2.7 0-1.8 1.3-2.8 3.6-2.8h1.5v-.4c0-1-.5-1.5-1.6-1.5-.9 0-1.5.4-1.7 1.1l-1.9-.5c.4-1.5 1.7-2.4 3.7-2.4 2.3 0 3.6 1.1 3.6 3.2V20h-2Zm-.1-3.9h-1.4c-1.1 0-1.7.4-1.7 1.2 0 .7.5 1.1 1.3 1.1.9 0 1.6-.5 1.8-1.3v-1Z"/></svg></button>
     </div>
     <div id="formuleTunerCtrl"></div>
@@ -5677,13 +5680,14 @@ function formuleTunerBuildCarousel(fid){
   ).join('');
   car.querySelectorAll('.formule-preview-frame').forEach(frame=>{
     const ratio=tunerRatioFor(frame.dataset.variant);
-    const built=buildFormulePage(formule_buildCfg(f), ratio);
+    const built=buildFormulePage(formule_buildCfg(f, frame.dataset.variant), ratio);
     frame.srcdoc=buildPreviewSlideDoc(built.css, built.pages[0].html, built.pages[0].spaceScale, INSTA_RENDER_W, Math.round(INSTA_RENDER_W*ratio));
   });
   formuleTunerFitFrames();
   document.getElementById('formuleTunerFormat').innerHTML=TUNER_VARIANTS.map((t,i)=>
     `<button type="button" class="formule-fmt-tab${i===0?' active':''}" onclick="formuleTunerGoTo(${i})">${t.label}</button>`).join('');
   car.scrollLeft=0;
+  formuleTunerSyncLogoBtn();
 }
 // Chaque aperçu occupe la place disponible en respectant son format :
 // on prend la contrainte qui s'applique (hauteur ou largeur) au lieu
@@ -5702,6 +5706,51 @@ window.addEventListener('resize', ()=>{ if(document.getElementById('formuleTuner
 // rendu, autant pouvoir l'exporter sans repasser par la page.
 // Même galerie que dans la page : on choisit la police sans quitter
 // l'aperçu, et celui-ci se met à jour derrière.
+// Le bouton logo ne concerne que l'A4 : il apparait et disparait avec
+// l'onglet de format, plutot que de rester la, grise, sur une story ou
+// il n'aurait jamais d'effet.
+let _tunerLogoMode=false;
+function formuleTunerSyncLogoBtn(){
+  const btn=document.getElementById('formuleTunerLogo');
+  if(!btn || !_tunerState) return;
+  const car=document.getElementById('formuleTunerCarousel');
+  const idx=car ? Math.round(car.scrollLeft/Math.max(1,car.clientWidth)) : 0;
+  const isA4=(TUNER_VARIANTS[idx]||{}).v==='a4';
+  btn.style.display = isA4 ? '' : 'none';
+  const f=DATA.formules.find(x=>x.id===_tunerState.fid);
+  btn.classList.toggle('active', !!(f && f.showLogo));
+  if(!isA4 && _tunerLogoMode){
+    _tunerLogoMode=false;
+    if(f) formuleTunerRenderCtrl(f, _tunerState.key, _tunerState.sizeKey);
+  }
+}
+function formuleTunerToggleLogo(){
+  if(!_tunerState) return;
+  const f=DATA.formules.find(x=>x.id===_tunerState.fid);
+  if(!f) return;
+  // Premier clic : on allume le logo ET on ouvre le choix de taille.
+  // Clic suivant sur un logo deja allume : on l'eteint.
+  if(f.showLogo && _tunerLogoMode){
+    formule_setField(f.id,'showLogo',false);
+    _tunerLogoMode=false;
+  } else {
+    if(!f.showLogo) formule_setField(f.id,'showLogo',true);
+    _tunerLogoMode=true;
+    _tunerGapMode=false;
+    const g=document.getElementById('formuleTunerGap'); if(g) g.classList.remove('active');
+  }
+  document.getElementById('formuleTunerLogo').classList.toggle('active', !!f.showLogo);
+  formuleTunerRenderCtrl(f, _tunerState.key, _tunerState.sizeKey);
+  initFormulePreviewFrames();
+}
+function formuleTunerSetLogoSize(k){
+  if(!_tunerState) return;
+  const f=DATA.formules.find(x=>x.id===_tunerState.fid);
+  if(!f) return;
+  formule_setField(f.id,'logoSize',k);
+  formuleTunerRenderCtrl(f, _tunerState.key, _tunerState.sizeKey);
+  initFormulePreviewFrames();
+}
 function formuleTunerPickFont(){
   if(!_tunerState) return;
   ensureGalleryFontsLoaded();
@@ -5723,6 +5772,7 @@ function formuleTunerOnScroll(){
   if(!car) return;
   const idx=Math.round(car.scrollLeft/Math.max(1,car.clientWidth));
   document.querySelectorAll('.formule-fmt-tab').forEach((b,i)=>b.classList.toggle('active', i===idx));
+  formuleTunerSyncLogoBtn();
 }
 // Passer d'un réglage à l'autre depuis le sélecteur : on garde
 // l'aperçu tel quel et on ne remplace que la ligne du bas.
@@ -5793,6 +5843,16 @@ function formuleTunerToggleGap(){
   if(f) formuleTunerRenderCtrl(f, _tunerState.key, _tunerState.sizeKey);
 }
 function formuleTunerRenderCtrl(f, key, sizeKey){
+  if(_tunerLogoMode && f.showLogo){
+    const cur=FORMULE_LOGO_PCT[f.logoSize]?f.logoSize:'moyen';
+    document.getElementById('formuleTunerCtrl').innerHTML=`
+      <div class="formule-tuner-row" style="justify-content:center;gap:6px">
+        ${[['petit','Petit'],['moyen','Moyen'],['grand','Grand']].map(([k,lab])=>
+          `<button type="button" class="formule-tuner-fmtbtn${k===cur?' active':''}" onclick="formuleTunerSetLogoSize('${k}')">${lab}</button>`
+        ).join('')}
+      </div>`;
+    return;
+  }
   if(_tunerGapMode){
     document.getElementById('formuleTunerCtrl').innerHTML=`
       <div class="formule-tuner-row">
@@ -6083,14 +6143,24 @@ function formule_buildPreamble(f, cfg){
   const subHtml = f.freeText
     ? f.freeText.split('\n').map(noOrphan).join('<br>')
     : '';
-  return `${title?`<div class="formule-title">${noOrphan(title)}</div>`:''}${f.freeText?`<div class="formule-freetext">${subHtml}</div>`:''}`;
+  // Uniquement sur l'A4 : c'est la seule sortie qui quitte le
+  // restaurant. Centre en tete de page, au-dessus du titre — c'est le
+  // seul emplacement qui tienne quand tout le reste est deja centre.
+  const wantLogo = cfg && cfg.formuleVariant==='a4' && f.showLogo;
+  const logoUrl = wantLogo ? ((DATA.pdfStyle && DATA.pdfStyle.logoData) || getRestaurantLogo() || '') : '';
+  const logoHtml = logoUrl ? `<img class="formule-logo" src="${escAttr(logoUrl)}" onerror="this.style.display='none'">` : '';
+  return `${logoHtml}${title?`<div class="formule-title">${noOrphan(title)}</div>`:''}${f.freeText?`<div class="formule-freetext">${subHtml}</div>`:''}`;
 }
 // Config Instagram/Formule partagée entre l'export et l'aperçu — un
 // seul endroit où les couleurs, la police, l'alignement, la casse ET
 // les curseurs de taille par élément (Titre/Plat/Description, en %
 // de la taille de base) sont assemblés, pour ne jamais les faire
 // diverger entre ce qui s'affiche en aperçu et ce qui s'exporte.
-function formule_buildCfg(f){
+// Le format (a4 / post / story) descend jusqu'ici : le logo n'a de sens
+// que sur l'A4, la seule sortie destinee au papier. Sans ce parametre,
+// la config etait identique pour les trois et il aurait fallu le
+// masquer en CSS — donc l'embarquer dans une story pour rien.
+function formule_buildCfg(f, variant){
   const base = pdfCfg();
   const cfg = {
     ...base, format:'insta', tabsSource: f.tabs,
@@ -6132,13 +6202,15 @@ function formule_buildCfg(f){
     formuleTitleBase: Math.round((base.instaTitleSize||45) * 0.8),
     formuleSubBase: Math.round((base.instaDescSize||19) * 1.10 * 0.85)
   };
+  cfg.formuleVariant = variant || 'story';
+  cfg.formuleLogoSize = FORMULE_LOGO_PCT[f.logoSize] ? f.logoSize : 'moyen';
   cfg.formulePreamble = formule_buildPreamble(f, cfg);
   return cfg;
 }
 function formule_exportInsta(fid, variant){
   const f = DATA.formules.find(x=>x.id===fid);
   if(!f) return;
-  const cfg = formule_buildCfg(f);
+  const cfg = formule_buildCfg(f, variant);
   exportInstaImages(cfg, variant);
 }
 
@@ -6966,6 +7038,9 @@ const LOGO_SIZES = {
   grand: { img: 96, text: 38 }
 };
 const LOGO_W_RATIO = 3.2;
+// Formules : en fraction de la largeur de page, pour que l'aperçu et
+// l'export final donnent exactement le meme rendu.
+const FORMULE_LOGO_PCT = { petit: 0.075, moyen: 0.11, grand: 0.155 };
 // Sans logo IMAGE enregistre, cocher « Afficher le logo » fait retomber
 // l'en-tete sur le NOM du restaurant, en petit. Le reglage pilote donc
 // les deux : sinon la case parait ne rien faire chez un client qui n'a
@@ -7455,6 +7530,12 @@ function buildInstaCSS(cfg, ratio){
   .pdf-footer{display:none}
   /* Menus et Formules uniquement — titre + texte libre optionnels,
      affichés avant les catégories (voir formule_buildPreamble). */
+  /* La hauteur est exprimee en % de la LARGEUR de page : l'aperçu et
+     l'export final ne font pas la meme taille en pixels, donc une
+     valeur fixe aurait donne deux rendus differents. La largeur vaut
+     3,2 fois la hauteur, comme a l'impression, pour qu'un logo en
+     bandeau et un logo carre pesent pareil. */
+  .formule-logo{display:block;margin:0 auto ${Math.round(INSTA_RENDER_W*0.028)}px;max-height:${Math.round(INSTA_RENDER_W*(FORMULE_LOGO_PCT[cfg.formuleLogoSize]||FORMULE_LOGO_PCT.moyen))}px;max-width:${Math.round(INSTA_RENDER_W*(FORMULE_LOGO_PCT[cfg.formuleLogoSize]||FORMULE_LOGO_PCT.moyen)*3.2)}px;object-fit:contain}
   .formule-title{font-family:'${font}',serif;font-weight:800;font-size:${Math.round((cfg.formuleTitleBase ?? formuleTitleSize)*((cfg.formuleTitlePct ?? 100)/100))}px;line-height:1.15;text-transform:uppercase;letter-spacing:.01em;color:${cfg.formuleTitleColor||titleColor};margin-bottom:9px;text-align:center}
   .formule-freetext{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${Math.round((cfg.formuleSubBase ?? Math.round(descSize*0.85))*((cfg.formuleSubPct ?? 100)/100))}px;line-height:1.4;color:${cfg.formuleSubColor||descColor};white-space:pre-wrap;text-align:center;margin-bottom:34px;max-width:82%;margin-left:auto;margin-right:auto}
   /* Deux options d'alignement indépendantes, demandées séparément par
@@ -9061,7 +9142,7 @@ function formule_liveStyleUpdate(){
     if(!styleEl || !stage){ allLive = false; return; }
     const variant = frame.dataset.variant || 'story';
     const ratio = variant==='a4' ? INSTA_A4_RATIO : variant==='post' ? INSTA_POST_RATIO : INSTA_RATIO;
-    const built = buildFormulePage(formule_buildCfg(f), ratio);
+    const built = buildFormulePage(formule_buildCfg(f, variant), ratio);
     styleEl.textContent = built.css;
     const sc = built.pages[0].spaceScale;
     stage.style.setProperty('--space-scale', (sc && sc!==1) ? sc : '');
@@ -9076,7 +9157,7 @@ function initFormulePreviewFrames(){
     const f = DATA.formules && DATA.formules.find(x=>x.id===fid);
     if(!f) return;
     const ratio = variant==='a4' ? INSTA_A4_RATIO : variant==='post' ? INSTA_POST_RATIO : INSTA_RATIO;
-    const cfg = formule_buildCfg(f);
+    const cfg = formule_buildCfg(f, variant);
     const built = buildFormulePage(cfg, ratio);
     const pageH = Math.round(INSTA_RENDER_W*ratio);
     frame.srcdoc = buildPreviewSlideDoc(built.css, built.pages[0].html, built.pages[0].spaceScale, INSTA_RENDER_W, pageH);
