@@ -5844,6 +5844,19 @@ function formuleTunerToggleGap(){
 }
 function formuleTunerRenderCtrl(f, key, sizeKey){
   if(_tunerLogoMode && f.showLogo){
+    // Sans logo enregistre, trois crans de taille ne regleraient rien et
+    // on chercherait longtemps pourquoi la page ne change pas. On dit
+    // ce qui manque et ou le mettre, a la place des boutons.
+    const hasLogo=!!((DATA.pdfStyle && DATA.pdfStyle.logoData) || getRestaurantLogo());
+    if(!hasLogo){
+      document.getElementById('formuleTunerCtrl').innerHTML=`
+        <div class="formule-tuner-row" style="justify-content:center">
+          <div style="font-family:'Jost',sans-serif;font-size:12.5px;color:var(--ig-text-dimmer);text-align:center;line-height:1.5;padding:4px 8px">
+            Aucun logo enregistré.<br>Ajoutez-le dans <strong style="color:var(--ig-text-dim)">Mon établissement</strong>, il apparaîtra ici.
+          </div>
+        </div>`;
+      return;
+    }
     const cur=FORMULE_LOGO_PCT[f.logoSize]?f.logoSize:'moyen';
     document.getElementById('formuleTunerCtrl').innerHTML=`
       <div class="formule-tuner-row" style="justify-content:center;gap:6px">
