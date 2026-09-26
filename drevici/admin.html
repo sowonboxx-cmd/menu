@@ -227,7 +227,7 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
 /* Aucun filet nulle part : la selection se dit par un gris plus
    soutenu, pas par un contour. */
 .boost-today-card{background:var(--bg);border:none;border-radius:12px;padding:16px;cursor:pointer;margin-bottom:10px;transition:background .15s}
-.boost-today-card.selected{background:#E2E2E9}
+.boost-today-card.selected{background:var(--bg)}
 .boost-today-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .boost-today-day{font-size:15px;font-weight:700;color:var(--text)}
 .boost-today-rate{font-size:24px;font-weight:700;line-height:1}
@@ -243,7 +243,7 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
    glance, no scrolling needed. */
 .boost-week-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .boost-day-card{box-sizing:border-box;border:none;border-radius:12px;padding:12px 6px;text-align:center;cursor:pointer;background:var(--bg);transition:background .15s}
-.boost-day-card.selected{background:#E2E2E9}
+.boost-day-card.selected{background:var(--bg)}
 .boost-day-name{font-size:11px;font-weight:600;color:#3A3A3C}
 .boost-day-date{font-size:10.5px;color:var(--text3);margin-bottom:8px}
 .boost-day-rate{font-size:16px;font-weight:700}
@@ -252,7 +252,14 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
 
 .offer-picker{display:flex;flex-direction:column;gap:8px;margin:6px 0 4px}
 .offer-picker button{display:block;width:100%;padding:12px;border-radius:var(--rs);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;border:1px solid var(--border);background:#fff;color:var(--text)}
-.offer-picker button:hover{border-color:#B8590A;color:#B8590A}
+.offer-picker button:hover{border-color:var(--navy);color:var(--navy)}
+/* Ce que le jour a encore a vendre, juste sous sa date. */
+.offer-modal-stats{font-size:13px;font-weight:600;color:#3A3A3C;margin:2px 0 18px}
+.offer-picker-label{font-size:11.5px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.offer-perso-btn{border-style:dashed!important;color:var(--text2)!important}
+.offer-custom{display:flex;flex-direction:column;gap:8px;margin:6px 0 4px}
+.offer-custom input{width:100%;padding:12px 13px;border:1px solid var(--border);border-radius:var(--rs);font-size:14px;font-family:inherit;-webkit-appearance:none}
+.offer-custom-ok{width:100%;padding:12px;border:none;border-radius:var(--rs);background:var(--navy);color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer}
 
 /* ── Reservation detail modal ── */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
@@ -582,9 +589,14 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
      l'enregistrement de l'offre choisie (restaurant_campaigns). -->
 <div class="modal-overlay hidden" id="offerModal" onclick="if(event.target===this) closeOfferModal()">
   <div class="modal-card reason-card">
-    <div class="reason-title">Créer une offre</div>
-    <div class="reason-hint" id="offerModalDay"></div>
+    <div class="reason-title" id="offerModalTitle"></div>
+    <div class="offer-modal-stats" id="offerModalDay"></div>
+    <div class="offer-picker-label">Proposer une offre</div>
     <div class="offer-picker" id="offerPicker"></div>
+    <div class="offer-custom hidden" id="offerCustomWrap">
+      <input id="offerCustomInput" type="text" maxlength="80" placeholder="Ex : Plateau d'huîtres n°3 offert" onkeydown="if(event.key==='Enter') confirmCustomOffer()">
+      <button class="offer-custom-ok" onclick="confirmCustomOffer()">Valider l'offre</button>
+    </div>
     <button class="reason-btn secondary" onclick="closeOfferModal()" style="margin-top:8px">Annuler</button>
   </div>
 </div>
@@ -653,6 +665,11 @@ async function loadHeaderBranding() {
     if (error) throw error;
     const d = row && row.data;
     if (!d) return;
+    // La carte du restaurant est deja dans cette ligne : on la garde
+    // pour proposer des offres tirees de vrais plats (voir
+    // buildOfferPresets) plutot que des remises generiques. Aucune
+    // requete supplementaire.
+    MENU_DATA = d;
     const logoImg = document.getElementById('headerLogoImg');
     const logoText = document.getElementById('headerLogoText');
     if (d.restaurantLogo) {
@@ -1783,14 +1800,76 @@ function renderStats() {
    voir le message qui accompagne cette livraison pour pourquoi.
    "Créer une offre" enregistre juste le choix dans
    restaurant_campaigns pour l'instant. */
-const OFFER_PRESETS = [
-  { id: 'remise10', label: '-10% de remise' },
-  { id: 'remise15', label: '-15% de remise' },
-  { id: 'remise20', label: '-20% de remise' },
-  { id: 'dessert', label: 'Dessert offert' },
-  { id: 'aperitif', label: 'Apéritif offert' },
-  { id: 'perso', label: 'Offre personnalisée' },
+// La carte du restaurant, recuperee avec la marque de l'en-tete.
+let MENU_DATA = null;
+
+// Offres proposees par defaut. Les remises generiques ("-10%") ne
+// disent rien du restaurant et rognent la marge ; un plat offert coute
+// son prix de revient et donne envie. On va donc les chercher dans la
+// vraie carte du client.
+// Formulation : "On vous offre : <plat>" avec deux-points.
+// Deux pieges que le deux-points evite d'un coup : l'accord du
+// participe sur un nom de plat inconnu ("plateau offert" mais
+// "assiette offerte"), et l'article manquant — les cartes ecrivent
+// "Tartare d'algues", pas "le tartare d'algues", donc "On vous offre
+// Tartare d'algues" serait fautif. Avec le deux-points, le nom du plat
+// est cite tel quel, et c'est juste quel que soit le plat.
+const OFFER_FALLBACK = [
+  { id: 'aperitif', label: 'On vous offre l\'apéritif' },
+  { id: 'cafe',     label: 'On vous offre le café' },
+  { id: 'dessert',  label: 'On vous offre le dessert' },
 ];
+// Un plat "a offrir" doit etre partageable et peu couteux : on ecarte
+// donc le haut de carte. Le seuil est volontairement large — il s'agit
+// d'ecarter le homard, pas de calculer une marge.
+const OFFER_MAX_PRICE = 20;
+function menuDishes() {
+  const tabs = (MENU_DATA && MENU_DATA.tabs) || [];
+  const out = [];
+  tabs.forEach(tb => {
+    if (tb.visible === false || tb.id === '__home') return;
+    (tb.cards || []).forEach(card => {
+      (card.dishes || []).forEach(d => {
+        if (d.hidden) return;
+        const nom = d.name && (d.name.fr || d.name.en);
+        if (!nom) return;
+        // "Les 6 — 12€ · Les 12 — 22€" : on ne garde que le premier
+        // nombre, suffisant pour trier le haut de carte.
+        const prix = parseFloat(String(d.price || '').replace(',', '.').match(/\d+(\.\d+)?/) || [0]);
+        out.push({ nom: nom.trim(), prix: isNaN(prix) ? 0 : prix });
+      });
+      (card.items || []).forEach(it => {
+        if (it.hidden) return;
+        const nom = it.name && (it.name.fr || it.name.en);
+        if (nom) out.push({ nom: nom.trim(), prix: 0, boisson: true });
+      });
+    });
+  });
+  return out;
+}
+function buildOfferPresets() {
+  const plats = menuDishes();
+  const presets = [];
+  const vus = new Set();
+  const ajoute = (id, label) => {
+    const cle = label.toLowerCase();
+    if (vus.has(cle) || presets.length >= 5) return;
+    vus.add(cle); presets.push({ id, label });
+  };
+  // Le champagne merite sa propre formule : c'est l'offre qui fait
+  // venir a plusieurs, donc celle qui remplit une table entiere.
+  if (plats.some(p => /champagne|cr[ée]mant|prosecco/i.test(p.nom))) {
+    ajoute('champagne2', 'Deux coupes de champagne offertes');
+    ajoute('champagne4', 'Une coupe de champagne offerte dès 4 personnes');
+  }
+  plats
+    .filter(p => !p.boisson && p.prix > 0 && p.prix <= OFFER_MAX_PRICE)
+    .sort((a, b) => b.prix - a.prix)   // le plus beau plat qui reste abordable
+    .forEach(p => ajoute('plat', 'On vous offre : ' + p.nom));
+  OFFER_FALLBACK.forEach(o => ajoute(o.id, o.label));
+  presets.push({ id: 'perso', label: 'Offre personnalisée', perso: true });
+  return presets;
+}
 let BOOST_SELECTED_DATE = null;
 
 // Tables "réellement disponibles" — ne compte comme occupée que si une
@@ -1838,6 +1917,10 @@ function selectBoostDay(dateIso) {
   if (BLOCKED.has(dateIso)) return; // jour bloqué au calendrier — pas d'offre possible dessus
   BOOST_SELECTED_DATE = dateIso;
   renderTableBoost();
+  // Cliquer un jour ouvre directement sa fenêtre : c'est elle qui porte
+  // le détail (tables et places restantes) et les offres. La carte ne
+  // garde que le taux de remplissage, qui est ce qu'on balaie du regard.
+  openOfferModal();
 }
 function renderTableBoost() {
   const todayCardEl = document.getElementById('boostTodayCard');
@@ -1870,11 +1953,16 @@ function renderTableBoost() {
       </div>
     `;
   } else {
+    // "0 réservation (0 personne)" disait deux fois rien. Et le compte
+    // de tables descend dans la fenêtre de détail : sur la carte, il
+    // faisait une troisième ligne de chiffres pour une information
+    // qu'on ne lit qu'au moment de monter une offre.
     const detailsParts = [
-      `${todayData.count} ${todayData.count > 1 ? 'réservations' : 'réservation'} (${todayData.covers} ${todayData.covers > 1 ? 'personnes' : 'personne'})`,
+      todayData.count === 0
+        ? 'Aucune réservation'
+        : `${todayData.count} ${todayData.count > 1 ? 'réservations' : 'réservation'} (${todayData.covers} ${todayData.covers > 1 ? 'personnes' : 'personne'})`,
     ];
     if (todayData.coversAvailable !== null) detailsParts.push(`${todayData.coversAvailable} couverts disponibles`);
-    if (todayData.tables.total > 0) detailsParts.push(`${todayData.tables.available} tables disponibles sur ${todayData.tables.total}`);
     todayCardEl.innerHTML = `
       <div class="boost-today-card${todaySelected ? ' selected' : ''}" onclick="selectBoostDay('${todayIso}')">
         <div class="boost-today-top">
@@ -1918,16 +2006,42 @@ function renderTableBoost() {
 }
 
 function openOfferModal() {
-  const d = new Date(BOOST_SELECTED_DATE + 'T12:00:00');
-  document.getElementById('offerModalDay').textContent =
-    `Pour le ${DAY_FUL[(d.getDay()+6)%7]} ${d.getDate()} ${MONTHS_S[d.getMonth()]} — choisissez l'offre à proposer.`;
-  document.getElementById('offerPicker').innerHTML = OFFER_PRESETS.map(o =>
-    `<button onclick="confirmOffer('${o.id}','${escapeAttr(o.label)}')">${o.label}</button>`
+  const iso = BOOST_SELECTED_DATE;
+  const d = new Date(iso + 'T12:00:00');
+  const data = computeDayBoostData(iso);
+  document.getElementById('offerModalTitle').textContent =
+    `${DAY_FUL[(d.getDay()+6)%7]} ${d.getDate()} ${MONTHS_S[d.getMonth()]}`;
+  // Ce qui reste à remplir, sur une ligne : c'est le chiffre qui décide
+  // s'il faut lancer une offre, et lequel.
+  const bouts = [];
+  if (data.tables.total > 0) bouts.push(`${data.tables.available} table${data.tables.available > 1 ? 's' : ''}`);
+  if (data.coversAvailable !== null) bouts.push(`${data.coversAvailable} place${data.coversAvailable > 1 ? 's' : ''} disponible${data.coversAvailable > 1 ? 's' : ''}`);
+  document.getElementById('offerModalDay').textContent = bouts.join(', ');
+  document.getElementById('offerPicker').innerHTML = buildOfferPresets().map(o =>
+    o.perso
+      ? `<button class="offer-perso-btn" onclick="showCustomOffer()">${o.label}</button>`
+      : `<button onclick="confirmOffer('${o.id}','${escapeAttr(o.label)}')">${escapeHtml(o.label)}</button>`
   ).join('');
+  document.getElementById('offerCustomWrap').classList.add('hidden');
+  document.getElementById('offerCustomInput').value = '';
   document.getElementById('offerModal').classList.remove('hidden');
+}
+// L'offre personnalisée remplace la liste plutôt que de s'ajouter
+// dessous : une fois qu'on écrit la sienne, les propositions ne servent
+// plus qu'à encombrer le champ.
+function showCustomOffer() {
+  document.getElementById('offerPicker').classList.add('hidden');
+  document.getElementById('offerCustomWrap').classList.remove('hidden');
+  document.getElementById('offerCustomInput').focus();
+}
+function confirmCustomOffer() {
+  const txt = document.getElementById('offerCustomInput').value.trim();
+  if (!txt) { showToast('Écrivez votre offre avant de valider'); return; }
+  confirmOffer('perso', txt);
 }
 function closeOfferModal() {
   document.getElementById('offerModal').classList.add('hidden');
+  document.getElementById('offerPicker').classList.remove('hidden');
 }
 async function confirmOffer(offerId, offerLabel) {
   const dateIso = BOOST_SELECTED_DATE;
