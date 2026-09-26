@@ -1873,6 +1873,7 @@ let DATA = {
   pinnedDishes: [], // array of {tabId, pid} — pid is a dish's stable id (see resolvePin)
   pinnedShowHome: true,
   pinnedShowFirst: true,
+  pinnedShowRail: true, // bandeau photo en tete de categorie
   tabs: [
     {
       id:'huitres', isHome:true,
@@ -2826,6 +2827,14 @@ function isPinnedDish(d){
   return (DATA.pinnedDishes||[]).some(p=>p.pid===d._pid);
 }
 function renderCategoryRail(tab){
+  // Tout le monde ne veut pas d'un bandeau en tete de categorie. Quand
+  // il est coupe, la liste commence directement par les plats — les
+  // etoiles, elles, restent a cote des noms : choisir ses
+  // incontournables et les MONTRER en haut sont deux decisions
+  // differentes. Coupe aussi le repli sans epingle (les six premieres
+  // photos) : c'est le meme bandeau, sinon l'interrupteur ne ferait
+  // rien de visible dans une categorie sans incontournable.
+  if(DATA.pinnedShowRail===false) return '';
   // On parcourt la catégorie exactement comme collectLbImages(), pour
   // que data-lbidx désigne bien la même image dans la visionneuse.
   // On retient aussi ci/di : en mode modification, taper une carte du
@@ -4886,6 +4895,11 @@ function renderFirstTabExtrasSection(){
         <span class="ig-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg></span>
         <span class="ig-row-label">Afficher la présentation</span>
         <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${DATA.intro.active?'checked':''} onchange="DATA.intro.active=this.checked;renderAll();renderAdminSection('__global')"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
+      </div>
+      <div class="ig-row" style="cursor:default">
+        <span class="ig-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6l2.5 5.2 5.5.8-4 3.9 1 5.5-5-2.7-5 2.7 1-5.5-4-3.9 5.5-.8z"/></svg></span>
+        <span class="ig-row-label"><span>Afficher les incontournables</span><span class="ig-row-hint">Le bandeau photo en haut de chaque catégorie. Les étoiles restent sur les plats.</span></span>
+        <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${DATA.pinnedShowRail!==false?'checked':''} onchange="DATA.pinnedShowRail=this.checked;renderAll();renderAdminSection('__global');scheduleAutoSave(true)"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
       </div>
       <div class="ig-row" style="cursor:default">
         <span class="ig-row-icon" style="font-family:'Jost',sans-serif;font-weight:700;font-size:15px">€</span>
