@@ -148,7 +148,8 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .ei-check span{font-size:13px;font-family:'Jost',sans-serif;color:var(--text)}
 .ei-badges{display:flex;gap:8px;flex-wrap:wrap}
 .badge-toggle{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border:1.5px solid var(--border);border-radius:20px;background:#fff;font-family:'Jost',sans-serif;font-size:12.5px;color:var(--text2);cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent}
-.badge-toggle .bt-emoji{font-size:15px;line-height:1}
+.badge-toggle .bt-emoji{display:inline-flex;align-items:center;line-height:0}
+.badge-toggle .bt-emoji svg{width:17px;height:17px;display:block}
 .badge-toggle.on{border-color:var(--navy);background:rgba(16,40,94,0.07);color:var(--navy);font-weight:500}
 .badge-toggle:active{transform:scale(0.97)}
 .ef-acc{border:1px solid var(--border);border-radius:10px;margin-bottom:14px;overflow:hidden;background:#fbfbfa}
@@ -158,7 +159,8 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .ef-acc[open]>summary::after{transform:rotate(180deg)}
 .ef-acc .acc-body{padding:2px 14px 12px}
 .ef-acc .acc-body .ef:first-child{margin-top:0}
-.badge-emoji{font-size:15px;line-height:1;display:inline-block;vertical-align:middle;margin-right:2px}
+.badge-emoji{display:inline-flex;align-items:center;vertical-align:middle;line-height:0;margin-right:3px}
+.badge-emoji svg{width:15px;height:15px;display:block}
 .efrow{display:flex;gap:10px}
 .efrow>.ef{flex:1}
 /* edit-mode clickable blocks */
@@ -224,15 +226,40 @@ body.hdr-band .nav-tab.active,
 body.hdr-band .nav-tab.nav-tab-swiping{color:var(--navy)}
 body.hdr-band .nav-indicator{top:auto;bottom:0;height:2px;background:var(--gold);border-radius:2px}
 body.hdr-band .view-bar{display:none}
-.hdr-sched{display:flex;justify-content:center;padding:0 0 8px;margin-top:-2px}
-.hdr-sched .sched-pin-frame{border:none;background:transparent;padding:4px 8px}
-/* Le badge horaires heritait d'un 11px pose en ligne, trop petit
-   par rapport au reste de la page. */
-.hdr-sched .resto-badge-inline > span{font-size:12px!important}
-/* En bandeau, le badge horaires est posé SUR la couleur : son texte
-   et son épingle doivent passer en clair, sinon ils disparaissent. */
-body.hdr-band .hdr-sched .resto-badge-inline > span{color:rgba(255,255,255,.82)!important}
-body.hdr-band .hdr-sched .resto-badge-inline svg{color:rgba(255,255,255,.82)!important;fill:currentColor}
+/* ── HORAIRES ──
+   Deux traitements, parce que les deux emplacements ne posent pas le
+   meme probleme.
+
+   MOBILE (.sched-bar) : le badge est cote a cote avec « Reserver une
+   table » dans la barre du bas. Il prend donc la meme forme en version
+   secondaire — contour seul, meme hauteur, meme rayon : les deux ne se
+   disputent pas le regard, et la parente se lit au premier coup d'oeil.
+
+   DESKTOP (.hdr-sched) : dans le bandeau, la meme pilule faisait un
+   troisieme bouton a cote du logo et de « Reserver une table » — trop
+   d'encadres pour une simple mention. On revient a la mention nue :
+   pastille, texte en casse normale, epingle. Le clic reste le meme.
+
+   Dans les deux cas la pastille de couleur porte l'info vivante
+   (ouvert, bientot, ferme). */
+.hdr-sched, .sched-bar{display:flex;justify-content:center}
+.sched-bar .sched-pin-frame{border:1px solid currentColor;background:transparent;padding:0 14px;height:31px;border-radius:999px;display:inline-flex;align-items:center;color:rgba(255,255,255,.75);transition:opacity .15s}
+.sched-bar .sched-pin-frame:hover{opacity:.75}
+.sched-bar .resto-badge-inline{gap:7px}
+.sched-bar .resto-badge-inline > span{font-size:10.5px!important;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:inherit!important;white-space:nowrap}
+.sched-bar .resto-badge-inline svg{color:inherit!important;fill:currentColor}
+/* Sur le creme, le contour reprend le bleu de marque. */
+.sched-bar .sched-pin-frame{color:var(--navy)}
+/* Desktop : mention nue, sans cadre. Jost n'a pas de vrai 600 — a
+   cette taille un faux gras se voit, on reste donc en 400. */
+.hdr-sched .sched-pin-frame{border:none;background:transparent;padding:0;height:auto;display:inline-flex;align-items:center;color:rgba(255,255,255,.92);transition:opacity .15s;cursor:pointer}
+.hdr-sched .sched-pin-frame:hover{opacity:.72}
+.hdr-sched .resto-badge-inline{gap:8px}
+.hdr-sched .resto-badge-inline > span{font-size:14px!important;font-weight:400;letter-spacing:0;text-transform:none;color:inherit!important;white-space:nowrap}
+.hdr-sched .resto-badge-inline svg{color:rgba(255,255,255,.62)!important;fill:currentColor;width:16px;height:16px}
+/* Sur le creme, la mention reprend le bleu de marque. */
+body.hdr-light .hdr-sched .sched-pin-frame{color:var(--navy)}
+body.hdr-light .hdr-sched .resto-badge-inline svg{color:rgba(20,35,70,.55)!important}
 /* Réserver : une pastille flottante, présente en permanence sous le
    pouce. Grosse par le contraste, pas par la surface — une barre pleine
    largeur mange l'écran à chaque scroll et fait « appli de livraison ». */
@@ -293,10 +320,27 @@ body.hdr-band .hdr-sched .resto-badge-inline svg{color:rgba(255,255,255,.82)!imp
      redonne sa hauteur a la barre, comme avant. */
   .logo-centered{position:static;left:auto;top:auto;transform:none;pointer-events:auto}
   .header-top-left,
-  .header-top-right{position:absolute;top:50%;transform:translateY(-50%);margin:0}
-  .header-top-right{left:16px}
+  .header-top-right,
+  .header-top-sched{position:absolute;top:50%;transform:translateY(-50%);margin:0}
+  /* Horaires a gauche, Reserver a droite, logo seul au centre : les
+     deux informations qu'un client cherche encadrent la marque au lieu
+     de la serrer. */
+  .header-top-sched{left:26px}
   .header-top-left{right:16px}
+  /* Les raccourcis administrateur quittent l'en-tete : ils occupaient
+     la place que les horaires prennent maintenant, et ils ne
+     concernent qu'une personne. Ils redescendent dans une barre en
+     bas, visible seulement en mode administrateur. */
+  .header-top-right{display:none!important}
   .sticky-reserve{display:none}
+  body.is-admin .sticky-reserve,
+  body.admin-entry-visible .sticky-reserve{display:block}
+  body.is-admin .reserve-pill, body.admin-entry-visible .reserve-pill,
+  body.is-admin .sched-bar, body.admin-entry-visible .sched-bar{display:none}
+  body.is-admin .admin-quick, body.admin-entry-visible .admin-quick{display:flex;gap:30px}
+  body.is-admin .reserve-float, body.admin-entry-visible .reserve-float{gap:30px}
+  body.is-admin .page, body.admin-entry-visible .page{padding-bottom:84px}
+  .sched-bar{display:none}
   .page{padding-bottom:32px}
 }
 /* ═══ BANDEAU PHOTO EN TÊTE DE CATÉGORIE ═══
@@ -636,15 +680,42 @@ body.home-cover-showing{overflow:hidden}
 .resto-dot.closed{background:#ef4444}
 .resto-dot.soon{background:#f97316;animation:pulse 2s ease-in-out infinite}
 .resto-badge{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:999px;font-size:13px;font-weight:500;border:1px solid var(--border);background:var(--bg);color:var(--navy);cursor:pointer;position:relative;user-select:none}
-.resto-popup{visibility:hidden;opacity:0;pointer-events:none;position:fixed;bottom:auto;left:auto;transform:none;transition:opacity .18s ease,transform .18s ease;background:rgba(15,25,50,.96);border:.5px solid rgba(255,255,255,.2);border-radius:12px;padding:14px 18px;min-width:210px;max-width:260px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.3)}
+/* Bulle centree (mobile) : posee au milieu de l'ecran plutot que sous
+   son bouton, elle ne depend plus de la place disponible autour de
+   celui-ci. Les valeurs sont en !important parce que le placement
+   d'ancrage ecrit encore left/top/transform en ligne sur desktop. */
+.sched-scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .18s ease}
+body.sched-modal .sched-scrim{opacity:1;visibility:visible;pointer-events:auto}
+/* Centree, la fiche est posee SUR la page et non plus accrochee a un
+   bouton : son fond devient la couleur du restaurant, pleinement
+   opaque. Le rgba(...,.96) d'origine laissait le menu transparaitre —
+   invisible sur une bulle accrochee, genant sur une fenetre de cette
+   taille. */
+/* La fenetre centree ne differe plus que par sa geometrie : le fond et
+   le filet sont communs aux deux placements. */
+.resto-popup.resto-popup-centered{left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;width:min(330px,calc(100vw - 40px));max-width:none;min-width:0;padding:18px 20px}
+/* Fond : la couleur d'accent du restaurant, pleinement opaque. Le
+   rgba(15,25,50,.96) d'origine etait a la fois un bleu fige — sans
+   rapport avec la marque du client — et legerement transparent : le
+   menu transparaissait derriere la fiche. */
+.resto-popup{visibility:hidden;opacity:0;pointer-events:none;position:fixed;bottom:auto;left:auto;transform:none;transition:opacity .18s ease,transform .18s ease;background:var(--navy);border:.5px solid rgba(255,255,255,.14);border-radius:12px;padding:14px 18px;min-width:210px;max-width:260px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.3)}
 .resto-popup.visible{visibility:visible;opacity:1;pointer-events:auto}
 .resto-popup-arrow{display:none}
 .resto-popup-title{font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;color:#fff}
+/* « Adresse » et « Horaires d'ouverture » etaient de deux couleurs
+   differentes — la seconde prenait le vert/orange/rouge de l'etat. Ce
+   sont deux intertitres de meme niveau : ils partagent le meme blanc,
+   partout. L'etat reste porte par la pastille de couleur. */
+.resto-popup a:active{opacity:.7}
 .resto-popup-row{display:flex;justify-content:space-between;padding:5px 0;font-size:13px;color:rgba(255,255,255,.75);border-bottom:.5px solid rgba(255,255,255,.07)}
 .resto-popup-row:last-child{border-bottom:none}
 .resto-popup-row.today{color:#fff;font-weight:600}
-.resto-popup-row .rday{color:rgba(255,255,255,.5);font-size:12px}
-.resto-popup-row.today .rday{color:rgba(255,255,255,.85)}
+/* Les jours etaient a 12px/.5 : trop petits et trop delaves pour se
+   lire d'un coup d'oeil. 14px, en Jost 300 (un vrai gras de la fonte,
+   pas une graisse simulee) pour rester fins malgre la taille, et un
+   poil plus opaques. */
+.resto-popup-row .rday{color:rgba(255,255,255,.62);font-size:14px;font-weight:300}
+.resto-popup-row.today .rday{color:rgba(255,255,255,.9);font-weight:500}
 
 /* ── STICKY RESERVE ── */
 /* BUG FIX (le bouton Reserver se retrouvait au milieu de la page) :
@@ -680,6 +751,42 @@ body.home-cover-showing{overflow:hidden}
      meant to be the mobile entry point. Matching selector specificity
      here so this always wins on small screens, admin or not. */
   .header-top-right, body.is-admin .header-top-right, body.admin-entry-visible .header-top-right{visibility:hidden}
+  /* Le logo est seul dans le bandeau : les horaires rejoignent
+     « Reserver une table » en bas, cote a cote. */
+  .header-top-sched{display:none}
+  /* BUG FIX (nom rogne en haut, sous-titre debordant du bandeau) :
+     .logo-centered est en position:absolute, centre sur .header-top.
+     Depuis que les horaires et les icones admin ont quitte l'en-tete,
+     ce conteneur n'a plus de contenu propre sur mobile — il est donc
+     presque plat, et le bloc centre dessus depassait de part et
+     d'autre : les hampes du « D » et du « O » etaient coupees en haut,
+     le sous-titre sortait par le bas du bleu.
+     Le logo est seul ici : on le remet simplement dans le flux, comme
+     sur desktop. .header .container est deja en colonne centree, il se
+     place donc tout seul et redonne sa hauteur au bandeau. */
+  .logo-centered{position:static;left:auto;top:auto;transform:none;pointer-events:auto;flex-direction:column}
+  /* Remis dans le flux, le logo redevient un enfant parmi d'autres d'une
+     rangee en space-between : il partait a gauche. Les deux cotes n'ont
+     plus rien a montrer sur mobile (les horaires sont en bas, les
+     icones admin dans leur propre barre) et .header-top-right en
+     visibility:hidden occupait encore sa largeur, decentrant le logo.
+     On les retire de la rangee : le logo, seul enfant, se centre. */
+  .header-top-left, .header-top-right{display:none}
+  .header-top{justify-content:center}
+  .header{padding:12px 0 10px}
+  /* flex:none, sinon le badge se laisse ecraser par la rangee et son
+     libelle se reduit a quelques pixels : « Ouvert jusqu'a 23h30 »
+     disparaissait purement et simplement. L'epingle saute ici, elle
+     est de toute facon dans la fiche qui s'ouvre au clic, et la
+     rangee peut passer sur deux lignes plutot que de rogner un texte. */
+  .sched-bar{flex:none}
+  .reserve-float{flex-wrap:wrap}
+  .sched-bar .sched-pin-frame{height:36px;padding:0 11px 0 13px}
+  .sched-bar .resto-badge-inline svg{display:none}
+  /* Un chevron apres le libelle : sans lui, la pastille ressemblait a
+     une simple etiquette d'etat et rien n'invitait a la toucher. */
+  .sched-bar .resto-badge-inline::after{content:'';width:6px;height:6px;border-right:1.8px solid currentColor;border-bottom:1.8px solid currentColor;transform:rotate(-45deg);margin-left:1px;opacity:.75;flex:none}
+  body.is-admin .sched-bar, body.admin-entry-visible .sched-bar{display:none}
   .mode-links-bar{display:none!important}
   /* Icons 50% bigger (14px -> 21px) — padding above/below is reduced
      to compensate (bar padding 14->11, link padding 5->2) so the extra
@@ -925,10 +1032,30 @@ body.ig-admin-light .formule-tuner-select{background-image:url("data:image/svg+x
    juste à sa droite. */
 .formule-tuner-row #formuleTunerAlign{flex:none}
 /* Bouton police : même gabarit que le groupe d'alignement à sa gauche. */
+.formule-tuner-fmtbtn{flex:none;border:none;border-radius:9px;background:var(--ig-bg);color:var(--ig-text-dim);font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;padding:9px 13px;cursor:pointer;transition:background .12s,color .12s}
+.formule-tuner-fmtbtn.active{background:var(--ig-accent-solid);color:#fff}
+/* Valider et Supprimer gardent le fond neutre des autres boutons :
+   seule l'icone porte la couleur. Deux pavés pleins a cote de trois
+   boutons gris en faisaient les elements les plus voyants de la barre,
+   alors que le choix de taille est ce qu'on vient regler.
+   L'ecart les detache du trio : ce sont des actions, pas un quatrieme
+   choix de taille. */
+.formule-tuner-ok{color:var(--ig-green);padding:9px 11px;margin-left:8%}
+.formule-tuner-ok svg{width:17px;height:17px;display:block}
+.formule-tuner-x{padding:9px 10px;color:var(--ig-red)}
 .formule-tuner-font{width:40px;height:40px;flex:none;border:none;border-radius:9px;background:var(--ig-bg);color:var(--ig-text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
 .formule-tuner-font svg{width:19px;height:19px}
+/* Le bouton du logo porte le mot plutot qu'un pictogramme : l'icone
+   d'image la plus courante se lit « photo », pas « logo », et Will
+   y voyait une signature. Deux syllabes empilees tiennent dans le
+   meme carre de 40px et ne demandent aucune interpretation.
+   Inter, parce que le 600 de Jost n'est pas charge : son gras serait
+   synthetique, donc plus lourd et plus sale. */
+.tuner-word{display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;line-height:1.02;letter-spacing:.04em}
 .formule-tuner-font:active{color:var(--ig-text)}
-.formule-tuner-font.active{background:var(--ig-accent);color:#fff}
+/* Le bleu d'accent etale sur un bouton plein eclaboussait la barre.
+   Meme jeton sombre que le bouton Publier des fiches. */
+.formule-tuner-font.active{background:var(--ig-accent-solid);color:#fff}
 /* L'aperçu prend toute la hauteur restante : c'est lui qu'on regarde. */
 .formule-tuner-stage{flex:1;min-height:0;overflow:hidden}
 /* Les trois formats côte à côte, balayables, avec accroche. */
@@ -943,7 +1070,7 @@ body.ig-admin-light .formule-tuner-select{background-image:url("data:image/svg+x
    pourcentage affiché, les deux A suffisent à dire le sens. */
 .formule-size-steps{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
 .formule-size-btn{width:34px;height:34px;flex:none;border:none;border-radius:50%;background:var(--ig-bg);color:var(--ig-text);font-size:18px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.formule-size-btn:active{background:var(--ig-accent);color:#fff}
+.formule-size-btn:active{background:var(--ig-accent-solid);color:#fff}
 /* Piste à graduations : on voit à quel cran on se trouve, et on peut
    viser un trait directement. */
 .formule-size-track{position:relative;flex:1;min-width:0;height:34px;display:flex;align-items:center}
@@ -1419,6 +1546,10 @@ body.ig-admin-light .ig-subpage-old-content select.ig-hm-select{background-image
 .pdf-tpl-btn{padding:9px 8px;font-size:12px;font-family:'Jost',sans-serif;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text2);cursor:pointer;transition:all .15s}
 .pdf-tpl-btn.active{background:var(--navy);color:#fff;border-color:var(--navy)}
 .pdf-tpl-btn:hover{border-color:var(--navy)}
+.pdf-logo-size{display:flex;align-items:center;gap:10px;margin-top:8px}
+.pdf-logo-size-label{font-family:'Jost',sans-serif;font-size:12px;color:var(--text2);flex:none}
+.pdf-logo-size-btn{width:auto;padding:0 12px;font-family:'Jost',sans-serif;font-size:11.5px;color:var(--text2)}
+.pdf-logo-size-btn.active{background:#fff;color:var(--navy);font-weight:500}
 .dish-vis-btn{font-size:10px;font-family:'Jost',sans-serif;padding:3px 7px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text3);cursor:pointer;white-space:nowrap;line-height:1.4;transition:all .1s}
 .dish-vis-active{background:#e8f5e9;color:#2e7d32;border-color:#a5d6a7}
 .dish-hid-btn.dish-hid-active{background:#f5f5f5;color:var(--text2);border-color:#bbb}
@@ -1736,6 +1867,10 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
   </div>
 </div>
 
+<!-- Voile de la fiche horaires centree (mobile) : il detache la fiche
+     de la page et rend evident qu'un clic a cote la referme. -->
+<div class="sched-scrim" id="schedScrim"></div>
+
 <div class="ig-theme-menu" id="themeMenu"></div>
 
 <!-- Réglage d'une couleur / taille en plein écran (mobile) : l'aperçu
@@ -1756,6 +1891,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
       <select class="formule-tuner-select" id="formuleTunerSelect" onchange="formuleTunerSwitch(this.value)"></select>
       <div id="formuleTunerAlign"></div>
       <button type="button" class="formule-tuner-font" id="formuleTunerGap" title="Espace entre les plats" onclick="formuleTunerToggleGap()"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 2.6 2.2 5.6a.8.8 0 0 0 1.2 1.1L4.2 5.8v12.4l-.8-.9a.8.8 0 1 0-1.2 1.1L5 21.4l2.8-3a.8.8 0 1 0-1.2-1.1l-.8.9V5.8l.8.9a.8.8 0 1 0 1.2-1.1L5 2.6Z"/><rect x="10" y="4" width="12" height="2.2" rx="1.1"/><rect x="10" y="9" width="8" height="2.2" rx="1.1"/><rect x="10" y="14" width="12" height="2.2" rx="1.1"/><rect x="10" y="19" width="8" height="2.2" rx="1.1"/></svg></button>
+      <button type="button" class="formule-tuner-font" id="formuleTunerLogo" title="Logo (A4 et story)" onclick="formuleTunerToggleLogo()" style="display:none"><span class="tuner-word"><span>LO</span><span>GO</span></span></button>
       <button type="button" class="formule-tuner-font" id="formuleTunerFont" title="Choisir la police" onclick="formuleTunerPickFont()"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.6 20 7.4 5.4h2.9L15.1 20h-2.5l-1.1-3.5H6.2L5.1 20H2.6Zm4.2-5.5h3.9L8.8 8.2 6.8 14.5Z"/><path d="M19.9 20v-1.1a3 3 0 0 1-2.3 1.3c-1.7 0-2.9-1.1-2.9-2.7 0-1.8 1.3-2.8 3.6-2.8h1.5v-.4c0-1-.5-1.5-1.6-1.5-.9 0-1.5.4-1.7 1.1l-1.9-.5c.4-1.5 1.7-2.4 3.7-2.4 2.3 0 3.6 1.1 3.6 3.2V20h-2Zm-.1-3.9h-1.4c-1.1 0-1.7.4-1.7 1.2 0 .7.5 1.1 1.3 1.1.9 0 1.6-.5 1.8-1.3v-1Z"/></svg></button>
     </div>
     <div id="formuleTunerCtrl"></div>
@@ -1783,9 +1919,17 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
   <div class="admin-body" id="adminBody"></div>
 </aside>
 
-<div id="dataFallbackBar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:10000;background:#B3261E;color:#fff;font-family:'Jost',sans-serif;font-size:12px;line-height:1.45;padding:9px 14px;text-align:center">
-  <strong>Menu de démonstration</strong> — les données du restaurant n'ont pas pu être chargées.
-  <span id="dataFallbackWhy" style="display:block;opacity:.8;font-size:11px;margin-top:2px"></span>
+<!-- Bandeau de repli : visible UNIQUEMENT quand les donnees du
+     restaurant n'ont pas pu etre chargees. Sans lui, le site servait le
+     menu d'exemple comme s'il etait le vrai. -->
+<div id="dataFallbackBar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:10000;background:#B3261E;color:#fff;font-family:'Jost',sans-serif;font-size:12.5px;line-height:1.4;padding:10px 14px 11px;text-align:center">
+  <div><strong>Menu de démonstration</strong> — la carte du restaurant n'a pas pu être chargée.</div>
+  <div style="font-size:11.5px;opacity:.85;margin-top:2px">Aucune modification n'est enregistrée tant que ce bandeau est affiché.</div>
+  <div style="margin-top:9px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+    <button onclick="location.reload()" style="background:#fff;color:#B3261E;border:none;border-radius:8px;padding:7px 16px;font-family:'Jost',sans-serif;font-size:12.5px;font-weight:500;cursor:pointer">Recharger la page</button>
+    <button onclick="openRestoreScreen()" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.55);border-radius:8px;padding:7px 14px;font-family:'Jost',sans-serif;font-size:12.5px;font-weight:400;cursor:pointer">Restaurer une version</button>
+  </div>
+  <span id="dataFallbackWhy" style="display:block;opacity:.7;font-size:10.5px;margin-top:8px"></span>
 </div>
 
 <!-- PAGE -->
@@ -1795,6 +1939,11 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
   <div class="header">
     <div class="container">
       <div class="header-top">
+        <!-- Les horaires quittent le dessous du logo : elles y rognaient
+             l'espace central, et un logo un peu haut se retrouvait
+             coince. Elles deviennent un bouton, de la meme famille que
+             « Reserver une table », pose a l'oppose. -->
+        <div class="header-top-sched"><div class="hdr-sched" id="schedWidgetHeader"></div></div>
         <div class="header-top-left">
           <a class="reserve-desk" href="https://sowonboxx-cmd.github.io/menu/drevici/resa">Réserver une table</a>
         </div>
@@ -1818,10 +1967,6 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
           </button>
         </div>
       </div>
-
-      <!-- Horaires : remontés sous le logo, centrés sur le même axe —
-           l'ancienne bande blanche disparaît avec eux. -->
-      <div class="hdr-sched" id="schedWidgetHeader"></div>
 
     </div>
   </div>
@@ -1862,6 +2007,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="12" rx="3.6"/><circle cx="8" cy="8" r="2.9"/><circle cx="11.5" cy="4.5" r="0.75" fill="currentColor" stroke="none"/></svg>
           </button>
         </div>
+        <div class="sched-bar" id="schedWidgetBar"></div>
         <a class="reserve-pill" id="reserveMain" href="https://sowonboxx-cmd.github.io/menu/drevici/resa">Réserver une table</a>
         <div class="admin-quick">
           <button class="mode-link" id="modeLinkEdit" title="Mode modification" aria-label="Mode modification" onclick="setEditMode(!editMode)">
@@ -2228,17 +2374,56 @@ function efBi(label,frVal,curVal,isText){
 function readEf(idx){ const els=document.querySelectorAll('#editPopBody [data-ef]'); return els[idx]?els[idx].value:''; }
 
 // ---- Shared dietary/badge definitions (used in popups, admin panel, public menu, exports) ----
+// C'etaient des emoji : rendus par la police du systeme, donc brillants,
+// ombres, en relief — l'exact oppose du reste de l'interface — et
+// differents sur chaque appareil (un 🌶️ Apple n'a rien a voir avec
+// celui d'Android ou de Windows). On les dessine donc nous-memes, a
+// plat : aplats de couleur, aucun degrade, aucune ombre, silhouette
+// lisible a 15px. Identiques partout, et maitrises.
+// Un grain d'epi : une amande pointue vers le haut, arrondie en bas.
+// Definie une fois, placee sept fois — la symetrie est garantie par
+// construction plutot que par des coordonnees recopiees a la main.
+function WHEAT_GRAIN(x, y, deg, k){
+  k = k || 1;
+  return `<path d="M0-3.5C1.8-2 2.4-.4 2.4 1.1 2.4 2.3 1.4 3.3 0 3.5-1.4 3.3-2.4 2.3-2.4 1.1-2.4-.4-1.8-2 0-3.5Z" fill="#E3A22B" transform="translate(${x} ${y}) rotate(${deg}) scale(${k})"/>`;
+}
 const BADGE_DEFS=[
-  {key:'vegetarian', emoji:'🌱', label:'Végétarien'},
-  {key:'vegan',      emoji:'🌿', label:'Vegan'},
-  {key:'glutenfree', emoji:'🌾', label:'Sans gluten'},
-  {key:'lactosefree',emoji:'🥛', label:'Sans lactose'},
-  {key:'spicy',      emoji:'🌶️', label:'Piquant'},
+  {key:'vegetarian', label:'Végétarien', svg:
+    `<path d="M19.4 4.3c.4 8.6-4 14.4-10.7 14.4-1.4 0-2.7-.3-3.9-.8C4.3 9.6 10.2 4.6 19.4 4.3Z" fill="#4CAF50"/>`+
+    `<path d="M4.6 20.2C7.4 15.4 11 11.5 15.4 8.6" stroke="#2E7D32" stroke-width="1.7" stroke-linecap="round"/>`},
+  {key:'vegan', label:'Vegan', svg:
+    `<path d="M12 21.2v-7.4" stroke="#2E7D32" stroke-width="2" stroke-linecap="round"/>`+
+    `<path d="M12 14.2C12 9.5 8.8 6.2 4 6.2c0 4.7 3.2 8 8 8Z" fill="#7CC47F"/>`+
+    `<path d="M12 14.2c0-4.7 3.2-8 8-8 0 4.7-3.2 8-8 8Z" fill="#2E7D32"/>`},
+  // Epi : une tige, un grain au sommet, puis trois paires de grains en
+  // amande pointant vers le haut. Tout est bati sur UNE seule forme de
+  // grain, simplement deplacee et pivotee — c'est ce qui donne la
+  // symetrie parfaite qu'on attend d'un epi.
+  {key:'glutenfree', label:'Sans gluten', svg:
+    `<path d="M12 21.8V5.4" stroke="#E3A22B" stroke-width="1.5" stroke-linecap="round"/>`+
+    WHEAT_GRAIN(12, 4.4, 0, .74)+
+    WHEAT_GRAIN(9.2, 8.3, -42, .74)+WHEAT_GRAIN(14.8, 8.3, 42, .74)+
+    WHEAT_GRAIN(9.2, 12.6, -42, .74)+WHEAT_GRAIN(14.8, 12.6, 42, .74)+
+    WHEAT_GRAIN(9.2, 16.9, -42, .74)+WHEAT_GRAIN(14.8, 16.9, 42, .74)+
+    `<path d="M4.2 20.1 19.9 4.2" stroke="#D2483F" stroke-width="2.4" stroke-linecap="round"/>`},
+  {key:'lactosefree', label:'Sans lactose', svg:
+    `<path d="M9.9 2.8h4.2v2.6c0 .6.2 1.2.6 1.7l1.4 1.8c.5.6.7 1.4.7 2.2v9.3c0 1.1-.9 2-2 2H9.2c-1.1 0-2-.9-2-2v-9.3c0-.8.2-1.6.7-2.2l1.4-1.8c.4-.5.6-1.1.6-1.7V2.8Z" fill="#5AA9E6"/>`+
+    `<path d="M7.2 12.6h9.6v6.1c0 1.5-1.2 2.7-2.7 2.7H9.9c-1.5 0-2.7-1.2-2.7-2.7v-6.1Z" fill="#B9DCF5"/>`+
+    `<path d="M4.2 20.1 19.9 4.2" stroke="#D2483F" stroke-width="2.3" stroke-linecap="round"/>`},
+  {key:'spicy', label:'Piquant', svg:
+    `<path d="M15.1 6.1Q21.4 12.9 4.9 20.8Q10.5 13.6 9.7 6.5Q12.4 4.9 15.1 6.1Z" fill="#E04A3F"/>`+
+    `<path d="M12.4 5.6 12 3.4h2.9" stroke="#3E9E4E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>`},
 ];
+// Une seule fabrique pour les quatre endroits ou ces icones sortent
+// (menu public, pop-up de modification, deux panneaux admin) : le jour
+// ou une icone change, elle change partout.
+function badgeIcon(b, cls){
+  return `<span class="${cls||'badge-emoji'}" title="${b.label}"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true">${b.svg}</svg></span>`;
+}
 // Public-menu icons for active badges
 function badgeIconsHtml(obj){
   obj=obj||{};
-  return BADGE_DEFS.filter(b=>obj[b.key]).map(b=>`<span class="badge-emoji" title="${b.label}">${b.emoji}</span>`).join('');
+  return BADGE_DEFS.filter(b=>obj[b.key]).map(b=>badgeIcon(b)).join('');
 }
 // Human-readable labels of active badges (for CSV / exports)
 function badgeLabels(obj){
@@ -2252,7 +2437,7 @@ function efBadgesField(obj){
   let h='<div class="ef"><label class="el">Informations alimentaires</label><div class="ei-badges">';
   BADGE_DEFS.forEach(b=>{
     const on=!!obj[b.key];
-    h+=`<button type="button" class="badge-toggle${on?' on':''}" data-badge="${b.key}" aria-pressed="${on}" onclick="efToggleBadge(this)"><span class="bt-emoji">${b.emoji}</span> ${b.label}</button>`;
+    h+=`<button type="button" class="badge-toggle${on?' on':''}" data-badge="${b.key}" aria-pressed="${on}" onclick="efToggleBadge(this)">${badgeIcon(b,'bt-emoji')} ${b.label}</button>`;
   });
   h+='</div></div>';
   return h;
@@ -3204,6 +3389,10 @@ function renderViewBar(){
   // portant le même id dans la page.
   const wh=document.getElementById('schedWidgetHeader');
   if(wh) wh.innerHTML=renderScheduleInline('Hdr');
+  // Meme badge dans la barre du bas, pour les petits ecrans ou l'en-tete
+  // n'a pas la largeur d'un bouton de chaque cote du logo.
+  const wb=document.getElementById('schedWidgetBar');
+  if(wb) wb.innerHTML=renderScheduleInline('Bar');
 }
 
 function renderScheduleInline(suffix){
@@ -3226,7 +3415,13 @@ function renderScheduleInline(suffix){
   for(const s of allSvcs){
     if(s.open==null) continue;
     const effectiveClose=s.close<=s.open?s.close+24:s.close;
-    if(hour>=s.open&&hour<effectiveClose){state='open';label="Ouvert jusqu'à "+fmtCloseHour(s.close);break;}
+    // Dans la barre du bas, le mot « Ouvert » fait doublon avec la
+    // pastille verte juste a cote, et c'est lui qui poussait le badge a
+    // passer sur une deuxieme ligne a cote de « Reserver une table ».
+    // Dans la barre du bas, « Ouvert » suffit : la pastille verte dit
+    // deja l'etat, l'heure de fermeture est dans la fiche qui s'ouvre au
+    // clic, et un libelle court laisse la place a « Reserver une table ».
+    if(hour>=s.open&&hour<effectiveClose){state='open';label=(suffix==='Bar'?'Ouvert':"Ouvert jusqu'à "+fmtCloseHour(s.close));break;}
     if(hour<s.open){state='soon';label='Ouvre à '+s.open+'h';}
   }
   const dotClass=state==='open'?'open':state==='soon'?'soon':'closed';
@@ -3245,15 +3440,24 @@ function renderScheduleInline(suffix){
   const addrText = [addr.street, addr.zip, addr.city].filter(Boolean).join(', ');
   const addrHtml = addrText
     ? (mapsUrl
-        ? `<a href="${escAttr(mapsUrl)}" target="_blank" rel="noopener" style="display:block;color:rgba(255,255,255,.75);font-size:13px;text-decoration:none;margin-bottom:10px;padding-bottom:10px;border-bottom:.5px solid rgba(255,255,255,.07)">${escapeHtmlLocal(addrText)}</a>`
-        : `<div style="color:rgba(255,255,255,.75);font-size:13px;margin-bottom:10px;padding-bottom:10px;border-bottom:.5px solid rgba(255,255,255,.07)">${escapeHtmlLocal(addrText)}</div>`)
+        ? `<a href="${escAttr(mapsUrl)}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:6px;color:#fff;font-size:14px;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(255,255,255,.45);margin-bottom:12px;padding-bottom:12px;border-bottom:.5px solid rgba(255,255,255,.14)">${escapeHtmlLocal(addrText)}</a>`
+        : `<div style="color:#fff;font-size:14px;margin-bottom:12px;padding-bottom:12px;border-bottom:.5px solid rgba(255,255,255,.14)">${escapeHtmlLocal(addrText)}</div>`)
     : '';
   const pinIconHtml = mapsUrl ? `<span style="display:inline-flex;align-items:center;color:var(--navy)">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 7 12 7.29 12.29a1 1 0 0 0 1.42 0C13 22 20 15.25 20 10c0-4.42-3.58-8-8-8zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>
   </span>` : '';
   const phone = addr.phone;
+  // Groupe par deux chiffres : c'est ainsi qu'on lit et qu'on dicte un
+  // numero francais. On ne regroupe que si le numero est bien une suite
+  // de chiffres de longueur paire, sinon on laisse tel quel — un
+  // indicatif international ou une notation inhabituelle ne doit pas
+  // etre recoupe n'importe comment.
+  const phoneDigits = phone ? String(phone).replace(/[^\d+]/g,'') : '';
+  const phonePretty = (/^0\d{9}$/.test(phoneDigits))
+    ? phoneDigits.replace(/(\d{2})(?=\d)/g,'$1 ').trim()
+    : phone;
   const phoneHtml = phone
-    ? `<div style="margin-top:10px;display:flex;align-items:baseline;gap:5px;flex-wrap:wrap"><span class="resto-popup-title" style="margin-bottom:0;color:${suffix==='Cover'?'var(--gold)':'#fff'}">Tel&nbsp;:</span><a href="tel:${escAttr(phone.replace(/\s+/g,''))}" style="color:rgba(255,255,255,.75);text-decoration:none;font-size:14px">${escapeHtmlLocal(phone)}</a></div>`
+    ? `<div style="margin-top:12px;padding-top:12px;border-top:.5px solid rgba(255,255,255,.14);display:flex;align-items:baseline;gap:8px;flex-wrap:nowrap"><span class="resto-popup-title" style="margin-bottom:0;flex:none;color:${suffix==='Cover'?'var(--gold)':'#fff'}">Téléphone&nbsp;:</span><a href="tel:${escAttr(phoneDigits)}" style="display:inline-flex;align-items:center;gap:5px;color:#fff;font-size:15px;font-weight:400;letter-spacing:.02em;text-decoration:none;white-space:nowrap">${escapeHtmlLocal(phonePretty)}</a></div>`
     : '';
   return `<div class="sched-pin-frame">
     <div class="resto-badge-inline" id="schedBadge${suffix}" onclick="toggleSchedPopup(event,'${suffix}')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
@@ -3262,7 +3466,7 @@ function renderScheduleInline(suffix){
       ${pinIconHtml}
       <div class="resto-popup" id="schedPopup${suffix}">
         ${addrText?`<div class="resto-popup-title">Adresse</div>${addrHtml}`:''}
-        <div class="resto-popup-title" style="color:${state==='open'?'#22c55e':state==='soon'?'#f97316':'#ef4444'}">Horaires d'ouverture</div>
+        <div class="resto-popup-title">Horaires d'ouverture</div>
         ${rows}
         ${phoneHtml}
       </div>
@@ -3494,6 +3698,9 @@ let _autoSaveTimer=null;
 // right after mutating DATA — this way nothing gets missed. Gated on
 // supaSession && editMode so a regular visitor's own tab-switching
 // never triggers a publish attempt or shows them an admin toast.
+// Telecharger la carte complete, telle qu'elle est en memoire. C'est
+// exactement ce qui a permis de recuperer Drevici le 26/09 — mais sans
+// passer par la console. A faire avant toute grosse session.
 // ═══ HISTORIQUE DES VERSIONS ═══
 // Une ligne archivee a chaque publication, pour pouvoir revenir en
 // arriere. Tout ici est en « au mieux » : si la table n'existe pas
@@ -3595,13 +3802,18 @@ async function restoreVersion(id){
   }catch(e){ showToast('❌ '+e.message); }
 }
 function downloadBackup(){
-  if(DATA_SOURCE!=='supabase'){ showToast('⚠️ Rien à sauvegarder : les données ne sont pas chargées'); return; }
+  if(DATA_SOURCE!=='supabase'){
+    showToast('⚠️ Rien à sauvegarder : les données ne sont pas chargées');
+    return;
+  }
   try{
-    const d=new Date(), p2=n=>String(n).padStart(2,'0');
+    const d=new Date();
+    const p2=n=>String(n).padStart(2,'0');
     const nom=CLIENT_SLUG+'-'+d.getFullYear()+p2(d.getMonth()+1)+p2(d.getDate())+'-'+p2(d.getHours())+p2(d.getMinutes())+'.json';
+    const blob=new Blob([JSON.stringify(DATA)],{type:'application/json'});
     const a=document.createElement('a');
-    a.href=URL.createObjectURL(new Blob([JSON.stringify(DATA)],{type:'application/json'}));
-    a.download=nom; document.body.appendChild(a); a.click();
+    a.href=URL.createObjectURL(blob); a.download=nom;
+    document.body.appendChild(a); a.click();
     setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },0);
     showToast('✓ Sauvegarde téléchargée — '+nom);
   }catch(e){ showToast('⚠️ Sauvegarde impossible : '+e.message); }
@@ -4410,18 +4622,65 @@ function toggleSchedPopup(e,suffix){
   // clamped so it never runs off either edge of the viewport. Works the
   // same for the header's own badge and the cover's separate instance —
   // no more special-casing per screen size or per neighboring button.
+  // BUG FIX (le clic ne faisait rien sur mobile) : la bulle se posait
+  // SOUS son badge. Depuis que le badge vit dans la barre du bas, ce
+  // « sous » tombe hors de l'ecran — la bulle s'ouvrait bel et bien,
+  // simplement personne ne pouvait la voir.
+  // Sur mobile elle passe donc au centre de l'ecran : l'adresse, les
+  // horaires et le telephone s'y lisent d'un coup, et un clic a cote la
+  // referme. C'est aussi le seul placement qui ne depende pas de l'endroit
+  // ou se trouve le bouton.
+  // BUG FIX (la fiche paraissait bleu delave, « semi-transparente ») :
+  // elle est opaque, mais elle vit DANS .sticky-reserve, qui porte
+  // z-index:100 et position:fixed — donc un contexte d'empilement. Son
+  // propre z-index:9999 n'a de valeur qu'a l'interieur de ce contexte :
+  // vu de la page, elle plafonne a 100, et le voile a 9998 se dessinait
+  // PAR-DESSUS. Ce qu'on voyait, c'etait le bleu a travers 45% de noir.
+  // On la rattache au <body> : elle retrouve alors son vrai rang.
+  if(p.parentElement!==document.body) document.body.appendChild(p);
+  if(vw<=640){
+    p.classList.add('resto-popup-centered');
+    p.style.left=''; p.style.top=''; p.style.transform='';
+    p.classList.add('visible');
+    document.body.classList.add('sched-modal');
+    return;
+  }
+  p.classList.remove('resto-popup-centered');
+  document.body.classList.remove('sched-modal');
   let left=rect.left+rect.width/2-pw/2;
   left=Math.max(12, Math.min(left, vw-pw-12));
-  const top=rect.bottom+10+(vw<=640?20:8);
+  // La bulle passe AU-DESSUS du badge quand il n'y a plus la place en
+  // dessous, au lieu de sortir par le bas.
+  const ph=(p.offsetHeight||200)*z;
+  let top=rect.bottom+10+8;
+  // Le badge est centre dans le bandeau, donc son bas tombe AVANT le bas
+  // de la bande coloree : cale sur lui, la fiche mordait de quelques
+  // pixels sur le bleu et paraissait collee a l'en-tete. On degage donc
+  // la bande elle-meme, avec juste assez de vide pour qu'on voie le fond
+  // du site passer entre les deux — pas assez pour laisser apparaitre le
+  // menu, qui donnerait une fiche flottant dans le vide.
+  const bande=badge.closest('.header, .sticky-header-group');
+  if(bande){
+    const bb=bande.getBoundingClientRect().bottom;
+    if(bb>rect.bottom) top=Math.max(top, bb+5);
+  }
+  if(top+ph>window.innerHeight-12) top=Math.max(12, rect.top-10-ph);
   p.style.left=(left/z)+'px';
   p.style.top=(top/z)+'px';
   p.style.transform='none';
   p.classList.add('visible');
 }
-// Close schedule popup on outside click
-document.addEventListener('click', function(){
-  const p=document.getElementById('schedPopup');
-  if(p) p.classList.remove('visible');
+// Close schedule popup on outside click.
+// BUG FIX : seul #schedPopup, sans suffixe, etait referme — les bulles
+// de l'en-tete, de la barre du bas et de la couverture portent un
+// suffixe dans leur id et restaient donc ouvertes.
+document.addEventListener('click', function(e){
+  // Un clic a l'interieur de la fiche la laisse ouverte : sinon le lien
+  // Maps et le numero se fermaient sous le doigt au moment ou on les
+  // touche. Le voile, lui, compte comme « a cote ».
+  if(e.target && e.target.closest && e.target.closest('.resto-popup')) return;
+  document.querySelectorAll('.resto-popup.visible').forEach(el=>el.classList.remove('visible'));
+  document.body.classList.remove('sched-modal');
 });
 
 // ═══════════════════════════════════════════
@@ -4723,6 +4982,10 @@ function openAdmin(){
     document.getElementById('adminTabDd').style.display='none';
     document.getElementById('adminLangDd').style.display='none';
     document.getElementById('adminBody').innerHTML=adminLoginOnlyHtml();
+    // Cette branche ne passe pas par renderAdminSection() : sans cet
+    // appel, le bandeau rouge resterait par-dessus le formulaire de
+    // connexion.
+    syncAdminStatusBar();
     return;
   }
   document.getElementById('adminTabDd').style.display='';
@@ -4764,6 +5027,10 @@ function openAdminSection(tid){
     document.getElementById('adminTabDd').style.display='none';
     document.getElementById('adminLangDd').style.display='none';
     document.getElementById('adminBody').innerHTML=adminLoginOnlyHtml();
+    // Cette branche ne passe pas par renderAdminSection() : sans cet
+    // appel, le bandeau rouge resterait par-dessus le formulaire de
+    // connexion.
+    syncAdminStatusBar();
     return;
   }
   document.getElementById('adminTabDd').style.display='';
@@ -4796,6 +5063,15 @@ function syncAdminStatusBar(){
   // ce drapeau sur <body> leur permet de suivre son thème.
   document.body.classList.toggle('ig-admin-ui', adminOpen);
   if(!adminOpen) closeThemeMenu();
+  // Le bandeau rouge est en position:fixed tout en haut : laissé
+  // visible, il recouvre l'en-tête du panneau admin (et donc le bouton
+  // retour) au moment précis où on vient de cliquer dessus pour
+  // restaurer. On l'efface tant que le panneau est ouvert ; il revient
+  // à la fermeture si les données ne sont toujours pas chargées.
+  const fbBar=document.getElementById('dataFallbackBar');
+  if(fbBar && DATA_SOURCE!=='supabase'){
+    fbBar.style.display = (panel && panel.classList.contains('open')) ? 'none' : 'block';
+  }
   if(!meta) return;
   if(adminOpen){
     // La barre de statut prend le fond réel du panneau, quel que soit
@@ -4822,7 +5098,7 @@ function renderAdminTabDd(){
   // apporter.
   dd.innerHTML='<option value="__global">Home</option>'
     +tabOpts
-    +'<option value="__go_export">Exportez vos menus</option>'
+    +'<option value="__go_export">Exporter votre menu</option>'
     +'<option value="__go_formules">Menus spéciaux et formules</option>'
     +'<option value="__social">Réseaux sociaux</option>';
   dd.value=adminCurrentTab;
@@ -4848,6 +5124,17 @@ function adminBackStep(){
   if(homeSubpageKey){ closeHomeRow(); return true; }
   if(adminCurrentTab!=='__global'){ adminGoHome(); return true; }
   return false;
+}
+// Raccourci depuis le bandeau rouge : amene le restaurateur droit sur
+// l'ecran « Restaurer une version ». S'il n'est pas connecte,
+// openAdmin() affiche d'abord la connexion.
+function openRestoreScreen(){
+  openAdmin();
+  if(!supaSession) return;
+  adminCurrentTab='__global';
+  homeSubpageKey='__history';
+  homeSubpageStack=[];
+  renderAdminSection('__global');
 }
 function adminGoHome(){
   adminCurrentTab='__global';
@@ -4890,15 +5177,24 @@ function handleSaveClick(){
   publishToSupabase();
 }
 
+// BUG FIX (l'accordeon « Personnaliser » se refermait tout seul) :
+// cocher une case appelle renderAdminSection, qui reconstruit la page
+// puis remet les sections dans l'etat ou elles etaient. Mais ce
+// releve ne regardait que .admin-section.collapsible — or cet
+// accordeon-la porte .ig-accordion. Il n'etait donc ni releve ni
+// restaure, et repartait a chaque fois dans son etat par defaut,
+// c'est-a-dire replie. Les deux fonctions visent maintenant le meme
+// ensemble, dans le meme ordre, pour que les indices correspondent.
+const ADMIN_FOLDABLES='.admin-section.collapsible, .admin-section.ig-accordion';
 function getAdminOpenSections(){
   const body=document.getElementById('adminBody');
   if(!body) return [];
-  return Array.from(body.querySelectorAll('.admin-section.collapsible')).map((s,i)=>({i,open:!s.classList.contains('collapsed'),title:s.querySelector('.admin-sect-title')?.textContent?.trim().slice(0,40)||''}));
+  return Array.from(body.querySelectorAll(ADMIN_FOLDABLES)).map((s,i)=>({i,open:!s.classList.contains('collapsed'),title:s.querySelector('.admin-sect-title,.ig-card-sect-title')?.textContent?.trim().slice(0,40)||''}));
 }
 function restoreAdminOpenSections(states){
   const body=document.getElementById('adminBody');
   if(!body||!states||!states.length) return;
-  const secs=body.querySelectorAll('.admin-section.collapsible');
+  const secs=body.querySelectorAll(ADMIN_FOLDABLES);
   secs.forEach((s,i)=>{
     const st=states.find(x=>x.i===i);
     if(st){ if(st.open) s.classList.remove('collapsed'); else s.classList.add('collapsed'); }
@@ -5594,7 +5890,7 @@ function renderDishDetailBody(ti, ci, di){
       <span class="ig-panel-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/></svg></span>
       <span class="ig-panel-title">Informations alimentaires</span>
     </div>
-    <div class="badge-group">${BADGE_DEFS.map(b=>`<label class="badge-check"><input type="checkbox" ${d[b.key]?'checked':''} onchange="if(this.checked)${base}.${b.key}=true;else delete ${base}.${b.key};renderAll()"><span class="badge-emoji">${b.emoji}</span> ${b.label}</label>`).join('')}</div>
+    <div class="badge-group">${BADGE_DEFS.map(b=>`<label class="badge-check"><input type="checkbox" ${d[b.key]?'checked':''} onchange="if(this.checked)${base}.${b.key}=true;else delete ${base}.${b.key};renderAll()">${badgeIcon(b)} ${b.label}</label>`).join('')}</div>
   </div>`;
 
   // Masquer / supprimer en bas de page, en deux lignes de liste —
@@ -5781,13 +6077,14 @@ function formuleTunerBuildCarousel(fid){
   ).join('');
   car.querySelectorAll('.formule-preview-frame').forEach(frame=>{
     const ratio=tunerRatioFor(frame.dataset.variant);
-    const built=buildFormulePage(formule_buildCfg(f), ratio);
+    const built=buildFormulePage(formule_buildCfg(f, frame.dataset.variant), ratio);
     frame.srcdoc=buildPreviewSlideDoc(built.css, built.pages[0].html, built.pages[0].spaceScale, INSTA_RENDER_W, Math.round(INSTA_RENDER_W*ratio));
   });
   formuleTunerFitFrames();
   document.getElementById('formuleTunerFormat').innerHTML=TUNER_VARIANTS.map((t,i)=>
     `<button type="button" class="formule-fmt-tab${i===0?' active':''}" onclick="formuleTunerGoTo(${i})">${t.label}</button>`).join('');
   car.scrollLeft=0;
+  formuleTunerSyncLogoBtn();
 }
 // Chaque aperçu occupe la place disponible en respectant son format :
 // on prend la contrainte qui s'applique (hauteur ou largeur) au lieu
@@ -5806,6 +6103,67 @@ window.addEventListener('resize', ()=>{ if(document.getElementById('formuleTuner
 // rendu, autant pouvoir l'exporter sans repasser par la page.
 // Même galerie que dans la page : on choisit la police sans quitter
 // l'aperçu, et celui-ci se met à jour derrière.
+// Le bouton logo ne concerne pas tous les formats : il apparait et
+// disparait avec l'onglet, plutot que de rester la, grise, sur un
+// format ou il n'aurait jamais d'effet.
+let _tunerLogoMode=false;
+function formuleTunerSyncLogoBtn(){
+  const btn=document.getElementById('formuleTunerLogo');
+  if(!btn || !_tunerState) return;
+  const car=document.getElementById('formuleTunerCarousel');
+  const idx=car ? Math.round(car.scrollLeft/Math.max(1,car.clientWidth)) : 0;
+  const canLogo=FORMULE_LOGO_FORMATS.includes((TUNER_VARIANTS[idx]||{}).v);
+  btn.style.display = canLogo ? '' : 'none';
+  const f=DATA.formules.find(x=>x.id===_tunerState.fid);
+  // Le bouton est allume tant qu'on REGLE le logo, pas tant que le logo
+  // existe : sinon il restait en bleu apres etre passe a un autre
+  // reglage, comme si on etait encore dedans.
+  btn.classList.toggle('active', _tunerLogoMode);
+  if(!canLogo && _tunerLogoMode) formuleTunerCloseLogo();
+}
+// Sortir du mode logo sans y toucher : le panneau du bas reprend le
+// reglage courant et le bouton s'eteint. Le logo, lui, reste ce qu'il
+// est — c'est la croix qui l'enleve.
+function formuleTunerCloseLogo(){
+  _tunerLogoMode=false;
+  const btn=document.getElementById('formuleTunerLogo');
+  if(btn) btn.classList.remove('active');
+  if(!_tunerState) return;
+  const f=DATA.formules.find(x=>x.id===_tunerState.fid);
+  if(f) formuleTunerRenderCtrl(f, _tunerState.key, _tunerState.sizeKey);
+}
+function formuleTunerRemoveLogo(){
+  if(!_tunerState) return;
+  const f=DATA.formules.find(x=>x.id===_tunerState.fid);
+  if(!f) return;
+  formule_setField(f.id,'showLogo',false);
+  formuleTunerCloseLogo();
+  initFormulePreviewFrames();
+}
+function formuleTunerToggleLogo(){
+  if(!_tunerState) return;
+  const f=DATA.formules.find(x=>x.id===_tunerState.fid);
+  if(!f) return;
+  // Le bouton OUVRE le reglage du logo ; il ne l'eteint pas. Eteindre
+  // est une suppression, elle a sa croix — un meme bouton qui allume
+  // puis efface selon le nombre de clics se declenche par accident.
+  if(_tunerLogoMode){ formuleTunerCloseLogo(); return; }
+  if(!f.showLogo) formule_setField(f.id,'showLogo',true);
+  _tunerLogoMode=true;
+  _tunerGapMode=false;
+  const g=document.getElementById('formuleTunerGap'); if(g) g.classList.remove('active');
+  document.getElementById('formuleTunerLogo').classList.add('active');
+  formuleTunerRenderCtrl(f, _tunerState.key, _tunerState.sizeKey);
+  initFormulePreviewFrames();
+}
+function formuleTunerSetLogoSize(k){
+  if(!_tunerState) return;
+  const f=DATA.formules.find(x=>x.id===_tunerState.fid);
+  if(!f) return;
+  formule_setField(f.id,'logoSize',k);
+  formuleTunerRenderCtrl(f, _tunerState.key, _tunerState.sizeKey);
+  initFormulePreviewFrames();
+}
 function formuleTunerPickFont(){
   if(!_tunerState) return;
   ensureGalleryFontsLoaded();
@@ -5827,6 +6185,7 @@ function formuleTunerOnScroll(){
   if(!car) return;
   const idx=Math.round(car.scrollLeft/Math.max(1,car.clientWidth));
   document.querySelectorAll('.formule-fmt-tab').forEach((b,i)=>b.classList.toggle('active', i===idx));
+  formuleTunerSyncLogoBtn();
 }
 // Passer d'un réglage à l'autre depuis le sélecteur : on garde
 // l'aperçu tel quel et on ne remplace que la ligne du bas.
@@ -5836,6 +6195,9 @@ function formuleTunerSwitch(key){
   const f=DATA.formules.find(x=>x.id===_tunerState.fid);
   if(!d || !f) return;
   _tunerState={ fid:_tunerState.fid, key:d.key, sizeKey:d.sizeKey };
+  // Sans ca, le panneau du bas continuait d'afficher les tailles du
+  // logo alors qu'on venait de choisir un tout autre reglage.
+  if(_tunerLogoMode) formuleTunerCloseLogo();
   formuleTunerRenderCtrl(f, d.key, d.sizeKey);
   formuleTunerRenderAlign(f, d.key);
 }
@@ -5891,12 +6253,41 @@ function formuleTunerRenderAlign(f, key){
 let _tunerGapMode=false;
 function formuleTunerToggleGap(){
   _tunerGapMode=!_tunerGapMode;
+  if(_tunerGapMode && _tunerLogoMode){
+    _tunerLogoMode=false;
+    const l=document.getElementById('formuleTunerLogo'); if(l) l.classList.remove('active');
+  }
   const btn=document.getElementById('formuleTunerGap');
   if(btn) btn.classList.toggle('active', _tunerGapMode);
   const f=DATA.formules.find(x=>x.id===_tunerState.fid);
   if(f) formuleTunerRenderCtrl(f, _tunerState.key, _tunerState.sizeKey);
 }
 function formuleTunerRenderCtrl(f, key, sizeKey){
+  if(_tunerLogoMode && f.showLogo){
+    // Sans logo enregistre, trois crans de taille ne regleraient rien et
+    // on chercherait longtemps pourquoi la page ne change pas. On dit
+    // ce qui manque et ou le mettre, a la place des boutons.
+    const hasLogo=!!((DATA.pdfStyle && DATA.pdfStyle.logoData) || getRestaurantLogo());
+    if(!hasLogo){
+      document.getElementById('formuleTunerCtrl').innerHTML=`
+        <div class="formule-tuner-row" style="justify-content:center">
+          <div style="font-family:'Jost',sans-serif;font-size:12.5px;color:var(--ig-text-dimmer);text-align:center;line-height:1.5;padding:4px 8px">
+            Aucun logo enregistré.<br>Ajoutez-le dans <strong style="color:var(--ig-text-dim)">Mon établissement</strong>, il apparaîtra ici.
+          </div>
+        </div>`;
+      return;
+    }
+    const cur=FORMULE_LOGO_PCT[f.logoSize]?f.logoSize:'moyen';
+    document.getElementById('formuleTunerCtrl').innerHTML=`
+      <div class="formule-tuner-row" style="justify-content:center;gap:5px">
+        ${[['petit','Petit'],['moyen','Moyen'],['grand','Grand']].map(([k,lab])=>
+          `<button type="button" class="formule-tuner-fmtbtn${k===cur?' active':''}" onclick="formuleTunerSetLogoSize('${k}')">${lab}</button>`
+        ).join('')}
+        <button type="button" class="formule-tuner-fmtbtn formule-tuner-ok" title="Valider" aria-label="Valider" onclick="formuleTunerCloseLogo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 6.5"/></svg></button>
+        <button type="button" class="formule-tuner-fmtbtn formule-tuner-x" title="Retirer le logo" aria-label="Retirer le logo" onclick="formuleTunerRemoveLogo()">✕</button>
+      </div>`;
+    return;
+  }
   if(_tunerGapMode){
     document.getElementById('formuleTunerCtrl').innerHTML=`
       <div class="formule-tuner-row">
@@ -6187,14 +6578,33 @@ function formule_buildPreamble(f, cfg){
   const subHtml = f.freeText
     ? f.freeText.split('\n').map(noOrphan).join('<br>')
     : '';
-  return `${title?`<div class="formule-title">${noOrphan(title)}</div>`:''}${f.freeText?`<div class="formule-freetext">${subHtml}</div>`:''}`;
+  // Uniquement sur l'A4 : c'est la seule sortie qui quitte le
+  // restaurant. Centre en tete de page, au-dessus du titre — c'est le
+  // seul emplacement qui tienne quand tout le reste est deja centre.
+  // A4 et story, pas le post : la story est haute, elle a la place d'un
+  // logo en tete sans rien serrer. Le post est carre et court, un logo
+  // y mangerait la place des plats.
+  const wantLogo = cfg && FORMULE_LOGO_FORMATS.includes(cfg.formuleVariant) && f.showLogo;
+  const logoUrl = wantLogo ? exportLogoUrl() : '';
+  const logoHtml = logoUrl ? `<img class="formule-logo" src="${escAttr(logoUrl)}" onerror="this.style.display='none'">` : '';
+  // Le logo REMPLACE le grand titre, il ne s'ajoute pas au-dessus : le
+  // champ « Titre du menu » sert le plus souvent a nommer
+  // l'etablissement (son exemple est « Le Truffaut »), donc les deux
+  // ensemble disaient la meme chose deux fois. Le sous-titre, lui,
+  // reste : c'est la seule ligne qui decrit la formule.
+  const showTitle = title && !logoHtml;
+  return `${logoHtml}${showTitle?`<div class="formule-title">${noOrphan(title)}</div>`:''}${f.freeText?`<div class="formule-freetext">${subHtml}</div>`:''}`;
 }
 // Config Instagram/Formule partagée entre l'export et l'aperçu — un
 // seul endroit où les couleurs, la police, l'alignement, la casse ET
 // les curseurs de taille par élément (Titre/Plat/Description, en %
 // de la taille de base) sont assemblés, pour ne jamais les faire
 // diverger entre ce qui s'affiche en aperçu et ce qui s'exporte.
-function formule_buildCfg(f){
+// Le format (a4 / post / story) descend jusqu'ici : le logo n'a de sens
+// que sur l'A4, la seule sortie destinee au papier. Sans ce parametre,
+// la config etait identique pour les trois et il aurait fallu le
+// masquer en CSS — donc l'embarquer dans une story pour rien.
+function formule_buildCfg(f, variant){
   const base = pdfCfg();
   const cfg = {
     ...base, format:'insta', tabsSource: f.tabs,
@@ -6236,13 +6646,15 @@ function formule_buildCfg(f){
     formuleTitleBase: Math.round((base.instaTitleSize||45) * 0.8),
     formuleSubBase: Math.round((base.instaDescSize||19) * 1.10 * 0.85)
   };
+  cfg.formuleVariant = variant || 'story';
+  cfg.formuleLogoSize = FORMULE_LOGO_PCT[f.logoSize] ? f.logoSize : 'moyen';
   cfg.formulePreamble = formule_buildPreamble(f, cfg);
   return cfg;
 }
 function formule_exportInsta(fid, variant){
   const f = DATA.formules.find(x=>x.id===fid);
   if(!f) return;
-  const cfg = formule_buildCfg(f);
+  const cfg = formule_buildCfg(f, variant);
   exportInstaImages(cfg, variant);
 }
 
@@ -6407,9 +6819,11 @@ function onDrop(e,ti,ci,di){
 const SUPABASE_URL      = 'https://fdbzzkzfipzabryfanun.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_9PaqDuXnWV3aOCBPk9ImmQ_4YgYTU9n';
 // Detect client slug from URL: /menu/drevici → 'drevici'
-// BUG FIX : ouvrir l'URL avec le nom de fichier (…/drevici/index.html)
-// faisait de "index.html" le slug du client — aucune ligne ne
-// correspondait et le site retombait sur ses donnees d'exemple.
+// BUG FIX : ouvrir l'URL avec le nom de fichier (…/drevici/index.html
+// au lieu de …/drevici/) faisait de "index.html" le dernier segment,
+// donc le slug du client — aucune ligne ne correspondait et le site
+// retombait sur ses donnees d'exemple, sans rien signaler. On retire un
+// eventuel segment de fichier avant de lire le dernier dossier.
 const _pathParts = (()=>{
   const parts = window.location.pathname.replace(/\/+$/,'').replace(/^\/+/,'').split('/');
   if(parts.length && /\.[a-z0-9]{1,6}$/i.test(parts[parts.length-1])) parts.pop();
@@ -6421,7 +6835,9 @@ const _pathParts = (()=>{
 // donnees du vrai client au lieu d'en chercher un qui n'existe pas.
 // Aucun deploiement reel ne se termine par "-preview".
 const _lastSegment = _pathParts[_pathParts.length - 1] || 'default';
-// Un dossier en "-preview" est une recette : on n'y ECRIT jamais.
+// Un dossier en "-preview" est une recette : meme code, memes donnees,
+// mais on n'y ECRIT jamais. Une recette qui peut abimer la production
+// n'est pas une recette — c'est une deuxieme production.
 const IS_PREVIEW = /-preview$/.test(_lastSegment);
 const CLIENT_SLUG = _lastSegment.replace(/-preview$/, '');
 // Reservations admin dashboard for this restaurant (admin.html) — a
@@ -6463,6 +6879,7 @@ async function adminSignOut(){
 }
 
 // ── Load the menu from Supabase (public read, no login needed) ──
+// Etat du chargement, pour que l'echec cesse d'etre invisible.
 let DATA_SOURCE = 'exemple';
 let DATA_SOURCE_REASON = '';
 function reportDataSource(src, reason){
@@ -6475,8 +6892,12 @@ function reportDataSource(src, reason){
   el.querySelector('#dataFallbackWhy').textContent = reason || '';
 }
 async function loadFromSupabase(){
-  // Trois facons d'echouer donnaient le meme ecran sans rien dire, et
-  // le site servait son menu d'exemple comme s'il etait le vrai.
+  // Trois facons d'echouer donnaient exactement le meme ecran : la
+  // bibliotheque Supabase bloquee, aucune ligne pour ce slug, ou une
+  // erreur de requete. Dans les trois cas le site affichait son menu
+  // d'exemple SANS RIEN DIRE — impossible de savoir, depuis la page,
+  // qu'on ne regardait pas les vraies donnees. Chaque sortie est
+  // desormais nommee.
   if(!supabaseClient){
     reportDataSource('exemple', 'bibliotheque Supabase non chargee (bloquee ou hors ligne)');
     return;
@@ -7083,6 +7504,33 @@ function exportTabCSV(tabId){
 // Décor SVG nautique (inliné, recolorable via currentColor)
 const PDF_SVG = {anchor:"<svg version=\"1.0\" xmlns=\"http://www.w3.org/2000/svg\"   viewBox=\"0 0 340.000000 362.000000\" preserveAspectRatio=\"xMidYMid meet\"> <g transform=\"translate(0.000000,362.000000) scale(0.100000,-0.100000)\" fill=\"currentColor\" stroke=\"none\"> <path d=\"M1585 3280 c-59 -23 -143 -94 -167 -141 -50 -100 -53 -114 -52 -204 0 -81 3 -96 33 -155 43 -85 72 -115 154 -156 l67 -34 0 -106 0 -106 -189 4 c-163 3 -192 5 -208 21 -23 20 -72 23 -95 5 -53 -44 -66 -139 -25 -199 33 -49 62 -56 119 -30 42 19 65 21 222 21 l176 0 0 -654 0 -655 -22 -15 c-29 -20 -107 -21 -202 -1 -180 37 -350 164 -451 335 -47 81 -98 204 -88 214 4 3 22 6 40 6 35 0 73 15 73 28 0 4 -18 30 -41 57 -70 86 -87 108 -145 185 -64 86 -94 120 -105 120 -22 0 -119 -450 -105 -485 9 -24 31 -18 77 20 28 24 45 33 52 26 6 -6 18 -41 28 -78 52 -201 128 -340 259 -473 114 -116 190 -163 380 -236 168 -64 207 -84 246 -126 32 -34 84 -122 84 -142 0 -6 4 -17 9 -25 8 -12 12 -12 25 -2 9 8 16 22 16 33 0 30 38 96 78 135 36 34 123 83 150 83 21 0 224 82 262 105 19 12 55 34 80 48 64 36 191 160 245 240 54 81 105 188 130 272 10 33 25 84 34 112 l16 53 35 -24 c48 -33 76 -40 84 -21 11 31 -38 346 -66 423 -31 83 -43 76 -183 -113 -33 -44 -79 -104 -103 -134 -40 -50 -42 -54 -25 -67 10 -7 39 -14 66 -14 26 0 47 -2 47 -5 0 -23 -51 -145 -88 -209 -88 -153 -253 -286 -410 -330 -88 -24 -241 -34 -253 -15 -10 15 -11 993 -2 1207 l5 122 169 0 c130 0 178 -4 208 -16 54 -21 99 -15 123 17 43 58 40 140 -8 190 -33 35 -70 37 -133 9 -37 -17 -65 -20 -207 -20 l-164 0 1 101 1 100 37 22 c20 12 49 29 64 37 37 18 92 87 117 146 30 69 37 176 16 249 -34 119 -134 224 -241 252 -73 19 -190 16 -250 -7z m238 -188 c102 -69 104 -238 4 -312 -33 -25 -51 -30 -94 -30 -30 0 -66 6 -81 14 -62 32 -112 113 -112 178 1 72 66 160 128 174 15 3 32 7 37 9 25 6 83 -10 118 -33z\"/> </g> </svg>",waves:"<svg version=\"1.0\" xmlns=\"http://www.w3.org/2000/svg\"   viewBox=\"0 0 348.000000 244.000000\" preserveAspectRatio=\"xMidYMid meet\"> <g transform=\"translate(0.000000,244.000000) scale(0.100000,-0.100000)\" fill=\"currentColor\" stroke=\"none\"> <path d=\"M930 1710 c-71 -15 -130 -40 -200 -86 -88 -58 -118 -90 -104 -112 20 -31 56 -25 114 18 30 22 79 53 110 68 49 24 66 27 155 27 113 0 121 -3 263 -98 48 -32 106 -61 144 -72 139 -40 293 -14 409 71 98 73 153 97 235 102 97 6 165 -16 266 -85 142 -96 242 -125 366 -103 162 28 296 131 221 171 -18 9 -26 7 -48 -10 -14 -12 -54 -36 -89 -53 -53 -26 -75 -31 -140 -31 -100 -1 -137 12 -252 89 -124 83 -190 106 -300 106 -104 1 -165 -21 -270 -93 -101 -69 -138 -87 -209 -98 -114 -18 -182 3 -330 104 -114 77 -233 107 -341 85z\"/> <path d=\"M849 1256 c-77 -27 -215 -118 -225 -149 -7 -21 17 -47 42 -47 6 0 43 21 80 47 102 70 164 92 254 93 101 0 137 -12 228 -74 136 -93 198 -116 318 -116 97 0 185 29 270 88 116 82 148 95 246 100 106 5 154 -9 244 -73 35 -25 94 -60 131 -77 144 -68 343 -43 462 58 62 52 17 114 -48 66 -65 -48 -136 -75 -207 -80 -98 -6 -164 15 -271 88 -109 75 -185 100 -297 100 -106 0 -176 -23 -284 -96 -99 -67 -171 -94 -250 -94 -85 0 -142 21 -247 90 -51 34 -121 70 -155 81 -88 27 -206 25 -291 -5z\"/> <path d=\"M924 860 c-70 -13 -130 -40 -218 -99 -84 -57 -90 -63 -81 -91 12 -38 43 -35 114 14 99 69 171 95 257 96 97 0 150 -18 259 -90 111 -73 189 -100 290 -100 98 0 185 28 271 88 111 78 150 95 236 100 108 6 164 -10 270 -80 144 -96 164 -103 298 -103 110 0 118 2 187 34 84 39 126 78 121 112 -5 35 -40 35 -88 0 -66 -47 -140 -71 -223 -71 -89 1 -149 24 -263 102 -194 133 -357 128 -569 -15 -92 -63 -158 -86 -242 -87 -90 0 -140 19 -261 98 -51 33 -113 67 -139 76 -63 20 -156 27 -219 16z\"/> </g> </svg>",seashell:"<svg version=\"1.0\" xmlns=\"http://www.w3.org/2000/svg\"   viewBox=\"0 0 512.000000 512.000000\" preserveAspectRatio=\"xMidYMid meet\"> <g transform=\"translate(0.000000,512.000000) scale(0.100000,-0.100000)\" fill=\"currentColor\" stroke=\"none\"> <path d=\"M2000 5105 c-213 -45 -393 -170 -502 -346 -21 -34 -36 -49 -51 -49 -46 0 -238 -50 -313 -81 -220 -92 -413 -283 -506 -501 -16 -40 -34 -74 -39 -76 -41 -16 -176 -118 -238 -180 -172 -172 -273 -385 -302 -637 -10 -87 -5 -212 11 -287 6 -28 1 -60 -18 -130 -24 -85 -26 -110 -26 -293 -1 -214 8 -279 61 -450 57 -182 195 -413 325 -543 35 -34 189 -167 343 -295 l280 -232 110 -405 c65 -239 120 -421 134 -443 33 -54 106 -114 167 -137 54 -20 73 -20 1114 -20 1041 0 1060 0 1114 20 64 25 137 85 172 145 16 27 64 188 130 432 58 213 108 391 112 394 4 3 142 118 307 254 165 136 326 275 357 309 123 131 256 362 306 532 74 248 83 547 21 762 -10 35 -16 68 -14 72 16 26 25 212 15 307 -35 324 -203 605 -462 773 -78 50 -87 60 -108 110 -120 288 -369 500 -672 569 -46 11 -103 22 -128 26 -42 6 -47 10 -85 71 -55 91 -175 201 -272 252 -131 67 -191 84 -338 89 -153 6 -251 -13 -372 -72 l-73 -36 -72 35 c-40 19 -100 42 -133 51 -83 22 -273 28 -355 10z m330 -194 c36 -11 80 -30 98 -41 l32 -20 -1 -2132 c-1 -1173 -3 -2126 -5 -2118 -3 8 -190 915 -418 2015 l-413 2000 26 40 c90 141 207 226 366 267 90 23 224 18 315 -11z m785 14 c137 -35 285 -143 352 -256 l31 -54 -423 -2050 c-233 -1127 -426 -2059 -428 -2070 -2 -11 -4 963 -3 2164 l1 2184 54 30 c30 17 82 39 115 48 77 22 222 24 301 4z m-1252 -2367 c224 -1084 406 -1973 404 -1974 -1 -2 -338 765 -748 1704 l-746 1707 14 40 c37 107 144 246 255 331 99 76 263 142 408 163 3 1 189 -886 413 -1971z m1897 1951 c77 -15 180 -55 258 -101 122 -72 272 -250 316 -376 l14 -39 -746 -1706 c-410 -939 -747 -1706 -748 -1704 -1 1 180 889 404 1973 334 1621 409 1970 422 1968 8 -1 44 -8 80 -15z m-2398 -2316 c400 -917 726 -1669 724 -1670 -2 -2 -416 542 -921 1209 -702 926 -920 1222 -928 1253 -15 64 -11 252 7 329 48 202 163 385 317 501 34 25 64 45 67 45 4 -1 334 -751 734 -1667z m3230 1592 c208 -173 326 -469 298 -743 l-10 -90 -911 -1203 c-501 -662 -917 -1211 -926 -1219 -19 -20 -91 -186 712 1650 384 877 706 1614 716 1638 22 50 21 51 121 -33z m-3607 -2120 c395 -522 732 -968 749 -990 17 -21 24 -35 16 -30 -45 28 -1203 997 -1240 1038 -157 174 -263 394 -305 631 -15 91 -20 257 -9 339 l7 46 32 -42 c17 -23 355 -469 750 -992z m3944 854 c3 -307 -112 -611 -317 -836 -26 -29 -186 -168 -357 -308 -170 -141 -319 -264 -330 -273 -160 -134 -544 -450 -555 -457 -8 -5 35 56 96 136 60 79 411 542 779 1029 758 1000 682 921 684 709z m-3289 -2024 c151 -125 296 -248 322 -271 l47 -44 -245 0 c-270 0 -282 2 -328 62 -17 23 -44 107 -91 278 -36 135 -69 254 -72 265 -4 14 7 9 43 -21 27 -23 173 -143 324 -269z m2185 273 c-3 -7 -34 -121 -70 -253 -35 -132 -73 -251 -83 -265 -10 -14 -34 -35 -52 -48 -32 -21 -40 -22 -269 -22 l-236 1 50 46 c48 44 657 553 662 553 1 0 0 -6 -2 -12z\"/> </g> </svg>",oyster:"<svg version=\"1.0\" xmlns=\"http://www.w3.org/2000/svg\"   viewBox=\"0 0 314.000000 308.000000\" preserveAspectRatio=\"xMidYMid meet\"> <g transform=\"translate(0.000000,308.000000) scale(0.100000,-0.100000)\" fill=\"currentColor\" stroke=\"none\"> <path d=\"M1819 2560 c-25 -4 -79 -23 -120 -41 -69 -31 -84 -34 -214 -39 -125 -6 -146 -9 -196 -33 -33 -16 -75 -47 -99 -75 -23 -26 -54 -60 -69 -77 -15 -16 -56 -45 -91 -64 -126 -67 -223 -191 -251 -320 -8 -37 -24 -66 -56 -104 -65 -76 -74 -98 -82 -211 -7 -92 -12 -108 -50 -183 -67 -130 -66 -245 4 -399 19 -42 40 -106 45 -143 16 -102 36 -151 90 -221 28 -36 80 -109 116 -162 106 -158 164 -195 312 -205 75 -5 95 -3 135 15 62 28 150 112 249 239 43 57 104 124 135 150 123 106 148 131 200 201 46 61 65 78 125 108 94 47 158 109 233 224 35 52 93 131 130 175 84 101 103 138 125 244 12 59 29 106 55 148 28 47 38 77 42 122 7 77 2 96 -45 158 -36 48 -40 60 -45 133 -14 173 -99 251 -297 271 -81 9 -105 16 -165 49 -77 42 -140 53 -216 40z m184 -104 c74 -39 91 -44 172 -51 106 -8 158 -28 202 -78 38 -43 53 -91 53 -168 0 -49 5 -62 45 -119 37 -52 45 -72 45 -107 0 -43 -23 -100 -62 -155 -10 -15 -27 -67 -38 -117 -23 -111 -32 -127 -115 -227 -36 -43 -89 -116 -116 -160 -63 -103 -127 -167 -204 -206 -91 -46 -110 -63 -166 -144 -37 -53 -78 -96 -141 -145 -96 -76 -98 -73 -18 46 48 71 92 115 218 217 80 65 206 202 273 298 57 81 163 271 184 330 40 113 38 267 -5 381 -59 159 -260 270 -490 272 -163 1 -440 -75 -578 -158 -165 -100 -252 -191 -365 -381 -124 -212 -176 -420 -164 -659 10 -176 33 -275 104 -443 20 -45 34 -85 31 -87 -5 -5 -108 128 -127 162 -6 12 -20 66 -31 119 -11 54 -34 126 -50 161 -36 76 -49 130 -50 204 0 46 8 72 46 150 41 84 47 104 53 189 8 103 22 139 71 185 39 37 54 65 70 135 27 117 90 197 212 268 54 31 98 67 144 119 96 106 118 116 294 123 135 6 150 9 220 39 150 66 173 66 283 7z m-28 -201 c230 -60 335 -188 335 -408 0 -96 -24 -170 -101 -307 -114 -204 -231 -346 -402 -484 -51 -41 -106 -89 -123 -107 -48 -52 -132 -181 -180 -277 -24 -48 -43 -80 -43 -72 -1 22 113 253 146 297 15 21 94 103 174 183 152 151 202 217 289 383 77 146 96 249 65 353 -29 99 -112 177 -224 210 -68 20 -273 14 -391 -11 -153 -33 -340 -152 -449 -287 -93 -114 -195 -342 -227 -506 -21 -112 -16 -323 12 -427 5 -18 4 -18 -6 -2 -6 10 -23 61 -37 115 -21 82 -25 120 -26 247 -1 232 22 333 119 528 160 318 335 458 684 547 175 44 283 51 385 25z m-67 -282 c94 -28 171 -114 186 -209 16 -93 -59 -300 -159 -438 -24 -34 -109 -127 -188 -208 -169 -171 -177 -181 -258 -319 -33 -57 -58 -93 -54 -79 14 52 64 148 119 228 141 207 173 345 124 538 -27 106 -58 142 -147 169 -77 23 -140 17 -222 -22 -188 -88 -293 -232 -360 -491 -48 -187 -38 -384 26 -516 l25 -51 -29 32 c-52 56 -92 246 -92 438 0 96 5 139 24 215 97 370 328 631 621 700 171 41 279 44 384 13z m-396 -365 c62 -18 93 -55 117 -135 25 -84 27 -173 5 -256 -19 -75 -41 -118 -114 -227 -75 -112 -100 -163 -144 -297 -38 -115 -69 -165 -122 -202 -70 -48 -146 -32 -214 46 -30 34 -32 38 -15 42 11 2 26 -5 35 -16 46 -57 125 -70 186 -32 48 29 80 90 124 232 21 67 50 154 65 192 58 150 6 270 -122 282 -131 13 -272 -124 -309 -298 -15 -72 -15 -196 1 -244 4 -12 0 -9 -9 6 -44 76 -45 292 -1 444 63 217 169 361 324 438 79 40 125 46 193 25z m-162 -433 c68 -35 78 -109 31 -227 -16 -40 -45 -126 -65 -191 -44 -142 -84 -197 -143 -197 -44 0 -96 49 -112 105 -20 67 -25 179 -12 247 17 87 42 138 93 194 69 76 146 101 208 69z m-281 -741 c70 -46 183 -31 247 33 10 10 29 18 43 19 14 0 43 4 64 8 25 4 37 3 37 -4 0 -18 -60 -68 -145 -120 -73 -46 -85 -50 -142 -50 -80 0 -98 8 -166 70 -60 55 -63 62 -46 107 l10 28 29 -32 c16 -17 47 -44 69 -59z\"/> </g> </svg>"};
 
+/* TAILLE DU LOGO IMPRIME — trois crans.
+   Le plafond d'origine (180 x 120) etait accorde a un logo CARRE. Un
+   logo en bandeau bute d'abord sur la largeur, si bien que sa hauteur
+   tombait a une quarantaine de pixels quand un logo carre en occupait
+   120 : le meme reglage ne rendait donc pas pareil d'un client a
+   l'autre. Ici la largeur vaut 3,2 fois la hauteur : un logo carre
+   monte a `h`, un bandeau 4:1 s'arrete a 0,8 h — les deux pesent alors
+   la meme chose a l'oeil, quelle que soit leur forme.
+   (Les valeurs sont en pixels A4 ; px() les remet a l'echelle en A5.) */
+const LOGO_SIZES = {
+  petit: { img: 48, text: 22 },
+  moyen: { img: 70, text: 30 },
+  grand: { img: 96, text: 38 }
+};
+const LOGO_W_RATIO = 3.2;
+// Formules : en fraction de la largeur de page, pour que l'aperçu et
+// l'export final donnent exactement le meme rendu.
+const FORMULE_LOGO_PCT = { petit: 0.075, moyen: 0.11, grand: 0.155 };
+const FORMULE_LOGO_FORMATS = ['a4','story'];
+// Sans logo IMAGE enregistre, cocher « Afficher le logo » fait retomber
+// l'en-tete sur le NOM du restaurant, en petit. Le reglage pilote donc
+// les deux : sinon la case parait ne rien faire chez un client qui n'a
+// pas encore televerse de logo, et le nom sort plus petit qu'avec la
+// case decochee — ce qui n'a aucun sens.
+function logoStep(cfg){
+  return LOGO_SIZES[(cfg&&cfg.logoSize)] || LOGO_SIZES.moyen;
+}
 function pdfCfg(){
   if(!DATA.pdfStyle) DATA.pdfStyle = {};
   const d = DATA.pdfStyle;
@@ -7102,6 +7550,11 @@ function pdfCfg(){
     // texte prend le relai. Une fois que l'utilisateur touche la case
     // lui-même, son choix explicite (d.showLogo) est toujours respecté.
     showLogo: d.showLogo !== undefined ? d.showLogo : true,
+    // Trois crans plutot qu'un curseur : la forme du logo change d'un
+    // client a l'autre, donc une largeur libre ne veut rien dire d'un
+    // restaurant au suivant. Voir buildPdfCSS pour la regle qui accorde
+    // largeur et hauteur.
+    logoSize: d.logoSize==='discret' ? 'petit' : (LOGO_SIZES[d.logoSize] ? d.logoSize : 'moyen'),
     showIcons: d.showIcons !== false,
     showDots: d.showDots !== false,
     showFrame: d.showFrame !== false,
@@ -7246,7 +7699,7 @@ function buildPdfBlocks(cfg){
   // catégories — chaque story ne montre qu'UNE catégorie à la fois.
   const isGbizFmt = cfg.format === 'gbiz' || cfg.format === 'insta';
   // Logo: PDF-specific upload > restaurant logo already stored > nothing
-  const logoUrl = (DATA.pdfStyle && DATA.pdfStyle.logoData) || getRestaurantLogo() || '';
+  const logoUrl = exportLogoUrl();
   const icData = DATA.icones||{};
   const showMainIc = cfg.showIcons!==false && icData.main && !cfg.showLogo;
   const showSecIc  = cfg.showIcons!==false && !!icData.secondary;
@@ -7559,6 +8012,12 @@ function buildInstaCSS(cfg, ratio){
   .pdf-footer{display:none}
   /* Menus et Formules uniquement — titre + texte libre optionnels,
      affichés avant les catégories (voir formule_buildPreamble). */
+  /* La hauteur est exprimee en % de la LARGEUR de page : l'aperçu et
+     l'export final ne font pas la meme taille en pixels, donc une
+     valeur fixe aurait donne deux rendus differents. La largeur vaut
+     3,2 fois la hauteur, comme a l'impression, pour qu'un logo en
+     bandeau et un logo carre pesent pareil. */
+  .formule-logo{display:block;margin:0 auto ${Math.round(INSTA_RENDER_W*0.028)}px;max-height:${Math.round(INSTA_RENDER_W*(FORMULE_LOGO_PCT[cfg.formuleLogoSize]||FORMULE_LOGO_PCT.moyen))}px;max-width:${Math.round(INSTA_RENDER_W*(FORMULE_LOGO_PCT[cfg.formuleLogoSize]||FORMULE_LOGO_PCT.moyen)*3.2)}px;object-fit:contain}
   .formule-title{font-family:'${font}',serif;font-weight:800;font-size:${Math.round((cfg.formuleTitleBase ?? formuleTitleSize)*((cfg.formuleTitlePct ?? 100)/100))}px;line-height:1.15;text-transform:uppercase;letter-spacing:.01em;color:${cfg.formuleTitleColor||titleColor};margin-bottom:9px;text-align:center}
   .formule-freetext{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${Math.round((cfg.formuleSubBase ?? Math.round(descSize*0.85))*((cfg.formuleSubPct ?? 100)/100))}px;line-height:1.4;color:${cfg.formuleSubColor||descColor};white-space:pre-wrap;text-align:center;margin-bottom:34px;max-width:82%;margin-left:auto;margin-right:auto}
   /* Deux options d'alignement indépendantes, demandées séparément par
@@ -8047,8 +8506,8 @@ function buildPdfCSS(cfg){
   .pdf-page{--space-scale:1;--top-pad-trim:0px;--solo-scale:.92;font-family:'Open Sans',sans-serif;color:#1a1a1a;background:${cfg.menuBgColor||cfg.bgColor||'#FFFDF8'};width:${pageW}px;${pageH?`min-height:${pageH}px;`:''}padding-top:calc(${pad}px - var(--top-pad-trim));padding-right:${pad}px;padding-bottom:${pad}px;padding-left:${pad}px;margin:0 auto;position:relative}
   ${cfg.showFrame!==false?`.pdf-page::before{content:'';position:absolute;inset:${px(14)}px;border:1.5px solid ${cfg.menuFrameColor};opacity:.4;pointer-events:none}`:''}
   .pdf-header{text-align:center;margin-bottom:calc(${isGbiz?18:px(33)}px * var(--space-scale));position:relative}
-  .pdf-logo-text{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?24.86:px(22)}px;font-weight:700;color:var(--navy,#10285E);margin:0 auto 12px;display:block;text-align:center}
-.pdf-logo{max-width:${isGbiz?100:px(180)}px;max-height:${isGbiz?70:px(120)}px;object-fit:contain;margin:0 auto 8px;display:block}
+  .pdf-logo-text{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?24.86:px(logoStep(cfg).text)}px;font-weight:700;color:var(--navy,#10285E);margin:0 auto 12px;display:block;text-align:center}
+.pdf-logo{max-width:${isGbiz?100:px(Math.round(logoStep(cfg).img*LOGO_W_RATIO))}px;max-height:${isGbiz?70:px(logoStep(cfg).img)}px;object-fit:contain;margin:0 auto 8px;display:block}
   .pdf-title{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?49.72:px(32)}px;font-weight:700;color:${cfg.menuTitleColor};line-height:1.1}
   .pdf-sub{font-size:${isGbiz?14.69:px(11)}px;letter-spacing:.16em;text-transform:uppercase;color:#999;margin-top:6px}
   .pdf-section{margin-bottom:calc(${isGbiz?100:px(52)}px * var(--space-scale));break-inside:avoid;page-break-inside:avoid}
@@ -8139,6 +8598,89 @@ function doPdfExport(){
   }
 }
 
+// ═══ LOGO DANS LES EXPORTS IMAGE ═══
+// BUG : un logo renseigne par un LIEN (le champ « Lien du logo » de
+// « Mon etablissement ») s'affiche parfaitement sur le site mais
+// disparaissait de tous les exports image.
+// Pourquoi : une balise <img> ordinaire n'a besoin d'aucune permission
+// pour afficher une image d'un autre domaine. Mais la DESSINER dans un
+// canvas, si : html2canvas est appele avec useCORS:true, il repose donc
+// l'image en crossOrigin="anonymous", et un serveur qui ne renvoie pas
+// d'en-tete Access-Control-Allow-Origin (un WordPress par defaut, par
+// exemple) fait echouer ce second chargement. html2canvas ne leve
+// aucune erreur : il saute simplement l'image. D'ou un export sans
+// logo, sans le moindre message.
+// Ce qu'on fait : juste avant un export image, on tente de rapatrier
+// l'image et de la convertir en data: — une image ainsi embarquee n'a
+// plus d'origine distante, donc plus de refus possible. Si le serveur
+// refuse aussi ce rapatriement, on ne peut rien faire cote navigateur :
+// on retombe alors sur le nom du restaurant, ce que l'export faisait
+// deja quand aucun logo n'est defini. Un trou silencieux devient un
+// repli visible.
+let _logoInlineCache = {};
+let _exportLogoOverride = null;   // non nul uniquement pendant un export image
+function rawLogoUrl(){
+  return (DATA.pdfStyle && DATA.pdfStyle.logoData) || getRestaurantLogo() || '';
+}
+function exportLogoUrl(){
+  return _exportLogoOverride !== null ? _exportLogoOverride : rawLogoUrl();
+}
+async function inlineLogoForCanvas(){
+  const raw = rawLogoUrl();
+  if(!raw || raw.indexOf('data:') === 0) return raw;
+  if(_logoInlineCache[raw] !== undefined) return _logoInlineCache[raw] || '';
+  try{
+    const r = await fetch(raw, {mode:'cors'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const blob = await r.blob();
+    const data = await new Promise((res,rej)=>{
+      const fr = new FileReader();
+      fr.onload = ()=>res(fr.result); fr.onerror = rej;
+      fr.readAsDataURL(blob);
+    });
+    _logoInlineCache[raw] = data;
+    return data;
+  }catch(e){
+    _logoInlineCache[raw] = false;
+    console.warn('[menu] logo non exportable ('+e.message+') — '+raw);
+    return '';
+  }
+}
+// Verifie le logo courant et previent DANS L'ADMIN s'il ne pourra pas
+// sortir dans les exports image — au moment ou on le saisit, pas le
+// jour ou on exporte. Un fichier uploade est toujours exportable : on
+// ne teste donc que les liens.
+// L'utilisateur tape son lien caractere par caractere : sans ce delai,
+// chaque frappe declencherait une requete sur une URL incomplete.
+let _logoCheckTimer = null;
+function scheduleLogoCheck(){
+  if(_logoCheckTimer) clearTimeout(_logoCheckTimer);
+  _logoCheckTimer = setTimeout(checkLogoExportable, 700);
+}
+async function checkLogoExportable(){
+  const el = document.getElementById('logoExportWarn');
+  if(!el) return;
+  const raw = rawLogoUrl();
+  if(!raw || raw.indexOf('data:') === 0){ el.style.display='none'; return; }
+  const ok = await inlineLogoForCanvas();
+  const cible = document.getElementById('logoExportWarn');
+  if(!cible) return;
+  if(ok){ cible.style.display='none'; return; }
+  cible.style.display='block';
+  cible.textContent = "⚠️ Ce lien s'affiche sur le site, mais le serveur qui l'héberge n'autorise pas sa copie : le logo n'apparaîtra pas dans vos exports image. Utilisez le bouton d'upload ci-dessus pour l'intégrer pour de bon.";
+}
+// Enveloppe commune aux exports image : prepare le logo, lance
+// l'export, et remet l'etat en place quoi qu'il arrive.
+async function withExportLogo(fn){
+  const raw = rawLogoUrl();
+  _exportLogoOverride = await inlineLogoForCanvas();
+  const echoue = !!raw && !_exportLogoOverride;
+  try{ return await fn(); }
+  finally{
+    _exportLogoOverride = null;
+    if(echoue) showToast("⚠️ Logo absent de l'export : ce lien n'autorise pas la copie. Uploadez le fichier dans « Mon établissement ».");
+  }
+}
 function exportA4Print(cfg){
   const css = buildPdfCSS(cfg);
   const pages = paginatePdfPages(cfg);
@@ -8538,6 +9080,9 @@ async function renderInstaPageToBlob(css, pages, i, restName, bg, ratio, variant
 // multi-pages, compression d'espacement) n'est dupliquée, tout
 // continue de s'appliquer tel quel avec ce nouveau ratio.
 async function exportInstaImages(cfg, variant){
+  return withExportLogo(()=>_exportInstaImages(cfg, variant));
+}
+async function _exportInstaImages(cfg, variant){
   variant = variant || 'story';
   const ratio = variant === 'post' ? INSTA_POST_RATIO : variant === 'a4' ? INSTA_A4_RATIO : INSTA_RATIO;
   const targetW = variant === 'a4' ? 1600 : 1080; // A4 : un peu plus de résolution pour l'impression
@@ -8591,6 +9136,9 @@ async function exportInstaImages(cfg, variant){
 }
 
 async function exportGbizImage(cfg){
+  return withExportLogo(()=>_exportGbizImage(cfg));
+}
+async function _exportGbizImage(cfg){
   if(typeof html2canvas === 'undefined'){ showToast('⚠ html2canvas non chargé'); return; }
   showToast('Génération des images en cours…');
   const css = buildPdfCSS(cfg);
@@ -8833,7 +9381,7 @@ function renderFormuleDetail(f){
   <div class="ig-list" style="margin-top:22px">
     <div class="ig-row" onclick="formuleTunerOpen('${f.id}','formuleTitleColor','formuleTitlePct','Titre')">
       <span class="ig-row-icon" style="color:var(--ig-accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg></span>
-      <span class="ig-row-label"><span style="color:var(--ig-accent);font-weight:500">Export du menu (A4, Post, Story)</span><span class="ig-row-hint">Police, taille, alignement et couleurs des textes</span></span>
+      <span class="ig-row-label"><span style="color:var(--ig-accent);font-weight:500">Exporter le menu (A4, Post, Story)</span><span class="ig-row-hint">Choisissez police, taille, alignement et couleur</span></span>
       <span class="ig-row-chevron">›</span>
     </div>
   </div>
@@ -8923,6 +9471,15 @@ function renderPrintBody(forcedTab){
           <img src="${logoSrc}" style="max-height:50px;max-width:120px;object-fit:contain;border:1px solid var(--border);border-radius:6px;padding:4px;background:#fff" onerror="this.style.display='none'">
         </div>` : ''}
         <label class="admin-toggle ig-pill" style="margin-top:2px"><input type="checkbox" ${cfg.showLogo?'checked':''} onchange="setPdfCfg('showLogo',this.checked);renderAdminSection(adminCurrentTab)"><label>Afficher le logo</label></label>
+        ${cfg.showLogo ? `<div class="pdf-logo-size">
+          <span class="pdf-logo-size-label">Taille${logoSrc?'':' du nom'}</span>
+          <div class="ig-align-group">
+            ${[['petit','Petit'],['moyen','Moyen'],['grand','Grand']].map(([k,lab])=>
+              `<button type="button" class="ig-align-btn pdf-logo-size-btn${cfg.logoSize===k?' active':''}" onclick="setPdfCfg('logoSize','${k}');renderAdminSection(adminCurrentTab)">${lab}</button>`
+            ).join('')}
+          </div>
+        </div>
+        ${logoSrc?'':'<div style="font-size:10px;color:var(--text3);margin-top:4px;line-height:1.5">Aucun logo enregistré : c\'est le nom du restaurant qui s\'affiche. Ajoutez-en un dans Mon établissement.</div>'}` : ''}
       </div>
 
       ${(ic.main||ic.secondary)?`<label class="admin-toggle ig-pill" style="margin-top:8px"><input type="checkbox" ${cfg.showIcons!==false?'checked':''} onchange="setPdfCfg('showIcons',this.checked)"><label>Afficher les icônes décoratives</label></label>
@@ -9156,7 +9713,7 @@ function formule_liveStyleUpdate(){
     if(!styleEl || !stage){ allLive = false; return; }
     const variant = frame.dataset.variant || 'story';
     const ratio = variant==='a4' ? INSTA_A4_RATIO : variant==='post' ? INSTA_POST_RATIO : INSTA_RATIO;
-    const built = buildFormulePage(formule_buildCfg(f), ratio);
+    const built = buildFormulePage(formule_buildCfg(f, variant), ratio);
     styleEl.textContent = built.css;
     const sc = built.pages[0].spaceScale;
     stage.style.setProperty('--space-scale', (sc && sc!==1) ? sc : '');
@@ -9171,7 +9728,7 @@ function initFormulePreviewFrames(){
     const f = DATA.formules && DATA.formules.find(x=>x.id===fid);
     if(!f) return;
     const ratio = variant==='a4' ? INSTA_A4_RATIO : variant==='post' ? INSTA_POST_RATIO : INSTA_RATIO;
-    const cfg = formule_buildCfg(f);
+    const cfg = formule_buildCfg(f, variant);
     const built = buildFormulePage(cfg, ratio);
     const pageH = Math.round(INSTA_RENDER_W*ratio);
     frame.srcdoc = buildPreviewSlideDoc(built.css, built.pages[0].html, built.pages[0].spaceScale, INSTA_RENDER_W, pageH);
@@ -9367,13 +9924,19 @@ function renderExportSection(){
 
 async function publishToSupabase(silent){
   if(!supaSession){ showToast('⚠️ Connecte-toi pour publier'); renderAdminSection('__global'); return; }
+  // GARDE-FOU : ne JAMAIS ecrire tant que le chargement initial n'a pas
+  // reussi. Si la lecture echoue — bibliotheque bloquee, reseau, ligne
+  // absente — DATA contient encore le menu d'EXEMPLE du fichier. Le
+  // moindre reglage touche ensuite declenchait un enregistrement qui
+  // remplacait la carte du restaurant par ce menu d'exemple, sans
+  // confirmation et sans retour en arriere possible.
+  // Pas de toast ici : l'autosave passe par cette fonction a chaque
+  // edition, le message revenait donc en boucle pendant le travail en
+  // preview. Le refus reste trace dans la console.
   if(IS_PREVIEW){
-    showToast('👁 Preview en lecture seule — publiez depuis le site en ligne');
+    console.warn('[menu] ecriture refusee — page de preview, lecture seule');
     return;
   }
-  // GARDE-FOU : ne JAMAIS ecrire tant que la lecture initiale n'a pas
-  // reussi. Sinon DATA contient encore le menu d'EXEMPLE, et le moindre
-  // reglage touche le publie par-dessus la carte du restaurant.
   if(DATA_SOURCE!=='supabase'){
     showToast('⚠️ Enregistrement bloqué : les données du restaurant ne sont pas chargées');
     console.warn('[menu] ecriture refusee — source='+DATA_SOURCE+' ('+DATA_SOURCE_REASON+')');
@@ -9404,6 +9967,9 @@ async function publishToSupabase(silent){
       .from('menu_data')
       .upsert({ client_slug: CLIENT_SLUG, data: clean, updated_at: new Date().toISOString() }, { onConflict: 'client_slug' });
     if(error) throw error;
+    // Version archivee APRES une ecriture reussie, et sans await : un
+    // historique indisponible ne doit ni ralentir ni faire echouer
+    // l'enregistrement.
     snapshotToHistory();
     // Plus de toast de succès : la publication est déclenchée très
     // souvent (chaque suppression, réordonnancement, etc.) et le
@@ -9476,6 +10042,9 @@ function applyRestaurantBranding(){
 }
 
 function restaurantSettingHtml(){
+  // Meme procede que renderHistorySection : on rend la coquille, et le
+  // test du lien remplit l'avertissement quand il revient.
+  setTimeout(checkLogoExportable, 0);
   const name=getRestaurantName();
   const logo=getRestaurantLogo();
   return `<div class="admin-section collapsible collapsed"><div class="admin-sect-title" onclick="toggleAdminSection(this)">Mon établissement</div><div class="admin-sect-body">
@@ -9490,13 +10059,18 @@ function restaurantSettingHtml(){
     </div>
     <div class="af">
       <div class="ai-img-wrap ig-merged-upload">
-        <input class="ai ig-tall-field ig-placeholder-normal-size" style="width:100%;padding:14px 50px 14px 16px!important" value="${logo}" placeholder="Lien du logo de l'établissement" oninput="setRestaurantLogo(this.value.trim());applyRestaurantBranding();syncImgPreview(this)">
+        <input class="ai ig-tall-field ig-placeholder-normal-size" style="width:100%;padding:14px 50px 14px 16px!important" value="${logo}" placeholder="Lien du logo de l'établissement" oninput="setRestaurantLogo(this.value.trim());applyRestaurantBranding();syncImgPreview(this);scheduleLogoCheck()">
         <label class="ig-inline-upload-icon" title="Uploader une image">
           <input type="file" accept="image/*" style="display:none" onchange="uploadImgFile(this,null)">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.22,20.75H5.78A2.64,2.64,0,0,1,3.25,18V15a.75.75,0,0,1,1.5,0v3a1.16,1.16,0,0,0,1,1.25H18.22a1.16,1.16,0,0,0,1-1.25V15a.75.75,0,0,1,1.5,0v3A2.64,2.64,0,0,1,18.22,20.75Z"/><path d="M16,8.75a.74.74,0,0,1-.53-.22L12,5.06,8.53,8.53A.75.75,0,0,1,7.47,7.47l4-4a.75.75,0,0,1,1.06,0l4,4a.75.75,0,0,1,0,1.06A.74.74,0,0,1,16,8.75Z"/><path d="M12,15.75a.76.76,0,0,1-.75-.75V4a.75.75,0,0,1,1.5,0V15A.76.76,0,0,1,12,15.75Z"/></svg>
         </label>
       </div>
       <img class="ai-img-preview" src="${logo||''}" style="${logo?'':'display:none'};width:100%;max-width:120px;aspect-ratio:1;object-fit:cover;border-radius:6px;margin-top:6px;border:1px solid var(--border)" onerror="this.style.display='none'">
+      <!-- Un logo renseigne par un lien s'affiche sur le site mais peut
+           etre refuse par les exports image (voir inlineLogoForCanvas).
+           On teste le lien ici, au moment ou on le saisit, plutot que de
+           laisser la surprise pour le jour de l'export. -->
+      <div id="logoExportWarn" style="display:none;margin-top:8px;font-size:11.5px;line-height:1.45;color:#B3261E"></div>
     </div>
 
     <div class="af"><label class="ig-group-label" style="margin:36px 0 8px 4px;display:block;color:var(--ig-text-dimmer)!important">Adresse & contact</label></div>
@@ -10120,10 +10694,20 @@ function renderPrintBodyWrapped(){
     <div class="ig-list" style="margin-top:22px">${row(MENU_COLORS_ROW)}</div>`;
 }
 const MENU_MANAGEMENT_ROWS = [
-  { key:'export', label:'Exportez vos menus', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>', fn: renderPrintBodyWrapped },
-  { key:'formules', label:'Menus spéciaux et formules', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="14" y2="13"/></svg>', fn: renderFormulesSection },
-  { key:'__backup', label:'Télécharger une sauvegarde', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>', action:'downloadBackup()' },
-  { key:'__history', label:'Restaurer une version', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 4v4h4"/><path d="M12 8v4l3 2"/></svg>', fn: renderHistorySection }
+  { key:'export', label:'Exporter votre menu', hint:'Impression, fiche Google Business, Instagram', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>', fn: renderPrintBodyWrapped },
+  { key:'formules', label:'Menus spéciaux et formules', hint:'Formule midi, menu étudiant, Saint-Valentin…', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="14" y2="13"/></svg>', fn: renderFormulesSection },
+];
+// Sauvegardes : sorties de « Gestion des menus » pour former leur
+// propre groupe. Ce ne sont pas des reglages de la carte mais le filet
+// de securite qui la protege — et le jour ou on en a besoin, on est
+// presse : il faut les trouver sans les chercher au milieu des
+// exports et des formules.
+const SAUVEGARDE_ROWS = [
+  // Une sauvegarde sur le disque, en un clic. Elle ne remplace pas
+  // l'historique automatique, mais elle ne depend d'aucun service :
+  // c'est le filet qui reste quand tout le reste a lache.
+  { key:'__backup', label:'Télécharger une sauvegarde', hint:'Un fichier daté de toute votre carte, sur votre ordinateur', action:'downloadBackup()', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>' },
+  { key:'__history', label:'Restaurer une version', hint:'Revenir à une version précédente de votre carte', fn: renderHistorySection, icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 4v4h4"/><path d="M12 8v4l3 2"/></svg>' }
 ];
 // "Menus et plats" réunit dans une seule sous-page ce qui était avant
 // deux groupes séparés sur Home (Catégories + Manager les
@@ -10158,6 +10742,7 @@ const HOME_GROUPS = [
   { label:'Manager les catégories', rows:MANAGER_CATEGORIES_ROWS, hidden:true },
   { label:'Formats d\'export', rows:()=>[...EXPORT_ROWS, MENU_COLORS_ROW], hidden:true },
   { label:'Gestion des menus', rows:MENU_MANAGEMENT_ROWS },
+  { label:'Sauvegardes et historique', rows:SAUVEGARDE_ROWS },
   { label:'Thème', rows:THEME_ROWS }
 ];
 function homeGroupRows(g){ return typeof g.rows === 'function' ? g.rows() : g.rows; }
@@ -10185,7 +10770,7 @@ function renderHomeList(){
     <div class="ig-list" style="margin-bottom:38px">${homeGroupRows(g).map(r=>`
       <div class="ig-row" onclick="${r.action ? r.action : `openHomeRow('${r.key}')`}">
         <span class="ig-row-icon">${r.icon}</span>
-        <span class="ig-row-label">${r.label}</span>
+        <span class="ig-row-label">${r.hint ? `<span>${r.label}</span><span class="ig-row-hint">${r.hint}</span>` : r.label}</span>
         ${r.value ? `<span class="ig-row-value">${typeof r.value==='function'?r.value():r.value}</span><span class="ig-row-updown"><svg viewBox="0 0 12 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l3-3 3 3"/><path d="M3 11l3 3 3-3"/></svg></span>` : ''}
         ${r.action || r.value ? '' : '<span class="ig-row-chevron">›</span>'}
       </div>`).join('')}</div>
@@ -10293,7 +10878,7 @@ function dishEyeDelButtons(hidden, toggleCode, delCode){
 function adminBadgeGroup(obj, path){
   obj=obj||{};
   return `<div class="ig-gallery-frame"><div class="badge-group"><span style="width:100%;font-size:11px;font-weight:600;color:#B4B4B4;margin-bottom:9px">Informations alimentaires</span>`
-    + BADGE_DEFS.map(b=>`<label class="badge-check"><input type="checkbox" ${obj[b.key]?'checked':''} onchange="if(this.checked)${path}.${b.key}=true;else delete ${path}.${b.key};renderAll()"><span class="badge-emoji">${b.emoji}</span> ${b.label}</label>`).join('')
+    + BADGE_DEFS.map(b=>`<label class="badge-check"><input type="checkbox" ${obj[b.key]?'checked':''} onchange="if(this.checked)${path}.${b.key}=true;else delete ${path}.${b.key};renderAll()">${badgeIcon(b)} ${b.label}</label>`).join('')
     + `</div></div>`;
 }
 
@@ -10481,6 +11066,7 @@ document.addEventListener('click', function(e){
     const badge = p.closest('.resto-badge-inline');
     if (badge && !badge.contains(e.target)) p.classList.remove('visible');
   });
+  if(!document.querySelector('.resto-popup.visible')) document.body.classList.remove('sched-modal');
 });
 { const dBtn=document.getElementById('calAdminBtnDesktop'); if(dBtn) dBtn.href=RESA_ADMIN_URL;
   const mBtn=document.getElementById('calAdminBtnMobile'); if(mBtn) mBtn.href=RESA_ADMIN_URL; }
