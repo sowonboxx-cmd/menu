@@ -323,7 +323,7 @@ body.hdr-light .hdr-sched .resto-badge-inline svg{color:rgba(20,35,70,.55)!impor
   /* Horaires a gauche, Reserver a droite, logo seul au centre : les
      deux informations qu'un client cherche encadrent la marque au lieu
      de la serrer. */
-  .header-top-sched{left:16px}
+  .header-top-sched{left:26px}
   .header-top-left{right:16px}
   /* Les raccourcis administrateur quittent l'en-tete : ils occupaient
      la place que les horaires prennent maintenant, et ils ne
@@ -4592,6 +4592,17 @@ function toggleSchedPopup(e,suffix){
   // dessous, au lieu de sortir par le bas.
   const ph=(p.offsetHeight||200)*z;
   let top=rect.bottom+10+8;
+  // Le badge est centre dans le bandeau, donc son bas tombe AVANT le bas
+  // de la bande coloree : cale sur lui, la fiche mordait de quelques
+  // pixels sur le bleu et paraissait collee a l'en-tete. On degage donc
+  // la bande elle-meme, avec juste assez de vide pour qu'on voie le fond
+  // du site passer entre les deux — pas assez pour laisser apparaitre le
+  // menu, qui donnerait une fiche flottant dans le vide.
+  const bande=badge.closest('.header, .sticky-header-group');
+  if(bande){
+    const bb=bande.getBoundingClientRect().bottom;
+    if(bb>rect.bottom) top=Math.max(top, bb+5);
+  }
   if(top+ph>window.innerHeight-12) top=Math.max(12, rect.top-10-ph);
   p.style.left=(left/z)+'px';
   p.style.top=(top/z)+'px';
