@@ -3612,6 +3612,26 @@ let _autoSaveTimer=null;
 // right after mutating DATA — this way nothing gets missed. Gated on
 // supaSession && editMode so a regular visitor's own tab-switching
 // never triggers a publish attempt or shows them an admin toast.
+// Telecharger la carte complete, telle qu'elle est en memoire. C'est
+// exactement ce qui a permis de recuperer Drevici le 26/09 — mais sans
+// passer par la console. A faire avant toute grosse session.
+function downloadBackup(){
+  if(DATA_SOURCE!=='supabase'){
+    showToast('⚠️ Rien à sauvegarder : les données ne sont pas chargées');
+    return;
+  }
+  try{
+    const d=new Date();
+    const p2=n=>String(n).padStart(2,'0');
+    const nom=CLIENT_SLUG+'-'+d.getFullYear()+p2(d.getMonth()+1)+p2(d.getDate())+'-'+p2(d.getHours())+p2(d.getMinutes())+'.json';
+    const blob=new Blob([JSON.stringify(DATA)],{type:'application/json'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download=nom;
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },0);
+    showToast('✓ Sauvegarde téléchargée — '+nom);
+  }catch(e){ showToast('⚠️ Sauvegarde impossible : '+e.message); }
+}
 function scheduleAutoSave(silent){
   if(_autoSaveTimer) clearTimeout(_autoSaveTimer);
   _autoSaveTimer=setTimeout(()=>{ publishToSupabase(silent); }, 900);
@@ -6589,7 +6609,12 @@ const _pathParts = (()=>{
 // avant de la publier. On le retire pour que la preview lise bien les
 // donnees du vrai client au lieu d'en chercher un qui n'existe pas.
 // Aucun deploiement reel ne se termine par "-preview".
-const CLIENT_SLUG = (_pathParts[_pathParts.length - 1] || 'default').replace(/-preview$/, '');
+const _lastSegment = _pathParts[_pathParts.length - 1] || 'default';
+// Un dossier en "-preview" est une recette : meme code, memes donnees,
+// mais on n'y ECRIT jamais. Une recette qui peut abimer la production
+// n'est pas une recette — c'est une deuxieme production.
+const IS_PREVIEW = /-preview$/.test(_lastSegment);
+const CLIENT_SLUG = _lastSegment.replace(/-preview$/, '');
 // Reservations admin dashboard for this restaurant (admin.html) — a
 // per-deployment value, since the reservation module lives in its own
 // folder/slug (e.g. 'drevici-paris'), separate from this menu's own
@@ -9591,6 +9616,11 @@ async function publishToSupabase(silent){
   // moindre reglage touche ensuite declenchait un enregistrement qui
   // remplacait la carte du restaurant par ce menu d'exemple, sans
   // confirmation et sans retour en arriere possible.
+  if(IS_PREVIEW){
+    showToast('👁 Preview en lecture seule — publiez depuis le site en ligne');
+    console.warn('[menu] ecriture refusee — page de preview, lecture seule');
+    return;
+  }
   if(DATA_SOURCE!=='supabase'){
     showToast('⚠️ Enregistrement bloqué : les données du restaurant ne sont pas chargées');
     console.warn('[menu] ecriture refusee — source='+DATA_SOURCE+' ('+DATA_SOURCE_REASON+')');
@@ -10337,7 +10367,11 @@ function renderPrintBodyWrapped(){
 }
 const MENU_MANAGEMENT_ROWS = [
   { key:'export', label:'Exporter votre menu', hint:'Impression, fiche Google Business, Instagram', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>', fn: renderPrintBodyWrapped },
-  { key:'formules', label:'Menus spéciaux et formules', hint:'Formule midi, menu étudiant, Saint-Valentin…', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="14" y2="13"/></svg>', fn: renderFormulesSection }
+  { key:'formules', label:'Menus spéciaux et formules', hint:'Formule midi, menu étudiant, Saint-Valentin…', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="14" y2="13"/></svg>', fn: renderFormulesSection },
+  // Une sauvegarde sur le disque, en un clic. Elle ne remplace pas
+  // l'historique automatique, mais elle ne depend d'aucun service :
+  // c'est le filet qui reste quand tout le reste a lache.
+  { key:'__backup', label:'Télécharger une sauvegarde', hint:'Un fichier daté de toute votre carte, sur votre ordinateur', action:'downloadBackup()', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>' }
 ];
 // "Menus et plats" réunit dans une seule sous-page ce qui était avant
 // deux groupes séparés sur Home (Catégories + Manager les
