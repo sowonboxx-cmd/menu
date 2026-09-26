@@ -224,15 +224,29 @@ body.hdr-band .nav-tab.active,
 body.hdr-band .nav-tab.nav-tab-swiping{color:var(--navy)}
 body.hdr-band .nav-indicator{top:auto;bottom:0;height:2px;background:var(--gold);border-radius:2px}
 body.hdr-band .view-bar{display:none}
-.hdr-sched{display:flex;justify-content:center;padding:0 0 8px;margin-top:-2px}
-.hdr-sched .sched-pin-frame{border:none;background:transparent;padding:4px 8px}
-/* Le badge horaires heritait d'un 11px pose en ligne, trop petit
-   par rapport au reste de la page. */
-.hdr-sched .resto-badge-inline > span{font-size:12px!important}
-/* En bandeau, le badge horaires est posé SUR la couleur : son texte
-   et son épingle doivent passer en clair, sinon ils disparaissent. */
-body.hdr-band .hdr-sched .resto-badge-inline > span{color:rgba(255,255,255,.82)!important}
-body.hdr-band .hdr-sched .resto-badge-inline svg{color:rgba(255,255,255,.82)!important;fill:currentColor}
+/* ── HORAIRES : UN BOUTON, PLUS UNE MENTION ──
+   Sous le logo, c'etait une ligne de texte discrete : rien ne disait
+   qu'on pouvait cliquer, et elle mangeait la hauteur dont un logo a
+   besoin. Elle prend la forme de « Reserver une table » — meme
+   hauteur, meme rayon, meme graisse — mais en version secondaire,
+   contour seul : les deux ne se disputent pas le regard, et on voit
+   au premier coup d'oeil que c'est cliquable.
+   La pastille de couleur reste : c'est elle qui porte l'info vivante
+   (ouvert, bientot, ferme). */
+.hdr-sched, .sched-bar{display:flex;justify-content:center}
+.hdr-sched .sched-pin-frame,
+.sched-bar .sched-pin-frame{border:1px solid currentColor;background:transparent;padding:0 14px;height:31px;border-radius:999px;display:inline-flex;align-items:center;color:rgba(255,255,255,.75);transition:opacity .15s}
+.hdr-sched .sched-pin-frame:hover,
+.sched-bar .sched-pin-frame:hover{opacity:.75}
+.hdr-sched .resto-badge-inline,
+.sched-bar .resto-badge-inline{gap:7px}
+.hdr-sched .resto-badge-inline > span,
+.sched-bar .resto-badge-inline > span{font-size:10.5px!important;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:inherit!important;white-space:nowrap}
+.hdr-sched .resto-badge-inline svg,
+.sched-bar .resto-badge-inline svg{color:inherit!important;fill:currentColor}
+/* Sur le creme, le contour reprend le bleu de marque. */
+body.hdr-light .hdr-sched .sched-pin-frame,
+.sched-bar .sched-pin-frame{color:var(--navy)}
 /* Réserver : une pastille flottante, présente en permanence sous le
    pouce. Grosse par le contraste, pas par la surface — une barre pleine
    largeur mange l'écran à chaque scroll et fait « appli de livraison ». */
@@ -293,10 +307,27 @@ body.hdr-band .hdr-sched .resto-badge-inline svg{color:rgba(255,255,255,.82)!imp
      redonne sa hauteur a la barre, comme avant. */
   .logo-centered{position:static;left:auto;top:auto;transform:none;pointer-events:auto}
   .header-top-left,
-  .header-top-right{position:absolute;top:50%;transform:translateY(-50%);margin:0}
-  .header-top-right{left:16px}
+  .header-top-right,
+  .header-top-sched{position:absolute;top:50%;transform:translateY(-50%);margin:0}
+  /* Horaires a gauche, Reserver a droite, logo seul au centre : les
+     deux informations qu'un client cherche encadrent la marque au lieu
+     de la serrer. */
+  .header-top-sched{left:16px}
   .header-top-left{right:16px}
+  /* Les raccourcis administrateur quittent l'en-tete : ils occupaient
+     la place que les horaires prennent maintenant, et ils ne
+     concernent qu'une personne. Ils redescendent dans une barre en
+     bas, visible seulement en mode administrateur. */
+  .header-top-right{display:none!important}
   .sticky-reserve{display:none}
+  body.is-admin .sticky-reserve,
+  body.admin-entry-visible .sticky-reserve{display:block}
+  body.is-admin .reserve-pill, body.admin-entry-visible .reserve-pill,
+  body.is-admin .sched-bar, body.admin-entry-visible .sched-bar{display:none}
+  body.is-admin .admin-quick, body.admin-entry-visible .admin-quick{display:flex;gap:30px}
+  body.is-admin .reserve-float, body.admin-entry-visible .reserve-float{gap:30px}
+  body.is-admin .page, body.admin-entry-visible .page{padding-bottom:84px}
+  .sched-bar{display:none}
   .page{padding-bottom:32px}
 }
 /* ═══ BANDEAU PHOTO EN TÊTE DE CATÉGORIE ═══
@@ -680,6 +711,19 @@ body.home-cover-showing{overflow:hidden}
      meant to be the mobile entry point. Matching selector specificity
      here so this always wins on small screens, admin or not. */
   .header-top-right, body.is-admin .header-top-right, body.admin-entry-visible .header-top-right{visibility:hidden}
+  /* Le logo est seul dans le bandeau : les horaires rejoignent
+     « Reserver une table » en bas, cote a cote. */
+  .header-top-sched{display:none}
+  /* flex:none, sinon le badge se laisse ecraser par la rangee et son
+     libelle se reduit a quelques pixels : « Ouvert jusqu'a 23h30 »
+     disparaissait purement et simplement. L'epingle saute ici, elle
+     est de toute facon dans la fiche qui s'ouvre au clic, et la
+     rangee peut passer sur deux lignes plutot que de rogner un texte. */
+  .sched-bar{flex:none}
+  .reserve-float{flex-wrap:wrap}
+  .sched-bar .sched-pin-frame{height:36px;padding:0 13px}
+  .sched-bar .resto-badge-inline svg{display:none}
+  body.is-admin .sched-bar, body.admin-entry-visible .sched-bar{display:none}
   .mode-links-bar{display:none!important}
   /* Icons 50% bigger (14px -> 21px) — padding above/below is reduced
      to compensate (bar padding 14->11, link padding 5->2) so the extra
@@ -1815,6 +1859,11 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
   <div class="header">
     <div class="container">
       <div class="header-top">
+        <!-- Les horaires quittent le dessous du logo : elles y rognaient
+             l'espace central, et un logo un peu haut se retrouvait
+             coince. Elles deviennent un bouton, de la meme famille que
+             « Reserver une table », pose a l'oppose. -->
+        <div class="header-top-sched"><div class="hdr-sched" id="schedWidgetHeader"></div></div>
         <div class="header-top-left">
           <a class="reserve-desk" href="https://sowonboxx-cmd.github.io/menu/drevici/resa">Réserver une table</a>
         </div>
@@ -1838,10 +1887,6 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
           </button>
         </div>
       </div>
-
-      <!-- Horaires : remontés sous le logo, centrés sur le même axe —
-           l'ancienne bande blanche disparaît avec eux. -->
-      <div class="hdr-sched" id="schedWidgetHeader"></div>
 
     </div>
   </div>
@@ -1882,6 +1927,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="12" rx="3.6"/><circle cx="8" cy="8" r="2.9"/><circle cx="11.5" cy="4.5" r="0.75" fill="currentColor" stroke="none"/></svg>
           </button>
         </div>
+        <div class="sched-bar" id="schedWidgetBar"></div>
         <a class="reserve-pill" id="reserveMain" href="https://sowonboxx-cmd.github.io/menu/drevici/resa">Réserver une table</a>
         <div class="admin-quick">
           <button class="mode-link" id="modeLinkEdit" title="Mode modification" aria-label="Mode modification" onclick="setEditMode(!editMode)">
@@ -3224,6 +3270,10 @@ function renderViewBar(){
   // portant le même id dans la page.
   const wh=document.getElementById('schedWidgetHeader');
   if(wh) wh.innerHTML=renderScheduleInline('Hdr');
+  // Meme badge dans la barre du bas, pour les petits ecrans ou l'en-tete
+  // n'a pas la largeur d'un bouton de chaque cote du logo.
+  const wb=document.getElementById('schedWidgetBar');
+  if(wb) wb.innerHTML=renderScheduleInline('Bar');
 }
 
 function renderScheduleInline(suffix){
@@ -3246,7 +3296,10 @@ function renderScheduleInline(suffix){
   for(const s of allSvcs){
     if(s.open==null) continue;
     const effectiveClose=s.close<=s.open?s.close+24:s.close;
-    if(hour>=s.open&&hour<effectiveClose){state='open';label="Ouvert jusqu'à "+fmtCloseHour(s.close);break;}
+    // Dans la barre du bas, le mot « Ouvert » fait doublon avec la
+    // pastille verte juste a cote, et c'est lui qui poussait le badge a
+    // passer sur une deuxieme ligne a cote de « Reserver une table ».
+    if(hour>=s.open&&hour<effectiveClose){state='open';label=(suffix==='Bar'?"Jusqu'à ":"Ouvert jusqu'à ")+fmtCloseHour(s.close);break;}
     if(hour<s.open){state='soon';label='Ouvre à '+s.open+'h';}
   }
   const dotClass=state==='open'?'open':state==='soon'?'soon':'closed';
