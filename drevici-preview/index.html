@@ -1877,6 +1877,14 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
   <div class="admin-body" id="adminBody"></div>
 </aside>
 
+<!-- Bandeau de repli : visible UNIQUEMENT quand les donnees du
+     restaurant n'ont pas pu etre chargees. Sans lui, le site servait le
+     menu d'exemple comme s'il etait le vrai. -->
+<div id="dataFallbackBar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:10000;background:#B3261E;color:#fff;font-family:'Jost',sans-serif;font-size:12px;line-height:1.45;padding:9px 14px;text-align:center">
+  <strong>Menu de démonstration</strong> — les données du restaurant n'ont pas pu être chargées.
+  <span id="dataFallbackWhy" style="display:block;opacity:.8;font-size:11px;margin-top:2px"></span>
+</div>
+
 <!-- PAGE -->
 <div id="homeCoverContainer"></div>
 <div class="page" id="app">
@@ -6621,8 +6629,29 @@ async function adminSignOut(){
 }
 
 // ── Load the menu from Supabase (public read, no login needed) ──
+// Etat du chargement, pour que l'echec cesse d'etre invisible.
+let DATA_SOURCE = 'exemple';
+let DATA_SOURCE_REASON = '';
+function reportDataSource(src, reason){
+  DATA_SOURCE = src; DATA_SOURCE_REASON = reason || '';
+  console.log('[menu] slug="'+CLIENT_SLUG+'" source='+src+(reason?' — '+reason:''));
+  const el=document.getElementById('dataFallbackBar');
+  if(!el) return;
+  if(src==='supabase'){ el.style.display='none'; return; }
+  el.style.display='block';
+  el.querySelector('#dataFallbackWhy').textContent = reason || '';
+}
 async function loadFromSupabase(){
-  if(!supabaseClient) return;
+  // Trois facons d'echouer donnaient exactement le meme ecran : la
+  // bibliotheque Supabase bloquee, aucune ligne pour ce slug, ou une
+  // erreur de requete. Dans les trois cas le site affichait son menu
+  // d'exemple SANS RIEN DIRE — impossible de savoir, depuis la page,
+  // qu'on ne regardait pas les vraies donnees. Chaque sortie est
+  // desormais nommee.
+  if(!supabaseClient){
+    reportDataSource('exemple', 'bibliotheque Supabase non chargee (bloquee ou hors ligne)');
+    return;
+  }
   try{
     const { data: row, error } = await supabaseClient
       .from('menu_data')
@@ -6630,7 +6659,7 @@ async function loadFromSupabase(){
       .eq('client_slug', CLIENT_SLUG)
       .maybeSingle();
     if(error) throw error;
-    if(!row){ console.log('menu_data absent — premier lancement'); migrateTabIds(); migratePins(); return; }
+    if(!row){ reportDataSource('exemple', 'aucune ligne menu_data pour « '+CLIENT_SLUG+' »'); migrateTabIds(); migratePins(); return; }
     const json = row.data;
     // BUG FIX (architecture): the old GitHub version restored fields one
     // by one from a hand-maintained whitelist (see pitfall #16/#9) —
@@ -6660,9 +6689,11 @@ async function loadFromSupabase(){
       currentTabId=(hashTid && DATA.tabs.some(tb=>tb.id===hashTid && tb.visible!==false)) ? hashTid : (DATA.tabs[0]?.id||'huitres');
     }
     migratePins();
+    reportDataSource('supabase');
     console.log('✓ Chargé depuis Supabase — tabs:'+DATA.tabs.length+', specials actifs:'+DATA.specials.filter(s=>s.active).length+', intro:'+DATA.intro.active);
   }catch(e){
     console.warn('Supabase load failed:', e.message);
+    reportDataSource('exemple', e.message);
     if(supaSession) showToast('⚠️ Chargement impossible : '+e.message+' — données locales affichées');
   }
 }
