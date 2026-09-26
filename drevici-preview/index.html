@@ -148,7 +148,8 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .ei-check span{font-size:13px;font-family:'Jost',sans-serif;color:var(--text)}
 .ei-badges{display:flex;gap:8px;flex-wrap:wrap}
 .badge-toggle{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border:1.5px solid var(--border);border-radius:20px;background:#fff;font-family:'Jost',sans-serif;font-size:12.5px;color:var(--text2);cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent}
-.badge-toggle .bt-emoji{font-size:15px;line-height:1}
+.badge-toggle .bt-emoji{display:inline-flex;align-items:center;line-height:0}
+.badge-toggle .bt-emoji svg{width:17px;height:17px;display:block}
 .badge-toggle.on{border-color:var(--navy);background:rgba(16,40,94,0.07);color:var(--navy);font-weight:500}
 .badge-toggle:active{transform:scale(0.97)}
 .ef-acc{border:1px solid var(--border);border-radius:10px;margin-bottom:14px;overflow:hidden;background:#fbfbfa}
@@ -158,7 +159,8 @@ textarea.ei{resize:vertical;min-height:70px;line-height:1.5}
 .ef-acc[open]>summary::after{transform:rotate(180deg)}
 .ef-acc .acc-body{padding:2px 14px 12px}
 .ef-acc .acc-body .ef:first-child{margin-top:0}
-.badge-emoji{font-size:15px;line-height:1;display:inline-block;vertical-align:middle;margin-right:2px}
+.badge-emoji{display:inline-flex;align-items:center;vertical-align:middle;line-height:0;margin-right:3px}
+.badge-emoji svg{width:15px;height:15px;display:block}
 .efrow{display:flex;gap:10px}
 .efrow>.ef{flex:1}
 /* edit-mode clickable blocks */
@@ -2372,17 +2374,45 @@ function efBi(label,frVal,curVal,isText){
 function readEf(idx){ const els=document.querySelectorAll('#editPopBody [data-ef]'); return els[idx]?els[idx].value:''; }
 
 // ---- Shared dietary/badge definitions (used in popups, admin panel, public menu, exports) ----
+// C'etaient des emoji : rendus par la police du systeme, donc brillants,
+// ombres, en relief — l'exact oppose du reste de l'interface — et
+// differents sur chaque appareil (un 🌶️ Apple n'a rien a voir avec
+// celui d'Android ou de Windows). On les dessine donc nous-memes, a
+// plat : aplats de couleur, aucun degrade, aucune ombre, silhouette
+// lisible a 15px. Identiques partout, et maitrises.
 const BADGE_DEFS=[
-  {key:'vegetarian', emoji:'🌱', label:'Végétarien'},
-  {key:'vegan',      emoji:'🌿', label:'Vegan'},
-  {key:'glutenfree', emoji:'🌾', label:'Sans gluten'},
-  {key:'lactosefree',emoji:'🥛', label:'Sans lactose'},
-  {key:'spicy',      emoji:'🌶️', label:'Piquant'},
+  {key:'vegetarian', label:'Végétarien', svg:
+    `<path d="M19.4 4.3c.4 8.6-4 14.4-10.7 14.4-1.4 0-2.7-.3-3.9-.8C4.3 9.6 10.2 4.6 19.4 4.3Z" fill="#4CAF50"/>`+
+    `<path d="M4.6 20.2C7.4 15.4 11 11.5 15.4 8.6" stroke="#2E7D32" stroke-width="1.7" stroke-linecap="round"/>`},
+  {key:'vegan', label:'Vegan', svg:
+    `<path d="M12 21.2v-7.4" stroke="#2E7D32" stroke-width="2" stroke-linecap="round"/>`+
+    `<path d="M12 14.2C12 9.5 8.8 6.2 4 6.2c0 4.7 3.2 8 8 8Z" fill="#7CC47F"/>`+
+    `<path d="M12 14.2c0-4.7 3.2-8 8-8 0 4.7-3.2 8-8 8Z" fill="#2E7D32"/>`},
+  {key:'glutenfree', label:'Sans gluten', svg:
+    `<path d="M12 21.2v-7.6" stroke="#B9832C" stroke-width="1.9" stroke-linecap="round"/>`+
+    `<path d="M12 3.2c1.6 1.2 2.4 2.5 2.4 3.9S13.6 9.8 12 11c-1.6-1.2-2.4-2.5-2.4-3.9S10.4 4.4 12 3.2Z" fill="#E3A93E"/>`+
+    `<path d="M11.2 8.5c.5 1.9.2 3.4-.8 4.4-1.4-.5-2.4-1.6-2.9-3.5-.5-1.9-.2-3.4.8-4.4 1.4.5 2.4 1.6 2.9 3.5Z" fill="#E3A93E"/>`+
+    `<path d="M12.8 8.5c-.5 1.9-.2 3.4.8 4.4 1.4-.5 2.4-1.6 2.9-3.5.5-1.9.2-3.4-.8-4.4-1.4.5-2.4 1.6-2.9 3.5Z" fill="#E3A93E"/>`+
+    `<path d="M11.2 13.2c.5 1.9.2 3.4-.8 4.4-1.4-.5-2.4-1.6-2.9-3.5-.5-1.9-.2-3.4.8-4.4 1.4.5 2.4 1.6 2.9 3.5Z" fill="#D49A33"/>`+
+    `<path d="M12.8 13.2c-.5 1.9-.2 3.4.8 4.4 1.4-.5 2.4-1.6 2.9-3.5.5-1.9.2-3.4-.8-4.4-1.4.5-2.4 1.6-2.9 3.5Z" fill="#D49A33"/>`+
+    `<path d="M4.2 20.1 19.9 4.2" stroke="#D2483F" stroke-width="2.4" stroke-linecap="round"/>`},
+  {key:'lactosefree', label:'Sans lactose', svg:
+    `<path d="M12 3.4c3.3 4 5.1 6.8 5.1 9.2a5.1 5.1 0 0 1-10.2 0c0-2.4 1.8-5.2 5.1-9.2Z" fill="#5AA9E6"/>`+
+    `<path d="M4.2 20.1 19.9 4.2" stroke="#D2483F" stroke-width="2.3" stroke-linecap="round"/>`},
+  {key:'spicy', label:'Piquant', svg:
+    `<path d="M15.1 6.1Q21.4 12.9 4.9 20.8Q10.5 13.6 9.7 6.5Q12.4 4.9 15.1 6.1Z" fill="#E04A3F"/>`+
+    `<path d="M12.4 5.6 12 3.4h2.9" stroke="#3E9E4E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>`},
 ];
+// Une seule fabrique pour les quatre endroits ou ces icones sortent
+// (menu public, pop-up de modification, deux panneaux admin) : le jour
+// ou une icone change, elle change partout.
+function badgeIcon(b, cls){
+  return `<span class="${cls||'badge-emoji'}" title="${b.label}"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true">${b.svg}</svg></span>`;
+}
 // Public-menu icons for active badges
 function badgeIconsHtml(obj){
   obj=obj||{};
-  return BADGE_DEFS.filter(b=>obj[b.key]).map(b=>`<span class="badge-emoji" title="${b.label}">${b.emoji}</span>`).join('');
+  return BADGE_DEFS.filter(b=>obj[b.key]).map(b=>badgeIcon(b)).join('');
 }
 // Human-readable labels of active badges (for CSV / exports)
 function badgeLabels(obj){
@@ -2396,7 +2426,7 @@ function efBadgesField(obj){
   let h='<div class="ef"><label class="el">Informations alimentaires</label><div class="ei-badges">';
   BADGE_DEFS.forEach(b=>{
     const on=!!obj[b.key];
-    h+=`<button type="button" class="badge-toggle${on?' on':''}" data-badge="${b.key}" aria-pressed="${on}" onclick="efToggleBadge(this)"><span class="bt-emoji">${b.emoji}</span> ${b.label}</button>`;
+    h+=`<button type="button" class="badge-toggle${on?' on':''}" data-badge="${b.key}" aria-pressed="${on}" onclick="efToggleBadge(this)">${badgeIcon(b,'bt-emoji')} ${b.label}</button>`;
   });
   h+='</div></div>';
   return h;
@@ -5849,7 +5879,7 @@ function renderDishDetailBody(ti, ci, di){
       <span class="ig-panel-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/></svg></span>
       <span class="ig-panel-title">Informations alimentaires</span>
     </div>
-    <div class="badge-group">${BADGE_DEFS.map(b=>`<label class="badge-check"><input type="checkbox" ${d[b.key]?'checked':''} onchange="if(this.checked)${base}.${b.key}=true;else delete ${base}.${b.key};renderAll()"><span class="badge-emoji">${b.emoji}</span> ${b.label}</label>`).join('')}</div>
+    <div class="badge-group">${BADGE_DEFS.map(b=>`<label class="badge-check"><input type="checkbox" ${d[b.key]?'checked':''} onchange="if(this.checked)${base}.${b.key}=true;else delete ${base}.${b.key};renderAll()">${badgeIcon(b)} ${b.label}</label>`).join('')}</div>
   </div>`;
 
   // Masquer / supprimer en bas de page, en deux lignes de liste —
@@ -10837,7 +10867,7 @@ function dishEyeDelButtons(hidden, toggleCode, delCode){
 function adminBadgeGroup(obj, path){
   obj=obj||{};
   return `<div class="ig-gallery-frame"><div class="badge-group"><span style="width:100%;font-size:11px;font-weight:600;color:#B4B4B4;margin-bottom:9px">Informations alimentaires</span>`
-    + BADGE_DEFS.map(b=>`<label class="badge-check"><input type="checkbox" ${obj[b.key]?'checked':''} onchange="if(this.checked)${path}.${b.key}=true;else delete ${path}.${b.key};renderAll()"><span class="badge-emoji">${b.emoji}</span> ${b.label}</label>`).join('')
+    + BADGE_DEFS.map(b=>`<label class="badge-check"><input type="checkbox" ${obj[b.key]?'checked':''} onchange="if(this.checked)${path}.${b.key}=true;else delete ${path}.${b.key};renderAll()">${badgeIcon(b)} ${b.label}</label>`).join('')
     + `</div></div>`;
 }
 
