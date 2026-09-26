@@ -4788,21 +4788,24 @@ function renderFirstTabExtrasSection(){
         <span class="ig-row-label">Afficher la devise (€)</span>
         <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${DATA.showCurrency!==false?'checked':''} onchange="DATA.showCurrency=this.checked;renderAll()"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
       </div>
+      <!-- Deux interrupteurs pour DEUX etats qui s'excluent : cocher
+           l'un decochait l'autre, donc la moitie des gestes ne servait
+           a rien et rien ne disait qu'il fallait choisir. Un seul
+           selecteur a deux segments le dit tout seul — c'est aussi le
+           composant deja utilise ailleurs dans le panneau. -->
       <div class="ig-row" style="cursor:default">
         <span class="ig-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
-        <span class="ig-row-label"><span>Afficher le menu en grille</span><span class="ig-row-hint">Sur mobile. Sur ordinateur, toujours la grille.</span></span>
-        <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${(DATA.defaultView||'list')==='grid'?'checked':''} onchange="if(this.checked){DATA.defaultView='grid';view='grid';}else{DATA.defaultView='list';view='list';}renderAll();renderAdminSection('__global')"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
+        <span class="ig-row-label"><span>Affichage du menu</span><span class="ig-row-hint">Sur mobile. Sur ordinateur, toujours la grille.</span></span>
+        <div class="ig-align-group" style="margin-left:auto">
+          <button type="button" class="ig-align-btn${(DATA.defaultView||'list')==='list'?' active':''}" title="Liste" aria-label="Liste" onclick="setDefaultView('list')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg></button>
+          <button type="button" class="ig-align-btn${(DATA.defaultView||'list')==='grid'?' active':''}" title="Grille" aria-label="Grille" onclick="setDefaultView('grid')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></button>
+        </div>
       </div>
-      <div class="ig-row" style="cursor:default">
-        <span class="ig-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg></span>
-        <span class="ig-row-label"><span>Afficher le menu en liste</span><span class="ig-row-hint">Sur mobile uniquement</span></span>
-        <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${DATA.defaultView==='list'?'checked':''} onchange="if(this.checked){DATA.defaultView='list';view='list';}else{DATA.defaultView='grid';view='grid';}renderAll();renderAdminSection('__global')"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
-      </div>
-      <div class="ig-row" style="cursor:default">
-        <span class="ig-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg></span>
-        <span class="ig-row-label"><span>Bandeau coloré en haut</span><span class="ig-row-hint">Sinon, le nom reste sur fond clair</span></span>
-        <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${headerStyle()==='band'?'checked':''} onchange="setHeaderStyle(this.checked?'band':'light')"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
-      </div>
+      <!-- Will : l'option « Bandeau colore en haut » est retiree. Le
+           bandeau est desormais systematique. Choisir sa couleur de
+           fond suffit a le comprendre ; un reglage de plus pour un
+           effet que peu de gens savaient nommer ajoutait surtout du
+           doute. -->
     </div>
   </div></div>`;
 
@@ -9209,8 +9212,20 @@ function renderBrandColorsSection(){
   h+='</div></div>';
   return h;
 }
+// Liste ou grille : un seul reglage, deux valeurs. Le selecteur du
+// panneau appelle ceci plutot que de reconstruire l'etat inverse a
+// partir d'une case cochee.
+function setDefaultView(v){
+  const next = (v==='grid') ? 'grid' : 'list';
+  if(DATA.defaultView===next) return;
+  DATA.defaultView = next;
+  view = next;
+  renderAll();
+  renderAdminSection(adminCurrentTab);
+  scheduleAutoSave(true);
+}
 function setHeaderStyle(mode){
-  DATA.headerStyle = (mode==='light') ? 'light' : 'band';
+  DATA.headerStyle = 'band';
   applyHeaderStyle();
   applyBrandColors();
   renderAll();
@@ -9252,7 +9267,11 @@ function renderCorpoTemplatesSection(){
 // identique dans les deux cas, ce n'est pas deux designs mais une
 // bascule. Pilote aussi la barre de statut (encoche iPhone), qui doit
 // toujours prendre la couleur réellement affichée en haut de page.
-function headerStyle(){ return (DATA.headerStyle==='light') ? 'light' : 'band'; }
+// Le bandeau colore n'est plus une option (voir la section
+// Affichage) : il est systematique. La fonction reste en place
+// pour ses appelants, et une ancienne valeur 'light' enregistree
+// chez un client n'a plus d'effet.
+function headerStyle(){ return 'band'; }
 function applyHeaderStyle(){
   const band = headerStyle()==='band';
   document.body.classList.toggle('hdr-band', band);
