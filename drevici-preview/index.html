@@ -232,22 +232,15 @@ body.hdr-band .hdr-sched .resto-badge-inline svg{color:rgba(255,255,255,.82)!imp
 /* Réserver : une pastille flottante, présente en permanence sous le
    pouce. Grosse par le contraste, pas par la surface — une barre pleine
    largeur mange l'écran à chaque scroll et fait « appli de livraison ». */
-/* Deux raisons faisaient paraitre le bouton trop haut, et le degrade
-   est bien la cause des deux.
-   1. Le haut de la bande n'est pas opaque : le degrade en efface une
-      dizaine de pixels. Le centre VU est donc plus bas que le centre
-      geometrique, et un bouton parfaitement centre au calcul remonte a
-      l'oeil. Les marges compensent cet ecart : 18 en haut, 10 en bas,
-      pour une hauteur de barre inchangee.
-   2. Sur un telephone a encoche, la reserve du bas etait ajoutee
-      entierement SOUS le bouton alors que la bande, elle, est peinte
-      jusqu'en bas : le bouton se retrouvait haut de la moitie de cette
-      reserve. Elle est maintenant repartie de part et d'autre.
-   La repartition n'est pas 50/50 mais 56/44 : la hauteur du degrade
-   suit celle de la barre, donc elle grandit elle aussi avec la
-   reserve. Ces coefficients annulent le terme qui en depend, et le
-   centrage optique tient alors a tous les formats, encoche ou pas. */
-.reserve-float{display:flex;align-items:center;justify-content:center;gap:10px;padding:calc(18px + env(safe-area-inset-bottom)*0.56) 0 calc(10px + env(safe-area-inset-bottom)*0.44)}
+/* La bande n'a plus de degrade : elle est opaque de son filet jusqu'en
+   bas, donc le centre vu redevient le centre geometrique et les deux
+   marges sont a nouveau egales — la compensation optique n'a plus lieu
+   d'etre. Reste un point : sur un telephone a encoche, la bande est
+   peinte jusqu'au bas de l'ecran, reserve comprise. Ajoutee entierement
+   sous le bouton, elle le remonterait de sa moitie ; elle est donc
+   repartie de part et d'autre, et le centrage tient avec encoche comme
+   sans. */
+.reserve-float{display:flex;align-items:center;justify-content:center;gap:10px;padding:calc(14px + env(safe-area-inset-bottom)/2) 0}
 /* Raccourcis administrateur : jamais visibles pour un visiteur, et
    sur mobile uniquement — sur ordinateur, ils vivent déjà dans
    l'en-tête et rien ne change là-bas. Plat, mais bien détaché du
@@ -663,9 +656,10 @@ body.home-cover-showing{overflow:hidden}
   /* Le degrade du haut de la barre est remis : sans lui, le contenu
      s'arrete net sur un bord franc quand on fait defiler. Il avait saute
      en meme temps que le passage de sticky a fixed. */
-  /* Le degrade se limite au-dessus du bouton : a 80% il rongeait le
-     haut de la bande pleine et le bouton semblait deborder. */
-  .sticky-reserve{position:fixed;bottom:0;left:0;right:0;z-index:100;background:linear-gradient(to top,var(--bg) 88%,transparent)}
+  /* Will : plus de degrade, un bord franc. Le contenu s'arrete donc net
+     sur un filet d'un pixel, et la bande devient un vrai bloc — pour
+     l'administrateur comme pour un client, c'est la meme barre. */
+  .sticky-reserve{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--bg);border-top:1px solid var(--border)}
   .sticky-reserve .container{padding:0 0}
   .reserve-btn{border-radius:0;padding:17px 16px}
   /* BUG FIX: 130px reserved way more space than the sticky bar (reserve
