@@ -117,7 +117,11 @@ body.is-admin .header-top-right, body.admin-entry-visible .header-top-right{visi
 .edit-pop.open{display:flex}
 .edit-pop-box{background:#fff;border-radius:14px;width:100%;max-width:680px;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
 .edit-pop-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#fff;border-radius:14px 14px 0 0;z-index:2}
-.edit-pop-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--navy)}
+.edit-pop-title{font-family:'Jost',sans-serif;font-size:17px;font-weight:600;letter-spacing:.01em;color:var(--navy)}
+/* Une seule police dans toute la fiche de modification : le titre
+   etait en Cormorant (la police « restaurant »), le reste en Jost.
+   Deux polices dans une meme boite d'edition, ca se voit. */
+.edit-pop, .edit-pop input, .edit-pop textarea, .edit-pop select, .edit-pop button{font-family:'Jost',sans-serif}
 .edit-pop-close{width:30px;height:30px;border:none;background:var(--bg);border-radius:8px;cursor:pointer;font-size:16px;color:var(--text2);display:flex;align-items:center;justify-content:center}
 .edit-pop-body{padding:18px 20px}
 .edit-pop-foot{padding:14px 20px 18px;position:sticky;bottom:0;background:#fff;border-top:1px solid var(--border);border-radius:0 0 14px 14px}
@@ -252,14 +256,14 @@ body.hdr-band .hdr-sched .resto-badge-inline svg{color:rgba(255,255,255,.82)!imp
 /* Marge négative + padding : le bandeau file jusqu'aux bords de
    l'écran et laisse dépasser la carte suivante — c'est ce dépassement
    qui dit « ça défile » sans aucune flèche ni indicateur. */
-.rail{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-left:0;overscroll-behavior-x:contain;scrollbar-width:none;margin:0 -16px 0 0;padding:0 16px 2px 0}
+.rail{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-left:0;overscroll-behavior-x:contain;scrollbar-width:none;margin:0 -16px 0 0;padding:0 16px 2px 0}
 .rail::-webkit-scrollbar{display:none}
 /* Reactivite facon Apple : scroll-snap-stop garantit qu'une
    impulsion vive s'arrete NET sur la carte suivante au lieu de
    deriver mollement, et overscroll-behavior empeche le geste de
    partir dans la page. L'ancien -webkit-overflow-scrolling:touch,
    qui ajoutait une inertie flottante, est retire. */
-.rail-card{flex:0 0 69%;max-width:300px;scroll-snap-align:start;scroll-snap-stop:always;cursor:pointer;position:relative}
+.rail-card{flex:0 0 63%;max-width:280px;scroll-snap-align:start;scroll-snap-stop:always;cursor:pointer;position:relative}
 .rail-pin{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;line-height:1;pointer-events:none}
 .rail-pin-on{color:var(--gold)}
 .rail-img{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:20px;display:block;background:#ece8e1;transition:opacity .15s}
@@ -287,14 +291,24 @@ body.hdr-band .hdr-sched .resto-badge-inline svg{color:rgba(255,255,255,.82)!imp
      hauteur ; sans align-content:start, l'espace restant se repartissait
      ENTRE le nom et la description et les decollait l'un de l'autre.
      Ici les rangees se tassent en haut et le vide part sous le texte. */
-  .rail-card{flex:none;max-width:none;width:100%;display:grid;grid-template-columns:72px minmax(0,1fr);grid-template-rows:auto auto;column-gap:14px;align-content:start;padding:12px 0;border-bottom:1px solid rgba(0,0,0,.05)}
+  /* BUG FIX (description decollee du nom) : en grille, la vignette qui
+     occupait deux rangees faisait GRANDIR ces rangees, et l'espace
+     supplementaire se glissait entre le nom et la description.
+     align-content n'y pouvait rien : il ne repartit que l'espace libre
+     du conteneur, pas celui absorbe par les rangees elles-memes. Le nom
+     et la description vivent desormais dans un meme bloc, pose a cote
+     de la vignette : plus aucune rangee ne peut s'intercaler. */
+  .rail-card{flex:none;max-width:none;width:100%;display:flex;align-items:flex-start;gap:14px;padding:12px 0;border-bottom:1px solid rgba(0,0,0,.05)}
   .rail-card:last-child{border-bottom:none}
-  .rail-img{width:72px;height:72px;aspect-ratio:auto;flex:none;border-radius:10px;grid-row:1 / span 2;align-self:start}
-  .rail-meta{margin-top:0;padding:0;grid-column:2;grid-row:1;justify-content:space-between}
+  /* Deux incontournables suffisent sur grand ecran : en liste, au-dessus
+     de la grille, trois lignes commencent a peser. */
+  .rail-card:nth-child(n+3){display:none}
+  .rail-img{width:72px;height:72px;aspect-ratio:auto;flex:none;border-radius:10px}
+  .rail-text{flex:1;min-width:0}
+  .rail-meta{margin-top:0;padding:0;justify-content:space-between}
   .rail-price{display:block}
-  .rail-desc{grid-column:2;grid-row:2}
   .rail-name{font-size:15px;text-align:left}
-  .rail-desc{display:block;font-family:'Open Sans',sans-serif;font-size:12.5px;font-weight:400;color:var(--text2);line-height:1.5;margin-top:3px}
+  .rail-desc{display:block;font-family:'Open Sans',sans-serif;font-size:12.5px;font-weight:400;color:var(--text2);line-height:1.5;margin-top:2px}
 }
 /* TEST (Will) : la photo passe à GAUCHE et le texte à droite dans
    la liste. On inverse l'ordre visuel sans toucher au balisage, pour
@@ -1624,7 +1638,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
         <a class="reserve-pill" id="reserveMain" href="https://sowonboxx-cmd.github.io/menu/drevici/resa">Réserver une table</a>
         <div class="admin-quick">
           <button class="mode-link" id="modeLinkEdit" title="Mode modification" aria-label="Mode modification" onclick="setEditMode(!editMode)">
-            <svg id="modeLinkEditIcon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2l3 3-8 8H3v-3l8-8z"/><line x1="9" y1="4" x2="12" y2="7"/></svg>
+            <svg id="modeLinkEditIcon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 2.6H3.7A1.7 1.7 0 0 0 2 4.3v8A1.7 1.7 0 0 0 3.7 14h8a1.7 1.7 0 0 0 1.7-1.7V7.6"/><path d="M12.1 2.1a1.55 1.55 0 0 1 2.2 2.2l-5.9 5.9-2.9.7.7-2.9 5.9-5.9z"/></svg>
           </button>
           <!-- Roue dentée remplacée par des curseurs : le même dessin de
                rouage en 16px devient une tache une fois aminci, alors que
@@ -1956,7 +1970,9 @@ function setEditMode(on){
   // while editing) — matches the intent behind the old two-button
   // setup without needing two elements.
   const eyeIcon = '<path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/>';
-  const pencilIcon = '<path d="M11 2l3 3-8 8H3v-3l8-8z"/><line x1="9" y1="4" x2="12" y2="7"/>';
+  // Crayon dans un cadre : plus lisible qu'un crayon seul a 19px, et
+  // c'est le pictogramme que tout le monde associe a « editer ».
+  const pencilIcon = '<path d="M8.4 2.6H3.7A1.7 1.7 0 0 0 2 4.3v8A1.7 1.7 0 0 0 3.7 14h8a1.7 1.7 0 0 0 1.7-1.7V7.6"/><path d="M12.1 2.1a1.55 1.55 0 0 1 2.2 2.2l-5.9 5.9-2.9.7.7-2.9 5.9-5.9z"/>';
   [['btnModeToggle','btnModeToggleIcon'],['modeLinkEdit','modeLinkEditIcon']].forEach(([btnId,svgId])=>{
     const btn=document.getElementById(btnId), svg=document.getElementById(svgId);
     if(!btn||!svg) return;
@@ -2575,7 +2591,7 @@ function renderCategoryRail(tab){
     return `<div class="rail-card" data-edit="dish" data-ti="${ti}" data-ci="${s.ci}" data-di="${s.di}" data-lbidx="${s.lb}">`
       + `<img class="rail-img" src="${d.img}" alt="" loading="lazy">`
       + (editMode?`<span class="rail-pin${isPinnedDish(d)?' rail-pin-on':''}">${isPinnedDish(d)?'★':'☆'}</span>`:'')
-      + `<div class="rail-meta"><div class="rail-name">${t(d.name)}</div>`
+      + `<div class="rail-text"><div class="rail-meta"><div class="rail-name">${t(d.name)}</div>`
       // Sur mobile, pas de prix ici : le nom occupe toute la carte, il
       // se lit en entier et rien ne detourne l'oeil. Le prix reste dans
       // la liste et en plein ecran. Sur desktop (liste), il revient.
@@ -2584,7 +2600,7 @@ function renderCategoryRail(tab){
       // La description n'est montree que sur grand ecran : sur mobile,
       // la carte est deja haute et le nom suffit.
       + (t(d.desc)?`<div class="rail-desc">${t(d.desc)}</div>`:'')
-      + `</div>`;
+      + `</div></div>`;
   }).join('');
   return `<div class="rail-wrap">${head}<div class="rail">${cards}</div></div>`;
 }
