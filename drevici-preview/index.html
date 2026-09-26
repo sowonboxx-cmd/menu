@@ -4777,15 +4777,24 @@ function handleSaveClick(){
   publishToSupabase();
 }
 
+// BUG FIX (l'accordeon « Personnaliser » se refermait tout seul) :
+// cocher une case appelle renderAdminSection, qui reconstruit la page
+// puis remet les sections dans l'etat ou elles etaient. Mais ce
+// releve ne regardait que .admin-section.collapsible — or cet
+// accordeon-la porte .ig-accordion. Il n'etait donc ni releve ni
+// restaure, et repartait a chaque fois dans son etat par defaut,
+// c'est-a-dire replie. Les deux fonctions visent maintenant le meme
+// ensemble, dans le meme ordre, pour que les indices correspondent.
+const ADMIN_FOLDABLES='.admin-section.collapsible, .admin-section.ig-accordion';
 function getAdminOpenSections(){
   const body=document.getElementById('adminBody');
   if(!body) return [];
-  return Array.from(body.querySelectorAll('.admin-section.collapsible')).map((s,i)=>({i,open:!s.classList.contains('collapsed'),title:s.querySelector('.admin-sect-title')?.textContent?.trim().slice(0,40)||''}));
+  return Array.from(body.querySelectorAll(ADMIN_FOLDABLES)).map((s,i)=>({i,open:!s.classList.contains('collapsed'),title:s.querySelector('.admin-sect-title,.ig-card-sect-title')?.textContent?.trim().slice(0,40)||''}));
 }
 function restoreAdminOpenSections(states){
   const body=document.getElementById('adminBody');
   if(!body||!states||!states.length) return;
-  const secs=body.querySelectorAll('.admin-section.collapsible');
+  const secs=body.querySelectorAll(ADMIN_FOLDABLES);
   secs.forEach((s,i)=>{
     const st=states.find(x=>x.i===i);
     if(st){ if(st.open) s.classList.remove('collapsed'); else s.classList.add('collapsed'); }
@@ -6952,11 +6961,19 @@ const PDF_SVG = {anchor:"<svg version=\"1.0\" xmlns=\"http://www.w3.org/2000/svg
    la meme chose a l'oeil, quelle que soit leur forme.
    (Les valeurs sont en pixels A4 ; px() les remet a l'echelle en A5.) */
 const LOGO_SIZES = {
-  discret: 48,
-  moyen:   70,
-  grand:   96
+  petit: { img: 48, text: 22 },
+  moyen: { img: 70, text: 30 },
+  grand: { img: 96, text: 38 }
 };
 const LOGO_W_RATIO = 3.2;
+// Sans logo IMAGE enregistre, cocher « Afficher le logo » fait retomber
+// l'en-tete sur le NOM du restaurant, en petit. Le reglage pilote donc
+// les deux : sinon la case parait ne rien faire chez un client qui n'a
+// pas encore televerse de logo, et le nom sort plus petit qu'avec la
+// case decochee — ce qui n'a aucun sens.
+function logoStep(cfg){
+  return LOGO_SIZES[(cfg&&cfg.logoSize)] || LOGO_SIZES.moyen;
+}
 function pdfCfg(){
   if(!DATA.pdfStyle) DATA.pdfStyle = {};
   const d = DATA.pdfStyle;
@@ -6980,7 +6997,7 @@ function pdfCfg(){
     // client a l'autre, donc une largeur libre ne veut rien dire d'un
     // restaurant au suivant. Voir buildPdfCSS pour la regle qui accorde
     // largeur et hauteur.
-    logoSize: LOGO_SIZES[d.logoSize] ? d.logoSize : 'moyen',
+    logoSize: d.logoSize==='discret' ? 'petit' : (LOGO_SIZES[d.logoSize] ? d.logoSize : 'moyen'),
     showIcons: d.showIcons !== false,
     showDots: d.showDots !== false,
     showFrame: d.showFrame !== false,
@@ -7926,8 +7943,8 @@ function buildPdfCSS(cfg){
   .pdf-page{--space-scale:1;--top-pad-trim:0px;--solo-scale:.92;font-family:'Open Sans',sans-serif;color:#1a1a1a;background:${cfg.menuBgColor||cfg.bgColor||'#FFFDF8'};width:${pageW}px;${pageH?`min-height:${pageH}px;`:''}padding-top:calc(${pad}px - var(--top-pad-trim));padding-right:${pad}px;padding-bottom:${pad}px;padding-left:${pad}px;margin:0 auto;position:relative}
   ${cfg.showFrame!==false?`.pdf-page::before{content:'';position:absolute;inset:${px(14)}px;border:1.5px solid ${cfg.menuFrameColor};opacity:.4;pointer-events:none}`:''}
   .pdf-header{text-align:center;margin-bottom:calc(${isGbiz?18:px(33)}px * var(--space-scale));position:relative}
-  .pdf-logo-text{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?24.86:px(22)}px;font-weight:700;color:var(--navy,#10285E);margin:0 auto 12px;display:block;text-align:center}
-.pdf-logo{max-width:${isGbiz?100:px(Math.round((LOGO_SIZES[cfg.logoSize]||LOGO_SIZES.moyen)*LOGO_W_RATIO))}px;max-height:${isGbiz?70:px(LOGO_SIZES[cfg.logoSize]||LOGO_SIZES.moyen)}px;object-fit:contain;margin:0 auto 8px;display:block}
+  .pdf-logo-text{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?24.86:px(logoStep(cfg).text)}px;font-weight:700;color:var(--navy,#10285E);margin:0 auto 12px;display:block;text-align:center}
+.pdf-logo{max-width:${isGbiz?100:px(Math.round(logoStep(cfg).img*LOGO_W_RATIO))}px;max-height:${isGbiz?70:px(logoStep(cfg).img)}px;object-fit:contain;margin:0 auto 8px;display:block}
   .pdf-title{font-family:'Cormorant Garamond',serif;font-size:${isGbiz?49.72:px(32)}px;font-weight:700;color:${cfg.menuTitleColor};line-height:1.1}
   .pdf-sub{font-size:${isGbiz?14.69:px(11)}px;letter-spacing:.16em;text-transform:uppercase;color:#999;margin-top:6px}
   .pdf-section{margin-bottom:calc(${isGbiz?100:px(52)}px * var(--space-scale));break-inside:avoid;page-break-inside:avoid}
@@ -8802,14 +8819,15 @@ function renderPrintBody(forcedTab){
           <img src="${logoSrc}" style="max-height:50px;max-width:120px;object-fit:contain;border:1px solid var(--border);border-radius:6px;padding:4px;background:#fff" onerror="this.style.display='none'">
         </div>` : ''}
         <label class="admin-toggle ig-pill" style="margin-top:2px"><input type="checkbox" ${cfg.showLogo?'checked':''} onchange="setPdfCfg('showLogo',this.checked);renderAdminSection(adminCurrentTab)"><label>Afficher le logo</label></label>
-        ${cfg.showLogo && logoSrc ? `<div class="pdf-logo-size">
-          <span class="pdf-logo-size-label">Taille</span>
+        ${cfg.showLogo ? `<div class="pdf-logo-size">
+          <span class="pdf-logo-size-label">Taille${logoSrc?'':' du nom'}</span>
           <div class="ig-align-group">
-            ${[['discret','Discret'],['moyen','Moyen'],['grand','Grand']].map(([k,lab])=>
+            ${[['petit','Petit'],['moyen','Moyen'],['grand','Grand']].map(([k,lab])=>
               `<button type="button" class="ig-align-btn pdf-logo-size-btn${cfg.logoSize===k?' active':''}" onclick="setPdfCfg('logoSize','${k}');renderAdminSection(adminCurrentTab)">${lab}</button>`
             ).join('')}
           </div>
-        </div>` : ''}
+        </div>
+        ${logoSrc?'':'<div style="font-size:10px;color:var(--text3);margin-top:4px;line-height:1.5">Aucun logo enregistré : c\'est le nom du restaurant qui s\'affiche. Ajoutez-en un dans Mon établissement.</div>'}` : ''}
       </div>
 
       ${(ic.main||ic.secondary)?`<label class="admin-toggle ig-pill" style="margin-top:8px"><input type="checkbox" ${cfg.showIcons!==false?'checked':''} onchange="setPdfCfg('showIcons',this.checked)"><label>Afficher les icônes décoratives</label></label>
