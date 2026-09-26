@@ -3594,68 +3594,6 @@ async function restoreVersion(id){
     });
   }catch(e){ showToast('❌ '+e.message); }
 }
-// ── Ecran « Restaurer une version » ──
-// fn() est synchrone : on rend une coquille, puis on la remplit quand
-// la requete revient.
-function renderHistorySection(){
-  setTimeout(fillHistoryList, 0);
-  return `<div class="ig-hint-block">Une version est archivée à chaque publication, au maximum une toutes les ${HISTORY_MIN_GAP} minutes. Les ${HISTORY_KEEP} dernières sont conservées.</div>
-    <div id="histList" class="ig-list" style="margin-top:10px"><div class="ig-row" style="cursor:default;color:var(--ig-text-dimmer)">Chargement…</div></div>`;
-}
-function histSummary(d){
-  const tabs=(d && d.tabs) || [];
-  const n=tabs.reduce((a,t)=>a+((t.cards||[]).reduce((m,c)=>m+((c.dishes||[]).length)+((c.items||[]).length),0)),0);
-  return tabs.length+' catégorie'+(tabs.length>1?'s':'')+' · '+n+' entrée'+(n>1?'s':'');
-}
-async function fillHistoryList(){
-  const box=document.getElementById('histList');
-  if(!box) return;
-  const dire=m=>{ box.innerHTML='<div class="ig-row" style="cursor:default;color:var(--ig-text-dimmer)">'+m+'</div>'; };
-  if(!supabaseClient || !supaSession){ dire('Connectez-vous pour voir l\'historique.'); return; }
-  try{
-    const { data: rows, error } = await supabaseClient
-      .from(HISTORY_TABLE).select('id,created_at,data')
-      .eq('client_slug', CLIENT_SLUG)
-      .order('created_at',{ascending:false}).limit(HISTORY_KEEP);
-    if(error) throw error;
-    if(!rows || !rows.length){ dire('Aucune version archivée pour l\'instant. La première apparaîtra à votre prochaine publication.'); return; }
-    box.innerHTML = rows.map((r,i)=>{
-      const d=new Date(r.created_at);
-      const quand=d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-      return `<div class="ig-row" onclick="restoreVersion(${r.id})">
-        <span class="ig-row-label"><span>${quand}${i===0?' — version actuelle':''}</span><span class="ig-row-hint">${histSummary(r.data)}</span></span>
-        <span class="ig-row-chevron">›</span>
-      </div>`;
-    }).join('');
-  }catch(e){
-    dire('Historique indisponible : '+e.message);
-  }
-}
-async function restoreVersion(id){
-  if(IS_PREVIEW){ showToast('👁 Preview en lecture seule'); return; }
-  if(!supabaseClient || !supaSession) return;
-  try{
-    const { data: row, error } = await supabaseClient
-      .from(HISTORY_TABLE).select('data,created_at').eq('id', id).maybeSingle();
-    if(error) throw error;
-    if(!row){ showToast('⚠️ Version introuvable'); return; }
-    const d=new Date(row.created_at);
-    const quand=d.toLocaleDateString('fr-FR',{day:'2-digit',month:'long'})+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-    askConfirm('Revenir à la version du '+quand+' ? ('+histSummary(row.data)+')', async ()=>{
-      try{
-        // La version ACTUELLE est archivee d'abord : revenir en arriere
-        // ne doit pas etre un aller simple.
-        await supabaseClient.from(HISTORY_TABLE)
-          .insert({ client_slug: CLIENT_SLUG, data: JSON.parse(JSON.stringify(DATA)) });
-        const { error: e2 } = await supabaseClient.from('menu_data')
-          .upsert({ client_slug: CLIENT_SLUG, data: row.data, updated_at: new Date().toISOString() }, { onConflict: 'client_slug' });
-        if(e2) throw e2;
-        showToast('✓ Version restaurée — rechargement…');
-        setTimeout(()=>location.reload(), 900);
-      }catch(e){ showToast('❌ Restauration impossible : '+e.message); }
-    });
-  }catch(e){ showToast('❌ '+e.message); }
-}
 function downloadBackup(){
   if(DATA_SOURCE!=='supabase'){ showToast('⚠️ Rien à sauvegarder : les données ne sont pas chargées'); return; }
   try{
