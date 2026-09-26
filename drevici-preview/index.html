@@ -6566,7 +6566,16 @@ function onDrop(e,ti,ci,di){
 const SUPABASE_URL      = 'https://fdbzzkzfipzabryfanun.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_9PaqDuXnWV3aOCBPk9ImmQ_4YgYTU9n';
 // Detect client slug from URL: /menu/drevici → 'drevici'
-const _pathParts = window.location.pathname.replace(/\/+$/,'').replace(/^\/+/,'').split('/');
+// BUG FIX : ouvrir l'URL avec le nom de fichier (…/drevici/index.html
+// au lieu de …/drevici/) faisait de "index.html" le dernier segment,
+// donc le slug du client — aucune ligne ne correspondait et le site
+// retombait sur ses donnees d'exemple, sans rien signaler. On retire un
+// eventuel segment de fichier avant de lire le dernier dossier.
+const _pathParts = (()=>{
+  const parts = window.location.pathname.replace(/\/+$/,'').replace(/^\/+/,'').split('/');
+  if(parts.length && /\.[a-z0-9]{1,6}$/i.test(parts[parts.length-1])) parts.pop();
+  return parts;
+})();
 // Le suffixe "-preview" designe un dossier de recette (…/drevici-preview/)
 // : meme code, meme base, mais une URL a part pour verifier une version
 // avant de la publier. On le retire pour que la preview lise bien les
