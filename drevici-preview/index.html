@@ -692,8 +692,12 @@ body.sched-modal .sched-scrim{opacity:1;visibility:visible;pointer-events:auto}
 .resto-popup-row{display:flex;justify-content:space-between;padding:5px 0;font-size:13px;color:rgba(255,255,255,.75);border-bottom:.5px solid rgba(255,255,255,.07)}
 .resto-popup-row:last-child{border-bottom:none}
 .resto-popup-row.today{color:#fff;font-weight:600}
-.resto-popup-row .rday{color:rgba(255,255,255,.5);font-size:12px}
-.resto-popup-row.today .rday{color:rgba(255,255,255,.85)}
+/* Les jours etaient a 12px/.5 : trop petits et trop delaves pour se
+   lire d'un coup d'oeil. 14px, en Jost 300 (un vrai gras de la fonte,
+   pas une graisse simulee) pour rester fins malgre la taille, et un
+   poil plus opaques. */
+.resto-popup-row .rday{color:rgba(255,255,255,.62);font-size:14px;font-weight:300}
+.resto-popup-row.today .rday{color:rgba(255,255,255,.9);font-weight:500}
 
 /* ── STICKY RESERVE ── */
 /* BUG FIX (le bouton Reserver se retrouvait au milieu de la page) :
@@ -3359,7 +3363,7 @@ function renderScheduleInline(suffix){
   const addrText = [addr.street, addr.zip, addr.city].filter(Boolean).join(', ');
   const addrHtml = addrText
     ? (mapsUrl
-        ? `<a href="${escAttr(mapsUrl)}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:6px;color:#fff;font-size:14px;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(255,255,255,.45);margin-bottom:12px;padding-bottom:12px;border-bottom:.5px solid rgba(255,255,255,.14)">${escapeHtmlLocal(addrText)}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex:none;opacity:.7"><path d="M9 6l6 6-6 6"/></svg></a>`
+        ? `<a href="${escAttr(mapsUrl)}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:6px;color:#fff;font-size:14px;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(255,255,255,.45);margin-bottom:12px;padding-bottom:12px;border-bottom:.5px solid rgba(255,255,255,.14)">${escapeHtmlLocal(addrText)}</a>`
         : `<div style="color:#fff;font-size:14px;margin-bottom:12px;padding-bottom:12px;border-bottom:.5px solid rgba(255,255,255,.14)">${escapeHtmlLocal(addrText)}</div>`)
     : '';
   const pinIconHtml = mapsUrl ? `<span style="display:inline-flex;align-items:center;color:var(--navy)">
@@ -3376,7 +3380,7 @@ function renderScheduleInline(suffix){
     ? phoneDigits.replace(/(\d{2})(?=\d)/g,'$1 ').trim()
     : phone;
   const phoneHtml = phone
-    ? `<div style="margin-top:12px;padding-top:12px;border-top:.5px solid rgba(255,255,255,.14);display:flex;align-items:baseline;gap:8px;flex-wrap:nowrap"><span class="resto-popup-title" style="margin-bottom:0;flex:none;color:${suffix==='Cover'?'var(--gold)':'#fff'}">Téléphone&nbsp;:</span><a href="tel:${escAttr(phoneDigits)}" style="display:inline-flex;align-items:center;gap:5px;color:#fff;font-size:15px;font-weight:400;letter-spacing:.02em;text-decoration:none;white-space:nowrap">${escapeHtmlLocal(phonePretty)}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex:none;opacity:.7"><path d="M9 6l6 6-6 6"/></svg></a></div>`
+    ? `<div style="margin-top:12px;padding-top:12px;border-top:.5px solid rgba(255,255,255,.14);display:flex;align-items:baseline;gap:8px;flex-wrap:nowrap"><span class="resto-popup-title" style="margin-bottom:0;flex:none;color:${suffix==='Cover'?'var(--gold)':'#fff'}">Téléphone&nbsp;:</span><a href="tel:${escAttr(phoneDigits)}" style="display:inline-flex;align-items:center;gap:5px;color:#fff;font-size:15px;font-weight:400;letter-spacing:.02em;text-decoration:none;white-space:nowrap">${escapeHtmlLocal(phonePretty)}</a></div>`
     : '';
   return `<div class="sched-pin-frame">
     <div class="resto-badge-inline" id="schedBadge${suffix}" onclick="toggleSchedPopup(event,'${suffix}')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
