@@ -1762,7 +1762,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
       <select class="formule-tuner-select" id="formuleTunerSelect" onchange="formuleTunerSwitch(this.value)"></select>
       <div id="formuleTunerAlign"></div>
       <button type="button" class="formule-tuner-font" id="formuleTunerGap" title="Espace entre les plats" onclick="formuleTunerToggleGap()"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 2.6 2.2 5.6a.8.8 0 0 0 1.2 1.1L4.2 5.8v12.4l-.8-.9a.8.8 0 1 0-1.2 1.1L5 21.4l2.8-3a.8.8 0 1 0-1.2-1.1l-.8.9V5.8l.8.9a.8.8 0 1 0 1.2-1.1L5 2.6Z"/><rect x="10" y="4" width="12" height="2.2" rx="1.1"/><rect x="10" y="9" width="8" height="2.2" rx="1.1"/><rect x="10" y="14" width="12" height="2.2" rx="1.1"/><rect x="10" y="19" width="8" height="2.2" rx="1.1"/></svg></button>
-      <button type="button" class="formule-tuner-font" id="formuleTunerLogo" title="Logo (A4 uniquement)" onclick="formuleTunerToggleLogo()" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M7 15l3.2-3.6L13 14l2-2.2L17 15"/><circle cx="9" cy="8.6" r="1.2"/></svg></button>
+      <button type="button" class="formule-tuner-font" id="formuleTunerLogo" title="Logo (A4 et story)" onclick="formuleTunerToggleLogo()" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M7 15l3.2-3.6L13 14l2-2.2L17 15"/><circle cx="9" cy="8.6" r="1.2"/></svg></button>
       <button type="button" class="formule-tuner-font" id="formuleTunerFont" title="Choisir la police" onclick="formuleTunerPickFont()"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.6 20 7.4 5.4h2.9L15.1 20h-2.5l-1.1-3.5H6.2L5.1 20H2.6Zm4.2-5.5h3.9L8.8 8.2 6.8 14.5Z"/><path d="M19.9 20v-1.1a3 3 0 0 1-2.3 1.3c-1.7 0-2.9-1.1-2.9-2.7 0-1.8 1.3-2.8 3.6-2.8h1.5v-.4c0-1-.5-1.5-1.6-1.5-.9 0-1.5.4-1.7 1.1l-1.9-.5c.4-1.5 1.7-2.4 3.7-2.4 2.3 0 3.6 1.1 3.6 3.2V20h-2Zm-.1-3.9h-1.4c-1.1 0-1.7.4-1.7 1.2 0 .7.5 1.1 1.3 1.1.9 0 1.6-.5 1.8-1.3v-1Z"/></svg></button>
     </div>
     <div id="formuleTunerCtrl"></div>
@@ -5706,20 +5706,20 @@ window.addEventListener('resize', ()=>{ if(document.getElementById('formuleTuner
 // rendu, autant pouvoir l'exporter sans repasser par la page.
 // Même galerie que dans la page : on choisit la police sans quitter
 // l'aperçu, et celui-ci se met à jour derrière.
-// Le bouton logo ne concerne que l'A4 : il apparait et disparait avec
-// l'onglet de format, plutot que de rester la, grise, sur une story ou
-// il n'aurait jamais d'effet.
+// Le bouton logo ne concerne pas tous les formats : il apparait et
+// disparait avec l'onglet, plutot que de rester la, grise, sur un
+// format ou il n'aurait jamais d'effet.
 let _tunerLogoMode=false;
 function formuleTunerSyncLogoBtn(){
   const btn=document.getElementById('formuleTunerLogo');
   if(!btn || !_tunerState) return;
   const car=document.getElementById('formuleTunerCarousel');
   const idx=car ? Math.round(car.scrollLeft/Math.max(1,car.clientWidth)) : 0;
-  const isA4=(TUNER_VARIANTS[idx]||{}).v==='a4';
-  btn.style.display = isA4 ? '' : 'none';
+  const canLogo=FORMULE_LOGO_FORMATS.includes((TUNER_VARIANTS[idx]||{}).v);
+  btn.style.display = canLogo ? '' : 'none';
   const f=DATA.formules.find(x=>x.id===_tunerState.fid);
   btn.classList.toggle('active', !!(f && f.showLogo));
-  if(!isA4 && _tunerLogoMode){
+  if(!canLogo && _tunerLogoMode){
     _tunerLogoMode=false;
     if(f) formuleTunerRenderCtrl(f, _tunerState.key, _tunerState.sizeKey);
   }
@@ -6159,7 +6159,10 @@ function formule_buildPreamble(f, cfg){
   // Uniquement sur l'A4 : c'est la seule sortie qui quitte le
   // restaurant. Centre en tete de page, au-dessus du titre — c'est le
   // seul emplacement qui tienne quand tout le reste est deja centre.
-  const wantLogo = cfg && cfg.formuleVariant==='a4' && f.showLogo;
+  // A4 et story, pas le post : la story est haute, elle a la place d'un
+  // logo en tete sans rien serrer. Le post est carre et court, un logo
+  // y mangerait la place des plats.
+  const wantLogo = cfg && FORMULE_LOGO_FORMATS.includes(cfg.formuleVariant) && f.showLogo;
   const logoUrl = wantLogo ? ((DATA.pdfStyle && DATA.pdfStyle.logoData) || getRestaurantLogo() || '') : '';
   const logoHtml = logoUrl ? `<img class="formule-logo" src="${escAttr(logoUrl)}" onerror="this.style.display='none'">` : '';
   // Le logo REMPLACE le grand titre, il ne s'ajoute pas au-dessus : le
@@ -7060,6 +7063,7 @@ const LOGO_W_RATIO = 3.2;
 // Formules : en fraction de la largeur de page, pour que l'aperçu et
 // l'export final donnent exactement le meme rendu.
 const FORMULE_LOGO_PCT = { petit: 0.075, moyen: 0.11, grand: 0.155 };
+const FORMULE_LOGO_FORMATS = ['a4','story'];
 // Sans logo IMAGE enregistre, cocher « Afficher le logo » fait retomber
 // l'en-tete sur le NOM du restaurant, en petit. Le reglage pilote donc
 // les deux : sinon la case parait ne rien faire chez un client qui n'a
