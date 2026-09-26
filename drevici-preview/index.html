@@ -2316,12 +2316,49 @@ function efVisRow(hidden, kind){
 // en mode modification : c'est là qu'on a le plat sous les yeux, donc
 // c'est là que la décision se prend. Les incontournables alimentent le
 // bandeau photo en tête de sa catégorie.
+// Les plats reellement montres par le bandeau d'une categorie, DANS
+// L'ORDRE OU il les montre. renderCategoryRail filtre la carte sans
+// jamais consulter l'ordre d'epinglage : le rang vient donc de la
+// place du plat dans la categorie, pas du moment ou on l'a epingle.
+// Un plat epingle mais masque, ou sans photo, n'y figure pas du tout.
+function pinnedRailDishes(tabId){
+  const tab=(DATA.tabs||[]).find(tb=>tb.id===tabId);
+  if(!tab) return [];
+  const pinIds=new Set((DATA.pinnedDishes||[]).filter(p=>p.tabId===tabId).map(p=>p.pid));
+  const out=[];
+  (tab.cards||[]).forEach(card=>{
+    (card.dishes||[]).forEach(dd=>{
+      if(dd.hidden || !dd.img) return;
+      if(dd._pid && pinIds.has(dd._pid)) out.push(dd);
+    });
+  });
+  return out;
+}
+function ordinalFr(n){ return n===1 ? '1er' : n+'e'; }
 function efPinRow(ti,ci,di,d){
   const tabId=DATA.tabs[ti] && DATA.tabs[ti].id;
   const on=isPinnedDish(d);
   const n=pinCountForTab(tabId);
-  const hint=on ? 'Mis en avant en haut de cette catégorie'
-                : (n>=PIN_MAX_PER_TAB ? `${PIN_MAX_PER_TAB} incontournables déjà choisis ici` : 'Le mettre en avant en haut de cette catégorie');
+  // Une etoile allumee ne disait pas ou le plat allait atterrir dans le
+  // bandeau — ni meme S'IL allait y atterrir. Le rang est donc affiche,
+  // avec la regle qui le determine, pour qu'on sache comment le changer.
+  let hint;
+  if(on){
+    if(!d.img){
+      hint='Ajoutez une photo pour qu\'il apparaisse dans le bandeau';
+    } else if(d.hidden){
+      hint='Masqué : il n\'apparaît pas dans le bandeau';
+    } else {
+      const order=pinnedRailDishes(tabId);
+      const rank=order.indexOf(d)+1;
+      hint = rank>0
+        ? `${ordinalFr(rank)} sur ${order.length} dans le bandeau · l'ordre suit celui de la carte`
+        : 'Mis en avant en haut de cette catégorie';
+    }
+  } else {
+    hint = n>=PIN_MAX_PER_TAB ? `${PIN_MAX_PER_TAB} incontournables déjà choisis ici`
+                              : 'Le mettre en avant en haut de cette catégorie';
+  }
   return `<button type="button" class="ef-pin${on?' ef-pin-on':''}" onclick="togglePin('${escAttr(tabId)}',${ci},${di})">
     <span class="ef-pin-star">${on?'★':'☆'}</span>
     <span class="ef-pin-text"><span class="ef-pin-label">Plat incontournable</span><span class="ef-pin-hint">${hint}</span></span>
