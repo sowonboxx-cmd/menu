@@ -667,6 +667,15 @@ body.home-cover-showing{overflow:hidden}
 .resto-dot.closed{background:#ef4444}
 .resto-dot.soon{background:#f97316;animation:pulse 2s ease-in-out infinite}
 .resto-badge{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:999px;font-size:13px;font-weight:500;border:1px solid var(--border);background:var(--bg);color:var(--navy);cursor:pointer;position:relative;user-select:none}
+/* Bulle centree (mobile) : posee au milieu de l'ecran plutot que sous
+   son bouton, elle ne depend plus de la place disponible autour de
+   celui-ci. Les valeurs sont en !important parce que le placement
+   d'ancrage ecrit encore left/top/transform en ligne sur desktop. */
+.sched-scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .18s ease}
+body.sched-modal .sched-scrim{opacity:1;visibility:visible;pointer-events:auto}
+/* Centree, la fiche est posee sur la page et non plus accrochee a un
+   bouton : son fond devient opaque, sinon le menu se lit au travers. */
+.resto-popup.resto-popup-centered{background:#0F1932;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;width:min(330px,calc(100vw - 40px));max-width:none;min-width:0;padding:18px 20px}
 .resto-popup{visibility:hidden;opacity:0;pointer-events:none;position:fixed;bottom:auto;left:auto;transform:none;transition:opacity .18s ease,transform .18s ease;background:rgba(15,25,50,.96);border:.5px solid rgba(255,255,255,.2);border-radius:12px;padding:14px 18px;min-width:210px;max-width:260px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.3)}
 .resto-popup.visible{visibility:visible;opacity:1;pointer-events:auto}
 .resto-popup-arrow{display:none}
@@ -1803,6 +1812,10 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
     </div>
   </div>
 </div>
+
+<!-- Voile de la fiche horaires centree (mobile) : il detache la fiche
+     de la page et rend evident qu'un clic a cote la referme. -->
+<div class="sched-scrim" id="schedScrim"></div>
 
 <div class="ig-theme-menu" id="themeMenu"></div>
 
@@ -4371,18 +4384,42 @@ function toggleSchedPopup(e,suffix){
   // clamped so it never runs off either edge of the viewport. Works the
   // same for the header's own badge and the cover's separate instance —
   // no more special-casing per screen size or per neighboring button.
+  // BUG FIX (le clic ne faisait rien sur mobile) : la bulle se posait
+  // SOUS son badge. Depuis que le badge vit dans la barre du bas, ce
+  // « sous » tombe hors de l'ecran — la bulle s'ouvrait bel et bien,
+  // simplement personne ne pouvait la voir.
+  // Sur mobile elle passe donc au centre de l'ecran : l'adresse, les
+  // horaires et le telephone s'y lisent d'un coup, et un clic a cote la
+  // referme. C'est aussi le seul placement qui ne depende pas de l'endroit
+  // ou se trouve le bouton.
+  if(vw<=640){
+    p.classList.add('resto-popup-centered');
+    p.style.left=''; p.style.top=''; p.style.transform='';
+    p.classList.add('visible');
+    document.body.classList.add('sched-modal');
+    return;
+  }
+  p.classList.remove('resto-popup-centered');
+  document.body.classList.remove('sched-modal');
   let left=rect.left+rect.width/2-pw/2;
   left=Math.max(12, Math.min(left, vw-pw-12));
-  const top=rect.bottom+10+(vw<=640?20:8);
+  // La bulle passe AU-DESSUS du badge quand il n'y a plus la place en
+  // dessous, au lieu de sortir par le bas.
+  const ph=(p.offsetHeight||200)*z;
+  let top=rect.bottom+10+8;
+  if(top+ph>window.innerHeight-12) top=Math.max(12, rect.top-10-ph);
   p.style.left=(left/z)+'px';
   p.style.top=(top/z)+'px';
   p.style.transform='none';
   p.classList.add('visible');
 }
-// Close schedule popup on outside click
+// Close schedule popup on outside click.
+// BUG FIX : seul #schedPopup, sans suffixe, etait referme — les bulles
+// de l'en-tete, de la barre du bas et de la couverture portent un
+// suffixe dans leur id et restaient donc ouvertes.
 document.addEventListener('click', function(){
-  const p=document.getElementById('schedPopup');
-  if(p) p.classList.remove('visible');
+  document.querySelectorAll('.resto-popup.visible').forEach(el=>el.classList.remove('visible'));
+  document.body.classList.remove('sched-modal');
 });
 
 // ═══════════════════════════════════════════
@@ -10571,6 +10608,7 @@ document.addEventListener('click', function(e){
     const badge = p.closest('.resto-badge-inline');
     if (badge && !badge.contains(e.target)) p.classList.remove('visible');
   });
+  if(!document.querySelector('.resto-popup.visible')) document.body.classList.remove('sched-modal');
 });
 { const dBtn=document.getElementById('calAdminBtnDesktop'); if(dBtn) dBtn.href=RESA_ADMIN_URL;
   const mBtn=document.getElementById('calAdminBtnMobile'); if(mBtn) mBtn.href=RESA_ADMIN_URL; }
