@@ -9585,6 +9585,17 @@ function renderExportSection(){
 
 async function publishToSupabase(silent){
   if(!supaSession){ showToast('⚠️ Connecte-toi pour publier'); renderAdminSection('__global'); return; }
+  // GARDE-FOU : ne JAMAIS ecrire tant que le chargement initial n'a pas
+  // reussi. Si la lecture echoue — bibliotheque bloquee, reseau, ligne
+  // absente — DATA contient encore le menu d'EXEMPLE du fichier. Le
+  // moindre reglage touche ensuite declenchait un enregistrement qui
+  // remplacait la carte du restaurant par ce menu d'exemple, sans
+  // confirmation et sans retour en arriere possible.
+  if(DATA_SOURCE!=='supabase'){
+    showToast('⚠️ Enregistrement bloqué : les données du restaurant ne sont pas chargées');
+    console.warn('[menu] ecriture refusee — source='+DATA_SOURCE+' ('+DATA_SOURCE_REASON+')');
+    return;
+  }
   // NOTE: this used to target a second, redundant "Publier" button
   // (🚀, inside the collapsible "Connexion admin" section) — removed
   // since every admin tab already ends with its own adminSaveBar()
