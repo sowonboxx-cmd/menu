@@ -163,7 +163,13 @@ body.has-admin-sticky .wrap{padding-bottom:88px}
 <div class="header">
   <div class="container">
     <div class="header-top">
-      <a href="https://drevicioyster.com" class="logo-link">
+      <!-- Le logo ramene au menu, pas au site vitrine du restaurant :
+           quelqu'un qui reserve vient de la carte, il y retourne.
+           Lien relatif volontairement : "./" designe le dossier du
+           client quel que soit le restaurant et quelle que soit la
+           forme de l'URL (resa.html ou resa), donc aucune adresse a
+           mettre a jour en deployant un nouveau client. -->
+      <a href="./" class="logo-link" id="logoLink">
         <img class="logo-img" id="headerLogoImg" src="" alt="Drevici Oyster" style="display:none" onerror="this.style.display='none'"/>
         <span class="logo-text" id="headerLogoText">Drevici Oyster</span>
       </a>
@@ -386,6 +392,21 @@ const CLIENT_SLUG = 'drevici-paris';
 // restaurant's name/logo/font for the header, so it stays in sync with
 // index.html's branding without duplicating it here by hand.
 const MENU_CLIENT_SLUG = 'drevici';
+
+// Le logo ramene au menu du restaurant. Le href="./" ecrit dans le HTML
+// suffit dans la plupart des cas, mais il depend de la forme exacte de
+// l'URL : servie avec un slash final (/resa/), "./" designerait le
+// dossier resa lui-meme et non le menu. On recalcule donc le chemin en
+// retirant simplement le dernier segment, ce qui donne le meme resultat
+// pour /resa, /resa.html et /resa/. Le href du HTML reste en repli si
+// ce script ne tourne pas.
+(function(){
+  const lien = document.getElementById('logoLink');
+  if(!lien) return;
+  const parts = window.location.pathname.replace(/\/+$/,'').split('/');
+  parts.pop();
+  lien.setAttribute('href', (parts.join('/') || '') + '/');
+})();
 
 // Header branding (logo takes over from the styled text once one is
 // uploaded on index.html; font matches whatever's picked there too) —
