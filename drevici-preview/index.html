@@ -925,8 +925,10 @@ body.ig-admin-light .formule-tuner-select{background-image:url("data:image/svg+x
    juste à sa droite. */
 .formule-tuner-row #formuleTunerAlign{flex:none}
 /* Bouton police : même gabarit que le groupe d'alignement à sa gauche. */
-.formule-tuner-fmtbtn{flex:none;border:none;border-radius:9px;background:var(--ig-bg);color:var(--ig-text-dim);font-family:'Jost',sans-serif;font-size:13px;font-weight:600;padding:9px 16px;cursor:pointer;transition:background .12s,color .12s}
+.formule-tuner-fmtbtn{flex:none;border:none;border-radius:9px;background:var(--ig-bg);color:var(--ig-text-dim);font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;padding:9px 13px;cursor:pointer;transition:background .12s,color .12s}
 .formule-tuner-fmtbtn.active{background:var(--ig-accent);color:#fff}
+.formule-tuner-ok{background:var(--ig-green);color:#fff}
+.formule-tuner-x{padding:9px 10px;color:var(--ig-red)}
 .formule-tuner-font{width:40px;height:40px;flex:none;border:none;border-radius:9px;background:var(--ig-bg);color:var(--ig-text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
 .formule-tuner-font svg{width:19px;height:19px}
 /* Le bouton du logo porte le mot plutot qu'un pictogramme : l'icone
@@ -5725,28 +5727,44 @@ function formuleTunerSyncLogoBtn(){
   const canLogo=FORMULE_LOGO_FORMATS.includes((TUNER_VARIANTS[idx]||{}).v);
   btn.style.display = canLogo ? '' : 'none';
   const f=DATA.formules.find(x=>x.id===_tunerState.fid);
-  btn.classList.toggle('active', !!(f && f.showLogo));
-  if(!canLogo && _tunerLogoMode){
-    _tunerLogoMode=false;
-    if(f) formuleTunerRenderCtrl(f, _tunerState.key, _tunerState.sizeKey);
-  }
+  // Le bouton est allume tant qu'on REGLE le logo, pas tant que le logo
+  // existe : sinon il restait en bleu apres etre passe a un autre
+  // reglage, comme si on etait encore dedans.
+  btn.classList.toggle('active', _tunerLogoMode);
+  if(!canLogo && _tunerLogoMode) formuleTunerCloseLogo();
+}
+// Sortir du mode logo sans y toucher : le panneau du bas reprend le
+// reglage courant et le bouton s'eteint. Le logo, lui, reste ce qu'il
+// est — c'est la croix qui l'enleve.
+function formuleTunerCloseLogo(){
+  _tunerLogoMode=false;
+  const btn=document.getElementById('formuleTunerLogo');
+  if(btn) btn.classList.remove('active');
+  if(!_tunerState) return;
+  const f=DATA.formules.find(x=>x.id===_tunerState.fid);
+  if(f) formuleTunerRenderCtrl(f, _tunerState.key, _tunerState.sizeKey);
+}
+function formuleTunerRemoveLogo(){
+  if(!_tunerState) return;
+  const f=DATA.formules.find(x=>x.id===_tunerState.fid);
+  if(!f) return;
+  formule_setField(f.id,'showLogo',false);
+  formuleTunerCloseLogo();
+  initFormulePreviewFrames();
 }
 function formuleTunerToggleLogo(){
   if(!_tunerState) return;
   const f=DATA.formules.find(x=>x.id===_tunerState.fid);
   if(!f) return;
-  // Premier clic : on allume le logo ET on ouvre le choix de taille.
-  // Clic suivant sur un logo deja allume : on l'eteint.
-  if(f.showLogo && _tunerLogoMode){
-    formule_setField(f.id,'showLogo',false);
-    _tunerLogoMode=false;
-  } else {
-    if(!f.showLogo) formule_setField(f.id,'showLogo',true);
-    _tunerLogoMode=true;
-    _tunerGapMode=false;
-    const g=document.getElementById('formuleTunerGap'); if(g) g.classList.remove('active');
-  }
-  document.getElementById('formuleTunerLogo').classList.toggle('active', !!f.showLogo);
+  // Le bouton OUVRE le reglage du logo ; il ne l'eteint pas. Eteindre
+  // est une suppression, elle a sa croix — un meme bouton qui allume
+  // puis efface selon le nombre de clics se declenche par accident.
+  if(_tunerLogoMode){ formuleTunerCloseLogo(); return; }
+  if(!f.showLogo) formule_setField(f.id,'showLogo',true);
+  _tunerLogoMode=true;
+  _tunerGapMode=false;
+  const g=document.getElementById('formuleTunerGap'); if(g) g.classList.remove('active');
+  document.getElementById('formuleTunerLogo').classList.add('active');
   formuleTunerRenderCtrl(f, _tunerState.key, _tunerState.sizeKey);
   initFormulePreviewFrames();
 }
@@ -5789,6 +5807,9 @@ function formuleTunerSwitch(key){
   const f=DATA.formules.find(x=>x.id===_tunerState.fid);
   if(!d || !f) return;
   _tunerState={ fid:_tunerState.fid, key:d.key, sizeKey:d.sizeKey };
+  // Sans ca, le panneau du bas continuait d'afficher les tailles du
+  // logo alors qu'on venait de choisir un tout autre reglage.
+  if(_tunerLogoMode) formuleTunerCloseLogo();
   formuleTunerRenderCtrl(f, d.key, d.sizeKey);
   formuleTunerRenderAlign(f, d.key);
 }
@@ -5844,6 +5865,10 @@ function formuleTunerRenderAlign(f, key){
 let _tunerGapMode=false;
 function formuleTunerToggleGap(){
   _tunerGapMode=!_tunerGapMode;
+  if(_tunerGapMode && _tunerLogoMode){
+    _tunerLogoMode=false;
+    const l=document.getElementById('formuleTunerLogo'); if(l) l.classList.remove('active');
+  }
   const btn=document.getElementById('formuleTunerGap');
   if(btn) btn.classList.toggle('active', _tunerGapMode);
   const f=DATA.formules.find(x=>x.id===_tunerState.fid);
@@ -5866,10 +5891,12 @@ function formuleTunerRenderCtrl(f, key, sizeKey){
     }
     const cur=FORMULE_LOGO_PCT[f.logoSize]?f.logoSize:'moyen';
     document.getElementById('formuleTunerCtrl').innerHTML=`
-      <div class="formule-tuner-row" style="justify-content:center;gap:6px">
+      <div class="formule-tuner-row" style="justify-content:center;gap:5px">
         ${[['petit','Petit'],['moyen','Moyen'],['grand','Grand']].map(([k,lab])=>
           `<button type="button" class="formule-tuner-fmtbtn${k===cur?' active':''}" onclick="formuleTunerSetLogoSize('${k}')">${lab}</button>`
         ).join('')}
+        <button type="button" class="formule-tuner-fmtbtn formule-tuner-ok" onclick="formuleTunerCloseLogo()">Valider</button>
+        <button type="button" class="formule-tuner-fmtbtn formule-tuner-x" title="Retirer le logo" aria-label="Retirer le logo" onclick="formuleTunerRemoveLogo()">✕</button>
       </div>`;
     return;
   }
