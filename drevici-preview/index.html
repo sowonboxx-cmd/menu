@@ -6162,7 +6162,13 @@ function formule_buildPreamble(f, cfg){
   const wantLogo = cfg && cfg.formuleVariant==='a4' && f.showLogo;
   const logoUrl = wantLogo ? ((DATA.pdfStyle && DATA.pdfStyle.logoData) || getRestaurantLogo() || '') : '';
   const logoHtml = logoUrl ? `<img class="formule-logo" src="${escAttr(logoUrl)}" onerror="this.style.display='none'">` : '';
-  return `${logoHtml}${title?`<div class="formule-title">${noOrphan(title)}</div>`:''}${f.freeText?`<div class="formule-freetext">${subHtml}</div>`:''}`;
+  // Le logo REMPLACE le grand titre, il ne s'ajoute pas au-dessus : le
+  // champ « Titre du menu » sert le plus souvent a nommer
+  // l'etablissement (son exemple est « Le Truffaut »), donc les deux
+  // ensemble disaient la meme chose deux fois. Le sous-titre, lui,
+  // reste : c'est la seule ligne qui decrit la formule.
+  const showTitle = title && !logoHtml;
+  return `${logoHtml}${showTitle?`<div class="formule-title">${noOrphan(title)}</div>`:''}${f.freeText?`<div class="formule-freetext">${subHtml}</div>`:''}`;
 }
 // Config Instagram/Formule partagée entre l'export et l'aperçu — un
 // seul endroit où les couleurs, la police, l'alignement, la casse ET
