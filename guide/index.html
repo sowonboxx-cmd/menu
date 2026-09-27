@@ -224,8 +224,6 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .resa-band-seg{display:flex;flex-direction:column;gap:6px;background:#F5F5F7;border-radius:16px;padding:20px 18px;text-align:left;box-sizing:border-box}
 body:not(.edit-mode) .resa-band-seg{width:90%;margin:0 auto}
 .resa-band-seg-name{font-size:14px;font-weight:700;letter-spacing:.02em;color:var(--text)}
-.resa-band-seg-formula{font-size:14px;font-weight:600;color:var(--text3)}
-.resa-band-seg-text{font-size:13px;color:var(--text2);line-height:1.5}
 .resa-band-seg-promise{font-size:14px;font-weight:700;color:var(--text);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .resa-band-seg-detail{font-size:13px;color:var(--text2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
 .resa-band-toggle{display:none}
@@ -262,7 +260,8 @@ body:not(.edit-mode) .resa-band-seg{width:90%;margin:0 auto}
 .resa-modal-subtitle{font-size:13px;color:var(--text2);line-height:1.55;margin-bottom:22px}
 .resa-modal-level{border-top:1px solid var(--border);padding:16px 0}
 .resa-modal-level:first-of-type{border-top:none;padding-top:0}
-.resa-modal-level-head{font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--navy);margin-bottom:8px}
+.resa-modal-level-pill{display:inline-flex;align-items:center;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:4px 11px;border-radius:8px;margin-bottom:10px;cursor:default}
+.resa-modal-level-pill.resa-ce{cursor:text}
 .resa-modal-promise{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;line-height:1.4}
 .resa-modal-detail{font-size:13px;color:var(--text2);line-height:1.6}
 .info-modal-box{background:#fff;border-radius:12px;width:100%;max-width:480px;padding:24px;box-shadow:0 8px 40px rgba(0,0,0,.2);display:flex;flex-direction:column;gap:12px}
@@ -2879,6 +2878,26 @@ function resaTitleHtml(title){
   return esc(t);
 }
 
+// Fallback pill colors when a resa level's name doesn't match any offer
+// card's name (same order/hues as DEFAULT_BANNER_COLOR's apero/base/premium).
+const RESA_LEVEL_FALLBACK_COLORS = ['#8FB09A','#7E9BAD','#D99CA6'];
+
+function resaLevelColor(lv, i){
+  // Match this reservation level to its pricing card by name, so the pill
+  // in the pop-up always uses that card's own color (banner color if set,
+  // else the default for that offer tag) — never a separately edited field.
+  const target = (lv.name||'').trim().toUpperCase();
+  if(target){
+    for(const tag in (DATA.offerMeta||{})){
+      const m = DATA.offerMeta[tag];
+      if(m && (m.name||'').trim().toUpperCase() === target){
+        return m.bannerColor || DEFAULT_BANNER_COLOR[tag] || RESA_LEVEL_FALLBACK_COLORS[i % RESA_LEVEL_FALLBACK_COLORS.length];
+      }
+    }
+  }
+  return RESA_LEVEL_FALLBACK_COLORS[i % RESA_LEVEL_FALLBACK_COLORS.length];
+}
+
 function renderResaBand(){
   const wrap = document.getElementById('resaBandWrap');
   if(!wrap) return;
@@ -2909,24 +2928,21 @@ function renderResaBand(){
         ${levels.map((lv,i)=>`
           <div class="resa-band-seg" ${ed?`draggable="true" ondragstart="resaLevelDragStart(event,${i})" ondragover="event.preventDefault()" ondrop="resaLevelDrop(event,${i})"`:''}>
             ${ed ? `
-              <div style="display:flex;align-items:baseline;gap:4px;flex-wrap:wrap">
+              <div style="display:flex;align-items:center;gap:6px">
                 <span class="feature-drag" style="cursor:grab;color:var(--text3);font-size:11px;flex:none">⠿</span>
-                <span class="resa-band-seg-name resa-ce" style="flex:none;min-width:20px" ${ce('','NIVEAU')} onblur="resaCommitLevelField(this,${i},'name')">${esc(lv.name||'')}</span>
-                <span class="resa-band-seg-formula" style="flex:none">·</span>
-                <span class="resa-band-seg-formula resa-ce" style="flex:1;min-width:80px" ${ce('','Formule')} onblur="resaCommitLevelField(this,${i},'formula')">${esc(lv.formula||'')}</span>
-                <button type="button" onclick="deleteResaLevel(${i})" title="Supprimer ce niveau" style="flex:none;width:15px;height:15px;border:none;background:#F5F5F7;color:var(--text3);border-radius:50%;font-size:9px;cursor:pointer;line-height:1;padding:0">✕</button>
+                <span class="resa-band-seg-name" style="flex:1">${esc(lv.name||'')}</span>
+                <button type="button" onclick="deleteResaLevel(${i})" title="Supprimer ce niveau" style="flex:none;width:15px;height:15px;border:none;background:#fff;color:var(--text3);border-radius:50%;font-size:9px;cursor:pointer;line-height:1;padding:0">✕</button>
               </div>
-              <span class="resa-band-seg-text resa-ce" ${ce('','Texte du segment')} onblur="resaCommitLevelField(this,${i},'bandText')">${esc(lv.bandText||'')}</span>
             ` : `
               <span class="resa-band-seg-name">${esc(lv.name||'')}</span>
-              ${lv.promise?`<span class="resa-band-seg-promise">${esc(lv.promise)}</span>`:''}
-              ${lv.detail?`<span class="resa-band-seg-detail">${esc(lv.detail)}</span>`:''}
             `}
+            ${lv.promise?`<span class="resa-band-seg-promise">${esc(lv.promise)}</span>`:''}
+            ${lv.detail?`<span class="resa-band-seg-detail">${esc(lv.detail)}</span>`:''}
           </div>
         `).join('')}
         ${ed ? `<button type="button" class="resa-band-seg-add" onclick="addResaLevel()">+ Ajouter<br>un niveau</button>` : ''}
       </div>
-      ${ed ? `<button type="button" class="resa-band-popup-edit-link" onclick="openResaBandModal()">Modifier le pop-up « ${esc(rb.btnText||'Comparer les niveaux')} » →</button>` : ''}
+      ${ed ? `<button type="button" class="resa-band-popup-edit-link" onclick="openResaBandModal()">Tout se modifie dans le pop-up « ${esc(rb.btnText||'Comparer les niveaux')} » →</button>` : ''}
     </div>
   `;
 
@@ -2945,20 +2961,15 @@ function renderResaBand(){
       </button>
       <div class="resa-modal-title${ed?' resa-ce':''}" ${ed?`${ce('','Titre du pop-up')} onblur="resaCommitField(this,'popupTitle')"`:''}>${esc(rb.popupTitle||'')}</div>
       <div class="resa-modal-subtitle${ed?' resa-ce':''}" ${ed?`${ce('','Sous-titre du pop-up')} onblur="resaCommitField(this,'popupSubtitle')"`:''}>${esc(rb.popupSubtitle||'')}</div>
-      ${levels.map((lv,i)=>`
+      ${levels.map((lv,i)=>{
+        const color = resaLevelColor(lv, i);
+        return `
         <div class="resa-modal-level">
-          ${ed ? `
-            <div style="display:flex;gap:6px;margin-bottom:2px;align-items:center">
-              <span class="resa-ce" style="flex:1;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--navy)" ${ce('','NOM')} onblur="resaCommitLevelField(this,${i},'name')">${esc(lv.name||'')}</span>
-              <span class="resa-ce" style="flex:none;font-size:11px;color:var(--text3)" ${ce('','formule')} onblur="resaCommitLevelField(this,${i},'formula')">${esc(lv.formula||'')}</span>
-            </div>
-          ` : `
-            <div class="resa-modal-level-head">${esc(lv.name||'')}</div>
-          `}
+          <span class="resa-modal-level-pill${ed?' resa-ce':''}" style="background:${hexToRgba(color,0.14)};color:${color}" ${ed?`${ce('','NOM')} onblur="resaCommitLevelField(this,${i},'name')"`:''}>${esc(lv.name||'')}</span>
           <div class="resa-modal-promise${ed?' resa-ce':''}" ${ed?`${ce('','Promesse')} onblur="resaCommitLevelField(this,${i},'promise')"`:''}>${esc(lv.promise||'')}</div>
           <div class="resa-modal-detail${ed?' resa-ce':''}" ${ed?`${ce('','Détail')} onblur="resaCommitLevelField(this,${i},'detail')"`:''}>${esc(lv.detail||'')}</div>
         </div>
-      `).join('')}
+      `;}).join('')}
     </div>
   `;
   modal.onclick = closeResaBandModal;
