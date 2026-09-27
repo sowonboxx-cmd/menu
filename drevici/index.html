@@ -3457,7 +3457,7 @@ function renderScheduleInline(suffix){
     ? phoneDigits.replace(/(\d{2})(?=\d)/g,'$1 ').trim()
     : phone;
   const phoneHtml = phone
-    ? `<div style="margin-top:12px;padding-top:12px;border-top:.5px solid rgba(255,255,255,.14);display:flex;align-items:baseline;gap:8px;flex-wrap:nowrap"><span class="resto-popup-title" style="margin-bottom:0;flex:none;color:${suffix==='Cover'?'var(--gold)':'#fff'}">Téléphone&nbsp;:</span><a href="tel:${escAttr(phoneDigits)}" style="display:inline-flex;align-items:center;gap:5px;color:#fff;font-size:15px;font-weight:400;letter-spacing:.02em;text-decoration:none;white-space:nowrap">${escapeHtmlLocal(phonePretty)}</a></div>`
+    ? `<div style="margin-top:12px;padding-top:12px;border-top:.5px solid rgba(255,255,255,.14);display:flex;align-items:baseline;gap:8px;flex-wrap:nowrap"><span class="resto-popup-title" style="margin-bottom:0;flex:none">Téléphone&nbsp;:</span><a href="tel:${escAttr(phoneDigits)}" style="display:inline-flex;align-items:center;gap:5px;color:#fff;font-size:15px;font-weight:400;letter-spacing:.02em;text-decoration:none;white-space:nowrap">${escapeHtmlLocal(phonePretty)}</a></div>`
     : '';
   return `<div class="sched-pin-frame">
     <div class="resto-badge-inline" id="schedBadge${suffix}" onclick="toggleSchedPopup(event,'${suffix}')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
@@ -5068,8 +5068,12 @@ function syncAdminStatusBar(){
   // retour) au moment précis où on vient de cliquer dessus pour
   // restaurer. On l'efface tant que le panneau est ouvert ; il revient
   // à la fermeture si les données ne sont toujours pas chargées.
+  // On teste 'exemple' et non « pas supabase » : pendant le chargement
+  // (DATA_SOURCE==='chargement') il n'y a encore RIEN a annoncer, et
+  // afficher le bandeau a cet instant produisait un flash rouge au
+  // demarrage de chaque page.
   const fbBar=document.getElementById('dataFallbackBar');
-  if(fbBar && DATA_SOURCE!=='supabase'){
+  if(fbBar && DATA_SOURCE==='exemple'){
     fbBar.style.display = (panel && panel.classList.contains('open')) ? 'none' : 'block';
   }
   if(!meta) return;
@@ -6880,7 +6884,16 @@ async function adminSignOut(){
 
 // ── Load the menu from Supabase (public read, no login needed) ──
 // Etat du chargement, pour que l'echec cesse d'etre invisible.
-let DATA_SOURCE = 'exemple';
+// BUG FIX (le bandeau rouge faisait un flash a chaque ouverture du
+// site) : cette variable valait 'exemple' AVANT la premiere requete,
+// c'est-a-dire qu'un chargement encore en cours etait indistinguable
+// d'un chargement echoue. syncAdminStatusBar() s'execute pendant le
+// demarrage (via applyAdminTheme) : il lisait « pas supabase », en
+// concluait l'echec et affichait le bandeau ; la reponse de Supabase
+// arrivait 200 ms plus tard et le rescamotait. D'ou le flash rouge sur
+// un site qui allait parfaitement bien. Trois etats distincts
+// desormais, et le bandeau ne parle que du troisieme.
+let DATA_SOURCE = 'chargement';
 let DATA_SOURCE_REASON = '';
 function reportDataSource(src, reason){
   DATA_SOURCE = src; DATA_SOURCE_REASON = reason || '';
