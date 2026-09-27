@@ -357,6 +357,16 @@ body.hdr-light .hdr-sched .resto-badge-inline svg{color:rgba(20,35,70,.55)!impor
 .rail-hdr{display:flex;align-items:baseline;gap:6px;margin-bottom:11px}
 .rail-star{color:var(--gold);font-size:10px;line-height:1}
 .rail-title{font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--navy);font-family:'Jost',sans-serif;line-height:1}
+/* Intertitre qui ouvre la liste complete, sous le bandeau des
+   incontournables. Sans lui, le bandeau et la premiere categorie se
+   touchent et rien ne dit qu'on a change de registre : on croit lire la
+   suite des incontournables. Il reprend le style EXACT des onglets
+   inactifs (meme corps, meme graisse, meme interlettrage, meme gris
+   chaud #6B6559) — c'est deja le signe visuel du site pour « rubrique »,
+   inutile d'en inventer un autre. Il ne s'affiche que s'il y a un
+   bandeau au-dessus : sans rien a separer, un titre seul en haut de
+   page ne ferait qu'ajouter du bruit. */
+.cat-list-hdr{margin:0 0 12px;font-size:11px;font-weight:500;font-family:'Jost',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#6B6559;line-height:1}
 /* Marge négative + padding : le bandeau file jusqu'aux bords de
    l'écran et laisse dépasser la carte suivante — c'est ce dépassement
    qui dit « ça défile » sans aucune flèche ni indicateur. */
@@ -4500,7 +4510,13 @@ function renderTabContent(tab,lbOffset){
   // bevs-type, force list rendering regardless of the tab's name.
   // Le bandeau photo vient en tête de la catégorie, au-dessus de la
   // liste complète — la structure est la même pour toutes.
-  html += renderCategoryRail(tab);
+  const railHtml = renderCategoryRail(tab);
+  html += railHtml;
+  // Le bandeau et la premiere categorie se touchaient : rien ne disait
+  // ou s'arretaient les incontournables et ou commencait la carte. Cet
+  // intertitre fait la coupure. On ne le pose QUE s'il y a un bandeau
+  // au-dessus — sinon la liste commence la page et n'a rien a annoncer.
+  if(railHtml) html += `<div class="cat-list-hdr">${t(DATA.catListLabel)||'La carte'}</div>`;
   const hasGridableContent = tab.cards.some(c => c.type !== 'bevs');
   if(view==='grid' && hasGridableContent){
     // Collect all grid items across cards into one unified 2-col grid
