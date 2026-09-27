@@ -212,7 +212,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 #resaBandModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:20px}
 #resaBandModal.open{display:flex}
 .resa-band{background:#fff;border-radius:var(--rs);padding:36px 28px;color:var(--text);margin:20px 0;text-align:center}
-.resa-band-top{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:28px}
+.resa-band-top{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:35px}
 .resa-band-titlerow{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}
 .resa-band-title{font-size:29px;font-weight:700;color:var(--text);letter-spacing:-.01em}
 .resa-band-title-em{background:linear-gradient(90deg,#0b84ff 0%,#8b5cf6 35%,#ec4899 65%,#f97316 100%);-webkit-background-clip:text;background-clip:text;color:transparent;display:inline-block}
@@ -220,6 +220,10 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .resa-band-desc{font-size:18px;font-weight:500;color:var(--text2);line-height:1.55;max-width:520px;margin:0 auto}
 .resa-band-btn{flex:none;background:#2F6FE0;color:#fff;border:none;border-radius:20px;padding:11px 22px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'Inter',sans-serif;transition:opacity .15s;margin-top:4px}
 .resa-band-btn:hover{opacity:.88}
+/* The "Comparer les 3 niveaux…" button is mobile-only (see below) — on
+   desktop the always-visible cards already show everything, so it's
+   dropped there entirely rather than duplicating the pop-up trigger. */
+body:not(.edit-mode) .resa-band-btn{display:none}
 .resa-band-segments{display:grid;grid-template-columns:repeat(var(--resa-cols,3),1fr);gap:16px}
 .resa-band-seg{display:flex;flex-direction:column;gap:6px;background:#F5F5F7;border-radius:16px;padding:20px 18px;text-align:left;box-sizing:border-box}
 body:not(.edit-mode) .resa-band-seg{width:90%;margin:0 auto}
@@ -238,11 +242,11 @@ body:not(.edit-mode) .resa-band-seg{width:90%;margin:0 auto}
   body:not(.edit-mode) .resa-band-title{white-space:nowrap;font-size:17px}
   body:not(.edit-mode) .resa-band-desc{font-size:15px}
   /* Mobile keeps it simple: no inline level cards, just a single button
-     (Apple-style solid blue pill, white arrow) that opens the comparison
-     pop-up — visible enough to invite the tap without feeling too loud. */
-  body:not(.edit-mode) .resa-band-btn{display:none}
+     (clean flat blue pill, arrow pointing right like a link) that opens
+     the comparison pop-up — visible enough to invite the tap without
+     feeling too loud. */
   body:not(.edit-mode) .resa-band-segments{display:none}
-  body:not(.edit-mode) .resa-band-toggle{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:#2F6FE0;border:none;border-radius:14px;margin-top:18px;padding:14px 16px;font-size:14px;font-weight:600;color:#fff;cursor:pointer;font-family:'Inter',sans-serif;box-shadow:0 6px 16px rgba(47,111,224,.3);transition:transform .12s,opacity .12s}
+  body:not(.edit-mode) .resa-band-toggle{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:#2F6FE0;border:none;border-radius:14px;margin-top:18px;padding:14px 16px;font-size:14px;font-weight:600;color:#fff;cursor:pointer;font-family:'Inter',sans-serif;transition:transform .12s,opacity .12s}
   body:not(.edit-mode) .resa-band-toggle:active{transform:scale(.98);opacity:.9}
   body:not(.edit-mode) .resa-band-toggle svg{flex:none}
 }
@@ -260,8 +264,8 @@ body:not(.edit-mode) .resa-band-seg{width:90%;margin:0 auto}
 .resa-modal-x-close:hover{background:#ECECEE;color:var(--text)}
 .resa-modal-title{font-size:19px;font-weight:700;color:var(--text);margin-bottom:6px;padding-right:36px}
 .resa-modal-subtitle{font-size:13px;color:var(--text2);line-height:1.55;margin-bottom:22px}
-.resa-modal-level{border-top:1px solid var(--border);padding:16px 0}
-.resa-modal-level:first-of-type{border-top:none;padding-top:0}
+.resa-modal-level{background:#F5F5F7;border-radius:16px;padding:20px 18px;margin-bottom:16px}
+.resa-modal-level:last-of-type{margin-bottom:0}
 .resa-modal-level-pill{display:inline-flex;align-items:center;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:4px 11px;border-radius:8px;margin-bottom:10px;cursor:default}
 .resa-modal-level-pill.resa-ce{cursor:text}
 .resa-modal-promise{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;line-height:1.4}
@@ -2923,7 +2927,7 @@ function renderResaBand(){
       ${!ed ? `
       <button type="button" class="resa-band-toggle" onclick="openResaBandModal()">
         <span>${esc(rb.btnText || 'Voir le détail des 3 niveaux')}</span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>
       </button>
       ` : ''}
       <div class="resa-band-segments" style="--resa-cols:${cols}">
