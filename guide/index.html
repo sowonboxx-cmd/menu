@@ -1073,10 +1073,15 @@ function migrateData(){
   if(!DATA.offersCardOrder) DATA.offersCardOrder = JSON.parse(JSON.stringify(DEFAULT_DATA.offersCardOrder));
   if(!DATA.offersColumnsPerRow) DATA.offersColumnsPerRow = DEFAULT_DATA.offersColumnsPerRow;
   Object.keys(DATA.offerMeta||{}).forEach(k=>{ if(DATA.offerMeta[k].reservationBadge===undefined) DATA.offerMeta[k].reservationBadge = ''; });
-  // One-time fix: align the "pro" card's CTA button color with the shared default
-  // navy used by the other cards (base/premium), so all three CTA buttons match.
-  if(DATA.offerMeta && DATA.offerMeta.pro && DATA.offerMeta.pro.ctaColor && DATA.offerMeta.pro.ctaColor.toLowerCase() !== '#2c5282'){
-    delete DATA.offerMeta.pro.ctaColor;
+  // One-time fix: align the middle pricing card's CTA button color with the
+  // other two visible cards, so all three CTA buttons match. The reference
+  // color is taken from whichever sibling card (apero/premium) already has
+  // an explicit ctaColor set, since that's the shared brand blue in use.
+  if(DATA.offerMeta && DATA.offerMeta.base){
+    const refColor = (DATA.offerMeta.apero && DATA.offerMeta.apero.ctaColor) || (DATA.offerMeta.premium && DATA.offerMeta.premium.ctaColor);
+    if(refColor && DATA.offerMeta.base.ctaColor !== refColor){
+      DATA.offerMeta.base.ctaColor = refColor;
+    }
   }
   // Matrix cells: migrate old boolean tags[] into the new 3-state cellData model
   // (included / limited / unavailable), each cell able to carry its own display
