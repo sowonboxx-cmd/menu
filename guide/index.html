@@ -210,7 +210,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .resa-band{background:#fff;border-radius:var(--rs);padding:26px 28px;color:var(--text);margin:20px 0}
 .resa-band-top{display:flex;align-items:flex-start;gap:20px;margin-bottom:22px}
 .resa-band-titlerow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
-.resa-band-title{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.01em}
+.resa-band-title{font-size:16px;font-weight:700;letter-spacing:-.01em;background:linear-gradient(90deg,#0b84ff 0%,#8b5cf6 35%,#ec4899 65%,#f97316 100%);-webkit-background-clip:text;background-clip:text;color:transparent;display:inline-block}
 .resa-band-pill{display:inline-block;background:linear-gradient(90deg,#0b84ff 0%,#8b5cf6 35%,#ec4899 65%,#f97316 100%);-webkit-background-clip:text;background-clip:text;color:transparent;font-size:16px;font-weight:700;letter-spacing:-.01em}
 .resa-band-desc{font-size:13px;font-weight:500;color:var(--text2);line-height:1.55;max-width:640px}
 .resa-band-btn{flex:none;align-self:center;background:#2F6FE0;color:#fff;border:none;border-radius:20px;padding:9px 16px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'Inter',sans-serif;transition:opacity .15s}
@@ -230,14 +230,14 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
   body:not(.edit-mode) .resa-band{padding:22px 20px}
   body:not(.edit-mode) .resa-band-top{flex-direction:column;align-items:center;text-align:center}
   body:not(.edit-mode) .resa-band-top > div{width:100%}
-  body:not(.edit-mode) .resa-band-titlerow{justify-content:center;flex-wrap:nowrap;gap:6px;white-space:nowrap}
+  body:not(.edit-mode) .resa-band-titlerow{flex-direction:column;justify-content:center;align-items:center;flex-wrap:nowrap;gap:2px}
   body:not(.edit-mode) .resa-band-title{white-space:nowrap;font-size:15px}
   body:not(.edit-mode) .resa-band-pill{white-space:nowrap;font-size:15px}
+  body:not(.edit-mode) .resa-band-btn{display:none}
   body:not(.edit-mode) .resa-band-segments{display:none;border-top:none;padding-top:16px}
   body:not(.edit-mode) .resa-band.resa-band-open .resa-band-segments{display:grid}
   body:not(.edit-mode) .resa-band-toggle{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;background:none;border:none;border-top:1px solid var(--border);margin-top:18px;padding:14px 0 0;font-size:12px;font-weight:600;color:#2F6FE0;cursor:pointer;font-family:'Inter',sans-serif}
-  body:not(.edit-mode) .resa-band-toggle svg{transition:transform .2s;flex:none}
-  body:not(.edit-mode) .resa-band.resa-band-open .resa-band-toggle svg{transform:rotate(180deg)}
+  body:not(.edit-mode) .resa-band-toggle svg{flex:none}
 }
 .resa-band-editing{outline:1px dashed var(--text3);outline-offset:6px}
 .resa-ce{cursor:text;border-radius:4px;outline:none;transition:background .12s;box-decoration-break:clone;-webkit-box-decoration-break:clone}
@@ -926,9 +926,9 @@ const DEFAULT_DATA = {
   offersColumnsPerRow: 3,
   offersHeader: { label:'Vos offres packagées', title:'Trois offres. Tout compris.', subtitle:'Gérez, développez et fidélisez votre restaurant depuis votre téléphone.', cta:'Sur devis' },
   resaBand: {
-    title: 'La réservation en ligne',
+    title: 'La réservation en ligne est incluse',
     pill: 'dans les 3 formules',
-    desc: 'C\'est elle qui alimente tout le reste : sans elle, pas de statistiques, pas de base clients, pas de mesure de vos offres.',
+    desc: 'Ce qui change, c\'est ce qu\'elle vous permet de faire par formule.',
     btnText: 'Comparer les 3 niveaux',
     levels: [
       { name:'BASIQUE', formula:'Vos réservations, sans effort.', bandText:'Réservations illimitées, confirmation automatique et gestion des disponibilités.', promise:'Vos clients réservent en ligne, à toute heure.', detail:'Réservations illimitées, disponibilités en temps réel, annulation en un clic et confirmation automatique. Le calendrier remplace le carnet et les appels pendant le service.' },
@@ -1103,6 +1103,22 @@ function migrateData(){
   // 3 formules") rather than a separate capitalized label.
   if(DATA.resaBand && DATA.resaBand.pill === 'Dans les 3 formules'){
     DATA.resaBand.pill = 'dans les 3 formules';
+  }
+  // One-time fix: simplify the resa band's title/description to the new
+  // clearer wording, and drop the "Comparer les 3 niveaux" button in favor
+  // of the "Voir le détail des 3 niveaux" toggle (which now opens the same
+  // pop-up). Only overwrite values that still match a previously-shipped
+  // default, never a value the user has since customized further.
+  if(DATA.resaBand){
+    if(DATA.resaBand.title === 'La réservation en ligne'){
+      DATA.resaBand.title = 'La réservation en ligne est incluse';
+    }
+    if(
+      DATA.resaBand.desc === 'C\'est elle qui alimente tout le reste : sans elle, pas de statistiques, pas de base clients, pas de mesure de vos offres.' ||
+      DATA.resaBand.desc === 'Elle est dans les trois formules. Ce qui change, c\'est ce qu\'elle vous permet de faire.'
+    ){
+      DATA.resaBand.desc = 'Ce qui change, c\'est ce qu\'elle vous permet de faire par formule.';
+    }
   }
   // Matrix cells: migrate old boolean tags[] into the new 3-state cellData model
   // (included / limited / unavailable), each cell able to carry its own display
@@ -2791,7 +2807,7 @@ function renderResaBand(){
         }
       </div>
       ${!ed ? `
-      <button type="button" class="resa-band-toggle" onclick="this.closest('.resa-band').classList.toggle('resa-band-open')">
+      <button type="button" class="resa-band-toggle" onclick="openResaBandModal()">
         <span>Voir le détail des 3 niveaux</span>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </button>
