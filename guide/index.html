@@ -569,7 +569,8 @@ body.edit-mode .fshow-nav-row{align-items:flex-start}
 #installModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:20px}
 #installModal.open{display:flex}
 .install-modal-box{background:#F5F5F7;border-radius:16px;padding:20px 18px}
-.install-modal-intro{text-align:center;font-size:13px;color:var(--text2);line-height:1.6}
+.install-modal-intro{text-align:left;font-size:13px;color:var(--text2);line-height:1.6}
+.install-modal-intro strong{font-weight:700;color:var(--text)}
 .install-modal-list{margin:0;padding-left:18px;list-style:disc}
 .install-modal-list li{font-size:13px;color:var(--text2);line-height:1.6}
 .install-modal-list li+li{margin-top:6px}
@@ -1517,6 +1518,19 @@ function migrateData(){
     if(sysCat) sysCat.matrixCollapsed = true;
     DATA._systemeCollapsedDefaultApplied = true;
   }
+  // One-time fix: remove the redundant "Votre restaurant, de A à Z :" lead-in line
+  // from the install pop-up description — it no longer serves a purpose now that
+  // the intro text and the bullet list sit in their own separate boxes.
+  Object.keys(DATA.offerMeta||{}).forEach(k=>{
+    const m = DATA.offerMeta[k];
+    if(m && m.installDesc && /votre restaurant,?\s*de a\s*à\s*z\s*:?/i.test(m.installDesc)){
+      m.installDesc = m.installDesc
+        .split('\n')
+        .filter(line => !/^votre restaurant,?\s*de a\s*à\s*z\s*:?$/i.test(line.trim()))
+        .join('\n')
+        .replace(/\n{3,}/g,'\n\n');
+    }
+  });
 }
 migrateData();
 let editMode = false;
@@ -3066,6 +3080,14 @@ function deleteResaLevel(i){
 function openResaBandModal(){ document.getElementById('resaBandModal').classList.add('open'); }
 function closeResaBandModal(){ document.getElementById('resaBandModal').classList.remove('open'); }
 
+// Bolds the lead clause up to (and including) the first colon — "Tout est livré
+// clé en main :" — and leaves the rest of the intro text plain.
+function installModalIntroHtml(text){
+  const escaped = esc(text);
+  const colonIdx = escaped.indexOf(':');
+  if(colonIdx === -1) return escaped;
+  return `<strong>${escaped.slice(0,colonIdx+1)}</strong>${escaped.slice(colonIdx+1)}`;
+}
 // "Mise en service" pop-up — same clean pop-up look as the reservation levels pop-up
 // (resa-modal-box + a gray box), triggered from the install-fee line on each offer card.
 function openInstallModal(tag){
@@ -3088,7 +3110,7 @@ function openInstallModal(tag){
   if(splitIdx === -1) splitIdx = rawLines.length;
   const introLines = rawLines.slice(0, splitIdx);
   const restLines = rawLines.slice(splitIdx);
-  const introHtml = introLines.length ? `<div class="install-modal-box install-modal-intro">${esc(introLines.join(' '))}</div>` : '';
+  const introHtml = introLines.length ? `<div class="install-modal-box install-modal-intro">${installModalIntroHtml(introLines.join(' '))}</div>` : '';
   let listInner = '';
   let ulOpen = false;
   restLines.forEach(l => {
@@ -3110,7 +3132,7 @@ function openInstallModal(tag){
       <div class="resa-modal-title" style="margin-bottom:16px">${esc(meta.installTitle||'Mise en service unique')}</div>
       ${introHtml}
       ${listHtml}
-      ${(!introHtml && !listHtml) ? `<div class="install-modal-box install-modal-intro">${esc(meta.installDesc||'')}</div>` : ''}
+      ${(!introHtml && !listHtml) ? `<div class="install-modal-box install-modal-intro">${installModalIntroHtml(meta.installDesc||'')}</div>` : ''}
     </div>
   `;
   modal.classList.add('open');
