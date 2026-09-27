@@ -461,7 +461,8 @@ body.edit-mode .fshow-nav-row{align-items:flex-start}
 @media(max-width:640px){
   body:not(.edit-mode) .fshow-card-close{display:none!important}
   body:not(.edit-mode) .fshow-nav-row,body:not(.edit-mode) .fshow-media{display:none!important}
-  body:not(.edit-mode) .fshow-card{display:block;position:relative;height:auto;aspect-ratio:4/5;border-radius:24px}
+  /* Full-bleed: break out of .wrap's side padding so the card runs edge-to-edge, like Apple's. */
+  body:not(.edit-mode) .fshow-card{display:block;position:relative;height:auto;aspect-ratio:0.71;border-radius:0;width:calc(100% + 40px);margin-left:-20px;margin-right:-20px}
   body:not(.edit-mode) .fshow-mobile{display:block;position:absolute;inset:0}
   .fshow-mobile-bg{position:absolute;inset:0;opacity:1;transition:opacity .2s ease}
   .fshow-mobile-bg.fading{opacity:0}
@@ -469,13 +470,14 @@ body.edit-mode .fshow-nav-row{align-items:flex-start}
   .fshow-mobile-close{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(255,255,255,.92);color:#1D1D1F;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:6;padding:0}
   .fshow-mobile-close.show{display:flex}
   .fshow-mobile-close svg{width:13px;height:13px;display:block}
-  .fshow-mobile-arrow{flex:none;width:34px;height:34px;border-radius:50%;border:none;background:rgba(255,255,255,.95);color:#1D1D1F;display:none;align-items:center;justify-content:center;cursor:pointer;padding:0;align-self:center}
-  .fshow-mobile-panel.show .fshow-mobile-arrow{display:flex}
+  /* Arrows sit at the card's outer edges, like Apple's, vertically centered on the panel (positioned via JS). */
+  .fshow-mobile-arrow{position:absolute;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:50%;border:none;background:rgba(255,255,255,.95);color:#1D1D1F;display:none;align-items:center;justify-content:center;cursor:pointer;padding:0;z-index:6}
+  .fshow-mobile-arrow.show{display:flex}
+  .fshow-mobile-arrow-left{left:14px}
+  .fshow-mobile-arrow-right{right:14px}
   .fshow-mobile-arrow svg{width:15px;height:15px;display:block}
-  .fshow-mobile-panel{position:absolute;left:14px;right:14px;bottom:14px;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.9);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:16px;padding:14px 14px;opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .25s ease,transform .25s ease;z-index:5}
+  .fshow-mobile-panel{position:absolute;left:62px;right:62px;bottom:14px;background:rgba(255,255,255,.9);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:16px;padding:14px 16px;opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .25s ease,transform .25s ease;z-index:5}
   .fshow-mobile-panel.show{opacity:1;transform:translateY(0);pointer-events:auto}
-  .fshow-mobile-panel-text{flex:1;min-width:0}
-  .fshow-mobile-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px}
   .fshow-mobile-desc{font-size:13px;color:var(--text2);line-height:1.5}
   .fshow-mobile-desc strong{font-weight:700;color:var(--text)}
   .fshow-mobile-pills{position:absolute;left:0;right:0;bottom:16px;display:flex;gap:8px;overflow-x:auto;padding:0 16px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none;transition:opacity .2s ease;z-index:5}
@@ -809,17 +811,14 @@ table.matrix tr:hover td{background:#fafaf7}
         <button type="button" class="fshow-mobile-close" id="fshowMobileClose" onclick="fshowClose()" aria-label="Fermer">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
         </button>
+        <button type="button" class="fshow-mobile-arrow fshow-mobile-arrow-left" id="fshowMobileArrowL" onclick="fshowStep(-1)" aria-label="Précédent">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"></polyline></svg>
+        </button>
+        <button type="button" class="fshow-mobile-arrow fshow-mobile-arrow-right" id="fshowMobileArrowR" onclick="fshowStep(1)" aria-label="Suivant">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>
+        </button>
         <div class="fshow-mobile-panel" id="fshowMobilePanel">
-          <button type="button" class="fshow-mobile-arrow fshow-mobile-arrow-left" id="fshowMobileArrowL" onclick="fshowStep(-1)" aria-label="Précédent">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"></polyline></svg>
-          </button>
-          <div class="fshow-mobile-panel-text">
-            <div class="fshow-mobile-title" id="fshowMobileTitle"></div>
-            <div class="fshow-mobile-desc" id="fshowMobileDesc"></div>
-          </div>
-          <button type="button" class="fshow-mobile-arrow fshow-mobile-arrow-right" id="fshowMobileArrowR" onclick="fshowStep(1)" aria-label="Suivant">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>
-          </button>
+          <div class="fshow-mobile-desc" id="fshowMobileDesc"></div>
         </div>
         <div class="fshow-mobile-pills" id="fshowMobilePills"></div>
       </div>
@@ -880,17 +879,14 @@ table.matrix tr:hover td{background:#fafaf7}
         <button type="button" class="fshow-mobile-close" id="fshow2MobileClose" onclick="fshow2Close()" aria-label="Fermer">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
         </button>
+        <button type="button" class="fshow-mobile-arrow fshow-mobile-arrow-left" id="fshow2MobileArrowL" onclick="fshow2Step(-1)" aria-label="Précédent">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"></polyline></svg>
+        </button>
+        <button type="button" class="fshow-mobile-arrow fshow-mobile-arrow-right" id="fshow2MobileArrowR" onclick="fshow2Step(1)" aria-label="Suivant">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>
+        </button>
         <div class="fshow-mobile-panel" id="fshow2MobilePanel">
-          <button type="button" class="fshow-mobile-arrow fshow-mobile-arrow-left" id="fshow2MobileArrowL" onclick="fshow2Step(-1)" aria-label="Précédent">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"></polyline></svg>
-          </button>
-          <div class="fshow-mobile-panel-text">
-            <div class="fshow-mobile-title" id="fshow2MobileTitle"></div>
-            <div class="fshow-mobile-desc" id="fshow2MobileDesc"></div>
-          </div>
-          <button type="button" class="fshow-mobile-arrow fshow-mobile-arrow-right" id="fshow2MobileArrowR" onclick="fshow2Step(1)" aria-label="Suivant">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>
-          </button>
+          <div class="fshow-mobile-desc" id="fshow2MobileDesc"></div>
         </div>
         <div class="fshow-mobile-pills" id="fshow2MobilePills"></div>
       </div>
@@ -2224,6 +2220,38 @@ function fshowRenderMedia(animate){
 // Mobile-only "à la Apple" card: full-bleed image + swipeable pills at rest,
 // panel + directional arrows once a feature is open. Mirrors fshowRenderMedia
 // but drives the separate #fshowMobile markup shown only under 640px.
+// One single bold lead-in ("Titre. reste du texte…") flowing on the same line — no separate
+// title line, matching Apple's own copy style. Falls back to the item's title when the
+// description itself doesn't start with a **bold** lead-in.
+function fshowMobileDescHtml(it){
+  const raw = it ? (it.desc||'') : '';
+  const escaped = esc(raw);
+  const leadMatch = escaped.match(/^\*\*(.+?)\*\*\s*\n?/);
+  let html;
+  if(leadMatch){
+    html = `<strong>${leadMatch[1]}.</strong> ${escaped.slice(leadMatch[0].length)}`;
+  } else {
+    const title = esc(it ? (it.title||'') : '');
+    html = title ? `<strong>${title}.</strong> ${escaped}` : escaped;
+  }
+  html = html.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+  html = html.replace(/\n/g,'<br>');
+  return html;
+}
+// Keeps the directional arrows vertically centered on the panel, whatever its height —
+// the panel's height changes with the description length, so this is computed, not fixed.
+function fshowPositionMobileArrows(wrapId, panelId, arrowLId, arrowRId){
+  const wrap = document.getElementById(wrapId);
+  const panel = document.getElementById(panelId);
+  const arrowL = document.getElementById(arrowLId);
+  const arrowR = document.getElementById(arrowRId);
+  if(!wrap || !panel || !arrowL || !arrowR) return;
+  const wrapRect = wrap.getBoundingClientRect();
+  const panelRect = panel.getBoundingClientRect();
+  const centerY = panelRect.top - wrapRect.top + panelRect.height/2;
+  arrowL.style.top = centerY + 'px';
+  arrowR.style.top = centerY + 'px';
+}
 function fshowRenderMobile(animate){
   const bgEl = document.getElementById('fshowMobileBg');
   if(!bgEl) return;
@@ -2241,10 +2269,8 @@ function fshowRenderMobile(animate){
       bgEl.classList.remove('fading');
     }, 180);
   }
-  const titleEl = document.getElementById('fshowMobileTitle');
   const descEl = document.getElementById('fshowMobileDesc');
-  if(titleEl) titleEl.textContent = it ? (it.title||'') : '';
-  if(descEl) descEl.innerHTML = it ? formatPointText(it.desc||'') : '';
+  if(descEl) descEl.innerHTML = isOpen ? fshowMobileDescHtml(it) : '';
   const panelEl = document.getElementById('fshowMobilePanel');
   if(panelEl) panelEl.classList.toggle('show', isOpen);
   const closeEl = document.getElementById('fshowMobileClose');
@@ -2253,6 +2279,7 @@ function fshowRenderMobile(animate){
   const arrowR = document.getElementById('fshowMobileArrowR');
   if(arrowL) arrowL.classList.toggle('show', isOpen);
   if(arrowR) arrowR.classList.toggle('show', isOpen);
+  if(isOpen) requestAnimationFrame(() => fshowPositionMobileArrows('fshowMobile','fshowMobilePanel','fshowMobileArrowL','fshowMobileArrowR'));
   const pillsEl = document.getElementById('fshowMobilePills');
   if(pillsEl){
     pillsEl.classList.toggle('hide', isOpen);
@@ -2610,10 +2637,8 @@ function fshow2RenderMobile(animate){
       bgEl.classList.remove('fading');
     }, 180);
   }
-  const titleEl = document.getElementById('fshow2MobileTitle');
   const descEl = document.getElementById('fshow2MobileDesc');
-  if(titleEl) titleEl.textContent = it ? (it.title||'') : '';
-  if(descEl) descEl.innerHTML = it ? formatPointText(it.desc||'') : '';
+  if(descEl) descEl.innerHTML = isOpen ? fshowMobileDescHtml(it) : '';
   const panelEl = document.getElementById('fshow2MobilePanel');
   if(panelEl) panelEl.classList.toggle('show', isOpen);
   const closeEl = document.getElementById('fshow2MobileClose');
@@ -2622,6 +2647,7 @@ function fshow2RenderMobile(animate){
   const arrowR = document.getElementById('fshow2MobileArrowR');
   if(arrowL) arrowL.classList.toggle('show', isOpen);
   if(arrowR) arrowR.classList.toggle('show', isOpen);
+  if(isOpen) requestAnimationFrame(() => fshowPositionMobileArrows('fshow2Mobile','fshow2MobilePanel','fshow2MobileArrowL','fshow2MobileArrowR'));
   const pillsEl = document.getElementById('fshow2MobilePills');
   if(pillsEl){
     pillsEl.classList.toggle('hide', isOpen);
