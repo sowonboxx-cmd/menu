@@ -226,7 +226,6 @@ body:not(.edit-mode) .resa-band-seg{width:90%;margin:0 auto}
 .resa-band-seg-name{font-size:14px;font-weight:700;letter-spacing:.02em;color:var(--text)}
 .resa-band-seg-formula{font-size:14px;font-weight:600;color:var(--text3)}
 .resa-band-seg-text{font-size:13px;color:var(--text2);line-height:1.5}
-.resa-band-seg-included{font-size:11px;color:var(--text3)}
 .resa-band-seg-promise{font-size:14px;font-weight:700;color:var(--text);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .resa-band-seg-detail{font-size:13px;color:var(--text2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
 .resa-band-toggle{display:none}
@@ -256,18 +255,16 @@ body:not(.edit-mode) .resa-band-seg{width:90%;margin:0 auto}
 .resa-band-seg-add:hover{color:var(--text);border-color:var(--text3);background:#F5F5F7}
 .resa-band-popup-edit-link{display:inline-block;margin-top:16px;background:none;border:none;color:var(--text3);font-size:11px;font-family:'Inter',sans-serif;cursor:pointer;padding:0;text-decoration:underline}
 .resa-band-popup-edit-link:hover{color:var(--text)}
-.resa-modal-box{background:#fff;border-radius:14px;width:100%;max-width:640px;max-height:88vh;overflow-y:auto;padding:28px;box-shadow:0 8px 40px rgba(0,0,0,.25)}
-.resa-modal-title{font-size:19px;font-weight:700;color:var(--text);margin-bottom:6px}
+.resa-modal-box{background:#fff;border-radius:14px;width:100%;max-width:640px;max-height:88vh;overflow-y:auto;padding:28px;box-shadow:0 8px 40px rgba(0,0,0,.25);position:relative}
+.resa-modal-x-close{position:absolute;top:16px;right:16px;width:30px;height:30px;border:none;border-radius:50%;background:#F5F5F7;color:var(--text2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s,color .15s;padding:0}
+.resa-modal-x-close:hover{background:#ECECEE;color:var(--text)}
+.resa-modal-title{font-size:19px;font-weight:700;color:var(--text);margin-bottom:6px;padding-right:36px}
 .resa-modal-subtitle{font-size:13px;color:var(--text2);line-height:1.55;margin-bottom:22px}
 .resa-modal-level{border-top:1px solid var(--border);padding:16px 0}
 .resa-modal-level:first-of-type{border-top:none;padding-top:0}
-.resa-modal-level-head{font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--navy);margin-bottom:2px}
-.resa-modal-level-sub{font-size:11px;color:var(--text3);margin-bottom:8px}
+.resa-modal-level-head{font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--navy);margin-bottom:8px}
 .resa-modal-promise{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;line-height:1.4}
 .resa-modal-detail{font-size:13px;color:var(--text2);line-height:1.6}
-.resa-modal-note{background:var(--bg);border-radius:10px;padding:16px;margin-top:16px;font-size:12.5px;color:var(--text2);line-height:1.6}
-.resa-modal-note strong{color:var(--navy)}
-.resa-modal-close{margin-top:22px;width:100%;padding:12px;border:none;border-radius:999px;background:var(--navy);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
 .info-modal-box{background:#fff;border-radius:12px;width:100%;max-width:480px;padding:24px;box-shadow:0 8px 40px rgba(0,0,0,.2);display:flex;flex-direction:column;gap:12px}
 .info-modal-title{font-size:13px;font-weight:700;color:var(--navy);line-height:1.4}
 .info-modal-textarea{width:100%;border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text);resize:vertical;min-height:120px;outline:none;line-height:1.6}
@@ -2922,7 +2919,6 @@ function renderResaBand(){
               <span class="resa-band-seg-text resa-ce" ${ce('','Texte du segment')} onblur="resaCommitLevelField(this,${i},'bandText')">${esc(lv.bandText||'')}</span>
             ` : `
               <span class="resa-band-seg-name">${esc(lv.name||'')}</span>
-              ${lv.formula?`<span class="resa-band-seg-included">inclus dans ${esc(lv.formula)}</span>`:''}
               ${lv.promise?`<span class="resa-band-seg-promise">${esc(lv.promise)}</span>`:''}
               ${lv.detail?`<span class="resa-band-seg-detail">${esc(lv.detail)}</span>`:''}
             `}
@@ -2944,6 +2940,9 @@ function renderResaBand(){
   }
   modal.innerHTML = `
     <div class="resa-modal-box" onclick="event.stopPropagation()">
+      <button type="button" class="resa-modal-x-close" onclick="closeResaBandModal()" aria-label="Fermer">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg>
+      </button>
       <div class="resa-modal-title${ed?' resa-ce':''}" ${ed?`${ce('','Titre du pop-up')} onblur="resaCommitField(this,'popupTitle')"`:''}>${esc(rb.popupTitle||'')}</div>
       <div class="resa-modal-subtitle${ed?' resa-ce':''}" ${ed?`${ce('','Sous-titre du pop-up')} onblur="resaCommitField(this,'popupSubtitle')"`:''}>${esc(rb.popupSubtitle||'')}</div>
       ${levels.map((lv,i)=>`
@@ -2955,17 +2954,11 @@ function renderResaBand(){
             </div>
           ` : `
             <div class="resa-modal-level-head">${esc(lv.name||'')}</div>
-            <div class="resa-modal-level-sub">${lv.formula?`inclus dans ${esc(lv.formula)}`:''}</div>
           `}
           <div class="resa-modal-promise${ed?' resa-ce':''}" ${ed?`${ce('','Promesse')} onblur="resaCommitLevelField(this,${i},'promise')"`:''}>${esc(lv.promise||'')}</div>
           <div class="resa-modal-detail${ed?' resa-ce':''}" ${ed?`${ce('','Détail')} onblur="resaCommitLevelField(this,${i},'detail')"`:''}>${esc(lv.detail||'')}</div>
         </div>
       `).join('')}
-      ${(ed || rb.popupNote) ? `<div class="resa-modal-note${ed?' resa-ce':''}" ${ed?`${ce('',"Encadré de conclusion")} onblur="resaCommitField(this,'popupNote')"`:''}>${esc(rb.popupNote||'')}</div>` : ''}
-      ${ed
-        ? `<div class="resa-modal-close resa-ce" style="cursor:text" ${ce('','Fermer')} onblur="resaCommitField(this,'popupCloseText')">${esc(rb.popupCloseText||'')}</div>`
-        : `<button type="button" class="resa-modal-close" onclick="closeResaBandModal()">${esc(rb.popupCloseText || 'Fermer')}</button>`
-      }
     </div>
   `;
   modal.onclick = closeResaBandModal;
