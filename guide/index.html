@@ -563,11 +563,15 @@ body.edit-mode .fshow-nav-row{align-items:flex-start}
 .ov2-info-row{display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;color:var(--text3)}
 .ov2-info-row.included{color:var(--text3)}
 .ov2-info-row svg{flex:none}
-.ov2-install-wrap{position:relative;display:inline-block;cursor:help}
+.ov2-install-wrap{position:relative;display:inline-block;cursor:pointer}
 .ov2-install-wrap .ov2-install-text{border-bottom:1px dashed var(--text3)}
-.ov2-install-tooltip{position:absolute;bottom:calc(100% + 10px);left:50%;background:#1f2430;color:#fff;width:220px;max-width:78vw;padding:12px 14px;border-radius:10px;font-size:12px;line-height:1.45;text-align:left;box-shadow:0 10px 26px rgba(0,0,0,.2);opacity:0;visibility:hidden;transform:translate(-50%,4px);transition:opacity .15s,transform .15s;z-index:30;white-space:pre-line}
-.ov2-install-tooltip strong{display:block;font-size:12.5px;font-weight:700;margin-bottom:4px}
-.ov2-install-wrap:hover .ov2-install-tooltip,.ov2-install-wrap.active .ov2-install-tooltip{opacity:1;visibility:visible;transform:translate(-50%,0)}
+/* ── "Mise en service" pop-up: same clean look as the reservation levels pop-up ── */
+#installModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:20px}
+#installModal.open{display:flex}
+.install-modal-box{background:#F5F5F7;border-radius:16px;padding:20px 18px}
+.install-modal-list{margin:0;padding-left:18px;list-style:disc}
+.install-modal-list li{font-size:13px;color:var(--text2);line-height:1.6}
+.install-modal-list li+li{margin-top:6px}
 .offers-trust-bar{display:flex;align-items:center;background:#fff;border-radius:20px;padding:24px 32px;margin-top:20px;gap:0}
 .otb-item{display:flex;align-items:center;gap:14px;flex:1;padding:0 20px}
 .otb-item:not(:last-child){border-right:1px solid var(--border)}
@@ -3059,6 +3063,39 @@ function deleteResaLevel(i){
 function openResaBandModal(){ document.getElementById('resaBandModal').classList.add('open'); }
 function closeResaBandModal(){ document.getElementById('resaBandModal').classList.remove('open'); }
 
+// "Mise en service" pop-up — same clean pop-up look as the reservation levels pop-up
+// (resa-modal-box + a gray box), triggered from the install-fee line on each offer card.
+function openInstallModal(tag){
+  const meta = DATA.offerMeta[tag];
+  if(!meta) return;
+  let modal = document.getElementById('installModal');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'installModal';
+    document.body.appendChild(modal);
+    modal.onclick = closeInstallModal;
+  }
+  const lines = (meta.installDesc||'').split('\n').map(s=>s.trim().replace(/^[*\-•]\s+/,'')).filter(Boolean);
+  modal.innerHTML = `
+    <div class="resa-modal-box" style="max-width:440px" onclick="event.stopPropagation()">
+      <button type="button" class="resa-modal-x-close" onclick="closeInstallModal()" aria-label="Fermer">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg>
+      </button>
+      <div class="resa-modal-title" style="margin-bottom:16px">${esc(meta.installTitle||'Mise en service unique')}</div>
+      <div class="install-modal-box">
+        <ul class="install-modal-list">
+          ${lines.length ? lines.map(l=>`<li>${esc(l)}</li>`).join('') : `<li>${esc(meta.installDesc||'')}</li>`}
+        </ul>
+      </div>
+    </div>
+  `;
+  modal.classList.add('open');
+}
+function closeInstallModal(){
+  const modal = document.getElementById('installModal');
+  if(modal) modal.classList.remove('open');
+}
+
 // Mobile-only "quick look" pop-up: tapping one of the three level pills
 // above the comparison button opens just that level's card (same gray-card
 // look as the full pop-up/desktop segments), instead of the full compare-3 view.
@@ -3735,9 +3772,8 @@ function renderOffers(){
       <button class="offer-cta" type="button" style="background:${meta.ctaColor || '#2C5282'}">${esc(meta.ctaText || 'Choisir cette offre')}</button>
       ${(!editable && meta.setup>0) ? `
         <div class="ov2-info-mobile">
-          <span class="ov2-install-wrap" onclick="this.classList.toggle('active');event.stopPropagation()">
+          <span class="ov2-install-wrap" onclick="openInstallModal('${tag}');event.stopPropagation()">
             <span class="ov2-install-text">${esc(DATA.installationLabel)} : ${meta.setup.toLocaleString('fr-FR')} €</span>
-            <span class="ov2-install-tooltip"><strong>${esc(meta.installTitle||'Mise en service unique')}</strong>${esc(meta.installDesc||'')}</span>
           </span>
         </div>
       ` : ''}
@@ -3762,9 +3798,8 @@ function renderOffers(){
     </div>
     ${(!editable && meta.setup>0) ? `
       <div class="ov2-info-outside">
-        <span class="ov2-install-wrap" onclick="this.classList.toggle('active');event.stopPropagation()">
+        <span class="ov2-install-wrap" onclick="openInstallModal('${tag}');event.stopPropagation()">
           <span class="ov2-install-text">${esc(DATA.installationLabel)} : ${meta.setup.toLocaleString('fr-FR')} €</span>
-          <span class="ov2-install-tooltip"><strong>${esc(meta.installTitle||'Mise en service unique')}</strong>${esc(meta.installDesc||'')}</span>
         </span>
       </div>
     ` : ''}
@@ -3792,12 +3827,6 @@ function renderOffers(){
   ` : '';
   renderOffersMobileTabbar(order);
   renderOffersTrustBar();
-  if(!window._ov2TooltipCloseBound){
-    window._ov2TooltipCloseBound = true;
-    document.addEventListener('click', function(){
-      document.querySelectorAll('.ov2-install-wrap.active').forEach(function(w){ w.classList.remove('active'); });
-    });
-  }
   initMobileOfferStack();
 }
 
