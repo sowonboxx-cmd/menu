@@ -227,8 +227,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
   .resa-band-btn{width:100%;text-align:center}
 }
 @media(max-width:640px){
-  body:not(.edit-mode) #resaBandWrap{padding:0 14px}
-  body:not(.edit-mode) .resa-band{width:94%;padding:22px 20px}
+  body:not(.edit-mode) .resa-band{padding:22px 20px}
   body:not(.edit-mode) .resa-band-segments{display:none;border-top:none;padding-top:16px}
   body:not(.edit-mode) .resa-band.resa-band-open .resa-band-segments{display:grid}
   body:not(.edit-mode) .resa-band-toggle{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;background:none;border:none;border-top:1px solid var(--border);margin-top:18px;padding:14px 0 0;font-size:12px;font-weight:600;color:#2F6FE0;cursor:pointer;font-family:'Inter',sans-serif}
@@ -284,7 +283,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
   body:not(.edit-mode) .offer-card .ov2-banner{text-align:center;justify-content:center}
   body:not(.edit-mode) .ov2-price-pill-below{align-self:center}
   .offers-mobile-tabbar-wrap{display:none}
-  body:not(.edit-mode) .offers-mobile-tabbar-wrap{display:block;position:sticky;bottom:14px;z-index:20;margin-top:16px;pointer-events:none;box-sizing:border-box}
+  body:not(.edit-mode) .offers-mobile-tabbar-wrap{display:block;position:sticky;bottom:14px;z-index:20;margin-top:16px;padding:0 14px;pointer-events:none;box-sizing:border-box}
   body:not(.edit-mode) .offers-mobile-tabbar-wrap .fshow-tabbar{pointer-events:auto;box-shadow:none;display:flex;width:94%;box-sizing:border-box}
   body:not(.edit-mode) .offers-mobile-tabbar-wrap .fshow-tab{flex:1;text-align:center}
   body:not(.edit-mode) .offers-mobile-tabbar-wrap .fshow-tab{text-transform:lowercase}
@@ -293,8 +292,12 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .apple-section-bg{background:#F5F5F7;padding:56px 0;width:100%}
 /* ── Reorderable page sections + gray/white background toggle ── */
 .reorderable-section{position:relative}
-.section-band-gray{background:#F5F5F7;padding:56px 0;width:100%}
-.section-band-white{background:#fff;padding:56px 0;width:100%}
+.section-band-gray{background:#F5F5F7;padding:56px 0;width:100%;position:relative}
+.section-band-white{background:#fff;padding:56px 0;width:100%;position:relative}
+/* Soft fade at the seam between two consecutive sections of different backgrounds,
+   instead of a hard flat-color edge. */
+.section-band-white + .section-band-gray::before{content:'';position:absolute;top:0;left:0;right:0;height:56px;background:linear-gradient(#fff, transparent);pointer-events:none}
+.section-band-gray + .section-band-white::before{content:'';position:absolute;top:0;left:0;right:0;height:56px;background:linear-gradient(#F5F5F7, transparent);pointer-events:none}
 .section-band-gray .offer-card,.section-band-gray .apple-card,.section-band-gray .fshow-card,
 .section-band-gray .matrix-wrap,.section-band-gray .feature-table,.section-band-gray .offers-trust-bar{background:#fff}
 .section-band-white .offer-card,.section-band-white .apple-card,.section-band-white .fshow-card,
@@ -3169,19 +3172,6 @@ function setupOffersCarouselSync(order){
       btn.classList.toggle('active', btn.dataset.tag === activeTag);
     });
     positionOffersTabIndicator();
-    // Scroll-snap's actual rest position drifts slightly from card to card (a browser
-    // quirk, not something we can fix by tweaking the snap CSS), so instead of trusting
-    // a fixed width/position for the bar, we measure the currently-active card directly
-    // and match the bar's real left edge + width to it every time — guaranteed pixel
-    // alignment no matter which card is showing.
-    const wrap = document.getElementById('offersMobileTabbarWrap');
-    const tabbar = document.getElementById('offersMobileTabbarInner');
-    if(wrap && tabbar){
-      const cardRect = closest.getBoundingClientRect();
-      const wrapRect = wrap.getBoundingClientRect();
-      tabbar.style.width = cardRect.width + 'px';
-      tabbar.style.marginLeft = (cardRect.left - wrapRect.left) + 'px';
-    }
   };
   grid._offersScrollHandler && grid.removeEventListener('scroll', grid._offersScrollHandler);
   grid._offersScrollHandler = ()=>requestAnimationFrame(onScroll);
