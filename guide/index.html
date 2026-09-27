@@ -213,7 +213,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .resa-band-title{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.01em}
 .resa-band-title-em{background:linear-gradient(90deg,#0b84ff 0%,#8b5cf6 35%,#ec4899 65%,#f97316 100%);-webkit-background-clip:text;background-clip:text;color:transparent;display:inline-block}
 .resa-band-pill{display:inline-block;background:linear-gradient(90deg,#0b84ff 0%,#8b5cf6 35%,#ec4899 65%,#f97316 100%);-webkit-background-clip:text;background-clip:text;color:transparent;font-size:16px;font-weight:700;letter-spacing:-.01em}
-.resa-band-desc{font-size:16px;font-weight:500;color:var(--text2);line-height:1.55;max-width:640px}
+.resa-band-desc{font-size:15px;font-weight:500;color:var(--text2);line-height:1.55;max-width:640px}
 .resa-band-btn{flex:none;align-self:center;background:#2F6FE0;color:#fff;border:none;border-radius:20px;padding:9px 16px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'Inter',sans-serif;transition:opacity .15s}
 .resa-band-btn:hover{opacity:.88}
 .resa-band-segments{display:grid;grid-template-columns:repeat(var(--resa-cols,3),1fr);gap:16px;padding-top:20px;border-top:1px solid var(--border)}
@@ -232,7 +232,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
   body:not(.edit-mode) .resa-band-top{flex-direction:column;align-items:center;text-align:center}
   body:not(.edit-mode) .resa-band-top > div{width:100%}
   body:not(.edit-mode) .resa-band-titlerow{flex-direction:column;justify-content:center;align-items:center;flex-wrap:nowrap;gap:2px}
-  body:not(.edit-mode) .resa-band-title{white-space:nowrap;font-size:18px}
+  body:not(.edit-mode) .resa-band-title{white-space:nowrap;font-size:17px}
   body:not(.edit-mode) .resa-band-pill{white-space:nowrap;font-size:15px}
   body:not(.edit-mode) .resa-band-btn{display:none}
   body:not(.edit-mode) .resa-band-segments{display:none;border-top:none;padding-top:16px}
@@ -304,6 +304,16 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
    original 56px, vs. -20% for every other inter-section gap). */
 .reorderable-section[data-key="featureShowcase"].section-band-gray,
 .reorderable-section[data-key="featureShowcase"].section-band-white{padding-top:48px}
+@media(max-width:640px){
+  /* Halve the gap between "Tout ce dont vous avez besoin" and "Choisissez
+     votre formule" on mobile specifically — it felt too big there. */
+  body:not(.edit-mode) .reorderable-section[data-key="featureShowcase"].section-band-gray,
+  body:not(.edit-mode) .reorderable-section[data-key="featureShowcase"].section-band-white{padding-bottom:22px}
+  body:not(.edit-mode) .reorderable-section[data-key="offers"].section-band-gray,
+  body:not(.edit-mode) .reorderable-section[data-key="offers"].section-band-white{padding-top:23px}
+  /* Shrink the "Tout ce dont vous avez besoin" heading so it fits one line. */
+  body:not(.edit-mode) #fshowHeader .section-title{font-size:22px;white-space:nowrap}
+}
 /* Soft fade at the seam between two consecutive sections of different backgrounds,
    instead of a hard flat-color edge. */
 .section-band-white + .section-band-gray::before{content:'';position:absolute;top:0;left:0;right:0;height:45px;background:linear-gradient(#fff, transparent);pointer-events:none}
@@ -1150,6 +1160,17 @@ function migrateData(){
         lv.name = r.to;
       }
     });
+  }
+  // One-time fix: split the "Vos clients vous trouvent…" subtitle onto two
+  // lines so it doesn't run too wide on mobile, and drop the double comma.
+  if(
+    DATA.featureShowcase &&
+    (
+      DATA.featureShowcase.subtitle === 'Vos clients vous trouvent, vous choisissent, et reviennent.' ||
+      DATA.featureShowcase.subtitle === 'Vos clients vous trouvent, vous choisissent et reviennent.'
+    )
+  ){
+    DATA.featureShowcase.subtitle = 'Vos clients vous trouvent.\nvous choisissent et reviennent.';
   }
   // Matrix cells: migrate old boolean tags[] into the new 3-state cellData model
   // (included / limited / unavailable), each cell able to carry its own display
