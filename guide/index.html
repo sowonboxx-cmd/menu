@@ -211,6 +211,10 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 #cellModal.open{display:flex}
 #resaBandModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:20px}
 #resaBandModal.open{display:flex}
+#resaSingleModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:20px}
+#resaSingleModal.open{display:flex}
+.resa-single-modal-box{width:100%;max-width:380px}
+.resa-single-modal-close{margin-top:16px;width:100%;padding:12px;border:none;border-radius:999px;background:var(--navy);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
 .resa-band{background:#fff;border-radius:var(--rs);padding:36px 28px;color:var(--text);margin:20px 0;text-align:center}
 .resa-band-top{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:35px}
 .resa-band-titlerow{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}
@@ -229,8 +233,9 @@ body:not(.edit-mode) .resa-band-btn{display:none}
 body:not(.edit-mode) .resa-band-seg{width:90%;margin:0 auto}
 .resa-band-seg-name{font-size:14px;font-weight:700;letter-spacing:.02em;color:var(--text)}
 .resa-band-seg-promise{font-size:14px;font-weight:700;color:var(--text);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.resa-band-seg-detail{font-size:13px;color:var(--text2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+.resa-band-seg-detail{font-size:14px;color:var(--text2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
 .resa-band-toggle{display:none}
+.resa-band-mobile-pills{display:none}
 @media(min-width:641px){
   body:not(.edit-mode) .resa-band-desc{white-space:nowrap;max-width:none}
 }
@@ -241,12 +246,13 @@ body:not(.edit-mode) .resa-band-seg{width:90%;margin:0 auto}
   body:not(.edit-mode) .resa-band{padding:22px 20px}
   body:not(.edit-mode) .resa-band-title{white-space:nowrap;font-size:17px}
   body:not(.edit-mode) .resa-band-desc{font-size:15px}
-  /* Mobile keeps it simple: no inline level cards, just a single button
-     (clean flat blue pill, arrow pointing right like a link) that opens
-     the comparison pop-up — visible enough to invite the tap without
-     feeling too loud. */
+  /* Mobile keeps it simple: no inline level cards, just the three level
+     pills (each opens a quick single-level pop-up) and a single flat blue
+     button below that opens the full comparison pop-up. */
   body:not(.edit-mode) .resa-band-segments{display:none}
-  body:not(.edit-mode) .resa-band-toggle{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:#2F6FE0;border:none;border-radius:14px;margin-top:18px;padding:14px 16px;font-size:14px;font-weight:600;color:#fff;cursor:pointer;font-family:'Inter',sans-serif;transition:transform .12s,opacity .12s}
+  body:not(.edit-mode) .resa-band-mobile-pills{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin-top:18px}
+  body:not(.edit-mode) .resa-band-mobile-pill{border:none;cursor:pointer;font-family:'Inter',sans-serif;margin-bottom:0;padding:7px 14px;font-size:12px}
+  body:not(.edit-mode) .resa-band-toggle{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:#2F6FE0;border:none;border-radius:14px;margin-top:12px;padding:14px 16px;font-size:14px;font-weight:600;color:#fff;cursor:pointer;font-family:'Inter',sans-serif;transition:transform .12s,opacity .12s}
   body:not(.edit-mode) .resa-band-toggle:active{transform:scale(.98);opacity:.9}
   body:not(.edit-mode) .resa-band-toggle svg{flex:none}
 }
@@ -266,7 +272,7 @@ body:not(.edit-mode) .resa-band-seg{width:90%;margin:0 auto}
 .resa-modal-subtitle{font-size:13px;color:var(--text2);line-height:1.55;margin-bottom:22px}
 .resa-modal-level{background:#F5F5F7;border-radius:16px;padding:20px 18px;margin-bottom:16px}
 .resa-modal-level:last-of-type{margin-bottom:0}
-.resa-modal-level-pill{display:inline-flex;align-items:center;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:4px 11px;border-radius:8px;margin-bottom:10px;cursor:default}
+.resa-modal-level-pill{display:inline-flex;align-self:flex-start;align-items:center;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:4px 11px;border-radius:8px;margin-bottom:10px;cursor:default}
 .resa-modal-level-pill.resa-ce{cursor:text}
 .resa-modal-promise{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;line-height:1.4}
 .resa-modal-detail{font-size:13px;color:var(--text2);line-height:1.6}
@@ -2857,6 +2863,38 @@ function deleteResaLevel(i){
 function openResaBandModal(){ document.getElementById('resaBandModal').classList.add('open'); }
 function closeResaBandModal(){ document.getElementById('resaBandModal').classList.remove('open'); }
 
+// Mobile-only "quick look" pop-up: tapping one of the three level pills
+// above the comparison button opens just that level's card (same gray-card
+// look as the full pop-up/desktop segments), instead of the full compare-3 view.
+function openResaSingleLevelModal(i){
+  const rb = DATA.resaBand;
+  const lv = (rb.levels||[])[i];
+  if(!lv) return;
+  let modal = document.getElementById('resaSingleModal');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'resaSingleModal';
+    document.body.appendChild(modal);
+    modal.onclick = closeResaSingleLevelModal;
+  }
+  const color = resaLevelColor(lv, i);
+  modal.innerHTML = `
+    <div class="resa-modal-box resa-single-modal-box" onclick="event.stopPropagation()">
+      <div class="resa-modal-level">
+        <span class="resa-modal-level-pill" style="background:${hexToRgba(color,0.14)};color:${color}">${esc(lv.name||'')}</span>
+        <div class="resa-modal-promise">${esc(lv.promise||'')}</div>
+        <div class="resa-modal-detail">${esc(lv.detail||'')}</div>
+      </div>
+      <button type="button" class="resa-single-modal-close" onclick="closeResaSingleLevelModal()">Fermer</button>
+    </div>
+  `;
+  modal.classList.add('open');
+}
+function closeResaSingleLevelModal(){
+  const modal = document.getElementById('resaSingleModal');
+  if(modal) modal.classList.remove('open');
+}
+
 // Edit mode reuses the exact same tag + class as the public view for every field
 // (a span stays a span, just gets contenteditable="true") — so it inherits the same
 // width/wrap/flex rules automatically, including on mobile. No separate "edit design".
@@ -2925,13 +2963,20 @@ function renderResaBand(){
         }
       </div>
       ${!ed ? `
+      <div class="resa-band-mobile-pills">
+        ${levels.map((lv,i)=>{
+          const color = resaLevelColor(lv, i);
+          return `<button type="button" class="resa-modal-level-pill resa-band-mobile-pill" style="background:${hexToRgba(color,0.14)};color:${color}" onclick="openResaSingleLevelModal(${i})">${esc(lv.name||'')}</button>`;
+        }).join('')}
+      </div>
       <button type="button" class="resa-band-toggle" onclick="openResaBandModal()">
         <span>${esc(rb.btnText || 'Voir le détail des 3 niveaux')}</span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>
       </button>
       ` : ''}
       <div class="resa-band-segments" style="--resa-cols:${cols}">
-        ${levels.map((lv,i)=>`
+        ${levels.map((lv,i)=>{
+          const color = resaLevelColor(lv, i);
+          return `
           <div class="resa-band-seg" ${ed?`draggable="true" ondragstart="resaLevelDragStart(event,${i})" ondragover="event.preventDefault()" ondrop="resaLevelDrop(event,${i})"`:''}>
             ${ed ? `
               <div style="display:flex;align-items:center;gap:6px">
@@ -2940,12 +2985,12 @@ function renderResaBand(){
                 <button type="button" onclick="deleteResaLevel(${i})" title="Supprimer ce niveau" style="flex:none;width:15px;height:15px;border:none;background:#fff;color:var(--text3);border-radius:50%;font-size:9px;cursor:pointer;line-height:1;padding:0">✕</button>
               </div>
             ` : `
-              <span class="resa-band-seg-name">${esc(lv.name||'')}</span>
+              <span class="resa-modal-level-pill" style="background:${hexToRgba(color,0.14)};color:${color}">${esc(lv.name||'')}</span>
             `}
             ${lv.promise?`<span class="resa-band-seg-promise">${esc(lv.promise)}</span>`:''}
             ${lv.detail?`<span class="resa-band-seg-detail">${esc(lv.detail)}</span>`:''}
           </div>
-        `).join('')}
+        `;}).join('')}
         ${ed ? `<button type="button" class="resa-band-seg-add" onclick="addResaLevel()">+ Ajouter<br>un niveau</button>` : ''}
       </div>
       ${ed ? `<button type="button" class="resa-band-popup-edit-link" onclick="openResaBandModal()">Tout se modifie dans le pop-up « ${esc(rb.btnText||'Comparer les niveaux')} » →</button>` : ''}
