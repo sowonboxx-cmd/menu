@@ -366,7 +366,10 @@ body.hdr-light .hdr-sched .resto-badge-inline svg{color:rgba(20,35,70,.55)!impor
    inutile d'en inventer un autre. Il ne s'affiche que s'il y a un
    bandeau au-dessus : sans rien a separer, un titre seul en haut de
    page ne ferait qu'ajouter du bruit. */
-.cat-list-hdr{margin:0 0 12px;font-size:11px;font-weight:500;font-family:'Jost',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#6B6559;line-height:1}
+.cat-list-hdr{display:flex;align-items:center;gap:7px;margin:0 0 12px;font-size:11px;font-weight:500;font-family:'Jost',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#6B6559;line-height:1}
+/* L'icone prend la couleur du texte (currentColor) : un seul reglage de
+   gris pour les deux, impossible qu'ils se desynchronisent. */
+.cat-list-ico{flex:none;width:13px;height:13px;color:inherit}
 /* Marge négative + padding : le bandeau file jusqu'aux bords de
    l'écran et laisse dépasser la carte suivante — c'est ce dépassement
    qui dit « ça défile » sans aucune flèche ni indicateur. */
@@ -3087,6 +3090,72 @@ function isPinnedDish(d){
   if(!d || !d._pid) return false;
   return (DATA.pinnedDishes||[]).some(p=>p.pid===d._pid);
 }
+// ═══ INTERTITRE « TOUTES LES HUITRES » ═══
+// L'intertitre qui ouvre la liste reprend le nom de la categorie, et
+// doit donc s'accorder avec lui : « toutes les huitres », « tous les
+// vins », « toute la carte ». Le francais ne laisse pas deviner le
+// genre depuis l'orthographe (une boissON est feminine, un poissON est
+// masculin), donc on ne devine pas : on connait les mots qui servent
+// vraiment de nom de rubrique sur une carte, et on ne retombe sur les
+// terminaisons que pour le reste.
+const CAT_FEM = new Set(['huitre','huître','entree','entrée','salade','boisson','viande','volaille','pizza','crepe','crêpe','glace','biere','bière','eau','soupe','assiette','planche','formule','suggestion','specialite','spécialité','douceur','gourmandise','coquille','moule','crevette','brochette','garniture','sauce','tartine','galette','quiche','tarte','patisserie','pâtisserie','viennoiserie','verrine','infusion','limonade','carte','selection','sélection','ardoise','mer','terre','charcuterie','boulette','tapa','tapas','salaison','conserve','rillette','terrine','saucisse','frite','pomme','legume','légume','cereale','céréale','omelette','focaccia','bruschetta','pate','pâte','nouille','soupe','creation','création','decouverte','découverte','envie','saison','part','portion','boule','coupe','tasse','carafe','bouteille','pinte','cuvee','cuvée','planchette','mignardise','friandise','pepite','pépite','trouvaille','nouveaute','nouveauté']);
+const CAT_MASC = new Set(['plat','dessert','fromage','vin','cafe','café','the','thé','cocktail','aperitif','apéritif','digestif','burger','sandwich','poisson','crustace','crustacé','coquillage','accompagnement','menu','jus','sirop','champagne','alcool','spiritueux','tartare','risotto','pain','gateau','gâteau','sorbet','chocolat','produit','classique','incontournable','snack','wrap','bowl','taco','tacos','nem','sushi','maki','ramen','curry','grill','barbecue','toast','bagel','croissant','supplement','supplément','extra','cru','rouge','blanc','rose','rosé','petillant','pétillant','smoothie','milkshake','soda','the','panini','club','plateau','assortiment','trio','duo','choix','arrivage','poulet','boeuf','bœuf','porc','agneau','canard','veau','riz','nectar','biscuit','flan','yaourt','miel','oeuf','œuf']);
+// Quelques mots ont la meme forme au singulier et au pluriel : leur « s »
+// final n'est pas une marque de pluriel et ne doit pas etre retire pour
+// la recherche du genre.
+const CAT_S_INVARIABLE = new Set(['jus','repas','ananas','couscous','pastis','anis','mets','os','dos','radis','tapas','spiritueux','tacos','hors-d’oeuvre','hors-d\'oeuvre']);
+function catEstPluriel(mot){
+  if(CAT_S_INVARIABLE.has(mot)) return true;   // « les jus » s'ecrit comme « le jus »
+  return /[sx]$/.test(mot);
+}
+function catSingulier(mot){
+  if(CAT_S_INVARIABLE.has(mot)) return mot;
+  return mot.replace(/[sx]$/,'');
+}
+function catGenre(mot){
+  const sg = catSingulier(mot);
+  if(CAT_FEM.has(mot) || CAT_FEM.has(sg)) return 'f';
+  if(CAT_MASC.has(mot) || CAT_MASC.has(sg)) return 'm';
+  // Terminaisons, dans l'ordre du plus fiable au moins fiable. Elles ne
+  // servent qu'aux mots hors lexique : un nom de rubrique invente
+  // (« Nos pepites »), un mot etranger, une faute de frappe.
+  if(/(tion|sion|té|tté|ette|ade|ure|ance|ence|ie|ine|ise|elle|esse|eille|ille|aille|euse)$/.test(sg)) return 'f';
+  if(/(age|ment|eau|ier|isme|oir|at|et|al|ail|ou|in|on)$/.test(sg)) return 'm';
+  return 'm';   // le masculin est le defaut du francais, pas un choix esthetique
+}
+// « Toutes les huitres », « tout terre et mer », « toute la carte ».
+function catListLabel(tab){
+  // Surcharge par categorie, puis globale : le texte reste a la main du
+  // restaurateur, l'accord automatique n'est qu'un point de depart.
+  const perso = t(tab.listLabel) || t(DATA.catListLabel);
+  if(perso) return perso;
+  let nom = (t(tab.label)||'').trim();
+  if(!nom) return '';
+  // On enleve l'article que certains mettent dans le nom d'onglet
+  // (« Les desserts »), sinon on obtiendrait « tous les les desserts ».
+  // BUG FIX : l'espace apres l'article etait facultatif (\s*), donc le
+  // « Des » de « Desserts » comptait pour un article et on affichait
+  // « Tous les serts ». L'espace est desormais obligatoire, sauf pour
+  // les formes elidees (« L'ardoise ») qui n'en ont pas.
+  nom = nom.replace(/^(?:(?:les|le|la|nos|notre|des|du|de\s+la|de\s+l['’])\s+|l['’])/i,'').trim();
+  if(!nom) return '';
+  const bas = nom.toLowerCase();
+  const tete = bas.split(/[\s,’']/)[0];
+  const genre = catGenre(tete);
+  if(catEstPluriel(tete)) return (genre==='f' ? 'Toutes les ' : 'Tous les ') + bas;
+  // « Terre et mer » n'est pas une liste d'objets mais un nom d'ensemble :
+  // il ne prend pas d'article. C'est « Tout terre et mer », pas
+  // « Toute la terre et mer ».
+  if(/\set\s/.test(bas)) return 'Tout ' + bas;
+  if(/^[aeiouéèêàâîôû]/.test(bas)) return (genre==='f' ? "Toute l’" : "Tout l’") + bas;
+  return (genre==='f' ? 'Toute la ' : 'Tout le ') + bas;
+}
+const CAT_LIST_ICON = '<svg class="cat-list-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true">'
+  + '<circle cx="4.5" cy="6.5" r="1.5" fill="currentColor"/>'
+  + '<circle cx="4.5" cy="12" r="1.5" fill="currentColor"/>'
+  + '<circle cx="4.5" cy="17.5" r="1.5" fill="currentColor"/>'
+  + '<path d="M10 6.5h10M10 12h10M10 17.5h10" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>'
+  + '</svg>';
 function renderCategoryRail(tab){
   // Tout le monde ne veut pas d'un bandeau en tete de categorie. Quand
   // il est coupe, la liste commence directement par les plats — les
@@ -4516,7 +4585,10 @@ function renderTabContent(tab,lbOffset){
   // ou s'arretaient les incontournables et ou commencait la carte. Cet
   // intertitre fait la coupure. On ne le pose QUE s'il y a un bandeau
   // au-dessus — sinon la liste commence la page et n'a rien a annoncer.
-  if(railHtml) html += `<div class="cat-list-hdr">${t(DATA.catListLabel)||'La carte'}</div>`;
+  if(railHtml){
+    const lbl = catListLabel(tab);
+    if(lbl) html += `<div class="cat-list-hdr">${CAT_LIST_ICON}<span>${escapeHtmlLocal(lbl)}</span></div>`;
+  }
   const hasGridableContent = tab.cards.some(c => c.type !== 'bevs');
   if(view==='grid' && hasGridableContent){
     // Collect all grid items across cards into one unified 2-col grid
