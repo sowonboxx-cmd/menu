@@ -207,9 +207,8 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 #cellModal.open{display:flex}
 #resaBandModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:20px}
 #resaBandModal.open{display:flex}
-.resa-band{background:#fff;border:1px solid var(--border);border-radius:var(--rs);padding:26px 28px;color:var(--text);margin-bottom:20px}
+.resa-band{background:#fff;border-radius:var(--rs);padding:26px 28px;color:var(--text);margin:20px 0}
 .resa-band-top{display:flex;align-items:flex-start;gap:20px;margin-bottom:22px}
-.resa-band-icon{width:36px;height:36px;border-radius:10px;background:#F5F5F7;display:flex;align-items:center;justify-content:center;flex:none;color:var(--text3)}
 .resa-band-titlerow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
 .resa-band-title{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.01em}
 .resa-band-pill{display:inline-block;background:#EAF3FE;color:#2F6FE0;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:4px 10px;border-radius:20px}
@@ -221,10 +220,20 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .resa-band-seg-name{font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--text)}
 .resa-band-seg-formula{font-size:11px;font-weight:600;color:var(--text3)}
 .resa-band-seg-text{font-size:12px;color:var(--text2);line-height:1.5}
+.resa-band-toggle{display:none}
 @media(max-width:768px){
   .resa-band-segments{grid-template-columns:1fr;gap:16px}
   .resa-band-top{flex-wrap:wrap}
   .resa-band-btn{width:100%;text-align:center}
+}
+@media(max-width:640px){
+  body:not(.edit-mode) #resaBandWrap{padding:0 14px}
+  body:not(.edit-mode) .resa-band{width:94%;padding:22px 20px}
+  body:not(.edit-mode) .resa-band-segments{display:none;border-top:none;padding-top:16px}
+  body:not(.edit-mode) .resa-band.resa-band-open .resa-band-segments{display:grid}
+  body:not(.edit-mode) .resa-band-toggle{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;background:none;border:none;border-top:1px solid var(--border);margin-top:18px;padding:14px 0 0;font-size:12px;font-weight:600;color:#2F6FE0;cursor:pointer;font-family:'Inter',sans-serif}
+  body:not(.edit-mode) .resa-band-toggle svg{transition:transform .2s;flex:none}
+  body:not(.edit-mode) .resa-band.resa-band-open .resa-band-toggle svg{transform:rotate(180deg)}
 }
 .resa-band-editing{outline:1px dashed var(--text3);outline-offset:6px}
 .resa-ce{cursor:text;border-radius:4px;outline:none;transition:background .12s;box-decoration-break:clone;-webkit-box-decoration-break:clone}
@@ -723,9 +732,9 @@ table.matrix tr:hover td{background:#fafaf7}
     <div class="offers-stack-sticky" id="offersStackSticky">
       <div class="wrap">
         <div id="offersHeader"></div>
-        <div id="resaBandWrap"></div>
         <div class="offers-grid" id="offersAutoTop"></div>
         <div class="offers-mobile-tabbar-wrap" id="offersMobileTabbarWrap"></div>
+        <div id="resaBandWrap"></div>
         <div class="offers-trust-bar" id="offersTrustBar"></div>
       </div>
     </div>
@@ -2752,7 +2761,6 @@ function renderResaBand(){
   wrap.innerHTML = `
     <div class="resa-band ${ed?'resa-band-editing':''}">
       <div class="resa-band-top">
-        <span class="resa-band-icon">${RESA_ICON_SVG}</span>
         <div style="flex:1;min-width:0">
           <div class="resa-band-titlerow">
             <span class="resa-band-title${ed?' resa-ce':''}" ${ed?`${ce('','Titre')} onblur="resaCommitField(this,'title')"`:''}>${esc(rb.title||'')}</span>
@@ -2768,6 +2776,12 @@ function renderResaBand(){
           : (rb.btnText?`<button type="button" class="resa-band-btn" onclick="openResaBandModal()">${esc(rb.btnText)}</button>`:'')
         }
       </div>
+      ${!ed ? `
+      <button type="button" class="resa-band-toggle" onclick="this.closest('.resa-band').classList.toggle('resa-band-open')">
+        <span>Voir le détail des 3 niveaux</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </button>
+      ` : ''}
       <div class="resa-band-segments" style="--resa-cols:${cols}">
         ${levels.map((lv,i)=>`
           <div class="resa-band-seg" ${ed?`draggable="true" ondragstart="resaLevelDragStart(event,${i})" ondragover="event.preventDefault()" ondrop="resaLevelDrop(event,${i})"`:''}>
