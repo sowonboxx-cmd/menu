@@ -569,9 +569,12 @@ body.edit-mode .fshow-nav-row{align-items:flex-start}
 #installModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:20px}
 #installModal.open{display:flex}
 .install-modal-box{background:#F5F5F7;border-radius:16px;padding:20px 18px}
+.install-modal-intro{text-align:center;font-size:13px;color:var(--text2);line-height:1.6}
 .install-modal-list{margin:0;padding-left:18px;list-style:disc}
 .install-modal-list li{font-size:13px;color:var(--text2);line-height:1.6}
 .install-modal-list li+li{margin-top:6px}
+.install-modal-list-lead{font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px}
+.install-modal-list-lead:not(:first-child){margin-top:14px}
 .offers-trust-bar{display:flex;align-items:center;background:#fff;border-radius:20px;padding:24px 32px;margin-top:20px;gap:0}
 .otb-item{display:flex;align-items:center;gap:14px;flex:1;padding:0 20px}
 .otb-item:not(:last-child){border-right:1px solid var(--border)}
@@ -3075,18 +3078,39 @@ function openInstallModal(tag){
     document.body.appendChild(modal);
     modal.onclick = closeInstallModal;
   }
-  const lines = (meta.installDesc||'').split('\n').map(s=>s.trim().replace(/^[*\-•]\s+/,'')).filter(Boolean);
+  // Plain sentences (no bullet marker) before the first bulleted line are the intro text →
+  // their own centered gray box. Everything from the first bullet onward is the list itself,
+  // in a separate gray box (a plain line in there, like "Votre restaurant, de A à Z :", becomes
+  // a bold lead-in above its bullets rather than a bullet of its own).
+  const bulletRe = /^[*\-•]\s+/;
+  const rawLines = (meta.installDesc||'').split('\n').map(s=>s.trim()).filter(Boolean);
+  let splitIdx = rawLines.findIndex(l => bulletRe.test(l));
+  if(splitIdx === -1) splitIdx = rawLines.length;
+  const introLines = rawLines.slice(0, splitIdx);
+  const restLines = rawLines.slice(splitIdx);
+  const introHtml = introLines.length ? `<div class="install-modal-box install-modal-intro">${esc(introLines.join(' '))}</div>` : '';
+  let listInner = '';
+  let ulOpen = false;
+  restLines.forEach(l => {
+    if(bulletRe.test(l)){
+      if(!ulOpen){ listInner += '<ul class="install-modal-list">'; ulOpen = true; }
+      listInner += `<li>${esc(l.replace(bulletRe,''))}</li>`;
+    } else {
+      if(ulOpen){ listInner += '</ul>'; ulOpen = false; }
+      listInner += `<div class="install-modal-list-lead">${esc(l)}</div>`;
+    }
+  });
+  if(ulOpen) listInner += '</ul>';
+  const listHtml = restLines.length ? `<div class="install-modal-box"${introHtml?' style="margin-top:12px"':''}>${listInner}</div>` : '';
   modal.innerHTML = `
     <div class="resa-modal-box" style="max-width:440px" onclick="event.stopPropagation()">
       <button type="button" class="resa-modal-x-close" onclick="closeInstallModal()" aria-label="Fermer">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg>
       </button>
       <div class="resa-modal-title" style="margin-bottom:16px">${esc(meta.installTitle||'Mise en service unique')}</div>
-      <div class="install-modal-box">
-        <ul class="install-modal-list">
-          ${lines.length ? lines.map(l=>`<li>${esc(l)}</li>`).join('') : `<li>${esc(meta.installDesc||'')}</li>`}
-        </ul>
-      </div>
+      ${introHtml}
+      ${listHtml}
+      ${(!introHtml && !listHtml) ? `<div class="install-modal-box install-modal-intro">${esc(meta.installDesc||'')}</div>` : ''}
     </div>
   `;
   modal.classList.add('open');
