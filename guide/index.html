@@ -298,12 +298,16 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .apple-section-bg{background:#F5F5F7;padding:56px 0;width:100%}
 /* ── Reorderable page sections + gray/white background toggle ── */
 .reorderable-section{position:relative}
-.section-band-gray{background:#F5F5F7;padding:56px 0;width:100%;position:relative}
-.section-band-white{background:#fff;padding:56px 0;width:100%;position:relative}
+.section-band-gray{background:#F5F5F7;padding:45px 0;width:100%;position:relative}
+.section-band-white{background:#fff;padding:45px 0;width:100%;position:relative}
+/* First band under the hero keeps a slightly taller top gap (-15% off the
+   original 56px, vs. -20% for every other inter-section gap). */
+.reorderable-section[data-key="featureShowcase"].section-band-gray,
+.reorderable-section[data-key="featureShowcase"].section-band-white{padding-top:48px}
 /* Soft fade at the seam between two consecutive sections of different backgrounds,
    instead of a hard flat-color edge. */
-.section-band-white + .section-band-gray::before{content:'';position:absolute;top:0;left:0;right:0;height:56px;background:linear-gradient(#fff, transparent);pointer-events:none}
-.section-band-gray + .section-band-white::before{content:'';position:absolute;top:0;left:0;right:0;height:56px;background:linear-gradient(#F5F5F7, transparent);pointer-events:none}
+.section-band-white + .section-band-gray::before{content:'';position:absolute;top:0;left:0;right:0;height:45px;background:linear-gradient(#fff, transparent);pointer-events:none}
+.section-band-gray + .section-band-white::before{content:'';position:absolute;top:0;left:0;right:0;height:45px;background:linear-gradient(#F5F5F7, transparent);pointer-events:none}
 .section-band-gray .offer-card,.section-band-gray .apple-card,.section-band-gray .fshow-card,
 .section-band-gray .matrix-wrap,.section-band-gray .feature-table,.section-band-gray .offers-trust-bar{background:#fff}
 .section-band-white .offer-card,.section-band-white .apple-card,.section-band-white .fshow-card,
@@ -928,13 +932,13 @@ const DEFAULT_DATA = {
   offersHeader: { label:'Vos offres packagées', title:'Trois offres. Tout compris.', subtitle:'Gérez, développez et fidélisez votre restaurant depuis votre téléphone.', cta:'Sur devis' },
   resaBand: {
     title: 'La réservation en ligne est incluse',
-    pill: 'dans les 3 formules',
+    pill: '',
     desc: 'Ce qui change, c\'est ce qu\'elle vous permet de faire par formule.',
     btnText: 'Comparer les 3 niveaux',
     levels: [
-      { name:'BASIQUE', formula:'Vos réservations, sans effort.', bandText:'Réservations illimitées, confirmation automatique et gestion des disponibilités.', promise:'Vos clients réservent en ligne, à toute heure.', detail:'Réservations illimitées, disponibilités en temps réel, annulation en un clic et confirmation automatique. Le calendrier remplace le carnet et les appels pendant le service.' },
-      { name:'AVANCÉE', formula:'Pro', bandText:'Vos salles et vos tables se gèrent seules, selon les préférences de vos clients.', promise:'Votre salle est gérée, pas seulement votre agenda.', detail:'Gestion complète des salles et des tables, avec la préférence de placement de chaque client prise en compte automatiquement. Chaque réservation sait déjà où elle s\'installe.' },
-      { name:'PRO', formula:'Master', bandText:'Anticipez votre semaine et remplissez vos tables vides avant qu\'elles ne le restent.', promise:'Anticipez votre activité, et remplissez vos tables vides.', detail:'Les statistiques affichent le nombre de réservations sur les 7 prochains jours : vous repérez vos jours creux avant qu\'ils n\'arrivent. Le Remplissage de tables (Table Boost) déclenche alors une promo ciblée sur ces jours-là — et transforme une table vide en chiffre d\'affaires.' }
+      { name:'STARTER', formula:'Vos réservations, sans effort.', bandText:'Réservations illimitées, confirmation automatique et gestion des disponibilités.', promise:'Vos clients réservent en ligne, à toute heure.', detail:'Réservations illimitées, disponibilités en temps réel, annulation en un clic et confirmation automatique. Le calendrier remplace le carnet et les appels pendant le service.' },
+      { name:'PRO', formula:'Vos salles et vos tables se gèrent seules.', bandText:'Vos salles et vos tables se gèrent seules, selon les préférences de vos clients.', promise:'Votre salle est gérée, pas seulement votre agenda.', detail:'Gestion complète des salles et des tables, avec la préférence de placement de chaque client prise en compte automatiquement. Chaque réservation sait déjà où elle s\'installe.' },
+      { name:'MASTER', formula:'Anticipez et remplissez vos tables vides.', bandText:'Anticipez votre semaine et remplissez vos tables vides avant qu\'elles ne le restent.', promise:'Anticipez votre activité, et remplissez vos tables vides.', detail:'Les statistiques affichent le nombre de réservations sur les 7 prochains jours : vous repérez vos jours creux avant qu\'ils n\'arrivent. Le Remplissage de tables (Table Boost) déclenche alors une promo ciblée sur ces jours-là — et transforme une table vide en chiffre d\'affaires.' }
     ],
     popupTitle: 'La réservation en ligne',
     popupSubtitle: 'Elle est dans les trois formules. Ce qui change, c\'est ce qu\'elle vous permet de faire.',
@@ -1062,6 +1066,7 @@ const DEFAULT_DATA = {
     { icon:'', text:'Sécurisé\net fiable' },
     { icon:'', text:'Support réactif\net humain' },
   ],
+  offersTrustBarHidden: true,
   strategy: [
     { title:'Identifier les prospects', detail:'Repérer les restaurants sans QR code, avec menu PDF périmé, ou très présents sur TheFork (signe de commissions élevées). Privilégier les indépendants avec 30+ couverts/soir.' },
     { title:'Accroche sans rendez-vous', detail:'Entrer dans le restaurant ou contacter après avoir repéré 2-3 points faibles précis sur leur présence digitale actuelle. Proposer une démo gratuite de 15 minutes, sans vendre.' },
@@ -1105,6 +1110,13 @@ function migrateData(){
   if(DATA.resaBand && DATA.resaBand.pill === 'Dans les 3 formules'){
     DATA.resaBand.pill = 'dans les 3 formules';
   }
+  // One-time fix: the resa band's separate "pill" field is no longer used —
+  // the title alone now auto-highlights its "est incluse" ending in the
+  // gradient, so any duplicate pill value (whatever it says) is cleared to
+  // avoid a leftover unused field cluttering edit mode.
+  if(DATA.resaBand && DATA.resaBand.pill){
+    DATA.resaBand.pill = '';
+  }
   // One-time fix: simplify the resa band's title/description to the new
   // clearer wording, and drop the "Comparer les 3 niveaux" button in favor
   // of the "Voir le détail des 3 niveaux" toggle (which now opens the same
@@ -1120,6 +1132,24 @@ function migrateData(){
     ){
       DATA.resaBand.desc = 'Ce qui change, c\'est ce qu\'elle vous permet de faire par formule.';
     }
+  }
+  // One-time fix: rename the reservation levels to match the pricing cards'
+  // own names (Starter/Pro/Master) instead of a separate Essentiel/Avancé/
+  // Expert-style naming, for consistency. Matched by position against every
+  // previously-shipped name for that slot, so a level the user has since
+  // renamed further is left untouched.
+  if(DATA.resaBand && Array.isArray(DATA.resaBand.levels) && DATA.resaBand.levels.length === 3){
+    const renameMap = [
+      { from:['BASIQUE','ESSENTIEL'], to:'STARTER' },
+      { from:['AVANCÉE'], to:'PRO' },
+      { from:['PRO','EXPERT'], to:'MASTER' },
+    ];
+    renameMap.forEach((r,i)=>{
+      const lv = DATA.resaBand.levels[i];
+      if(lv && r.from.includes(lv.name)){
+        lv.name = r.to;
+      }
+    });
   }
   // Matrix cells: migrate old boolean tags[] into the new 3-state cellData model
   // (included / limited / unavailable), each cell able to carry its own display
@@ -1177,6 +1207,10 @@ function migrateData(){
     }
   })();
   if(!Array.isArray(DATA.offersTrustBar)) DATA.offersTrustBar = JSON.parse(JSON.stringify(DEFAULT_DATA.offersTrustBar));
+  // New "hide this block" toggle for the trust bar: default it to hidden so
+  // sites that already had this block simply stop showing it (can be
+  // re-enabled from edit mode).
+  if(DATA.offersTrustBarHidden === undefined) DATA.offersTrustBarHidden = true;
   ['base','pro','premium'].forEach(k=>{ if(DATA.offerMeta[k] && DATA.offerMeta[k].icon===undefined) DATA.offerMeta[k].icon = ''; });
   if(!DATA.installationLabel) DATA.installationLabel = DEFAULT_DATA.installationLabel;
   if(!DATA.installationTooltipTitle) DATA.installationTooltipTitle = DEFAULT_DATA.installationTooltipTitle;
@@ -2806,10 +2840,6 @@ function renderResaBand(){
         <div style="flex:1;min-width:0">
           <div class="resa-band-titlerow">
             <span class="resa-band-title${ed?' resa-ce':''}" ${ed?`${ce('','Titre')} onblur="resaCommitField(this,'title')"`:''}>${ed?esc(rb.title||''):resaTitleHtml(rb.title)}</span>
-            ${ed
-              ? `<span class="resa-band-pill resa-ce" ${ce('','Mention')} onblur="resaCommitField(this,'pill')">${esc(rb.pill||'')}</span>`
-              : (rb.pill?`<span class="resa-band-pill">${esc(rb.pill)}</span>`:'')
-            }
           </div>
           <div class="resa-band-desc${ed?' resa-ce':''}" ${ed?`${ce('',"Phrase d'explication")} onblur="resaCommitField(this,'desc')"`:''}>${esc(rb.desc||'')}</div>
         </div>
@@ -2820,7 +2850,7 @@ function renderResaBand(){
       </div>
       ${!ed ? `
       <button type="button" class="resa-band-toggle" onclick="openResaBandModal()">
-        <span>Voir le détail des 3 niveaux</span>
+        <span>${esc(rb.btnText || 'Voir le détail des 3 niveaux')}</span>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </button>
       ` : ''}
@@ -3457,11 +3487,28 @@ function initMobileOfferStack(){
   }
 }
 
+function toggleOffersTrustBarHidden(){
+  DATA.offersTrustBarHidden = !DATA.offersTrustBarHidden;
+  save();
+  renderOffersTrustBar();
+}
 function renderOffersTrustBar(){
   const el = document.getElementById('offersTrustBar');
   if(!el) return;
   const editable = editMode;
-  el.innerHTML = DATA.offersTrustBar.map((item, i)=>`
+  const hidden = !!DATA.offersTrustBarHidden;
+  if(hidden && !editable){
+    el.style.display = 'none';
+    el.innerHTML = '';
+    return;
+  }
+  el.style.display = '';
+  el.style.position = editable ? 'relative' : '';
+  el.classList.toggle('section-hidden-admin', hidden && editable);
+  const toggleBtn = editable
+    ? `<button type="button" onclick="toggleOffersTrustBarHidden()" style="position:absolute;top:-32px;right:0;display:flex;align-items:center;gap:4px;font-size:9px;font-weight:700;letter-spacing:.02em;border:1px solid ${hidden?'var(--border)':'var(--pro)'};color:${hidden?'var(--text3)':'var(--pro)'};background:${hidden?'#f5f5f5':'var(--tint-pro)'};border-radius:20px;padding:3px 10px;cursor:pointer;white-space:nowrap;text-transform:none;z-index:2">${hidden?'◯ Masqué — cliquer pour afficher':'● Visible — cliquer pour masquer'}</button>`
+    : '';
+  el.innerHTML = toggleBtn + DATA.offersTrustBar.map((item, i)=>`
     <div class="otb-item">
       ${editable ? `
         <div style="display:flex;flex-direction:column;gap:6px;width:100%">
