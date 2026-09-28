@@ -644,7 +644,12 @@ body.edit-mode .fshow-nav-row{align-items:flex-start}
   .fshow-mobile-close svg{width:13px;height:13px;display:block}
   /* Arrows sit at the card's outer edges, like Apple's, vertically centered on the panel (positioned via JS). */
   .fshow-mobile-arrow{position:absolute;width:52px;border-radius:22px;border:none;-webkit-appearance:none;appearance:none;background:rgba(234,234,236,.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:#1D1D1F;display:none;align-items:stretch;cursor:pointer;padding:0;z-index:6;box-sizing:border-box}
-  .fshow-mobile-arrow.show{display:flex}
+  .fshow-mobile-arrow.show{display:flex;pointer-events:auto}
+  /* Wraps both arrows + the panel so a step animates them as ONE continuous strip (see
+     fshowSlideSwap calls with dist:78 in JS) — an arrow visibly travels toward the panel's
+     spot as the text changes, instead of only the text moving. Transparent everywhere except
+     its children, so it never blocks taps/swipes on the background image underneath. */
+  .fshow-mobile-ctrl{position:absolute;inset:0;pointer-events:none;transform:translateX(0);opacity:1}
   .fshow-mobile-arrow-left{left:-26px}
   .fshow-mobile-arrow-right{right:-26px}
   .fshow-mobile-arrow-ico{display:flex;align-items:center;justify-content:center;width:50%}
@@ -1011,14 +1016,16 @@ table.matrix tr:hover td{background:#fafaf7}
         <button type="button" class="fshow-mobile-close" id="fshowMobileClose" onclick="fshowClose()" aria-label="Fermer">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4.0" stroke-linecap="round"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
         </button>
-        <button type="button" class="fshow-mobile-arrow fshow-mobile-arrow-left" id="fshowMobileArrowL" onclick="fshowStep(-1)" aria-label="Précédent">
-          <span class="fshow-mobile-arrow-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4.0" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"></polyline></svg></span>
-        </button>
-        <button type="button" class="fshow-mobile-arrow fshow-mobile-arrow-right" id="fshowMobileArrowR" onclick="fshowStep(1)" aria-label="Suivant">
-          <span class="fshow-mobile-arrow-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4.0" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg></span>
-        </button>
-        <div class="fshow-mobile-panel" id="fshowMobilePanel">
-          <div class="fshow-mobile-desc" id="fshowMobileDesc"></div>
+        <div class="fshow-mobile-ctrl" id="fshowMobileCtrl">
+          <button type="button" class="fshow-mobile-arrow fshow-mobile-arrow-left" id="fshowMobileArrowL" onclick="fshowStep(-1)" aria-label="Précédent">
+            <span class="fshow-mobile-arrow-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4.0" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"></polyline></svg></span>
+          </button>
+          <button type="button" class="fshow-mobile-arrow fshow-mobile-arrow-right" id="fshowMobileArrowR" onclick="fshowStep(1)" aria-label="Suivant">
+            <span class="fshow-mobile-arrow-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4.0" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg></span>
+          </button>
+          <div class="fshow-mobile-panel" id="fshowMobilePanel">
+            <div class="fshow-mobile-desc" id="fshowMobileDesc"></div>
+          </div>
         </div>
         <div class="fshow-mobile-pills" id="fshowMobilePills"></div>
       </div>
@@ -1079,14 +1086,16 @@ table.matrix tr:hover td{background:#fafaf7}
         <button type="button" class="fshow-mobile-close" id="fshow2MobileClose" onclick="fshow2Close()" aria-label="Fermer">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4.0" stroke-linecap="round"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
         </button>
-        <button type="button" class="fshow-mobile-arrow fshow-mobile-arrow-left" id="fshow2MobileArrowL" onclick="fshow2Step(-1)" aria-label="Précédent">
-          <span class="fshow-mobile-arrow-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4.0" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"></polyline></svg></span>
-        </button>
-        <button type="button" class="fshow-mobile-arrow fshow-mobile-arrow-right" id="fshow2MobileArrowR" onclick="fshow2Step(1)" aria-label="Suivant">
-          <span class="fshow-mobile-arrow-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4.0" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg></span>
-        </button>
-        <div class="fshow-mobile-panel" id="fshow2MobilePanel">
-          <div class="fshow-mobile-desc" id="fshow2MobileDesc"></div>
+        <div class="fshow-mobile-ctrl" id="fshow2MobileCtrl">
+          <button type="button" class="fshow-mobile-arrow fshow-mobile-arrow-left" id="fshow2MobileArrowL" onclick="fshow2Step(-1)" aria-label="Précédent">
+            <span class="fshow-mobile-arrow-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4.0" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"></polyline></svg></span>
+          </button>
+          <button type="button" class="fshow-mobile-arrow fshow-mobile-arrow-right" id="fshow2MobileArrowR" onclick="fshow2Step(1)" aria-label="Suivant">
+            <span class="fshow-mobile-arrow-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4.0" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg></span>
+          </button>
+          <div class="fshow-mobile-panel" id="fshow2MobilePanel">
+            <div class="fshow-mobile-desc" id="fshow2MobileDesc"></div>
+          </div>
         </div>
         <div class="fshow-mobile-pills" id="fshow2MobilePills"></div>
       </div>
@@ -2726,6 +2735,7 @@ function fshowRenderMobile(animate, direction){
   const it = isOpen ? items[fshowOpenIndex] : items[0];
   const html = (it && it.image) ? immersiveMediaEmbedHtml(it.image) : '';
   const descEl = document.getElementById('fshowMobileDesc');
+  const ctrlEl = document.getElementById('fshowMobileCtrl');
   const newDescHtml = isOpen ? fshowMobileDescHtml(it) : '';
   const applyDesc = () => { if(descEl) descEl.innerHTML = newDescHtml; };
   const bgHasLayer = !!bgEl.querySelector(':scope > .fshow-cf-layer');
@@ -2733,10 +2743,21 @@ function fshowRenderMobile(animate, direction){
     bgEl.innerHTML = `<div class="fshow-cf-layer">${html}</div>`;
     observeLazyVideos(bgEl);
     if(descEl){ fshowResetSlide(descEl); applyDesc(); }
+    if(ctrlEl) fshowResetSlide(ctrlEl);
   } else {
     // Same direction, fired in the same tick, so the image and the text travel together.
     fshowCrossfade(bgEl, html, direction, {dist:36});
-    if(descEl) fshowSlideSwap(descEl, applyDesc, direction, {dist:26});
+    if(direction && ctrlEl){
+      // Stepping (swipe/arrow): slide the whole control row — both arrows plus the panel —
+      // together, so the arrow you pressed/swiped toward visibly travels in and settles where
+      // the panel now sits, text and all, like one continuous strip rather than just the text
+      // moving on its own.
+      fshowSlideSwap(ctrlEl, applyDesc, direction, {dist:78});
+    } else if(descEl){
+      // Opening/closing (no step direction): the panel/arrows already have their own
+      // show/hide transitions, so just crossfade the text in place.
+      fshowSlideSwap(descEl, applyDesc, direction, {dist:26});
+    }
   }
   const panelEl = document.getElementById('fshowMobilePanel');
   if(panelEl) panelEl.classList.toggle('show', isOpen);
@@ -3096,6 +3117,7 @@ function fshow2RenderMobile(animate, direction){
   const it = isOpen ? items[fshow2OpenIndex] : items[0];
   const html = (it && it.image) ? immersiveMediaEmbedHtml(it.image) : '';
   const descEl = document.getElementById('fshow2MobileDesc');
+  const ctrlEl = document.getElementById('fshow2MobileCtrl');
   const newDescHtml = isOpen ? fshowMobileDescHtml(it) : '';
   const applyDesc = () => { if(descEl) descEl.innerHTML = newDescHtml; };
   const bgHasLayer = !!bgEl.querySelector(':scope > .fshow-cf-layer');
@@ -3103,9 +3125,14 @@ function fshow2RenderMobile(animate, direction){
     bgEl.innerHTML = `<div class="fshow-cf-layer">${html}</div>`;
     observeLazyVideos(bgEl);
     if(descEl){ fshowResetSlide(descEl); applyDesc(); }
+    if(ctrlEl) fshowResetSlide(ctrlEl);
   } else {
     fshowCrossfade(bgEl, html, direction, {dist:36});
-    if(descEl) fshowSlideSwap(descEl, applyDesc, direction, {dist:26});
+    if(direction && ctrlEl){
+      fshowSlideSwap(ctrlEl, applyDesc, direction, {dist:78});
+    } else if(descEl){
+      fshowSlideSwap(descEl, applyDesc, direction, {dist:26});
+    }
   }
   const panelEl = document.getElementById('fshow2MobilePanel');
   if(panelEl) panelEl.classList.toggle('show', isOpen);
