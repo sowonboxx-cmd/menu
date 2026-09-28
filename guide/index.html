@@ -292,6 +292,16 @@ body:not(.edit-mode) .resa-band-seg{width:90%;margin:0 auto}
 .info-modal-textarea:focus{border-color:var(--navy)}
 .info-modal-desc-view{font-size:13px;color:var(--text2);line-height:1.7;min-height:60px;padding:8px 0}
 .info-modal-actions{display:flex;justify-content:flex-end;gap:8px}
+#ppTierModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:20px}
+#ppTierModal.open{display:flex}
+.pp-tier-modal-box{max-width:520px;max-height:82vh;overflow-y:auto}
+.pp-tier-modal-content{font-size:13.5px;color:var(--text2);line-height:1.65}
+.pp-tier-modal-content p{margin:0 0 12px}
+.pp-tier-modal-content h4{font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--navy);margin:16px 0 8px;font-weight:700}
+.pp-tier-modal-content ul{margin:0 0 4px;padding-left:18px}
+.pp-tier-modal-content li{margin-bottom:6px}
+.pp-offer-link{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-decoration-color:#9aa3ad;text-underline-offset:3px}
+.pp-offer-link:hover{color:var(--navy)}
 .add-feature-row{display:flex;align-items:center;gap:8px;padding:10px 18px}
 .add-feature-row input{flex:1;border:1px dashed var(--border);border-radius:6px;padding:7px 10px;font-size:12px;font-family:'Inter',sans-serif;outline:none}
 .add-feature-row input:focus{border-color:var(--gold)}
@@ -876,6 +886,17 @@ table.matrix tr:hover td{background:#fafaf7}
   </div>
 </div>
 
+<!-- PHOTO PRICING TIER DETAIL MODAL -->
+<div id="ppTierModal" onclick="if(event.target===this)closePpTierModal()">
+  <div class="info-modal-box pp-tier-modal-box">
+    <div class="info-modal-title" id="ppTierModalTitle" style="font-size:17px"></div>
+    <div id="ppTierModalContent" class="pp-tier-modal-content"></div>
+    <div class="info-modal-actions">
+      <button class="btn btn-ghost" style="background:#f0ece6;color:var(--text2);border:none" onclick="closePpTierModal()">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <!-- MATRIX CELL MODAL (état 3 niveaux : inclus / limité / indisponible) -->
 <div id="cellModal" onclick="if(event.target===this)closeCellModal()">
   <div class="info-modal-box">
@@ -1362,11 +1383,30 @@ const DEFAULT_DATA = {
         columns: ['Offre', 'Nombre de photos', 'Tarif HT'],
         rows: [
           { offer: 'Essentiel', qty: "Jusqu'à 15 photos", price: '499 € HT' },
-          { offer: 'Signature', qty: "Jusqu'à 30 photos", price: '699 € HT' },
-          { offer: 'Premium', qty: "Jusqu'à 50 photos", price: '899 € HT' }
+          { offer: 'Signature', qty: "Jusqu'à 30 photos", price: '699 € HT' }
         ],
         note: "Jusqu'à 3 photos par plat, complétées par des photos de l'univers du restaurant : salle, terrasse, devanture, cuisine, équipe, service, décoration, ambiance, etc.",
-        explanation: ''
+        explanation: '',
+        popup: {
+          title: 'Photos réalisées par nos soins',
+          intro: "Nous créons une bibliothèque d'images à l'image de votre restaurant, avec des photos de vos plats et de tout votre univers.",
+          includes: [
+            'Prise de vue professionnelle',
+            '1 à 2 photos par plat pour varier vos contenus',
+            'Photos de la salle, terrasse et devanture',
+            'Photos de la cuisine, équipe et service',
+            'Photos de la décoration, ambiance, bar et détails',
+            'Retouche et optimisation des photos',
+            'Adaptation aux usages web, Google et réseaux sociaux'
+          ],
+          extra: '',
+          notes: [
+            'Le nombre de photos dépend de la formule choisie.',
+            "La répartition entre photos de plats et photos de l'univers est adaptée à votre restaurant.",
+            'Les photos sont préparées pour être réutilisées sur vos différents supports.',
+            'Direction artistique, stylisme ou mise en scène spécifique : sur devis.'
+          ]
+        }
       },
       {
         key: 'integration',
@@ -1377,11 +1417,28 @@ const DEFAULT_DATA = {
         columns: ['Offre', 'Nombre de photos intégrées', 'Tarif HT'],
         rows: [
           { offer: 'Essentiel', qty: '15', price: '249 € HT' },
-          { offer: 'Signature', qty: '30', price: '349 € HT' },
-          { offer: 'Premium', qty: '50', price: '449 € HT' }
+          { offer: 'Signature', qty: '30', price: '349 € HT' }
         ],
         note: '',
-        explanation: ''
+        explanation: '',
+        popup: {
+          title: 'Photos fournies par vos soins',
+          intro: 'Vous avez déjà vos photos ? Vous les sélectionnez et nous nous chargeons de leur préparation et de leur intégration.',
+          includes: [
+            'Recadrage et adaptation des formats',
+            'Optimisation pour le web',
+            'Intégration sur le site et les outils concernés',
+            'Association des photos aux plats et contenus',
+            'Préparation pour les usages Google et réseaux sociaux'
+          ],
+          extra: 'Pour les plats : vous pouvez fournir jusqu\'à 3 photos par plat pour varier les visuels utilisés dans vos contenus.',
+          notes: [
+            'Les photos doivent être de bonne qualité et sélectionnées par vos soins.',
+            'Nous ne faisons pas de recherche, de tri ou de sélection parmi vos fichiers.',
+            'Les formats 4:5 et 9:16 sont recommandés.',
+            "Jusqu'à 30 photos incluses selon la formule choisie. Au-delà, sur devis."
+          ]
+        }
       }
     ]
   },
@@ -1601,6 +1658,14 @@ function migrateData(){
   if(DATA.photoPricing && !DATA.photoPricing.videoPricing) DATA.photoPricing.videoPricing = JSON.parse(JSON.stringify(DEFAULT_DATA.photoPricing.videoPricing));
   if(DATA.photoPricing && !DATA.photoPricing.photoLabel) DATA.photoPricing.photoLabel = DEFAULT_DATA.photoPricing.photoLabel;
   if(DATA.photoPricing && !DATA.photoPricing.videoLabel) DATA.photoPricing.videoLabel = DEFAULT_DATA.photoPricing.videoLabel;
+  if(DATA.photoPricing && Array.isArray(DATA.photoPricing.tabs)){
+    DATA.photoPricing.tabs.forEach((tab, tii)=>{
+      if(tab && !tab.popup){
+        const src = (DEFAULT_DATA.photoPricing.tabs||[]).find(t=>t.key===tab.key) || DEFAULT_DATA.photoPricing.tabs[tii];
+        if(src && src.popup) tab.popup = JSON.parse(JSON.stringify(src.popup));
+      }
+    });
+  }
   if(!DATA.customSections) DATA.customSections = {};
   if(!DATA.agencyHero) DATA.agencyHero = JSON.parse(JSON.stringify(DEFAULT_DATA.agencyHero));
   if(!DATA.sectionBg) DATA.sectionBg = JSON.parse(JSON.stringify(DEFAULT_DATA.sectionBg));
@@ -4139,9 +4204,9 @@ function ppPhotoTableHtml(tiers, tabs){
           </tr>
         </thead>
         <tbody>
-          ${tabs.map(tab=>`
+          ${tabs.map((tab,tii)=>`
             <tr>
-              <td class="pp-offer-cell">${esc(tab.tableTitle||'')}</td>
+              <td class="pp-offer-cell">${tab.popup ? `<span class="pp-offer-link" onclick="openPpTierModal(${tii})">${esc(tab.tableTitle||'')}</span>` : esc(tab.tableTitle||'')}</td>
               ${(tab.rows||[]).map(r=>`<td class="pp-price-cell">${esc(r.price||'')}</td>`).join('')}
             </tr>
           `).join('')}
@@ -4149,6 +4214,21 @@ function ppPhotoTableHtml(tiers, tabs){
       </table>
     </div>
   `;
+}
+function openPpTierModal(tii){
+  const tab = ((DATA.photoPricing && DATA.photoPricing.tabs) || [])[tii];
+  const popup = tab && tab.popup;
+  if(!popup) return;
+  document.getElementById('ppTierModalTitle').textContent = popup.title || tab.tableTitle || '';
+  const introHtml = popup.intro ? `<p>${esc(popup.intro)}</p>` : '';
+  const includesHtml = (popup.includes||[]).length ? `<h4>Inclus</h4><ul>${popup.includes.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>` : '';
+  const extraHtml = popup.extra ? `<p>${esc(popup.extra)}</p>` : '';
+  const notesHtml = (popup.notes||[]).length ? `<h4>À savoir</h4><ul>${popup.notes.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>` : '';
+  document.getElementById('ppTierModalContent').innerHTML = introHtml + includesHtml + extraHtml + notesHtml;
+  document.getElementById('ppTierModal').classList.add('open');
+}
+function closePpTierModal(){
+  document.getElementById('ppTierModal').classList.remove('open');
 }
 function ppVideoTableHtml(videoRows){
   return `
