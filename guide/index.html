@@ -221,6 +221,10 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 .resa-band-top{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:35px}
 .resa-band-titlerow{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}
 .resa-band-title{font-size:29px;font-weight:700;color:var(--text);letter-spacing:-.01em}
+.resa-band-title-input{display:block;margin:0 auto;width:min(92%,760px);max-width:100%;text-align:center;font-size:29px;font-weight:700;color:var(--text);letter-spacing:-.01em;font-family:'Inter',sans-serif;line-height:1.25;border:none;background:transparent;outline:none;resize:none;overflow:hidden;cursor:text;border-radius:6px;padding:2px 4px;transition:background .12s}
+.resa-band-title-input::placeholder{color:var(--text3);opacity:.45;font-weight:700}
+.resa-band-title-input:hover{background:rgba(15,42,61,.06)}
+.resa-band-title-input:focus{background:rgba(15,42,61,.1)}
 .resa-band-title-em{background:linear-gradient(90deg,#0b84ff 0%,#8b5cf6 35%,#ec4899 65%,#f97316 100%);-webkit-background-clip:text;background-clip:text;color:transparent;display:inline-block}
 .resa-band-pill{display:inline-block;background:linear-gradient(90deg,#0b84ff 0%,#8b5cf6 35%,#ec4899 65%,#f97316 100%);-webkit-background-clip:text;background-clip:text;color:transparent;font-size:16px;font-weight:700;letter-spacing:-.01em}
 .resa-band-desc{font-size:18px;font-weight:500;color:var(--text2);line-height:1.55;max-width:520px;margin:0 auto}
@@ -3220,37 +3224,11 @@ function resaCommitField(el, key){
 // The band title is the one resa field where Enter should insert a manual line break
 // instead of committing — Will wants to control the wrap himself rather than let the
 // text run the full width of the "Modifier" box.
-function resaTitleCeEnter(e){
-  if(e.key !== 'Enter') return;
-  e.preventDefault();
-  const sel = window.getSelection();
-  if(!sel || !sel.rangeCount) return;
-  const range = sel.getRangeAt(0);
-  range.deleteContents();
-  const br = document.createElement('br');
-  range.insertNode(br);
-  // A lone trailing <br> is treated by browsers as a mere end-of-line "filler" —
-  // any further typing gets silently redirected to before it instead of after.
-  // A zero-width space right after the <br> gives it real content to anchor the
-  // caret to, so typing the second line actually lands after the break. Stripped
-  // back out on commit.
-  const anchor = document.createTextNode('​');
-  br.after(anchor);
-  range.setStart(anchor, 1);
-  range.setEnd(anchor, 1);
-  range.collapse(true);
-  sel.removeAllRanges();
-  sel.addRange(range);
-}
+// Plain <textarea> instead of a contenteditable span — Enter/newlines just work
+// natively there, with none of the contenteditable "trailing <br> is a filler"
+// browser quirks that made the earlier contenteditable-based approach unreliable.
 function resaCommitTitleField(el, key){
-  let out = '';
-  el.childNodes.forEach(n => {
-    if(n.nodeType === 3) out += n.textContent;
-    else if(n.nodeName === 'BR') out += '\n';
-    else out += n.textContent || '';
-  });
-  out = out.replace(/​/g,'');
-  DATA.resaBand[key] = out.replace(/\n{3,}/g,'\n\n').trim();
+  DATA.resaBand[key] = (el.value||'').replace(/\n{3,}/g,'\n\n').trim();
   save();
 }
 function resaCommitLevelField(el, i, key){
@@ -3317,7 +3295,9 @@ function renderResaBand(){
     <div class="resa-band ${ed?'resa-band-editing':''}">
       <div class="resa-band-top">
         <div class="resa-band-titlerow">
-          <span class="resa-band-title${ed?' resa-ce':''}" ${ed?`contenteditable="true" data-ph="Titre" onkeydown="resaTitleCeEnter(event)" onblur="resaCommitTitleField(this,'title')"`:''}>${ed?esc(rb.title||'').replace(/\n/g,'<br>'):resaTitleHtml(rb.title)}</span>
+          ${ed
+            ? `<textarea class="resa-band-title-input" rows="1" placeholder="Titre" oninput="autoGrowTextarea(this)" onblur="resaCommitTitleField(this,'title')">${esc(rb.title||'')}</textarea>`
+            : `<span class="resa-band-title">${resaTitleHtml(rb.title)}</span>`}
         </div>
         <div class="resa-band-desc${ed?' resa-ce':''}" ${ed?`${ce('',"Phrase d'explication")} onblur="resaCommitField(this,'desc')"`:''}>${esc(rb.desc||'')}</div>
         ${ed
@@ -3359,6 +3339,10 @@ function renderResaBand(){
       ${ed ? `<button type="button" class="resa-band-popup-edit-link" onclick="openResaBandModal()">Tout se modifie dans le pop-up « ${esc(rb.btnText||'Comparer les niveaux')} » →</button>` : ''}
     </div>
   `;
+  if(ed){
+    const titleInput = wrap.querySelector('.resa-band-title-input');
+    if(titleInput) autoGrowTextarea(titleInput);
+  }
 
   // Pop-up (rendered once regardless of mode; editable in place when editMode is on —
   // same title/div tags as the public pop-up, just made contenteditable)
