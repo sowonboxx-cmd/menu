@@ -2665,23 +2665,31 @@ function fshowCrossfade(container, html, direction, opts){
   container.appendChild(newLayer);
   observeLazyVideos(newLayer);
   void newLayer.offsetWidth; // reflow so the starting position above actually takes before we animate
+  // A drag-commit (opts.exitSign) is covering a lot more distance than a tap-triggered step, so
+  // it gets longer, gentler durations — the tap-step timing felt like a flash when reused for
+  // the full drag-release distance.
+  const isDragCommit = opts.exitSign != null;
   requestAnimationFrame(()=>{
-    newLayer.style.transition = animated
-      ? 'transform .38s cubic-bezier(.34,1.2,.4,1), opacity .3s ease'
-      : 'opacity .26s ease';
+    newLayer.style.transition = !animated
+      ? 'opacity .26s ease'
+      : (isDragCommit
+        ? 'transform .52s cubic-bezier(.22,1.06,.36,1), opacity .4s ease'
+        : 'transform .38s cubic-bezier(.34,1.2,.4,1), opacity .3s ease');
     newLayer.style.transform = 'translateX(0)';
     newLayer.style.opacity = '1';
     if(oldLayer){
-      oldLayer.style.transition = animated
-        ? 'transform .34s cubic-bezier(.4,0,.2,1), opacity .26s ease'
-        : 'opacity .22s ease';
+      oldLayer.style.transition = !animated
+        ? 'opacity .22s ease'
+        : (isDragCommit
+          ? 'transform .42s cubic-bezier(.3,0,.5,1), opacity .34s ease'
+          : 'transform .34s cubic-bezier(.4,0,.2,1), opacity .26s ease');
       oldLayer.style.transform = `translateX(${outSign*dist}px)`;
       oldLayer.style.opacity = '0';
     }
   });
   setTimeout(()=>{
     if(oldLayer && oldLayer.parentNode === container) oldLayer.remove();
-  }, 420);
+  }, isDragCommit ? 560 : 420);
 }
 // Completes a live drag on the arrow+panel control block: el is already sitting at the thumb's
 // live offset (opacity 1, no transition) when this is called, so we just point it further in the
@@ -2691,8 +2699,12 @@ function fshowDragCommitSlide(el, applyContent, exitSign, opts){
   if(!el){ applyContent(); return; }
   opts = opts || {};
   const dist = opts.dist || 220;
-  const outMs = opts.outMs || 190;
-  el.style.transition = `transform ${outMs}ms cubic-bezier(.2,0,.4,1), opacity ${outMs}ms ease`;
+  // Slower and gentler than a tap-triggered step: this is covering a lot more visual distance
+  // (a full drag-commit, not the short fixed hop from an arrow tap), so the same short duration
+  // read as a jarring flash instead of a settled motion. Longer durations + a soft ease-out
+  // (minimal overshoot) give it the unhurried, "breathing" feel of Apple's own transitions.
+  const outMs = opts.outMs || 260;
+  el.style.transition = `transform ${outMs}ms cubic-bezier(.3,0,.5,1), opacity ${outMs}ms ease`;
   el.style.transform = `translateX(${exitSign*dist}px)`;
   el.style.opacity = '0';
   setTimeout(()=>{
@@ -2701,7 +2713,7 @@ function fshowDragCommitSlide(el, applyContent, exitSign, opts){
     el.style.transform = `translateX(${-exitSign*dist}px)`;
     el.style.opacity = '0';
     void el.offsetWidth;
-    el.style.transition = 'transform .36s cubic-bezier(.34,1.3,.4,1), opacity .26s ease';
+    el.style.transition = 'transform .52s cubic-bezier(.22,1.06,.36,1), opacity .4s ease';
     el.style.transform = 'translateX(0)';
     el.style.opacity = '1';
   }, outMs);
@@ -3238,6 +3250,11 @@ function fshowSetupDrag(containerId, bgElId, ctrlElId, stepFn, getItems, getOpen
   el.dataset.dragBound = '1';
   const COMMIT_PX = 55;
   const RUBBER_MAX = 90;
+  // The preview's own fade-in range is deliberately much larger than RUBBER_MAX (the position's
+  // soft cap): tying opacity to the same short distance made it read as fully visible almost
+  // immediately (any drag long enough to feel intentional had already reached ~opacity 1). This
+  // way it stays a visible, gradual fade across the whole gesture instead of a near-instant swap.
+  const PEEK_FADE_RANGE = 240;
   let tracking = false; // touch is down, axis not yet decided
   let dragging = false; // confirmed horizontal, actively following the thumb
   let sx = 0, sy = 0, lastDx = 0;
@@ -3301,7 +3318,7 @@ function fshowSetupDrag(containerId, bgElId, ctrlElId, stepFn, getItems, getOpen
       node.style.transform = `translateX(${rb}px)`;
     });
     ensurePeek(dx < 0 ? -1 : 1);
-    if(peekLayer) peekLayer.style.opacity = String(Math.min(1, Math.abs(dx) / RUBBER_MAX));
+    if(peekLayer) peekLayer.style.opacity = String(Math.min(1, Math.abs(dx) / PEEK_FADE_RANGE));
   }
   function springBack(){
     const { bgLayer, ctrl } = liveNodes();
