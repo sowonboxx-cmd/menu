@@ -481,6 +481,10 @@ body.has-section-sidebar{padding-left:220px}
 #photoPricingLightbox img{max-width:100%;max-height:90vh;border-radius:14px;object-fit:contain;cursor:default;box-shadow:0 20px 60px rgba(0,0,0,.5)}
 .pp-lightbox-close{position:fixed;top:22px;right:26px;width:40px;height:40px;border-radius:50%;border:none;background:rgba(255,255,255,.12);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s}
 .pp-lightbox-close:hover{background:rgba(255,255,255,.22)}
+.pp-lightbox-nav{position:fixed;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:50%;border:none;background:rgba(255,255,255,.12);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s}
+.pp-lightbox-nav:hover{background:rgba(255,255,255,.22)}
+.pp-lightbox-prev{left:24px}
+.pp-lightbox-next{right:24px}
 @media(max-width:640px){
   .pp-gallery-grid{grid-template-columns:repeat(2,1fr)}
 }
@@ -3799,16 +3803,23 @@ function renderPhotoPricingGalleryHtml(){
   return `
     <div class="pp-gallery">
       <div class="pp-gallery-grid">
-        ${gallery.map(url => url
-          ? `<div class="pp-gallery-item" onclick="openPhotoPricingLightbox('${esc(url)}')"><img src="${esc(url)}" alt=""></div>`
+        ${gallery.map((url,i) => url
+          ? `<div class="pp-gallery-item" onclick="openPhotoPricingLightbox(${i})"><img src="${esc(url)}" alt=""></div>`
           : `<div class="pp-gallery-item pp-gallery-item-empty">Photo</div>`
         ).join('')}
       </div>
     </div>
   `;
 }
-function openPhotoPricingLightbox(url){
-  if(editMode || !url) return;
+let ppLightboxList = [];
+let ppLightboxIndex = 0;
+function openPhotoPricingLightbox(startIdx){
+  if(editMode) return;
+  ppLightboxList = photoPricingGallery().filter(Boolean);
+  if(!ppLightboxList.length) return;
+  const startUrl = photoPricingGallery()[startIdx];
+  const pos = ppLightboxList.indexOf(startUrl);
+  ppLightboxIndex = pos >= 0 ? pos : 0;
   let modal = document.getElementById('photoPricingLightbox');
   if(!modal){
     modal = document.createElement('div');
@@ -3816,18 +3827,43 @@ function openPhotoPricingLightbox(url){
     document.body.appendChild(modal);
     modal.onclick = closePhotoPricingLightbox;
   }
+  renderPhotoPricingLightboxContent(modal);
+  modal.classList.add('open');
+}
+function renderPhotoPricingLightboxContent(modal){
+  const multi = ppLightboxList.length > 1;
   modal.innerHTML = `
     <button type="button" class="pp-lightbox-close" onclick="closePhotoPricingLightbox()" aria-label="Fermer">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg>
     </button>
-    <img src="${esc(url)}" alt="" onclick="event.stopPropagation()">
+    ${multi ? `
+      <button type="button" class="pp-lightbox-nav pp-lightbox-prev" onclick="event.stopPropagation();navigatePhotoPricingLightbox(-1)" aria-label="Précédent">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"></polyline></svg>
+      </button>
+      <button type="button" class="pp-lightbox-nav pp-lightbox-next" onclick="event.stopPropagation();navigatePhotoPricingLightbox(1)" aria-label="Suivant">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>
+      </button>
+    ` : ''}
+    <img src="${esc(ppLightboxList[ppLightboxIndex])}" alt="" onclick="event.stopPropagation()">
   `;
-  modal.classList.add('open');
+}
+function navigatePhotoPricingLightbox(delta){
+  if(!ppLightboxList.length) return;
+  ppLightboxIndex = (ppLightboxIndex + delta + ppLightboxList.length) % ppLightboxList.length;
+  const modal = document.getElementById('photoPricingLightbox');
+  if(modal) renderPhotoPricingLightboxContent(modal);
 }
 function closePhotoPricingLightbox(){
   const modal = document.getElementById('photoPricingLightbox');
   if(modal) modal.classList.remove('open');
 }
+document.addEventListener('keydown', function(e){
+  const modal = document.getElementById('photoPricingLightbox');
+  if(!modal || !modal.classList.contains('open')) return;
+  if(e.key === 'Escape') closePhotoPricingLightbox();
+  else if(e.key === 'ArrowLeft') navigatePhotoPricingLightbox(-1);
+  else if(e.key === 'ArrowRight') navigatePhotoPricingLightbox(1);
+});
 
 function renderPhotoPricingDesktop(){
   const wrap = document.getElementById('photoPricingDesktopWrap');
@@ -3863,6 +3899,7 @@ function renderPhotoPricingDesktop(){
               </div>
             </div>
           `).join('')}
+          ${renderPhotoPricingGalleryHtml()}
         </div>
         <div class="pp-desktop-image-col" style="flex-direction:column">
           <div class="pp-image-edit">
@@ -3871,7 +3908,6 @@ function renderPhotoPricingDesktop(){
           ${imageHtml}
         </div>
       </div>
-      ${renderPhotoPricingGalleryHtml()}
     `;
     return;
   }
@@ -3897,10 +3933,10 @@ function renderPhotoPricingDesktop(){
             </tbody>
           </table>
         </div>
+        ${renderPhotoPricingGalleryHtml()}
       </div>
       <div class="pp-desktop-image-col">${imageHtml}</div>
     </div>
-    ${renderPhotoPricingGalleryHtml()}
   `;
 }
 
