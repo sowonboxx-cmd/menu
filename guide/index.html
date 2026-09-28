@@ -469,14 +469,14 @@ body.edit-mode .fshow-nav-row{align-items:flex-start}
   .fshow-mobile-bg{position:absolute;inset:0;opacity:1;transition:opacity .2s ease}
   .fshow-mobile-bg.fading{opacity:0}
   .fshow-mobile-bg img,.fshow-mobile-bg video,.fshow-mobile-bg iframe{width:100%;height:100%;object-fit:cover;display:block;border:none}
-  .fshow-mobile-close{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:50%;border:none;-webkit-appearance:none;appearance:none;background:rgba(255,255,255,.95);color:#1D1D1F;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:6;padding:0}
+  .fshow-mobile-close{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:50%;border:none;-webkit-appearance:none;appearance:none;background:rgba(234,234,236,.95);color:#1D1D1F;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:6;padding:0}
   .fshow-mobile-close.show{display:flex}
   .fshow-mobile-close svg{width:13px;height:13px;display:block}
   /* Arrows sit at the card's outer edges, like Apple's, vertically centered on the panel (positioned via JS). */
-  .fshow-mobile-arrow{position:absolute;width:45px;border-radius:22px;border:none;-webkit-appearance:none;appearance:none;background:rgba(234,234,236,.95);color:#1D1D1F;display:none;align-items:stretch;cursor:pointer;padding:0;z-index:6;box-sizing:border-box}
+  .fshow-mobile-arrow{position:absolute;width:49.5px;border-radius:22px;border:none;-webkit-appearance:none;appearance:none;background:rgba(234,234,236,.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:#1D1D1F;display:none;align-items:stretch;cursor:pointer;padding:0;z-index:6;box-sizing:border-box}
   .fshow-mobile-arrow.show{display:flex}
-  .fshow-mobile-arrow-left{left:-22.5px}
-  .fshow-mobile-arrow-right{right:-22.5px}
+  .fshow-mobile-arrow-left{left:-24.75px}
+  .fshow-mobile-arrow-right{right:-24.75px}
   .fshow-mobile-arrow-ico{display:flex;align-items:center;justify-content:center;width:50%}
   .fshow-mobile-arrow-left .fshow-mobile-arrow-ico{margin-left:auto}
   .fshow-mobile-arrow-right .fshow-mobile-arrow-ico{margin-right:auto}
@@ -2307,7 +2307,14 @@ function fshowRenderMobile(animate){
   const arrowR = document.getElementById('fshowMobileArrowR');
   if(arrowL) arrowL.classList.toggle('show', isOpen);
   if(arrowR) arrowR.classList.toggle('show', isOpen);
-  if(isOpen) requestAnimationFrame(() => fshowPositionMobileArrows('fshowMobile','fshowMobilePanel','fshowMobileArrowL','fshowMobileArrowR'));
+  if(isOpen){
+    const reposition = () => fshowPositionMobileArrows('fshowMobile','fshowMobilePanel','fshowMobileArrowL','fshowMobileArrowR');
+    requestAnimationFrame(reposition);
+    // The panel's opening transition (transform) can still be mid-flight when the rAF above
+    // fires, so the arrows first measure a not-yet-settled panel position — reposition once
+    // more once that transition actually finishes, so they land correctly on the first open too.
+    if(panelEl) panelEl.addEventListener('transitionend', reposition, {once:true});
+  }
   const pillsEl = document.getElementById('fshowMobilePills');
   if(pillsEl){
     pillsEl.classList.toggle('hide', isOpen);
@@ -2675,7 +2682,11 @@ function fshow2RenderMobile(animate){
   const arrowR = document.getElementById('fshow2MobileArrowR');
   if(arrowL) arrowL.classList.toggle('show', isOpen);
   if(arrowR) arrowR.classList.toggle('show', isOpen);
-  if(isOpen) requestAnimationFrame(() => fshowPositionMobileArrows('fshow2Mobile','fshow2MobilePanel','fshow2MobileArrowL','fshow2MobileArrowR'));
+  if(isOpen){
+    const reposition = () => fshowPositionMobileArrows('fshow2Mobile','fshow2MobilePanel','fshow2MobileArrowL','fshow2MobileArrowR');
+    requestAnimationFrame(reposition);
+    if(panelEl) panelEl.addEventListener('transitionend', reposition, {once:true});
+  }
   const pillsEl = document.getElementById('fshow2MobilePills');
   if(pillsEl){
     pillsEl.classList.toggle('hide', isOpen);
