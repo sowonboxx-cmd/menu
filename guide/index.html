@@ -652,10 +652,15 @@ body.edit-mode .fshow-nav-row{align-items:flex-start}
   .fshow-mobile-panel.show{opacity:1;transform:translateY(0);pointer-events:auto}
   .fshow-mobile-desc{font-size:13px;font-weight:500;color:var(--text2);line-height:1.5;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;line-clamp:4;overflow:hidden;text-overflow:ellipsis}
   .fshow-mobile-desc strong{font-weight:700;color:var(--text)}
-  .fshow-mobile-pills{position:absolute;left:0;right:0;bottom:16px;display:flex;gap:8px;overflow-x:auto;padding:0 16px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none;transition:opacity .2s ease;z-index:5}
+  /* padding gives the resting margin; scroll-padding matches it so the snap container
+     doesn't scroll straight past that padding to snap the first pill flush left (a
+     scroll-snap-align:start pill otherwise ignores plain container padding on load). */
+  .fshow-mobile-pills{position:absolute;left:0;right:0;bottom:16px;display:flex;gap:8px;overflow-x:auto;box-sizing:border-box;padding:0 14px;scroll-padding:0 14px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none;transition:opacity .2s ease;z-index:5}
   .fshow-mobile-pills::-webkit-scrollbar{display:none}
   .fshow-mobile-pills.hide{opacity:0;pointer-events:none}
-  .fshow-mobile-pill{flex:none;scroll-snap-align:start;border:none;background:rgba(255,255,255,.92);color:#1D1D1F;font-size:13px;font-weight:600;padding:9px 16px;border-radius:999px;cursor:pointer;white-space:nowrap;font-family:'Inter',sans-serif}
+  .fshow-mobile-pill{display:flex;align-items:center;gap:8px;flex:none;scroll-snap-align:start;border:none;background:rgba(255,255,255,.92);color:#1D1D1F;font-size:13px;font-weight:600;padding:7px 16px 7px 8px;border-radius:999px;cursor:pointer;white-space:nowrap;font-family:'Inter',sans-serif}
+  .fshow-mobile-pill-icon{width:21px;height:21px;border-radius:50%;border:1.5px solid currentColor;display:flex;align-items:center;justify-content:center;flex:none;line-height:1}
+  .fshow-mobile-pill-icon svg{width:12px;height:12px;display:block}
   .fshow-mobile-pill.active{background:#1D1D1F;color:#fff}
 }
 .fshow-tabbar-wrap{position:relative;display:inline-block;max-width:100%}
@@ -2671,7 +2676,7 @@ function fshowRenderMobile(animate){
   const pillsEl = document.getElementById('fshowMobilePills');
   if(pillsEl){
     pillsEl.classList.toggle('hide', isOpen);
-    pillsEl.innerHTML = items.map((x,i) => `<button type="button" class="fshow-mobile-pill${i===fshowOpenIndex?' active':''}" onclick="fshowToggle(${i})">${esc(x.title||'')}</button>`).join('');
+    pillsEl.innerHTML = items.map((x,i) => `<button type="button" class="fshow-mobile-pill${i===fshowOpenIndex?' active':''}" onclick="fshowToggle(${i})"><span class="fshow-mobile-pill-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></span><span>${esc(x.title||'')}</span></button>`).join('');
   }
 }
 function fshowToggle(i){
@@ -3045,7 +3050,7 @@ function fshow2RenderMobile(animate){
   const pillsEl = document.getElementById('fshow2MobilePills');
   if(pillsEl){
     pillsEl.classList.toggle('hide', isOpen);
-    pillsEl.innerHTML = items.map((x,i) => `<button type="button" class="fshow-mobile-pill${i===fshow2OpenIndex?' active':''}" onclick="fshow2Toggle(${i})">${esc(x.title||'')}</button>`).join('');
+    pillsEl.innerHTML = items.map((x,i) => `<button type="button" class="fshow-mobile-pill${i===fshow2OpenIndex?' active':''}" onclick="fshow2Toggle(${i})"><span class="fshow-mobile-pill-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></span><span>${esc(x.title||'')}</span></button>`).join('');
   }
 }
 function fshow2Toggle(i){
