@@ -273,6 +273,8 @@ body:not(.edit-mode) .resa-band-seg{width:90%;margin:0 auto}
 .resa-modal-level{background:#F5F5F7;border-radius:16px;padding:20px 18px;margin-bottom:16px}
 .resa-modal-level:last-of-type{margin-bottom:0}
 .resa-modal-level-pill{display:inline-flex;align-self:flex-start;align-items:center;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:4px 11px;border-radius:8px;margin-bottom:10px;cursor:default}
+.resa-modal-level-crumb{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+.resa-modal-level-crumb-prefix{font-size:12px;font-weight:400;color:var(--text2)}
 .resa-modal-level-pill.resa-ce{cursor:text}
 .resa-modal-promise{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;line-height:1.4}
 .resa-modal-detail{font-size:13px;color:var(--text2);line-height:1.6}
@@ -3159,13 +3161,17 @@ function openResaSingleLevelModal(i){
     modal.onclick = closeResaSingleLevelModal;
   }
   const color = resaLevelColor(lv, i);
+  // Show the lower levels this one includes ("Starter + Pro" before the Master pill) so it's
+  // clear switching to a level doesn't drop what the levels below it already include.
+  const priorNames = levels.slice(0, i).map(l => esc(l.name||''));
+  const crumbPrefix = priorNames.length ? `<span class="resa-modal-level-crumb-prefix">${priorNames.join(' + ')} + </span>` : '';
   modal.innerHTML = `
     <div class="resa-modal-box resa-single-modal-box" onclick="event.stopPropagation()">
       <button type="button" class="resa-modal-x-close" onclick="closeResaSingleLevelModal()" aria-label="Fermer">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg>
       </button>
       <div class="resa-modal-level">
-        <span class="resa-modal-level-pill" style="background:${hexToRgba(color,0.14)};color:${color}">${esc(lv.name||'')}</span>
+        <div class="resa-modal-level-crumb">${crumbPrefix}<span class="resa-modal-level-pill" style="background:${hexToRgba(color,0.14)};color:${color};margin-bottom:0">${esc(lv.name||'')}</span></div>
         <div class="resa-modal-promise">${esc(lv.promise||'')}</div>
         <div class="resa-modal-detail">${esc(lv.detail||'')}</div>
       </div>
