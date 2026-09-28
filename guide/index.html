@@ -623,6 +623,9 @@ body.edit-mode .fshow-nav-row{align-items:flex-start}
 .fshow-media-inner{width:100%;height:100%;opacity:1;transform:translateX(0);transition:opacity .32s ease,transform .32s ease;display:flex;align-items:center;justify-content:center}
 .fshow-media-inner.fading-out{opacity:0;transform:translateX(-14px)}
 .fshow-media-inner.fading-in{opacity:0;transform:translateX(14px)}
+/* Crossfade layer: stacked absolutely so the incoming and outgoing media overlap the whole
+   time (see fshowCrossfade) instead of ever both being fully transparent at once. */
+.fshow-cf-layer{position:absolute;inset:0;width:100%;height:100%}
 .fshow-media img,.fshow-media video{width:100%;height:100%;object-fit:cover;display:block}
 .fshow-media-empty{font-size:13px;color:var(--text3);font-style:italic}
 /* ── Mobile-only "à la Apple" card: full-bleed image, swipeable pills at rest, panel + arrows when open ── */
@@ -2622,6 +2625,46 @@ function fshowResetSlide(el){
   el.style.transform = '';
   el.style.opacity = '';
 }
+// True two-layer crossfade for media (images/video), used instead of fshowSlideSwap: sliding a
+// single element out to opacity 0 and then back in from opacity 0 has a brief moment where
+// nothing is opaque, which read as a white/blank flash between photos. Here the incoming layer
+// is built and slid/faded in ON TOP of the still-visible outgoing layer at the same time, so the
+// two always overlap and something is always on screen; the old layer is removed once both
+// transitions finish. container must already hold one `.fshow-cf-layer` child (the current
+// content) from a prior non-animated render.
+function fshowCrossfade(container, html, direction, opts){
+  if(!container) return;
+  opts = opts || {};
+  const dist = opts.dist || 40;
+  const outSign = direction > 0 ? -1 : (direction < 0 ? 1 : 0);
+  const inStart = direction ? -outSign*dist : 0;
+  const oldLayer = container.querySelector(':scope > .fshow-cf-layer');
+  const newLayer = document.createElement('div');
+  newLayer.className = 'fshow-media-inner fshow-cf-layer';
+  newLayer.style.transform = `translateX(${inStart}px)`;
+  newLayer.style.opacity = '0';
+  newLayer.innerHTML = html;
+  container.appendChild(newLayer);
+  observeLazyVideos(newLayer);
+  void newLayer.offsetWidth; // reflow so the starting position above actually takes before we animate
+  requestAnimationFrame(()=>{
+    newLayer.style.transition = direction
+      ? 'transform .38s cubic-bezier(.34,1.2,.4,1), opacity .3s ease'
+      : 'opacity .26s ease';
+    newLayer.style.transform = 'translateX(0)';
+    newLayer.style.opacity = '1';
+    if(oldLayer){
+      oldLayer.style.transition = direction
+        ? 'transform .34s cubic-bezier(.4,0,.2,1), opacity .26s ease'
+        : 'opacity .22s ease';
+      oldLayer.style.transform = `translateX(${outSign*dist}px)`;
+      oldLayer.style.opacity = '0';
+    }
+  });
+  setTimeout(()=>{
+    if(oldLayer && oldLayer.parentNode === container) oldLayer.remove();
+  }, 420);
+}
 function fshowRenderMedia(animate, direction){
   const mediaEl = document.getElementById('fshowMedia');
   if(!mediaEl) return;
@@ -2629,13 +2672,13 @@ function fshowRenderMedia(animate, direction){
   // Nothing expanded yet → show the first item's image as a neutral default (Apple does the same).
   const it = fshowOpenIndex >= 0 ? items[fshowOpenIndex] : items[0];
   const html = (it && it.image) ? immersiveMediaEmbedHtml(it.image) : `<div class="fshow-media-empty">Aucune image ou vidéo pour cette fonctionnalité</div>`;
-  const inner = mediaEl.querySelector('.fshow-media-inner');
-  if(!animate || !inner){
-    mediaEl.innerHTML = `<div class="fshow-media-inner">${html}</div>`;
+  const hasLayer = !!mediaEl.querySelector(':scope > .fshow-cf-layer');
+  if(!animate || !hasLayer){
+    mediaEl.innerHTML = `<div class="fshow-media-inner fshow-cf-layer">${html}</div>`;
     observeLazyVideos(mediaEl);
     return;
   }
-  fshowSlideSwap(inner, () => { inner.innerHTML = html; observeLazyVideos(inner); }, direction, {dist:40});
+  fshowCrossfade(mediaEl, html, direction, {dist:40});
 }
 
 // Mobile-only "à la Apple" card: full-bleed image + swipeable pills at rest,
@@ -2682,17 +2725,17 @@ function fshowRenderMobile(animate, direction){
   const isOpen = !editMode && fshowOpenIndex >= 0;
   const it = isOpen ? items[fshowOpenIndex] : items[0];
   const html = (it && it.image) ? immersiveMediaEmbedHtml(it.image) : '';
-  const applyBg = () => { bgEl.innerHTML = html; observeLazyVideos(bgEl); };
   const descEl = document.getElementById('fshowMobileDesc');
   const newDescHtml = isOpen ? fshowMobileDescHtml(it) : '';
   const applyDesc = () => { if(descEl) descEl.innerHTML = newDescHtml; };
-  if(!animate){
-    fshowResetSlide(bgEl);
-    applyBg();
+  const bgHasLayer = !!bgEl.querySelector(':scope > .fshow-cf-layer');
+  if(!animate || !bgHasLayer){
+    bgEl.innerHTML = `<div class="fshow-cf-layer">${html}</div>`;
+    observeLazyVideos(bgEl);
     if(descEl){ fshowResetSlide(descEl); applyDesc(); }
   } else {
     // Same direction, fired in the same tick, so the image and the text travel together.
-    fshowSlideSwap(bgEl, applyBg, direction, {dist:36});
+    fshowCrossfade(bgEl, html, direction, {dist:36});
     if(descEl) fshowSlideSwap(descEl, applyDesc, direction, {dist:26});
   }
   const panelEl = document.getElementById('fshowMobilePanel');
@@ -3036,13 +3079,13 @@ function fshow2RenderMedia(animate, direction){
   // Nothing expanded yet → show the first item's image as a neutral default (Apple does the same).
   const it = fshow2OpenIndex >= 0 ? items[fshow2OpenIndex] : items[0];
   const html = (it && it.image) ? immersiveMediaEmbedHtml(it.image) : `<div class="fshow-media-empty">Aucune image ou vidéo pour cette fonctionnalité</div>`;
-  const inner = mediaEl.querySelector('.fshow-media-inner');
-  if(!animate || !inner){
-    mediaEl.innerHTML = `<div class="fshow-media-inner">${html}</div>`;
+  const hasLayer = !!mediaEl.querySelector(':scope > .fshow-cf-layer');
+  if(!animate || !hasLayer){
+    mediaEl.innerHTML = `<div class="fshow-media-inner fshow-cf-layer">${html}</div>`;
     observeLazyVideos(mediaEl);
     return;
   }
-  fshowSlideSwap(inner, () => { inner.innerHTML = html; observeLazyVideos(inner); }, direction, {dist:40});
+  fshowCrossfade(mediaEl, html, direction, {dist:40});
 }
 
 function fshow2RenderMobile(animate, direction){
@@ -3052,16 +3095,16 @@ function fshow2RenderMobile(animate, direction){
   const isOpen = !editMode && fshow2OpenIndex >= 0;
   const it = isOpen ? items[fshow2OpenIndex] : items[0];
   const html = (it && it.image) ? immersiveMediaEmbedHtml(it.image) : '';
-  const applyBg = () => { bgEl.innerHTML = html; observeLazyVideos(bgEl); };
   const descEl = document.getElementById('fshow2MobileDesc');
   const newDescHtml = isOpen ? fshowMobileDescHtml(it) : '';
   const applyDesc = () => { if(descEl) descEl.innerHTML = newDescHtml; };
-  if(!animate){
-    fshowResetSlide(bgEl);
-    applyBg();
+  const bgHasLayer = !!bgEl.querySelector(':scope > .fshow-cf-layer');
+  if(!animate || !bgHasLayer){
+    bgEl.innerHTML = `<div class="fshow-cf-layer">${html}</div>`;
+    observeLazyVideos(bgEl);
     if(descEl){ fshowResetSlide(descEl); applyDesc(); }
   } else {
-    fshowSlideSwap(bgEl, applyBg, direction, {dist:36});
+    fshowCrossfade(bgEl, html, direction, {dist:36});
     if(descEl) fshowSlideSwap(descEl, applyDesc, direction, {dist:26});
   }
   const panelEl = document.getElementById('fshow2MobilePanel');
