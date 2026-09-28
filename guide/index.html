@@ -473,12 +473,12 @@ body.edit-mode .fshow-nav-row{align-items:flex-start}
   .fshow-mobile-close.show{display:flex}
   .fshow-mobile-close svg{width:13px;height:13px;display:block}
   /* Arrows sit at the card's outer edges, like Apple's, vertically centered on the panel (positioned via JS). */
-  .fshow-mobile-arrow{position:absolute;bottom:-17px;width:34px;height:34px;border-radius:50%;border:none;background:#EAEAEC;color:#1D1D1F;display:none;align-items:center;justify-content:center;cursor:pointer;padding:0;z-index:6}
+  .fshow-mobile-arrow{position:absolute;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:50%;border:none;background:rgba(234,234,236,.95);color:#1D1D1F;display:none;align-items:center;justify-content:center;cursor:pointer;padding:0;z-index:6;box-sizing:border-box}
   .fshow-mobile-arrow.show{display:flex}
-  .fshow-mobile-arrow-left{left:14px}
-  .fshow-mobile-arrow-right{right:14px}
-  .fshow-mobile-arrow svg{width:15px;height:15px;display:block}
-  .fshow-mobile-panel{position:absolute;left:62px;right:62px;bottom:14px;background:#EAEAEC;border-radius:16px;padding:14px 16px;opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .25s ease,transform .25s ease;z-index:5}
+  .fshow-mobile-arrow-left{left:-17px;padding-left:17px}
+  .fshow-mobile-arrow-right{right:-17px;padding-right:17px}
+  .fshow-mobile-arrow svg{width:13px;height:13px;display:block}
+  .fshow-mobile-panel{position:absolute;left:28px;right:28px;bottom:14px;background:rgba(234,234,236,.95);border-radius:16px;padding:14px 16px;opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .25s ease,transform .25s ease;z-index:5}
   .fshow-mobile-panel.show{opacity:1;transform:translateY(0);pointer-events:auto}
   .fshow-mobile-desc{font-size:13px;color:var(--text2);line-height:1.5;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;line-clamp:4;overflow:hidden;text-overflow:ellipsis}
   .fshow-mobile-desc strong{font-weight:700;color:var(--text)}
@@ -2261,6 +2261,20 @@ function fshowMobileDescHtml(it){
   html = html.replace(/\n/g,'<br>');
   return html;
 }
+// Keeps the directional arrows vertically centered on the panel, whatever its height —
+// the panel's height changes with the description length, so this is computed, not fixed.
+function fshowPositionMobileArrows(wrapId, panelId, arrowLId, arrowRId){
+  const wrap = document.getElementById(wrapId);
+  const panel = document.getElementById(panelId);
+  const arrowL = document.getElementById(arrowLId);
+  const arrowR = document.getElementById(arrowRId);
+  if(!wrap || !panel || !arrowL || !arrowR) return;
+  const wrapRect = wrap.getBoundingClientRect();
+  const panelRect = panel.getBoundingClientRect();
+  const centerY = panelRect.top - wrapRect.top + panelRect.height/2;
+  arrowL.style.top = centerY + 'px';
+  arrowR.style.top = centerY + 'px';
+}
 function fshowRenderMobile(animate){
   const bgEl = document.getElementById('fshowMobileBg');
   if(!bgEl) return;
@@ -2288,6 +2302,7 @@ function fshowRenderMobile(animate){
   const arrowR = document.getElementById('fshowMobileArrowR');
   if(arrowL) arrowL.classList.toggle('show', isOpen);
   if(arrowR) arrowR.classList.toggle('show', isOpen);
+  if(isOpen) requestAnimationFrame(() => fshowPositionMobileArrows('fshowMobile','fshowMobilePanel','fshowMobileArrowL','fshowMobileArrowR'));
   const pillsEl = document.getElementById('fshowMobilePills');
   if(pillsEl){
     pillsEl.classList.toggle('hide', isOpen);
@@ -2655,6 +2670,7 @@ function fshow2RenderMobile(animate){
   const arrowR = document.getElementById('fshow2MobileArrowR');
   if(arrowL) arrowL.classList.toggle('show', isOpen);
   if(arrowR) arrowR.classList.toggle('show', isOpen);
+  if(isOpen) requestAnimationFrame(() => fshowPositionMobileArrows('fshow2Mobile','fshow2MobilePanel','fshow2MobileArrowL','fshow2MobileArrowR'));
   const pillsEl = document.getElementById('fshow2MobilePills');
   if(pillsEl){
     pillsEl.classList.toggle('hide', isOpen);
