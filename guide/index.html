@@ -3221,7 +3221,26 @@ function resaCommitField(el, key){
 // instead of committing — Will wants to control the wrap himself rather than let the
 // text run the full width of the "Modifier" box.
 function resaTitleCeEnter(e){
-  if(e.key === 'Enter'){ e.preventDefault(); document.execCommand('insertLineBreak'); }
+  if(e.key !== 'Enter') return;
+  e.preventDefault();
+  const sel = window.getSelection();
+  if(!sel || !sel.rangeCount) return;
+  const range = sel.getRangeAt(0);
+  range.deleteContents();
+  const br = document.createElement('br');
+  range.insertNode(br);
+  // A lone trailing <br> is treated by browsers as a mere end-of-line "filler" —
+  // any further typing gets silently redirected to before it instead of after.
+  // A zero-width space right after the <br> gives it real content to anchor the
+  // caret to, so typing the second line actually lands after the break. Stripped
+  // back out on commit.
+  const anchor = document.createTextNode('​');
+  br.after(anchor);
+  range.setStart(anchor, 1);
+  range.setEnd(anchor, 1);
+  range.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(range);
 }
 function resaCommitTitleField(el, key){
   let out = '';
@@ -3230,6 +3249,7 @@ function resaCommitTitleField(el, key){
     else if(n.nodeName === 'BR') out += '\n';
     else out += n.textContent || '';
   });
+  out = out.replace(/​/g,'');
   DATA.resaBand[key] = out.replace(/\n{3,}/g,'\n\n').trim();
   save();
 }
