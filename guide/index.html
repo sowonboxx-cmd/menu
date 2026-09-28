@@ -3320,9 +3320,14 @@ function renderResaBand(){
       <div class="resa-modal-subtitle${ed?' resa-ce':''}" ${ed?`${ce('','Sous-titre du pop-up')} onblur="resaCommitField(this,'popupSubtitle')"`:''}>${ed?esc(rb.popupSubtitle||''):resaPopupSubtitleHtml(rb.popupSubtitle)}</div>
       ${levels.map((lv,i)=>{
         const color = resaLevelColor(lv, i);
+        // Same "Starter + Pro" crumb before the Master pill as the mobile single-level
+        // pop-up, so it reads the same way even though the levels below are also visible
+        // here — makes the "each level includes the ones before it" point twice, on purpose.
+        const priorNames = (!ed && i>0) ? levels.slice(0, i).map(l => esc(l.name||'')) : [];
+        const crumbPrefix = priorNames.length ? `<span class="resa-modal-level-crumb-prefix">${priorNames.join(' + ')} + </span>` : '';
         return `
         <div class="resa-modal-level">
-          <span class="resa-modal-level-pill${ed?' resa-ce':''}" style="background:${hexToRgba(color,0.14)};color:${color}" ${ed?`${ce('','NOM')} onblur="resaCommitLevelField(this,${i},'name')"`:''}>${esc(lv.name||'')}</span>
+          <div class="resa-modal-level-crumb">${crumbPrefix}<span class="resa-modal-level-pill${ed?' resa-ce':''}" style="background:${hexToRgba(color,0.14)};color:${color};margin-bottom:0" ${ed?`${ce('','NOM')} onblur="resaCommitLevelField(this,${i},'name')"`:''}>${esc(lv.name||'')}</span></div>
           <div class="resa-modal-promise${ed?' resa-ce':''}" ${ed?`${ce('','Promesse')} onblur="resaCommitLevelField(this,${i},'promise')"`:''}>${esc(lv.promise||'')}</div>
           <div class="resa-modal-detail${ed?' resa-ce':''}" ${ed?`${ce('','Détail')} onblur="resaCommitLevelField(this,${i},'detail')"`:''}>${esc(lv.detail||'')}</div>
         </div>
