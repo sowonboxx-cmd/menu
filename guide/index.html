@@ -488,15 +488,24 @@ body.has-section-sidebar{padding-left:220px}
 @media(max-width:640px){
   .pp-gallery-grid{grid-template-columns:repeat(2,1fr)}
 }
-/* ── Photos & vidéos : rangée média (3 photos + 1 vidéo autoplay, 4/5) + 2 tableaux empilés ── */
+/* ── Photos & vidéos : deux zones séparées (Photo | Vidéo), chacune avec sa grille média (4/5) + son propre tableau tarifaire ── */
 .pp-desktop-stack{display:flex;flex-direction:column}
-.pp-media-row{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:18px}
+.pp-media-split{display:flex;gap:28px;align-items:flex-start}
+.pp-media-col{min-width:0}
+.pp-media-col-photo{flex:3 1 0}
+.pp-media-col-video{flex:1 1 0}
+.pp-media-zone-title{text-align:center;font-size:12.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#1D1D1F;margin-bottom:12px}
+.pp-media-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px}
+.pp-media-row-single{grid-template-columns:1fr}
 .pp-media-item{position:relative;aspect-ratio:4/5;border-radius:var(--rs);overflow:hidden;background:#EDEDF0;cursor:pointer}
 .pp-media-item img,.pp-media-item video{width:100%;height:100%;object-fit:cover;display:block;transition:transform .25s ease}
 .pp-media-item:hover img{transform:scale(1.04)}
 .pp-media-item-empty{display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:11px;font-weight:600;border:1px dashed var(--border);cursor:default}
 .pp-media-item-empty:hover img{transform:none}
 .pp-media-video{cursor:default}
+@media(max-width:1100px){
+  .pp-media-split{flex-direction:column}
+}
 .apple-cards-grid{display:flex;gap:20px;overflow-x:auto;scroll-snap-type:x proximity;padding:4px 4px 12px;-webkit-overflow-scrolling:touch;scrollbar-width:none;cursor:grab;user-select:none}
 .apple-cards-grid.dragging{cursor:grabbing;scroll-snap-type:none}
 .apple-cards-grid::-webkit-scrollbar{display:none}
@@ -3799,34 +3808,47 @@ function photoPricingGallery(){
   while(out.length < 4) out.push('');
   return out;
 }
-function renderPhotoPricingMediaRow(){
+function renderPhotoPricingPhotoMedia(){
   const media = photoPricingGallery();
+  const photos = media.slice(0, PP_VIDEO_SLOT);
   if(editMode){
     return `
       <div class="pp-media-row">
-        ${media.map((url,i)=>{
-          const isVideo = i === PP_VIDEO_SLOT;
-          return `
-            <div class="pp-media-item${url?'':' pp-media-item-empty'}">
-              ${url
-                ? (isVideo ? `<video src="${esc(url)}" muted loop playsinline></video>` : `<img src="${esc(url)}" alt="">`)
-                : (isVideo ? 'Vidéo' : `Photo ${i+1}`)}
-              <input type="text" class="pp-gallery-edit-input" value="${esc(url)}" placeholder="${isVideo?'URL vidéo (autoplay)':'URL image'}" onclick="event.stopPropagation()" onchange="DATA.photoPricing.gallery[${i}]=this.value;save();renderPhotoPricing()">
-            </div>
-          `;
-        }).join('')}
+        ${photos.map((url,i)=>`
+          <div class="pp-media-item${url?'':' pp-media-item-empty'}">
+            ${url?`<img src="${esc(url)}" alt="">`:`Photo ${i+1}`}
+            <input type="text" class="pp-gallery-edit-input" value="${esc(url)}" placeholder="URL image" onclick="event.stopPropagation()" onchange="DATA.photoPricing.gallery[${i}]=this.value;save();renderPhotoPricing()">
+          </div>
+        `).join('')}
       </div>
     `;
   }
-  if(!media.some(Boolean)) return '';
   return `
     <div class="pp-media-row">
-      ${media.map((url,i)=>{
-        const isVideo = i === PP_VIDEO_SLOT;
-        if(!url) return `<div class="pp-media-item pp-media-item-empty">${isVideo?'Vidéo':'Photo'}</div>`;
-        if(isVideo) return `<div class="pp-media-item pp-media-video"><video src="${esc(url)}" autoplay muted loop playsinline></video></div>`;
-        return `<div class="pp-media-item" onclick="openPhotoPricingLightbox(${i})"><img src="${esc(url)}" alt=""></div>`;
-      }).join('')}
+      ${photos.map((url,i) => url
+        ? `<div class="pp-media-item" onclick="openPhotoPricingLightbox(${i})"><img src="${esc(url)}" alt=""></div>`
+        : `<div class="pp-media-item pp-media-item-empty">Photo</div>`
+      ).join('')}
+    </div>
+  `;
+}
+function renderPhotoPricingVideoMedia(){
+  const url = photoPricingGallery()[PP_VIDEO_SLOT];
+  if(editMode){
+    return `
+      <div class="pp-media-row pp-media-row-single">
+        <div class="pp-media-item${url?'':' pp-media-item-empty'}">
+          ${url?`<video src="${esc(url)}" muted loop playsinline></video>`:'Vidéo'}
+          <input type="text" class="pp-gallery-edit-input" value="${esc(url)}" placeholder="URL vidéo (autoplay)" onclick="event.stopPropagation()" onchange="DATA.photoPricing.gallery[${PP_VIDEO_SLOT}]=this.value;save();renderPhotoPricing()">
+        </div>
+      </div>
+    `;
+  }
+  return `
+    <div class="pp-media-row pp-media-row-single">
+      ${url
+        ? `<div class="pp-media-item pp-media-video"><video src="${esc(url)}" autoplay muted loop playsinline></video></div>`
+        : `<div class="pp-media-item pp-media-item-empty">Vidéo</div>`}
     </div>
   `;
 }
@@ -3900,35 +3922,44 @@ function renderPhotoPricingDesktop(){
   if(editMode){
     wrap.innerHTML = `
       <div class="pp-desktop-stack">
-        ${renderPhotoPricingMediaRow()}
-        <div class="pp-desktop-edit-row">
-          <div class="pp-edit-cols-label">Paliers Photo (partagés par les 2 lignes)</div>
-          <div class="pp-edit-cols">
-            ${tiers.map((t,ti)=>`
-              <div class="pp-edit-col-item">
-                <span>Palier ${ti+1}</span>
-                <input type="text" value="${esc(t.offer)}" placeholder="Nom (ex: Essentiel)" style="margin-bottom:4px" onchange="DATA.photoPricing.tabs[0].rows[${ti}].offer=this.value;DATA.photoPricing.tabs[1].rows[${ti}].offer=this.value;save();renderPhotoPricing()">
-                <input type="text" value="${esc(t.qty)}" placeholder="Ex: Jusqu'à 15 photos" onchange="DATA.photoPricing.tabs[0].rows[${ti}].qty=this.value;DATA.photoPricing.tabs[1].rows[${ti}].qty=this.value;save();renderPhotoPricing()">
+        <div class="pp-media-split">
+          <div class="pp-media-col pp-media-col-photo">
+            <div class="pp-media-zone-title">Photo</div>
+            ${renderPhotoPricingPhotoMedia()}
+            <div class="pp-desktop-edit-row">
+              <div class="pp-edit-cols-label">Paliers Photo (partagés par les 2 lignes)</div>
+              <div class="pp-edit-cols">
+                ${tiers.map((t,ti)=>`
+                  <div class="pp-edit-col-item">
+                    <span>Palier ${ti+1}</span>
+                    <input type="text" value="${esc(t.offer)}" placeholder="Nom (ex: Essentiel)" style="margin-bottom:4px" onchange="DATA.photoPricing.tabs[0].rows[${ti}].offer=this.value;DATA.photoPricing.tabs[1].rows[${ti}].offer=this.value;save();renderPhotoPricing()">
+                    <input type="text" value="${esc(t.qty)}" placeholder="Ex: Jusqu'à 15 photos" onchange="DATA.photoPricing.tabs[0].rows[${ti}].qty=this.value;DATA.photoPricing.tabs[1].rows[${ti}].qty=this.value;save();renderPhotoPricing()">
+                  </div>
+                `).join('')}
               </div>
-            `).join('')}
+              ${tabs.map((tab,tii)=>`
+                <div class="pp-desktop-edit-row" style="margin-top:8px">
+                  <input type="text" value="${esc(tab.tableTitle||'')}" placeholder="Nom de la prestation" style="font-weight:700;margin-bottom:8px" onchange="DATA.photoPricing.tabs[${tii}].tableTitle=this.value;save();renderPhotoPricing()">
+                  <div class="pp-edit-row-fields" style="grid-template-columns:repeat(3,1fr)">
+                    ${(tab.rows||[]).map((r,ri)=>`<input type="text" value="${esc(r.price||'')}" placeholder="Prix" onchange="DATA.photoPricing.tabs[${tii}].rows[${ri}].price=this.value;save()">`).join('')}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
           </div>
-          ${tabs.map((tab,tii)=>`
-            <div class="pp-desktop-edit-row" style="margin-top:8px">
-              <input type="text" value="${esc(tab.tableTitle||'')}" placeholder="Nom de la prestation" style="font-weight:700;margin-bottom:8px" onchange="DATA.photoPricing.tabs[${tii}].tableTitle=this.value;save();renderPhotoPricing()">
-              <div class="pp-edit-row-fields" style="grid-template-columns:repeat(3,1fr)">
-                ${(tab.rows||[]).map((r,ri)=>`<input type="text" value="${esc(r.price||'')}" placeholder="Prix" onchange="DATA.photoPricing.tabs[${tii}].rows[${ri}].price=this.value;save()">`).join('')}
-              </div>
+          <div class="pp-media-col pp-media-col-video">
+            <div class="pp-media-zone-title">Vidéo</div>
+            ${renderPhotoPricingVideoMedia()}
+            <div class="pp-desktop-edit-row">
+              <div class="pp-edit-cols-label">Tableau Vidéo</div>
+              ${videoRows.map((r,ri)=>`
+                <div class="pp-edit-row-fields" style="grid-template-columns:1fr;margin-top:${ri?'8px':'0'}">
+                  <input type="text" value="${esc(r.offer||'')}" placeholder="Ex: Réalisé par nos soins" onchange="DATA.photoPricing.videoPricing.rows[${ri}].offer=this.value;save()">
+                  <input type="text" value="${esc(r.price||'')}" placeholder="Prix" style="margin-top:6px" onchange="DATA.photoPricing.videoPricing.rows[${ri}].price=this.value;save()">
+                </div>
+              `).join('')}
             </div>
-          `).join('')}
-        </div>
-        <div class="pp-desktop-edit-row">
-          <div class="pp-edit-cols-label">Tableau Vidéo</div>
-          ${videoRows.map((r,ri)=>`
-            <div class="pp-edit-row-fields" style="grid-template-columns:2fr 1fr;margin-top:${ri?'8px':'0'}">
-              <input type="text" value="${esc(r.offer||'')}" placeholder="Ex: Réalisé par nos soins" onchange="DATA.photoPricing.videoPricing.rows[${ri}].offer=this.value;save()">
-              <input type="text" value="${esc(r.price||'')}" placeholder="Prix" onchange="DATA.photoPricing.videoPricing.rows[${ri}].price=this.value;save()">
-            </div>
-          `).join('')}
+          </div>
         </div>
       </div>
     `;
@@ -3937,42 +3968,51 @@ function renderPhotoPricingDesktop(){
 
   wrap.innerHTML = `
     <div class="pp-desktop-stack">
-      ${renderPhotoPricingMediaRow()}
-      <div class="pp-table-wrap pp-table-compact">
-        <table class="pp-table">
-          <thead>
-            <tr>
-              <th class="pp-th-label">Photo</th>
-              ${tiers.map(t=>`<th><span class="pp-th-tier">${esc(t.offer)}</span>${t.qty?`<span class="pp-th-qty">${esc(t.qty)}</span>`:''}</th>`).join('')}
-            </tr>
-          </thead>
-          <tbody>
-            ${tabs.map(tab=>`
-              <tr>
-                <td class="pp-offer-cell">${esc(tab.tableTitle||'')}</td>
-                ${(tab.rows||[]).map(r=>`<td class="pp-price-cell">${esc(r.price||'')}</td>`).join('')}
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-      <div class="pp-table-wrap pp-table-compact" style="margin-top:14px">
-        <table class="pp-table">
-          <thead>
-            <tr>
-              <th class="pp-th-label">Vidéo</th>
-              <th>Tarif HT</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${videoRows.map(r=>`
-              <tr>
-                <td class="pp-offer-cell">${esc(r.offer||'')}</td>
-                <td class="pp-price-cell">${esc(r.price||'')}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
+      <div class="pp-media-split">
+        <div class="pp-media-col pp-media-col-photo">
+          <div class="pp-media-zone-title">Photo</div>
+          ${renderPhotoPricingPhotoMedia()}
+          <div class="pp-table-wrap pp-table-compact">
+            <table class="pp-table">
+              <thead>
+                <tr>
+                  <th class="pp-th-label"></th>
+                  ${tiers.map(t=>`<th><span class="pp-th-tier">${esc(t.offer)}</span>${t.qty?`<span class="pp-th-qty">${esc(t.qty)}</span>`:''}</th>`).join('')}
+                </tr>
+              </thead>
+              <tbody>
+                ${tabs.map(tab=>`
+                  <tr>
+                    <td class="pp-offer-cell">${esc(tab.tableTitle||'')}</td>
+                    ${(tab.rows||[]).map(r=>`<td class="pp-price-cell">${esc(r.price||'')}</td>`).join('')}
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="pp-media-col pp-media-col-video">
+          <div class="pp-media-zone-title">Vidéo</div>
+          ${renderPhotoPricingVideoMedia()}
+          <div class="pp-table-wrap pp-table-compact">
+            <table class="pp-table">
+              <thead>
+                <tr>
+                  <th class="pp-th-label"></th>
+                  <th>Tarif HT</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${videoRows.map(r=>`
+                  <tr>
+                    <td class="pp-offer-cell">${esc(r.offer||'')}</td>
+                    <td class="pp-price-cell">${esc(r.price||'')}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   `;
