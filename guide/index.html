@@ -301,10 +301,10 @@ body:not(.edit-mode) .resa-band-seg{width:90%;margin:0 auto}
 .pp-tier-modal-pill{display:inline-flex;align-self:flex-start;align-items:center;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:4px 11px;border-radius:8px;margin-bottom:12px}
 .pp-tier-modal-pill-green{background:rgba(22,101,52,.14);color:#166534}
 .pp-tier-modal-pill-orange{background:rgba(180,83,9,.14);color:#B45309}
-.pp-tier-modal-section ul{margin:0;padding:0;list-style:none}
+.pp-tier-modal-section ul{margin:0;padding-left:19px}
 .pp-tier-modal-section li{font-size:13.5px;color:var(--text2);line-height:1.55;margin-bottom:10px}
 .pp-tier-modal-section li:last-child{margin-bottom:0}
-.pp-tier-modal-extra{font-size:13.5px;color:var(--text2);line-height:1.55;text-align:center;margin-bottom:16px}
+.pp-tier-modal-section p{font-size:13.5px;color:var(--text2);line-height:1.55;margin:0}
 .pp-offer-link{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-decoration-color:#9aa3ad;text-underline-offset:3px}
 .pp-offer-link:hover{color:var(--navy)}
 .add-feature-row{display:flex;align-items:center;gap:8px;padding:10px 18px}
@@ -4105,16 +4105,37 @@ function ppPhotoEditFieldsHtml(tiers, tabs){
           </div>
         `).join('')}
       </div>
-      ${tabs.map((tab,tii)=>`
+      ${tabs.map((tab,tii)=>{
+        const popup = tab.popup || {};
+        return `
         <div class="pp-desktop-edit-row" style="margin-top:8px">
           <input type="text" value="${esc(tab.tableTitle||'')}" placeholder="Nom de la prestation" style="font-weight:700;margin-bottom:8px" onchange="DATA.photoPricing.tabs[${tii}].tableTitle=this.value;save();renderPhotoPricing()">
           <div class="pp-edit-row-fields" style="grid-template-columns:repeat(3,1fr)">
             ${(tab.rows||[]).map((r,ri)=>`<input type="text" value="${esc(r.price||'')}" placeholder="Prix" onchange="DATA.photoPricing.tabs[${tii}].rows[${ri}].price=this.value;save()">`).join('')}
           </div>
+          <div class="pp-edit-cols-label" style="margin-top:14px">Pop-up "${esc(tab.tableTitle||'')}"</div>
+          <input type="text" value="${esc(popup.title||'')}" placeholder="Titre du pop-up" style="font-weight:700;margin-bottom:6px" onchange="ppSetPopupField(${tii},'title',this.value)">
+          <textarea placeholder="Texte d'intro (sous le titre)" style="width:100%;min-height:44px;margin-bottom:6px;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:7px 8px;font-family:'Inter',sans-serif;resize:vertical" onchange="ppSetPopupField(${tii},'intro',this.value)">${esc(popup.intro||'')}</textarea>
+          <textarea placeholder="Inclus — une ligne par élément" style="width:100%;min-height:70px;margin-bottom:6px;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:7px 8px;font-family:'Inter',sans-serif;resize:vertical" onchange="ppSetPopupList(${tii},'includes',this.value)">${esc((popup.includes||[]).join('\n'))}</textarea>
+          <textarea placeholder="Précision optionnelle (encadré à part, ex: infos sur les plats)" style="width:100%;min-height:44px;margin-bottom:6px;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:7px 8px;font-family:'Inter',sans-serif;resize:vertical" onchange="ppSetPopupField(${tii},'extra',this.value)">${esc(popup.extra||'')}</textarea>
+          <textarea placeholder="À savoir — une ligne par élément" style="width:100%;min-height:70px;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:7px 8px;font-family:'Inter',sans-serif;resize:vertical" onchange="ppSetPopupList(${tii},'notes',this.value)">${esc((popup.notes||[]).join('\n'))}</textarea>
         </div>
-      `).join('')}
+      `;}).join('')}
     </div>
   `;
+}
+function ppEnsurePopup(tii){
+  const tab = DATA.photoPricing.tabs[tii];
+  if(!tab.popup) tab.popup = { title:'', intro:'', includes:[], extra:'', notes:[] };
+  return tab.popup;
+}
+function ppSetPopupField(tii, field, value){
+  ppEnsurePopup(tii)[field] = value;
+  save();
+}
+function ppSetPopupList(tii, field, value){
+  ppEnsurePopup(tii)[field] = value.split('\n').map(s=>s.trim()).filter(Boolean);
+  save();
 }
 function ppVideoEditFieldsHtml(videoRows){
   return `
@@ -4232,7 +4253,7 @@ function openPpTierModal(tii){
       <div><span class="pp-tier-modal-pill pp-tier-modal-pill-green">Inclus</span></div>
       <ul>${popup.includes.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>
     </div>` : '';
-  const extraHtml = popup.extra ? `<div class="pp-tier-modal-extra">${esc(popup.extra)}</div>` : '';
+  const extraHtml = popup.extra ? `<div class="pp-tier-modal-section"><p>${esc(popup.extra)}</p></div>` : '';
   const notesHtml = (popup.notes||[]).length ? `
     <div class="pp-tier-modal-section">
       <div><span class="pp-tier-modal-pill pp-tier-modal-pill-orange">À savoir</span></div>
