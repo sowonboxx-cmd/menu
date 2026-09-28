@@ -466,11 +466,10 @@ body.has-section-sidebar{padding-left:220px}
 .pp-table th.pp-th-label{text-align:left}
 /* Grilles tarifaires Photo/Vidéo (desktop) : fond gris uni, sans bordure extérieure, texte noir/gris foncé */
 .pp-table-wrap.pp-table-compact{border:none;background:#F5F5F7}
-.pp-table-wrap.pp-table-compact thead th{background:transparent;border-bottom:none;color:var(--text2)}
+.pp-table-wrap.pp-table-compact thead th{background:#EAEAEC;border-bottom:none;color:var(--text)}
 .pp-table-wrap.pp-table-compact .pp-th-qty{color:var(--text2)}
-.pp-table-wrap.pp-table-compact tbody tr+tr td{border-top:none}
-.pp-table-wrap.pp-table-compact tbody tr:nth-child(odd){background:transparent}
-.pp-table-wrap.pp-table-compact tbody tr:nth-child(even){background:#EAEAEC}
+.pp-table-wrap.pp-table-compact tbody tr{background:transparent}
+.pp-table-wrap.pp-table-compact tbody tr+tr td{border-top:1px solid #fff}
 .pp-table-wrap.pp-table-compact td.pp-offer-cell,.pp-table-wrap.pp-table-compact td.pp-price-cell{color:#1D1D1F}
 .pp-desktop-edit-row{border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;background:#fff}
 .pp-desktop-edit-row input{width:100%;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:7px 8px;font-family:'Inter',sans-serif}
@@ -3969,6 +3968,7 @@ function renderPhotoPricingDesktop(){
         </div>
       </div>
     `;
+    requestAnimationFrame(syncPhotoPricingMediaHeights);
     return;
   }
 
@@ -4020,7 +4020,21 @@ function renderPhotoPricingDesktop(){
       </div>
     </div>
   `;
+  requestAnimationFrame(syncPhotoPricingMediaHeights);
 }
+function syncPhotoPricingMediaHeights(){
+  const photoItem = document.querySelector('#photoPricingDesktopWrap .pp-media-col-photo .pp-media-item');
+  const videoItem = document.querySelector('#photoPricingDesktopWrap .pp-media-col-video .pp-media-item');
+  if(!photoItem || !videoItem) return;
+  videoItem.style.height = '';
+  const h = photoItem.getBoundingClientRect().height;
+  if(h) videoItem.style.height = h + 'px';
+}
+let _ppMediaResizeTimer = null;
+window.addEventListener('resize', function(){
+  clearTimeout(_ppMediaResizeTimer);
+  _ppMediaResizeTimer = setTimeout(syncPhotoPricingMediaHeights, 150);
+});
 
 function renderPhotoPricing(){
   renderPhotoPricingHeader();
