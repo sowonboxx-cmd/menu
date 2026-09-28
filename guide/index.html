@@ -444,6 +444,27 @@ body.has-section-sidebar{padding-left:220px}
   .pp-edit-row-fields{grid-template-columns:1fr}
   .pp-edit-cols{grid-template-columns:1fr}
 }
+/* ── Photos & vidéos : tableau desktop (fusionné, sans onglets) + visuel ── */
+.pp-desktop-only{display:none}
+@media(min-width:900px){
+  .pp-desktop-only{display:block}
+  .pp-mobile-only{display:none}
+}
+.pp-desktop-layout{display:flex;gap:28px;align-items:flex-start}
+.pp-desktop-table-col{flex:1 1 0;min-width:0}
+.pp-desktop-image-col{flex:0 0 clamp(200px,30%,320px);min-width:0;display:flex}
+.pp-desktop-image{width:100%;aspect-ratio:4/5;border-radius:var(--rs);overflow:hidden;background:#EDEDF0}
+.pp-desktop-image img{width:100%;height:100%;object-fit:cover;display:block}
+.pp-desktop-image-empty{display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px;font-weight:600;border:1px dashed var(--border)}
+.pp-image-edit{margin-bottom:10px}
+.pp-image-edit input{width:100%;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:7px 8px;font-family:'Inter',sans-serif}
+.pp-table-compact th,.pp-table-compact td{padding:11px 14px;font-size:13px}
+.pp-table-compact thead th{font-size:10.5px}
+.pp-th-tier{display:block;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.03em}
+.pp-th-qty{display:block;font-size:10.5px;font-weight:500;color:var(--text3);text-transform:none;letter-spacing:0;margin-top:2px}
+.pp-table th.pp-th-label{text-align:left}
+.pp-desktop-edit-row{border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;background:#fff}
+.pp-desktop-edit-row input{width:100%;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:7px 8px;font-family:'Inter',sans-serif}
 .apple-cards-grid{display:flex;gap:20px;overflow-x:auto;scroll-snap-type:x proximity;padding:4px 4px 12px;-webkit-overflow-scrolling:touch;scrollbar-width:none;cursor:grab;user-select:none}
 .apple-cards-grid.dragging{cursor:grabbing;scroll-snap-type:none}
 .apple-cards-grid::-webkit-scrollbar{display:none}
@@ -965,12 +986,15 @@ table.matrix tr:hover td{background:#fafaf7}
 
 <div class="reorderable-section" data-key="photoPricing">
 <div class="wrap">
-  <!-- ════════ PHOTOS & VIDÉOS PROFESSIONNELLES (onglets Création/Intégration) ════════ -->
+  <!-- ════════ PHOTOS & VIDÉOS PROFESSIONNELLES (tableau desktop / onglets mobile) ════════ -->
   <div class="section" id="photoPricingSection">
     <div id="photoPricingHeader"></div>
-    <div id="photoPricingTabsEdit"></div>
-    <div id="photoPricingTabs" class="pp-tabbar-wrap"></div>
-    <div id="photoPricingTableWrap"></div>
+    <div id="photoPricingDesktopWrap" class="pp-desktop-only"></div>
+    <div class="pp-mobile-only">
+      <div id="photoPricingTabsEdit"></div>
+      <div id="photoPricingTabs" class="pp-tabbar-wrap"></div>
+      <div id="photoPricingTableWrap"></div>
+    </div>
   </div>
 </div>
 </div>
@@ -1241,6 +1265,7 @@ const DEFAULT_DATA = {
     subtitle: 'Donnez une image à la hauteur de votre établissement.',
     ctaText: 'Découvrir nos prestations',
     desc: "Des photos de vos plats, mais aussi de tout l'univers de votre établissement : salle, terrasse, devanture, cuisine, équipe, service, décoration, ambiance, bar, boissons et détails.\nL'objectif est de disposer de suffisamment de contenus visuels pour alimenter durablement le site, le menu, Google et les réseaux sociaux.",
+    image: '',
     tabs: [
       {
         key: 'creation',
@@ -1485,6 +1510,7 @@ function migrateData(){
   if(!DATA.photoPricing || !Array.isArray(DATA.photoPricing.tabs) || !DATA.photoPricing.tabs.length){
     DATA.photoPricing = JSON.parse(JSON.stringify(DEFAULT_DATA.photoPricing));
   }
+  if(DATA.photoPricing && DATA.photoPricing.image === undefined) DATA.photoPricing.image = '';
   if(!DATA.customSections) DATA.customSections = {};
   if(!DATA.agencyHero) DATA.agencyHero = JSON.parse(JSON.stringify(DEFAULT_DATA.agencyHero));
   if(!DATA.sectionBg) DATA.sectionBg = JSON.parse(JSON.stringify(DEFAULT_DATA.sectionBg));
@@ -3722,8 +3748,85 @@ function renderPhotoPricingTable(){
   `;
 }
 
+// Desktop (≥900px): a single merged flat table (no tabs, no per-row icon/heading) —
+// each tab's two price rows become one table, tier names/qty double as the column
+// headers, plus a visual slot on the side. Mobile keeps the tab-switcher above.
+function renderPhotoPricingDesktop(){
+  const wrap = document.getElementById('photoPricingDesktopWrap');
+  if(!wrap) return;
+  const tabs = photoPricingTabs();
+  const p = DATA.photoPricing;
+  if(tabs.length < 2){ wrap.innerHTML = ''; return; }
+  const tiers = (tabs[0].rows || []).map(r => ({ offer: r.offer||'', qty: r.qty||'' }));
+
+  const imageHtml = p.image
+    ? `<div class="pp-desktop-image"><img src="${esc(p.image)}" alt=""></div>`
+    : `<div class="pp-desktop-image pp-desktop-image-empty">Image 4/5</div>`;
+
+  if(editMode){
+    wrap.innerHTML = `
+      <div class="pp-desktop-layout">
+        <div class="pp-desktop-table-col">
+          <div class="pp-edit-cols-label">Paliers (partagés par les 2 lignes)</div>
+          <div class="pp-edit-cols">
+            ${tiers.map((t,ti)=>`
+              <div class="pp-edit-col-item">
+                <span>Palier ${ti+1}</span>
+                <input type="text" value="${esc(t.offer)}" placeholder="Nom (ex: Essentiel)" style="margin-bottom:4px" onchange="DATA.photoPricing.tabs[0].rows[${ti}].offer=this.value;DATA.photoPricing.tabs[1].rows[${ti}].offer=this.value;save();renderPhotoPricing()">
+                <input type="text" value="${esc(t.qty)}" placeholder="Ex: Jusqu'à 15 photos" onchange="DATA.photoPricing.tabs[0].rows[${ti}].qty=this.value;DATA.photoPricing.tabs[1].rows[${ti}].qty=this.value;save();renderPhotoPricing()">
+              </div>
+            `).join('')}
+          </div>
+          ${tabs.map((tab,tii)=>`
+            <div class="pp-desktop-edit-row">
+              <input type="text" value="${esc(tab.tableTitle||'')}" placeholder="Nom de la prestation" style="font-weight:700;margin-bottom:8px" onchange="DATA.photoPricing.tabs[${tii}].tableTitle=this.value;save();renderPhotoPricing()">
+              <div class="pp-edit-row-fields" style="grid-template-columns:repeat(3,1fr)">
+                ${(tab.rows||[]).map((r,ri)=>`<input type="text" value="${esc(r.price||'')}" placeholder="Prix" onchange="DATA.photoPricing.tabs[${tii}].rows[${ri}].price=this.value;save()">`).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="pp-desktop-image-col" style="flex-direction:column">
+          <div class="pp-image-edit">
+            <input type="text" value="${esc(p.image||'')}" placeholder="URL image (format 4:5 conseillé)" onchange="DATA.photoPricing.image=this.value;save();renderPhotoPricing()">
+          </div>
+          ${imageHtml}
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  wrap.innerHTML = `
+    <div class="pp-desktop-layout">
+      <div class="pp-desktop-table-col">
+        <div class="pp-table-wrap pp-table-compact">
+          <table class="pp-table">
+            <thead>
+              <tr>
+                <th class="pp-th-label">Prestation</th>
+                ${tiers.map(t=>`<th><span class="pp-th-tier">${esc(t.offer)}</span>${t.qty?`<span class="pp-th-qty">${esc(t.qty)}</span>`:''}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${tabs.map(tab=>`
+                <tr>
+                  <td class="pp-offer-cell">${esc(tab.tableTitle||'')}</td>
+                  ${(tab.rows||[]).map(r=>`<td class="pp-price-cell">${esc(r.price||'')}</td>`).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="pp-desktop-image-col">${imageHtml}</div>
+    </div>
+  `;
+}
+
 function renderPhotoPricing(){
   renderPhotoPricingHeader();
+  renderPhotoPricingDesktop();
   renderPhotoPricingTabsEdit();
   renderPhotoPricingTabBar();
   renderPhotoPricingTable();
