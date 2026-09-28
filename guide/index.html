@@ -3078,6 +3078,35 @@ function fshow2Step(delta){
   fshow2RenderMedia(true);
   fshow2RenderMobile(true);
 }
+// One swipe = one step to the next/previous feature (mobile media area). Swiping right
+// moves to the item to the right (next), swiping left to the item to the left (previous) —
+// same direction as the "Suivant"/"Précédent" arrows. Ignores swipes that start on the
+// pills bar, the arrows or the close button (those have their own behavior), and ignores
+// mostly-vertical drags so the page can still scroll normally.
+function setupFshowSwipe(containerId, stepFn){
+  const el = document.getElementById(containerId);
+  if(!el || el.dataset.swipeBound) return;
+  el.dataset.swipeBound = '1';
+  let sx = 0, sy = 0, tracking = false;
+  el.addEventListener('touchstart', (e)=>{
+    if(editMode || e.touches.length !== 1 || e.target.closest('.fshow-mobile-pills, .fshow-mobile-arrow, .fshow-mobile-close')){
+      tracking = false;
+      return;
+    }
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+    tracking = true;
+  }, {passive:true});
+  el.addEventListener('touchend', (e)=>{
+    if(!tracking) return;
+    tracking = false;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - sx, dy = t.clientY - sy;
+    if(Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5){
+      stepFn(dx > 0 ? 1 : -1);
+    }
+  }, {passive:true});
+}
 function addFshow2Item(title){
   title = (title||'').trim();
   if(!title) return;
@@ -6166,6 +6195,8 @@ function renderSimulator(){
 // Call simulator after all vars are defined
 // ── INIT ──
 renderAll();
+setupFshowSwipe('fshowMobile', fshowStep);
+setupFshowSwipe('fshow2Mobile', fshow2Step);
 if(getToken()) loadFromGitHub();
 else setSyncStatus('offline');
 </script>
