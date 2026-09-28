@@ -2652,7 +2652,11 @@ function fshowCrossfade(container, html, direction, opts){
   const outSign = (opts.exitSign != null) ? opts.exitSign : (direction > 0 ? -1 : (direction < 0 ? 1 : 0));
   const animated = !!(direction || opts.exitSign);
   const inStart = animated ? -outSign*dist : 0;
-  const oldLayer = container.querySelector(':scope > .fshow-cf-layer');
+  // Drop any leftover drag-preview layer (fshowSetupDrag normally already removes it before
+  // calling stepFn, but this is a cheap safety net against it lingering into a commit).
+  const stalePeek = container.querySelector(':scope > .fshow-cf-peek');
+  if(stalePeek && stalePeek.parentNode) stalePeek.parentNode.removeChild(stalePeek);
+  const oldLayer = container.querySelector(':scope > .fshow-cf-layer:not(.fshow-cf-peek)');
   const newLayer = document.createElement('div');
   newLayer.className = 'fshow-media-inner fshow-cf-layer';
   newLayer.style.transform = `translateX(${inStart}px)`;
@@ -2766,7 +2770,7 @@ function fshowRenderMobile(animate, direction, dragDx){
   const ctrlEl = document.getElementById('fshowMobileCtrl');
   const newDescHtml = isOpen ? fshowMobileDescHtml(it) : '';
   const applyDesc = () => { if(descEl) descEl.innerHTML = newDescHtml; };
-  const bgHasLayer = !!bgEl.querySelector(':scope > .fshow-cf-layer');
+  const bgHasLayer = !!bgEl.querySelector(':scope > .fshow-cf-layer:not(.fshow-cf-peek)');
   const exitSign = dragDx ? (dragDx > 0 ? 1 : -1) : null;
   if(!animate || !bgHasLayer){
     bgEl.innerHTML = `<div class="fshow-cf-layer">${html}</div>`;
@@ -3152,7 +3156,7 @@ function fshow2RenderMobile(animate, direction, dragDx){
   const ctrlEl = document.getElementById('fshow2MobileCtrl');
   const newDescHtml = isOpen ? fshowMobileDescHtml(it) : '';
   const applyDesc = () => { if(descEl) descEl.innerHTML = newDescHtml; };
-  const bgHasLayer = !!bgEl.querySelector(':scope > .fshow-cf-layer');
+  const bgHasLayer = !!bgEl.querySelector(':scope > .fshow-cf-layer:not(.fshow-cf-peek)');
   const exitSign = dragDx ? (dragDx > 0 ? 1 : -1) : null;
   if(!animate || !bgHasLayer){
     bgEl.innerHTML = `<div class="fshow-cf-layer">${html}</div>`;
@@ -3228,7 +3232,7 @@ function fshow2Step(delta, dragDx){
 // fshowDragCommitSlide/fshowCrossfade); short of it, everything springs back to rest with no
 // change. Ignores touches starting on the pills, arrows, or close button so those keep their
 // own tap behavior, and yields to a mostly-vertical drag so the page still scrolls normally.
-function fshowSetupDrag(containerId, bgElId, ctrlElId, stepFn){
+function fshowSetupDrag(containerId, bgElId, ctrlElId, stepFn, getItems, getOpenIndex){
   const el = document.getElementById(containerId);
   if(!el || el.dataset.dragBound) return;
   el.dataset.dragBound = '1';
@@ -3237,6 +3241,9 @@ function fshowSetupDrag(containerId, bgElId, ctrlElId, stepFn){
   let tracking = false; // touch is down, axis not yet decided
   let dragging = false; // confirmed horizontal, actively following the thumb
   let sx = 0, sy = 0, lastDx = 0;
+  // Behind the dragged image, a low-opacity preview of whichever item you'd land on fades in as
+  // you pull further, instead of the bare card background showing through the gap.
+  let peekLayer = null, peekSign = 0;
 
   function rubberband(dx){
     const sign = dx < 0 ? -1 : 1;
@@ -3247,7 +3254,43 @@ function fshowSetupDrag(containerId, bgElId, ctrlElId, stepFn){
   function liveNodes(){
     const bg = document.getElementById(bgElId);
     const ctrl = document.getElementById(ctrlElId);
-    return { bgLayer: bg ? bg.querySelector(':scope > .fshow-cf-layer') : null, ctrl };
+    // Exclude the drag-preview layer itself — it's a second .fshow-cf-layer sibling once a
+    // peek is mounted, and it must never be mistaken for the one actually being dragged.
+    return { bg, bgLayer: bg ? bg.querySelector(':scope > .fshow-cf-layer:not(.fshow-cf-peek)') : null, ctrl };
+  }
+  function neighborItemForSign(sign){
+    if(!getItems || !getOpenIndex) return null;
+    const items = getItems();
+    if(!items || !items.length) return null;
+    const cur = getOpenIndex();
+    const base = cur < 0 ? 0 : cur;
+    // sign>0 (dragging right) previews whatever a rightward release would land on, sign<0 the
+    // reverse — matches stepFn's own dx>0 ⇒ +1 convention, so the preview always matches what
+    // you actually get.
+    const delta = sign > 0 ? 1 : -1;
+    return items[(base + delta + items.length) % items.length];
+  }
+  function removePeek(){
+    if(peekLayer && peekLayer.parentNode) peekLayer.parentNode.removeChild(peekLayer);
+    peekLayer = null;
+    peekSign = 0;
+  }
+  function ensurePeek(sign){
+    if(peekLayer && peekSign === sign) return;
+    removePeek();
+    const { bg, bgLayer } = liveNodes();
+    if(!bg) return;
+    const item = neighborItemForSign(sign);
+    if(!item || !item.image) return;
+    const layer = document.createElement('div');
+    layer.className = 'fshow-cf-layer fshow-cf-peek';
+    layer.style.transition = 'none';
+    layer.style.opacity = '0';
+    layer.innerHTML = immersiveMediaEmbedHtml(item.image);
+    if(bgLayer){ bg.insertBefore(layer, bgLayer); } else { bg.appendChild(layer); }
+    observeLazyVideos(layer);
+    peekLayer = layer;
+    peekSign = sign;
   }
   function applyLive(dx){
     const rb = rubberband(dx);
@@ -3257,6 +3300,8 @@ function fshowSetupDrag(containerId, bgElId, ctrlElId, stepFn){
       node.style.transition = 'none';
       node.style.transform = `translateX(${rb}px)`;
     });
+    ensurePeek(dx < 0 ? -1 : 1);
+    if(peekLayer) peekLayer.style.opacity = String(Math.min(1, Math.abs(dx) / RUBBER_MAX));
   }
   function springBack(){
     const { bgLayer, ctrl } = liveNodes();
@@ -3265,6 +3310,14 @@ function fshowSetupDrag(containerId, bgElId, ctrlElId, stepFn){
       node.style.transition = 'transform .32s cubic-bezier(.34,1.25,.4,1)';
       node.style.transform = 'translateX(0)';
     });
+    if(peekLayer){
+      const layer = peekLayer;
+      layer.style.transition = 'opacity .28s ease';
+      layer.style.opacity = '0';
+      setTimeout(()=>{ if(layer.parentNode) layer.parentNode.removeChild(layer); }, 300);
+      peekLayer = null;
+      peekSign = 0;
+    }
   }
 
   el.addEventListener('touchstart', (e)=>{
@@ -3298,13 +3351,22 @@ function fshowSetupDrag(containerId, bgElId, ctrlElId, stepFn){
     applyLive(dx);
   }, {passive:false});
 
-  function finish(){
+  function finish(e){
     if(!tracking) return;
     tracking = false;
-    if(!dragging) return;
+    if(!dragging){ removePeek(); return; }
     dragging = false;
-    if(Math.abs(lastDx) > COMMIT_PX){
-      stepFn(lastDx > 0 ? 1 : -1, lastDx);
+    // Use the release point itself, not just whichever touchmove happened to fire last — on a
+    // real device those coincide, but nothing guarantees a touchmove landed exactly on the
+    // finger's last position before lift-off.
+    const t = e && e.changedTouches && e.changedTouches[0];
+    const finalDx = t ? (t.clientX - sx) : lastDx;
+    applyLive(finalDx);
+    if(Math.abs(finalDx) > COMMIT_PX){
+      // The commit animation (fshowCrossfade) builds its own fresh incoming layer, so drop our
+      // preview first — otherwise it'd be mistaken for the "current" layer being animated out.
+      removePeek();
+      stepFn(finalDx > 0 ? 1 : -1, finalDx);
     } else {
       springBack();
     }
@@ -6404,8 +6466,8 @@ function renderSimulator(){
 // Call simulator after all vars are defined
 // ── INIT ──
 renderAll();
-fshowSetupDrag('fshowMobile', 'fshowMobileBg', 'fshowMobileCtrl', fshowStep);
-fshowSetupDrag('fshow2Mobile', 'fshow2MobileBg', 'fshow2MobileCtrl', fshow2Step);
+fshowSetupDrag('fshowMobile', 'fshowMobileBg', 'fshowMobileCtrl', fshowStep, fshowGetItems, () => fshowOpenIndex);
+fshowSetupDrag('fshow2Mobile', 'fshow2MobileBg', 'fshow2MobileCtrl', fshow2Step, fshow2GetItems, () => fshow2OpenIndex);
 if(getToken()) loadFromGitHub();
 else setSyncStatus('offline');
 </script>
