@@ -1375,8 +1375,52 @@ const DEFAULT_DATA = {
     videoLabel: 'Vidéo',
     videoPricing: {
       rows: [
-        { offer: 'Réalisé par nos soins', price: '1 000 € HT' },
-        { offer: 'Fourni par vos soins', price: '500 € HT' }
+        {
+          offer: 'Réalisé par nos soins', price: '1 000 € HT',
+          popup: {
+            title: 'Vidéo professionnelle',
+            intro: 'Une vidéo qui met en valeur votre restaurant et son univers',
+            includes: [
+              'Conception de la vidéo',
+              'Tournage professionnel',
+              'Montage',
+              'Formats desktop et mobile',
+              'Optimisation du poids et de la qualité',
+              'Intégration sur le site',
+              'Adaptation Google Business et Instagram'
+            ],
+            extra: '',
+            notes: [
+              'Vidéo pensée pour le site et les réseaux sociaux',
+              'Versions 16:9 et 9:16 incluses',
+              'Direction artistique spécifique : sur devis'
+            ]
+          }
+        },
+        {
+          offer: 'Fourni par vos soins', price: '500 € HT',
+          popup: {
+            title: 'Vidéo fournie par vos soins',
+            intro: 'Vous fournissez votre vidéo, nous nous chargeons de son adaptation et de son intégration',
+            includes: [
+              'Adaptation du cadrage',
+              'Formats desktop et mobile',
+              'Recadrage 16:9 et 9:16',
+              'Optimisation du poids et de la qualité',
+              'Intégration sur le site',
+              'Adaptation Google Business et Instagram'
+            ],
+            extra: '',
+            notes: [
+              'Vidéo fournie en 16:9',
+              'Sujet principal à garder au centre',
+              'Vidéo de bonne qualité',
+              'Éviter les éléments importants sur les côtés',
+              'Adaptation 9:16 possible uniquement si le cadrage le permet',
+              'Adaptation spécifique : sur devis'
+            ]
+          }
+        }
       ]
     },
     tabs: [
@@ -1669,6 +1713,14 @@ function migrateData(){
       if(tab && !tab.popup){
         const src = (DEFAULT_DATA.photoPricing.tabs||[]).find(t=>t.key===tab.key) || DEFAULT_DATA.photoPricing.tabs[tii];
         if(src && src.popup) tab.popup = JSON.parse(JSON.stringify(src.popup));
+      }
+    });
+  }
+  if(DATA.photoPricing && DATA.photoPricing.videoPricing && Array.isArray(DATA.photoPricing.videoPricing.rows)){
+    DATA.photoPricing.videoPricing.rows.forEach((row, rii)=>{
+      if(row && !row.popup){
+        const src = (DEFAULT_DATA.photoPricing.videoPricing.rows||[])[rii];
+        if(src && src.popup) row.popup = JSON.parse(JSON.stringify(src.popup));
       }
     });
   }
@@ -4142,14 +4194,35 @@ function ppVideoEditFieldsHtml(videoRows){
     <div class="pp-desktop-edit-row">
       <input type="text" value="${esc(ppVideoLabel())}" placeholder="Nom de l'onglet / du tableau (ex: Vidéo)" style="font-weight:700;margin-bottom:12px" onchange="DATA.photoPricing.videoLabel=this.value;save();renderPhotoPricing()">
       <div class="pp-edit-cols-label">Tableau Vidéo</div>
-      ${videoRows.map((r,ri)=>`
+      ${videoRows.map((r,ri)=>{
+        const popup = r.popup || {};
+        return `
         <div class="pp-edit-row-fields" style="grid-template-columns:1fr;margin-top:${ri?'8px':'0'}">
           <input type="text" value="${esc(r.offer||'')}" placeholder="Ex: Réalisé par nos soins" onchange="DATA.photoPricing.videoPricing.rows[${ri}].offer=this.value;save()">
           <input type="text" value="${esc(r.price||'')}" placeholder="Prix" style="margin-top:6px" onchange="DATA.photoPricing.videoPricing.rows[${ri}].price=this.value;save()">
         </div>
-      `).join('')}
+        <div class="pp-edit-cols-label" style="margin-top:14px">Pop-up "${esc(r.offer||'')}"</div>
+        <input type="text" value="${esc(popup.title||'')}" placeholder="Titre du pop-up" style="font-weight:700;margin-bottom:6px" onchange="ppSetVideoPopupField(${ri},'title',this.value)">
+        <textarea placeholder="Texte d'intro (sous le titre)" style="width:100%;min-height:44px;margin-bottom:6px;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:7px 8px;font-family:'Inter',sans-serif;resize:vertical" onchange="ppSetVideoPopupField(${ri},'intro',this.value)">${esc(popup.intro||'')}</textarea>
+        <textarea placeholder="Inclus — une ligne par élément" style="width:100%;min-height:70px;margin-bottom:6px;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:7px 8px;font-family:'Inter',sans-serif;resize:vertical" onchange="ppSetVideoPopupList(${ri},'includes',this.value)">${esc((popup.includes||[]).join('\n'))}</textarea>
+        <textarea placeholder="Précision optionnelle (encadré à part)" style="width:100%;min-height:44px;margin-bottom:6px;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:7px 8px;font-family:'Inter',sans-serif;resize:vertical" onchange="ppSetVideoPopupField(${ri},'extra',this.value)">${esc(popup.extra||'')}</textarea>
+        <textarea placeholder="À savoir — une ligne par élément" style="width:100%;min-height:70px;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:7px 8px;font-family:'Inter',sans-serif;resize:vertical" onchange="ppSetVideoPopupList(${ri},'notes',this.value)">${esc((popup.notes||[]).join('\n'))}</textarea>
+      `;}).join('')}
     </div>
   `;
+}
+function ppEnsureVideoPopup(ri){
+  const row = DATA.photoPricing.videoPricing.rows[ri];
+  if(!row.popup) row.popup = { title:'', intro:'', includes:[], extra:'', notes:[] };
+  return row.popup;
+}
+function ppSetVideoPopupField(ri, field, value){
+  ppEnsureVideoPopup(ri)[field] = value;
+  save();
+}
+function ppSetVideoPopupList(ri, field, value){
+  ppEnsureVideoPopup(ri)[field] = value.split('\n').map(s=>s.trim()).filter(Boolean);
+  save();
 }
 // Mobile-only Photo-tier editor: same click-to-edit / drag-to-reorder / delete pattern as the
 // feature list above ("Vos clients vous trouvent…"), reusing its exact classes (.feature-row,
@@ -4242,11 +4315,9 @@ function ppPhotoTableHtml(tiers, tabs){
     </div>
   `;
 }
-function openPpTierModal(tii){
-  const tab = ((DATA.photoPricing && DATA.photoPricing.tabs) || [])[tii];
-  const popup = tab && tab.popup;
+function renderPpInfoModal(popup, fallbackTitle){
   if(!popup) return;
-  document.getElementById('ppTierModalTitle').textContent = popup.title || tab.tableTitle || '';
+  document.getElementById('ppTierModalTitle').textContent = popup.title || fallbackTitle || '';
   document.getElementById('ppTierModalIntro').textContent = popup.intro || '';
   const includesHtml = (popup.includes||[]).length ? `
     <div class="pp-tier-modal-section">
@@ -4262,6 +4333,16 @@ function openPpTierModal(tii){
   document.getElementById('ppTierModalSections').innerHTML = includesHtml + extraHtml + notesHtml;
   document.getElementById('ppTierModal').classList.add('open');
 }
+function openPpTierModal(tii){
+  const tab = ((DATA.photoPricing && DATA.photoPricing.tabs) || [])[tii];
+  if(!tab) return;
+  renderPpInfoModal(tab.popup, tab.tableTitle);
+}
+function openPpVideoTierModal(ri){
+  const row = ((DATA.photoPricing && DATA.photoPricing.videoPricing && DATA.photoPricing.videoPricing.rows) || [])[ri];
+  if(!row) return;
+  renderPpInfoModal(row.popup, row.offer);
+}
 function closePpTierModal(){
   document.getElementById('ppTierModal').classList.remove('open');
 }
@@ -4276,9 +4357,9 @@ function ppVideoTableHtml(videoRows){
           </tr>
         </thead>
         <tbody>
-          ${videoRows.map(r=>`
+          ${videoRows.map((r,ri)=>`
             <tr>
-              <td class="pp-offer-cell">${esc(r.offer||'')}</td>
+              <td class="pp-offer-cell">${r.popup ? `<span class="pp-offer-link" onclick="openPpVideoTierModal(${ri})">${esc(r.offer||'')}</span>` : esc(r.offer||'')}</td>
               <td class="pp-price-cell">${esc(r.price||'')}</td>
             </tr>
           `).join('')}
