@@ -648,7 +648,7 @@ body.edit-mode .fshow-nav-row{align-items:flex-start}
   .fshow-mobile-arrow-left .fshow-mobile-arrow-ico{margin-left:auto}
   .fshow-mobile-arrow-right .fshow-mobile-arrow-ico{margin-right:auto}
   .fshow-mobile-arrow svg{width:16px;height:19px;display:block}
-  .fshow-mobile-panel{position:absolute;left:41px;right:41px;bottom:14px;background:rgba(234,234,236,.90);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:16px;padding:14px 16px;opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .25s ease,transform .25s ease;z-index:5}
+  .fshow-mobile-panel{position:absolute;left:41px;right:41px;bottom:14px;background:rgba(234,234,236,.90);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:16px;padding:14px 16px;opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .25s ease,transform .25s ease;z-index:5;overflow:hidden}
   .fshow-mobile-panel.show{opacity:1;transform:translateY(0);pointer-events:auto}
   .fshow-mobile-desc{font-size:13px;font-weight:500;color:var(--text2);line-height:1.5;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;line-clamp:4;overflow:hidden;text-overflow:ellipsis}
   .fshow-mobile-desc strong{font-weight:700;color:var(--text)}
@@ -2575,30 +2575,67 @@ function renderFeatureShowcaseList(){
   if(editMode) attachFshowDragHandlers();
 }
 
-function fshowRenderMedia(animate){
+// Direction-aware "filmstrip" swap shared by the desktop media panel and the mobile
+// background/description: the outgoing content exits toward where it "came from" and the
+// incoming content enters from the opposite edge, as if every item sat end-to-end on the same
+// strip and we're sliding along it — rather than a plain crossfade in place. direction > 0
+// ("next"/item to the right) exits left, enters from the right; direction < 0 ("previous"/item
+// to the left) is the mirror. direction === 0 (opening the very first item, or closing) falls
+// back to a plain crossfade since there's no "next/previous" to imply a travel direction.
+function fshowSlideSwap(el, applyContent, direction, opts){
+  if(!el){ applyContent(); return; }
+  opts = opts || {};
+  const dist = opts.dist || 40;
+  if(!direction){
+    el.style.transition = 'opacity .16s ease';
+    el.style.transform = 'translateX(0)';
+    el.style.opacity = '0';
+    setTimeout(()=>{
+      applyContent();
+      el.style.transition = 'none';
+      void el.offsetWidth;
+      el.style.transition = 'opacity .24s ease';
+      el.style.opacity = '1';
+    }, 150);
+    return;
+  }
+  const sign = direction > 0 ? -1 : 1;
+  el.style.transition = 'transform .2s cubic-bezier(.4,0,.2,1), opacity .2s ease';
+  el.style.transform = `translateX(${sign*dist}px)`;
+  el.style.opacity = '0';
+  setTimeout(()=>{
+    applyContent();
+    el.style.transition = 'none';
+    el.style.transform = `translateX(${-sign*dist}px)`;
+    el.style.opacity = '0';
+    void el.offsetWidth;
+    // A slight overshoot on arrival (cubic-bezier peak > 1) reads as the small "bounce" Apple's
+    // own transition has, instead of the content just stopping dead.
+    el.style.transition = 'transform .38s cubic-bezier(.34,1.35,.4,1), opacity .28s ease';
+    el.style.transform = 'translateX(0)';
+    el.style.opacity = '1';
+  }, 170);
+}
+function fshowResetSlide(el){
+  if(!el) return;
+  el.style.transition = '';
+  el.style.transform = '';
+  el.style.opacity = '';
+}
+function fshowRenderMedia(animate, direction){
   const mediaEl = document.getElementById('fshowMedia');
   if(!mediaEl) return;
   const items = fshowGetItems();
   // Nothing expanded yet → show the first item's image as a neutral default (Apple does the same).
   const it = fshowOpenIndex >= 0 ? items[fshowOpenIndex] : items[0];
   const html = (it && it.image) ? immersiveMediaEmbedHtml(it.image) : `<div class="fshow-media-empty">Aucune image ou vidéo pour cette fonctionnalité</div>`;
-  if(!animate){
+  const inner = mediaEl.querySelector('.fshow-media-inner');
+  if(!animate || !inner){
     mediaEl.innerHTML = `<div class="fshow-media-inner">${html}</div>`;
     observeLazyVideos(mediaEl);
     return;
   }
-  const inner = mediaEl.querySelector('.fshow-media-inner');
-  if(!inner){ mediaEl.innerHTML = `<div class="fshow-media-inner">${html}</div>`; observeLazyVideos(mediaEl); return; }
-  // Fade + a light rightward-to-leftward slide, for a subtle Apple-like dynamism.
-  inner.classList.add('fading-out');
-  setTimeout(()=>{
-    mediaEl.innerHTML = `<div class="fshow-media-inner fading-in">${html}</div>`;
-    observeLazyVideos(mediaEl);
-    requestAnimationFrame(()=>{
-      const newInner = mediaEl.querySelector('.fshow-media-inner');
-      if(newInner) newInner.classList.remove('fading-in');
-    });
-  }, 220);
+  fshowSlideSwap(inner, () => { inner.innerHTML = html; observeLazyVideos(inner); }, direction, {dist:40});
 }
 
 // Mobile-only "à la Apple" card: full-bleed image + swipeable pills at rest,
@@ -2638,7 +2675,7 @@ function fshowPositionMobileArrows(wrapId, panelId, arrowLId, arrowRId){
   arrowL.style.height = panelRect.height + 'px';
   arrowR.style.height = panelRect.height + 'px';
 }
-function fshowRenderMobile(animate){
+function fshowRenderMobile(animate, direction){
   const bgEl = document.getElementById('fshowMobileBg');
   if(!bgEl) return;
   const items = fshowGetItems();
@@ -2646,17 +2683,18 @@ function fshowRenderMobile(animate){
   const it = isOpen ? items[fshowOpenIndex] : items[0];
   const html = (it && it.image) ? immersiveMediaEmbedHtml(it.image) : '';
   const applyBg = () => { bgEl.innerHTML = html; observeLazyVideos(bgEl); };
-  if(!animate){
-    applyBg();
-  } else {
-    bgEl.classList.add('fading');
-    setTimeout(() => {
-      applyBg();
-      bgEl.classList.remove('fading');
-    }, 180);
-  }
   const descEl = document.getElementById('fshowMobileDesc');
-  if(descEl) descEl.innerHTML = isOpen ? fshowMobileDescHtml(it) : '';
+  const newDescHtml = isOpen ? fshowMobileDescHtml(it) : '';
+  const applyDesc = () => { if(descEl) descEl.innerHTML = newDescHtml; };
+  if(!animate){
+    fshowResetSlide(bgEl);
+    applyBg();
+    if(descEl){ fshowResetSlide(descEl); applyDesc(); }
+  } else {
+    // Same direction, fired in the same tick, so the image and the text travel together.
+    fshowSlideSwap(bgEl, applyBg, direction, {dist:36});
+    if(descEl) fshowSlideSwap(descEl, applyDesc, direction, {dist:26});
+  }
   const panelEl = document.getElementById('fshowMobilePanel');
   if(panelEl) panelEl.classList.toggle('show', isOpen);
   const closeEl = document.getElementById('fshowMobileClose');
@@ -2681,18 +2719,20 @@ function fshowRenderMobile(animate){
 }
 function fshowToggle(i){
   if(editMode) return;
+  const prevIndex = fshowOpenIndex;
+  const direction = prevIndex < 0 ? 0 : (i > prevIndex ? 1 : (i < prevIndex ? -1 : 0));
   fshowOpenIndex = i;
   renderFeatureShowcaseList();
   fshowUpdateChrome();
-  fshowRenderMedia(true);
-  fshowRenderMobile(true);
+  fshowRenderMedia(true, direction);
+  fshowRenderMobile(true, direction);
 }
 function fshowClose(){
   fshowOpenIndex = -1;
   renderFeatureShowcaseList();
   fshowUpdateChrome();
-  fshowRenderMedia(true);
-  fshowRenderMobile(true);
+  fshowRenderMedia(true, 0);
+  fshowRenderMobile(true, 0);
 }
 function fshowStep(delta){
   const items = fshowGetItems();
@@ -2701,8 +2741,8 @@ function fshowStep(delta){
   fshowOpenIndex = (cur + delta + items.length) % items.length;
   renderFeatureShowcaseList();
   fshowUpdateChrome();
-  fshowRenderMedia(true);
-  fshowRenderMobile(true);
+  fshowRenderMedia(true, delta);
+  fshowRenderMobile(true, delta);
 }
 function addFshowItem(title){
   title = (title||'').trim();
@@ -2989,33 +3029,23 @@ function renderPhotosVideosList(){
   if(editMode) attachFshow2DragHandlers();
 }
 
-function fshow2RenderMedia(animate){
+function fshow2RenderMedia(animate, direction){
   const mediaEl = document.getElementById('fshow2Media');
   if(!mediaEl) return;
   const items = fshow2GetItems();
   // Nothing expanded yet → show the first item's image as a neutral default (Apple does the same).
   const it = fshow2OpenIndex >= 0 ? items[fshow2OpenIndex] : items[0];
   const html = (it && it.image) ? immersiveMediaEmbedHtml(it.image) : `<div class="fshow-media-empty">Aucune image ou vidéo pour cette fonctionnalité</div>`;
-  if(!animate){
+  const inner = mediaEl.querySelector('.fshow-media-inner');
+  if(!animate || !inner){
     mediaEl.innerHTML = `<div class="fshow-media-inner">${html}</div>`;
     observeLazyVideos(mediaEl);
     return;
   }
-  const inner = mediaEl.querySelector('.fshow-media-inner');
-  if(!inner){ mediaEl.innerHTML = `<div class="fshow-media-inner">${html}</div>`; observeLazyVideos(mediaEl); return; }
-  // Fade + a light rightward-to-leftward slide, for a subtle Apple-like dynamism.
-  inner.classList.add('fading-out');
-  setTimeout(()=>{
-    mediaEl.innerHTML = `<div class="fshow-media-inner fading-in">${html}</div>`;
-    observeLazyVideos(mediaEl);
-    requestAnimationFrame(()=>{
-      const newInner = mediaEl.querySelector('.fshow-media-inner');
-      if(newInner) newInner.classList.remove('fading-in');
-    });
-  }, 220);
+  fshowSlideSwap(inner, () => { inner.innerHTML = html; observeLazyVideos(inner); }, direction, {dist:40});
 }
 
-function fshow2RenderMobile(animate){
+function fshow2RenderMobile(animate, direction){
   const bgEl = document.getElementById('fshow2MobileBg');
   if(!bgEl) return;
   const items = fshow2GetItems();
@@ -3023,17 +3053,17 @@ function fshow2RenderMobile(animate){
   const it = isOpen ? items[fshow2OpenIndex] : items[0];
   const html = (it && it.image) ? immersiveMediaEmbedHtml(it.image) : '';
   const applyBg = () => { bgEl.innerHTML = html; observeLazyVideos(bgEl); };
-  if(!animate){
-    applyBg();
-  } else {
-    bgEl.classList.add('fading');
-    setTimeout(() => {
-      applyBg();
-      bgEl.classList.remove('fading');
-    }, 180);
-  }
   const descEl = document.getElementById('fshow2MobileDesc');
-  if(descEl) descEl.innerHTML = isOpen ? fshowMobileDescHtml(it) : '';
+  const newDescHtml = isOpen ? fshowMobileDescHtml(it) : '';
+  const applyDesc = () => { if(descEl) descEl.innerHTML = newDescHtml; };
+  if(!animate){
+    fshowResetSlide(bgEl);
+    applyBg();
+    if(descEl){ fshowResetSlide(descEl); applyDesc(); }
+  } else {
+    fshowSlideSwap(bgEl, applyBg, direction, {dist:36});
+    if(descEl) fshowSlideSwap(descEl, applyDesc, direction, {dist:26});
+  }
   const panelEl = document.getElementById('fshow2MobilePanel');
   if(panelEl) panelEl.classList.toggle('show', isOpen);
   const closeEl = document.getElementById('fshow2MobileClose');
@@ -3055,18 +3085,20 @@ function fshow2RenderMobile(animate){
 }
 function fshow2Toggle(i){
   if(editMode) return;
+  const prevIndex = fshow2OpenIndex;
+  const direction = prevIndex < 0 ? 0 : (i > prevIndex ? 1 : (i < prevIndex ? -1 : 0));
   fshow2OpenIndex = i;
   renderPhotosVideosList();
   fshow2UpdateChrome();
-  fshow2RenderMedia(true);
-  fshow2RenderMobile(true);
+  fshow2RenderMedia(true, direction);
+  fshow2RenderMobile(true, direction);
 }
 function fshow2Close(){
   fshow2OpenIndex = -1;
   renderPhotosVideosList();
   fshow2UpdateChrome();
-  fshow2RenderMedia(true);
-  fshow2RenderMobile(true);
+  fshow2RenderMedia(true, 0);
+  fshow2RenderMobile(true, 0);
 }
 function fshow2Step(delta){
   const items = fshow2GetItems();
@@ -3075,8 +3107,8 @@ function fshow2Step(delta){
   fshow2OpenIndex = (cur + delta + items.length) % items.length;
   renderPhotosVideosList();
   fshow2UpdateChrome();
-  fshow2RenderMedia(true);
-  fshow2RenderMobile(true);
+  fshow2RenderMedia(true, delta);
+  fshow2RenderMobile(true, delta);
 }
 // One swipe = one step to the next/previous feature (mobile media area). Swiping right
 // moves to the item to the right (next), swiping left to the item to the left (previous) —
