@@ -2641,12 +2641,17 @@ function fshowResetSlide(el){
 // two always overlap and something is always on screen; the old layer is removed once both
 // transitions finish. container must already hold one `.fshow-cf-layer` child (the current
 // content) from a prior non-animated render.
+// opts.exitSign overrides the exit/entry direction derived from `direction`: used when this
+// crossfade is completing a live drag, so the content keeps travelling the way the thumb was
+// already moving it (and the old layer — already mid-drag, not at rest — continues smoothly
+// from wherever it currently sits instead of jumping back to a resting position first).
 function fshowCrossfade(container, html, direction, opts){
   if(!container) return;
   opts = opts || {};
   const dist = opts.dist || 40;
-  const outSign = direction > 0 ? -1 : (direction < 0 ? 1 : 0);
-  const inStart = direction ? -outSign*dist : 0;
+  const outSign = (opts.exitSign != null) ? opts.exitSign : (direction > 0 ? -1 : (direction < 0 ? 1 : 0));
+  const animated = !!(direction || opts.exitSign);
+  const inStart = animated ? -outSign*dist : 0;
   const oldLayer = container.querySelector(':scope > .fshow-cf-layer');
   const newLayer = document.createElement('div');
   newLayer.className = 'fshow-media-inner fshow-cf-layer';
@@ -2657,13 +2662,13 @@ function fshowCrossfade(container, html, direction, opts){
   observeLazyVideos(newLayer);
   void newLayer.offsetWidth; // reflow so the starting position above actually takes before we animate
   requestAnimationFrame(()=>{
-    newLayer.style.transition = direction
+    newLayer.style.transition = animated
       ? 'transform .38s cubic-bezier(.34,1.2,.4,1), opacity .3s ease'
       : 'opacity .26s ease';
     newLayer.style.transform = 'translateX(0)';
     newLayer.style.opacity = '1';
     if(oldLayer){
-      oldLayer.style.transition = direction
+      oldLayer.style.transition = animated
         ? 'transform .34s cubic-bezier(.4,0,.2,1), opacity .26s ease'
         : 'opacity .22s ease';
       oldLayer.style.transform = `translateX(${outSign*dist}px)`;
@@ -2673,6 +2678,29 @@ function fshowCrossfade(container, html, direction, opts){
   setTimeout(()=>{
     if(oldLayer && oldLayer.parentNode === container) oldLayer.remove();
   }, 420);
+}
+// Completes a live drag on the arrow+panel control block: el is already sitting at the thumb's
+// live offset (opacity 1, no transition) when this is called, so we just point it further in the
+// SAME direction (exitSign) and let it fade out, swap the text once clear, then arrive from the
+// opposite edge — a seamless continuation of the drag instead of a snap-back-then-forward.
+function fshowDragCommitSlide(el, applyContent, exitSign, opts){
+  if(!el){ applyContent(); return; }
+  opts = opts || {};
+  const dist = opts.dist || 220;
+  const outMs = opts.outMs || 190;
+  el.style.transition = `transform ${outMs}ms cubic-bezier(.2,0,.4,1), opacity ${outMs}ms ease`;
+  el.style.transform = `translateX(${exitSign*dist}px)`;
+  el.style.opacity = '0';
+  setTimeout(()=>{
+    applyContent();
+    el.style.transition = 'none';
+    el.style.transform = `translateX(${-exitSign*dist}px)`;
+    el.style.opacity = '0';
+    void el.offsetWidth;
+    el.style.transition = 'transform .36s cubic-bezier(.34,1.3,.4,1), opacity .26s ease';
+    el.style.transform = 'translateX(0)';
+    el.style.opacity = '1';
+  }, outMs);
 }
 function fshowRenderMedia(animate, direction){
   const mediaEl = document.getElementById('fshowMedia');
@@ -2727,7 +2755,7 @@ function fshowPositionMobileArrows(wrapId, panelId, arrowLId, arrowRId){
   arrowL.style.height = panelRect.height + 'px';
   arrowR.style.height = panelRect.height + 'px';
 }
-function fshowRenderMobile(animate, direction){
+function fshowRenderMobile(animate, direction, dragDx){
   const bgEl = document.getElementById('fshowMobileBg');
   if(!bgEl) return;
   const items = fshowGetItems();
@@ -2739,6 +2767,7 @@ function fshowRenderMobile(animate, direction){
   const newDescHtml = isOpen ? fshowMobileDescHtml(it) : '';
   const applyDesc = () => { if(descEl) descEl.innerHTML = newDescHtml; };
   const bgHasLayer = !!bgEl.querySelector(':scope > .fshow-cf-layer');
+  const exitSign = dragDx ? (dragDx > 0 ? 1 : -1) : null;
   if(!animate || !bgHasLayer){
     bgEl.innerHTML = `<div class="fshow-cf-layer">${html}</div>`;
     observeLazyVideos(bgEl);
@@ -2746,12 +2775,15 @@ function fshowRenderMobile(animate, direction){
     if(ctrlEl) fshowResetSlide(ctrlEl);
   } else {
     // Same direction, fired in the same tick, so the image and the text travel together.
-    fshowCrossfade(bgEl, html, direction, {dist:36});
-    if(direction && ctrlEl){
-      // Stepping (swipe/arrow): slide the whole control row — both arrows plus the panel —
-      // together, so the arrow you pressed/swiped toward visibly travels in and settles where
-      // the panel now sits, text and all, like one continuous strip rather than just the text
-      // moving on its own.
+    fshowCrossfade(bgEl, html, direction, exitSign != null ? {dist:220, exitSign} : {dist:36});
+    if(exitSign != null && ctrlEl){
+      // Completing a live drag: the block is already sitting at the thumb's last position, so
+      // continue it the same way it was already moving instead of restarting from rest.
+      fshowDragCommitSlide(ctrlEl, applyDesc, exitSign, {dist:220});
+    } else if(direction && ctrlEl){
+      // Stepping via arrow/pill tap (no drag involved): slide the whole control row — both
+      // arrows plus the panel — together, so the arrow travels in and settles where the panel
+      // now sits, text and all, like one continuous strip rather than just the text moving.
       fshowSlideSwap(ctrlEl, applyDesc, direction, {dist:78});
     } else if(descEl){
       // Opening/closing (no step direction): the panel/arrows already have their own
@@ -2798,7 +2830,7 @@ function fshowClose(){
   fshowRenderMedia(true, 0);
   fshowRenderMobile(true, 0);
 }
-function fshowStep(delta){
+function fshowStep(delta, dragDx){
   const items = fshowGetItems();
   if(!items.length) return;
   const cur = fshowOpenIndex < 0 ? 0 : fshowOpenIndex;
@@ -2806,7 +2838,7 @@ function fshowStep(delta){
   renderFeatureShowcaseList();
   fshowUpdateChrome();
   fshowRenderMedia(true, delta);
-  fshowRenderMobile(true, delta);
+  fshowRenderMobile(true, delta, dragDx);
 }
 function addFshowItem(title){
   title = (title||'').trim();
@@ -3109,7 +3141,7 @@ function fshow2RenderMedia(animate, direction){
   fshowCrossfade(mediaEl, html, direction, {dist:40});
 }
 
-function fshow2RenderMobile(animate, direction){
+function fshow2RenderMobile(animate, direction, dragDx){
   const bgEl = document.getElementById('fshow2MobileBg');
   if(!bgEl) return;
   const items = fshow2GetItems();
@@ -3121,14 +3153,17 @@ function fshow2RenderMobile(animate, direction){
   const newDescHtml = isOpen ? fshowMobileDescHtml(it) : '';
   const applyDesc = () => { if(descEl) descEl.innerHTML = newDescHtml; };
   const bgHasLayer = !!bgEl.querySelector(':scope > .fshow-cf-layer');
+  const exitSign = dragDx ? (dragDx > 0 ? 1 : -1) : null;
   if(!animate || !bgHasLayer){
     bgEl.innerHTML = `<div class="fshow-cf-layer">${html}</div>`;
     observeLazyVideos(bgEl);
     if(descEl){ fshowResetSlide(descEl); applyDesc(); }
     if(ctrlEl) fshowResetSlide(ctrlEl);
   } else {
-    fshowCrossfade(bgEl, html, direction, {dist:36});
-    if(direction && ctrlEl){
+    fshowCrossfade(bgEl, html, direction, exitSign != null ? {dist:220, exitSign} : {dist:36});
+    if(exitSign != null && ctrlEl){
+      fshowDragCommitSlide(ctrlEl, applyDesc, exitSign, {dist:220});
+    } else if(direction && ctrlEl){
       fshowSlideSwap(ctrlEl, applyDesc, direction, {dist:78});
     } else if(descEl){
       fshowSlideSwap(descEl, applyDesc, direction, {dist:26});
@@ -3170,7 +3205,7 @@ function fshow2Close(){
   fshow2RenderMedia(true, 0);
   fshow2RenderMobile(true, 0);
 }
-function fshow2Step(delta){
+function fshow2Step(delta, dragDx){
   const items = fshow2GetItems();
   if(!items.length) return;
   const cur = fshow2OpenIndex < 0 ? 0 : fshow2OpenIndex;
@@ -3178,35 +3213,107 @@ function fshow2Step(delta){
   renderPhotosVideosList();
   fshow2UpdateChrome();
   fshow2RenderMedia(true, delta);
-  fshow2RenderMobile(true, delta);
+  fshow2RenderMobile(true, delta, dragDx);
 }
 // One swipe = one step to the next/previous feature (mobile media area). Swiping right
 // moves to the item to the right (next), swiping left to the item to the left (previous) —
 // same direction as the "Suivant"/"Précédent" arrows. Ignores swipes that start on the
 // pills bar, the arrows or the close button (those have their own behavior), and ignores
 // mostly-vertical drags so the page can still scroll normally.
-function setupFshowSwipe(containerId, stepFn){
+// Live drag-to-follow: the thumb directly drags the background image and the whole
+// arrow+panel block (1:1, with light rubber-band resistance past a soft cap so a big drag
+// never fully detaches from the frame). Only on release do we decide: past the commit
+// threshold, hand off to stepFn with the drag's own offset so the content keeps travelling
+// the same way the thumb was already moving it (fshowStep/fshow2Step pass that through to
+// fshowDragCommitSlide/fshowCrossfade); short of it, everything springs back to rest with no
+// change. Ignores touches starting on the pills, arrows, or close button so those keep their
+// own tap behavior, and yields to a mostly-vertical drag so the page still scrolls normally.
+function fshowSetupDrag(containerId, bgElId, ctrlElId, stepFn){
   const el = document.getElementById(containerId);
-  if(!el || el.dataset.swipeBound) return;
-  el.dataset.swipeBound = '1';
-  let sx = 0, sy = 0, tracking = false;
+  if(!el || el.dataset.dragBound) return;
+  el.dataset.dragBound = '1';
+  const COMMIT_PX = 55;
+  const RUBBER_MAX = 90;
+  let tracking = false; // touch is down, axis not yet decided
+  let dragging = false; // confirmed horizontal, actively following the thumb
+  let sx = 0, sy = 0, lastDx = 0;
+
+  function rubberband(dx){
+    const sign = dx < 0 ? -1 : 1;
+    const a = Math.abs(dx);
+    const r = a <= RUBBER_MAX ? a : RUBBER_MAX + (a - RUBBER_MAX) * 0.28;
+    return sign * r;
+  }
+  function liveNodes(){
+    const bg = document.getElementById(bgElId);
+    const ctrl = document.getElementById(ctrlElId);
+    return { bgLayer: bg ? bg.querySelector(':scope > .fshow-cf-layer') : null, ctrl };
+  }
+  function applyLive(dx){
+    const rb = rubberband(dx);
+    const { bgLayer, ctrl } = liveNodes();
+    [bgLayer, ctrl].forEach(node=>{
+      if(!node) return;
+      node.style.transition = 'none';
+      node.style.transform = `translateX(${rb}px)`;
+    });
+  }
+  function springBack(){
+    const { bgLayer, ctrl } = liveNodes();
+    [bgLayer, ctrl].forEach(node=>{
+      if(!node) return;
+      node.style.transition = 'transform .32s cubic-bezier(.34,1.25,.4,1)';
+      node.style.transform = 'translateX(0)';
+    });
+  }
+
   el.addEventListener('touchstart', (e)=>{
     if(editMode || e.touches.length !== 1 || e.target.closest('.fshow-mobile-pills, .fshow-mobile-arrow, .fshow-mobile-close')){
-      tracking = false;
+      tracking = false; dragging = false;
       return;
     }
     sx = e.touches[0].clientX;
     sy = e.touches[0].clientY;
+    lastDx = 0;
     tracking = true;
+    dragging = false;
   }, {passive:true});
-  el.addEventListener('touchend', (e)=>{
+
+  el.addEventListener('touchmove', (e)=>{
+    if(!tracking || e.touches.length !== 1) return;
+    const dx = e.touches[0].clientX - sx;
+    const dy = e.touches[0].clientY - sy;
+    if(!dragging){
+      if(Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy) * 1.2){
+        dragging = true;
+      } else if(Math.abs(dy) > 8){
+        tracking = false; // vertical scroll wins — let the page scroll as normal
+        return;
+      } else {
+        return; // not enough movement yet to tell
+      }
+    }
+    e.preventDefault();
+    lastDx = dx;
+    applyLive(dx);
+  }, {passive:false});
+
+  function finish(){
     if(!tracking) return;
     tracking = false;
-    const t = e.changedTouches[0];
-    const dx = t.clientX - sx, dy = t.clientY - sy;
-    if(Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5){
-      stepFn(dx > 0 ? 1 : -1);
+    if(!dragging) return;
+    dragging = false;
+    if(Math.abs(lastDx) > COMMIT_PX){
+      stepFn(lastDx > 0 ? 1 : -1, lastDx);
+    } else {
+      springBack();
     }
+  }
+  el.addEventListener('touchend', finish, {passive:true});
+  el.addEventListener('touchcancel', ()=>{
+    if(!tracking) return;
+    tracking = false; dragging = false;
+    springBack();
   }, {passive:true});
 }
 function addFshow2Item(title){
@@ -6297,8 +6404,8 @@ function renderSimulator(){
 // Call simulator after all vars are defined
 // ── INIT ──
 renderAll();
-setupFshowSwipe('fshowMobile', fshowStep);
-setupFshowSwipe('fshow2Mobile', fshow2Step);
+fshowSetupDrag('fshowMobile', 'fshowMobileBg', 'fshowMobileCtrl', fshowStep);
+fshowSetupDrag('fshow2Mobile', 'fshow2MobileBg', 'fshow2MobileCtrl', fshow2Step);
 if(getToken()) loadFromGitHub();
 else setSyncStatus('offline');
 </script>
