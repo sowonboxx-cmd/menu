@@ -476,10 +476,11 @@ body.has-section-sidebar{padding-left:220px}
   /* Photo table (4 columns: Photos + 3 paliers): hug its own content and center it, like the Vidéo one.
      Tighter padding so its natural (shrink-to-fit) width actually ends up smaller than the panel —
      otherwise 4 columns' content alone needs the full width and "shrink-to-fit" has no visible effect. */
-  #ppMobilePhotoPanel .pp-table-wrap.pp-table-compact{display:table;width:auto;max-width:92%;margin:0 auto}
+  #ppMobilePhotoPanel .pp-table-wrap.pp-table-compact{display:table;width:auto;max-width:78%;margin:0 auto}
   #ppMobilePhotoPanel .pp-table-wrap.pp-table-compact table{width:auto}
   #ppMobilePhotoPanel .pp-table-wrap.pp-table-compact th,
-  #ppMobilePhotoPanel .pp-table-wrap.pp-table-compact td{padding:9px 9px}
+  #ppMobilePhotoPanel .pp-table-wrap.pp-table-compact td{padding:7px 6px;font-size:11.5px}
+  #ppMobilePhotoPanel .pp-table-wrap.pp-table-compact thead th{font-size:9px}
   /* Vidéo table (2 columns): stays full width to match the video above it — no zig-zag/white gap. */
   #ppMobileVideoPanel .pp-table-wrap.pp-table-compact{display:block;width:100%}
 }
@@ -3783,7 +3784,7 @@ function renderPpMobilePanels(){
     videoEl.style.display = 'none';
     videoEl.innerHTML = '';
     photoEl.innerHTML = editMode
-      ? renderPhotoPricingPhotoMedia() + ppPhotoEditFieldsHtml(tiers, tabs)
+      ? renderPhotoPricingPhotoMedia() + ppMobileTierEditListHtml(tiers, tabs)
       : renderPpMobilePhotoCarousel() + ppPhotoTableHtml(tiers, tabs);
     if(!editMode) requestAnimationFrame(()=>{ renderPpMobileCarouselDots(); setupPpMobileCarouselScrollSync(); });
   } else {
@@ -4054,6 +4055,74 @@ function ppVideoEditFieldsHtml(videoRows){
           <input type="text" value="${esc(r.price||'')}" placeholder="Prix" style="margin-top:6px" onchange="DATA.photoPricing.videoPricing.rows[${ri}].price=this.value;save()">
         </div>
       `).join('')}
+    </div>
+  `;
+}
+// Mobile-only Photo-tier editor: same click-to-edit / drag-to-reorder / delete pattern as the
+// feature list above ("Vos clients vous trouvent…"), reusing its exact classes (.feature-row,
+// .feature-drag, .feature-del, .feature-name-input, .add-feature-row) so each price tier behaves
+// like a feature item — instead of desktop's compact side-by-side grid, which doesn't fit a phone.
+let _ppTierDragSrc = null;
+function ppTierDragStart(e, ti){ _ppTierDragSrc = ti; }
+function ppTierDrop(e, ti){
+  e.preventDefault();
+  if(_ppTierDragSrc===null || _ppTierDragSrc===ti) return;
+  DATA.photoPricing.tabs.forEach(tab=>{
+    if(!Array.isArray(tab.rows)) return;
+    const [moved] = tab.rows.splice(_ppTierDragSrc, 1);
+    tab.rows.splice(ti, 0, moved);
+  });
+  _ppTierDragSrc = null;
+  save();
+  renderPhotoPricing();
+}
+function deletePpTier(ti){
+  if(!confirm('Supprimer ce palier ?')) return;
+  DATA.photoPricing.tabs.forEach(tab=>{
+    if(Array.isArray(tab.rows)) tab.rows.splice(ti, 1);
+  });
+  save();
+  renderPhotoPricing();
+}
+function addPpTier(){
+  DATA.photoPricing.tabs.forEach(tab=>{
+    if(!Array.isArray(tab.rows)) tab.rows = [];
+    tab.rows.push({ offer:'Nouveau palier', qty:"Jusqu'à ? photos", price:'' });
+  });
+  save();
+  renderPhotoPricing();
+}
+function ppMobileTierEditListHtml(tiers, tabs){
+  const rowLabels = tabs.map((tab,tii)=>`
+    <input type="text" value="${esc(tab.tableTitle||'')}" placeholder="Intitulé de la ligne ${tii+1} (ex: Réalisées par nos soins)" style="margin-bottom:${tii?'0':'8px'}" onchange="DATA.photoPricing.tabs[${tii}].tableTitle=this.value;save();renderPhotoPricing()">
+  `).join('');
+  return `
+    <div class="pp-desktop-edit-row">
+      <input type="text" value="${esc(ppPhotoLabel())}" placeholder="Nom de l'onglet / du tableau (ex: Photos)" style="font-weight:700;margin-bottom:12px" onchange="DATA.photoPricing.photoLabel=this.value;save();renderPhotoPricing()">
+      <div class="pp-edit-cols-label">Intitulés des lignes (partagés par tous les paliers)</div>
+      ${rowLabels}
+    </div>
+    <div class="pp-desktop-edit-row" style="padding:0;overflow:hidden">
+      ${tiers.map((t,ti)=>`
+        <div class="feature-row" draggable="true" ondragstart="ppTierDragStart(event,${ti})" ondragover="event.preventDefault()" ondrop="ppTierDrop(event,${ti})" style="flex-direction:column;align-items:stretch;padding:0">
+          <div style="display:flex;align-items:center;gap:10px;padding:12px 14px">
+            <span class="feature-drag" title="Glisser pour réordonner">⠿</span>
+            <input type="text" class="feature-name-input" style="flex:1;font-weight:700" value="${esc(t.qty)}" placeholder="Ex: Jusqu'à 15 photos" onchange="DATA.photoPricing.tabs[0].rows[${ti}].qty=this.value;DATA.photoPricing.tabs[1].rows[${ti}].qty=this.value;save();renderPhotoPricing()">
+            ${tiers.length>1 ? `<button class="feature-del" onclick="deletePpTier(${ti})" title="Supprimer ce palier">✕</button>` : ''}
+          </div>
+          <div style="padding:0 14px 14px 14px;display:flex;flex-direction:column;gap:8px">
+            <input type="text" value="${esc(t.offer)}" placeholder="Nom interne (ex: Essentiel)" style="font-size:12px;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:8px 10px" onchange="DATA.photoPricing.tabs[0].rows[${ti}].offer=this.value;DATA.photoPricing.tabs[1].rows[${ti}].offer=this.value;save();renderPhotoPricing()">
+            <div style="display:flex;gap:8px">
+              <input type="text" value="${esc((tabs[0].rows[ti]||{}).price||'')}" placeholder="Prix ligne 1" style="flex:1;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:8px 10px" onchange="DATA.photoPricing.tabs[0].rows[${ti}].price=this.value;save()">
+              <input type="text" value="${esc((tabs[1].rows[ti]||{}).price||'')}" placeholder="Prix ligne 2" style="flex:1;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:8px 10px" onchange="DATA.photoPricing.tabs[1].rows[${ti}].price=this.value;save()">
+            </div>
+          </div>
+        </div>
+      `).join('')}
+      <div class="add-feature-row">
+        <button type="button" class="btn-icon-only" style="background:var(--navy);width:32px;height:32px" onclick="addPpTier()" title="Ajouter un palier">+</button>
+        <span style="font-size:12px;color:var(--text3)">Ajouter un palier</span>
+      </div>
     </div>
   `;
 }
