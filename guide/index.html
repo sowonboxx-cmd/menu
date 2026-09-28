@@ -240,6 +240,10 @@ body:not(.edit-mode) .resa-band-seg{width:90%;margin:0 auto}
 .resa-band-mobile-pills{display:none}
 @media(min-width:641px){
   body:not(.edit-mode) .resa-band-desc{white-space:nowrap;max-width:none}
+  /* On desktop the level cards are already fully editable inline, so the
+     "Comparer les trois niveaux" shortcut button is redundant there — kept
+     only for the mobile-width admin view where it's still useful. */
+  body.edit-mode .resa-band-btn{display:none}
 }
 @media(max-width:768px){
   .resa-band-segments{grid-template-columns:1fr;gap:16px}
@@ -3213,21 +3217,38 @@ function resaCommitField(el, key){
   DATA.resaBand[key] = el.textContent.trim();
   save();
 }
+// The band title is the one resa field where Enter should insert a manual line break
+// instead of committing — Will wants to control the wrap himself rather than let the
+// text run the full width of the "Modifier" box.
+function resaTitleCeEnter(e){
+  if(e.key === 'Enter'){ e.preventDefault(); document.execCommand('insertLineBreak'); }
+}
+function resaCommitTitleField(el, key){
+  let out = '';
+  el.childNodes.forEach(n => {
+    if(n.nodeType === 3) out += n.textContent;
+    else if(n.nodeName === 'BR') out += '\n';
+    else out += n.textContent || '';
+  });
+  DATA.resaBand[key] = out.replace(/\n{3,}/g,'\n\n').trim();
+  save();
+}
 function resaCommitLevelField(el, i, key){
   DATA.resaBand.levels[i][key] = el.textContent.trim();
   save();
 }
 function ce(text, ph){ return `contenteditable="true" data-ph="${esc(ph||'')}" onkeydown="resaCeEnter(event)"`; }
 function resaTitleHtml(title){
-  // "…est incluse" is highlighted in the rainbow gradient, the rest stays
-  // in the normal text color, all on one line.
+  // "…est incluse" is highlighted in the rainbow gradient; the rest stays in the
+  // normal text color. Manual line breaks (from editing) are preserved as <br>.
   const t = title || '';
   const suffix = 'est incluse';
+  const br = s => esc(s).replace(/\n/g,'<br>');
   if(t.toLowerCase().endsWith(suffix)){
     const head = t.slice(0, t.length - suffix.length);
-    return `${esc(head)}<span class="resa-band-title-em">${esc(t.slice(-suffix.length))}</span>`;
+    return `${br(head)}<span class="resa-band-title-em">${br(t.slice(-suffix.length))}</span>`;
   }
-  return esc(t);
+  return br(t);
 }
 
 // Breaks the pop-up subtitle after "Chaque niveau supérieur comprend
@@ -3276,7 +3297,7 @@ function renderResaBand(){
     <div class="resa-band ${ed?'resa-band-editing':''}">
       <div class="resa-band-top">
         <div class="resa-band-titlerow">
-          <span class="resa-band-title${ed?' resa-ce':''}" ${ed?`${ce('','Titre')} onblur="resaCommitField(this,'title')"`:''}>${ed?esc(rb.title||''):resaTitleHtml(rb.title)}</span>
+          <span class="resa-band-title${ed?' resa-ce':''}" ${ed?`contenteditable="true" data-ph="Titre" onkeydown="resaTitleCeEnter(event)" onblur="resaCommitTitleField(this,'title')"`:''}>${ed?esc(rb.title||'').replace(/\n/g,'<br>'):resaTitleHtml(rb.title)}</span>
         </div>
         <div class="resa-band-desc${ed?' resa-ce':''}" ${ed?`${ce('',"Phrase d'explication")} onblur="resaCommitField(this,'desc')"`:''}>${esc(rb.desc||'')}</div>
         ${ed
