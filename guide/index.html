@@ -417,6 +417,7 @@ body.has-section-sidebar{padding-left:220px}
 .pp-mobile-cards{display:none}
 @media(max-width:640px){
   .pp-table-wrap{display:none}
+  .pp-table-wrap.pp-table-compact{display:block}
   .pp-mobile-cards{display:block}
   .pp-mcard{background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px}
   .pp-mcard+.pp-mcard{margin-top:12px}
@@ -543,6 +544,19 @@ body.has-section-sidebar{padding-left:220px}
 .immersive-playpause:hover{background:rgba(0,0,0,.62)}
 .immersive-playpause svg{width:17px;height:17px}
 .apple-card-hidden{opacity:.5}
+/* Mobile "Photo" carousel for photoPricing — mirrors .apple-cards-grid's peek+scroll-snap+drag pattern,
+   but with distinct class names/scoped JS so its dot-sync doesn't collide with the feature cards' own. */
+.pp-carousel-grid{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x proximity;padding:4px 4px 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;cursor:grab;user-select:none}
+.pp-carousel-grid.dragging{cursor:grabbing;scroll-snap-type:none}
+.pp-carousel-grid::-webkit-scrollbar{display:none}
+.pp-carousel-item{flex:0 0 260px;scroll-snap-align:start;aspect-ratio:4/5;border-radius:var(--rs);overflow:hidden;background:#EDEDF0}
+@media(max-width:640px){
+  .pp-carousel-item{flex:0 0 calc(100vw - 92px)}
+}
+.pp-carousel-item img{width:100%;height:100%;object-fit:cover;display:block}
+.pp-carousel-dots{display:flex;justify-content:center;gap:7px;margin-top:12px;margin-bottom:18px}
+.pp-carousel-dot{width:7px;height:7px;border-radius:50%;background:var(--border);transition:background .15s}
+.pp-carousel-dot.active{background:var(--text3)}
 /* ── Feature showcase (Apple-style expandable list + dynamic image) ── */
 .fshow-card{position:relative;display:grid;grid-template-columns:440px 1fr;background:#F5F5F7;border-radius:24px;overflow:hidden;aspect-ratio:1.895/1}
 @media(max-width:900px){.fshow-card{grid-template-columns:1fr;aspect-ratio:auto;height:auto}}
@@ -1039,9 +1053,9 @@ table.matrix tr:hover td{background:#fafaf7}
     <div id="photoPricingHeader"></div>
     <div id="photoPricingDesktopWrap" class="pp-desktop-only"></div>
     <div class="pp-mobile-only">
-      <div id="photoPricingTabsEdit"></div>
-      <div id="photoPricingTabs" class="pp-tabbar-wrap"></div>
-      <div id="photoPricingTableWrap"></div>
+      <div id="photoPricingTabs" class="fshow-tabbar-wrap"></div>
+      <div id="ppMobilePhotoPanel"></div>
+      <div id="ppMobileVideoPanel"></div>
     </div>
   </div>
 </div>
@@ -3677,132 +3691,125 @@ function scrollToPhotoPricingTabs(){
   if(el) el.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
-let _photoPricingActiveTab = 0;
 function photoPricingTabs(){ return (DATA.photoPricing && DATA.photoPricing.tabs) || []; }
 
-function renderPhotoPricingTabsEdit(){
-  const el = document.getElementById('photoPricingTabsEdit');
-  if(!el) return;
-  if(!editMode){ el.innerHTML=''; return; }
-  const tabs = photoPricingTabs();
-  el.innerHTML = `
-    <div class="pp-tab-edit-grid">
-      ${tabs.map((t,ti)=>`
-        <div class="pp-tab-edit-box${ti===_photoPricingActiveTab?' active':''}" onclick="switchPhotoPricingTab(${ti})">
-          <label>Nom de l'onglet</label>
-          <input type="text" value="${esc(t.tabLabel||'')}" placeholder="ex: Création" onclick="event.stopPropagation()" onchange="DATA.photoPricing.tabs[${ti}].tabLabel=this.value;save();renderPhotoPricing()">
-          <label>Sous-titre de l'onglet</label>
-          <input type="text" value="${esc(t.tabSub||'')}" placeholder="ex: Nos photos" onclick="event.stopPropagation()" onchange="DATA.photoPricing.tabs[${ti}].tabSub=this.value;save();renderPhotoPricing()">
-        </div>
-      `).join('')}
-    </div>
-  `;
-}
-
-function renderPhotoPricingTabBar(){
+// Mobile (<900px): "Photo" / "Vidéo" tab-switcher — same fshow-tab pill pattern used
+// elsewhere on the site, and the same content the desktop version shows (media + pricing table),
+// just stacked in a single column instead of a side-by-side split.
+let _ppMobileActiveTab = 0; // 0 = Photo, 1 = Vidéo
+function renderPpMobileTabs(){
   const el = document.getElementById('photoPricingTabs');
   if(!el) return;
   const tabs = photoPricingTabs();
-  if(_photoPricingActiveTab >= tabs.length) _photoPricingActiveTab = 0;
+  if(tabs.length < 2){ el.innerHTML=''; return; }
   el.innerHTML = `
-    <div class="fshow-tabbar" id="photoPricingTabbarInner">
-      <div class="fshow-tab-indicator" id="photoPricingTabIndicator"></div>
-      ${tabs.map((t,ti)=>`
-        <button type="button" class="fshow-tab${ti===_photoPricingActiveTab?' active':''}" onclick="switchPhotoPricingTab(${ti})">
-          ${esc(t.tabLabel||'')}${t.tabSub?`<span class="pp-tab-sub">${esc(t.tabSub)}</span>`:''}
-        </button>
-      `).join('')}
+    <div class="fshow-tabbar" id="ppMobileTabbarInner">
+      <div class="fshow-tab-indicator" id="ppMobileTabIndicator"></div>
+      <button type="button" class="fshow-tab${_ppMobileActiveTab===0?' active':''}" onclick="switchPpMobileTab(0)">Photo</button>
+      <button type="button" class="fshow-tab${_ppMobileActiveTab===1?' active':''}" onclick="switchPpMobileTab(1)">Vidéo</button>
     </div>
   `;
-  requestAnimationFrame(positionPhotoPricingTabIndicator);
+  requestAnimationFrame(positionPpMobileTabIndicator);
 }
-function positionPhotoPricingTabIndicator(){
-  const inner = document.getElementById('photoPricingTabbarInner');
+function positionPpMobileTabIndicator(){
+  const inner = document.getElementById('ppMobileTabbarInner');
   if(!inner) return;
   const active = inner.querySelector('.fshow-tab.active');
-  const indicator = document.getElementById('photoPricingTabIndicator');
+  const indicator = document.getElementById('ppMobileTabIndicator');
   if(!active || !indicator) return;
   indicator.style.width = active.offsetWidth + 'px';
   indicator.style.left = active.offsetLeft + 'px';
 }
-function switchPhotoPricingTab(ti){
-  _photoPricingActiveTab = ti;
-  renderPhotoPricing();
+function switchPpMobileTab(ti){
+  _ppMobileActiveTab = ti;
+  renderPpMobileTabs();
+  renderPpMobilePanels();
 }
 
-function renderPhotoPricingTable(){
-  const el = document.getElementById('photoPricingTableWrap');
-  if(!el) return;
+function renderPpMobilePanels(){
+  const photoEl = document.getElementById('ppMobilePhotoPanel');
+  const videoEl = document.getElementById('ppMobileVideoPanel');
+  if(!photoEl || !videoEl) return;
   const tabs = photoPricingTabs();
-  if(!tabs.length){ el.innerHTML=''; return; }
-  if(_photoPricingActiveTab >= tabs.length) _photoPricingActiveTab = 0;
-  const ti = _photoPricingActiveTab;
-  const t = tabs[ti];
-  const cols = t.columns || ['Offre','Nombre de photos','Tarif HT'];
-  const rows = t.rows || [];
+  if(tabs.length < 2){ photoEl.innerHTML=''; videoEl.innerHTML=''; return; }
+  const tiers = (tabs[0].rows || []).map(r => ({ offer: r.offer||'', qty: r.qty||'' }));
+  const videoRows = photoPricingVideoRows();
 
-  if(editMode){
-    el.innerHTML = `
-      <input type="text" value="${esc(t.tableTitle||'')}" placeholder="Titre du tableau (ex: Photos professionnelles — réalisées par nos soins)" style="font-size:13px;font-weight:700;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:7px 10px;width:100%;margin-bottom:8px;font-family:'Inter',sans-serif" onchange="DATA.photoPricing.tabs[${ti}].tableTitle=this.value;save();renderPhotoPricing()">
-      <input type="text" value="${esc(t.icon||'')}" placeholder="Emoji / icône (ex: 📸)" style="font-size:13px;border:1px solid var(--border);border-radius:6px;padding:7px 10px;width:120px;margin-bottom:12px;font-family:'Inter',sans-serif" onchange="DATA.photoPricing.tabs[${ti}].icon=this.value;save();renderPhotoPricing()">
-      <div class="pp-edit-cols-label">Colonnes du tableau</div>
-      <div class="pp-edit-cols">
-        ${cols.map((c,ci)=>`
-          <div class="pp-edit-col-item">
-            <span>Colonne ${ci+1}</span>
-            <input type="text" value="${esc(c)}" placeholder="Colonne" class="pp-edit-col-input" onchange="DATA.photoPricing.tabs[${ti}].columns[${ci}]=this.value;save();renderPhotoPricing()">
-          </div>
-        `).join('')}
-      </div>
-      ${rows.map((r,ri)=>`
-        <div class="pp-edit-row">
-          <div class="pp-edit-row-fields">
-            <input type="text" value="${esc(r.offer||'')}" placeholder="Offre (ex: Essentiel)" onchange="DATA.photoPricing.tabs[${ti}].rows[${ri}].offer=this.value;save()">
-            <input type="text" value="${esc(r.qty||'')}" placeholder="Nombre de photos" onchange="DATA.photoPricing.tabs[${ti}].rows[${ri}].qty=this.value;save()">
-            <input type="text" value="${esc(r.price||'')}" placeholder="Tarif HT" onchange="DATA.photoPricing.tabs[${ti}].rows[${ri}].price=this.value;save()">
-          </div>
-        </div>
-      `).join('')}
-      <textarea class="pp-edit-note" placeholder="Note courte sous le tableau (optionnel)" onchange="DATA.photoPricing.tabs[${ti}].note=this.value;save()">${esc(t.note||'')}</textarea>
-      <textarea class="pp-edit-explanation" placeholder="Texte d'explication sous le tableau (optionnel, à venir)" onchange="DATA.photoPricing.tabs[${ti}].explanation=this.value;save()">${esc(t.explanation||'')}</textarea>
-    `;
-    return;
+  if(_ppMobileActiveTab === 0){
+    photoEl.style.display = '';
+    videoEl.style.display = 'none';
+    videoEl.innerHTML = '';
+    photoEl.innerHTML = editMode
+      ? renderPhotoPricingPhotoMedia() + ppPhotoEditFieldsHtml(tiers, tabs)
+      : renderPpMobilePhotoCarousel() + ppPhotoTableHtml(tiers, tabs);
+    if(!editMode) requestAnimationFrame(()=>{ renderPpMobileCarouselDots(); setupPpMobileCarouselScrollSync(); });
+  } else {
+    videoEl.style.display = '';
+    photoEl.style.display = 'none';
+    photoEl.innerHTML = '';
+    videoEl.innerHTML = editMode
+      ? renderPhotoPricingVideoMedia() + ppVideoEditFieldsHtml(videoRows)
+      : renderPhotoPricingVideoMedia() + ppVideoTableHtml(videoRows);
   }
+}
 
-  el.innerHTML = `
-    <div class="pp-panel-head">
-      <div class="pp-panel-title">${t.icon?`<span class="pp-panel-icon">${esc(t.icon)}</span>`:''}${esc(t.tableTitle||'')}</div>
+// Swipeable photo carousel (mobile Photo tab) — mirrors the "modules de features" apple-cards
+// peek+scroll-snap+drag interaction, but with its own classes/JS so the two never cross-talk.
+function renderPpMobilePhotoCarousel(){
+  const photos = photoPricingGallery().slice(0, PP_VIDEO_SLOT).filter(Boolean);
+  if(!photos.length) return `<div class="pp-media-item pp-media-item-empty" style="aspect-ratio:4/5">Photo</div>`;
+  return `
+    <div class="pp-carousel-grid" id="ppMobileCarouselGrid">
+      ${photos.map(url=>`<div class="pp-carousel-item"><img src="${esc(url)}" alt=""></div>`).join('')}
     </div>
-    <div class="pp-table-wrap">
-      <table class="pp-table">
-        <thead>
-          <tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr>
-        </thead>
-        <tbody>
-          ${rows.map(r=>`
-            <tr>
-              <td class="pp-offer-cell">${esc(r.offer||'')}</td>
-              <td>${esc(r.qty||'')}</td>
-              <td class="pp-price-cell">${esc(r.price||'')}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    </div>
-    <div class="pp-mobile-cards">
-      ${rows.map(r=>`
-        <div class="pp-mcard">
-          <div class="pp-mcard-label">${esc(r.offer||'')}</div>
-          <div class="pp-mcard-prices">
-            <span class="pp-mcard-qty">${esc(r.qty||'')}</span>
-            <span class="pp-mcard-val">${esc(r.price||'')}</span>
-          </div>
-        </div>
-      `).join('')}
-    </div>
-    ${t.note?`<div class="pp-note">${esc(t.note)}</div>`:''}
-    ${t.explanation?`<div class="pp-explanation">${esc(t.explanation)}</div>`:''}
+    <div class="pp-carousel-dots" id="ppMobileCarouselDots"></div>
   `;
+}
+function renderPpMobileCarouselDots(){
+  const dotsEl = document.getElementById('ppMobileCarouselDots');
+  if(!dotsEl) return;
+  const photos = photoPricingGallery().slice(0, PP_VIDEO_SLOT).filter(Boolean);
+  dotsEl.innerHTML = photos.map((_,i)=>`<span class="pp-carousel-dot${i===0?' active':''}" data-idx="${i}"></span>`).join('');
+}
+function setupPpMobileCarouselScrollSync(){
+  const grid = document.getElementById('ppMobileCarouselGrid');
+  if(!grid || grid._scrollSyncAttached) return;
+  grid._scrollSyncAttached = true;
+  grid.addEventListener('scroll', ()=>{
+    const items = grid.querySelectorAll('.pp-carousel-item');
+    if(!items.length) return;
+    let closest = 0, closestDist = Infinity;
+    items.forEach((item, i)=>{
+      const dist = Math.abs(item.offsetLeft - grid.scrollLeft);
+      if(dist < closestDist){ closestDist = dist; closest = i; }
+    });
+    document.querySelectorAll('#ppMobileCarouselDots .pp-carousel-dot').forEach((dot, i)=>{
+      dot.classList.toggle('active', i===closest);
+    });
+  }, { passive:true });
+
+  // Mouse drag-to-scroll (same behaviour as the apple-cards carousel)
+  let isDown = false, startX = 0, startScroll = 0, moved = false;
+  grid.addEventListener('mousedown', (e)=>{
+    isDown = true; moved = false;
+    grid.classList.add('dragging');
+    startX = e.pageX;
+    startScroll = grid.scrollLeft;
+  });
+  window.addEventListener('mouseup', ()=>{
+    isDown = false;
+    grid.classList.remove('dragging');
+  });
+  window.addEventListener('mousemove', (e)=>{
+    if(!isDown) return;
+    e.preventDefault();
+    const dx = e.pageX - startX;
+    if(Math.abs(dx) > 4) moved = true;
+    grid.scrollLeft = startScroll - dx;
+  });
+  grid.addEventListener('click', (e)=>{
+    if(moved){ e.preventDefault(); e.stopPropagation(); moved = false; }
+  }, true);
 }
 
 // Desktop (≥900px): a hero row of 4 media items (3 photos + 1 autoplay video, all 4:5),
@@ -3936,38 +3943,11 @@ function renderPhotoPricingDesktop(){
         <div class="pp-media-split">
           <div class="pp-media-col pp-media-col-photo">
             ${renderPhotoPricingPhotoMedia()}
-            <div class="pp-desktop-edit-row">
-              <div class="pp-edit-cols-label">Paliers Photo (partagés par les 2 lignes)</div>
-              <div class="pp-edit-cols">
-                ${tiers.map((t,ti)=>`
-                  <div class="pp-edit-col-item">
-                    <span>Palier ${ti+1}</span>
-                    <input type="text" value="${esc(t.offer)}" placeholder="Nom (ex: Essentiel)" style="margin-bottom:4px" onchange="DATA.photoPricing.tabs[0].rows[${ti}].offer=this.value;DATA.photoPricing.tabs[1].rows[${ti}].offer=this.value;save();renderPhotoPricing()">
-                    <input type="text" value="${esc(t.qty)}" placeholder="Ex: Jusqu'à 15 photos" onchange="DATA.photoPricing.tabs[0].rows[${ti}].qty=this.value;DATA.photoPricing.tabs[1].rows[${ti}].qty=this.value;save();renderPhotoPricing()">
-                  </div>
-                `).join('')}
-              </div>
-              ${tabs.map((tab,tii)=>`
-                <div class="pp-desktop-edit-row" style="margin-top:8px">
-                  <input type="text" value="${esc(tab.tableTitle||'')}" placeholder="Nom de la prestation" style="font-weight:700;margin-bottom:8px" onchange="DATA.photoPricing.tabs[${tii}].tableTitle=this.value;save();renderPhotoPricing()">
-                  <div class="pp-edit-row-fields" style="grid-template-columns:repeat(3,1fr)">
-                    ${(tab.rows||[]).map((r,ri)=>`<input type="text" value="${esc(r.price||'')}" placeholder="Prix" onchange="DATA.photoPricing.tabs[${tii}].rows[${ri}].price=this.value;save()">`).join('')}
-                  </div>
-                </div>
-              `).join('')}
-            </div>
+            ${ppPhotoEditFieldsHtml(tiers, tabs)}
           </div>
           <div class="pp-media-col pp-media-col-video">
             ${renderPhotoPricingVideoMedia()}
-            <div class="pp-desktop-edit-row">
-              <div class="pp-edit-cols-label">Tableau Vidéo</div>
-              ${videoRows.map((r,ri)=>`
-                <div class="pp-edit-row-fields" style="grid-template-columns:1fr;margin-top:${ri?'8px':'0'}">
-                  <input type="text" value="${esc(r.offer||'')}" placeholder="Ex: Réalisé par nos soins" onchange="DATA.photoPricing.videoPricing.rows[${ri}].offer=this.value;save()">
-                  <input type="text" value="${esc(r.price||'')}" placeholder="Prix" style="margin-top:6px" onchange="DATA.photoPricing.videoPricing.rows[${ri}].price=this.value;save()">
-                </div>
-              `).join('')}
-            </div>
+            ${ppVideoEditFieldsHtml(videoRows)}
           </div>
         </div>
       </div>
@@ -3981,50 +3961,100 @@ function renderPhotoPricingDesktop(){
       <div class="pp-media-split">
         <div class="pp-media-col pp-media-col-photo">
           ${renderPhotoPricingPhotoMedia()}
-          <div class="pp-table-wrap pp-table-compact">
-            <table class="pp-table">
-              <thead>
-                <tr>
-                  <th class="pp-th-label"><span class="pp-th-tier">Photos</span></th>
-                  ${tiers.map(t=>`<th><span class="pp-th-tier">${esc(ppAbbreviateQty(t.qty))}</span></th>`).join('')}
-                </tr>
-              </thead>
-              <tbody>
-                ${tabs.map(tab=>`
-                  <tr>
-                    <td class="pp-offer-cell">${esc(tab.tableTitle||'')}</td>
-                    ${(tab.rows||[]).map(r=>`<td class="pp-price-cell">${esc(r.price||'')}</td>`).join('')}
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
+          ${ppPhotoTableHtml(tiers, tabs)}
         </div>
         <div class="pp-media-col pp-media-col-video">
           ${renderPhotoPricingVideoMedia()}
-          <div class="pp-table-wrap pp-table-compact">
-            <table class="pp-table">
-              <thead>
-                <tr>
-                  <th class="pp-th-label"><span class="pp-th-tier">Vidéo</span></th>
-                  <th><span class="pp-th-tier">Tarif HT</span></th>
-                </tr>
-              </thead>
-              <tbody>
-                ${videoRows.map(r=>`
-                  <tr>
-                    <td class="pp-offer-cell">${esc(r.offer||'')}</td>
-                    <td class="pp-price-cell">${esc(r.price||'')}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
+          ${ppVideoTableHtml(videoRows)}
         </div>
       </div>
     </div>
   `;
   requestAnimationFrame(syncPhotoPricingMediaHeights);
+}
+// Shared edit-mode field blocks (Photo tiers + per-tab prices / Vidéo rows) — used by both
+// the desktop split view and the mobile Photo/Vidéo tabs, so editing stays "exactement pareil".
+function ppPhotoEditFieldsHtml(tiers, tabs){
+  return `
+    <div class="pp-desktop-edit-row">
+      <div class="pp-edit-cols-label">Paliers Photo (partagés par les 2 lignes)</div>
+      <div class="pp-edit-cols">
+        ${tiers.map((t,ti)=>`
+          <div class="pp-edit-col-item">
+            <span>Palier ${ti+1}</span>
+            <input type="text" value="${esc(t.offer)}" placeholder="Nom (ex: Essentiel)" style="margin-bottom:4px" onchange="DATA.photoPricing.tabs[0].rows[${ti}].offer=this.value;DATA.photoPricing.tabs[1].rows[${ti}].offer=this.value;save();renderPhotoPricing()">
+            <input type="text" value="${esc(t.qty)}" placeholder="Ex: Jusqu'à 15 photos" onchange="DATA.photoPricing.tabs[0].rows[${ti}].qty=this.value;DATA.photoPricing.tabs[1].rows[${ti}].qty=this.value;save();renderPhotoPricing()">
+          </div>
+        `).join('')}
+      </div>
+      ${tabs.map((tab,tii)=>`
+        <div class="pp-desktop-edit-row" style="margin-top:8px">
+          <input type="text" value="${esc(tab.tableTitle||'')}" placeholder="Nom de la prestation" style="font-weight:700;margin-bottom:8px" onchange="DATA.photoPricing.tabs[${tii}].tableTitle=this.value;save();renderPhotoPricing()">
+          <div class="pp-edit-row-fields" style="grid-template-columns:repeat(3,1fr)">
+            ${(tab.rows||[]).map((r,ri)=>`<input type="text" value="${esc(r.price||'')}" placeholder="Prix" onchange="DATA.photoPricing.tabs[${tii}].rows[${ri}].price=this.value;save()">`).join('')}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+function ppVideoEditFieldsHtml(videoRows){
+  return `
+    <div class="pp-desktop-edit-row">
+      <div class="pp-edit-cols-label">Tableau Vidéo</div>
+      ${videoRows.map((r,ri)=>`
+        <div class="pp-edit-row-fields" style="grid-template-columns:1fr;margin-top:${ri?'8px':'0'}">
+          <input type="text" value="${esc(r.offer||'')}" placeholder="Ex: Réalisé par nos soins" onchange="DATA.photoPricing.videoPricing.rows[${ri}].offer=this.value;save()">
+          <input type="text" value="${esc(r.price||'')}" placeholder="Prix" style="margin-top:6px" onchange="DATA.photoPricing.videoPricing.rows[${ri}].price=this.value;save()">
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+// Shared public-mode compact pricing tables — identical markup on desktop and mobile.
+function ppPhotoTableHtml(tiers, tabs){
+  return `
+    <div class="pp-table-wrap pp-table-compact">
+      <table class="pp-table">
+        <thead>
+          <tr>
+            <th class="pp-th-label"><span class="pp-th-tier">Photos</span></th>
+            ${tiers.map(t=>`<th><span class="pp-th-tier">${esc(ppAbbreviateQty(t.qty))}</span></th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${tabs.map(tab=>`
+            <tr>
+              <td class="pp-offer-cell">${esc(tab.tableTitle||'')}</td>
+              ${(tab.rows||[]).map(r=>`<td class="pp-price-cell">${esc(r.price||'')}</td>`).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+function ppVideoTableHtml(videoRows){
+  return `
+    <div class="pp-table-wrap pp-table-compact">
+      <table class="pp-table">
+        <thead>
+          <tr>
+            <th class="pp-th-label"><span class="pp-th-tier">Vidéo</span></th>
+            <th><span class="pp-th-tier">Tarif HT</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${videoRows.map(r=>`
+            <tr>
+              <td class="pp-offer-cell">${esc(r.offer||'')}</td>
+              <td class="pp-price-cell">${esc(r.price||'')}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
 }
 function syncPhotoPricingMediaHeights(){
   const photoItem = document.querySelector('#photoPricingDesktopWrap .pp-media-col-photo .pp-media-item');
@@ -4043,9 +4073,8 @@ window.addEventListener('resize', function(){
 function renderPhotoPricing(){
   renderPhotoPricingHeader();
   renderPhotoPricingDesktop();
-  renderPhotoPricingTabsEdit();
-  renderPhotoPricingTabBar();
-  renderPhotoPricingTable();
+  renderPpMobileTabs();
+  renderPpMobilePanels();
 }
 
 let _goFurtherDragSrc = null;
