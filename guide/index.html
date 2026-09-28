@@ -3238,17 +3238,19 @@ function fshow2Step(delta, dragDx){
 // mostly-vertical drags so the page can still scroll normally.
 // Live drag-to-follow: the thumb directly drags the background image and the whole
 // arrow+panel block (1:1, with light rubber-band resistance past a soft cap so a big drag
-// never fully detaches from the frame). Only on release do we decide: past the commit
-// threshold, hand off to stepFn with the drag's own offset so the content keeps travelling
-// the same way the thumb was already moving it (fshowStep/fshow2Step pass that through to
-// fshowDragCommitSlide/fshowCrossfade); short of it, everything springs back to rest with no
-// change. Ignores touches starting on the pills, arrows, or close button so those keep their
-// own tap behavior, and yields to a mostly-vertical drag so the page still scrolls normally.
+// never fully detaches from the frame). One gesture = one photo: once a touch has clearly
+// registered as a horizontal drag (see the axis-lock in touchmove below — that's what filters
+// out taps and vertical scrolls), releasing always hands off to stepFn with the drag's own
+// offset, however short the drag was, so the content keeps travelling the same way the thumb
+// was already moving it (fshowStep/fshow2Step pass that through to
+// fshowDragCommitSlide/fshowCrossfade) — no minimum distance to clear, no spring-back for a
+// gentle swipe. Ignores touches starting on the pills, arrows, or close button so those keep
+// their own tap behavior, and yields to a mostly-vertical drag so the page still scrolls
+// normally.
 function fshowSetupDrag(containerId, bgElId, ctrlElId, stepFn, getItems, getOpenIndex){
   const el = document.getElementById(containerId);
   if(!el || el.dataset.dragBound) return;
   el.dataset.dragBound = '1';
-  const COMMIT_PX = 55;
   const RUBBER_MAX = 90;
   // The preview's own fade-in range is deliberately much larger than RUBBER_MAX (the position's
   // soft cap): tying opacity to the same short distance made it read as fully visible almost
@@ -3377,16 +3379,15 @@ function fshowSetupDrag(containerId, bgElId, ctrlElId, stepFn, getItems, getOpen
     // real device those coincide, but nothing guarantees a touchmove landed exactly on the
     // finger's last position before lift-off.
     const t = e && e.changedTouches && e.changedTouches[0];
-    const finalDx = t ? (t.clientX - sx) : lastDx;
+    let finalDx = t ? (t.clientX - sx) : lastDx;
     applyLive(finalDx);
-    if(Math.abs(finalDx) > COMMIT_PX){
-      // The commit animation (fshowCrossfade) builds its own fresh incoming layer, so drop our
-      // preview first — otherwise it'd be mistaken for the "current" layer being animated out.
-      removePeek();
-      stepFn(finalDx > 0 ? 1 : -1, finalDx);
-    } else {
-      springBack();
-    }
+    // One gesture = one photo: once the drag has clearly registered as horizontal (the
+    // axis-lock in touchmove already filters out taps and vertical scrolls), releasing always
+    // commits to the next/previous item — however short the drag was — rather than requiring a
+    // minimum distance and springing back short of it.
+    if(finalDx === 0) finalDx = lastDx || 1;
+    removePeek();
+    stepFn(finalDx > 0 ? 1 : -1, finalDx);
   }
   el.addEventListener('touchend', finish, {passive:true});
   el.addEventListener('touchcancel', ()=>{
