@@ -2448,14 +2448,16 @@ function fshowRenderMedia(animate){
   const html = (it && it.image) ? immersiveMediaEmbedHtml(it.image) : `<div class="fshow-media-empty">Aucune image ou vidéo pour cette fonctionnalité</div>`;
   if(!animate){
     mediaEl.innerHTML = `<div class="fshow-media-inner">${html}</div>`;
+    observeLazyVideos(mediaEl);
     return;
   }
   const inner = mediaEl.querySelector('.fshow-media-inner');
-  if(!inner){ mediaEl.innerHTML = `<div class="fshow-media-inner">${html}</div>`; return; }
+  if(!inner){ mediaEl.innerHTML = `<div class="fshow-media-inner">${html}</div>`; observeLazyVideos(mediaEl); return; }
   // Fade + a light rightward-to-leftward slide, for a subtle Apple-like dynamism.
   inner.classList.add('fading-out');
   setTimeout(()=>{
     mediaEl.innerHTML = `<div class="fshow-media-inner fading-in">${html}</div>`;
+    observeLazyVideos(mediaEl);
     requestAnimationFrame(()=>{
       const newInner = mediaEl.querySelector('.fshow-media-inner');
       if(newInner) newInner.classList.remove('fading-in');
@@ -2507,7 +2509,7 @@ function fshowRenderMobile(animate){
   const isOpen = !editMode && fshowOpenIndex >= 0;
   const it = isOpen ? items[fshowOpenIndex] : items[0];
   const html = (it && it.image) ? immersiveMediaEmbedHtml(it.image) : '';
-  const applyBg = () => { bgEl.innerHTML = html; };
+  const applyBg = () => { bgEl.innerHTML = html; observeLazyVideos(bgEl); };
   if(!animate){
     applyBg();
   } else {
@@ -2860,14 +2862,16 @@ function fshow2RenderMedia(animate){
   const html = (it && it.image) ? immersiveMediaEmbedHtml(it.image) : `<div class="fshow-media-empty">Aucune image ou vidéo pour cette fonctionnalité</div>`;
   if(!animate){
     mediaEl.innerHTML = `<div class="fshow-media-inner">${html}</div>`;
+    observeLazyVideos(mediaEl);
     return;
   }
   const inner = mediaEl.querySelector('.fshow-media-inner');
-  if(!inner){ mediaEl.innerHTML = `<div class="fshow-media-inner">${html}</div>`; return; }
+  if(!inner){ mediaEl.innerHTML = `<div class="fshow-media-inner">${html}</div>`; observeLazyVideos(mediaEl); return; }
   // Fade + a light rightward-to-leftward slide, for a subtle Apple-like dynamism.
   inner.classList.add('fading-out');
   setTimeout(()=>{
     mediaEl.innerHTML = `<div class="fshow-media-inner fading-in">${html}</div>`;
+    observeLazyVideos(mediaEl);
     requestAnimationFrame(()=>{
       const newInner = mediaEl.querySelector('.fshow-media-inner');
       if(newInner) newInner.classList.remove('fading-in');
@@ -2882,7 +2886,7 @@ function fshow2RenderMobile(animate){
   const isOpen = !editMode && fshow2OpenIndex >= 0;
   const it = isOpen ? items[fshow2OpenIndex] : items[0];
   const html = (it && it.image) ? immersiveMediaEmbedHtml(it.image) : '';
-  const applyBg = () => { bgEl.innerHTML = html; };
+  const applyBg = () => { bgEl.innerHTML = html; observeLazyVideos(bgEl); };
   if(!animate){
     applyBg();
   } else {
@@ -3783,6 +3787,7 @@ function renderPpMobilePanels(){
     videoEl.innerHTML = editMode
       ? renderPhotoPricingVideoMedia() + ppVideoEditFieldsHtml(videoRows)
       : renderPhotoPricingVideoMedia() + ppVideoTableHtml(videoRows);
+    if(!editMode) requestAnimationFrame(()=>observeLazyVideos(videoEl));
   }
 }
 
@@ -3793,7 +3798,7 @@ function renderPpMobilePhotoCarousel(){
   if(!photos.length) return `<div class="pp-media-item pp-media-item-empty" style="aspect-ratio:4/5">Photo</div>`;
   return `
     <div class="pp-carousel-grid" id="ppMobileCarouselGrid">
-      ${photos.map(url=>`<div class="pp-carousel-item"><img src="${esc(url)}" alt=""></div>`).join('')}
+      ${photos.map(url=>`<div class="pp-carousel-item"><img src="${esc(url)}" alt="" loading="lazy"></div>`).join('')}
     </div>
     <div class="pp-carousel-dots" id="ppMobileCarouselDots"></div>
   `;
@@ -3873,7 +3878,7 @@ function renderPhotoPricingPhotoMedia(){
   return `
     <div class="pp-media-row">
       ${photos.map((url,i) => url
-        ? `<div class="pp-media-item" onclick="openPhotoPricingLightbox(${i})"><img src="${esc(url)}" alt=""></div>`
+        ? `<div class="pp-media-item" onclick="openPhotoPricingLightbox(${i})"><img src="${esc(url)}" alt="" loading="lazy"></div>`
         : `<div class="pp-media-item pp-media-item-empty">Photo</div>`
       ).join('')}
     </div>
@@ -3894,7 +3899,7 @@ function renderPhotoPricingVideoMedia(){
   return `
     <div class="pp-media-row pp-media-row-single">
       ${url
-        ? `<div class="pp-media-item pp-media-video"><video src="${esc(url)}" autoplay muted loop playsinline></video></div>`
+        ? `<div class="pp-media-item pp-media-video">${lazyVideoHtml(url)}</div>`
         : `<div class="pp-media-item pp-media-item-empty">Vidéo</div>`}
     </div>
   `;
@@ -4003,7 +4008,7 @@ function renderPhotoPricingDesktop(){
       </div>
     </div>
   `;
-  requestAnimationFrame(syncPhotoPricingMediaHeights);
+  requestAnimationFrame(()=>{ syncPhotoPricingMediaHeights(); observeLazyVideos(wrap); });
 }
 // Shared edit-mode field blocks (Photo tiers + per-tab prices / Vidéo rows) — used by both
 // the desktop split view and the mobile Photo/Vidéo tabs, so editing stays "exactement pareil".
@@ -4229,7 +4234,7 @@ function renderAppleCards(){
       ` : `
         ${(c.icon||c.label) ? `
         <div class="apple-card-eyebrow">
-          ${c.icon?`<img src="${esc(c.icon)}" alt="">`:''}
+          ${c.icon?`<img src="${esc(c.icon)}" alt="" loading="lazy">`:''}
           ${c.label?`<span style="color:${titleColors[ci%titleColors.length]}">${esc(c.label)}</span>`:''}
         </div>
         ` : ''}
@@ -4637,7 +4642,7 @@ function renderOffersTrustBar(){
           <textarea placeholder="Texte (retour à la ligne ok)" style="font-size:12px;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;width:100%;resize:vertical;min-height:44px;font-family:'Inter',sans-serif" onchange="DATA.offersTrustBar[${i}].text=this.value;save()">${esc(item.text||'')}</textarea>
         </div>
       ` : `
-        <div class="otb-icon">${item.icon?`<img src="${esc(item.icon)}" alt="">`:''}</div>
+        <div class="otb-icon">${item.icon?`<img src="${esc(item.icon)}" alt="" loading="lazy">`:''}</div>
         <div class="otb-text">${esc(item.text||'')}</div>
       `}
     </div>
@@ -5080,6 +5085,45 @@ function onRowTouchEnd(e){
 // ══════════════════════════════════════════
 function esc(s){ return (s||'').toString().replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 
+// Perf: autoplay <video>s (hero, photoPricing, immersive feature media) were downloading their
+// full .mp4 immediately on page load — even ones hidden off-screen or behind a CSS breakpoint
+// (e.g. the desktop photoPricing video markup is still in the DOM, just display:none, on mobile;
+// hidden ≠ not-downloaded for an autoplay <video>). Markup below renders these with no `src` and
+// no `autoplay` attribute (just `data-lazy-src`); this observer assigns the real src and starts
+// playback only once the element actually scrolls into view, and only ever once per element.
+let _lazyVideoObserver = null;
+function lazyVideoHtml(url, extraAttrs){
+  return `<video data-lazy-src="${esc(url)}" muted loop playsinline preload="none"${extraAttrs?` ${extraAttrs}`:''}></video>`;
+}
+function observeLazyVideos(root){
+  const scope = root || document;
+  const videos = scope.querySelectorAll('video[data-lazy-src]');
+  if(!videos.length) return;
+  if(!_lazyVideoObserver){
+    _lazyVideoObserver = new IntersectionObserver((entries)=>{
+      entries.forEach(entry=>{
+        if(!entry.isIntersecting) return;
+        const v = entry.target;
+        _lazyVideoObserver.unobserve(v);
+        if(v.dataset.lazySrc){
+          v.src = v.dataset.lazySrc;
+          v.removeAttribute('data-lazy-src');
+          v.load();
+          v.play().catch(()=>{});
+        }
+      });
+    }, { rootMargin: '300px' });
+  }
+  videos.forEach(v=>{
+    if(v.dataset.lazyObserved) return;
+    v.dataset.lazyObserved = '1';
+    // Element might already be hidden by a CSS breakpoint (e.g. desktop markup on a mobile
+    // viewport) — skip observing those entirely so they never load.
+    if(v.offsetParent === null && getComputedStyle(v).position !== 'fixed') return;
+    _lazyVideoObserver.observe(v);
+  });
+}
+
 // Renders an image OR a video (YouTube, Vimeo, or a direct video file URL) from one URL field,
 // so the same "media" input can hold either a photo or a hosted video.
 function mediaEmbedHtml(url, className){
@@ -5097,7 +5141,7 @@ function mediaEmbedHtml(url, className){
   if(/\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(url)){
     return `<div class="media-embed${cls}"><video src="${esc(url)}" controls playsinline preload="metadata"></video></div>`;
   }
-  return `<div class="media-embed${cls}"><img src="${esc(url)}" alt=""></div>`;
+  return `<div class="media-embed${cls}"><img src="${esc(url)}" alt="" loading="lazy"></div>`;
 }
 // Used only by the "Vos clients vous trouvent…" feature showcase: the video plays
 // immediately, blended straight into the existing background, with no native
@@ -5130,11 +5174,11 @@ function immersiveMediaEmbedHtml(url){
   }
   if(/\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(url)){
     return `<div class="media-embed immersive-media" data-kind="video" id="wrap-${uid}">
-      <video id="${uid}" src="${esc(url)}" autoplay muted loop playsinline preload="auto"></video>
+      <video id="${uid}" data-lazy-src="${esc(url)}" muted loop playsinline preload="none"></video>
       ${playPauseBtn}
     </div>`;
   }
-  return `<div class="media-embed"><img src="${esc(url)}" alt=""></div>`;
+  return `<div class="media-embed"><img src="${esc(url)}" alt="" loading="lazy"></div>`;
 }
 function toggleImmersiveMedia(uid, event){
   event.stopPropagation();
@@ -5148,7 +5192,13 @@ function toggleImmersiveMedia(uid, event){
   if(kind === 'video'){
     const video = document.getElementById(uid);
     if(!video) return;
-    if(wasPlaying) video.pause(); else video.play();
+    if(video.dataset.lazySrc){
+      // Hasn't been lazy-loaded yet (still off-screen) — the visitor clicked play, so load it now.
+      video.src = video.dataset.lazySrc;
+      video.removeAttribute('data-lazy-src');
+      video.load();
+      video.play().catch(()=>{});
+    } else if(wasPlaying) video.pause(); else video.play();
   } else {
     const iframe = document.getElementById(uid);
     if(!iframe || !iframe.contentWindow) return;
