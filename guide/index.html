@@ -294,12 +294,17 @@ body:not(.edit-mode) .resa-band-seg{width:90%;margin:0 auto}
 .info-modal-actions{display:flex;justify-content:flex-end;gap:8px}
 #ppTierModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:20px}
 #ppTierModal.open{display:flex}
-.pp-tier-modal-box{max-width:520px;max-height:82vh;overflow-y:auto}
-.pp-tier-modal-content{font-size:13.5px;color:var(--text2);line-height:1.65}
-.pp-tier-modal-content p{margin:0 0 12px}
-.pp-tier-modal-content h4{font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--navy);margin:16px 0 8px;font-weight:700}
-.pp-tier-modal-content ul{margin:0 0 4px;padding-left:18px}
-.pp-tier-modal-content li{margin-bottom:6px}
+.pp-tier-modal-box{max-width:520px}
+.pp-tier-modal-intro{font-size:13.5px}
+.pp-tier-modal-section{background:#F5F5F7;border-radius:16px;padding:20px 18px;margin-bottom:16px}
+.pp-tier-modal-section:last-of-type{margin-bottom:0}
+.pp-tier-modal-pill{display:inline-flex;align-self:flex-start;align-items:center;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:4px 11px;border-radius:8px;margin-bottom:12px}
+.pp-tier-modal-pill-green{background:rgba(22,101,52,.14);color:#166534}
+.pp-tier-modal-pill-orange{background:rgba(180,83,9,.14);color:#B45309}
+.pp-tier-modal-section ul{margin:0;padding:0;list-style:none}
+.pp-tier-modal-section li{font-size:13.5px;color:var(--text2);line-height:1.55;margin-bottom:10px}
+.pp-tier-modal-section li:last-child{margin-bottom:0}
+.pp-tier-modal-extra{font-size:13.5px;color:var(--text2);line-height:1.55;text-align:center;margin-bottom:16px}
 .pp-offer-link{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-decoration-color:#9aa3ad;text-underline-offset:3px}
 .pp-offer-link:hover{color:var(--navy)}
 .add-feature-row{display:flex;align-items:center;gap:8px;padding:10px 18px}
@@ -888,12 +893,13 @@ table.matrix tr:hover td{background:#fafaf7}
 
 <!-- PHOTO PRICING TIER DETAIL MODAL -->
 <div id="ppTierModal" onclick="if(event.target===this)closePpTierModal()">
-  <div class="info-modal-box pp-tier-modal-box">
-    <div class="info-modal-title" id="ppTierModalTitle" style="font-size:17px"></div>
-    <div id="ppTierModalContent" class="pp-tier-modal-content"></div>
-    <div class="info-modal-actions">
-      <button class="btn btn-ghost" style="background:#f0ece6;color:var(--text2);border:none" onclick="closePpTierModal()">Fermer</button>
-    </div>
+  <div class="resa-modal-box pp-tier-modal-box" onclick="event.stopPropagation()">
+    <button type="button" class="resa-modal-x-close" onclick="closePpTierModal()" aria-label="Fermer">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg>
+    </button>
+    <div class="resa-modal-title" id="ppTierModalTitle"></div>
+    <div class="resa-modal-subtitle pp-tier-modal-intro" id="ppTierModalIntro"></div>
+    <div id="ppTierModalSections"></div>
   </div>
 </div>
 
@@ -4220,11 +4226,19 @@ function openPpTierModal(tii){
   const popup = tab && tab.popup;
   if(!popup) return;
   document.getElementById('ppTierModalTitle').textContent = popup.title || tab.tableTitle || '';
-  const introHtml = popup.intro ? `<p>${esc(popup.intro)}</p>` : '';
-  const includesHtml = (popup.includes||[]).length ? `<h4>Inclus</h4><ul>${popup.includes.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>` : '';
-  const extraHtml = popup.extra ? `<p>${esc(popup.extra)}</p>` : '';
-  const notesHtml = (popup.notes||[]).length ? `<h4>À savoir</h4><ul>${popup.notes.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>` : '';
-  document.getElementById('ppTierModalContent').innerHTML = introHtml + includesHtml + extraHtml + notesHtml;
+  document.getElementById('ppTierModalIntro').textContent = popup.intro || '';
+  const includesHtml = (popup.includes||[]).length ? `
+    <div class="pp-tier-modal-section">
+      <div><span class="pp-tier-modal-pill pp-tier-modal-pill-green">Inclus</span></div>
+      <ul>${popup.includes.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>
+    </div>` : '';
+  const extraHtml = popup.extra ? `<div class="pp-tier-modal-extra">${esc(popup.extra)}</div>` : '';
+  const notesHtml = (popup.notes||[]).length ? `
+    <div class="pp-tier-modal-section">
+      <div><span class="pp-tier-modal-pill pp-tier-modal-pill-orange">À savoir</span></div>
+      <ul>${popup.notes.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>
+    </div>` : '';
+  document.getElementById('ppTierModalSections').innerHTML = includesHtml + extraHtml + notesHtml;
   document.getElementById('ppTierModal').classList.add('open');
 }
 function closePpTierModal(){
