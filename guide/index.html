@@ -472,6 +472,13 @@ body.has-section-sidebar{padding-left:220px}
 .pp-table-wrap.pp-table-compact tbody tr{background:transparent}
 .pp-table-wrap.pp-table-compact tbody tr+tr td{border-top:1px solid #fff}
 .pp-table-wrap.pp-table-compact td.pp-offer-cell,.pp-table-wrap.pp-table-compact td.pp-price-cell{color:#5b6572}
+@media(max-width:899px){
+  /* On mobile the compact table shouldn't stretch to the panel's full width — it should hug its own content. */
+  .pp-mobile-only .pp-table-wrap.pp-table-compact{display:inline-block;width:auto;max-width:100%}
+  .pp-mobile-only .pp-table-wrap.pp-table-compact table{width:auto}
+}
+/* Let the Photo/Vidéo tab bar breathe before the media below it (it was sitting flush on top). */
+#photoPricingTabs{margin-bottom:22px}
 .pp-desktop-edit-row{border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;background:#fff}
 .pp-desktop-edit-row input{width:100%;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:7px 8px;font-family:'Inter',sans-serif}
 /* ── Photos & vidéos : galerie desktop (4 photos 4/5, sous le tableau) + lightbox ── */
@@ -1329,6 +1336,8 @@ const DEFAULT_DATA = {
     desc: "Des photos de vos plats, mais aussi de tout l'univers de votre établissement : salle, terrasse, devanture, cuisine, équipe, service, décoration, ambiance, bar, boissons et détails.\nL'objectif est de disposer de suffisamment de contenus visuels pour alimenter durablement le site, le menu, Google et les réseaux sociaux.",
     image: '',
     gallery: ['', '', '', ''],
+    photoLabel: 'Photos',
+    videoLabel: 'Vidéo',
     videoPricing: {
       rows: [
         { offer: 'Réalisé par nos soins', price: '1 000 € HT' },
@@ -1582,6 +1591,8 @@ function migrateData(){
   if(DATA.photoPricing && DATA.photoPricing.image === undefined) DATA.photoPricing.image = '';
   if(DATA.photoPricing && !Array.isArray(DATA.photoPricing.gallery)) DATA.photoPricing.gallery = ['', '', '', ''];
   if(DATA.photoPricing && !DATA.photoPricing.videoPricing) DATA.photoPricing.videoPricing = JSON.parse(JSON.stringify(DEFAULT_DATA.photoPricing.videoPricing));
+  if(DATA.photoPricing && !DATA.photoPricing.photoLabel) DATA.photoPricing.photoLabel = DEFAULT_DATA.photoPricing.photoLabel;
+  if(DATA.photoPricing && !DATA.photoPricing.videoLabel) DATA.photoPricing.videoLabel = DEFAULT_DATA.photoPricing.videoLabel;
   if(!DATA.customSections) DATA.customSections = {};
   if(!DATA.agencyHero) DATA.agencyHero = JSON.parse(JSON.stringify(DEFAULT_DATA.agencyHero));
   if(!DATA.sectionBg) DATA.sectionBg = JSON.parse(JSON.stringify(DEFAULT_DATA.sectionBg));
@@ -3697,16 +3708,30 @@ function photoPricingTabs(){ return (DATA.photoPricing && DATA.photoPricing.tabs
 // elsewhere on the site, and the same content the desktop version shows (media + pricing table),
 // just stacked in a single column instead of a side-by-side split.
 let _ppMobileActiveTab = 0; // 0 = Photo, 1 = Vidéo
+function ppPhotoLabel(){ return (DATA.photoPricing && DATA.photoPricing.photoLabel) || DEFAULT_DATA.photoPricing.photoLabel; }
+function ppVideoLabel(){ return (DATA.photoPricing && DATA.photoPricing.videoLabel) || DEFAULT_DATA.photoPricing.videoLabel; }
+// Rebuilds the tab bar's DOM only when its labels actually changed; otherwise just flips the
+// active class + slides the indicator (exactly like the feature-module's own fshow tab bar),
+// so editing an unrelated field elsewhere doesn't retrigger the indicator's slide transition.
 function renderPpMobileTabs(){
   const el = document.getElementById('photoPricingTabs');
   if(!el) return;
   const tabs = photoPricingTabs();
   if(tabs.length < 2){ el.innerHTML=''; return; }
+  const photoLabel = ppPhotoLabel(), videoLabel = ppVideoLabel();
+  const inner = document.getElementById('ppMobileTabbarInner');
+  if(inner && inner.dataset.photoLabel === photoLabel && inner.dataset.videoLabel === videoLabel){
+    inner.querySelectorAll('.fshow-tab').forEach(btn=>{
+      btn.classList.toggle('active', parseInt(btn.dataset.i)===_ppMobileActiveTab);
+    });
+    positionPpMobileTabIndicator();
+    return;
+  }
   el.innerHTML = `
-    <div class="fshow-tabbar" id="ppMobileTabbarInner">
+    <div class="fshow-tabbar" id="ppMobileTabbarInner" data-photo-label="${esc(photoLabel)}" data-video-label="${esc(videoLabel)}">
       <div class="fshow-tab-indicator" id="ppMobileTabIndicator"></div>
-      <button type="button" class="fshow-tab${_ppMobileActiveTab===0?' active':''}" onclick="switchPpMobileTab(0)">Photo</button>
-      <button type="button" class="fshow-tab${_ppMobileActiveTab===1?' active':''}" onclick="switchPpMobileTab(1)">Vidéo</button>
+      <button type="button" class="fshow-tab${_ppMobileActiveTab===0?' active':''}" data-i="0" onclick="switchPpMobileTab(0)">${esc(photoLabel)}</button>
+      <button type="button" class="fshow-tab${_ppMobileActiveTab===1?' active':''}" data-i="1" onclick="switchPpMobileTab(1)">${esc(videoLabel)}</button>
     </div>
   `;
   requestAnimationFrame(positionPpMobileTabIndicator);
@@ -3722,7 +3747,15 @@ function positionPpMobileTabIndicator(){
 }
 function switchPpMobileTab(ti){
   _ppMobileActiveTab = ti;
-  renderPpMobileTabs();
+  const inner = document.getElementById('ppMobileTabbarInner');
+  if(inner){
+    inner.querySelectorAll('.fshow-tab').forEach(btn=>{
+      btn.classList.toggle('active', parseInt(btn.dataset.i)===ti);
+    });
+    positionPpMobileTabIndicator();
+  } else {
+    renderPpMobileTabs();
+  }
   renderPpMobilePanels();
 }
 
@@ -3977,6 +4010,7 @@ function renderPhotoPricingDesktop(){
 function ppPhotoEditFieldsHtml(tiers, tabs){
   return `
     <div class="pp-desktop-edit-row">
+      <input type="text" value="${esc(ppPhotoLabel())}" placeholder="Nom de l'onglet / du tableau (ex: Photos)" style="font-weight:700;margin-bottom:12px" onchange="DATA.photoPricing.photoLabel=this.value;save();renderPhotoPricing()">
       <div class="pp-edit-cols-label">Paliers Photo (partagés par les 2 lignes)</div>
       <div class="pp-edit-cols">
         ${tiers.map((t,ti)=>`
@@ -4001,6 +4035,7 @@ function ppPhotoEditFieldsHtml(tiers, tabs){
 function ppVideoEditFieldsHtml(videoRows){
   return `
     <div class="pp-desktop-edit-row">
+      <input type="text" value="${esc(ppVideoLabel())}" placeholder="Nom de l'onglet / du tableau (ex: Vidéo)" style="font-weight:700;margin-bottom:12px" onchange="DATA.photoPricing.videoLabel=this.value;save();renderPhotoPricing()">
       <div class="pp-edit-cols-label">Tableau Vidéo</div>
       ${videoRows.map((r,ri)=>`
         <div class="pp-edit-row-fields" style="grid-template-columns:1fr;margin-top:${ri?'8px':'0'}">
@@ -4018,7 +4053,7 @@ function ppPhotoTableHtml(tiers, tabs){
       <table class="pp-table">
         <thead>
           <tr>
-            <th class="pp-th-label"><span class="pp-th-tier">Photos</span></th>
+            <th class="pp-th-label"><span class="pp-th-tier">${esc(ppPhotoLabel())}</span></th>
             ${tiers.map(t=>`<th><span class="pp-th-tier">${esc(ppAbbreviateQty(t.qty))}</span></th>`).join('')}
           </tr>
         </thead>
@@ -4040,7 +4075,7 @@ function ppVideoTableHtml(videoRows){
       <table class="pp-table">
         <thead>
           <tr>
-            <th class="pp-th-label"><span class="pp-th-tier">Vidéo</span></th>
+            <th class="pp-th-label"><span class="pp-th-tier">${esc(ppVideoLabel())}</span></th>
             <th><span class="pp-th-tier">Tarif HT</span></th>
           </tr>
         </thead>
