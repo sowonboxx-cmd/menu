@@ -574,19 +574,22 @@ body.has-section-sidebar{padding-left:220px}
 .immersive-playpause:hover{background:rgba(0,0,0,.62)}
 .immersive-playpause svg{width:17px;height:17px}
 .apple-card-hidden{opacity:.5}
-/* Mobile "Photo" carousel for photoPricing — mirrors .apple-cards-grid's peek+scroll-snap+drag pattern,
-   but with distinct class names/scoped JS so its dot-sync doesn't collide with the feature cards' own. */
-.pp-carousel-grid{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 4px 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;cursor:grab;user-select:none}
+/* Mobile "Photo" carousel for photoPricing — a centered peek carousel: the current photo sits
+   centered and full, with a sliver of the next/previous photo showing on either side (both sides
+   for a middle photo, just one side at the first/last), the way Apple's own carousels look —
+   distinct class names/scoped JS so its dot-sync doesn't collide with the feature cards' own. */
+.pp-carousel-grid{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 9% 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;cursor:grab;user-select:none}
 .pp-carousel-grid.dragging{cursor:grabbing;scroll-snap-type:none}
 .pp-carousel-grid::-webkit-scrollbar{display:none}
-.pp-carousel-item{flex:0 0 260px;scroll-snap-align:start;aspect-ratio:4/5;border-radius:var(--rs);overflow:hidden;background:#EDEDF0}
+.pp-carousel-item{flex:0 0 260px;scroll-snap-align:center;aspect-ratio:4/5;border-radius:var(--rs);overflow:hidden;background:#EDEDF0}
 @media(max-width:640px){
-  /* One swipe = one full photo: the item fills the whole visible track width (accounting for
-     .wrap's 20px side padding + this grid's own 4px inset on each side), so nothing peeks in
-     half from the next/previous item the way the old, deliberately-narrower width did. Snap type
-     is "mandatory" (not "proximity") so even a light/short swipe always settles fully on an item
-     instead of possibly stopping halfway between two. */
-  .pp-carousel-item{flex:0 0 calc(100vw - 48px)}
+  /* One swipe = one full photo, but centered so a sliver of its neighbor(s) still shows — the
+     item is narrower than the track (82%) and the track itself is inset by the same amount on
+     each side (9%, i.e. half of the remaining 18%), so at rest the current photo is centered with
+     the next one peeking in on the right, the previous one peeking in on the left, or both at
+     once for a photo in the middle. Snap type is "mandatory" (not "proximity") so even a
+     light/short swipe always settles fully centered on one photo instead of stopping halfway. */
+  .pp-carousel-item{flex:0 0 82%}
 }
 .pp-carousel-item img{width:100%;height:100%;object-fit:cover;display:block}
 .pp-carousel-dots{display:flex;justify-content:center;gap:7px;margin-top:12px;margin-bottom:18px}
