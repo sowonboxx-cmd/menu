@@ -2634,6 +2634,23 @@ function fshowResetSlide(el){
   el.style.transform = '';
   el.style.opacity = '';
 }
+// Updates the description text on its own short, independent fade — decoupled from the
+// arrow+panel block's own (much longer) position slide. The block's position animation is purely
+// a visual "filmstrip" flourish; the text itself should change at essentially the same moment as
+// the image does, not wait for that slide to nearly finish first.
+function fshowFastTextSwap(el, applyContent, onApplied){
+  if(!el){ applyContent(); if(onApplied) onApplied(); return; }
+  el.style.transition = 'opacity .1s ease';
+  el.style.opacity = '0';
+  setTimeout(()=>{
+    applyContent();
+    if(onApplied) onApplied();
+    el.style.transition = 'none';
+    void el.offsetWidth;
+    el.style.transition = 'opacity .22s ease';
+    el.style.opacity = '1';
+  }, 90);
+}
 // True two-layer crossfade for media (images/video), used instead of fshowSlideSwap: sliding a
 // single element out to opacity 0 and then back in from opacity 0 has a brief moment where
 // nothing is opaque, which read as a white/blank flash between photos. Here the incoming layer
@@ -2784,27 +2801,30 @@ function fshowRenderMobile(animate, direction, dragDx){
   const applyDesc = () => { if(descEl) descEl.innerHTML = newDescHtml; };
   const bgHasLayer = !!bgEl.querySelector(':scope > .fshow-cf-layer:not(.fshow-cf-peek)');
   const exitSign = dragDx ? (dragDx > 0 ? 1 : -1) : null;
+  // Different description lengths give the panel a different height, so the arrow rails (whose
+  // top/height are measured off the panel) need re-measuring right when the text itself actually
+  // changes — not just once, early, off the still-old height (see reposition() below).
+  const reposition = () => fshowPositionMobileArrows('fshowMobile','fshowMobilePanel','fshowMobileArrowL','fshowMobileArrowR');
   if(!animate || !bgHasLayer){
     bgEl.innerHTML = `<div class="fshow-cf-layer">${html}</div>`;
     observeLazyVideos(bgEl);
     if(descEl){ fshowResetSlide(descEl); applyDesc(); }
     if(ctrlEl) fshowResetSlide(ctrlEl);
   } else {
-    // Same direction, fired in the same tick, so the image and the text travel together.
+    // The image and the description text always change together, on the same tick — text no
+    // longer waits for the (much slower) arrow+panel position slide below to nearly finish first.
     fshowCrossfade(bgEl, html, direction, exitSign != null ? {dist:220, exitSign} : {dist:36});
+    if(descEl) fshowFastTextSwap(descEl, applyDesc, reposition);
     if(exitSign != null && ctrlEl){
       // Completing a live drag: the block is already sitting at the thumb's last position, so
-      // continue it the same way it was already moving instead of restarting from rest.
-      fshowDragCommitSlide(ctrlEl, applyDesc, exitSign, {dist:220});
+      // continue it the same way it was already moving instead of restarting from rest. Content
+      // itself is handled above, independently — this is purely the block's position flourish.
+      fshowDragCommitSlide(ctrlEl, ()=>{}, exitSign, {dist:220});
     } else if(direction && ctrlEl){
       // Stepping via arrow/pill tap (no drag involved): slide the whole control row — both
       // arrows plus the panel — together, so the arrow travels in and settles where the panel
-      // now sits, text and all, like one continuous strip rather than just the text moving.
-      fshowSlideSwap(ctrlEl, applyDesc, direction, {dist:78});
-    } else if(descEl){
-      // Opening/closing (no step direction): the panel/arrows already have their own
-      // show/hide transitions, so just crossfade the text in place.
-      fshowSlideSwap(descEl, applyDesc, direction, {dist:26});
+      // now sits, like one continuous strip. Content itself is handled above, independently.
+      fshowSlideSwap(ctrlEl, ()=>{}, direction, {dist:78});
     }
   }
   const panelEl = document.getElementById('fshowMobilePanel');
@@ -2816,7 +2836,6 @@ function fshowRenderMobile(animate, direction, dragDx){
   if(arrowL) arrowL.classList.toggle('show', isOpen);
   if(arrowR) arrowR.classList.toggle('show', isOpen);
   if(isOpen){
-    const reposition = () => fshowPositionMobileArrows('fshowMobile','fshowMobilePanel','fshowMobileArrowL','fshowMobileArrowR');
     requestAnimationFrame(reposition);
     // The panel's opening transition (transform) can still be mid-flight when the rAF above
     // fires, so the arrows first measure a not-yet-settled panel position — reposition once
@@ -3170,19 +3189,28 @@ function fshow2RenderMobile(animate, direction, dragDx){
   const applyDesc = () => { if(descEl) descEl.innerHTML = newDescHtml; };
   const bgHasLayer = !!bgEl.querySelector(':scope > .fshow-cf-layer:not(.fshow-cf-peek)');
   const exitSign = dragDx ? (dragDx > 0 ? 1 : -1) : null;
+  // Different description lengths give the panel a different height, so the arrow rails (whose
+  // top/height are measured off the panel) need re-measuring right when the text itself actually
+  // changes — not just once, early, off the still-old height (see reposition() below).
+  const reposition = () => fshowPositionMobileArrows('fshow2Mobile','fshow2MobilePanel','fshow2MobileArrowL','fshow2MobileArrowR');
   if(!animate || !bgHasLayer){
     bgEl.innerHTML = `<div class="fshow-cf-layer">${html}</div>`;
     observeLazyVideos(bgEl);
     if(descEl){ fshowResetSlide(descEl); applyDesc(); }
     if(ctrlEl) fshowResetSlide(ctrlEl);
   } else {
+    // The image and the description text always change together, on the same tick — text no
+    // longer waits for the (much slower) arrow+panel position slide below to nearly finish first.
     fshowCrossfade(bgEl, html, direction, exitSign != null ? {dist:220, exitSign} : {dist:36});
+    if(descEl) fshowFastTextSwap(descEl, applyDesc, reposition);
     if(exitSign != null && ctrlEl){
-      fshowDragCommitSlide(ctrlEl, applyDesc, exitSign, {dist:220});
+      // Content itself is handled above, independently — this is purely the block's position
+      // flourish, continuing the same way it was already moving from the live drag.
+      fshowDragCommitSlide(ctrlEl, ()=>{}, exitSign, {dist:220});
     } else if(direction && ctrlEl){
-      fshowSlideSwap(ctrlEl, applyDesc, direction, {dist:78});
-    } else if(descEl){
-      fshowSlideSwap(descEl, applyDesc, direction, {dist:26});
+      // Content itself is handled above, independently — this just slides the whole control row
+      // (both arrows plus the panel) together, like one continuous strip.
+      fshowSlideSwap(ctrlEl, ()=>{}, direction, {dist:78});
     }
   }
   const panelEl = document.getElementById('fshow2MobilePanel');
@@ -3194,7 +3222,6 @@ function fshow2RenderMobile(animate, direction, dragDx){
   if(arrowL) arrowL.classList.toggle('show', isOpen);
   if(arrowR) arrowR.classList.toggle('show', isOpen);
   if(isOpen){
-    const reposition = () => fshowPositionMobileArrows('fshow2Mobile','fshow2MobilePanel','fshow2MobileArrowL','fshow2MobileArrowR');
     requestAnimationFrame(reposition);
     if(panelEl) panelEl.addEventListener('transitionend', reposition, {once:true});
   }
