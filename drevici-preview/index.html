@@ -6955,7 +6955,25 @@ function onDrop(e,ti,ci,di){
 // login works for both the menu editor and the reservations dashboard.
 const SUPABASE_URL      = 'https://fdbzzkzfipzabryfanun.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_9PaqDuXnWV3aOCBPk9ImmQ_4YgYTU9n';
-// Detect client slug from URL: /menu/drevici → 'drevici'
+// ── Quel restaurant cette page sert-elle ? ──
+// Deux situations, et il faut que les deux marchent.
+//
+//  1. Hebergement par dossiers (GitHub Pages) : …/menu/drevici/ — le
+//     nom du client est dans le chemin, on le lit.
+//  2. Hebergement sur son propre domaine (Cloudflare Pages) :
+//     drevicioyster.com/ — le dossier est servi A LA RACINE, le chemin
+//     ne contient plus RIEN. Sans la constante ci-dessous, le slug
+//     tombait sur "default", aucune ligne ne correspondait, et le
+//     client voyait le menu de demonstration avec le bandeau rouge.
+//     Verifie : un dossier servi a la racine donnait slug="default".
+//
+// CLIENT_SLUG_RACINE = le nom que le dossier AURAIT eu. Il se comporte
+// donc exactement comme lui, suffixe "-preview" compris. Le chemin
+// garde la priorite : tant que l'URL porte un dossier, cette constante
+// ne sert pas, et l'hebergement actuel n'est pas touche.
+// La laisser vide sur un fichier modele : mieux vaut un bandeau rouge
+// qu'un site qui affiche en silence la carte d'un autre restaurant.
+const CLIENT_SLUG_RACINE = 'drevici';
 // BUG FIX : ouvrir l'URL avec le nom de fichier (…/drevici/index.html
 // au lieu de …/drevici/) faisait de "index.html" le dernier segment,
 // donc le slug du client — aucune ligne ne correspondait et le site
@@ -6971,7 +6989,11 @@ const _pathParts = (()=>{
 // avant de la publier. On le retire pour que la preview lise bien les
 // donnees du vrai client au lieu d'en chercher un qui n'existe pas.
 // Aucun deploiement reel ne se termine par "-preview".
-const _lastSegment = _pathParts[_pathParts.length - 1] || 'default';
+const _lastSegment = _pathParts[_pathParts.length - 1] || CLIENT_SLUG_RACINE || 'default';
+// D'ou vient le slug : la premiere question qu'on se pose quand un
+// deploiement affiche le mauvais restaurant.
+const _slugOrigine = _pathParts[_pathParts.length - 1] ? 'chemin'
+  : (CLIENT_SLUG_RACINE ? 'CLIENT_SLUG_RACINE' : 'aucune — repli « default »');
 // Un dossier en "-preview" est une recette : meme code, memes donnees,
 // mais on n'y ECRIT jamais. Une recette qui peut abimer la production
 // n'est pas une recette — c'est une deuxieme production.
@@ -7030,7 +7052,7 @@ let DATA_SOURCE = 'chargement';
 let DATA_SOURCE_REASON = '';
 function reportDataSource(src, reason){
   DATA_SOURCE = src; DATA_SOURCE_REASON = reason || '';
-  console.log('[menu] slug="'+CLIENT_SLUG+'" source='+src+(reason?' — '+reason:''));
+  console.log('[menu] slug="'+CLIENT_SLUG+'" (origine : '+_slugOrigine+') source='+src+(reason?' — '+reason:''));
   const el=document.getElementById('dataFallbackBar');
   if(!el) return;
   if(src==='supabase'){ el.style.display='none'; return; }
