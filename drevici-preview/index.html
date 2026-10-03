@@ -1815,10 +1815,32 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 .admin-card.collapsed .admin-card-details{display:none}
 .collapse-chevron{display:inline-block;transition:transform .15s;color:var(--text3);font-size:11px}
 .admin-card.collapsed .collapse-chevron{transform:rotate(-90deg)}
+/* ── ECRAN SQUELETTE ──
+   La page s'affichait d'abord avec la carte ecrite en dur dans le
+   fichier, puis basculait sur la vraie (Supabase) une fraction de
+   seconde plus tard. Le squelette reprend la forme de la page
+   d'accueil — nom, pastille d'horaires, deux boutons en bas — et
+   s'efface quand la vraie carte est chargee (ou a echoue : le bandeau
+   rouge prend alors le relais). */
+#pageSkeleton{position:fixed;inset:0;z-index:10050;background:#0b0b0b;display:flex;flex-direction:column;align-items:center;transition:opacity .28s ease}
+#pageSkeleton.done{opacity:0;pointer-events:none}
+.sk{border-radius:8px;background:rgba(255,255,255,.07);position:relative;overflow:hidden}
+.sk::after{content:'';position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.09),transparent);animation:skShimmer 1.3s infinite}
+@keyframes skShimmer{to{transform:translateX(100%)}}
+@media (prefers-reduced-motion:reduce){.sk::after{animation:none}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
+<div id="pageSkeleton" aria-hidden="true">
+  <div class="sk" style="width:190px;height:26px;margin-top:26px"></div>
+  <div class="sk" style="width:92px;height:26px;margin-top:12px;border-radius:999px"></div>
+  <div style="flex:1"></div>
+  <div style="display:flex;gap:20px;margin-bottom:40px">
+    <div class="sk" style="width:134px;height:42px;border-radius:12px"></div>
+    <div class="sk" style="width:110px;height:42px;border-radius:12px"></div>
+  </div>
+</div>
 
 <div id="toast"></div>
 <div class="edit-pop" id="editPop">
@@ -11296,13 +11318,25 @@ try{
   window.matchMedia('(min-width:768px)').addEventListener('change',()=>renderAll());
 }catch(e){}
 const _preFetchSnapshot=JSON.stringify(DATA);
+// Le squelette s'efface quand la vraie carte est la — ou au bout de 10 s
+// si le reseau traine : mieux vaut une page qu'un ecran gris sans fin.
+// Pas moins de 10 s : Supabase injoignable, la bibliotheque reessaie
+// quatre fois et n'abandonne qu'a ~7,5 s (mesure). Avec 6 s, la carte
+// ecrite en dur reapparaissait 1,5 s avant le bandeau rouge.
+function hidePageSkeleton(){
+  const sk=document.getElementById('pageSkeleton');
+  if(!sk || sk.classList.contains('done')) return;
+  sk.classList.add('done');
+  setTimeout(()=>sk.remove(), 350);
+}
+setTimeout(hidePageSkeleton, 10000);
 loadFromSupabase().then(()=>{
   if(JSON.stringify(DATA)!==_preFetchSnapshot){
     view=DATA.defaultView||'list';
     applyRestaurantBranding();
     renderAll();
   }
-});
+}).finally(hidePageSkeleton);
 </script>
 </body>
 </html>
