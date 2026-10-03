@@ -6822,7 +6822,17 @@ function onDrop(e,ti,ci,di){
 // login works for both the menu editor and the reservations dashboard.
 const SUPABASE_URL      = 'https://fdbzzkzfipzabryfanun.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_9PaqDuXnWV3aOCBPk9ImmQ_4YgYTU9n';
-// Detect client slug from URL: /menu/drevici → 'drevici'
+// ── Quel restaurant cette page sert-elle ? ──
+//  1. Hebergement par dossiers (GitHub Pages) : …/menu/drevici/ — le
+//     nom du client est dans le chemin, on le lit.
+//  2. Hebergement sur son propre domaine (Cloudflare Pages) : le dossier
+//     est servi A LA RACINE, le chemin ne contient plus rien. Sans la
+//     constante ci-dessous, le slug tombait sur "default" et le client
+//     voyait le menu de demonstration avec le bandeau rouge.
+// CLIENT_SLUG_RACINE = le nom que le dossier AURAIT eu, suffixe
+// "-preview" compris (c'est lui qui met une recette en lecture seule).
+// Le chemin garde la priorite : sur GitHub Pages, rien ne change.
+const CLIENT_SLUG_RACINE = 'drevici';
 // BUG FIX : ouvrir l'URL avec le nom de fichier (…/drevici/index.html
 // au lieu de …/drevici/) faisait de "index.html" le dernier segment,
 // donc le slug du client — aucune ligne ne correspondait et le site
@@ -6838,7 +6848,9 @@ const _pathParts = (()=>{
 // avant de la publier. On le retire pour que la preview lise bien les
 // donnees du vrai client au lieu d'en chercher un qui n'existe pas.
 // Aucun deploiement reel ne se termine par "-preview".
-const _lastSegment = _pathParts[_pathParts.length - 1] || 'default';
+const _lastSegment = _pathParts[_pathParts.length - 1] || CLIENT_SLUG_RACINE || 'default';
+const _slugOrigine = _pathParts[_pathParts.length - 1] ? 'chemin'
+  : (CLIENT_SLUG_RACINE ? 'CLIENT_SLUG_RACINE' : 'aucune — repli « default »');
 // Un dossier en "-preview" est une recette : meme code, memes donnees,
 // mais on n'y ECRIT jamais. Une recette qui peut abimer la production
 // n'est pas une recette — c'est une deuxieme production.
@@ -6897,7 +6909,7 @@ let DATA_SOURCE = 'chargement';
 let DATA_SOURCE_REASON = '';
 function reportDataSource(src, reason){
   DATA_SOURCE = src; DATA_SOURCE_REASON = reason || '';
-  console.log('[menu] slug="'+CLIENT_SLUG+'" source='+src+(reason?' — '+reason:''));
+  console.log('[menu] slug="'+CLIENT_SLUG+'" (origine : '+_slugOrigine+') source='+src+(reason?' — '+reason:''));
   const el=document.getElementById('dataFallbackBar');
   if(!el) return;
   if(src==='supabase'){ el.style.display='none'; return; }
