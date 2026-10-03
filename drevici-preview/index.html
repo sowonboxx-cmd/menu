@@ -516,6 +516,12 @@ body.hdr-light .hdr-sched .resto-badge-inline svg{color:rgba(20,35,70,.55)!impor
 .featured-item-price{font-size:11px;font-weight:500;color:var(--gold);margin-top:3px}
 .featured-top-row{display:flex;justify-content:space-between;align-items:flex-start;gap:6px}
 .featured-item-price-inline{font-size:10px;font-weight:500;color:var(--gold);white-space:nowrap;flex-shrink:0;margin-top:1px}
+/* Desktop only: push "Nos incontournables" below the category sections
+   (Huîtres, etc.) instead of above them, so the big dish photos show
+   first by default. Mobile keeps the original order untouched — this
+   only reorders visually via flex `order` inside .cards-stack, the DOM
+   order (and mobile layout) stays exactly as-is. */
+@media(min-width:641px){ .cards-stack>.incontournables-block{order:1} }
 
 /* ── CARD ── */
 .card{background:#fff;border-radius:var(--r)}
@@ -4527,7 +4533,7 @@ function renderTabContent(tab,lbOffset){
     const pinDishes2=pins2.map(p=>{ const r=resolvePin(p); return r?{...r.dish}:null; }).filter(Boolean).slice(0,4);
     if(pinDishes2.length>0&&(DATA.pinnedShowHome!==false)){
       if(view==='grid'){
-        html+=`<div class="featured-card" style="border:1.5px solid var(--gold);box-shadow:0 2px 12px rgba(198,162,74,0.12)">
+        html+=`<div class="featured-card incontournables-block" style="border:1.5px solid var(--gold);box-shadow:0 2px 12px rgba(198,162,74,0.12)">
         <div class="featured-label" style="display:flex;align-items:center;gap:6px">
           <span style="color:var(--gold)">★</span> Nos incontournables <span style="color:var(--gold)">★</span>
         </div>
@@ -4536,7 +4542,7 @@ function renderTabContent(tab,lbOffset){
         html+=`</div></div>`;
       } else {
         // list view
-        html+=`<div class="card" style="border:1.5px solid var(--gold)"><div class="card-hdr" style="border-bottom:1px solid rgba(198,162,74,0.3)"><span class="card-label" style="color:var(--gold)">★ Nos incontournables ★</span></div><div class="card-body">`;
+        html+=`<div class="card incontournables-block" style="border:1.5px solid var(--gold)"><div class="card-hdr" style="border-bottom:1px solid rgba(198,162,74,0.3)"><span class="card-label" style="color:var(--gold)">★ Nos incontournables ★</span></div><div class="card-body">`;
         pinDishes2.forEach((d,idx)=>{
           html+=`<div class="dish-row dish-row-clickable" onclick="openPinLb(${idx})">`;
           if(d.img) html+=`<img class="dish-img" src="${d.img}" alt="" loading="lazy">`;
@@ -4571,7 +4577,7 @@ function renderTabContent(tab,lbOffset){
     const pins=DATA.pinnedDishes||[];
     const pinDishes=pins.map(p=>{ const r=resolvePin(p); return r?{...r.dish}:null; }).filter(Boolean);
     if(pinDishes.length>0&&(DATA.pinnedShowFirst!==false)){
-      html+=`<div class="featured-card"><div class="featured-label">⭐ Nos incontournables</div><div class="featured-grid">`;
+      html+=`<div class="featured-card incontournables-block"><div class="featured-label">⭐ Nos incontournables</div><div class="featured-grid">`;
       pinDishes.slice(0,4).forEach((d,idx)=>{ html+=`<div class="featured-item" style="cursor:pointer" onclick="openPinLb(${idx})">${d.img?`<img class="featured-item-img" src="${d.img}" alt="" loading="lazy">`:'<div class="featured-item-img"></div>'}<div class="featured-item-body">${d.priceType==='dual'?`<div class="featured-item-name">${t(d.name)}</div><div class="featured-item-price">${dishPriceDisplay(d)}</div>`:`<div class="featured-top-row"><div class="featured-item-name">${t(d.name)}</div>${dishPriceDisplay(d)?`<span class="featured-item-price-inline">${dishPriceDisplay(d)}</span>`:''}</div>`}</div></div>`; });
       html+=`</div></div>`;
     }
