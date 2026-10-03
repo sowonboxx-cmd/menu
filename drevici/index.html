@@ -357,6 +357,27 @@ body.hdr-light .hdr-sched .resto-badge-inline svg{color:rgba(20,35,70,.55)!impor
 .rail-hdr{display:flex;align-items:baseline;gap:6px;margin-bottom:11px}
 .rail-star{color:var(--gold);font-size:10px;line-height:1}
 .rail-title{font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--navy);font-family:'Jost',sans-serif;line-height:1}
+/* Intertitre qui ouvre la liste complete, sous le bandeau des
+   incontournables. Sans lui, le bandeau et la premiere categorie se
+   touchent et rien ne dit qu'on a change de registre : on croit lire la
+   suite des incontournables. Il reprend le style EXACT des onglets
+   inactifs (meme corps, meme graisse, meme interlettrage, meme gris
+   chaud #6B6559) — c'est deja le signe visuel du site pour « rubrique »,
+   inutile d'en inventer un autre. Il ne s'affiche que s'il y a un
+   bandeau au-dessus : sans rien a separer, un titre seul en haut de
+   page ne ferait qu'ajouter du bruit. */
+/* Meme corps, meme graisse, meme interlettrage que « Nos
+   incontournables » (.rail-title) : les deux intertitres forment UNE
+   famille d'etiquettes, et c'est la couleur seule qui dit lequel prime
+   — le bleu de marque pour la selection, le gris des onglets pour la
+   liste complete. Deux reglages typographiques differents pour deux
+   titres de meme niveau donnaient l'impression de deux systemes qui se
+   ressemblent sans se rejoindre. Si l'un des deux bouge un jour,
+   l'autre doit suivre. */
+.cat-list-hdr{display:flex;align-items:center;gap:7px;margin:0 0 12px;font-size:10px;font-weight:600;font-family:'Jost',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#6B6559;line-height:1}
+/* L'icone prend la couleur du texte (currentColor) : un seul reglage de
+   gris pour les deux, impossible qu'ils se desynchronisent. */
+.cat-list-ico{flex:none;width:12px;height:12px;color:inherit}
 /* Marge négative + padding : le bandeau file jusqu'aux bords de
    l'écran et laisse dépasser la carte suivante — c'est ce dépassement
    qui dit « ça défile » sans aucune flèche ni indicateur. */
@@ -386,7 +407,7 @@ body.hdr-light .hdr-sched .resto-badge-inline svg{color:rgba(20,35,70,.55)!impor
   /* Le bandeau remonte en tete sur desktop, mais « À propos » doit
      rester avant lui : c'est la presentation du restaurant. */
   .intro-card{order:-2;margin-bottom:18px}
-  .rail-wrap{order:-1;background:#fff;border-radius:var(--r);padding:16px 18px 8px;margin:0 0 18px}
+  .rail-wrap{order:1;background:#fff;border-radius:var(--r);padding:16px 18px 8px;margin:18px 0 0}
   .rail-hdr{margin-bottom:12px;padding-bottom:11px;border-bottom:1px solid rgba(198,162,74,.35)}
   .rail{flex-direction:column;gap:0;overflow:visible;margin:0;padding:0;scroll-snap-type:none}
   /* Sur desktop la vignette est petite : le 4:5 y perdrait son interet
@@ -495,6 +516,12 @@ body.hdr-light .hdr-sched .resto-badge-inline svg{color:rgba(20,35,70,.55)!impor
 .featured-item-price{font-size:11px;font-weight:500;color:var(--gold);margin-top:3px}
 .featured-top-row{display:flex;justify-content:space-between;align-items:flex-start;gap:6px}
 .featured-item-price-inline{font-size:10px;font-weight:500;color:var(--gold);white-space:nowrap;flex-shrink:0;margin-top:1px}
+/* Desktop only: push "Nos incontournables" below the category sections
+   (Huîtres, etc.) instead of above them, so the big dish photos show
+   first by default. Mobile keeps the original order untouched — this
+   only reorders visually via flex `order` inside .cards-stack, the DOM
+   order (and mobile layout) stays exactly as-is. */
+@media(min-width:641px){ .cards-stack>.incontournables-block{order:1} }
 
 /* ── CARD ── */
 .card{background:#fff;border-radius:var(--r)}
@@ -563,28 +590,55 @@ body.hdr-light .hdr-sched .resto-badge-inline svg{color:rgba(20,35,70,.55)!impor
 .special-banner-price{font-size:15px;font-weight:500;color:var(--gold);margin-top:8px}
 
 /* ── SOCIAL TEMPLATES ── */
+/* ── RESEAUX SOCIAUX ──
+   Reecrit sur les jetons --ig-* du panneau admin plutot que sur les
+   couleurs du site : la section suit donc le theme clair/sombre comme
+   le reste du panneau, au lieu d'etre une ile blanche a l'ancienne.
+   Aucun contour : cartes pleines sur le fond, comme partout ailleurs. */
 .soc-tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
-.soc-pos-btn{padding:6px 4px;font-size:10px;font-family:'Inter',sans-serif;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text2);cursor:pointer;font-weight:500;min-width:40px}
-.soc-pos-btn.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+.soc-pos-btn{padding:8px 6px;font-size:11px;font-family:'Inter',sans-serif;border:none;border-radius:8px;background:var(--ig-bg);color:var(--ig-text-dim);cursor:pointer;font-weight:500;min-width:40px;transition:background .13s,color .13s}
+.soc-pos-btn.active{background:var(--navy);color:#fff}
 .soc-layout{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
 .soc-left{flex:1;min-width:260px;display:flex;flex-direction:column;gap:0}
-.soc-mini-section{margin-bottom:14px;padding:12px 14px;background:var(--bg);border-radius:8px;border:1px solid var(--border)}
-.soc-mini-title{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:10px}
+.soc-mini-section{margin-bottom:16px;padding:16px;background:var(--ig-card);border-radius:14px;border:none}
+.soc-mini-title{font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ig-text-dimmer);margin-bottom:12px}
 .soc-preview-wrap{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:16px}
 .soc-canvas-wrap{flex:1;min-width:260px}
-.soc-canvas-label{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:6px;font-family:Jost,sans-serif}
-.soc-frame{width:100%;border-radius:var(--r);overflow:hidden;border:1px solid var(--border);position:relative}
+.soc-canvas-label{font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ig-text-dimmer);margin-bottom:8px;font-family:'Inter',sans-serif}
+.soc-frame{width:100%;border-radius:14px;overflow:hidden;border:none;position:relative}
 .soc-frame.ratio-1{aspect-ratio:1}
 .soc-frame.ratio-916{aspect-ratio:9/16}
 .soc-frame.ratio-34{aspect-ratio:3/4}
 .soc-controls{flex:1;min-width:220px}
-.soc-caption-box{background:#f7f7f5;border-radius:var(--r);border:1px solid var(--border);padding:14px;margin-top:12px;position:relative}
-.soc-caption-text{font-size:12px;line-height:1.7;color:var(--text);font-family:Jost,sans-serif;white-space:pre-wrap}
-.soc-copy-btn{position:absolute;top:10px;right:10px;background:var(--navy);color:#fff;border:none;border-radius:6px;font-size:10px;padding:4px 10px;cursor:pointer;font-family:Jost,sans-serif}
-.soc-dl-row{display:flex;gap:8px;margin-top:10px}
-.soc-dl-btn{flex:1;padding:11px;border:none;border-radius:var(--rs);font-size:12px;font-weight:600;cursor:pointer;font-family:Jost,sans-serif;letter-spacing:.04em}
+.soc-caption-box{background:var(--ig-card);border-radius:14px;border:none;padding:16px;margin-top:12px;position:relative}
+.soc-caption-text{font-size:12.5px;line-height:1.7;color:var(--ig-text);font-family:'Inter',sans-serif;white-space:pre-wrap}
+.soc-copy-btn{position:absolute;top:13px;right:13px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:600;padding:6px 12px;cursor:pointer;font-family:'Inter',sans-serif}
+.soc-dl-row{display:flex;gap:8px;margin-top:12px}
+/* Les deux exports ont le meme poids : ni l'un ni l'autre n'est "le"
+   bon choix, ca depend de ce qu'on publie. Le plein est reserve a la
+   couleur du restaurant, le second reprend le fond du panneau. */
+.soc-dl-btn{flex:1;padding:13px;border:none;border-radius:10px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;letter-spacing:.01em;transition:opacity .13s}
+.soc-dl-btn:hover{opacity:.88}
 .soc-dl-btn.post{background:var(--navy);color:#fff}
-.soc-dl-btn.story{background:var(--gold);color:#fff}
+.soc-dl-btn.story{background:var(--ig-bg);color:var(--ig-text)}
+/* Champs du formulaire, limites a cette section : les regles globales
+   .ai / .al sont ecrites pour un fond blanc et deviendraient illisibles
+   quand le panneau passe en sombre. */
+.soc-layout .al{color:var(--ig-text-dimmer);font-size:12px;font-weight:500;letter-spacing:0;text-transform:none;margin-bottom:6px}
+.soc-layout .ai,
+.soc-layout textarea,
+.soc-layout select{background:var(--ig-bg)!important;border:none!important;color:var(--ig-text)!important;border-radius:10px;padding:11px 13px;font-family:'Inter',sans-serif;font-size:14px}
+.soc-layout .ai::placeholder,.soc-layout textarea::placeholder{color:var(--ig-text-dimmer)}
+.soc-layout .af{margin-bottom:14px}
+.soc-layout .af:last-child{margin-bottom:0}
+.soc-layout input[type=range]{accent-color:var(--navy)}
+.soc-layout input[type=checkbox],.soc-layout input[type=radio]{accent-color:var(--navy)}
+.soc-layout label{color:var(--ig-text-dim)}
+/* Le bouton d'upload herite d'empilements de regles ecrites pour
+   plusieurs contextes ; ici on le cale une fois pour toutes sur le
+   fond du champ qu'il accompagne. */
+.soc-layout .ai-upload-btn{background:var(--ig-bg)!important;border:none!important;color:var(--ig-text-dim)!important;width:44px!important;height:44px!important;border-radius:10px!important}
+.soc-layout .ai-img-wrap{gap:8px}
 
 /* Template internals */
 .st-wrap{width:100%;height:100%;position:relative;overflow:hidden;display:flex;flex-direction:column}
@@ -1761,10 +1815,32 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 .admin-card.collapsed .admin-card-details{display:none}
 .collapse-chevron{display:inline-block;transition:transform .15s;color:var(--text3);font-size:11px}
 .admin-card.collapsed .collapse-chevron{transform:rotate(-90deg)}
+/* ── ECRAN SQUELETTE ──
+   La page s'affichait d'abord avec la carte ecrite en dur dans le
+   fichier, puis basculait sur la vraie (Supabase) une fraction de
+   seconde plus tard. Le squelette reprend la forme de la page
+   d'accueil — nom, pastille d'horaires, deux boutons en bas — et
+   s'efface quand la vraie carte est chargee (ou a echoue : le bandeau
+   rouge prend alors le relais). */
+#pageSkeleton{position:fixed;inset:0;z-index:10050;background:#0b0b0b;display:flex;flex-direction:column;align-items:center;transition:opacity .28s ease}
+#pageSkeleton.done{opacity:0;pointer-events:none}
+.sk{border-radius:8px;background:rgba(255,255,255,.07);position:relative;overflow:hidden}
+.sk::after{content:'';position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.09),transparent);animation:skShimmer 1.3s infinite}
+@keyframes skShimmer{to{transform:translateX(100%)}}
+@media (prefers-reduced-motion:reduce){.sk::after{animation:none}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
+<div id="pageSkeleton" aria-hidden="true">
+  <div class="sk" style="width:190px;height:26px;margin-top:26px"></div>
+  <div class="sk" style="width:92px;height:26px;margin-top:12px;border-radius:999px"></div>
+  <div style="flex:1"></div>
+  <div style="display:flex;gap:20px;margin-bottom:40px">
+    <div class="sk" style="width:134px;height:42px;border-radius:12px"></div>
+    <div class="sk" style="width:110px;height:42px;border-radius:12px"></div>
+  </div>
+</div>
 
 <div id="toast"></div>
 <div class="edit-pop" id="editPop">
@@ -3050,6 +3126,72 @@ function isPinnedDish(d){
   if(!d || !d._pid) return false;
   return (DATA.pinnedDishes||[]).some(p=>p.pid===d._pid);
 }
+// ═══ INTERTITRE « TOUTES LES HUITRES » ═══
+// L'intertitre qui ouvre la liste reprend le nom de la categorie, et
+// doit donc s'accorder avec lui : « toutes les huitres », « tous les
+// vins », « toute la carte ». Le francais ne laisse pas deviner le
+// genre depuis l'orthographe (une boissON est feminine, un poissON est
+// masculin), donc on ne devine pas : on connait les mots qui servent
+// vraiment de nom de rubrique sur une carte, et on ne retombe sur les
+// terminaisons que pour le reste.
+const CAT_FEM = new Set(['huitre','huître','entree','entrée','salade','boisson','viande','volaille','pizza','crepe','crêpe','glace','biere','bière','eau','soupe','assiette','planche','formule','suggestion','specialite','spécialité','douceur','gourmandise','coquille','moule','crevette','brochette','garniture','sauce','tartine','galette','quiche','tarte','patisserie','pâtisserie','viennoiserie','verrine','infusion','limonade','carte','selection','sélection','ardoise','mer','terre','charcuterie','boulette','tapa','tapas','salaison','conserve','rillette','terrine','saucisse','frite','pomme','legume','légume','cereale','céréale','omelette','focaccia','bruschetta','pate','pâte','nouille','soupe','creation','création','decouverte','découverte','envie','saison','part','portion','boule','coupe','tasse','carafe','bouteille','pinte','cuvee','cuvée','planchette','mignardise','friandise','pepite','pépite','trouvaille','nouveaute','nouveauté']);
+const CAT_MASC = new Set(['plat','dessert','fromage','vin','cafe','café','the','thé','cocktail','aperitif','apéritif','digestif','burger','sandwich','poisson','crustace','crustacé','coquillage','accompagnement','menu','jus','sirop','champagne','alcool','spiritueux','tartare','risotto','pain','gateau','gâteau','sorbet','chocolat','produit','classique','incontournable','snack','wrap','bowl','taco','tacos','nem','sushi','maki','ramen','curry','grill','barbecue','toast','bagel','croissant','supplement','supplément','extra','cru','rouge','blanc','rose','rosé','petillant','pétillant','smoothie','milkshake','soda','the','panini','club','plateau','assortiment','trio','duo','choix','arrivage','poulet','boeuf','bœuf','porc','agneau','canard','veau','riz','nectar','biscuit','flan','yaourt','miel','oeuf','œuf']);
+// Quelques mots ont la meme forme au singulier et au pluriel : leur « s »
+// final n'est pas une marque de pluriel et ne doit pas etre retire pour
+// la recherche du genre.
+const CAT_S_INVARIABLE = new Set(['jus','repas','ananas','couscous','pastis','anis','mets','os','dos','radis','tapas','spiritueux','tacos','hors-d’oeuvre','hors-d\'oeuvre']);
+function catEstPluriel(mot){
+  if(CAT_S_INVARIABLE.has(mot)) return true;   // « les jus » s'ecrit comme « le jus »
+  return /[sx]$/.test(mot);
+}
+function catSingulier(mot){
+  if(CAT_S_INVARIABLE.has(mot)) return mot;
+  return mot.replace(/[sx]$/,'');
+}
+function catGenre(mot){
+  const sg = catSingulier(mot);
+  if(CAT_FEM.has(mot) || CAT_FEM.has(sg)) return 'f';
+  if(CAT_MASC.has(mot) || CAT_MASC.has(sg)) return 'm';
+  // Terminaisons, dans l'ordre du plus fiable au moins fiable. Elles ne
+  // servent qu'aux mots hors lexique : un nom de rubrique invente
+  // (« Nos pepites »), un mot etranger, une faute de frappe.
+  if(/(tion|sion|té|tté|ette|ade|ure|ance|ence|ie|ine|ise|elle|esse|eille|ille|aille|euse)$/.test(sg)) return 'f';
+  if(/(age|ment|eau|ier|isme|oir|at|et|al|ail|ou|in|on)$/.test(sg)) return 'm';
+  return 'm';   // le masculin est le defaut du francais, pas un choix esthetique
+}
+// « Toutes les huitres », « tout terre et mer », « toute la carte ».
+function catListLabel(tab){
+  // Surcharge par categorie, puis globale : le texte reste a la main du
+  // restaurateur, l'accord automatique n'est qu'un point de depart.
+  const perso = t(tab.listLabel) || t(DATA.catListLabel);
+  if(perso) return perso;
+  let nom = (t(tab.label)||'').trim();
+  if(!nom) return '';
+  // On enleve l'article que certains mettent dans le nom d'onglet
+  // (« Les desserts »), sinon on obtiendrait « tous les les desserts ».
+  // BUG FIX : l'espace apres l'article etait facultatif (\s*), donc le
+  // « Des » de « Desserts » comptait pour un article et on affichait
+  // « Tous les serts ». L'espace est desormais obligatoire, sauf pour
+  // les formes elidees (« L'ardoise ») qui n'en ont pas.
+  nom = nom.replace(/^(?:(?:les|le|la|nos|notre|des|du|de\s+la|de\s+l['’])\s+|l['’])/i,'').trim();
+  if(!nom) return '';
+  const bas = nom.toLowerCase();
+  const tete = bas.split(/[\s,’']/)[0];
+  const genre = catGenre(tete);
+  if(catEstPluriel(tete)) return (genre==='f' ? 'Toutes les ' : 'Tous les ') + bas;
+  // « Terre et mer » n'est pas une liste d'objets mais un nom d'ensemble :
+  // il ne prend pas d'article. C'est « Tout terre et mer », pas
+  // « Toute la terre et mer ».
+  if(/\set\s/.test(bas)) return 'Tout ' + bas;
+  if(/^[aeiouéèêàâîôû]/.test(bas)) return (genre==='f' ? "Toute l’" : "Tout l’") + bas;
+  return (genre==='f' ? 'Toute la ' : 'Tout le ') + bas;
+}
+const CAT_LIST_ICON = '<svg class="cat-list-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true">'
+  + '<circle cx="4.5" cy="6.5" r="1.5" fill="currentColor"/>'
+  + '<circle cx="4.5" cy="12" r="1.5" fill="currentColor"/>'
+  + '<circle cx="4.5" cy="17.5" r="1.5" fill="currentColor"/>'
+  + '<path d="M10 6.5h10M10 12h10M10 17.5h10" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>'
+  + '</svg>';
 function renderCategoryRail(tab){
   // Tout le monde ne veut pas d'un bandeau en tete de categorie. Quand
   // il est coupe, la liste commence directement par les plats — les
@@ -3457,7 +3599,7 @@ function renderScheduleInline(suffix){
     ? phoneDigits.replace(/(\d{2})(?=\d)/g,'$1 ').trim()
     : phone;
   const phoneHtml = phone
-    ? `<div style="margin-top:12px;padding-top:12px;border-top:.5px solid rgba(255,255,255,.14);display:flex;align-items:baseline;gap:8px;flex-wrap:nowrap"><span class="resto-popup-title" style="margin-bottom:0;flex:none">Téléphone&nbsp;:</span><a href="tel:${escAttr(phoneDigits)}" style="display:inline-flex;align-items:center;gap:5px;color:#fff;font-size:15px;font-weight:400;letter-spacing:.02em;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(255,255,255,.45);white-space:nowrap">${escapeHtmlLocal(phonePretty)}</a></div>`
+    ? `<div style="margin-top:12px;padding-top:12px;border-top:.5px solid rgba(255,255,255,.14);display:flex;align-items:baseline;gap:8px;flex-wrap:nowrap"><span class="resto-popup-title" style="margin-bottom:0;flex:none">Téléphone&nbsp;:</span><a href="tel:${escAttr(phoneDigits)}" style="display:inline-flex;align-items:center;gap:5px;color:#fff;font-size:15px;font-weight:400;letter-spacing:.02em;text-decoration:none;white-space:nowrap">${escapeHtmlLocal(phonePretty)}</a></div>`
     : '';
   return `<div class="sched-pin-frame">
     <div class="resto-badge-inline" id="schedBadge${suffix}" onclick="toggleSchedPopup(event,'${suffix}')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
@@ -4413,7 +4555,7 @@ function renderTabContent(tab,lbOffset){
     const pinDishes2=pins2.map(p=>{ const r=resolvePin(p); return r?{...r.dish}:null; }).filter(Boolean).slice(0,4);
     if(pinDishes2.length>0&&(DATA.pinnedShowHome!==false)){
       if(view==='grid'){
-        html+=`<div class="featured-card" style="border:1.5px solid var(--gold);box-shadow:0 2px 12px rgba(198,162,74,0.12)">
+        html+=`<div class="featured-card incontournables-block" style="border:1.5px solid var(--gold);box-shadow:0 2px 12px rgba(198,162,74,0.12)">
         <div class="featured-label" style="display:flex;align-items:center;gap:6px">
           <span style="color:var(--gold)">★</span> Nos incontournables <span style="color:var(--gold)">★</span>
         </div>
@@ -4422,7 +4564,7 @@ function renderTabContent(tab,lbOffset){
         html+=`</div></div>`;
       } else {
         // list view
-        html+=`<div class="card" style="border:1.5px solid var(--gold)"><div class="card-hdr" style="border-bottom:1px solid rgba(198,162,74,0.3)"><span class="card-label" style="color:var(--gold)">★ Nos incontournables ★</span></div><div class="card-body">`;
+        html+=`<div class="card incontournables-block" style="border:1.5px solid var(--gold)"><div class="card-hdr" style="border-bottom:1px solid rgba(198,162,74,0.3)"><span class="card-label" style="color:var(--gold)">★ Nos incontournables ★</span></div><div class="card-body">`;
         pinDishes2.forEach((d,idx)=>{
           html+=`<div class="dish-row dish-row-clickable" onclick="openPinLb(${idx})">`;
           if(d.img) html+=`<img class="dish-img" src="${d.img}" alt="" loading="lazy">`;
@@ -4457,7 +4599,7 @@ function renderTabContent(tab,lbOffset){
     const pins=DATA.pinnedDishes||[];
     const pinDishes=pins.map(p=>{ const r=resolvePin(p); return r?{...r.dish}:null; }).filter(Boolean);
     if(pinDishes.length>0&&(DATA.pinnedShowFirst!==false)){
-      html+=`<div class="featured-card"><div class="featured-label">⭐ Nos incontournables</div><div class="featured-grid">`;
+      html+=`<div class="featured-card incontournables-block"><div class="featured-label">⭐ Nos incontournables</div><div class="featured-grid">`;
       pinDishes.slice(0,4).forEach((d,idx)=>{ html+=`<div class="featured-item" style="cursor:pointer" onclick="openPinLb(${idx})">${d.img?`<img class="featured-item-img" src="${d.img}" alt="" loading="lazy">`:'<div class="featured-item-img"></div>'}<div class="featured-item-body">${d.priceType==='dual'?`<div class="featured-item-name">${t(d.name)}</div><div class="featured-item-price">${dishPriceDisplay(d)}</div>`:`<div class="featured-top-row"><div class="featured-item-name">${t(d.name)}</div>${dishPriceDisplay(d)?`<span class="featured-item-price-inline">${dishPriceDisplay(d)}</span>`:''}</div>`}</div></div>`; });
       html+=`</div></div>`;
     }
@@ -4473,7 +4615,16 @@ function renderTabContent(tab,lbOffset){
   // bevs-type, force list rendering regardless of the tab's name.
   // Le bandeau photo vient en tête de la catégorie, au-dessus de la
   // liste complète — la structure est la même pour toutes.
-  html += renderCategoryRail(tab);
+  const railHtml = renderCategoryRail(tab);
+  html += railHtml;
+  // Le bandeau et la premiere categorie se touchaient : rien ne disait
+  // ou s'arretaient les incontournables et ou commencait la carte. Cet
+  // intertitre fait la coupure. On ne le pose QUE s'il y a un bandeau
+  // au-dessus — sinon la liste commence la page et n'a rien a annoncer.
+  if(railHtml){
+    const lbl = catListLabel(tab);
+    if(lbl) html += `<div class="cat-list-hdr">${CAT_LIST_ICON}<span>${escapeHtmlLocal(lbl)}</span></div>`;
+  }
   const hasGridableContent = tab.cards.some(c => c.type !== 'bevs');
   if(view==='grid' && hasGridableContent){
     // Collect all grid items across cards into one unified 2-col grid
@@ -5223,9 +5374,13 @@ function renderAdminSection(tid, _skipScroll){
   // Dark mode (façon ChatGPT) pour "Informations générales" — fond du
   // panneau assombri uniquement quand on est dans cette section,
   // le reste de l'admin n'est pas encore redessiné.
-  if(body) body.classList.toggle('ig-dark', tid==='__global');
+  // Reseaux sociaux rejoint Home dans le traitement du panneau : la
+  // section est desormais ecrite sur les memes jetons, elle doit donc
+  // recevoir le meme fond et suivre le theme clair/sombre.
+  const igLook = (tid==='__global' || tid==='__social');
+  if(body) body.classList.toggle('ig-dark', igLook);
   const panelEl=document.getElementById('adminPanel');
-  if(panelEl) panelEl.classList.toggle('ig-dark-panel', tid==='__global');
+  if(panelEl) panelEl.classList.toggle('ig-dark-panel', igLook);
   syncAdminStatusBar();
   if(tid==='__global'){
     body.innerHTML=renderAdminGlobal();
@@ -6823,15 +6978,28 @@ function onDrop(e,ti,ci,di){
 const SUPABASE_URL      = 'https://fdbzzkzfipzabryfanun.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_9PaqDuXnWV3aOCBPk9ImmQ_4YgYTU9n';
 // ── Quel restaurant cette page sert-elle ? ──
+// Deux situations, et il faut que les deux marchent.
+//
 //  1. Hebergement par dossiers (GitHub Pages) : …/menu/drevici/ — le
 //     nom du client est dans le chemin, on le lit.
-//  2. Hebergement sur son propre domaine (Cloudflare Pages) : le dossier
-//     est servi A LA RACINE, le chemin ne contient plus rien. Sans la
-//     constante ci-dessous, le slug tombait sur "default" et le client
-//     voyait le menu de demonstration avec le bandeau rouge.
-// CLIENT_SLUG_RACINE = le nom que le dossier AURAIT eu, suffixe
-// "-preview" compris (c'est lui qui met une recette en lecture seule).
-// Le chemin garde la priorite : sur GitHub Pages, rien ne change.
+//  2. Hebergement sur son propre domaine (Cloudflare Pages) :
+//     drevicioyster.com/ — le dossier est servi A LA RACINE, le chemin
+//     ne contient plus RIEN. Sans la constante ci-dessous, le slug
+//     tombait sur "default", aucune ligne ne correspondait, et le
+//     client voyait le menu de demonstration avec le bandeau rouge.
+//     Verifie : un dossier servi a la racine donnait slug="default".
+//
+// CLIENT_SLUG_RACINE = le nom que le dossier AURAIT eu. Il se comporte
+// donc exactement comme lui, suffixe "-preview" compris. Le chemin
+// garde la priorite : tant que l'URL porte un dossier, cette constante
+// ne sert pas, et l'hebergement actuel n'est pas touche.
+// La laisser vide sur un fichier modele : mieux vaut un bandeau rouge
+// qu'un site qui affiche en silence la carte d'un autre restaurant.
+// ATTENTION au suffixe "-preview" : c'est LUI qui met la page en
+// lecture seule. Servie a la racine d'un domaine avec 'drevici' au
+// lieu de 'drevici-preview', la recette se croirait en production et
+// deviendrait modifiable — une deuxieme production branchee sur les
+// vraies donnees du client, ce que ce fichier existe pour eviter.
 const CLIENT_SLUG_RACINE = 'drevici';
 // BUG FIX : ouvrir l'URL avec le nom de fichier (…/drevici/index.html
 // au lieu de …/drevici/) faisait de "index.html" le dernier segment,
@@ -6849,6 +7017,8 @@ const _pathParts = (()=>{
 // donnees du vrai client au lieu d'en chercher un qui n'existe pas.
 // Aucun deploiement reel ne se termine par "-preview".
 const _lastSegment = _pathParts[_pathParts.length - 1] || CLIENT_SLUG_RACINE || 'default';
+// D'ou vient le slug : la premiere question qu'on se pose quand un
+// deploiement affiche le mauvais restaurant.
 const _slugOrigine = _pathParts[_pathParts.length - 1] ? 'chemin'
   : (CLIENT_SLUG_RACINE ? 'CLIENT_SLUG_RACINE' : 'aucune — repli « default »');
 // Un dossier en "-preview" est une recette : meme code, memes donnees,
@@ -7147,9 +7317,11 @@ function renderSocialSection(){
       <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="radio" name="socfmt" value="story" ${s.format==='story'?'checked':''} onchange="socState.format='story';renderSocPreview()"> Story (9:16)</label>
     </div>`);
 
-  return `<div class="admin-section"><div class="admin-sect-title">Réseaux sociaux</div>
-  <div class="admin-sect-body">
-    <div class="soc-layout">
+  // Plus d'enveloppe .admin-section : son bandeau de titre appartient a
+  // l'ancien langage, et il repetait le fil d'ariane qui affiche deja
+  // "Reseaux sociaux" juste au-dessus. Les cartes se posent directement
+  // sur le fond du panneau, comme dans le reste de l'admin.
+  return `<div class="soc-layout">
       <div class="soc-left">
         ${s1}${s2}${s3}${s4}
         <div class="soc-caption-box" style="margin-top:12px">
@@ -7169,7 +7341,7 @@ function renderSocialSection(){
         </div>
       </div>
     </div>
-  </div></div>`;
+  </div>`;
 }
 
 
@@ -11146,13 +11318,25 @@ try{
   window.matchMedia('(min-width:768px)').addEventListener('change',()=>renderAll());
 }catch(e){}
 const _preFetchSnapshot=JSON.stringify(DATA);
+// Le squelette s'efface quand la vraie carte est la — ou au bout de 10 s
+// si le reseau traine : mieux vaut une page qu'un ecran gris sans fin.
+// Pas moins de 10 s : Supabase injoignable, la bibliotheque reessaie
+// quatre fois et n'abandonne qu'a ~7,5 s (mesure). Avec 6 s, la carte
+// ecrite en dur reapparaissait 1,5 s avant le bandeau rouge.
+function hidePageSkeleton(){
+  const sk=document.getElementById('pageSkeleton');
+  if(!sk || sk.classList.contains('done')) return;
+  sk.classList.add('done');
+  setTimeout(()=>sk.remove(), 350);
+}
+setTimeout(hidePageSkeleton, 10000);
 loadFromSupabase().then(()=>{
   if(JSON.stringify(DATA)!==_preFetchSnapshot){
     view=DATA.defaultView||'list';
     applyRestaurantBranding();
     renderAll();
   }
-});
+}).finally(hidePageSkeleton);
 </script>
 </body>
 </html>
