@@ -25,14 +25,19 @@ Nos sites construisent la carte en JavaScript à partir de `menu.json`. Un humai
 
 Google sait exécuter le JavaScript, mais plus tard et pas toujours. **Bing et les robots des IA (ChatGPT, Claude, Perplexity) ne l'exécutent généralement pas.** Tant que ce point n'est pas réglé, le reste de la liste a peu d'effet.
 
-**Solution prévue (une fois pour tous les sites)** : au moment où la page est servie par Cloudflare, un petit Worker lit `menu.json` et écrit directement dans le HTML :
+**Solution en place : `workers/menu-seo.js` (un seul fichier pour tous les sites)**. Au moment où la page est servie par Cloudflare, ce Worker lit les données du restaurant (la même ligne Supabase que le site) et écrit directement dans le HTML :
 
 - le `<title>`, la méta description et les balises Open Graph du restaurant ;
 - un bloc de texte réel : nom, type de cuisine, adresse, horaires, téléphone, liens de réservation, et la carte (catégories, plats, descriptions, prix) ;
 - les données structurées JSON-LD (section 4) ;
-- et il retire du HTML public les textes de l'admin.
+- il sert aussi `robots.txt`, `sitemap.xml` et `llms.txt`, générés depuis les mêmes données ;
+- la recette (`*-preview`) n'est jamais indexée (`noindex` partout, robots.txt qui bloque tout).
 
-Le JavaScript continue ensuite à afficher la page comme aujourd'hui. Avantage : rien à regénérer à chaque modification de menu, c'est toujours à jour.
+Le bloc texte est retiré dès que le JavaScript démarre : un visiteur voit exactement le même site qu'avant. Rien à regénérer à chaque modification de menu (cache de 5 minutes).
+
+**Brancher un nouveau site** : dans son fichier `wrangler.<site>.jsonc`, ajouter `"main": "./workers/menu-seo.js"`, `"binding": "ASSETS"` et `"run_worker_first": true` dans `assets`, puis le bloc `vars` (`CLIENT_SLUG`, `SITE_ENV`, `CANONICAL_ORIGIN`, `SUPABASE_URL`, `SUPABASE_KEY`). Modèle : `wrangler.drevici-preview.jsonc`.
+
+**Résultat mesuré sur Drevici (recette, Lighthouse)** : SEO 91 → 100, Bonnes pratiques 96 → 100. Accessibilité 74 (inchangée : zoom bloqué, contraste des prix dorés et des liens réseaux, voir section 2 et 7).
 
 **Test de validation** : `curl -A "GPTBot" https://<domaine>/` doit montrer le nom du restaurant, les plats et les horaires en texte.
 

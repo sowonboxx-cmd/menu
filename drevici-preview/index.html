@@ -1980,7 +1980,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
   <div class="admin-hdr">
     <span class="admin-hdr-title"><button class="admin-badge" onclick="adminGoHome()" title="Revenir à l'accueil du panneau">Accueil</button></span>
     <div class="admin-hdr-right">
-      <select class="admin-tab-dd" id="adminTabDd" onchange="adminGoTab(this.value)"></select>
+      <select class="admin-tab-dd" id="adminTabDd" aria-label="Section de l'administration" onchange="adminGoTab(this.value)"></select>
       <select class="admin-tab-dd" id="adminLangDd" onchange="setAdminLang(this.value)" title="Langue d'édition" style="width:60px">
         <option value="fr">FR</option>
         <option value="en">EN</option>
@@ -10235,7 +10235,9 @@ function applyRestaurantBranding(){
     if(logoEl) logoEl.style.display='none';
     if(textEl){ textEl.style.display='block'; textEl.textContent=name||'Mon Restaurant'; }
   }
-  document.title=(name||'Menu')+' — Menu';
+  // SEO : quand le serveur (workers/menu-seo.js) a deja ecrit le vrai titre du restaurant, on le
+  // garde — Google lit le titre APRES le JavaScript, et « NOM — Menu » effacait le bon titre.
+  if(!document.documentElement.hasAttribute('data-seo')) document.title=(name||'Menu')+' — Menu';
 }
 
 function restaurantSettingHtml(){

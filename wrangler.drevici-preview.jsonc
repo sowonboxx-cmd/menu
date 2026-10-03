@@ -1,9 +1,23 @@
 // Deploiement Cloudflare de la recette Drevici (lecture seule).
-// Publie UNIQUEMENT le dossier drevici-preview/.
+// Publie le dossier drevici-preview/ + le Worker SEO/IA commun (workers/menu-seo.js),
+// qui ajoute titre, description, donnees structurees et carte en texte pour les robots,
+// et sert robots.txt / sitemap.xml / llms.txt. Recette : jamais indexee (noindex).
 // Commande de deploiement dans Cloudflare :
 //   npx wrangler deploy --config wrangler.drevici-preview.jsonc
 {
   "name": "drevici-preview",
   "compatibility_date": "2026-10-01",
-  "assets": { "directory": "./drevici-preview" }
+  "main": "./workers/menu-seo.js",
+  "assets": {
+    "directory": "./drevici-preview",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "vars": {
+    "CLIENT_SLUG": "drevici",
+    "SITE_ENV": "preview",
+    "CANONICAL_ORIGIN": "",
+    "SUPABASE_URL": "https://fdbzzkzfipzabryfanun.supabase.co",
+    "SUPABASE_KEY": "sb_publishable_9PaqDuXnWV3aOCBPk9ImmQ_4YgYTU9n"
+  }
 }
