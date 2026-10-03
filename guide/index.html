@@ -1762,6 +1762,19 @@ function migrateData(){
       }
     });
   }
+  // ≤ 50 photos tier — shown on desktop only (rows flagged desktopOnly are filtered out of the
+  // mobile tables). Added once; if it's later deleted in edit mode it is not re-added.
+  if(DATA.photoPricing && Array.isArray(DATA.photoPricing.tabs) && DATA.photoPricing.tabs.length >= 2 && !DATA.photoPricing._tier50Added){
+    const t0 = DATA.photoPricing.tabs[0], t1 = DATA.photoPricing.tabs[1];
+    const has50 = (t0.rows||[]).some(r=>/50/.test(String(r.qty||'')));
+    if(!has50){
+      if(!Array.isArray(t0.rows)) t0.rows = [];
+      if(!Array.isArray(t1.rows)) t1.rows = [];
+      t0.rows.push({ offer:'Premium', qty:"Jusqu'à 50 photos", price:'899 €', desktopOnly:true });
+      t1.rows.push({ offer:'Premium', qty:'50', price:'549 €', desktopOnly:true });
+    }
+    DATA.photoPricing._tier50Added = true;
+  }
   if(DATA.photoPricing && DATA.photoPricing.videoPricing && Array.isArray(DATA.photoPricing.videoPricing.rows)){
     DATA.photoPricing.videoPricing.rows.forEach((row, rii)=>{
       if(row && !row.popup){
@@ -4290,7 +4303,9 @@ function renderPpMobilePanels(){
   if(!photoEl || !videoEl) return;
   const tabs = photoPricingTabs();
   if(tabs.length < 2){ photoEl.innerHTML=''; videoEl.innerHTML=''; return; }
-  const tiers = (tabs[0].rows || []).map(r => ({ offer: r.offer||'', qty: r.qty||'' }));
+  // Desktop-only tiers (e.g. ≤ 50 photos) stay out of the public mobile table; edit mode shows all.
+  const pubTabs = editMode ? tabs : tabs.map(t => Object.assign({}, t, { rows: (t.rows||[]).filter(r => !r.desktopOnly) }));
+  const tiers = (pubTabs[0].rows || []).map(r => ({ offer: r.offer||'', qty: r.qty||'' }));
   const videoRows = photoPricingVideoRows();
 
   if(_ppMobileActiveTab === 0){
@@ -4299,7 +4314,7 @@ function renderPpMobilePanels(){
     videoEl.innerHTML = '';
     photoEl.innerHTML = editMode
       ? renderPhotoPricingPhotoMedia() + ppMobileTierEditListHtml(tiers, tabs)
-      : renderPpMobilePhotoCarousel() + ppPhotoTableHtml(tiers, tabs);
+      : renderPpMobilePhotoCarousel() + ppPhotoTableHtml(tiers, pubTabs);
     if(!editMode) requestAnimationFrame(()=>{ renderPpMobileCarouselDots(); setupPpMobileCarouselScrollSync(); });
   } else {
     videoEl.style.display = '';
@@ -4541,7 +4556,7 @@ function ppPhotoEditFieldsHtml(tiers, tabs){
       <div class="pp-edit-cols">
         ${tiers.map((t,ti)=>`
           <div class="pp-edit-col-item">
-            <span>Palier ${ti+1}</span>
+            <span>Palier ${ti+1}${((tabs[0].rows||[])[ti]||{}).desktopOnly?' · desktop uniquement':''}</span>
             <input type="text" value="${esc(t.offer)}" placeholder="Nom (ex: Essentiel)" style="margin-bottom:4px" onchange="DATA.photoPricing.tabs[0].rows[${ti}].offer=this.value;DATA.photoPricing.tabs[1].rows[${ti}].offer=this.value;save();renderPhotoPricing()">
             <input type="text" value="${esc(t.qty)}" placeholder="Ex: Jusqu'à 15 photos" onchange="DATA.photoPricing.tabs[0].rows[${ti}].qty=this.value;DATA.photoPricing.tabs[1].rows[${ti}].qty=this.value;save();renderPhotoPricing()">
           </div>
