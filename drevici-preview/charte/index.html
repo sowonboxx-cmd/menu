@@ -135,6 +135,22 @@ footer{padding-top:40px;font-size:13px;color:var(--muted);display:flex;flex-wrap
 .dl{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 .dl a{font:600 11.5px/1 var(--body);letter-spacing:.04em;text-decoration:none;color:var(--navy);border:1px solid var(--line);border-radius:999px;padding:6px 10px;background:#fff}
 .dl a:hover,.dl a:focus-visible{border-color:var(--navy);background:#f3f5fa}
+
+.specs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr));gap:10px;margin-bottom:16px}
+.spec{background:#fff;border:1px solid var(--line);border-radius:6px;padding:10px 12px}
+.spec b{display:block;font-size:17px;color:var(--ink);font-variant-numeric:tabular-nums}
+.spec span{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.anim-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:20px;align-items:start}
+.anim-hero video{width:100%;aspect-ratio:1;border-radius:6px;background:var(--navy);display:block}
+.anim-groups{display:grid;gap:14px}
+.anim-group{background:#fff;border:1px solid var(--line);border-radius:6px;padding:14px 16px}
+.anim-group h3{font-size:16px;margin-bottom:4px}
+.anim-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line)}
+.anim-row:first-of-type{border-top:0}
+.anim-row > div:first-child{display:grid;gap:2px;min-width:0;font-size:13.5px}
+.anim-row b{color:var(--ink)} .anim-row .muted{font-size:12.5px}
+.anim-row .dl{margin:0;flex-shrink:0}
+@media (max-width:720px){.anim-hero{grid-template-columns:1fr}}
 .loading{padding:80px 0;text-align:center;color:var(--muted)}
 .icon .dl{justify-content:center}
 .masc figcaption .dl{margin-top:8px}
@@ -165,7 +181,7 @@ footer{padding-top:40px;font-size:13px;color:var(--muted);display:flex;flex-wrap
       <div class="cap"><b>${esc(ver.label)}</b><span class="muted">${esc(ver.use)}</span><span class="file">${n}</span>${dl(base, ['svg', 'png'])}</div></div>`;
   }).join('')).join('');
 
-  const L = C.logos, F = C.fonds, R = C.regles, K = C.couleurs, T = C.typos, I = C.icones, M = C.mascotte, X = C.fichiers;
+  const AN = C.animation, L = C.logos, F = C.fonds, R = C.regles, K = C.couleurs, T = C.typos, I = C.icones, M = C.mascotte, X = C.fichiers;
   app.innerHTML = `
 <header class="hero"><div class="wrap">
   <div><p class="eyebrow">Charte graphique · Version ${esc(B.version)} · ${esc(B.date)}</p>
@@ -174,7 +190,7 @@ footer{padding-top:40px;font-size:13px;color:var(--muted);display:flex;flex-wrap
   <img src="${B.heroLogo}" alt="Logo ${esc(B.name)}">
 </div></header>
 <nav class="toc" aria-label="Sommaire"><div class="wrap">
-  <a href="#logos">Logos</a><a href="#fonds">Quel logo sur quel fond</a><a href="#regles">Règles</a><a href="#couleurs">Couleurs</a><a href="#typo">Typographies</a><a href="#icones">Icônes</a><a href="#mascotte">Mascotte</a><a href="#fichiers">Fichiers</a>
+  <a href="#logos">Logos</a><a href="#anime">Logo animé</a><a href="#fonds">Quel logo sur quel fond</a><a href="#regles">Règles</a><a href="#couleurs">Couleurs</a><a href="#typo">Typographies</a><a href="#icones">Icônes</a><a href="#mascotte">Mascotte</a><a href="#fichiers">Fichiers</a>
 </div></nav>
 <main class="wrap">
 <section id="logos">${head('01', 'Logos', L.title, L.lead)}
@@ -182,12 +198,23 @@ footer{padding-top:40px;font-size:13px;color:var(--muted);display:flex;flex-wrap
   <h3>${esc(L.rond.title)}</h3><p class="muted">${esc(L.rond.usage)}</p><div class="grid g2">${logoTiles(L.rond, 230)}</div>
   <h3 style="margin-top:30px">${esc(L.texte.title)}</h3><p class="muted">${esc(L.texte.usage)}</p><div class="grid g3">${logoTiles(L.texte, 170)}</div>
 </section>
-<section id="fonds">${head('02', 'Usage', F.title, F.lead)}
+<section id="anime">${head('02', 'Logo animé', AN.title, AN.lead)}
+  <div class="specs">${AN.specs.map(([a, b]) => `<div class="spec"><b>${esc(a)}</b><span>${esc(b)}</span></div>`).join('')}</div>
+  <div class="venues" role="group" aria-label="Établissement affiché">${venues.map((v, i) => `<button type="button" aria-pressed="${i === 0}" data-v="${v.id}">${esc(v.label)}</button>`).join('')}</div>
+  ${venues.map(v => { const f = k => `files/animation/${fill(AN.file, { venue: v.id, key: k })}`;
+    return `<div data-venue="${v.id}"><div class="anim-hero"><video src="${f('Carre_son')}.mp4" poster="${f('Poster')}.jpg" controls playsinline preload="none"></video>
+      <div class="anim-groups">${AN.groups.map(g => `<div class="anim-group"><h3>${esc(g.title)}</h3>${g.formats.map(fm => `<div class="anim-row"><div><b>${esc(fm.label)}</b><span class="muted">${esc(fm.use)}</span></div><div class="dl"><a href="${f(fm.key)}.${fm.ext}" download>${fm.ext.toUpperCase()}</a></div></div>`).join('')}</div>`).join('')}</div></div></div>`; }).join('')}
+  <div class="anim-group" style="margin-top:18px"><h3>${esc(AN.sound.title)}</h3><p class="muted" style="margin:0 0 6px">${esc(AN.sound.note)}</p>
+    <audio src="files/animation/${AN.sound.files[1].file}.mp3" controls preload="none" style="width:100%;max-width:420px"></audio>
+    ${AN.sound.files.map(fm => `<div class="anim-row"><div><b>${esc(fm.label)}</b><span class="muted">${esc(fm.use)}</span></div><div class="dl"><a href="files/animation/${fm.file}.${fm.ext}" download>${fm.ext.toUpperCase()}</a></div></div>`).join('')}</div>
+  <h3 style="margin-top:24px">Bonnes pratiques</h3><ul class="rules ok">${AN.tips.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+</section>
+<section id="fonds">${head('03', 'Usage', F.title, F.lead)}
   <div class="tablewrap"><table><thead><tr><th>Fond du support</th><th>Logo rond</th><th>Logo texte</th><th>Exemple</th></tr></thead><tbody>
   ${F.rows.map(r => `<tr><td><span class="dot" style="background:${r.swatch}"></span>${esc(r.fond)}</td><td>${esc(r.rond)}</td><td><b>${esc(r.texte)}</b></td><td>${esc(r.exemple)}</td></tr>`).join('')}
   </tbody></table></div><p class="muted" style="margin-top:12px">${esc(F.note)}</p>
 </section>
-<section id="regles">${head('03', 'Règles', R.title, R.lead)}
+<section id="regles">${head('04', 'Règles', R.title, R.lead)}
   <div class="grid g2">
     <div class="zone"><svg viewBox="0 0 460 420" role="img" aria-label="Zone de protection autour du logo">
       <rect x="30" y="20" width="400" height="380" fill="none" stroke="#cd3232" stroke-width="1.5" stroke-dasharray="6 5"/>
@@ -201,33 +228,34 @@ footer{padding-top:40px;font-size:13px;color:var(--muted);display:flex;flex-wrap
   </div>
   <h3 style="margin-top:28px">À ne jamais faire</h3><ul class="rules">${R.interdits.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
 </section>
-<section id="couleurs">${head('04', 'Couleurs', K.title, K.lead)}
+<section id="couleurs">${head('05', 'Couleurs', K.title, K.lead)}
   <div class="grid g3">${K.items.map(c => { const light = c.hex.toUpperCase() === '#FFFFFF' || c.hex.toUpperCase() === '#D09D39';
     return `<div class="swatch"><div class="chip" style="background:${c.hex};color:${light ? '#0d255c' : '#fff'};${c.hex.toUpperCase() === '#FFFFFF' ? 'border-bottom:1px solid var(--line)' : ''}">${esc(c.hex)}</div><h3>${esc(c.name)}</h3><div class="role">${esc(c.role)}</div><dl><dt>HEX</dt><dd>${esc(c.hex)}</dd><dt>RVB</dt><dd>${esc(c.rgb)}</dd><dt>CMJN</dt><dd>${esc(c.cmyk)}</dd></dl></div>`; }).join('')}</div>
 </section>
-<section id="typo">${head('05', 'Typographies', T.title, T.lead)}
+<section id="typo">${head('06', 'Typographies', T.title, T.lead)}
   <div class="grid g2">${T.items.map(t => `<div class="type"><p class="eyebrow">${esc(t.role)}</p><div class="spec">${esc(t.family)} · ${esc(t.weights)}</div>
     <div class="big" style="${t.css}">${esc(t.sample)}</div><div class="alpha" style="${t.css};font-weight:500;letter-spacing:0">ABCDEFGHIJKLMNOPQRSTUVWXYZ<br>abcdefghijklmnopqrstuvwxyz 0123456789</div>
     <p class="muted" style="margin-top:12px">${esc(t.use)}</p><div class="dl"><a href="${t.link}" target="_blank" rel="noopener">Télécharger sur Google Fonts</a></div></div>`).join('')}</div>
 </section>
-<section id="icones">${head('06', 'Iconographie', I.title, I.lead)}
+<section id="icones">${head('07', 'Iconographie', I.title, I.lead)}
   <div class="grid g4">${I.items.map(it => { const f = c => `files/icones/${fill(I.file, { key: it.key, color: c })}`;
     return `<div class="icon"><img src="${f(I.colors[0])}.svg" alt="" loading="lazy"><b>${esc(it.label)}</b>
       <div class="dl">${I.colors.map(c => `<a href="${f(c)}.svg" download title="${esc(it.label)} ${c} SVG">${c}</a>`).join('')}</div></div>`; }).join('')}</div>
   <p class="muted" style="margin-top:14px">${esc(I.note)} Chaque icône existe aussi en PNG dans le dossier des fichiers.</p>
 </section>
-<section id="mascotte">${head('07', 'Mascotte', M.title, M.lead)}
+<section id="mascotte">${head('08', 'Mascotte', M.title, M.lead)}
   <div class="feature"><img src="files/mascotte/${M.hero}.webp" alt="${esc(M.title)}" loading="lazy">
     <div><h3>Ce qui ne change jamais</h3><ul class="traits">${M.traits.map(([a, b]) => `<li><b>${esc(a)}</b><span>${esc(b)}</span></li>`).join('')}</ul>
     <h3 style="margin-top:20px">Sur une affiche</h3><p>${esc(M.affiche)}</p>${dl(`files/mascotte/${M.hero}`, ['png'])}</div></div>
   <div class="masc">${M.items.map(m => `<figure><img src="files/mascotte/${m.file}.webp" alt="${esc(m.title)}" loading="lazy"><figcaption><b>${esc(m.title)}</b>${esc(m.sub)}${dl(`files/mascotte/${m.file}`, ['png'])}</figcaption></figure>`).join('')}</div>
   <p class="muted" style="margin-top:14px">${esc(M.rights)}</p>
 </section>
-<section id="fichiers">${head('08', 'Fichiers', X.title, X.lead)}
+<section id="fichiers">${head('09', 'Fichiers', X.title, X.lead)}
   <div class="tablewrap"><table><tbody>
     <tr><td>Règle de nommage</td><td><code>${esc(X.naming)}</code></td></tr>
     <tr><td>Exemple</td><td><code>${esc(X.example)}</code></td></tr>
     <tr><td>Logos</td><td>${venues.length} établissements × ${L.rond.versions.length + L.texte.versions.length} versions, en SVG et PNG</td></tr>
+    <tr><td>Logo animé</td><td>${venues.length} établissements × 9 formats (vidéos avec et sans son, transparent, GIF) + le son en WAV et MP3</td></tr>
     <tr><td>Icônes</td><td>${I.items.length} icônes × ${I.colors.length} couleurs, en SVG et PNG</td></tr>
     <tr><td>Mascotte</td><td>${M.items.length + 1} images en PNG haute définition</td></tr>
   </tbody></table></div>
@@ -235,7 +263,7 @@ footer{padding-top:40px;font-size:13px;color:var(--muted);display:flex;flex-wrap
 </section>
 </main>`;
 
-  const show = v => { document.querySelectorAll('[data-venue]').forEach(el => el.hidden = el.dataset.venue !== v);
+  const show = v => { document.querySelectorAll('[data-venue]').forEach(el => el.hidden = el.dataset.venue !== v); document.querySelectorAll('[data-venue][hidden] video').forEach(x => x.pause());
     document.querySelectorAll('.venues button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v)); };
   document.querySelectorAll('.venues button').forEach(b => b.addEventListener('click', () => show(b.dataset.v)));
   show(venues[0].id);
