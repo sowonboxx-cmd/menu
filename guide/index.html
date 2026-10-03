@@ -916,9 +916,41 @@ table.matrix tr:hover td{background:#fafaf7}
   .feature-tags{order:3;width:100%;margin-top:4px}
   .offers-grid{grid-template-columns:1fr}
 }
+/* ── ECRAN SQUELETTE ──
+   Sans lui, la page s'affichait d'abord avec les textes ecrits en dur
+   (la toute premiere version), puis basculait sur les vrais une
+   fraction de seconde plus tard : un prospect voyait une autre page
+   avant la bonne. Le squelette reprend la forme de ce qu'on voit en
+   premier — barre noire + bandeau plein ecran — et s'efface quand les
+   vraies donnees sont la. */
+#pageSkeleton{position:fixed;inset:0;z-index:10050;background:#0b1830;display:flex;flex-direction:column;transition:opacity .28s ease}
+#pageSkeleton.done{opacity:0;pointer-events:none}
+.sk-top{height:54px;flex:none;background:#000;display:flex;align-items:center;gap:18px;padding:0 20px}
+.sk-hero{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;gap:14px;padding:0 6vw 12vh}
+.sk{border-radius:8px;background:rgba(255,255,255,.07);position:relative;overflow:hidden}
+.sk::after{content:'';position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.09),transparent);animation:skShimmer 1.3s infinite}
+@keyframes skShimmer{to{transform:translateX(100%)}}
+@media (max-width:760px){.sk-nav{display:none}}
+@media (prefers-reduced-motion:reduce){.sk::after{animation:none}}
 </style>
 </head>
 <body>
+<div id="pageSkeleton" aria-hidden="true">
+  <div class="sk-top">
+    <div class="sk" style="width:96px;height:16px"></div>
+    <div style="flex:1"></div>
+    <div class="sk sk-nav" style="width:58px;height:10px"></div>
+    <div class="sk sk-nav" style="width:58px;height:10px"></div>
+    <div class="sk sk-nav" style="width:58px;height:10px"></div>
+    <div class="sk" style="width:86px;height:28px;border-radius:999px"></div>
+  </div>
+  <div class="sk-hero">
+    <div class="sk" style="width:min(560px,82%);height:42px"></div>
+    <div class="sk" style="width:min(420px,64%);height:42px"></div>
+    <div class="sk" style="width:min(380px,72%);height:14px;margin-top:6px"></div>
+    <div class="sk" style="width:170px;height:48px;border-radius:999px;margin-top:10px"></div>
+  </div>
+</div>
 
 <!-- INFO MODAL -->
 <div id="infoModal" onclick="if(event.target===this)closeInfoModal()">
@@ -6608,8 +6640,18 @@ async function loadPublicData(){
     console.warn('guide.json public illisible :', e.message);
   }
 }
-if(getToken()) loadFromGitHub();
-else { setSyncStatus('offline'); loadPublicData(); }
+// Le squelette s'efface quand les vraies donnees sont chargees — ou au
+// bout de 6 s si le reseau traine : mieux vaut une page un peu ancienne
+// qu'un ecran gris sans fin.
+function hidePageSkeleton(){
+  const sk=document.getElementById('pageSkeleton');
+  if(!sk || sk.classList.contains('done')) return;
+  sk.classList.add('done');
+  setTimeout(()=>sk.remove(), 350);
+}
+setTimeout(hidePageSkeleton, 6000);
+if(getToken()) loadFromGitHub().finally(hidePageSkeleton);
+else { setSyncStatus('offline'); loadPublicData().finally(hidePageSkeleton); }
 </script>
 </body>
 </html>
