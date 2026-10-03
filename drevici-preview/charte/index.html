@@ -151,11 +151,22 @@ footer{padding-top:40px;font-size:13px;color:var(--muted);display:flex;flex-wrap
 .anim-row b{color:var(--ink)} .anim-row .muted{font-size:12.5px}
 .anim-row .dl{margin:0;flex-shrink:0}
 @media (max-width:720px){.anim-hero{grid-template-columns:1fr}}
+
+.dlbox{margin-top:26px;background:var(--navy);color:#fff;border-radius:8px;padding:22px}
+.dlbox h3{color:#fff;font-size:20px}
+.dlbox .muted{color:#c6cfe2}
+.dlbtns{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0 4px}
+.dlbtns button{font:600 14px/1 var(--body);padding:13px 18px;border-radius:999px;border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;cursor:pointer}
+.dlbtns button:first-child{background:var(--gold);border-color:var(--gold);color:var(--ink)}
+.dlbtns button:hover{border-color:#fff}
+.dlbtns button:disabled{opacity:.5;cursor:wait}
+@media print{ .dl,.dlbox,video+.anim-groups .dl{display:none!important} video{display:none!important} .anim-hero{grid-template-columns:1fr} }
 .loading{padding:80px 0;text-align:center;color:var(--muted)}
 .icon .dl{justify-content:center}
 .masc figcaption .dl{margin-top:8px}
 </style>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
 <div id="app"><p class="loading">Chargement de la charte…</p></div>
@@ -190,7 +201,7 @@ footer{padding-top:40px;font-size:13px;color:var(--muted);display:flex;flex-wrap
   <img src="${B.heroLogo}" alt="Logo ${esc(B.name)}">
 </div></header>
 <nav class="toc" aria-label="Sommaire"><div class="wrap">
-  <a href="#logos">Logos</a><a href="#anime">Logo animé</a><a href="#fonds">Quel logo sur quel fond</a><a href="#regles">Règles</a><a href="#couleurs">Couleurs</a><a href="#typo">Typographies</a><a href="#icones">Icônes</a><a href="#mascotte">Mascotte</a><a href="#fichiers">Fichiers</a>
+  <a href="#logos">Logos</a><a href="#anime">Logo animé</a><a href="#fonds">Quel logo sur quel fond</a><a href="#regles">Règles</a><a href="#couleurs">Couleurs</a><a href="#typo">Typographies</a><a href="#icones">Icônes</a><a href="#mascotte">Mascotte</a><a href="#fichiers">Fichiers</a><a href="#telecharger">Télécharger</a>
 </div></nav>
 <main class="wrap">
 <section id="logos">${head('01', 'Logos', L.title, L.lead)}
@@ -259,6 +270,16 @@ footer{padding-top:40px;font-size:13px;color:var(--muted);display:flex;flex-wrap
     <tr><td>Icônes</td><td>${I.items.length} icônes × ${I.colors.length} couleurs, en SVG et PNG</td></tr>
     <tr><td>Mascotte</td><td>${M.items.length + 1} images en PNG haute définition</td></tr>
   </tbody></table></div>
+  <div id="telecharger" class="dlbox">
+    <h3>Télécharger toute la charte</h3>
+    <p class="muted">Pour l'avoir hors ligne, l'envoyer à un imprimeur ou l'archiver. Le ZIP reprend tous les fichiers de cette page, rangés par dossier.</p>
+    <div class="dlbtns">
+      <button type="button" id="btnPdf">Version PDF</button>
+      <button type="button" id="btnZipLight">ZIP sans vidéos · env. 20 Mo</button>
+      <button type="button" id="btnZipFull">ZIP complet avec vidéos · env. 110 Mo</button>
+    </div>
+    <p id="zipStatus" class="muted" role="status" aria-live="polite"></p>
+  </div>
   <footer><span>${esc(B.name)} · Charte graphique v${esc(B.version)} · ${esc(B.date)}</span><span>Réalisée par ${esc(B.agency)}</span></footer>
 </section>
 </main>`;
@@ -267,6 +288,44 @@ footer{padding-top:40px;font-size:13px;color:var(--muted);display:flex;flex-wrap
     document.querySelectorAll('.venues button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v)); };
   document.querySelectorAll('.venues button').forEach(b => b.addEventListener('click', () => show(b.dataset.v)));
   show(venues[0].id);
+
+  /* ---- Téléchargements : PDF (impression du navigateur) et ZIP construit à partir des fichiers du site ---- */
+  document.getElementById('btnPdf').addEventListener('click', () => window.print());
+  const fileList = withVideos => {
+    const out = [], add = (url, path) => out.push([url, path]);
+    [['rond', '01_Logo_Rond'], ['texte', '02_Logo_Texte']].forEach(([g, dir]) => venues.forEach(v => C.logos[g].versions.forEach(ver => {
+      const n = fill(C.logos[g].file, { venue: v.id, key: ver.key });
+      ['svg', 'png'].forEach(x => add(`files/logos/${n}.${x}`, `${dir}/${x.toUpperCase()}/${n}.${x}`)); })));
+    C.icones.items.forEach(it => C.icones.colors.forEach(c => { const n = fill(C.icones.file, { key: it.key, color: c });
+      ['svg', 'png'].forEach(x => add(`files/icones/${n}.${x}`, `04_Icones/${x.toUpperCase()}/${n}.${x}`)); }));
+    [{ file: C.mascotte.hero }, ...C.mascotte.items].forEach(m => add(`files/mascotte/${m.file}.png`, `05_Mascotte/${m.file}.png`));
+    venues.forEach(v => AN.groups.forEach(g => g.formats.forEach(fm => {
+      if (!withVideos && fm.ext !== 'gif') return;
+      const n = fill(AN.file, { venue: v.id, key: fm.key }); add(`files/animation/${n}.${fm.ext}`, `03_Logo_Anime/${v.id}/${n}.${fm.ext}`); })));
+    AN.sound.files.forEach(fm => add(`files/animation/${fm.file}.${fm.ext}`, `03_Logo_Anime/Son/${fm.file}.${fm.ext}`));
+    add('charte.json', '00_Charte/charte.json');
+    return out;
+  };
+  const zipStatus = document.getElementById('zipStatus');
+  const buildZip = async withVideos => {
+    if (!window.JSZip) { zipStatus.textContent = 'Le module ZIP ne s\'est pas chargé. Rechargez la page.'; return; }
+    const btns = document.querySelectorAll('.dlbtns button'); btns.forEach(b => b.disabled = true);
+    const list = fileList(withVideos), zip = new JSZip(), root = zip.folder(`${P}_Charte-graphique`);
+    let done = 0, failed = 0;
+    for (const [url, path] of list) {
+      try { const r = await fetch(url); if (!r.ok) throw 0; root.file(path, await r.blob()); } catch (e) { failed++; }
+      done++; zipStatus.textContent = `Préparation : ${done} / ${list.length} fichiers…`;
+    }
+    zipStatus.textContent = 'Compression…';
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = `${P}_Charte-graphique${withVideos ? '_complete' : ''}.zip`; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    zipStatus.textContent = failed ? `ZIP prêt (${failed} fichier(s) manquant(s)).` : `ZIP prêt : ${list.length} fichiers.`;
+    btns.forEach(b => b.disabled = false);
+  };
+  document.getElementById('btnZipLight').addEventListener('click', () => buildZip(false));
+  document.getElementById('btnZipFull').addEventListener('click', () => buildZip(true));
   if (location.hash) document.querySelector(location.hash)?.scrollIntoView();
 })();
 </script>
