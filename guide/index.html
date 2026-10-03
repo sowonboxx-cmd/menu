@@ -6585,8 +6585,31 @@ function renderSimulator(){
 renderAll();
 fshowSetupDrag('fshowMobile', 'fshowMobileBg', 'fshowMobileCtrl', fshowStep, fshowGetItems, () => fshowOpenIndex);
 fshowSetupDrag('fshow2Mobile', 'fshow2MobileBg', 'fshow2MobileCtrl', fshow2Step, fshow2GetItems, () => fshow2OpenIndex);
+// BUG FIX (les visiteurs ne voyaient pas les modifications) : sans
+// jeton, la page n'allait jamais chercher guide.json et affichait les
+// textes ecrits en dur dans DEFAULT_DATA — ceux de la premiere version.
+// Mesure avant correctif : 264 des 381 textes de guide.json invisibles
+// pour un prospect. Le fichier est publie a cote de la page (comme
+// tarif.md pour la grille), donc on le lit simplement, sans GitHub.
+// Rien ne change avec un jeton : l'editeur passe toujours par l'API.
+async function loadPublicData(){
+  try {
+    const res = await fetch('guide.json?v=' + Date.now(), { cache: 'no-store' });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const fresh = await res.json();
+    if(!fresh || typeof fresh !== 'object') throw new Error('contenu vide');
+    DATA = fresh;
+    migrateData();
+    try { localStorage.setItem('tensai_guide_data', JSON.stringify(DATA)); } catch(e){}
+    renderAll();
+  } catch(e){
+    // Fichier injoignable : on garde ce qu'on a (cache ou valeurs par
+    // defaut). La page reste lisible, simplement moins a jour.
+    console.warn('guide.json public illisible :', e.message);
+  }
+}
 if(getToken()) loadFromGitHub();
-else setSyncStatus('offline');
+else { setSyncStatus('offline'); loadPublicData(); }
 </script>
 </body>
 </html>
