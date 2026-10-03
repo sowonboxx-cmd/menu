@@ -713,6 +713,24 @@ body.edit-mode .fshow-nav-row{align-items:flex-start}
 .offer-card-wrap{display:flex;flex-direction:column;scroll-margin-top:70px;scroll-margin-bottom:16px}
 .offer-card{border-radius:20px;background:#fff;padding:5px 28px 32px;position:relative;display:flex;flex-direction:column;flex:1}
 .ov2-info-outside{display:none}
+/* Online-booking block inside each formula card (desktop only): shows that formula's own
+   booking level right under its feature list, so it visibly belongs to the same card instead
+   of living in a separate band below all three. Mobile keeps the original band for now. */
+.ov2-resa{display:none}
+.resa-card-note{display:none}
+@media(min-width:901px){
+  body:not(.edit-mode) .ov2-resa{display:flex;flex-direction:column;gap:7px;margin:-12px 0 28px;margin-top:auto;padding:16px 18px 18px;border-radius:16px;background:#F5F5F7}
+  body:not(.edit-mode) .ov2-features{margin-bottom:22px}
+  body:not(.edit-mode) .ov2-resa-pill{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;padding:5px 11px 5px 9px;border-radius:999px;background:linear-gradient(90deg,#0b84ff 0%,#8b5cf6 45%,#ec4899 100%);color:#fff;font-size:12px;font-weight:700;letter-spacing:.01em;margin-bottom:3px}
+  body:not(.edit-mode) .ov2-resa-pill svg{width:13px;height:13px;flex:none}
+  body:not(.edit-mode) .ov2-resa-promise{font-size:14px;font-weight:700;color:var(--text);line-height:1.35}
+  body:not(.edit-mode) .ov2-resa-detail{font-size:13.5px;color:var(--text2);line-height:1.5}
+  body:not(.edit-mode) #resaBandWrap .resa-band{display:none}
+  body:not(.edit-mode) .resa-card-note{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px 14px;margin:26px auto 6px;max-width:900px;text-align:center;font-size:15px;font-weight:500;color:var(--text2);line-height:1.5}
+  body:not(.edit-mode) .resa-card-note b{font-weight:700;background:linear-gradient(90deg,#0b84ff 0%,#8b5cf6 45%,#ec4899 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+  body:not(.edit-mode) .resa-card-note button{border:none;background:none;padding:0;font:inherit;font-weight:600;color:#2F6FE0;cursor:pointer;white-space:nowrap}
+  body:not(.edit-mode) .resa-card-note button:hover{text-decoration:underline}
+}
 .ov2-info-mobile{display:block;margin-top:1px;text-align:center;font-size:14px;font-weight:600;color:var(--text3)}
 .offer-card.base{background:#fff}
 .offer-card.pro{background:#fff}
@@ -1272,6 +1290,7 @@ const DEFAULT_DATA = {
   offersHeader: { label:'Vos offres packagées', title:'Trois offres. Tout compris.', subtitle:'Gérez, développez et fidélisez votre restaurant depuis votre téléphone.', cta:'Sur devis' },
   resaBand: {
     title: 'La réservation en ligne est incluse',
+    cardNote: 'Réservation en ligne incluse dans les 3 formules. Chaque formule garde tout ce qu\'offre la précédente, et en ajoute.',
     pill: '',
     desc: 'Ce qui change, c\'est ce qu\'elle vous permet de faire par formule.',
     btnText: 'Comparer les trois niveaux',
@@ -1671,7 +1690,7 @@ function migrateData(){
   if(DATA.offersHeader && DATA.offersHeader.cta===undefined) DATA.offersHeader.cta = DEFAULT_DATA.offersHeader.cta;
   if(!DATA.resaBand) DATA.resaBand = JSON.parse(JSON.stringify(DEFAULT_DATA.resaBand));
   if(!Array.isArray(DATA.resaBand.levels) || !DATA.resaBand.levels.length) DATA.resaBand.levels = JSON.parse(JSON.stringify(DEFAULT_DATA.resaBand.levels));
-  ['title','pill','desc','btnText','popupTitle','popupSubtitle','popupNote','popupCloseText'].forEach(k=>{ if(DATA.resaBand[k]===undefined) DATA.resaBand[k] = DEFAULT_DATA.resaBand[k]; });
+  ['title','pill','desc','cardNote','btnText','popupTitle','popupSubtitle','popupNote','popupCloseText'].forEach(k=>{ if(DATA.resaBand[k]===undefined) DATA.resaBand[k] = DEFAULT_DATA.resaBand[k]; });
   DATA.resaBand.levels.forEach(lv=>{ ['name','formula','bandText','promise','detail'].forEach(k=>{ if(lv[k]===undefined) lv[k]=''; }); });
   // One-time content refresh: the PRO/Master level's copy shipped with unclear "Table Boost"
   // jargon in an earlier version of this file. If it's still exactly that untouched text
@@ -3990,6 +4009,11 @@ function resaLevelColor(lv, i){
   return RESA_LEVEL_FALLBACK_COLORS[i % RESA_LEVEL_FALLBACK_COLORS.length];
 }
 
+function resaCardNoteHtml(note){
+  const t = String(note||'');
+  const m = t.match(/^(.*?incluse[^.,—–-]*)([\s\S]*)$/i);
+  return m ? `<b>${esc(m[1])}</b>${esc(m[2])}` : esc(t);
+}
 function renderResaBand(){
   const wrap = document.getElementById('resaBandWrap');
   if(!wrap) return;
@@ -3998,7 +4022,9 @@ function renderResaBand(){
   const cols = Math.max(1, Math.min(DATA.offersColumnsPerRow || 3, levels.length || 1));
   const ed = editMode;
 
+  const note = rb.cardNote || DEFAULT_DATA.resaBand.cardNote;
   wrap.innerHTML = `
+    ${!ed ? `<div class="resa-card-note"><span>${resaCardNoteHtml(note)}</span>${rb.btnText?`<button type="button" onclick="openResaBandModal()">${esc(rb.btnText)} →</button>`:''}</div>` : ''}
     <div class="resa-band ${ed?'resa-band-editing':''}">
       <div class="resa-band-top">
         <div class="resa-band-titlerow">
@@ -4007,6 +4033,10 @@ function renderResaBand(){
             : `<span class="resa-band-title">${resaTitleHtml(rb.title)}</span>`}
         </div>
         <div class="resa-band-desc${ed?' resa-ce':''}" ${ed?`${ce('',"Phrase d'explication")} onblur="resaCommitField(this,'desc')"`:''}>${esc(rb.desc||'')}</div>
+        ${ed ? `<div style="width:100%;max-width:640px;margin:4px auto 0;text-align:left">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin-bottom:4px">Phrase sous les cartes (desktop)</div>
+          <div class="resa-ce" style="font-size:14px;color:var(--text2);border:1px dashed var(--border);border-radius:8px;padding:8px 10px" ${ce('','Phrase sous les cartes')} onblur="resaCommitField(this,'cardNote')">${esc(note)}</div>
+        </div>` : ''}
         ${ed
           ? `<span class="resa-band-btn resa-ce" style="cursor:text" ${ce('','Texte du bouton')} onblur="resaCommitField(this,'btnText')">${esc(rb.btnText||'')}</span>`
           : (rb.btnText?`<button type="button" class="resa-band-btn" onclick="openResaBandModal()">${esc(rb.btnText)}</button>`:'')
@@ -5054,6 +5084,22 @@ function offerCardDrop(e, tag){
   save();
   renderOffers();
 }
+// Booking level matching a formula card: by name first (STARTER / PRO / MASTER), falling back
+// to the same position in the list if the names don't line up.
+function offerResaLevelFor(meta, idx){
+  const levels = (DATA.resaBand && DATA.resaBand.levels) || [];
+  const name = String((meta && meta.name) || '').trim().toLowerCase();
+  return levels.find(l => String(l.name||'').trim().toLowerCase() === name) || levels[idx] || null;
+}
+function offerResaBoxHtml(meta, idx){
+  const lv = offerResaLevelFor(meta, idx);
+  if(!lv || (!lv.promise && !lv.detail)) return '';
+  return `<div class="ov2-resa">
+    <span class="ov2-resa-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>Réservation en ligne</span>
+    ${lv.promise?`<span class="ov2-resa-promise">${esc(lv.promise)}</span>`:''}
+    ${lv.detail?`<span class="ov2-resa-detail">${esc(lv.detail)}</span>`:''}
+  </div>`;
+}
 function renderOffers(){
   const order = editMode ? DATA.offersCardOrder : DATA.offersCardOrder.filter(tag=>!(DATA.offerMeta[tag]||{}).hidden);
 
@@ -5154,6 +5200,7 @@ function renderOffers(){
           }).join('')}
           ${!feats.some(f=>f && f.trim().toLowerCase()!=='réservation en ligne')?'<div style="font-size:12px;color:var(--text3);font-style:italic">Aucune fonctionnalité renseignée</div>':''}
         </div>
+        ${offerResaBoxHtml(meta, idx)}
       `}
       ${editable ? `
         <div style="display:flex;gap:6px;margin:14px 0 8px;align-items:center">
