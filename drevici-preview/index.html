@@ -3140,6 +3140,19 @@ function deleteSection(ti, ci, keepContent){
 // vide, quoi qu'il arrive au bandeau.
 // Rappel discret de l'étoile sur les plats épinglés : le même signe
 // que dans le bandeau, pour qu'on fasse le lien entre les deux.
+// ── TEXTE ALTERNATIF DES PHOTOS ──
+// Toutes les photos de plats avaient un alt vide : Google ne savait rien
+// des images, un lecteur d'ecran annoncait « image ». Rempli d'office :
+// « Nom du plat — Nom du restaurant » (regle de la nomenclature medias).
+// Les fonds de la page d'accueil gardent un alt vide : ils sont decoratifs.
+function dishAlt(item){
+  const nom=(t(item && item.name) || t(item && item.label) || '').trim();
+  let resto=(DATA.restaurantName || '').trim();
+  // Un nom saisi en capitales (« DREVICI OYSTER ») serait epele lettre
+  // par lettre par certains lecteurs d'ecran : on le remet en casse titre.
+  if(resto && resto===resto.toUpperCase()) resto=resto.toLowerCase().replace(/(^|[\s'’-])(\S)/g,(m,a,c)=>a+c.toUpperCase());
+  return escAttr(nom && resto ? nom+' — '+resto : (nom || resto));
+}
 function isPinnedDish(d){
   if(!d || !d._pid) return false;
   return (DATA.pinnedDishes||[]).some(p=>p.pid===d._pid);
@@ -3248,7 +3261,7 @@ function renderCategoryRail(tab){
   const cards=items.map(s=>{
     const d=s.dish, price=dishPriceShort(d);
     return `<div class="rail-card" data-edit="dish" data-ti="${ti}" data-ci="${s.ci}" data-di="${s.di}" data-lbidx="${s.lb}">`
-      + `<img class="rail-img" src="${d.img}" alt="" loading="lazy">`
+      + `<img class="rail-img" src="${d.img}" alt="${dishAlt(d)}" loading="lazy">`
       + `<div class="rail-text"><div class="rail-meta"><div class="rail-name">${t(d.name)}</div>`
       // Sur mobile, pas de prix ici : le nom occupe toute la carte, il
       // se lit en entier et rien ne detourne l'oeil. Le prix reste dans
@@ -4578,14 +4591,14 @@ function renderTabContent(tab,lbOffset){
           <span style="color:var(--gold)">★</span> Nos incontournables <span style="color:var(--gold)">★</span>
         </div>
         <div class="featured-grid">`;
-        pinDishes2.forEach((d,idx)=>{ html+=`<div class="featured-item" style="cursor:pointer" onclick="openPinLb(${idx})">${d.img?`<img class="featured-item-img" src="${d.img}" alt="" loading="lazy">`:'<div class="featured-item-img"></div>'}<div class="featured-item-body">${d.priceType==='dual'?`<div class="featured-item-name">${t(d.name)}</div><div class="featured-item-price">${dishPriceDisplay(d)}</div>`:`<div class="featured-top-row"><div class="featured-item-name">${t(d.name)}</div>${dishPriceDisplay(d)?`<span class="featured-item-price-inline">${dishPriceDisplay(d)}</span>`:''}</div>`}</div></div>`; });
+        pinDishes2.forEach((d,idx)=>{ html+=`<div class="featured-item" style="cursor:pointer" onclick="openPinLb(${idx})">${d.img?`<img class="featured-item-img" src="${d.img}" alt="${dishAlt(d)}" loading="lazy">`:'<div class="featured-item-img"></div>'}<div class="featured-item-body">${d.priceType==='dual'?`<div class="featured-item-name">${t(d.name)}</div><div class="featured-item-price">${dishPriceDisplay(d)}</div>`:`<div class="featured-top-row"><div class="featured-item-name">${t(d.name)}</div>${dishPriceDisplay(d)?`<span class="featured-item-price-inline">${dishPriceDisplay(d)}</span>`:''}</div>`}</div></div>`; });
         html+=`</div></div>`;
       } else {
         // list view
         html+=`<div class="card incontournables-block" style="border:1.5px solid var(--gold)"><div class="card-hdr" style="border-bottom:1px solid rgba(198,162,74,0.3)"><span class="card-label" style="color:var(--gold)">★ Nos incontournables ★</span></div><div class="card-body">`;
         pinDishes2.forEach((d,idx)=>{
           html+=`<div class="dish-row dish-row-clickable" onclick="openPinLb(${idx})">`;
-          if(d.img) html+=`<img class="dish-img" src="${d.img}" alt="" loading="lazy">`;
+          if(d.img) html+=`<img class="dish-img" src="${d.img}" alt="${dishAlt(d)}" loading="lazy">`;
           html+=`<div class="dish-text"><div class="dish-name-row"><span class="dish-name">${t(d.name)}</span></div>`;
           if(t(d.desc)) html+=`<div class="dish-desc">${t(d.desc)}</div>`;
           if(d.price) html+=`<div class="dish-price">${dishPriceDisplay(d)}</div>`;
@@ -4618,7 +4631,7 @@ function renderTabContent(tab,lbOffset){
     const pinDishes=pins.map(p=>{ const r=resolvePin(p); return r?{...r.dish}:null; }).filter(Boolean);
     if(pinDishes.length>0&&(DATA.pinnedShowFirst!==false)){
       html+=`<div class="featured-card incontournables-block"><div class="featured-label">⭐ Nos incontournables</div><div class="featured-grid">`;
-      pinDishes.slice(0,4).forEach((d,idx)=>{ html+=`<div class="featured-item" style="cursor:pointer" onclick="openPinLb(${idx})">${d.img?`<img class="featured-item-img" src="${d.img}" alt="" loading="lazy">`:'<div class="featured-item-img"></div>'}<div class="featured-item-body">${d.priceType==='dual'?`<div class="featured-item-name">${t(d.name)}</div><div class="featured-item-price">${dishPriceDisplay(d)}</div>`:`<div class="featured-top-row"><div class="featured-item-name">${t(d.name)}</div>${dishPriceDisplay(d)?`<span class="featured-item-price-inline">${dishPriceDisplay(d)}</span>`:''}</div>`}</div></div>`; });
+      pinDishes.slice(0,4).forEach((d,idx)=>{ html+=`<div class="featured-item" style="cursor:pointer" onclick="openPinLb(${idx})">${d.img?`<img class="featured-item-img" src="${d.img}" alt="${dishAlt(d)}" loading="lazy">`:'<div class="featured-item-img"></div>'}<div class="featured-item-body">${d.priceType==='dual'?`<div class="featured-item-name">${t(d.name)}</div><div class="featured-item-price">${dishPriceDisplay(d)}</div>`:`<div class="featured-top-row"><div class="featured-item-name">${t(d.name)}</div>${dishPriceDisplay(d)?`<span class="featured-item-price-inline">${dishPriceDisplay(d)}</span>`:''}</div>`}</div></div>`; });
       html+=`</div></div>`;
     }
   }
@@ -4677,7 +4690,7 @@ function renderTabContent(tab,lbOffset){
         const ci=tab.cards.indexOf(card);
         const idx=card.img?imgIdx++:null;
         const vinfo=variantsPriceInfo(card.variants);
-        gridItems.push(`<div class="gc" data-edit="variants" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${ci}"${card.img?` data-lbidx="${idx}"`:''}><div class="gc-wrap">${card.img?`<img class="gc-img" src="${card.img}" alt="" loading="lazy">`:'<div style="aspect-ratio:1;background:#ece8e1"></div>'}</div><div class="gc-body"><div class="gc-name">${t(card.label)}</div><div class="gc-desc">${vinfo.flavourText}</div><div class="gc-price">${vinfo.sharedPrice}</div></div></div>`);
+        gridItems.push(`<div class="gc" data-edit="variants" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${ci}"${card.img?` data-lbidx="${idx}"`:''}><div class="gc-wrap">${card.img?`<img class="gc-img" src="${card.img}" alt="${dishAlt(card)}" loading="lazy">`:'<div style="aspect-ratio:1;background:#ece8e1"></div>'}</div><div class="gc-body"><div class="gc-name">${t(card.label)}</div><div class="gc-desc">${vinfo.flavourText}</div><div class="gc-price">${vinfo.sharedPrice}</div></div></div>`);
         return;
       }
       (card.dishes||[]).filter(d=>!d.hidden).forEach(d=>{
@@ -4691,7 +4704,7 @@ function renderTabContent(tab,lbOffset){
         const gcBody=d.priceType==='dual'
           ? `<div class="gc-name">${t(d.name)}${isPinnedDish(d)?'&nbsp;<span class="dish-star">\u2605</span>':''}${badges?` <span class="dish-badges" style="display:inline-flex">${badges}</span>`:''}</div><div class="gc-desc">${t(d.desc)}</div><div class="gc-price">${priceHtml}</div>`
           : `<div class="gc-top-row"><div class="gc-name">${t(d.name)}${isPinnedDish(d)?'&nbsp;<span class="dish-star">\u2605</span>':''}${badges?` <span class="dish-badges" style="display:inline-flex">${badges}</span>`:''}</div>${priceHtml?`<span class="gc-price-inline">${priceHtml}</span>`:''}</div><div class="gc-desc">${t(d.desc)}</div>`;
-        gridItems.push(`<div class="gc" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${ci}" data-di="${di}"${d.img?` data-lbidx="${idx}"`:''}><div class="gc-wrap">${d.img?`<img class="gc-img" src="${d.img}" alt="" loading="lazy">`:'<div style="aspect-ratio:1;background:#ece8e1"></div>'}</div><div class="gc-body">${gcBody}</div></div>`);
+        gridItems.push(`<div class="gc" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${ci}" data-di="${di}"${d.img?` data-lbidx="${idx}"`:''}><div class="gc-wrap">${d.img?`<img class="gc-img" src="${d.img}" alt="${dishAlt(d)}" loading="lazy">`:'<div style="aspect-ratio:1;background:#ece8e1"></div>'}</div><div class="gc-body">${gcBody}</div></div>`);
       });
     });
     if(gridItems.length) html+=`<div class="dish-grid">${gridItems.join('')}</div>`;
@@ -4732,7 +4745,7 @@ function renderTabContent(tab,lbOffset){
             <div class="dish-desc">${vinfo.flavourText}</div>
             <div class="dish-price">${vinfo.sharedPrice}</div>
           </div>
-          ${card.img?`<span class="img-wrap"><img class="dish-img" src="${card.img}" alt="" loading="lazy"></span>`:''}</div>`;
+          ${card.img?`<span class="img-wrap"><img class="dish-img" src="${card.img}" alt="${dishAlt(card)}" loading="lazy"></span>`:''}</div>`;
         if(editMode) html+=`<button type="button" class="aadd" onclick="addVariant(${DATA.tabs.indexOf(tab)},${_civ})">+ Ajouter une variante</button>`;
       } else {
         (card.dishes||[]).filter(d=>!d.hidden).forEach((d,di)=>{
@@ -4740,7 +4753,7 @@ function renderTabContent(tab,lbOffset){
           const badges=badgeIconsHtml(d);
           const _cid=tab.cards.indexOf(card); const _did=card.dishes.indexOf(d);
           const priceHtml=dishPriceDisplay(d);
-          html+=`<div class="dish-row${d.img?' dish-row-clickable':''}" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${_cid}" data-di="${_did}"${d.img?` data-lbidx="${idx}"`:''}${di===0?' style="padding-top:0"':''}><div class="dish-text"><div class="dish-top-row"><div class="dish-name-row"><span class="dish-name">${t(d.name)}${isPinnedDish(d)?'&nbsp;<span class="dish-star">\u2605</span>':''}</span>${badges?`<span class="dish-badges">${badges}</span>`:''}</div>${(priceHtml && d.priceType!=='dual')?`<span class="dish-price-inline">${priceHtml}</span>`:''}</div><div class="dish-desc">${t(d.desc)}</div>${(priceHtml && d.priceType==='dual')?`<div class="dish-price">${priceHtml}</div>`:''}</div>${d.img?`<span class="img-wrap"><img class="dish-img" src="${d.img}" alt="" loading="lazy"></span>`:''}</div>`;
+          html+=`<div class="dish-row${d.img?' dish-row-clickable':''}" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${_cid}" data-di="${_did}"${d.img?` data-lbidx="${idx}"`:''}${di===0?' style="padding-top:0"':''}><div class="dish-text"><div class="dish-top-row"><div class="dish-name-row"><span class="dish-name">${t(d.name)}${isPinnedDish(d)?'&nbsp;<span class="dish-star">\u2605</span>':''}</span>${badges?`<span class="dish-badges">${badges}</span>`:''}</div>${(priceHtml && d.priceType!=='dual')?`<span class="dish-price-inline">${priceHtml}</span>`:''}</div><div class="dish-desc">${t(d.desc)}</div>${(priceHtml && d.priceType==='dual')?`<div class="dish-price">${priceHtml}</div>`:''}</div>${d.img?`<span class="img-wrap"><img class="dish-img" src="${d.img}" alt="${dishAlt(d)}" loading="lazy"></span>`:''}</div>`;
         });
         if(editMode) html+=`<button type="button" class="aadd" onclick="addDish(${DATA.tabs.indexOf(tab)},${_ciE})">Ajouter un plat</button>`;
       }
