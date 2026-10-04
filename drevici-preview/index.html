@@ -2021,7 +2021,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
              « Reserver une table », pose a l'oppose. -->
         <div class="header-top-sched"><div class="hdr-sched" id="schedWidgetHeader"></div></div>
         <div class="header-top-left">
-          <a class="reserve-desk" href="https://sowonboxx-cmd.github.io/menu/drevici/resa">Réserver une table</a>
+          <a class="reserve-desk" href="resa">Réserver une table</a>
         </div>
         <div class="logo-centered" style="display:flex;flex-direction:column;align-items:center;cursor:pointer;pointer-events:auto" onclick="returnToHomeCover()">
           <img class="logo-img" src="https://drevicioyster.com/wp-content/uploads/2026/06/Drevici-Oyster-white-HD.png" alt="Drevici Oyster" onerror="this.style.display='none'"/>
@@ -2056,7 +2056,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
         <span class="view-tab-label" id="viewLabel" style="padding-left:16px"></span>
         <div style="display:flex;align-items:center;gap:10px">
           <div id="schedWidgetInline"></div>
-          <a class="header-reserve-btn" href="https://sowonboxx-cmd.github.io/menu/drevici/resa">RÉSERVER</a>
+          <a class="header-reserve-btn" href="resa">RÉSERVER</a>
         </div>
       </div>
     </div>
@@ -2084,7 +2084,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
           </button>
         </div>
         <div class="sched-bar" id="schedWidgetBar"></div>
-        <a class="reserve-pill" id="reserveMain" href="https://sowonboxx-cmd.github.io/menu/drevici/resa">Réserver une table</a>
+        <a class="reserve-pill" id="reserveMain" href="resa">Réserver une table</a>
         <div class="admin-quick">
           <button class="mode-link" id="modeLinkEdit" title="Mode modification" aria-label="Mode modification" onclick="setEditMode(!editMode)">
             <svg id="modeLinkEditIcon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 2.6H3.7A1.7 1.7 0 0 0 2 4.3v8A1.7 1.7 0 0 0 3.7 14h8a1.7 1.7 0 0 0 1.7-1.7V7.6"/><path d="M12.1 2.1a1.55 1.55 0 0 1 2.2 2.2l-5.9 5.9-2.9.7.7-2.9 5.9-5.9z"/></svg>
@@ -7030,7 +7030,18 @@ const CLIENT_SLUG = _lastSegment.replace(/-preview$/, '');
 // per-deployment value, since the reservation module lives in its own
 // folder/slug (e.g. 'drevici-paris'), separate from this menu's own
 // CLIENT_SLUG. Adjust per restaurant when reusing this template.
-const RESA_ADMIN_URL = 'https://sowonboxx-cmd.github.io/menu/drevici/admin';
+// Lien RELATIF : la page voisine, quelle que soit l'adresse du site
+// (GitHub Pages, workers.dev, ou le domaine du client). L'adresse
+// complete renvoyait vers GitHub Pages depuis Cloudflare, et cesserait
+// de marcher le jour ou le depot passe en prive.
+// En RECETTE, le dossier ne contient ni resa ni admin (pas de version
+// de recette de ces pages : une recette du tableau de bord ecrirait dans
+// les vraies reservations). Les liens y renvoient donc vers la
+// production. Constante a mettre a jour quand le domaine du client sera
+// branche — elle ne sert qu'en recette.
+const PROD_BASE = 'https://drevici.sowonboxx.workers.dev/';
+const RESA_ADMIN_URL = IS_PREVIEW ? PROD_BASE + 'admin' : 'admin';
+if(IS_PREVIEW) document.querySelectorAll('a[href="resa"]').forEach(a => { a.href = PROD_BASE + 'resa'; });
 
 const supabaseClient = (SUPABASE_URL !== 'COLLE_ICI_SUPABASE_URL' && window.supabase)
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
