@@ -18,7 +18,7 @@ signale par un simple avertissement.
 
 ### 1. Le bucket des sauvegardes, chez Cloudflare
 
-1. **R2 → Create bucket** → nom : `kuisto-sauvegardes`.
+1. **R2 → Create bucket** → nom : `beltab-sauvegardes`.
 2. **Ne rien rendre public** : pas de domaine, pas d'URL publique. Ce bucket
    contient les données des clients de tes clients.
 3. Dans le bucket : **Settings → Object lifecycle rules → Add rule** →
@@ -28,7 +28,7 @@ signale par un simple avertissement.
 
 1. **R2 → Manage API tokens → Create API token**.
 2. Permission : **Object Read & Write**, limitée au bucket
-   `kuisto-sauvegardes` uniquement.
+   `beltab-sauvegardes` uniquement.
 3. Cloudflare affiche trois valeurs une seule fois : l'**Access Key ID**, le
    **Secret Access Key**, et l'**Account ID** (dans l'adresse du point
    d'accès, `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`). Garde l'onglet
