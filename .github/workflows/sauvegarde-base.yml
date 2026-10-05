@@ -1,0 +1,82 @@
+# Sauvegarde automatique de la base Supabase vers Cloudflare R2.
+#
+# Chaque nuit, copie complete de la base (roles, structure, donnees)
+# deposee dans le bucket R2 PRIVE des sauvegardes. La duree de conservation
+# se regle dans Cloudflare (regle de cycle de vie du bucket), pas ici.
+#
+# Les acces sont dans Settings > Secrets and variables > Actions du repo.
+# Ils ne sont jamais ecrits dans ce fichier ni affiches dans les journaux.
+# Mode d'emploi et restauration : sauvegarde/README.md
+
+name: Sauvegarde de la base
+
+on:
+  schedule:
+    - cron: '17 1 * * *'   # tous les jours vers 3 h 17, heure de Paris (ete)
+  workflow_dispatch:        # bouton « Run workflow » pour lancer a la main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sauvegarde-base
+  cancel-in-progress: false
+
+jobs:
+  sauvegarde:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      R2_BUCKET: ${{ vars.R2_BUCKET_SAUVEGARDES || 'kuisto-sauvegardes' }}
+
+    steps:
+      - name: Verifier que les acces sont configures
+        id: verif
+        run: |
+          manque=""
+          for v in SUPABASE_DB_URL R2_ACCOUNT_ID AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY; do
+            [ -z "${!v}" ] && manque="$manque $v"
+          done
+          if [ -n "$manque" ]; then
+            echo "::warning::Sauvegarde non configuree, secrets manquants :$manque. Voir sauvegarde/README.md"
+            echo "pret=non" >> "$GITHUB_OUTPUT"
+          else
+            echo "pret=oui" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: supabase/setup-cli@v1
+        if: steps.verif.outputs.pret == 'oui'
+        with:
+          version: latest
+
+      - name: Copier la base
+        if: steps.verif.outputs.pret == 'oui'
+        run: |
+          set -euo pipefail
+          mkdir -p dump
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f dump/roles.sql --role-only
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f dump/schema.sql
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f dump/data.sql --use-copy --data-only
+          # Une sauvegarde vide ou tronquee ne doit jamais passer pour bonne.
+          for f in roles schema data; do
+            [ -s "dump/$f.sql" ] || { echo "::error::dump/$f.sql est vide"; exit 1; }
+          done
+          grep -q 'menu_data' dump/schema.sql || { echo "::error::la table menu_data est absente de la copie"; exit 1; }
+          nom="sauvegarde-$(date -u +%Y-%m-%d_%H%M).tar.gz"
+          tar -czf "$nom" -C dump .
+          echo "NOM=$nom" >> "$GITHUB_ENV"
+          echo "Copie prete : $nom ($(du -h "$nom" | cut -f1))"
+
+      - name: Deposer dans R2
+        if: steps.verif.outputs.pret == 'oui'
+        run: |
+          set -euo pipefail
+          endpoint="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          aws s3 cp "$NOM" "s3://${R2_BUCKET}/base/${NOM}" --endpoint-url "$endpoint" --only-show-errors
+          aws s3 ls "s3://${R2_BUCKET}/base/${NOM}" --endpoint-url "$endpoint" >/dev/null
+          echo "Deposee : ${R2_BUCKET}/base/${NOM}"
