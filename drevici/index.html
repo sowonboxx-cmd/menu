@@ -343,6 +343,24 @@ body.hdr-light .hdr-sched .resto-badge-inline svg{color:rgba(20,35,70,.55)!impor
   .sched-bar{display:none}
   .page{padding-bottom:32px}
 }
+/* ── HORAIRES SUR MOBILE : en haut a gauche du logo ──
+   Will : « Reserver une table » reste seul, centre, en bas — c'est la
+   seule action du site, rien ne doit la concurrencer. L'etat d'ouverture
+   monte dans le bandeau, a gauche du logo, en version minimale : le
+   point de couleur et le mot, en blanc, sans contour ni epingle, en
+   minuscules. Assez visible pour etre trouve, pas assez pour clignoter.
+   Un toucher ouvre la meme fiche horaires qu'avant. Bureau : inchange. */
+.header-top-sched-m{display:none}
+@media(max-width:640px){
+  .header-top-sched-m{display:block;position:absolute;left:16px;top:50%;transform:translateY(-50%);z-index:2}
+  .sched-mob .sched-pin-frame{border:none;background:transparent;padding:6px 8px 6px 0;height:auto;display:inline-flex;align-items:center;color:rgba(255,255,255,.88);cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .sched-mob .sched-pin-frame:active{opacity:.6}
+  .sched-mob .resto-badge-inline{gap:6px}
+  .sched-mob .resto-badge-inline > span{font-size:12px!important;font-weight:500;letter-spacing:.02em;text-transform:lowercase;color:inherit!important;white-space:nowrap}
+  .sched-mob .resto-dot{width:6px;height:6px}
+  .sched-mob .resto-badge-inline svg{display:none}
+  body.hdr-light .sched-mob .sched-pin-frame{color:var(--navy)}
+}
 /* ═══ BANDEAU PHOTO EN TÊTE DE CATÉGORIE ═══
    Le 4:5 est invariant : bandeau, vignettes de liste et vue plein
    écran partagent le même cadrage. C'est aussi le format Instagram,
@@ -1980,7 +1998,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
   <div class="admin-hdr">
     <span class="admin-hdr-title"><button class="admin-badge" onclick="adminGoHome()" title="Revenir à l'accueil du panneau">Accueil</button></span>
     <div class="admin-hdr-right">
-      <select class="admin-tab-dd" id="adminTabDd" onchange="adminGoTab(this.value)"></select>
+      <select class="admin-tab-dd" id="adminTabDd" aria-label="Section de l'administration" onchange="adminGoTab(this.value)"></select>
       <select class="admin-tab-dd" id="adminLangDd" onchange="setAdminLang(this.value)" title="Langue d'édition" style="width:60px">
         <option value="fr">FR</option>
         <option value="en">EN</option>
@@ -2020,8 +2038,9 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
              coince. Elles deviennent un bouton, de la meme famille que
              « Reserver une table », pose a l'oppose. -->
         <div class="header-top-sched"><div class="hdr-sched" id="schedWidgetHeader"></div></div>
+        <div class="header-top-sched-m"><div class="sched-mob" id="schedWidgetBar"></div></div>
         <div class="header-top-left">
-          <a class="reserve-desk" href="https://sowonboxx-cmd.github.io/menu/drevici/resa">Réserver une table</a>
+          <a class="reserve-desk" href="resa">Réserver une table</a>
         </div>
         <div class="logo-centered" style="display:flex;flex-direction:column;align-items:center;cursor:pointer;pointer-events:auto" onclick="returnToHomeCover()">
           <img class="logo-img" src="https://drevicioyster.com/wp-content/uploads/2026/06/Drevici-Oyster-white-HD.png" alt="Drevici Oyster" onerror="this.style.display='none'"/>
@@ -2056,7 +2075,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
         <span class="view-tab-label" id="viewLabel" style="padding-left:16px"></span>
         <div style="display:flex;align-items:center;gap:10px">
           <div id="schedWidgetInline"></div>
-          <a class="header-reserve-btn" href="https://sowonboxx-cmd.github.io/menu/drevici/resa">RÉSERVER</a>
+          <a class="header-reserve-btn" href="resa">RÉSERVER</a>
         </div>
       </div>
     </div>
@@ -2083,8 +2102,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="12" rx="3.6"/><circle cx="8" cy="8" r="2.9"/><circle cx="11.5" cy="4.5" r="0.75" fill="currentColor" stroke="none"/></svg>
           </button>
         </div>
-        <div class="sched-bar" id="schedWidgetBar"></div>
-        <a class="reserve-pill" id="reserveMain" href="https://sowonboxx-cmd.github.io/menu/drevici/resa">Réserver une table</a>
+        <a class="reserve-pill" id="reserveMain" href="resa">Réserver une table</a>
         <div class="admin-quick">
           <button class="mode-link" id="modeLinkEdit" title="Mode modification" aria-label="Mode modification" onclick="setEditMode(!editMode)">
             <svg id="modeLinkEditIcon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 2.6H3.7A1.7 1.7 0 0 0 2 4.3v8A1.7 1.7 0 0 0 3.7 14h8a1.7 1.7 0 0 0 1.7-1.7V7.6"/><path d="M12.1 2.1a1.55 1.55 0 0 1 2.2 2.2l-5.9 5.9-2.9.7.7-2.9 5.9-5.9z"/></svg>
@@ -2585,21 +2603,38 @@ function syncEfImgPreview(input){
   else { preview.style.display='none'; }
 }
 
-// ---- Popup gallery field (up to 4 photos, used for social posts) ----
+// ── TROIS PHOTOS PAR PLAT ──
+// Regle de la nomenclature medias : photo 1 = le plat seul (image
+// principale, celle du menu), photos 2 et 3 = galerie (en situation, le
+// detail). La galerie passe donc de 4 emplacements a 2. Les plats qui ont
+// deja plus de photos les gardent toutes, affichees comme « en trop » :
+// rien n'est supprime en silence, c'est le restaurateur qui retire.
+const GALLERY_MAX = 2;
+const GALLERY_ROLES = ['Photo 2 — en situation', 'Photo 3 — le détail'];
+function galleryRole(gi){ return GALLERY_ROLES[gi] || 'Photo en trop — à retirer (3 maximum)'; }
+function gallerySlots(gallery){
+  let last=-1; (gallery||[]).forEach((g,i)=>{ if(g) last=i; });
+  return Math.max(GALLERY_MAX, last+1);
+}
+// ---- Popup gallery field (photos 2 et 3, used for social posts) ----
 function efGalleryField(gallery){
   gallery=gallery||[];
   let h='<div class="ef ef-gal">';
-  for(let gi=0; gi<4; gi++){
-    h+=efImgField(`ed-gal-${gi}`, gallery[gi]||'', 'Photo '+(gi+1), 9/16, true);
+  const n=gallerySlots(gallery);
+  for(let gi=0; gi<n; gi++){
+    h+=efImgField(`ed-gal-${gi}`, gallery[gi]||'', galleryRole(gi), 9/16, true);
   }
   h+='</div>';
   return h;
 }
 function readGalleryFields(){
   const out=[];
-  for(let gi=0; gi<4; gi++){
+  // Lit tous les emplacements presents (2, ou plus pour un plat qui
+  // avait deja des photos en trop) : on n'en perd aucun a l'enregistrement.
+  for(let gi=0; ; gi++){
     const el=document.getElementById('ed-gal-'+gi);
-    const val=el?el.value.trim():'';
+    if(!el) break;
+    const val=el.value.trim();
     if(val) out.push(val);
   }
   return out;
@@ -2830,7 +2865,7 @@ function openEditDish(ti,ci,di){
   // — sans fermer la fiche ni perdre le nom en cours de frappe.
   h+=`<div id="ed-price-block">${efPriceBlockHtml(d)}</div>`;
   h+=`<div class="ef"><label class="ei-check"><input type="checkbox" id="ed-dual" ${d.priceType==='dual'?'checked':''} onchange="efToggleDual(this)"><span>Double tarif (ex : Les 6 / Les 12)</span></label></div>`;
-  h+=efImgField('ed-img', d.img||'', 'Image principale');
+  h+=efImgField('ed-img', d.img||'', 'Photo 1 — le plat seul');
   h+=efBadgesField(d);
   h+=efSocialAccordion(d.gallery||[], d.caption||'', 'Ex: Nos huîtres Spéciales N°3 — iodées, fraîches, servies sur glace 🦪 Disponibles au bar ou à emporter.');
   // Masquer / Supprimer ferment la fiche, comme dans le panneau admin :
@@ -3122,6 +3157,19 @@ function deleteSection(ti, ci, keepContent){
 // vide, quoi qu'il arrive au bandeau.
 // Rappel discret de l'étoile sur les plats épinglés : le même signe
 // que dans le bandeau, pour qu'on fasse le lien entre les deux.
+// ── TEXTE ALTERNATIF DES PHOTOS ──
+// Toutes les photos de plats avaient un alt vide : Google ne savait rien
+// des images, un lecteur d'ecran annoncait « image ». Rempli d'office :
+// « Nom du plat — Nom du restaurant » (regle de la nomenclature medias).
+// Les fonds de la page d'accueil gardent un alt vide : ils sont decoratifs.
+function dishAlt(item){
+  const nom=(t(item && item.name) || t(item && item.label) || '').trim();
+  let resto=(DATA.restaurantName || '').trim();
+  // Un nom saisi en capitales (« DREVICI OYSTER ») serait epele lettre
+  // par lettre par certains lecteurs d'ecran : on le remet en casse titre.
+  if(resto && resto===resto.toUpperCase()) resto=resto.toLowerCase().replace(/(^|[\s'’-])(\S)/g,(m,a,c)=>a+c.toUpperCase());
+  return escAttr(nom && resto ? nom+' — '+resto : (nom || resto));
+}
 function isPinnedDish(d){
   if(!d || !d._pid) return false;
   return (DATA.pinnedDishes||[]).some(p=>p.pid===d._pid);
@@ -3230,7 +3278,7 @@ function renderCategoryRail(tab){
   const cards=items.map(s=>{
     const d=s.dish, price=dishPriceShort(d);
     return `<div class="rail-card" data-edit="dish" data-ti="${ti}" data-ci="${s.ci}" data-di="${s.di}" data-lbidx="${s.lb}">`
-      + `<img class="rail-img" src="${d.img}" alt="" loading="lazy">`
+      + `<img class="rail-img" src="${d.img}" alt="${dishAlt(d)}" loading="lazy">`
       + `<div class="rail-text"><div class="rail-meta"><div class="rail-name">${t(d.name)}</div>`
       // Sur mobile, pas de prix ici : le nom occupe toute la carte, il
       // se lit en entier et rien ne detourne l'oeil. Le prix reste dans
@@ -4560,14 +4608,14 @@ function renderTabContent(tab,lbOffset){
           <span style="color:var(--gold)">★</span> Nos incontournables <span style="color:var(--gold)">★</span>
         </div>
         <div class="featured-grid">`;
-        pinDishes2.forEach((d,idx)=>{ html+=`<div class="featured-item" style="cursor:pointer" onclick="openPinLb(${idx})">${d.img?`<img class="featured-item-img" src="${d.img}" alt="" loading="lazy">`:'<div class="featured-item-img"></div>'}<div class="featured-item-body">${d.priceType==='dual'?`<div class="featured-item-name">${t(d.name)}</div><div class="featured-item-price">${dishPriceDisplay(d)}</div>`:`<div class="featured-top-row"><div class="featured-item-name">${t(d.name)}</div>${dishPriceDisplay(d)?`<span class="featured-item-price-inline">${dishPriceDisplay(d)}</span>`:''}</div>`}</div></div>`; });
+        pinDishes2.forEach((d,idx)=>{ html+=`<div class="featured-item" style="cursor:pointer" onclick="openPinLb(${idx})">${d.img?`<img class="featured-item-img" src="${d.img}" alt="${dishAlt(d)}" loading="lazy">`:'<div class="featured-item-img"></div>'}<div class="featured-item-body">${d.priceType==='dual'?`<div class="featured-item-name">${t(d.name)}</div><div class="featured-item-price">${dishPriceDisplay(d)}</div>`:`<div class="featured-top-row"><div class="featured-item-name">${t(d.name)}</div>${dishPriceDisplay(d)?`<span class="featured-item-price-inline">${dishPriceDisplay(d)}</span>`:''}</div>`}</div></div>`; });
         html+=`</div></div>`;
       } else {
         // list view
         html+=`<div class="card incontournables-block" style="border:1.5px solid var(--gold)"><div class="card-hdr" style="border-bottom:1px solid rgba(198,162,74,0.3)"><span class="card-label" style="color:var(--gold)">★ Nos incontournables ★</span></div><div class="card-body">`;
         pinDishes2.forEach((d,idx)=>{
           html+=`<div class="dish-row dish-row-clickable" onclick="openPinLb(${idx})">`;
-          if(d.img) html+=`<img class="dish-img" src="${d.img}" alt="" loading="lazy">`;
+          if(d.img) html+=`<img class="dish-img" src="${d.img}" alt="${dishAlt(d)}" loading="lazy">`;
           html+=`<div class="dish-text"><div class="dish-name-row"><span class="dish-name">${t(d.name)}</span></div>`;
           if(t(d.desc)) html+=`<div class="dish-desc">${t(d.desc)}</div>`;
           if(d.price) html+=`<div class="dish-price">${dishPriceDisplay(d)}</div>`;
@@ -4600,7 +4648,7 @@ function renderTabContent(tab,lbOffset){
     const pinDishes=pins.map(p=>{ const r=resolvePin(p); return r?{...r.dish}:null; }).filter(Boolean);
     if(pinDishes.length>0&&(DATA.pinnedShowFirst!==false)){
       html+=`<div class="featured-card incontournables-block"><div class="featured-label">⭐ Nos incontournables</div><div class="featured-grid">`;
-      pinDishes.slice(0,4).forEach((d,idx)=>{ html+=`<div class="featured-item" style="cursor:pointer" onclick="openPinLb(${idx})">${d.img?`<img class="featured-item-img" src="${d.img}" alt="" loading="lazy">`:'<div class="featured-item-img"></div>'}<div class="featured-item-body">${d.priceType==='dual'?`<div class="featured-item-name">${t(d.name)}</div><div class="featured-item-price">${dishPriceDisplay(d)}</div>`:`<div class="featured-top-row"><div class="featured-item-name">${t(d.name)}</div>${dishPriceDisplay(d)?`<span class="featured-item-price-inline">${dishPriceDisplay(d)}</span>`:''}</div>`}</div></div>`; });
+      pinDishes.slice(0,4).forEach((d,idx)=>{ html+=`<div class="featured-item" style="cursor:pointer" onclick="openPinLb(${idx})">${d.img?`<img class="featured-item-img" src="${d.img}" alt="${dishAlt(d)}" loading="lazy">`:'<div class="featured-item-img"></div>'}<div class="featured-item-body">${d.priceType==='dual'?`<div class="featured-item-name">${t(d.name)}</div><div class="featured-item-price">${dishPriceDisplay(d)}</div>`:`<div class="featured-top-row"><div class="featured-item-name">${t(d.name)}</div>${dishPriceDisplay(d)?`<span class="featured-item-price-inline">${dishPriceDisplay(d)}</span>`:''}</div>`}</div></div>`; });
       html+=`</div></div>`;
     }
   }
@@ -4659,7 +4707,7 @@ function renderTabContent(tab,lbOffset){
         const ci=tab.cards.indexOf(card);
         const idx=card.img?imgIdx++:null;
         const vinfo=variantsPriceInfo(card.variants);
-        gridItems.push(`<div class="gc" data-edit="variants" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${ci}"${card.img?` data-lbidx="${idx}"`:''}><div class="gc-wrap">${card.img?`<img class="gc-img" src="${card.img}" alt="" loading="lazy">`:'<div style="aspect-ratio:1;background:#ece8e1"></div>'}</div><div class="gc-body"><div class="gc-name">${t(card.label)}</div><div class="gc-desc">${vinfo.flavourText}</div><div class="gc-price">${vinfo.sharedPrice}</div></div></div>`);
+        gridItems.push(`<div class="gc" data-edit="variants" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${ci}"${card.img?` data-lbidx="${idx}"`:''}><div class="gc-wrap">${card.img?`<img class="gc-img" src="${card.img}" alt="${dishAlt(card)}" loading="lazy">`:'<div style="aspect-ratio:1;background:#ece8e1"></div>'}</div><div class="gc-body"><div class="gc-name">${t(card.label)}</div><div class="gc-desc">${vinfo.flavourText}</div><div class="gc-price">${vinfo.sharedPrice}</div></div></div>`);
         return;
       }
       (card.dishes||[]).filter(d=>!d.hidden).forEach(d=>{
@@ -4673,7 +4721,7 @@ function renderTabContent(tab,lbOffset){
         const gcBody=d.priceType==='dual'
           ? `<div class="gc-name">${t(d.name)}${isPinnedDish(d)?'&nbsp;<span class="dish-star">\u2605</span>':''}${badges?` <span class="dish-badges" style="display:inline-flex">${badges}</span>`:''}</div><div class="gc-desc">${t(d.desc)}</div><div class="gc-price">${priceHtml}</div>`
           : `<div class="gc-top-row"><div class="gc-name">${t(d.name)}${isPinnedDish(d)?'&nbsp;<span class="dish-star">\u2605</span>':''}${badges?` <span class="dish-badges" style="display:inline-flex">${badges}</span>`:''}</div>${priceHtml?`<span class="gc-price-inline">${priceHtml}</span>`:''}</div><div class="gc-desc">${t(d.desc)}</div>`;
-        gridItems.push(`<div class="gc" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${ci}" data-di="${di}"${d.img?` data-lbidx="${idx}"`:''}><div class="gc-wrap">${d.img?`<img class="gc-img" src="${d.img}" alt="" loading="lazy">`:'<div style="aspect-ratio:1;background:#ece8e1"></div>'}</div><div class="gc-body">${gcBody}</div></div>`);
+        gridItems.push(`<div class="gc" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${ci}" data-di="${di}"${d.img?` data-lbidx="${idx}"`:''}><div class="gc-wrap">${d.img?`<img class="gc-img" src="${d.img}" alt="${dishAlt(d)}" loading="lazy">`:'<div style="aspect-ratio:1;background:#ece8e1"></div>'}</div><div class="gc-body">${gcBody}</div></div>`);
       });
     });
     if(gridItems.length) html+=`<div class="dish-grid">${gridItems.join('')}</div>`;
@@ -4714,7 +4762,7 @@ function renderTabContent(tab,lbOffset){
             <div class="dish-desc">${vinfo.flavourText}</div>
             <div class="dish-price">${vinfo.sharedPrice}</div>
           </div>
-          ${card.img?`<span class="img-wrap"><img class="dish-img" src="${card.img}" alt="" loading="lazy"></span>`:''}</div>`;
+          ${card.img?`<span class="img-wrap"><img class="dish-img" src="${card.img}" alt="${dishAlt(card)}" loading="lazy"></span>`:''}</div>`;
         if(editMode) html+=`<button type="button" class="aadd" onclick="addVariant(${DATA.tabs.indexOf(tab)},${_civ})">+ Ajouter une variante</button>`;
       } else {
         (card.dishes||[]).filter(d=>!d.hidden).forEach((d,di)=>{
@@ -4722,7 +4770,7 @@ function renderTabContent(tab,lbOffset){
           const badges=badgeIconsHtml(d);
           const _cid=tab.cards.indexOf(card); const _did=card.dishes.indexOf(d);
           const priceHtml=dishPriceDisplay(d);
-          html+=`<div class="dish-row${d.img?' dish-row-clickable':''}" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${_cid}" data-di="${_did}"${d.img?` data-lbidx="${idx}"`:''}${di===0?' style="padding-top:0"':''}><div class="dish-text"><div class="dish-top-row"><div class="dish-name-row"><span class="dish-name">${t(d.name)}${isPinnedDish(d)?'&nbsp;<span class="dish-star">\u2605</span>':''}</span>${badges?`<span class="dish-badges">${badges}</span>`:''}</div>${(priceHtml && d.priceType!=='dual')?`<span class="dish-price-inline">${priceHtml}</span>`:''}</div><div class="dish-desc">${t(d.desc)}</div>${(priceHtml && d.priceType==='dual')?`<div class="dish-price">${priceHtml}</div>`:''}</div>${d.img?`<span class="img-wrap"><img class="dish-img" src="${d.img}" alt="" loading="lazy"></span>`:''}</div>`;
+          html+=`<div class="dish-row${d.img?' dish-row-clickable':''}" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${_cid}" data-di="${_did}"${d.img?` data-lbidx="${idx}"`:''}${di===0?' style="padding-top:0"':''}><div class="dish-text"><div class="dish-top-row"><div class="dish-name-row"><span class="dish-name">${t(d.name)}${isPinnedDish(d)?'&nbsp;<span class="dish-star">\u2605</span>':''}</span>${badges?`<span class="dish-badges">${badges}</span>`:''}</div>${(priceHtml && d.priceType!=='dual')?`<span class="dish-price-inline">${priceHtml}</span>`:''}</div><div class="dish-desc">${t(d.desc)}</div>${(priceHtml && d.priceType==='dual')?`<div class="dish-price">${priceHtml}</div>`:''}</div>${d.img?`<span class="img-wrap"><img class="dish-img" src="${d.img}" alt="${dishAlt(d)}" loading="lazy"></span>`:''}</div>`;
         });
         if(editMode) html+=`<button type="button" class="aadd" onclick="addDish(${DATA.tabs.indexOf(tab)},${_ciE})">Ajouter un plat</button>`;
       }
@@ -6020,7 +6068,7 @@ function renderDishDetailBody(ti, ci, di){
   }
 
   h+=`<div class="ai-img-wrap ig-merged-upload ig-gallery-field ig-card-field" style="margin-bottom:10px">
-    <input class="ai ig-flat-field ig-placeholder-normal-size" value="${escAttr(d.img||'')}" placeholder="Lien de l'image — collez un lien ou uploadez" oninput="${base}.img=this.value;renderAll();syncImgPreview(this)">
+    <input class="ai ig-flat-field ig-placeholder-normal-size" value="${escAttr(d.img||'')}" placeholder="Photo 1 — le plat seul : collez un lien ou uploadez" oninput="${base}.img=this.value;renderAll();syncImgPreview(this)">
     <label class="ig-inline-upload-icon" title="Uploader une image">
       <input type="file" accept="image/*" style="display:none" onchange="uploadImgFile(this,1)">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.22,20.75H5.78A2.64,2.64,0,0,1,3.25,18V15a.75.75,0,0,1,1.5,0v3a1.16,1.16,0,0,0,1,1.25H18.22a1.16,1.16,0,0,0,1-1.25V15a.75.75,0,0,1,1.5,0v3A2.64,2.64,0,0,1,18.22,20.75Z"/><path d="M16,8.75a.74.74,0,0,1-.53-.22L12,5.06,8.53,8.53A.75.75,0,0,1,7.47,7.47l4-4a.75.75,0,0,1,1.06,0l4,4a.75.75,0,0,1,0,1.06A.74.74,0,0,1,16,8.75Z"/><path d="M12,15.75a.76.76,0,0,1-.75-.75V4a.75.75,0,0,1,1.5,0V15A.76.76,0,0,1,12,15.75Z"/></svg>
@@ -7030,7 +7078,18 @@ const CLIENT_SLUG = _lastSegment.replace(/-preview$/, '');
 // per-deployment value, since the reservation module lives in its own
 // folder/slug (e.g. 'drevici-paris'), separate from this menu's own
 // CLIENT_SLUG. Adjust per restaurant when reusing this template.
-const RESA_ADMIN_URL = 'https://sowonboxx-cmd.github.io/menu/drevici/admin';
+// Lien RELATIF : la page voisine, quelle que soit l'adresse du site
+// (GitHub Pages, workers.dev, ou le domaine du client). L'adresse
+// complete renvoyait vers GitHub Pages depuis Cloudflare, et cesserait
+// de marcher le jour ou le depot passe en prive.
+// En RECETTE, le dossier ne contient ni resa ni admin (pas de version
+// de recette de ces pages : une recette du tableau de bord ecrirait dans
+// les vraies reservations). Les liens y renvoient donc vers la
+// production. Constante a mettre a jour quand le domaine du client sera
+// branche — elle ne sert qu'en recette.
+const PROD_BASE = 'https://drevici.beltab.app/';
+const RESA_ADMIN_URL = IS_PREVIEW ? PROD_BASE + 'admin' : 'admin';
+if(IS_PREVIEW) document.querySelectorAll('a[href="resa"]').forEach(a => { a.href = PROD_BASE + 'resa'; });
 
 const supabaseClient = (SUPABASE_URL !== 'COLLE_ICI_SUPABASE_URL' && window.supabase)
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
@@ -7552,9 +7611,11 @@ function socPickDish(val){
     socState.titre = d.name || '';
     socState.desc = d.desc || '';
     socState.caption = d.caption || '';
-    // Use first gallery image if available, else main img
+    // BUG FIX : la vignette mise en avant (index 0) est la photo
+    // principale, mais la photo utilisee etait la premiere de la galerie.
+    // Les deux suivent maintenant le meme ordre : 1, 2, 3.
     const gallery = d.gallery ? d.gallery.filter(Boolean) : [];
-    socState.photo = gallery[0] || d.img || '';
+    socState.photo = d.img || gallery[0] || '';
     socState.galleryIdx = 0;
     renderAdminSection('__social');
   } catch(e){}
@@ -10235,7 +10296,9 @@ function applyRestaurantBranding(){
     if(logoEl) logoEl.style.display='none';
     if(textEl){ textEl.style.display='block'; textEl.textContent=name||'Mon Restaurant'; }
   }
-  document.title=(name||'Menu')+' — Menu';
+  // SEO : quand le serveur (workers/menu-seo.js) a deja ecrit le vrai titre du restaurant, on le
+  // garde — Google lit le titre APRES le JavaScript, et « NOM — Menu » effacait le bon titre.
+  if(!document.documentElement.hasAttribute('data-seo')) document.title=(name||'Menu')+' — Menu';
 }
 
 function restaurantSettingHtml(){
@@ -10899,6 +10962,88 @@ const MENU_MANAGEMENT_ROWS = [
 // de securite qui la protege — et le jour ou on en a besoin, on est
 // presse : il faut les trouver sans les chercher au milieu des
 // exports et des formules.
+// ── Rapatrier les images ──
+// Les photos vivaient sur des WordPress (domainerosalina.com,
+// drevicioyster.com). Le Worker media-import les a copiees dans R2,
+// servies par media.beltab.app, et a ecrit la table « ancienne adresse →
+// nouvelle adresse » dans <client>/_rapatriement.json. Cet ecran relit
+// cette table, verifie que chaque nouvelle image repond bien, puis
+// remplace les adresses dans la carte et publie. En preview : simulation
+// seulement (lecture seule).
+const MEDIA_ORIGIN = 'https://media.beltab.app/';
+let RAPATRIEMENT = null;
+function renderRapatriementSection(){
+  setTimeout(fillRapatriement, 0);
+  return `<div class="ig-hint-block">Range toutes les photos de la carte sur <b>media.beltab.app</b>, l'hébergement définitif. Les anciennes adresses sont remplacées par les nouvelles, puis la carte est publiée. Une version est archivée avant : on peut revenir en arrière.</div>
+    <div id="rapaBox" class="ig-list" style="margin-top:10px"><div class="ig-row" style="cursor:default;color:var(--ig-text-dimmer)">Vérification…</div></div>`;
+}
+function rapaCollect(node, map, found){
+  if(typeof node === 'string'){ for(const k in map){ if(node.indexOf(k)!==-1) found[k]=(found[k]||0)+1; } return; }
+  if(Array.isArray(node)){ node.forEach(n=>rapaCollect(n,map,found)); return; }
+  if(node && typeof node === 'object'){ for(const k in node) rapaCollect(node[k],map,found); }
+}
+function rapaReplace(node, map){
+  if(typeof node === 'string'){ let v=node; for(const k in map){ if(v.indexOf(k)!==-1) v=v.split(k).join(map[k]); } return v; }
+  if(Array.isArray(node)) return node.map(n=>rapaReplace(n,map));
+  if(node && typeof node === 'object'){ const o={}; for(const k in node) o[k]=rapaReplace(node[k],map); return o; }
+  return node;
+}
+async function fillRapatriement(){
+  const box=document.getElementById('rapaBox'); if(!box) return;
+  const row=(h,st='')=>`<div class="ig-row" style="cursor:default;${st}">${h}</div>`;
+  let map;
+  try{
+    const r=await fetch(MEDIA_ORIGIN+CLIENT_SLUG+'/_rapatriement.json',{cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    map=(await r.json()).map||{};
+  }catch(e){
+    box.innerHTML=row('Table de rapatriement illisible ('+(e&&e.message||e)+') : '+MEDIA_ORIGIN+CLIENT_SLUG+'/_rapatriement.json. Si l\'adresse s\'ouvre dans le navigateur, c\'est la règle CORS du bucket qui manque.','color:var(--ig-text-dimmer)');
+    return;
+  }
+  const found={}; rapaCollect(DATA,map,found);
+  const keys=Object.keys(found);
+  if(!keys.length){ box.innerHTML=row('✓ Toutes les images de la carte sont déjà sur media.beltab.app.'); return; }
+  box.innerHTML=row('Vérification de '+keys.length+' images…','color:var(--ig-text-dimmer)');
+  const missing=[];
+  await Promise.all(keys.map(async k=>{
+    try{ const h=await fetch(map[k],{method:'HEAD',cache:'no-store'}); if(!h.ok) missing.push(k); }
+    catch(e){ missing.push(k); }
+  }));
+  const uses=keys.reduce((a,k)=>a+found[k],0);
+  RAPATRIEMENT={ map:Object.fromEntries(keys.filter(k=>!missing.includes(k)).map(k=>[k,map[k]])), count:keys.length-missing.length, uses };
+  const list=keys.map(k=>{
+    const ok=!missing.includes(k), name=k.split('/').pop(), dest=map[k].replace(MEDIA_ORIGIN,'');
+    return `<div class="ig-row" style="cursor:default;display:block;font-size:12px;line-height:1.45">
+      <span style="color:${ok?'#2e9e5b':'#cd3232'};font-weight:700">${ok?'✓':'✗'}</span> <span style="color:var(--ig-text-dimmer);word-break:break-all">${name}</span><br>
+      <span style="word-break:break-all">→ ${dest}</span>${found[k]>1?` <span style="color:var(--ig-text-dimmer)">(${found[k]} emplacements)</span>`:''}</div>`;
+  }).join('');
+  const btn = IS_PREVIEW
+    ? `<div class="ig-row" style="cursor:default;color:var(--ig-text-dimmer)">Preview : simulation seulement. Le remplacement se lance depuis le site en ligne.</div>`
+    : `<div class="ig-row" style="cursor:default;justify-content:center"><button onclick="runRapatriement()" style="background:#253968;color:#fff;border:0;border-radius:10px;padding:12px 18px;font:600 14px Inter,sans-serif;cursor:pointer">Remplacer ${RAPATRIEMENT.count} adresses et publier</button></div>`;
+  box.innerHTML =
+    row(`<b>${keys.length-missing.length} / ${keys.length}</b>&nbsp;images prêtes sur media.beltab.app · ${uses} emplacements dans la carte`)
+    + (missing.length?row(`${missing.length} image(s) absente(s) du bucket : elles gardent leur ancienne adresse. Relancez l'import pour elles.`,'color:#cd3232'):'')
+    + btn + list;
+}
+async function runRapatriement(){
+  if(IS_PREVIEW){ showToast('👁 Preview en lecture seule'); return; }
+  if(!supaSession){ showToast('⚠️ Connecte-toi d\'abord'); return; }
+  if(DATA_SOURCE!=='supabase'){ showToast('⚠️ Données non chargées : rien n\'est modifié'); return; }
+  if(!RAPATRIEMENT || !RAPATRIEMENT.count){ showToast('Rien à remplacer'); return; }
+  askConfirm('Remplacer '+RAPATRIEMENT.count+' adresses d\'images ('+RAPATRIEMENT.uses+' emplacements) et publier ?', async ()=>{
+    try{
+      await supabaseClient.from(HISTORY_TABLE).insert({ client_slug: CLIENT_SLUG, data: JSON.parse(JSON.stringify(DATA)) });
+      const next=rapaReplace(DATA, RAPATRIEMENT.map);
+      Object.keys(DATA).forEach(k=>delete DATA[k]); Object.assign(DATA, next);
+      await publishToSupabase();
+      showToast('✓ Images rapatriées — rechargement…');
+      setTimeout(()=>location.reload(), 1000);
+    }catch(e){ showToast('❌ '+e.message); }
+  });
+}
+const IMAGES_ROWS = [
+  { key:'__rapatrier', label:'Rapatrier les images', hint:'Ranger toutes les photos sur l’hébergement définitif', fn: renderRapatriementSection, icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>' }
+];
 const SAUVEGARDE_ROWS = [
   // Une sauvegarde sur le disque, en un clic. Elle ne remplace pas
   // l'historique automatique, mais elle ne depend d'aucun service :
@@ -10939,6 +11084,7 @@ const HOME_GROUPS = [
   { label:'Manager les catégories', rows:MANAGER_CATEGORIES_ROWS, hidden:true },
   { label:'Formats d\'export', rows:()=>[...EXPORT_ROWS, MENU_COLORS_ROW], hidden:true },
   { label:'Gestion des menus', rows:MENU_MANAGEMENT_ROWS },
+  { label:'Images', rows:IMAGES_ROWS },
   { label:'Sauvegardes et historique', rows:SAUVEGARDE_ROWS },
   { label:'Thème', rows:THEME_ROWS }
 ];
@@ -11082,17 +11228,17 @@ function adminBadgeGroup(obj, path){
 function entityGalleryHtml(ti,ci,idx,kind,gallery){
   gallery=gallery||[];
   const base=`DATA.tabs[${ti}].cards[${ci}].${kind}[${idx}]`;
-  let h='<div class="af"><label class="al" style="font-size:11px;font-weight:600;color:var(--text2)">Galerie réseaux sociaux (1–4 photos)</label>';
+  let h='<div class="af"><label class="al" style="font-size:11px;font-weight:600;color:var(--text2)">Photos 2 et 3 — en situation, le détail</label>';
   // Thumbnail strip — clickable previews of filled slots
   const filled=gallery.filter(Boolean);
   if(filled.length){
     h+='<div style="display:flex;gap:6px;margin:10px 0 14px;flex-wrap:wrap">';
-    for(let gi=0;gi<4;gi++){
+    for(let gi=0;gi<gallerySlots(gallery);gi++){
       const img=gallery[gi]||'';
       if(img){
         h+=`<div style="position:relative;width:60px;height:60px;border-radius:8px;overflow:hidden;border:2px solid var(--gold)">
           <img src="${img}" style="width:100%;height:100%;object-fit:cover">
-          <span style="position:absolute;top:1px;left:3px;font-size:9px;color:#fff;font-weight:700;text-shadow:0 1px 3px #000">${gi+1}</span>
+          <span style="position:absolute;top:1px;left:3px;font-size:9px;color:#fff;font-weight:700;text-shadow:0 1px 3px #000">${gi+2}</span>
         </div>`;
       }
     }
@@ -11103,14 +11249,14 @@ function entityGalleryHtml(ti,ci,idx,kind,gallery){
   // le triangle natif à gauche.
   h+=`<details class="ig-gallery-details" style="margin-top:${filled.length?'4':'11'}px"><summary>Voir toutes les photos<span class="ig-row-chevron ig-gallery-chevron">›</span></summary>`;
   h+='<div class="ig-gallery-links" style="display:flex;flex-direction:column;gap:8px;margin-top:10px">';
-  for(let gi=0;gi<4;gi++){
+  for(let gi=0;gi<gallerySlots(gallery);gi++){
     const val=gallery[gi]||'';
     const cb=`if(!${base}.gallery)${base}.gallery=[];${base}.gallery[${gi}]=this.value;renderAll();syncImgPreview(this)`;
     // Champ pleine largeur, sans bordure, sur le fond de page : le
     // numéro passe dans le placeholder et la corbeille se loge dans le
     // champ (à côté de l'upload) au lieu de rogner sa largeur.
     h+=`<div class="ai-img-wrap ig-merged-upload ig-gallery-field${val?' has-del':''}">
-      <input class="ai ig-flat-field ig-placeholder-normal-size" value="${escAttr(val)}" placeholder="Photo ${gi+1} — collez un lien ou uploadez" oninput="${cb}">
+      <input class="ai ig-flat-field ig-placeholder-normal-size" value="${escAttr(val)}" placeholder="${galleryRole(gi)} — collez un lien ou uploadez" oninput="${cb}">
       ${val?`<button class="ig-gallery-del" onclick="${base}.gallery[${gi}]='';renderAll();refreshCurrentTabView(DATA.tabs[${ti}].id)" title="Supprimer cette photo">${TRASH_SVG}</button>`:''}
       <label class="ig-inline-upload-icon" title="Uploader une image"><input type="file" accept="image/*" style="display:none" onchange="uploadImgFile(this,${9/16})"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.22,20.75H5.78A2.64,2.64,0,0,1,3.25,18V15a.75.75,0,0,1,1.5,0v3a1.16,1.16,0,0,0,1,1.25H18.22a1.16,1.16,0,0,0,1-1.25V15a.75.75,0,0,1,1.5,0v3A2.64,2.64,0,0,1,18.22,20.75Z"/><path d="M16,8.75a.74.74,0,0,1-.53-.22L12,5.06,8.53,8.53A.75.75,0,0,1,7.47,7.47l4-4a.75.75,0,0,1,1.06,0l4,4a.75.75,0,0,1,0,1.06A.74.74,0,0,1,16,8.75Z"/><path d="M12,15.75a.76.76,0,0,1-.75-.75V4a.75.75,0,0,1,1.5,0V15A.76.76,0,0,1,12,15.75Z"/></svg></label>
     </div>`;
