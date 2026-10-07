@@ -143,59 +143,48 @@ a{color:inherit;text-decoration:none}
 <body>
 <div class="wrap">
 
-  <div class="mock">Maquette · données d'exemple</div>
-
   <header class="top">
     <img src="../charte/files/logos/DreviciOyster-BZH_LogoRond_FondBleu.svg" alt="Drevici Oyster">
     <div class="who">
       <b>La Cabine</b>
-      <span>Drevici Oyster · Gérant · <a href="#" id="venueLabel">BZH</a></span>
+      <span>Drevici Oyster · <span id="who">Espace gérant</span></span>
     </div>
-    <a class="site" href="../../drevici/index.html">Voir le site</a>
+    <a class="site" data-prod="" href="#">Voir le site</a>
   </header>
-
-  <nav class="venues" aria-label="Établissement">
-    <button aria-pressed="true" data-v="BZH">BZH</button>
-    <button aria-pressed="false" data-v="Bar">Bar</button>
-    <button aria-pressed="false" data-v="Paris">Paris</button>
-    <button aria-pressed="false" data-v="Surzur">Surzur</button>
-  </nav>
 
   <main class="grid">
 
-    <!-- 1. Calendrier réseaux : toujours en tête -->
+    <!-- 1. Calendrier : toujours en tête. Lit edito.json (le même que calendar.html). -->
     <section class="card c-cal span2" aria-label="Calendrier réseaux sociaux">
       <img class="ico" src="../charte/files/icones/DreviciOyster_Icone_Phare_Bleu.svg" alt="" style="opacity:.14">
       <div class="head">
         <div>
           <h2>Calendrier réseaux</h2>
-          <p>Vos publications de la semaine</p>
+          <p id="calSub">Cette semaine</p>
         </div>
-        <a href="../../drevici/calendar.html">Ouvrir</a>
+        <a data-prod="calendar.html" href="#">Ouvrir</a>
       </div>
       <div class="week" id="week"></div>
-      <a class="next" href="../../drevici/calendar.html">
-        <span class="tag">Vendredi</span>
-        <div><b>Reel · Le plateau du week-end</b><span>Instagram + TikTok · 18 h 30</span></div>
+      <a class="next" id="next" data-prod="calendar.html" href="#" hidden>
+        <span class="tag" id="nextTag"></span>
+        <div><b id="nextTitle"></b><span id="nextMeta"></span></div>
       </a>
     </section>
 
     <!-- 2. Réservations -->
-    <a class="card c-resa" href="../../drevici/admin.html">
+    <a class="card c-resa" data-prod="admin.html" href="#">
       <img class="ico" src="../charte/files/icones/DreviciOyster_Icone_Huitre_Blanc.svg" alt="">
       <h2>Réservations</h2>
-      <p>Ce soir et à venir</p>
-      <span class="badge" id="resaCount">12<small>ce soir</small></span>
+      <p id="resaSub">Ce soir et à venir</p>
+      <span class="badge" id="resaCount" hidden>0<small>ce soir</small></span>
+      <span class="go" id="resaGo"><svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2.2"><path d="M6 3l5 5-5 5"/></svg></span>
     </a>
 
-    <!-- 3. QR codes & stats -->
+    <!-- 3. Tracker (maquette pour l'instant) -->
     <a class="card c-qr" href="tracker.html">
       <img class="ico" src="../charte/files/icones/DreviciOyster_Icone_Bateau_Blanc.svg" alt="">
       <h2>Tracker</h2>
-      <div class="kpis">
-        <div><b>1 467<span class="up">+18 %</span></b><span>Scans · 7 j</span></div>
-        <div><b>149</b><span>Ventes + résas</span></div>
-      </div>
+      <p>Codes, commerciaux, events · maquette</p>
       <span class="go"><svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2.2"><path d="M6 3l5 5-5 5"/></svg></span>
     </a>
 
@@ -215,84 +204,92 @@ a{color:inherit;text-decoration:none}
       <span class="go"><svg viewBox="0 0 16 16" fill="none" stroke="#0d255c" stroke-width="2.2"><path d="M6 3l5 5-5 5"/></svg></span>
     </a>
 
-    <!-- 6. Administration -->
-    <a class="card c-admin span2" href="../../drevici/admin.html">
+    <!-- 6. Administration du site (panneau admin du menu) -->
+    <a class="card c-admin" data-prod="?admin=1" href="#">
       <img class="ico" src="../charte/files/icones/DreviciOyster_Icone_Barre-a-roue_Blanc.svg" alt="">
       <h2>Administration</h2>
-      <p>Menu, horaires, fidélité, réglages</p>
+      <p>Carte, photos, horaires, réglages</p>
       <span class="go"><svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2.2"><path d="M6 3l5 5-5 5"/></svg></span>
     </a>
 
   </main>
 
   <footer class="foot">
-    <button type="button">Se déconnecter</button>
-    <span>Propulsé par Tensai Agency</span>
+    <button type="button" id="logout" hidden>Se déconnecter</button>
+    <span>Propulsé par Beltab</span>
   </footer>
 </div>
 
-<!-- Feuille statistiques -->
-<div class="sheet" id="stats" hidden role="dialog" aria-modal="true" aria-labelledby="stTitle">
-  <div class="panel">
-    <div class="grab"></div>
-    <button class="x" type="button" data-close aria-label="Fermer">×</button>
-    <h3 id="stTitle">QR codes &amp; stats</h3>
-    <p class="sub">Drevici Oyster · <span class="vname">BZH</span></p>
-    <div class="range">
-      <button aria-pressed="false">Aujourd'hui</button>
-      <button aria-pressed="true">7 jours</button>
-      <button aria-pressed="false">30 jours</button>
-    </div>
-    <div class="tiles">
-      <div class="tile"><b>342</b><span>Scans QR</span><em>+18 %</em></div>
-      <div class="tile"><b>1 208</b><span>Visites site</span><em>+9 %</em></div>
-      <div class="tile"><b>87</b><span>Réservations</span><em>+12 %</em></div>
-      <div class="tile"><b>2 min 40</b><span>Temps moyen</span><em>+0:20</em></div>
-    </div>
-    <h4>Scans par jour</h4>
-    <div class="bars" id="bars"></div>
-    <div class="blabels"><span>Lun</span><span>Mar</span><span>Mer</span><span>Jeu</span><span>Ven</span><span>Sam</span><span>Dim</span></div>
-    <h4>Par QR code</h4>
-    <ul class="qrlist">
-      <li><b>QR table · menu</b><span>168</span><i style="--w:100%"></i></li>
-      <li><b>QR vitrine · aperçu du menu</b><span>94</span><i style="--w:56%"></i></li>
-      <li><b>QR caisse · carte fidélité</b><span>52</span><i style="--w:31%"></i></li>
-      <li><b>QR flyer · réservation</b><span>28</span><i style="--w:17%"></i></li>
-    </ul>
-    <p class="demo">Maquette : chiffres d'exemple. Les vraies données arriveront dès que les QR codes seront branchés.</p>
-  </div>
-</div>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// semaine du calendrier (aujourd'hui en surbrillance, points = publications prévues)
-(function(){
-  const days=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'], posts=[1,0,1,0,1,1,1];
+// Toutes les pages de gestion vivent sur le site EN LIGNE (admin, calendrier,
+// réservations n'existent qu'en production). La Cabine pointe donc toujours
+// vers drevici.beltab.app, qu'elle soit ouverte en preview ou en ligne.
+const PROD = 'https://drevici.beltab.app/';
+const RESA_SLUG = 'drevici-paris';
+const SUPABASE_URL = 'https://fdbzzkzfipzabryfanun.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_9PaqDuXnWV3aOCBPk9ImmQ_4YgYTU9n';
+document.querySelectorAll('[data-prod]').forEach(a=>a.href=PROD+a.dataset.prod);
+
+const pad=n=>String(n).padStart(2,'0');
+const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+
+/* ── Calendrier : la semaine en cours + le prochain post ── */
+const SOCIAL=['instagram','tiktok','facebook','linkedin','reel','story','post'];
+async function loadEdito(){
+  for(const u of ['../edito.json', PROD+'edito.json', 'https://sowonboxx-cmd.github.io/menu/drevici/edito.json']){
+    try{ const r=await fetch(u,{cache:'no-store'}); if(r.ok) return (await r.json()).entries||[]; }catch(e){}
+  }
+  return null;
+}
+(async function(){
+  const days=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
   const now=new Date(), dow=(now.getDay()+6)%7, monday=new Date(now); monday.setDate(now.getDate()-dow);
+  const E=await loadEdito()||[];
+  const byDay={}; E.forEach(e=>{(byDay[e.date]=byDay[e.date]||[]).push(e)});
+  let weekN=0;
   document.getElementById('week').innerHTML=days.map((d,i)=>{
     const dt=new Date(monday); dt.setDate(monday.getDate()+i);
-    return `<div class="day${i===dow?' today':''}${posts[i]?' on':''}"><b>${d}</b><span>${dt.getDate()}</span><i></i></div>`;
+    const list=byDay[iso(dt)]||[]; weekN+=list.length;
+    const soc=list.some(e=>SOCIAL.includes(e.type));
+    return `<div class="day${i===dow?' today':''}${list.length?' on':''}" title="${list.map(e=>e.title).join(' · ').replace(/"/g,'&quot;')}"><b>${d}</b><span>${dt.getDate()}</span><i${soc?' style="background:#cd3232"':''}></i></div>`;
   }).join('');
-  const vals=[38,29,41,35,58,84,57], max=Math.max(...vals);
-  document.getElementById('bars').innerHTML=vals.map(v=>`<div class="${v===max?'hi':''}" style="height:${v/max*100}%"><span>${v}</span></div>`).join('');
+  document.getElementById('calSub').textContent = weekN ? weekN+' entrée'+(weekN>1?'s':'')+' cette semaine' : 'Rien de prévu cette semaine';
+  const today=iso(now);
+  const upcoming=E.filter(e=>e.date>=today).sort((a,b)=>a.date.localeCompare(b.date));
+  const nx=upcoming.find(e=>SOCIAL.includes(e.type)) || upcoming[0];
+  if(nx){
+    const d=new Date(nx.date+'T12:00:00');
+    const diff=Math.round((d-new Date(today+'T12:00:00'))/864e5);
+    document.getElementById('nextTag').textContent = diff===0?'Aujourd’hui':diff===1?'Demain':d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
+    document.getElementById('nextTitle').textContent = nx.title;
+    const TYPES={instagram:'Instagram',tiktok:'TikTok',facebook:'Facebook',linkedin:'LinkedIn',event:'Événement',marche:'Marché',avenir:'À venir'};
+    document.getElementById('nextMeta').textContent = (TYPES[nx.type]||nx.type)+(nx.status==='ready'?' · prêt':nx.status==='todo'?' · à faire':' · idée');
+    document.getElementById('next').hidden=false;
+  }
 })();
 
-// établissements
-const resa={BZH:12,Bar:7,Paris:19,Surzur:5};
-document.querySelectorAll('.venues button').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('.venues button').forEach(x=>x.setAttribute('aria-pressed',x===b));
-  const v=b.dataset.v;
-  document.getElementById('venueLabel').textContent=v;
-  document.querySelectorAll('.vname').forEach(e=>e.textContent=v);
-  document.getElementById('resaCount').firstChild.nodeValue=resa[v];
-  document.querySelector('.top img').src=`../charte/files/logos/DreviciOyster-${v}_LogoRond_FondBleu.svg`;
-});
-
-// feuille stats
-const sheet=document.getElementById('stats');
-sheet.addEventListener('click',e=>{if(e.target===sheet||e.target.closest('[data-close]'))sheet.hidden=true});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')sheet.hidden=true});
-sheet.querySelectorAll('.range button').forEach(b=>b.onclick=()=>sheet.querySelectorAll('.range button').forEach(x=>x.setAttribute('aria-pressed',x===b)));
-document.getElementById('venueLabel').onclick=e=>e.preventDefault();
+/* ── Réservations : vrai compte si le gérant est connecté ── */
+(async function(){
+  if(!window.supabase) return;
+  const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+  const { data } = await sb.auth.getSession();
+  const session=data && data.session;
+  if(!session){ document.getElementById('resaSub').textContent='Connectez-vous pour voir le compte du jour'; return; }
+  document.getElementById('who').textContent=session.user.email;
+  const lo=document.getElementById('logout'); lo.hidden=false;
+  lo.onclick=async()=>{ await sb.auth.signOut(); location.reload(); };
+  const today=iso(new Date());
+  const { data: rows, error } = await sb.from('restaurant_reservations')
+    .select('date_iso,covers,status').eq('client_slug',RESA_SLUG).gte('date_iso',today);
+  if(error||!rows) return;
+  const act=rows.filter(r=>(r.status||'confirmed')==='confirmed');
+  const tonight=act.filter(r=>r.date_iso===today);
+  const covers=tonight.reduce((s,r)=>s+(parseInt(r.covers)||0),0);
+  const b=document.getElementById('resaCount');
+  b.firstChild.nodeValue=tonight.length; b.hidden=false; document.getElementById('resaGo').hidden=true;
+  document.getElementById('resaSub').textContent=(covers?covers+' couverts ce soir · ':'')+(act.length-tonight.length)+' à venir';
+})();
 </script>
 </body>
 </html>
