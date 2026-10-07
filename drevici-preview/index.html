@@ -10962,6 +10962,88 @@ const MENU_MANAGEMENT_ROWS = [
 // de securite qui la protege — et le jour ou on en a besoin, on est
 // presse : il faut les trouver sans les chercher au milieu des
 // exports et des formules.
+// ── Rapatrier les images ──
+// Les photos vivaient sur des WordPress (domainerosalina.com,
+// drevicioyster.com). Le Worker media-import les a copiees dans R2,
+// servies par media.beltab.app, et a ecrit la table « ancienne adresse →
+// nouvelle adresse » dans <client>/_rapatriement.json. Cet ecran relit
+// cette table, verifie que chaque nouvelle image repond bien, puis
+// remplace les adresses dans la carte et publie. En preview : simulation
+// seulement (lecture seule).
+const MEDIA_ORIGIN = 'https://media.beltab.app/';
+let RAPATRIEMENT = null;
+function renderRapatriementSection(){
+  setTimeout(fillRapatriement, 0);
+  return `<div class="ig-hint-block">Range toutes les photos de la carte sur <b>media.beltab.app</b>, l'hébergement définitif. Les anciennes adresses sont remplacées par les nouvelles, puis la carte est publiée. Une version est archivée avant : on peut revenir en arrière.</div>
+    <div id="rapaBox" class="ig-list" style="margin-top:10px"><div class="ig-row" style="cursor:default;color:var(--ig-text-dimmer)">Vérification…</div></div>`;
+}
+function rapaCollect(node, map, found){
+  if(typeof node === 'string'){ for(const k in map){ if(node.indexOf(k)!==-1) found[k]=(found[k]||0)+1; } return; }
+  if(Array.isArray(node)){ node.forEach(n=>rapaCollect(n,map,found)); return; }
+  if(node && typeof node === 'object'){ for(const k in node) rapaCollect(node[k],map,found); }
+}
+function rapaReplace(node, map){
+  if(typeof node === 'string'){ let v=node; for(const k in map){ if(v.indexOf(k)!==-1) v=v.split(k).join(map[k]); } return v; }
+  if(Array.isArray(node)) return node.map(n=>rapaReplace(n,map));
+  if(node && typeof node === 'object'){ const o={}; for(const k in node) o[k]=rapaReplace(node[k],map); return o; }
+  return node;
+}
+async function fillRapatriement(){
+  const box=document.getElementById('rapaBox'); if(!box) return;
+  const row=(h,st='')=>`<div class="ig-row" style="cursor:default;${st}">${h}</div>`;
+  let map;
+  try{
+    const r=await fetch(MEDIA_ORIGIN+CLIENT_SLUG+'/_rapatriement.json',{cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    map=(await r.json()).map||{};
+  }catch(e){
+    box.innerHTML=row('Table de rapatriement introuvable sur media.beltab.app. Lancez d\'abord l\'import (import.beltab.app).','color:var(--ig-text-dimmer)');
+    return;
+  }
+  const found={}; rapaCollect(DATA,map,found);
+  const keys=Object.keys(found);
+  if(!keys.length){ box.innerHTML=row('✓ Toutes les images de la carte sont déjà sur media.beltab.app.'); return; }
+  box.innerHTML=row('Vérification de '+keys.length+' images…','color:var(--ig-text-dimmer)');
+  const missing=[];
+  await Promise.all(keys.map(async k=>{
+    try{ const h=await fetch(map[k],{method:'HEAD',cache:'no-store'}); if(!h.ok) missing.push(k); }
+    catch(e){ missing.push(k); }
+  }));
+  const uses=keys.reduce((a,k)=>a+found[k],0);
+  RAPATRIEMENT={ map:Object.fromEntries(keys.filter(k=>!missing.includes(k)).map(k=>[k,map[k]])), count:keys.length-missing.length, uses };
+  const list=keys.map(k=>{
+    const ok=!missing.includes(k), name=k.split('/').pop(), dest=map[k].replace(MEDIA_ORIGIN,'');
+    return `<div class="ig-row" style="cursor:default;display:block;font-size:12px;line-height:1.45">
+      <span style="color:${ok?'#2e9e5b':'#cd3232'};font-weight:700">${ok?'✓':'✗'}</span> <span style="color:var(--ig-text-dimmer);word-break:break-all">${name}</span><br>
+      <span style="word-break:break-all">→ ${dest}</span>${found[k]>1?` <span style="color:var(--ig-text-dimmer)">(${found[k]} emplacements)</span>`:''}</div>`;
+  }).join('');
+  const btn = IS_PREVIEW
+    ? `<div class="ig-row" style="cursor:default;color:var(--ig-text-dimmer)">Preview : simulation seulement. Le remplacement se lance depuis le site en ligne.</div>`
+    : `<div class="ig-row" style="cursor:default;justify-content:center"><button onclick="runRapatriement()" style="background:#253968;color:#fff;border:0;border-radius:10px;padding:12px 18px;font:600 14px Inter,sans-serif;cursor:pointer">Remplacer ${RAPATRIEMENT.count} adresses et publier</button></div>`;
+  box.innerHTML =
+    row(`<b>${keys.length-missing.length} / ${keys.length}</b>&nbsp;images prêtes sur media.beltab.app · ${uses} emplacements dans la carte`)
+    + (missing.length?row(`${missing.length} image(s) absente(s) du bucket : elles gardent leur ancienne adresse. Relancez l'import pour elles.`,'color:#cd3232'):'')
+    + btn + list;
+}
+async function runRapatriement(){
+  if(IS_PREVIEW){ showToast('👁 Preview en lecture seule'); return; }
+  if(!supaSession){ showToast('⚠️ Connecte-toi d\'abord'); return; }
+  if(DATA_SOURCE!=='supabase'){ showToast('⚠️ Données non chargées : rien n\'est modifié'); return; }
+  if(!RAPATRIEMENT || !RAPATRIEMENT.count){ showToast('Rien à remplacer'); return; }
+  askConfirm('Remplacer '+RAPATRIEMENT.count+' adresses d\'images ('+RAPATRIEMENT.uses+' emplacements) et publier ?', async ()=>{
+    try{
+      await supabaseClient.from(HISTORY_TABLE).insert({ client_slug: CLIENT_SLUG, data: JSON.parse(JSON.stringify(DATA)) });
+      const next=rapaReplace(DATA, RAPATRIEMENT.map);
+      Object.keys(DATA).forEach(k=>delete DATA[k]); Object.assign(DATA, next);
+      await publishToSupabase();
+      showToast('✓ Images rapatriées — rechargement…');
+      setTimeout(()=>location.reload(), 1000);
+    }catch(e){ showToast('❌ '+e.message); }
+  });
+}
+const IMAGES_ROWS = [
+  { key:'__rapatrier', label:'Rapatrier les images', hint:'Ranger toutes les photos sur l’hébergement définitif', fn: renderRapatriementSection, icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>' }
+];
 const SAUVEGARDE_ROWS = [
   // Une sauvegarde sur le disque, en un clic. Elle ne remplace pas
   // l'historique automatique, mais elle ne depend d'aucun service :
@@ -11002,6 +11084,7 @@ const HOME_GROUPS = [
   { label:'Manager les catégories', rows:MANAGER_CATEGORIES_ROWS, hidden:true },
   { label:'Formats d\'export', rows:()=>[...EXPORT_ROWS, MENU_COLORS_ROW], hidden:true },
   { label:'Gestion des menus', rows:MENU_MANAGEMENT_ROWS },
+  { label:'Images', rows:IMAGES_ROWS },
   { label:'Sauvegardes et historique', rows:SAUVEGARDE_ROWS },
   { label:'Thème', rows:THEME_ROWS }
 ];
