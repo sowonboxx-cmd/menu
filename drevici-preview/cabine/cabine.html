@@ -969,8 +969,9 @@ const grid=o=>{const st=emptyStock();COLORS.forEach(c=>SIZES.forEach(s=>{st[c][s
 const gsum=o=>COLORS.reduce((a,c)=>a+SIZES.reduce((b,s)=>b+o[c][s],0),0);
 function normShop(x){
   const pr={...PRICE_DEF};COLORS.forEach(c=>{const v=x&&x.prices&&x.prices[c];if(v!=null&&v!=='')pr[c]=+v;});
-  // Part de Will (marketing, goodies) : 25 % de chaque vente, tous produits. Rangée dans prices._pct.
-  pr._pct=x&&x.prices&&x.prices._pct!=null?+x.prices._pct:25;
+  // Part de Will (conception, fournisseur, stock, vente) : 30 % de chaque vente, tous produits
+  // (décidé le 8 oct., avant 25 %). Rangée dans prices._pct ; _pctv=2 bascule une fois les 25 % déjà enregistrés.
+  const p0=x&&x.prices||{}; pr._pct=p0._pctv===2&&p0._pct!=null?+p0._pct:30; pr._pctv=2;
   let st=grid(x&&x.stock); if(!x||!gsum(st)&&!x.stock_set) st=grid(STOCK_DEF);
   return {prices:pr,stock:st,ordered:grid(x&&x.ordered),order_status:(x&&x.order_status)||'brouillon',stock_set:true};
 }
@@ -980,7 +981,7 @@ async function loadShop(){
   if(sb&&SESSION){
     const [a,b]=await Promise.all([sb.from('cabine_shop').select('*').eq('client_slug',MENU_SLUG).maybeSingle(),
       sb.from('cabine_shop_sales').select('*').eq('client_slug',MENU_SLUG).order('created_at',{ascending:false})]);
-    if(!a.error&&!b.error){DB_SHOP=true;SHOP=normShop(a.data);SALES=b.data||[];if(!a.data||!a.data.stock_set)saveShop();return;}
+    if(!a.error&&!b.error){DB_SHOP=true;SHOP=normShop(a.data);SALES=b.data||[];if(!a.data||!a.data.stock_set||(a.data.prices||{})._pctv!==2)saveShop();return;}
   }
   DB_SHOP=false; const l=lsShop()||{}; SHOP=normShop(l.shop); SALES=l.sales||[];
 }
