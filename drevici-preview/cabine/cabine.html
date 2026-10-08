@@ -944,82 +944,87 @@ function renderQRAll(){renderQRHome();renderQR();
   if(raw==='horscarte')renderTeam('Hors carte','teamHC','Ventes hors carte','Cartes hors menu des serveurs · une commande validée déclenche la commission');
   if(raw==='noel')renderTeam('Plateaux Noël','teamNO','Plateaux de Noël','Qui fait scanner, qui fait commander');}
 
-/* ═══════════ T-shirts : commande, ventes, paiements ═══════════ */
-// Tables cabine_shop (réglages + quantités commandées) et cabine_shop_sales
-// (une ligne par vente). Tant que sql/tshirts.sql n'est pas lancé, ou hors
-// connexion, tout est gardé sur cet appareil (brouillon) pour pouvoir tester.
+/* ═══════════ T-shirts : stock, commande, ventes, paiements ═══════════ */
+// cabine_shop : prix, STOCK EN MAIN (stock) et COMMANDE FOURNISSEUR (ordered).
+// Une vente retire ses pièces du stock ; la supprimer les remet. Quand la
+// commande passe à « Reçue », ses quantités s'ajoutent au stock.
+// Sans sql/tshirts.sql ou hors connexion : brouillon gardé sur cet appareil.
 const COLORS=['Bleu','Blanc'], SIZES=['S','M','L','XL'];
 const ORD={brouillon:'Brouillon',commandee:'Commandée',recue:'Reçue'}, ORD_NEXT={brouillon:'commandee',commandee:'recue',recue:'brouillon'};
 const SELLERS=['Will','Vince','Benji','Élodie','Étienne'];
-const LS_SHOP='cabine_tshirts_v2';
+const LS_SHOP='cabine_tshirts_v3';
 const PRICE_DEF={Bleu:35,Blanc:30};
+const STOCK_DEF={Blanc:{S:6,M:5}};   // stock de départ donné par Will le 8 oct.
 let SHOP=null, SALES=[], DB_SHOP=false, SF='Toutes', saleEdit=null, shopTimer=null;
 const emptyStock=()=>Object.fromEntries(COLORS.map(c=>[c,Object.fromEntries(SIZES.map(s=>[s,0]))]));
-function normShop(x){const st=emptyStock();COLORS.forEach(c=>SIZES.forEach(s=>{st[c][s]=Math.max(0,parseInt(((x&&x.stock)||{})[c]?.[s])||0);}));
+const grid=o=>{const st=emptyStock();COLORS.forEach(c=>SIZES.forEach(s=>{st[c][s]=parseInt(((o||{})[c]||{})[s])||0;}));return st;};
+const gsum=o=>COLORS.reduce((a,c)=>a+SIZES.reduce((b,s)=>b+o[c][s],0),0);
+function normShop(x){
   const pr={...PRICE_DEF};COLORS.forEach(c=>{const v=x&&x.prices&&x.prices[c];if(v!=null&&v!=='')pr[c]=+v;});
-  return {prices:pr,stock:st,order_status:(x&&x.order_status)||'brouillon'};}
+  let st=grid(x&&x.stock); if(!x||!gsum(st)&&!x.stock_set) st=grid(STOCK_DEF);
+  return {prices:pr,stock:st,ordered:grid(x&&x.ordered),order_status:(x&&x.order_status)||'brouillon',stock_set:true};
+}
 function lsShop(){try{return JSON.parse(localStorage.getItem(LS_SHOP)||'null');}catch(e){return null;}}
 function lsSave(){try{localStorage.setItem(LS_SHOP,JSON.stringify({shop:SHOP,sales:SALES}));}catch(e){}}
-function demoShop(){
-  const t=d=>{const x=new Date();x.setDate(x.getDate()-d);return x.toISOString();};
-  return {shop:{order_status:'commandee',stock:{Bleu:{S:6,M:12,L:12,XL:6},Blanc:{S:4,M:8,L:8,XL:4}}},
-    sales:[{id:'l1',buyer:'Camille R.',contact:'@camille.r',color:'Bleu',size:'M',qty:1,amount:35,seller:'Élodie',paid:true,given:true,created_at:t(3)},
-      {id:'l2',buyer:'Thomas',contact:'',color:'Blanc',size:'L',qty:2,amount:60,seller:'Will',paid:true,given:false,created_at:t(2)},
-      {id:'l3',buyer:'Sarah B.',contact:'06 12 34 56 78',color:'Bleu',size:'S',qty:1,amount:35,seller:'Vince',paid:false,given:false,created_at:t(1)},
-      {id:'l4',buyer:'Hugo',contact:'',color:'Bleu',size:'XL',qty:1,amount:35,seller:'Benji',paid:false,given:true,created_at:t(0)}]};
-}
 async function loadShop(){
   if(sb&&SESSION){
     const [a,b]=await Promise.all([sb.from('cabine_shop').select('*').eq('client_slug',MENU_SLUG).maybeSingle(),
       sb.from('cabine_shop_sales').select('*').eq('client_slug',MENU_SLUG).order('created_at',{ascending:false})]);
-    if(!a.error&&!b.error){DB_SHOP=true;SHOP=normShop(a.data);SALES=b.data||[];return;}
+    if(!a.error&&!b.error){DB_SHOP=true;SHOP=normShop(a.data);SALES=b.data||[];if(!a.data||!a.data.stock_set)saveShop();return;}
   }
-  DB_SHOP=false; const l=lsShop()||demoShop(); SHOP=normShop(l.shop); SALES=l.sales||[];
+  DB_SHOP=false; const l=lsShop()||{}; SHOP=normShop(l.shop); SALES=l.sales||[];
 }
 function shopStats(){
   const sold=emptyStock(); SALES.forEach(v=>{if(sold[v.color]&&sold[v.color][v.size]!=null)sold[v.color][v.size]+=(+v.qty||0);});
-  const sum=o=>COLORS.reduce((a,c)=>a+SIZES.reduce((b,s)=>b+o[c][s],0),0);
   const paid=SALES.filter(v=>v.paid).reduce((a,v)=>a+(+v.amount||0),0), due=SALES.filter(v=>!v.paid).reduce((a,v)=>a+(+v.amount||0),0);
-  return {sold,nSold:sum(sold),nOrd:sum(SHOP.stock),paid,due,left:(c,s)=>SHOP.stock[c][s]-sold[c][s],
+  return {sold,nSold:gsum(sold),nStock:gsum(SHOP.stock),nOrd:gsum(SHOP.ordered),paid,due,
     toGive:SALES.filter(v=>!v.given).reduce((a,v)=>a+(+v.qty||0),0)};
 }
 function saveShop(){
   if(!DB_SHOP){lsSave();return;}
   clearTimeout(shopTimer);shopTimer=setTimeout(async()=>{
     const {error}=await sb.from('cabine_shop').upsert({client_slug:MENU_SLUG,...SHOP,updated_at:new Date().toISOString()});
-    if(error)toast('Erreur : '+error.message);},500);
+    if(error)toast(/ordered|stock_set/.test(error.message)?'Base à mettre à jour : relancez sql/tshirts.sql':'Erreur : '+error.message);},400);
 }
+const moveStock=(c,z,n)=>{if(SHOP.stock[c]&&SHOP.stock[c][z]!=null)SHOP.stock[c][z]+=n;};
 function renderShopHome(){
   if(!SHOP)return; const s=shopStats();
   document.querySelector('[data-tee-demo]').hidden=DB_SHOP;
-  document.getElementById('teeSold').innerHTML=s.nSold+(s.nOrd?' <small>/ '+s.nOrd+'</small>':'');
+  document.getElementById('teeSold').innerHTML=String(s.nSold);
   document.getElementById('teePaid').textContent=eur(s.paid);
   document.getElementById('teeDue').textContent=eur(s.due);
-  document.getElementById('teeSub').textContent='Bleu et blanc · S à XL · '+({brouillon:'commande à passer',commandee:'commande passée',recue:'commande reçue'}[SHOP.order_status])+(s.toGive?' · '+s.toGive+' à remettre':'');
-  const chips=[];COLORS.forEach(c=>SIZES.forEach(z=>{if(SHOP.stock[c][z]){const l=s.left(c,z);chips.push(`<span class="${l<=0?'z':''}"><i class="swd ${c}"></i>${z} · ${l<=0?'épuisé':l}</span>`);}}));
-  if(chips.length)chips.unshift('<small style="align-self:center;margin-right:2px">Restants</small>');
-  document.getElementById('teeLeft').innerHTML=chips.join('')||'<span>Aucune quantité commandée pour l’instant</span>';
+  document.getElementById('teeSub').textContent='Bleu et blanc · S à XL · '+s.nStock+' en stock'+(s.nOrd&&SHOP.order_status!=='recue'?' · '+s.nOrd+' en commande':'')+(s.toGive?' · '+s.toGive+' à remettre':'');
+  const chips=[];COLORS.forEach(c=>SIZES.forEach(z=>{const n=SHOP.stock[c][z];if(n||s.sold[c][z])chips.push(`<span class="${n<=0?'z':''}"><i class="swd ${c}"></i>${z} · ${n<=0?'épuisé':n}</span>`);}));
+  if(chips.length)chips.unshift('<small style="align-self:center;margin-right:2px">En stock</small>');
+  document.getElementById('teeLeft').innerHTML=chips.join('')||'<span>Stock vide</span>';
 }
 const ppl=v=>`<span class="st ${v.paid?'ok':'todo'}" data-sp="${esc(v.id)}">${v.paid?'Payé ✓':'À payer'}</span><span class="st ${v.given?'ok':'prog'}" data-sg="${esc(v.id)}">${v.given?'Remis ✓':'À remettre'}</span>`;
+function tGrid(kind,s){
+  const o=SHOP[kind];
+  const cell=(c,z)=>{const n=o[c][z];let sub='&nbsp;',cls='';
+    if(kind==='stock'){ if(n<0){sub='manque '+(-n);cls='z';} else if(s.sold[c][z]) sub=s.sold[c][z]+' vendu'+(s.sold[c][z]>1?'s':''); }
+    else if(n&&SHOP.stock[c][z]) sub='+ '+SHOP.stock[c][z]+' en stock';
+    return `<div class="cell"><input type="number" inputmode="numeric" ${kind==='stock'?'':'min="0"'} value="${n||''}" placeholder="0" data-g="${kind}|${c}|${z}" aria-label="${c} ${z}"><small class="${cls}">${sub}</small></div>`;};
+  return `<div class="tgrid"><span></span>${SIZES.map(z=>`<span class="hdr">${z}</span>`).join('')}<span class="hdr">Total</span>
+    ${COLORS.map(c=>`<span class="cl"><i class="swd ${c}"></i>${c}</span>${SIZES.map(z=>cell(c,z)).join('')}<span class="tot num">${SIZES.reduce((a,z)=>a+o[c][z],0)}</span>`).join('')}</div>`;
+}
 function renderShop(){
   if(!SHOP)return; const s=shopStats();
-  const cell=(c,z)=>{const l=s.left(c,z),o=SHOP.stock[c][z];return `<div class="cell"><input type="number" inputmode="numeric" min="0" value="${o||''}" placeholder="0" data-stk="${c}|${z}" aria-label="${c} ${z}"><small class="${o&&l<=0?'z':''}">${o?(l<=0?(l<0?'manque '+(-l):'épuisé'):l+' rest.'):s.sold[c][z]?s.sold[c][z]+' vendu':'&nbsp;'}</small></div>`;};
-  const tot=c=>SIZES.reduce((a,z)=>a+SHOP.stock[c][z],0);
   const list=SALES.filter(v=>SF==='Toutes'||(SF==='À encaisser'?!v.paid:!v.given));
-  document.getElementById('teeBox').innerHTML=`<div class="sub-hd"><a class="back" href="#home" aria-label="Retour">‹</a><div><h1>T-shirts</h1><p>Commande, ventes et paiements</p></div><button class="plus" style="margin-left:auto" type="button" data-snew aria-label="Nouvelle vente">+</button></div>
-    ${DB_SHOP?'':`<div class="banner">📝 <span><b>Brouillon sur cet appareil.</b> ${SESSION?'Collez <code>sql/tshirts.sql</code> dans Supabase pour partager les ventes avec l’équipe.':'Connectez-vous (et lancez <code>sql/tshirts.sql</code>) pour partager les ventes avec l’équipe.'} Les ventes affichées au départ sont des exemples.</span><button class="cbtn gh" type="button" data-sreset>Tout vider</button></div>`}
-    <div class="kpis"><div class="kpi n"><span>Vendus</span><b class="num">${s.nSold}${s.nOrd?' <small style="font-size:14px;color:#c9d2ea">/ '+s.nOrd+'</small>':''}</b></div><div class="kpi"><span>Encaissé</span><b class="num">${eur(s.paid)}</b></div><div class="kpi r"><span>À encaisser</span><b class="num">${eur(s.due)}</b></div><div class="kpi g"><span>À remettre</span><b class="num">${s.toGive}</b></div></div>
+  document.getElementById('teeBox').innerHTML=`<div class="sub-hd"><a class="back" href="#home" aria-label="Retour">‹</a><div><h1>T-shirts</h1><p>Stock, commande, ventes et paiements</p></div><button class="plus" style="margin-left:auto" type="button" data-snew aria-label="Nouvelle vente">+</button></div>
+    ${DB_SHOP?'':`<div class="banner">📝 <span><b>Brouillon sur cet appareil.</b> ${SESSION?'Collez <code>sql/tshirts.sql</code> dans Supabase pour partager avec l’équipe.':'Connectez-vous pour partager avec l’équipe.'}</span></div>`}
+    <div class="kpis"><div class="kpi n"><span>En stock</span><b class="num">${s.nStock}</b></div><div class="kpi"><span>Vendus</span><b class="num">${s.nSold}</b></div><div class="kpi r"><span>À encaisser</span><b class="num">${eur(s.due)}</b></div><div class="kpi g"><span>Encaissé</span><b class="num">${eur(s.paid)}</b></div></div>
     <div class="cols"><div>
-      <div class="card"><h2>Commande <button class="ordst ${SHOP.order_status}" type="button" data-ord>${ORD[SHOP.order_status]} ›</button></h2>
-        <div class="tgrid"><span></span>${SIZES.map(z=>`<span class="hdr">${z}</span>`).join('')}<span class="hdr">Total</span>
-        ${COLORS.map(c=>`<span class="cl"><i class="swd ${c}"></i>${c}</span>${SIZES.map(z=>cell(c,z)).join('')}<span class="tot num">${tot(c)}</span>`).join('')}</div>
-        <div class="two" style="margin-top:14px">${COLORS.map(c=>`<div class="f"><label>Prix ${c.toLowerCase()} (€)</label><input type="number" inputmode="decimal" min="0" step="0.5" value="${SHOP.prices[c]}" data-price="${c}"></div>`).join('')}</div>
-        <button class="cbtn gh" type="button" data-scopy style="padding:12px;width:100%;margin-top:10px">Copier la commande</button>
-        <p style="font-size:12px;color:var(--mut);margin:10px 2px 0">Tapez les quantités à commander. Sous chaque case : ce qu’il reste une fois les ventes déduites. Touchez le statut pour passer de Brouillon à Commandée puis Reçue.</p></div>
+      <div class="card"><h2>Stock en main</h2>${tGrid('stock',s)}
+        <p style="font-size:12px;color:var(--mut);margin:10px 2px 0">Ce que vous avez réellement. Chaque vente retire ses pièces toute seule ; corrigez une case après un comptage.</p>
+        <div class="two" style="margin-top:12px">${COLORS.map(c=>`<div class="f"><label>Prix ${c.toLowerCase()} (€)</label><input type="number" inputmode="decimal" min="0" step="0.5" value="${SHOP.prices[c]}" data-price="${c}"></div>`).join('')}</div></div>
+      <div class="card"><h2>Commande fournisseur <button class="ordst ${SHOP.order_status}" type="button" data-ord>${ORD[SHOP.order_status]} ›</button></h2>${tGrid('ordered',s)}
+        <button class="cbtn gh" type="button" data-scopy style="padding:12px;width:100%;margin-top:12px">Copier la commande</button>
+        <p style="font-size:12px;color:var(--mut);margin:10px 2px 0">Tapez les quantités à commander. Touchez le statut : Brouillon → Commandée → Reçue. À « Reçue », les quantités passent dans le stock.</p></div>
     </div><div>
       <div class="card"><h2>Ventes <button class="cbtn" type="button" data-snew>+ Vente</button></h2>
         <div class="chips" style="margin-bottom:6px">${['Toutes','À encaisser','À remettre'].map(c=>`<button class="chip ${c===SF?'on':''}" style="background:${c===SF?'':'var(--cream)'}" type="button" data-sf="${c}">${c}${c==='Toutes'?'':' · '+SALES.filter(v=>c==='À encaisser'?!v.paid:!v.given).length}</button>`).join('')}</div>
-        ${list.map(v=>`<div class="sale" data-sopen="${esc(v.id)}"><span class="av" style="background:${pcol(v.buyer)}">${esc((v.buyer||'?')[0])}</span><div><b>${esc(v.buyer)}</b><small><i class="swd ${esc(v.color)}"></i>${esc(v.color)} · ${esc(v.size)} × ${+v.qty||1} · ${eur(+v.amount||0)}${v.seller?' · par '+esc(v.seller):''}</small></div><div class="pps">${ppl(v)}</div></div>`).join('')||'<p class="empty">Aucune vente ici.</p>'}
+        ${list.map(v=>`<div class="sale" data-sopen="${esc(v.id)}"><span class="av" style="background:${pcol(v.buyer)}">${esc((v.buyer||'?')[0])}</span><div><b>${esc(v.buyer)}</b><small><i class="swd ${esc(v.color)}"></i>${esc(v.color)} · ${esc(v.size)} × ${+v.qty||1} · ${eur(+v.amount||0)}${v.seller?' · par '+esc(v.seller):''}</small></div><div class="pps">${ppl(v)}</div></div>`).join('')||'<p class="empty">Aucune vente pour l’instant.</p>'}
       </div>
     </div></div>`;
 }
@@ -1030,7 +1035,9 @@ async function patchSale(v,patch){
   renderShopAll();
 }
 function saleSheet(v){
-  saleEdit=v?v.id:null; const d=v||{color:'Bleu',size:'M',qty:1,amount:SHOP.prices.Bleu,paid:false,given:false};
+  saleEdit=v?v.id:null;
+  const first=COLORS.flatMap(c=>SIZES.map(z=>[c,z])).find(([c,z])=>SHOP.stock[c][z]>0)||['Bleu','M'];
+  const d=v||{color:first[0],size:first[1],qty:1,amount:SHOP.prices[first[0]],paid:false,given:false};
   openSheet(`<h2 style="margin:0 0 12px;font-family:'Playfair Display',serif;font-size:22px">${v?'Modifier la vente':'Nouvelle vente'}</h2><form id="saleF" class="fields">
     <div class="two"><div class="f"><label>Acheteur</label><input id="sB" value="${esc(d.buyer||'')}" placeholder="Prénom Nom" required></div><div class="f"><label>Contact (facultatif)</label><input id="sC" value="${esc(d.contact||'')}" placeholder="Tél. ou @insta"></div></div>
     <div class="f"><label>Couleur</label><div class="seg" data-seg="color">${COLORS.map(c=>`<button type="button" class="${c===d.color?'on':''}" data-v="${c}"><i class="swd ${c}"></i>${c}</button>`).join('')}</div></div>
@@ -1044,45 +1051,52 @@ function saleSheet(v){
     <div class="actions">${v?'<button class="cbtn dg" type="button" id="sDel">Supprimer</button>':''}<button class="cbtn">Enregistrer</button></div></form>`);
   let amountTouched=!!v; const A=document.getElementById('sA'), Q=document.getElementById('sQ');
   const seg=k=>document.querySelector(`[data-seg="${k}"] .on`).dataset.v;
-  const check=()=>{const c=seg('color'),z=seg('size'),o=SHOP.stock[c][z],l=shopStats().left(c,z)+(v&&v.color===c&&v.size===z?+v.qty:0);
-    document.getElementById('sErr').textContent=o&&(+Q.value||1)>l?`Plus que ${Math.max(l,0)} ${c.toLowerCase()} en ${z} dans la commande.`:'';};
+  const avail=(c,z)=>SHOP.stock[c][z]+(v&&v.color===c&&v.size===z?(+v.qty||0):0);
+  const check=()=>{const c=seg('color'),z=seg('size'),l=avail(c,z),q=+Q.value||1;
+    document.getElementById('sErr').textContent=q>l?(l>0?`Il n’en reste que ${l} en ${c.toLowerCase()} ${z}.`:`Plus de ${c.toLowerCase()} en ${z} en stock (vente quand même possible, à livrer plus tard).`):'';};
   const auto=()=>{if(!amountTouched)A.value=(+Q.value||1)*SHOP.prices[seg('color')];check();};
   A.addEventListener('input',()=>amountTouched=true); Q.addEventListener('input',auto);
   document.querySelectorAll('#saleF [data-seg] button').forEach(b=>b.onclick=()=>{b.parentNode.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));auto();});
   document.querySelectorAll('#saleF [data-q]').forEach(b=>b.onclick=()=>{Q.value=Math.max(1,(+Q.value||1)+ +b.dataset.q);auto();});
   ['sP','sG'].forEach(id=>document.getElementById(id).onclick=e=>e.currentTarget.classList.toggle('on'));
   check();
-  if(v)document.getElementById('sDel').onclick=async()=>{if(!confirm('Supprimer cette vente ?'))return;
+  if(v)document.getElementById('sDel').onclick=async()=>{if(!confirm('Supprimer cette vente ? Les pièces reviennent dans le stock.'))return;
     if(DB_SHOP){const {error}=await sb.from('cabine_shop_sales').delete().eq('id',v.id);if(error)return toast('Erreur : '+error.message);}
-    SALES=SALES.filter(x=>x.id!==v.id);if(!DB_SHOP)lsSave();closeSheet();renderShopAll();toast('Vente supprimée');};
+    moveStock(v.color,v.size,+v.qty||0);SALES=SALES.filter(x=>x.id!==v.id);saveShop();closeSheet();renderShopAll();toast('Vente supprimée · stock remis');};
   document.getElementById('saleF').onsubmit=async e=>{e.preventDefault();
     const g=id=>document.getElementById(id).value.trim();
     const row={client_slug:MENU_SLUG,buyer:g('sB'),contact:g('sC'),color:seg('color'),size:seg('size'),qty:Math.max(1,parseInt(g('sQ'))||1),amount:g('sA')===''?null:+g('sA'),seller:g('sS'),
       paid:document.getElementById('sP').classList.contains('on'),given:document.getElementById('sG').classList.contains('on')};
-    if(v){ if(DB_SHOP){const {error}=await sb.from('cabine_shop_sales').update({...row,updated_at:new Date().toISOString()}).eq('id',v.id);if(error)return toast('Erreur : '+error.message);} Object.assign(v,row); }
-    else if(DB_SHOP){const {data,error}=await sb.from('cabine_shop_sales').insert(row).select().single();if(error)return toast('Erreur : '+error.message);SALES.unshift(data);}
-    else SALES.unshift({...row,id:'l'+Date.now(),created_at:new Date().toISOString()});
-    if(!DB_SHOP)lsSave(); closeSheet(); renderShopAll(); toast(v?'Vente modifiée ✓':'Vente ajoutée ✓');};
+    if(v){ if(DB_SHOP){const {error}=await sb.from('cabine_shop_sales').update({...row,updated_at:new Date().toISOString()}).eq('id',v.id);if(error)return toast('Erreur : '+error.message);}
+      moveStock(v.color,v.size,+v.qty||0); moveStock(row.color,row.size,-row.qty); Object.assign(v,row); }
+    else { if(DB_SHOP){const {data,error}=await sb.from('cabine_shop_sales').insert(row).select().single();if(error)return toast('Erreur : '+error.message);SALES.unshift(data);}
+      else SALES.unshift({...row,id:'l'+Date.now(),created_at:new Date().toISOString()});
+      moveStock(row.color,row.size,-row.qty); }
+    saveShop(); closeSheet(); renderShopAll(); toast(v?'Vente modifiée ✓':'Vente ajoutée ✓ · stock mis à jour');};
 }
 function orderText(){
-  const lines=COLORS.map(c=>{const q=SIZES.filter(z=>SHOP.stock[c][z]).map(z=>z+' × '+SHOP.stock[c][z]);return q.length?'T-shirt '+c.toLowerCase()+' : '+q.join(', ')+' ('+SIZES.reduce((a,z)=>a+SHOP.stock[c][z],0)+')':'';}).filter(Boolean);
-  return 'Commande T-shirts Drevici Oyster\n'+(lines.join('\n')||'(aucune quantité)')+'\nTotal : '+shopStats().nOrd+' pièces';
+  const o=SHOP.ordered;
+  const lines=COLORS.map(c=>{const q=SIZES.filter(z=>o[c][z]).map(z=>z+' × '+o[c][z]);return q.length?'T-shirt '+c.toLowerCase()+' : '+q.join(', ')+' ('+SIZES.reduce((a,z)=>a+o[c][z],0)+')':'';}).filter(Boolean);
+  return 'Commande T-shirts Drevici Oyster\n'+(lines.join('\n')||'(aucune quantité)')+'\nTotal : '+gsum(o)+' pièces';
 }
 document.addEventListener('click',e=>{
-  const g=s=>e.target.closest(s); if(!g('#teeBox')&&!g('#teeLeft'))return;
+  const g=s=>e.target.closest(s); if(!g('#teeBox'))return;
   if(g('[data-sp]')){e.stopPropagation();const v=SALES.find(x=>String(x.id)===g('[data-sp]').dataset.sp);if(v)patchSale(v,{paid:!v.paid});return;}
   if(g('[data-sg]')){e.stopPropagation();const v=SALES.find(x=>String(x.id)===g('[data-sg]').dataset.sg);if(v)patchSale(v,{given:!v.given});return;}
   if(g('[data-sopen]')){const v=SALES.find(x=>String(x.id)===g('[data-sopen]').dataset.sopen);if(v)saleSheet(v);return;}
   if(g('[data-snew]')){saleSheet(null);return;}
   if(g('[data-sf]')){SF=g('[data-sf]').dataset.sf;renderShop();return;}
-  if(g('[data-ord]')){SHOP.order_status=ORD_NEXT[SHOP.order_status];saveShop();renderShopAll();return;}
+  if(g('[data-ord]')){const next=ORD_NEXT[SHOP.order_status];
+    if(next==='recue'){const n=gsum(SHOP.ordered);
+      if(n&&confirm(`Commande reçue : ajouter ces ${n} pièces au stock ?`)){COLORS.forEach(c=>SIZES.forEach(z=>moveStock(c,z,SHOP.ordered[c][z])));SHOP.ordered=emptyStock();toast('Stock mis à jour ✓');}
+      else if(n) return;}
+    SHOP.order_status=next;saveShop();renderShopAll();return;}
   if(g('[data-scopy]')){copy(orderText());return;}
-  if(g('[data-sreset]')){if(!confirm('Vider le brouillon (quantités et ventes) sur cet appareil ?'))return;SHOP=normShop({});SALES=[];lsSave();renderShopAll();return;}
 });
 document.addEventListener('input',e=>{
-  const k=e.target.dataset&&e.target.dataset.stk;
-  if(k){const [c,z]=k.split('|');SHOP.stock[c][z]=Math.max(0,parseInt(e.target.value)||0);saveShop();renderShopHome();
-    clearTimeout(e.target._r);e.target._r=setTimeout(()=>{const a=document.activeElement,key=a&&a.dataset.stk;renderShop();if(key){const n=document.querySelector(`[data-stk="${key}"]`);if(n){n.focus();try{n.setSelectionRange(9,9);}catch(x){}}}},700);return;}
+  const k=e.target.dataset&&e.target.dataset.g;
+  if(k){const [kind,c,z]=k.split('|');let n=parseInt(e.target.value)||0;if(kind==='ordered')n=Math.max(0,n);SHOP[kind][c][z]=n;saveShop();renderShopHome();
+    clearTimeout(e.target._r);e.target._r=setTimeout(()=>{const a=document.activeElement,key=a&&a.dataset.g;renderShop();if(key){const el=document.querySelector(`[data-g="${key}"]`);if(el)el.focus();}},900);return;}
   if(e.target.matches&&e.target.matches('[data-price]')){SHOP.prices[e.target.dataset.price]=Math.max(0,+e.target.value||0);saveShop();}
 });
 
