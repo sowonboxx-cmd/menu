@@ -485,6 +485,9 @@ document.getElementById('today').textContent=TODAY.toLocaleDateString('fr-FR',{w
 
 let SESSION=null, DB_EVENTS=true, DB_TASKS=true, EVENTS=[], TASKS=[];
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.hidden=false;clearTimeout(t._h);t._h=setTimeout(()=>t.hidden=true,1800);}
+// Toast avec bouton « Annuler » (suppression de tâche).
+function toastUndo(m,onUndo,ms){const t=document.getElementById('toast');t.innerHTML=esc(m)+' <button type="button" style="color:var(--gold);font-weight:800;margin-left:10px">Annuler</button>';t.hidden=false;clearTimeout(t._h);
+  t.querySelector('button').onclick=()=>{clearTimeout(t._h);t.hidden=true;onUndo();};t._h=setTimeout(()=>t.hidden=true,ms||5000);}
 function copy(t){(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).catch(()=>{}).finally(()=>toast('Copié ✓'));}
 const who=()=>SESSION?(SESSION.user.email||'').split('@')[0].replace(/^./,c=>c.toUpperCase()):'Moi';
 const tableMissing=err=>err&&(err.code==='42P01'||/does not exist|schema cache/i.test(err.message||''));
@@ -721,7 +724,15 @@ async function saveTask(t,patch){Object.assign(t,patch);if(DB_TASKS){const {erro
 async function addTask(title){const row={client_slug:MENU_SLUG,title,tag:'Moi',due:TISO,done:false,description:''};
   if(DB_TASKS){const {data,error}=await sb.from('cabine_tasks').insert(row).select().single();if(error)return toast('Erreur : '+error.message);TASKS.unshift(data);}else{TASKS.unshift({...row,id:'l'+Date.now()});toast('Ajoutée (non enregistrée : base à créer)');}
   renderTasks();}
-async function delTask(id){if(DB_TASKS){const {error}=await sb.from('cabine_tasks').delete().eq('id',id);if(error)return toast('Erreur : '+error.message);}TASKS=TASKS.filter(t=>t.id!==id);tdSel=null;closeSheet();renderTasks();toast('Tâche supprimée');}
+// Suppression en deux temps : la tâche disparaît, un toast « Annuler »
+// reste 5 s, et ce n'est qu'ensuite qu'elle est effacée de la base.
+function delTask(id){
+  const i=TASKS.findIndex(t=>t.id===id);if(i<0)return;const t=TASKS[i];
+  TASKS.splice(i,1);tdSel=null;closeSheet();renderTasks();
+  const h=setTimeout(async()=>{if(!DB_TASKS)return;const {error}=await sb.from('cabine_tasks').delete().eq('id',id);
+    if(error){toast('Erreur : '+error.message);TASKS.splice(Math.min(i,TASKS.length),0,t);renderTasks();}},5000);
+  toastUndo('Tâche supprimée',()=>{clearTimeout(h);TASKS.splice(Math.min(i,TASKS.length),0,t);renderTasks();toast('Tâche restaurée ✓');});
+}
 const taskRow=t=>`<div class="row ${t.done?'done':''}"><button class="chk ${t.done?'done':''}" type="button" data-td="${esc(t.id)}" aria-label="Fait"></button><span class="t" data-open="${esc(t.id)}">${esc(t.title)}</span><span class="tg">${esc(t.tag||'')}${t.due&&t.due>TISO?' · '+fmtD(t.due):''}</span></div>`;
 function renderTasks(){
   const today=TASKS.filter(t=>isToday(t)&&(!t.done||t.updated_at?.slice(0,10)===TISO||!DB_TASKS));
@@ -742,12 +753,26 @@ function taskForm(t){const due=t.due||TISO;return `<div class="fields">
   <div class="f"><label>Lié à</label><select data-tf-f="tag" data-id="${esc(t.id)}">${['Moi','Résas','Hors carte','Calendrier','Events','QR','Noël','Site'].map(o=>`<option ${o===t.tag?'selected':''}>${o}</option>`).join('')}</select></div></div>
   <div class="f"><label>Description</label><textarea data-tf-f="description" data-id="${esc(t.id)}" placeholder="Ajouter des détails…">${esc(t.description||'')}</textarea></div>
   <div class="actions"><button class="cbtn dg" type="button" data-tdel="${esc(t.id)}">Supprimer</button><button class="cbtn" type="button" data-tdone="${esc(t.id)}">${t.done?'Rouvrir':'Marquer comme fait'}</button></div></div>`;}
-let tTimer=null;
-document.addEventListener('input',e=>{const f=e.target.dataset.tfF;if(!f)return;const t=TASKS.find(x=>String(x.id)===e.target.dataset.id);if(!t)return;
-  t[f]=e.target.value;clearTimeout(tTimer);tTimer=setTimeout(()=>saveTask(t,{[f]:t[f]}),500);});
+// Enregistrement automatique : 500 ms après la frappe, et tout de suite
+// quand on quitte le champ ou ferme la fiche. Les champs modifiés sont
+// cumulés (avant, modifier un 2e champ dans la foulée annulait le 1er).
+let tTimer=null, tPending=null;
+function flushTask(){clearTimeout(tTimer);if(!tPending)return;const {t,patch}=tPending;tPending=null;
+  if('title' in patch&&!String(patch.title).trim()){patch.title=t.title='Sans titre';}
+  saveTask(t,patch);}
+document.addEventListener('input',e=>{const f=e.target.dataset&&e.target.dataset.tfF;if(!f)return;const t=TASKS.find(x=>String(x.id)===e.target.dataset.id);if(!t)return;
+  if(tPending&&tPending.t!==t)flushTask();
+  t[f]=e.target.value;tPending={t,patch:{...(tPending?tPending.patch:{}),[f]:t[f]}};clearTimeout(tTimer);tTimer=setTimeout(flushTask,500);});
+document.addEventListener('change',e=>{if(e.target.dataset&&e.target.dataset.tfF)flushTask();});
+addEventListener('pagehide',flushTask);
 const sheet=document.getElementById('sheet');
 function openSheet(h){document.getElementById('sheetPn').innerHTML='<div class="grab"></div>'+h;sheet.hidden=false;}
-function closeSheet(){sheet.hidden=true;}
+function closeSheet(){flushTask();sheet.hidden=true;}
+// Toucher à côté de la fiche pendant la saisie : on ferme d'abord le
+// clavier sans fermer la fiche (sur iPhone, la fiche saute quand le
+// clavier se ferme et le doigt tombait sur un autre bouton).
+let sheetKb=false;
+sheet.addEventListener('pointerdown',e=>{const a=document.activeElement;sheetKb=e.target===sheet&&!!a&&sheet.contains(a)&&a.matches('input,textarea');},true);
 
 /* ═══════════ QR codes, scans, conversions ═══════════ */
 const GO='https://go.beltab.app/';
@@ -1077,7 +1102,9 @@ document.addEventListener('click',e=>{
   if(g('[data-td]')){const t=TASKS.find(x=>String(x.id)===g('[data-td]').dataset.td);if(t)saveTask(t,{done:!t.done});return;}
   if(g('[data-open]')){const id=g('[data-open]').dataset.open;if(matchMedia('(min-width:900px)').matches&&location.hash==='#todo'){tdSel=id;document.getElementById('tdDetail').innerHTML='';renderTasks();}else{const t=TASKS.find(x=>String(x.id)===id);if(t)openSheet(taskForm(t));}return;}
   if(g('[data-tf]')){tdF=g('[data-tf]').dataset.tf;tdSel=null;document.getElementById('tdDetail').innerHTML='';renderTasks();return;}
-  if(g('[data-tdel]')){if(confirm('Supprimer cette tâche ?'))delTask(TASKS.find(x=>String(x.id)===g('[data-tdel]').dataset.tdel).id);return;}
+  if(g('[data-tdel]')){const b=g('[data-tdel]');
+    if(b.dataset.arm!=='1'){b.dataset.arm='1';b.textContent='Confirmer la suppression';clearTimeout(b._a);b._a=setTimeout(()=>{b.dataset.arm='';b.textContent='Supprimer';},3000);return;}
+    const t=TASKS.find(x=>String(x.id)===b.dataset.tdel);if(t)delTask(t.id);return;}
   if(g('[data-tdone]')){const t=TASKS.find(x=>String(x.id)===g('[data-tdone]').dataset.tdone);closeSheet();document.getElementById('tdDetail').innerHTML='';saveTask(t,{done:!t.done});return;}
   if(g('[data-qf]')){QF=g('[data-qf]').dataset.qf;renderQR();return;}
   if(g('[data-cval]')){setConv(g('[data-cval]').dataset.cval,'validated');return;}
@@ -1085,7 +1112,7 @@ document.addEventListener('click',e=>{
   if(g('[data-addconv]')){addConvSheet(g('[data-addconv]').dataset.addconv);return;}
   if(g('[data-dl]')){downloadQR(g('[data-dl]').dataset.code,g('[data-dl]').dataset.dl);return;}
   if(g('#importOld')){importOld();return;}
-  if(e.target===sheet) closeSheet();
+  if(e.target===sheet){if(sheetKb){sheetKb=false;document.activeElement.blur();return;}closeSheet();}
 });
 document.addEventListener('submit',e=>{if(e.target.matches('[data-add]')){e.preventDefault();const i=e.target.querySelector('input');const v=i.value.trim();if(v){addTask(v);i.value='';}}});
 
