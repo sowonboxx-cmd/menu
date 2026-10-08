@@ -311,13 +311,21 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:.55}
 .sale{display:grid;grid-template-columns:36px 1fr auto;gap:10px;align-items:center;padding:10px 6px;border-radius:12px;cursor:pointer}
 .sale:hover{background:var(--paper)}
 .sale b{display:block;font-size:14.5px}
-.sale small{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mut);flex-wrap:wrap}
+.sale small{display:block;font-size:12px;color:var(--mut);line-height:1.5}
+.sale small .swd{vertical-align:-2px;margin-right:5px}
 .sale .pps{display:flex;flex-direction:column;gap:5px;align-items:flex-end}
 .sale .st{margin:0;font-size:11px;padding:4px 9px}
 .seg{display:flex;gap:6px}
 .seg button{flex:1;background:var(--cream);border-radius:12px;padding:11px 0;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;gap:7px}
 .seg button.on{background:var(--ink);color:#fff}
 .seg button.on .swd.Bleu{box-shadow:inset 0 0 0 2px #fff}
+.will{display:flex;align-items:center;gap:12px;background:var(--gold-soft)}
+.will .wl{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
+.will .av{width:40px;height:40px;font-size:16px}
+.will small{display:block;font-size:12px;color:#7a5a17}
+.will b.num{display:block;font-size:26px;font-weight:900;color:var(--ink);line-height:1.1;margin:2px 0}
+.will .pct{display:flex;align-items:center;gap:4px;font-weight:800;color:#7a5a17;flex:none}
+.will .pct input{width:52px;text-align:center;background:#fff;border-radius:10px;padding:8px 0;font-weight:800}
 .stp{display:flex;align-items:center;background:var(--cream);border-radius:12px}
 .stp button{width:44px;height:44px;font-size:20px;font-weight:700;flex:none}
 .stp input{flex:1;min-width:0;text-align:center;background:none!important;padding:0!important;font-weight:800}
@@ -961,6 +969,8 @@ const grid=o=>{const st=emptyStock();COLORS.forEach(c=>SIZES.forEach(s=>{st[c][s
 const gsum=o=>COLORS.reduce((a,c)=>a+SIZES.reduce((b,s)=>b+o[c][s],0),0);
 function normShop(x){
   const pr={...PRICE_DEF};COLORS.forEach(c=>{const v=x&&x.prices&&x.prices[c];if(v!=null&&v!=='')pr[c]=+v;});
+  // Part de Will (marketing, goodies) : 25 % de chaque vente, tous produits. Rangée dans prices._pct.
+  pr._pct=x&&x.prices&&x.prices._pct!=null?+x.prices._pct:25;
   let st=grid(x&&x.stock); if(!x||!gsum(st)&&!x.stock_set) st=grid(STOCK_DEF);
   return {prices:pr,stock:st,ordered:grid(x&&x.ordered),order_status:(x&&x.order_status)||'brouillon',stock_set:true};
 }
@@ -977,7 +987,8 @@ async function loadShop(){
 function shopStats(){
   const sold=emptyStock(); SALES.forEach(v=>{if(sold[v.color]&&sold[v.color][v.size]!=null)sold[v.color][v.size]+=(+v.qty||0);});
   const paid=SALES.filter(v=>v.paid).reduce((a,v)=>a+(+v.amount||0),0), due=SALES.filter(v=>!v.paid).reduce((a,v)=>a+(+v.amount||0),0);
-  return {sold,nSold:gsum(sold),nStock:gsum(SHOP.stock),nOrd:gsum(SHOP.ordered),paid,due,
+  const pct=SHOP.prices._pct||0;
+  return {sold,nSold:gsum(sold),nStock:gsum(SHOP.stock),nOrd:gsum(SHOP.ordered),paid,due,pct,willPaid:paid*pct/100,willDue:due*pct/100,
     toGive:SALES.filter(v=>!v.given).reduce((a,v)=>a+(+v.qty||0),0)};
 }
 function saveShop(){
@@ -1014,6 +1025,8 @@ function renderShop(){
   document.getElementById('teeBox').innerHTML=`<div class="sub-hd"><a class="back" href="#home" aria-label="Retour">‹</a><div><h1>T-shirts</h1><p>Stock, commande, ventes et paiements</p></div><button class="plus" style="margin-left:auto" type="button" data-snew aria-label="Nouvelle vente">+</button></div>
     ${DB_SHOP?'':`<div class="banner">📝 <span><b>Brouillon sur cet appareil.</b> ${SESSION?'Collez <code>sql/tshirts.sql</code> dans Supabase pour partager avec l’équipe.':'Connectez-vous pour partager avec l’équipe.'}</span></div>`}
     <div class="kpis"><div class="kpi n"><span>En stock</span><b class="num">${s.nStock}</b></div><div class="kpi"><span>Vendus</span><b class="num">${s.nSold}</b></div><div class="kpi r"><span>À encaisser</span><b class="num">${eur(s.due)}</b></div><div class="kpi g"><span>Encaissé</span><b class="num">${eur(s.paid)}</b></div></div>
+    <div class="card will"><div class="wl"><span class="av" style="background:var(--navy)">W</span><div><small>Ma part · Will</small><b class="num">${eur(s.willPaid)}</b><small>${s.pct} % de ${eur(s.paid)} encaissés${s.willDue?` · <b style="color:var(--ink)">+ ${eur(s.willDue)}</b> quand le reste sera encaissé`:''}</small></div></div>
+      <label class="pct"><input type="number" inputmode="decimal" min="0" max="100" step="1" value="${s.pct}" data-pct aria-label="Pourcentage de Will"> %</label></div>
     <div class="cols"><div>
       <div class="card"><h2>Stock en main</h2>${tGrid('stock',s)}
         <p style="font-size:12px;color:var(--mut);margin:10px 2px 0">Ce que vous avez réellement. Chaque vente retire ses pièces toute seule ; corrigez une case après un comptage.</p>
@@ -1024,7 +1037,7 @@ function renderShop(){
     </div><div>
       <div class="card"><h2>Ventes <button class="cbtn" type="button" data-snew>+ Vente</button></h2>
         <div class="chips" style="margin-bottom:6px">${['Toutes','À encaisser','À remettre'].map(c=>`<button class="chip ${c===SF?'on':''}" style="background:${c===SF?'':'var(--cream)'}" type="button" data-sf="${c}">${c}${c==='Toutes'?'':' · '+SALES.filter(v=>c==='À encaisser'?!v.paid:!v.given).length}</button>`).join('')}</div>
-        ${list.map(v=>`<div class="sale" data-sopen="${esc(v.id)}"><span class="av" style="background:${pcol(v.buyer)}">${esc((v.buyer||'?')[0])}</span><div><b>${esc(v.buyer)}</b><small><i class="swd ${esc(v.color)}"></i>${esc(v.color)} · ${esc(v.size)} × ${+v.qty||1} · ${eur(+v.amount||0)}${v.seller?' · par '+esc(v.seller):''}</small></div><div class="pps">${ppl(v)}</div></div>`).join('')||'<p class="empty">Aucune vente pour l’instant.</p>'}
+        ${list.map(v=>`<div class="sale" data-sopen="${esc(v.id)}"><span class="av" style="background:${pcol(v.buyer)}">${esc((v.buyer||'?')[0])}</span><div><b>${esc(v.buyer)}</b><small><i class="swd ${esc(v.color)}"></i>${esc(v.color)} · ${esc(v.size)} × ${+v.qty||1} · ${eur(+v.amount||0)}${v.seller?' · par '+esc(v.seller):''}${s.pct&&v.amount?` · <span style="color:#8a6416;font-weight:700">Will ${eur((+v.amount)*s.pct/100)}</span>`:''}</small></div><div class="pps">${ppl(v)}</div></div>`).join('')||'<p class="empty">Aucune vente pour l’instant.</p>'}
       </div>
     </div></div>`;
 }
@@ -1098,6 +1111,8 @@ document.addEventListener('input',e=>{
   if(k){const [kind,c,z]=k.split('|');let n=parseInt(e.target.value)||0;if(kind==='ordered')n=Math.max(0,n);SHOP[kind][c][z]=n;saveShop();renderShopHome();
     clearTimeout(e.target._r);e.target._r=setTimeout(()=>{const a=document.activeElement,key=a&&a.dataset.g;renderShop();if(key){const el=document.querySelector(`[data-g="${key}"]`);if(el)el.focus();}},900);return;}
   if(e.target.matches&&e.target.matches('[data-price]')){SHOP.prices[e.target.dataset.price]=Math.max(0,+e.target.value||0);saveShop();}
+  if(e.target.matches&&e.target.matches('[data-pct]')){SHOP.prices._pct=Math.min(100,Math.max(0,+e.target.value||0));saveShop();clearTimeout(e.target._r);e.target._r=setTimeout(()=>{if(document.activeElement!==e.target)renderShop();},900);}
+
 });
 
 /* ═══════════ Interactions ═══════════ */
