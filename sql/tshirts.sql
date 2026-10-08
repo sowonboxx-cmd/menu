@@ -1,18 +1,21 @@
 -- T-shirts Drevici : quantités commandées et ventes (La Cabine → T-shirts).
 -- À coller une fois dans Supabase → SQL Editor → Run (après cabine.sql).
 --
--- cabine_shop       : une ligne par restaurant — prix de vente, quantités
+-- cabine_shop       : une ligne par restaurant — prix de vente par couleur, quantités
 --                     commandées par couleur et taille, statut de la commande.
 -- cabine_shop_sales : une ligne par vente — acheteur, couleur, taille,
 --                     quantité, montant, vendeur, payé, remis.
 
 create table if not exists public.cabine_shop (
   client_slug  text primary key,
-  price        numeric not null default 25,
+  prices       jsonb not null default '{"Bleu":35,"Blanc":30}'::jsonb, -- prix de vente par couleur
   stock        jsonb not null default '{}'::jsonb,   -- {"Bleu":{"S":6,"M":12,...},"Blanc":{...}}
   order_status text not null default 'brouillon',    -- brouillon, commandee, recue
   updated_at   timestamptz not null default now()
 );
+
+-- Si la table existait déjà avec l'ancien champ « price » :
+alter table public.cabine_shop add column if not exists prices jsonb not null default '{"Bleu":35,"Blanc":30}'::jsonb;
 
 create table if not exists public.cabine_shop_sales (
   id          uuid primary key default gen_random_uuid(),

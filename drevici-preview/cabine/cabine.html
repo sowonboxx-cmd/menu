@@ -926,20 +926,22 @@ function renderQRAll(){renderQRHome();renderQR();
 const COLORS=['Bleu','Blanc'], SIZES=['S','M','L','XL'];
 const ORD={brouillon:'Brouillon',commandee:'Commandée',recue:'Reçue'}, ORD_NEXT={brouillon:'commandee',commandee:'recue',recue:'brouillon'};
 const SELLERS=['Will','Vince','Benji','Élodie','Étienne'];
-const LS_SHOP='cabine_tshirts_v1';
+const LS_SHOP='cabine_tshirts_v2';
+const PRICE_DEF={Bleu:35,Blanc:30};
 let SHOP=null, SALES=[], DB_SHOP=false, SF='Toutes', saleEdit=null, shopTimer=null;
 const emptyStock=()=>Object.fromEntries(COLORS.map(c=>[c,Object.fromEntries(SIZES.map(s=>[s,0]))]));
 function normShop(x){const st=emptyStock();COLORS.forEach(c=>SIZES.forEach(s=>{st[c][s]=Math.max(0,parseInt(((x&&x.stock)||{})[c]?.[s])||0);}));
-  return {price:x&&x.price!=null?+x.price:25,stock:st,order_status:(x&&x.order_status)||'brouillon'};}
+  const pr={...PRICE_DEF};COLORS.forEach(c=>{const v=x&&x.prices&&x.prices[c];if(v!=null&&v!=='')pr[c]=+v;});
+  return {prices:pr,stock:st,order_status:(x&&x.order_status)||'brouillon'};}
 function lsShop(){try{return JSON.parse(localStorage.getItem(LS_SHOP)||'null');}catch(e){return null;}}
 function lsSave(){try{localStorage.setItem(LS_SHOP,JSON.stringify({shop:SHOP,sales:SALES}));}catch(e){}}
 function demoShop(){
   const t=d=>{const x=new Date();x.setDate(x.getDate()-d);return x.toISOString();};
-  return {shop:{price:25,order_status:'commandee',stock:{Bleu:{S:6,M:12,L:12,XL:6},Blanc:{S:4,M:8,L:8,XL:4}}},
-    sales:[{id:'l1',buyer:'Camille R.',contact:'@camille.r',color:'Bleu',size:'M',qty:1,amount:25,seller:'Élodie',paid:true,given:true,created_at:t(3)},
-      {id:'l2',buyer:'Thomas',contact:'',color:'Blanc',size:'L',qty:2,amount:50,seller:'Will',paid:true,given:false,created_at:t(2)},
-      {id:'l3',buyer:'Sarah B.',contact:'06 12 34 56 78',color:'Bleu',size:'S',qty:1,amount:25,seller:'Vince',paid:false,given:false,created_at:t(1)},
-      {id:'l4',buyer:'Hugo',contact:'',color:'Bleu',size:'XL',qty:1,amount:25,seller:'Benji',paid:false,given:true,created_at:t(0)}]};
+  return {shop:{order_status:'commandee',stock:{Bleu:{S:6,M:12,L:12,XL:6},Blanc:{S:4,M:8,L:8,XL:4}}},
+    sales:[{id:'l1',buyer:'Camille R.',contact:'@camille.r',color:'Bleu',size:'M',qty:1,amount:35,seller:'Élodie',paid:true,given:true,created_at:t(3)},
+      {id:'l2',buyer:'Thomas',contact:'',color:'Blanc',size:'L',qty:2,amount:60,seller:'Will',paid:true,given:false,created_at:t(2)},
+      {id:'l3',buyer:'Sarah B.',contact:'06 12 34 56 78',color:'Bleu',size:'S',qty:1,amount:35,seller:'Vince',paid:false,given:false,created_at:t(1)},
+      {id:'l4',buyer:'Hugo',contact:'',color:'Bleu',size:'XL',qty:1,amount:35,seller:'Benji',paid:false,given:true,created_at:t(0)}]};
 }
 async function loadShop(){
   if(sb&&SESSION){
@@ -986,8 +988,8 @@ function renderShop(){
       <div class="card"><h2>Commande <button class="ordst ${SHOP.order_status}" type="button" data-ord>${ORD[SHOP.order_status]} ›</button></h2>
         <div class="tgrid"><span></span>${SIZES.map(z=>`<span class="hdr">${z}</span>`).join('')}<span class="hdr">Total</span>
         ${COLORS.map(c=>`<span class="cl"><i class="swd ${c}"></i>${c}</span>${SIZES.map(z=>cell(c,z)).join('')}<span class="tot num">${tot(c)}</span>`).join('')}</div>
-        <div class="two" style="margin-top:14px;align-items:end"><div class="f"><label>Prix de vente (€)</label><input type="number" inputmode="decimal" min="0" step="0.5" value="${SHOP.price}" data-price></div>
-          <button class="cbtn gh" type="button" data-scopy style="padding:12px">Copier la commande</button></div>
+        <div class="two" style="margin-top:14px">${COLORS.map(c=>`<div class="f"><label>Prix ${c.toLowerCase()} (€)</label><input type="number" inputmode="decimal" min="0" step="0.5" value="${SHOP.prices[c]}" data-price="${c}"></div>`).join('')}</div>
+        <button class="cbtn gh" type="button" data-scopy style="padding:12px;width:100%;margin-top:10px">Copier la commande</button>
         <p style="font-size:12px;color:var(--mut);margin:10px 2px 0">Tapez les quantités à commander. Sous chaque case : ce qu’il reste une fois les ventes déduites. Touchez le statut pour passer de Brouillon à Commandée puis Reçue.</p></div>
     </div><div>
       <div class="card"><h2>Ventes <button class="cbtn" type="button" data-snew>+ Vente</button></h2>
@@ -1003,7 +1005,7 @@ async function patchSale(v,patch){
   renderShopAll();
 }
 function saleSheet(v){
-  saleEdit=v?v.id:null; const d=v||{color:'Bleu',size:'M',qty:1,amount:SHOP.price,paid:false,given:false};
+  saleEdit=v?v.id:null; const d=v||{color:'Bleu',size:'M',qty:1,amount:SHOP.prices.Bleu,paid:false,given:false};
   openSheet(`<h2 style="margin:0 0 12px;font-family:'Playfair Display',serif;font-size:22px">${v?'Modifier la vente':'Nouvelle vente'}</h2><form id="saleF" class="fields">
     <div class="two"><div class="f"><label>Acheteur</label><input id="sB" value="${esc(d.buyer||'')}" placeholder="Prénom Nom" required></div><div class="f"><label>Contact (facultatif)</label><input id="sC" value="${esc(d.contact||'')}" placeholder="Tél. ou @insta"></div></div>
     <div class="f"><label>Couleur</label><div class="seg" data-seg="color">${COLORS.map(c=>`<button type="button" class="${c===d.color?'on':''}" data-v="${c}"><i class="swd ${c}"></i>${c}</button>`).join('')}</div></div>
@@ -1019,9 +1021,9 @@ function saleSheet(v){
   const seg=k=>document.querySelector(`[data-seg="${k}"] .on`).dataset.v;
   const check=()=>{const c=seg('color'),z=seg('size'),o=SHOP.stock[c][z],l=shopStats().left(c,z)+(v&&v.color===c&&v.size===z?+v.qty:0);
     document.getElementById('sErr').textContent=o&&(+Q.value||1)>l?`Plus que ${Math.max(l,0)} ${c.toLowerCase()} en ${z} dans la commande.`:'';};
-  const auto=()=>{if(!amountTouched)A.value=(+Q.value||1)*SHOP.price;check();};
+  const auto=()=>{if(!amountTouched)A.value=(+Q.value||1)*SHOP.prices[seg('color')];check();};
   A.addEventListener('input',()=>amountTouched=true); Q.addEventListener('input',auto);
-  document.querySelectorAll('#saleF [data-seg] button').forEach(b=>b.onclick=()=>{b.parentNode.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));check();});
+  document.querySelectorAll('#saleF [data-seg] button').forEach(b=>b.onclick=()=>{b.parentNode.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));auto();});
   document.querySelectorAll('#saleF [data-q]').forEach(b=>b.onclick=()=>{Q.value=Math.max(1,(+Q.value||1)+ +b.dataset.q);auto();});
   ['sP','sG'].forEach(id=>document.getElementById(id).onclick=e=>e.currentTarget.classList.toggle('on'));
   check();
@@ -1056,7 +1058,7 @@ document.addEventListener('input',e=>{
   const k=e.target.dataset&&e.target.dataset.stk;
   if(k){const [c,z]=k.split('|');SHOP.stock[c][z]=Math.max(0,parseInt(e.target.value)||0);saveShop();renderShopHome();
     clearTimeout(e.target._r);e.target._r=setTimeout(()=>{const a=document.activeElement,key=a&&a.dataset.stk;renderShop();if(key){const n=document.querySelector(`[data-stk="${key}"]`);if(n){n.focus();try{n.setSelectionRange(9,9);}catch(x){}}}},700);return;}
-  if(e.target.matches&&e.target.matches('[data-price]')){SHOP.price=Math.max(0,+e.target.value||0);saveShop();}
+  if(e.target.matches&&e.target.matches('[data-price]')){SHOP.prices[e.target.dataset.price]=Math.max(0,+e.target.value||0);saveShop();}
 });
 
 /* ═══════════ Interactions ═══════════ */
