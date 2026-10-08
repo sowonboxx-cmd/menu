@@ -493,7 +493,13 @@ function seedRows(edito){
     recurrence:{freq:'monthly',weekday:r.weekday,n:r.n},todo:[{t:'Visuels prêts',d:false},{t:'Post Instagram',d:false},{t:'Story J-1',d:false}],social:{},occ:{},comments:[]}));
   const ed=edito.filter(x=>x.date).map(x=>({client_slug:MENU_SLUG,title:x.title||'Sans titre',type:EDITO_TYPE[x.type]||'Événement',date_start:x.date,all_day:true,description:[x.desc,x.caption].filter(Boolean).join('\n\n'),place:'Drevici Oyster Paris',
     social:x.status==='ready'?{Instagram:'prog'}:{},todo:[],occ:{},comments:[]}));
-  return rec.concat(ed);
+  const halloween={client_slug:MENU_SLUG,title:'Halloween chez Drevici',type:'Soirée',date_start:'2026-10-31',time_start:'19:00',time_end:'01:00',seats:52,owner:'Will',place:'Drevici Oyster Paris',
+    description:"Le 31 octobre, Drevici fête Halloween : huîtres, cocktails et DJ set dans une salle aux couleurs de la soirée. Venez déguisés, l'ambiance sera au rendez-vous.",
+    todo:[{t:'Valider le concept et l’offre du soir',d:false},{t:'Visuels : affiche, post 4:5 et story',d:false},{t:'Affiches de rue avec QR (EVENT-HALLOWEEN)',d:false},{t:'Post d’annonce à J-10 (mer. 21 oct.)',d:false},
+      {t:'Story compte à rebours à J-3',d:false},{t:'Post de rappel à J-1 avec le lien de réservation',d:false},{t:'Déco de la salle',d:false},{t:'Brief de l’équipe en salle',d:false}],
+    social:{},occ:{},comments:[{who:'Will',text:'Premier Event de la saison : campagne à lancer mi-octobre (réunion du 8 oct.).',at:'2026-10-08T12:15:00Z'}]};
+  const ed2=ed.filter(x=>!(x.date_start==='2026-10-31'&&/^\W*HALLOWEEN\s*$/i.test(x.title.replace(/[^\w\s]/g,'').trim())));
+  return rec.concat(ed2,[halloween]);
 }
 async function demoEvents(){return seedRows(await readEdito()).map((r,i)=>({...r,id:'demo'+i}));}
 async function importOld(){
