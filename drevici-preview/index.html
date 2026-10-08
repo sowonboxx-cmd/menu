@@ -1273,8 +1273,8 @@ body.ig-admin-light .formule-tuner-select{background-image:url("data:image/svg+x
 /* Pilule grise (même gris que les cartes) pour les interrupteurs
    qui restaient en texte blanc flottant sur le fond noir — demande
    explicite de Will pour qu'ils gardent toujours ce fond, même vide. */
-.ig-pill{display:flex!important;align-items:center;gap:8px;background:var(--ig-card)!important;border-radius:10px;padding:12px 14px;color:#fff!important}
-.ig-pill label{color:#fff!important}
+.ig-pill{display:flex!important;align-items:center;gap:8px;background:var(--ig-card)!important;border-radius:10px;padding:12px 14px;color:var(--ig-text)!important}
+.ig-pill label{color:var(--ig-text)!important}
 /* Contenu réutilisé tel quel (pas encore redessiné en profondeur) —
    mais entièrement reteinté en sombre : plus aucun fond blanc/clair,
    quelle que soit la classe ou le style en ligne d'origine. Les
@@ -5168,6 +5168,10 @@ let adminLang='fr'; // language being edited in admin
 // panel itself should stay closed until an admin is actually logged in,
 // not just gate the publish button. Show only a login form if there's
 // no session yet.
+// Lien direct vers une page de l'admin (ex. depuis La Cabine) :
+// ?admin=1&section=export ou ?admin=1&section=formules. La page est
+// ouverte dès que la session est là, y compris juste après la connexion.
+let pendingAdminRow = null;
 function openAdmin(){
   document.getElementById('adminOverlay').classList.add('open');
   document.getElementById('adminPanel').classList.add('open');
@@ -5202,6 +5206,7 @@ function openAdmin(){
     homeSubpageStack=[];
     const dd=document.getElementById('adminTabDd'); if(dd) dd.value='__global';
     renderAdminSection('__global');
+    if(pendingAdminRow && findHomeRow(pendingAdminRow)){ const k=pendingAdminRow; pendingAdminRow=null; openHomeRow(k); }
   }catch(e){
     console.error('Erreur de rendu admin, retour à Home :', e);
     adminCurrentTab='__global';
@@ -9725,8 +9730,13 @@ function renderPrintBody(forcedTab){
     <div class="admin-sect-body">
       <div class="af">
         ${logoSrc ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-          <img src="${logoSrc}" style="max-height:50px;max-width:120px;object-fit:contain;border:1px solid var(--border);border-radius:6px;padding:4px;background:#fff" onerror="this.style.display='none'">
+          <img src="${logoSrc}" style="max-height:50px;max-width:120px;object-fit:contain;border-radius:8px;padding:6px 10px;background:${menuColorValue(cfg,'menuBgColor')}" onerror="this.style.display='none'">
+          <div style="font-size:11.5px;line-height:1.45;color:var(--ig-text-dimmer)">Aperçu sur le papier du menu. Logo invisible ? Prenez une version foncée.</div>
         </div>` : ''}
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin:2px 0 8px;font-size:13px">
+          <label style="color:var(--ig-blue,#0a84ff);cursor:pointer">${cfg.logoData?'Changer':'Choisir'} le logo de l'impression<input type="file" accept="image/*" style="display:none" onchange="readImageFileSafe(this.files[0],d=>{setPdfCfg('logoData',d);renderAdminSection(adminCurrentTab)},{maxDim:800,quality:.9})"></label>
+          ${cfg.logoData?`<span style="color:var(--ig-text-dimmer);cursor:pointer" onclick="setPdfCfg('logoData','');renderAdminSection(adminCurrentTab)">Reprendre le logo du site</span>`:''}
+        </div>
         <label class="admin-toggle ig-pill" style="margin-top:2px"><input type="checkbox" ${cfg.showLogo?'checked':''} onchange="setPdfCfg('showLogo',this.checked);renderAdminSection(adminCurrentTab)"><label>Afficher le logo</label></label>
         ${cfg.showLogo ? `<div class="pdf-logo-size">
           <span class="pdf-logo-size-label">Taille${logoSrc?'':' du nom'}</span>
@@ -9774,7 +9784,7 @@ function renderPrintBody(forcedTab){
           </div>`).join('')}
       </div>
       <div id="pdfCarouselDots" style="display:flex;justify-content:center;gap:6px;margin-top:10px">
-        ${printPages.map((p,i)=>`<span class="pdf-carousel-dot" data-idx="${i}" style="width:${i===0?7:6}px;height:${i===0?7:6}px;border-radius:50%;background:${i===0?'#fff':'var(--ig-focus)'}"></span>`).join('')}
+        ${printPages.map((p,i)=>`<span class="pdf-carousel-dot" data-idx="${i}" style="width:${i===0?7:6}px;height:${i===0?7:6}px;border-radius:50%;background:${i===0?'var(--ig-text)':'var(--ig-focus)'}"></span>`).join('')}
       </div>
     </div>` : activeTab==='gbiz' ? renderGbizPagePreview() : activeTab==='insta' ? `
     <div class="admin-section ig-accordion collapsed" style="margin-bottom:14px">
@@ -10014,7 +10024,7 @@ function carouselOnScroll(containerId, slideClass, dotsId, dotClass){
   const slideStep = slides[1] ? (slides[1].offsetLeft - slides[0].offsetLeft) : slides[0].offsetWidth;
   const idx = Math.max(0, Math.min(slides.length-1, Math.round(container.scrollLeft / slideStep)));
   document.querySelectorAll('#'+dotsId+' .'+dotClass).forEach((d,i)=>{
-    d.style.width = i===idx?'7px':'6px'; d.style.height = i===idx?'7px':'6px'; d.style.background = i===idx?'#fff':'var(--ig-focus)';
+    d.style.width = i===idx?'7px':'6px'; d.style.height = i===idx?'7px':'6px'; d.style.background = i===idx?'var(--ig-text)':'var(--ig-focus)';
   });
 }
 function gbizCarouselOnScroll(){ carouselOnScroll('gbizCarousel','gbiz-slide','gbizCarouselDots','gbiz-carousel-dot'); }
@@ -10058,7 +10068,7 @@ function renderGbizPagePreview(){
         </div>`).join('')}
     </div>
     <div id="gbizCarouselDots" style="display:flex;justify-content:center;gap:6px;margin-top:10px">
-      ${pages.map((p,i)=>`<span class="gbiz-carousel-dot" data-idx="${i}" style="width:${i===0?7:6}px;height:${i===0?7:6}px;border-radius:50%;background:${i===0?'#fff':'var(--ig-focus)'}"></span>`).join('')}
+      ${pages.map((p,i)=>`<span class="gbiz-carousel-dot" data-idx="${i}" style="width:${i===0?7:6}px;height:${i===0?7:6}px;border-radius:50%;background:${i===0?'var(--ig-text)':'var(--ig-focus)'}"></span>`).join('')}
     </div>
   </div>`;
 
@@ -10093,7 +10103,7 @@ function renderInstaPagePreview(){
         </div>`).join('')}
     </div>
     <div id="instaCarouselDots" style="display:flex;justify-content:center;gap:6px;margin-top:10px">
-      ${pages.map((p,i)=>`<span class="insta-carousel-dot" data-idx="${i}" style="width:${i===0?7:6}px;height:${i===0?7:6}px;border-radius:50%;background:${i===0?'#fff':'var(--ig-focus)'}"></span>`).join('')}
+      ${pages.map((p,i)=>`<span class="insta-carousel-dot" data-idx="${i}" style="width:${i===0?7:6}px;height:${i===0?7:6}px;border-radius:50%;background:${i===0?'var(--ig-text)':'var(--ig-focus)'}"></span>`).join('')}
     </div>
   </div>`;
 
@@ -11435,6 +11445,8 @@ document.addEventListener('click', function(e){
   const wantsAdminEntry = new URLSearchParams(location.search).get('admin')==='1';
   await checkAdminSession(); // sets supaSession + toggles is-admin if a session exists
   if(wantsAdminEntry) document.body.classList.add('admin-entry-visible');
+  const sec = new URLSearchParams(location.search).get('section');
+  if(wantsAdminEntry && sec && /^[a-z-]{2,30}$/.test(sec)){ pendingAdminRow = sec; openAdmin(); }
 })();
 // BUG FIX: the reconciliation re-render below used to run unconditionally,
 // even when the fetched data was byte-for-byte identical to what's already
