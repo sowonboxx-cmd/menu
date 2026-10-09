@@ -493,6 +493,7 @@ button.lk.red{color:var(--alert)}
 .step{display:flex;align-items:center;gap:8px}
 .step button{width:30px;height:30px;border-radius:50%;border:0;background:var(--soft);color:var(--ink);font-size:16px;cursor:pointer}
 .step b{min-width:34px;text-align:center;font-size:14px}
+.nx.past{opacity:.55}
 .nx .warn{color:#ffd9d2;background:rgba(217,54,54,.35);border-radius:999px;padding:2px 8px}
 .resa-row .rw-d{display:flex;gap:6px;align-items:center}
 .svc-empty{font-size:13px;opacity:.85;padding:10px 2px}
@@ -669,16 +670,17 @@ async function loadAll(){
 }
 async function loadSide(){
   const t=todayIso();
-  const q=async(p)=>{ try{ const r=await p; return r.error?[]:(r.data||[]); }catch(e){ return []; } };
+  const q=async(p,label)=>{ try{ const r=await p; if(r.error){ console.warn(label,r.error); if(label==='réservations') toast('⚠ Réservations illisibles : '+r.error.message); return []; } return r.data||[]; }catch(e){ console.warn(label,e); return []; } };
   const in14=iso(Date.now()+14*864e5);
   [RESA,TABLES,SPACES,SERVICES,BLOCKED,WAIT]=await Promise.all([
-    q(sb.from('restaurant_reservations').select('*').eq('client_slug',RESA_SLUG).gte('date_iso',t).lte('date_iso',in14).order('date_iso').order('slot')),
+    q(sb.from('restaurant_reservations').select('*').eq('client_slug',RESA_SLUG).gte('date_iso',t).lte('date_iso',in14).order('date_iso'),'réservations'),
     q(sb.from('restaurant_tables').select('*').eq('client_slug',RESA_SLUG)),
     q(sb.from('restaurant_spaces').select('*').eq('client_slug',RESA_SLUG).order('sort_order')),
     q(sb.from('restaurant_services').select('*').eq('client_slug',RESA_SLUG).order('sort_order')),
     q(sb.from('blocked_dates').select('date_iso').eq('client_slug',RESA_SLUG).gte('date_iso',t).order('date_iso')),
     q(sb.from('restaurant_waitlist').select('*').eq('client_slug',RESA_SLUG).gte('date_iso',t))
   ]);
+  RESA.sort((a,b)=>(a.date_iso+(a.slot||'')).localeCompare(b.date_iso+(b.slot||'')));
   QR=await q(sb.from('qr_scans').select('code,at').eq('client_slug',STATS_SLUG).gte('at',new Date(Date.now()-30*864e5).toISOString()).limit(5000));
   render();
 }
@@ -813,7 +815,7 @@ const fta=(label,val,path,extra='')=>`<label class="fd ${extra}"><span>${label}<
 const pvFrame=(kind,i,cls,opt)=>`<iframe class="pv-frame ${cls}" data-prev="${kind}" data-i="${i}" ${opt?`data-opt='${esc(JSON.stringify(opt))}'`:''} data-hide-empty="1" title="Aperçu"></iframe>`;
 
 // ══ Réservations : calculs ══
-function activeResa(){ return RESA.filter(r=>r.status!=='cancelled'&&r.status!=='noshow'&&r.status!=='other'); }
+function activeResa(){ return RESA.filter(r=>(r.status||'confirmed')==='confirmed'); }
 const capacity=()=>TABLES.reduce((s,t)=>s+(+t.seats||0),0);
 function services(){
   if(SERVICES.length) return SERVICES.map(s=>({label:s.name,start:(s.start_time||'00:00').slice(0,5),end:(s.end_time||'23:59').slice(0,5)}));
@@ -821,8 +823,9 @@ function services(){
 }
 function todayBySvc(){
   const t=todayIso(), list=activeResa().filter(r=>r.date_iso===t);
-  const svcs=services().map(s=>({...s,items:list.filter(r=>(r.slot||'')>=s.start&&(r.slot||'')<=s.end)}));
-  return svcs.filter(s=>s.items.length||!SERVICES.length?true:true);
+  const midi=list.filter(r=>(r.slot||'')<'16:00'), soir=list.filter(r=>(r.slot||'')>='16:00');
+  const out=[]; if(midi.length) out.push({label:'Midi',items:midi}); if(soir.length||!midi.length) out.push({label:'Soir',items:soir});
+  return out;
 }
 const tableNames=r=>{ const ids=r.table_ids||[]; if(!ids.length) return '<b class="warn">Sans table</b>'; return ids.map(id=>{const t=TABLES.find(x=>x.id===id);return t?esc(t.name):'?';}).join(', '); };
 
@@ -830,11 +833,14 @@ const tableNames=r=>{ const ids=r.table_ids||[]; if(!ids.length) return '<b clas
 function dash(){
   const sp=jour(), svc=todayBySvc(), cap=capacity();
   const now=new Date().toTimeString().slice(0,5);
-  const next=activeResa().filter(r=>r.date_iso===todayIso()&&(r.slot||'')>=now&&!r.attended).slice(0,3);
-  const visible=svc.filter(s=>s.items.length||svc.length<=2);
+  const todayList=activeResa().filter(r=>r.date_iso===todayIso());
+  const up=todayList.filter(r=>(r.slot||'')>=now&&!r.attended), past=todayList.filter(r=>!((r.slot||'')>=now&&!r.attended));
+  const next=[...up.slice(0,3)]; if(next.length<3) next.push(...past.slice(-(3-next.length)));
+  next.sort((a,b)=>(a.slot||'').localeCompare(b.slot||''));
+  const visible=svc;
   const resa=`<section class="c resa a-resa" style="--n:${Math.max(1,visible.length)}"><h3><span class="ico">${I('resa')}</span>Réservations · aujourd'hui<a class="more" href="#/resa">Tout voir →</a></h3><div class="sub" style="margin-top:2px">${esc(fmtDay(todayIso()))}</div>
     <div class="inner">${visible.length?`<div class="svc">${visible.map(s=>{const cov=s.items.reduce((a,r)=>a+(+r.covers||0),0);const p=cap?Math.min(100,Math.round(cov/cap*100)):0;return `<div><div class="l">${esc(s.label)}</div><div class="n num">${s.items.length} <small>résas</small></div><div class="cv">${cov}${cap?` / ${cap}`:''} couv.${cap?` · <b>${p} %</b>`:''}</div><div class="bar"><i style="width:${p}%"></i></div></div>`;}).join('')}</div>`:'<div class="svc-empty">Aucune réservation aujourd\'hui.</div>'}
-    <div class="next"><div class="nx-t">Prochaines arrivées</div>${next.length?next.map(r=>`<div class="nx"><b class="num">${esc((r.slot||'').slice(0,5))}</b><span>${esc(r.from_name||'—')} · ${+r.covers||0} pers.${r.note?` · <em>${esc(r.note)}</em>`:''}</span><small>${tableNames(r)}</small></div>`).join(''):'<div class="nx"><span>Plus d\'arrivée prévue aujourd\'hui.</span></div>'}</div>
+    <div class="next"><div class="nx-t">Réservations du jour</div>${next.length?next.map(r=>`<div class="nx${((r.slot||'')<now||r.attended)?' past':''}"><b class="num">${esc((r.slot||'').slice(0,5))}</b><span>${esc(r.from_name||'—')} · ${+r.covers||0} pers.${r.note?` · <em>${esc(r.note)}</em>`:''}</span><small>${tableNames(r)}</small></div>`).join(''):'<div class="nx"><span>Aucune réservation aujourd\'hui.</span></div>'}</div>
     <div class="row2"><a class="btn w" href="#/resa">${I('stats')}Statistiques</a><a class="btn" href="#/comm">${I('boost')}Table Boost</a></div></div></section>`;
   const nbPlats=(DATA.tabs||[]).reduce((s,t)=>s+(t.cards||[]).reduce((a,c)=>a+((c.dishes||c.items||[]).length),0),0);
   const nbHidden=(DATA.tabs||[]).reduce((s,t)=>s+(t.cards||[]).reduce((a,c)=>a+((c.dishes||[]).filter(d=>d.hidden).length),0),0);
@@ -1264,6 +1270,8 @@ document.addEventListener('submit',async e=>{
   if(error){ err.textContent='Email ou mot de passe incorrect.'; return; }
   SESSION=data.session; await boot();
 });
+setInterval(()=>{ if(SESSION&&DATA&&!document.hidden) loadSide(); },120000);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&SESSION&&DATA) loadSide(); });
 async function boot(){
   const r=await loadAll();
   if(r.err&&r.err!=='missing') toast(r.err);
