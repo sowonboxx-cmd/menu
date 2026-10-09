@@ -925,7 +925,7 @@ function dash(){
       <div class="box">${lines}${sketch}
       <div class="ft"><span style="font-size:12.5px;opacity:.75">${esc(sp.formule||'')}</span><span class="price num">${esc(sp.price||'')}</span></div></div>
       <div class="acts"><a class="btn w" href="#/mdj"${sp.active?'':' tabindex="-1" aria-disabled="true"'}>${I('edit')}Modifier</a><a class="btn" href="#/tuner/mdj"${sp.active?'':' tabindex="-1" aria-disabled="true"'}>${I('share')}Partager</a></div></div>
-    <a class="li" href="#/menus"><span class="dot" style="background:var(--ink);color:var(--card)">${I('spe')}</span><div><b>Menus spéciaux</b><small>Ajouter · modifier · exporter${DATA.formules.length?' · '+DATA.formules.length+' menu'+(DATA.formules.length>1?'s':''):''}</small></div><span class="chev">›</span></a></div></section>`;
+    <a class="li" href="#/menus"><span class="dot" style="background:var(--ink);color:var(--card)">${I('spe')}</span><div><b>Menus personnalisés</b><small>Ajouter · modifier · exporter${DATA.formules.length?' · '+DATA.formules.length+' menu'+(DATA.formules.length>1?'s':''):''}</small></div><span class="chev">›</span></a></div></section>`;
   const comm=`<section class="a-comm comm"><div class="list"><div class="bh"><span class="ico">${I('mail')}</span>Communication</div>
     <a class="li" href="#/comm/social"><span class="dot">${I('post')}</span><div><b>Poster sur les réseaux</b><small class="cm">Vos médias sont déjà sur le site. Un clic, c'est publié.</small></div><span class="chev">›</span></a>
     <a class="li" href="#/comm/boost"><span class="dot">${I('boost')}</span><div><b>Table Boost <span class="pill ca">Remplir les tables · + de CA</span></b><small class="cm">Une table vide ? Deux clics, remplissez la salle.</small></div><span class="chev">›</span></a>
@@ -988,20 +988,20 @@ const pvBlock=(kind,o,cls)=>`<div class="pv-wrap" style="width:100%">${pvFrame(k
 const exBlock=(verb,href)=>`<div class="exb"><div class="exb-t">${verb} en A4, Post ou Story</div><p>Ouvre l'éditeur : vous voyez les trois formats côte à côte, vous réglez police, tailles, couleurs et logo, puis vous téléchargez seulement ceux que vous voulez (A4 pour imprimer, Post et Story pour Instagram).</p><div class="exb-f"><span>A4 · impression</span><span>Post · 3:4</span><span>Story · 9:16</span></div><a class="btn" href="#/${href}">${I('edit')}Modifier et ${verb.toLowerCase()}</a></div>`;
 function dishOptions(){ return (DATA.tabs||[]).map(t=>(t.cards||[]).map(c=>(c.dishes||[]).map(d=>`<option value="${esc(tr(d.name))}|${esc(tr(d.desc))}|${esc(d.price||'')}">${esc(tr(d.name))} — ${esc(tr(t.label))}</option>`).join('')).join('')).join(''); }
 
-// ── menus spéciaux ──
+// ── menus personnalisés ──
 function pageMenus(){
   const sp=jour(), fs=DATA.formules;
-  return mtop('Tableau de bord','dash')+ph('Mes menus','Menu du jour et menus spéciaux, affichés sur votre site et exportables',btn('Nouveau menu spécial','plus','','data-act="fAdd"'))+
+  return mtop('Tableau de bord','dash')+ph('Mes menus','Menu du jour et menus personnalisés, affichés sur votre site et exportables',btn('Nouveau menu personnalisé','plus','','data-act="fAdd"'))+
   `<div class="pgrid g-1-1"><div>${card('Menu du jour','jour',row(`<b>${sp.active?'En ligne':'Hors ligne'}</b>`,esc(tr(sp.title)||'Menu du jour'),'',tgl(sp.active,'mdjToggle'))+`<div class="acts2" style="justify-content:flex-start">${linkBtn('Modifier','edit','#/mdj','w')}${linkBtn('Partager','share','#/tuner/mdj')}</div>`)}</div>
-   <div>${card('Menus spéciaux','spe',(fs.length?fs.map(f=>row(`<b>${esc(f.name||f.title||'(sans nom)')}</b><small style="display:block">${esc(f.freeText||'')}</small>`,'','',`<a class="lk" href="#/formule/${encodeURIComponent(f.id)}">Modifier</a> <a class="lk" href="#/tuner/${encodeURIComponent(f.id)}">Exporter</a>`)).join(''):'<div class="empty">Aucun menu spécial pour l\'instant.</div>')+
-     `<button class="lk add" data-act="fAdd">＋ Ajouter un menu spécial</button>${fs.length>=10?'<p class="note">La limite de 10 est atteinte : en ajouter un nouveau remplacera le plus ancien.</p>':''}`)}</div></div>`;
+   <div>${card('Menus personnalisés','spe',(fs.length?fs.map(f=>row(`<b>${esc(f.name||f.title||'(sans nom)')}</b><small style="display:block">${esc(f.freeText||'')}</small>`,'','',`<a class="lk" href="#/formule/${encodeURIComponent(f.id)}">Modifier</a> <a class="lk" href="#/tuner/${encodeURIComponent(f.id)}">Exporter</a>`)).join(''):'<div class="empty">Aucun menu personnalisé pour l\'instant.</div>')+
+     `<button class="lk add" data-act="fAdd">＋ Ajouter un menu personnalisé</button>${fs.length>=10?'<p class="note">La limite de 10 est atteinte : en ajouter un nouveau remplacera le plus ancien.</p>':''}`)}</div></div>`;
 }
 function findF(id){ return DATA.formules.find(f=>f.id===id); }
 function pageFormule(){
   const f=findF(ARG); if(!f) return mtop('Mes menus','menus')+'<div class="empty">Ce menu n\'existe plus. <a class="lk" href="#/menus">Retour</a></div>';
   const fi=DATA.formules.indexOf(f);
   const del=UI.delc===f.id?`<span class="delc">Supprimer ce menu ?<button class="btn g" data-act="fDelNo">Annuler</button><button class="btn red" data-act="fDelYes">Oui, supprimer</button></span>`:btn('Supprimer','','g','data-act="fDelAsk"');
-  return mtop('Mes menus','menus')+crumb([['Mes menus','menus'],['Menus spéciaux','menus'],[esc(f.name||f.title||'(sans nom)')]])+ph(esc(f.name||f.title||'(sans nom)'),'Menu spécial',del)+
+  return mtop('Mes menus','menus')+crumb([['Mes menus','menus'],['Menus personnalisés','menus'],[esc(f.name||f.title||'(sans nom)')]])+ph(esc(f.name||f.title||'(sans nom)'),'Menu spécial',del)+
   `<div class="xsplit f"><div class="fcol">${card('Le menu','spe',`<div class="frm">${fin('Titre du menu',f.title||f.name||'',`f.${fi}.title`,'w')}${fta('Sous-titre (description)',f.freeText||'',`f.${fi}.freeText`,'w')}</div>`)}
    ${card('Sections du menu','plats',(f.tabs||[]).map((s,si)=>`<div class="fsec"><div class="fsh"><input class="in" style="flex:1;font-weight:800" value="${esc(tr(s.label))}" data-bind="f.${fi}.tabs.${si}.label" placeholder="Nom de la section (ex : Entrée)"><button class="mv" data-act="secMove" data-si="${si}" data-d="-1">↑</button><button class="mv" data-act="secMove" data-si="${si}" data-d="1">↓</button><button class="trash" data-act="secDel" data-si="${si}" title="Supprimer la section">✕</button></div>
      ${((s.cards&&s.cards[0]&&s.cards[0].dishes)||[]).map((d,di)=>`<div class="fdi"><input class="in" value="${esc(tr(d.name))}" data-bind="f.${fi}.tabs.${si}.d.${di}.name" placeholder="Nom du plat"><input class="in pr" value="${esc(d.price||'')}" data-bind="f.${fi}.tabs.${si}.d.${di}.price" placeholder="Prix"><button class="trash" data-act="dDel" data-si="${si}" data-di="${di}">✕</button></div><div class="fdi"><input class="in" value="${esc(tr(d.desc))}" data-bind="f.${fi}.tabs.${si}.d.${di}.desc" placeholder="Description (optionnel)"></div>`).join('')}
