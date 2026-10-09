@@ -183,6 +183,18 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
 @media(min-width:900px){.desk-sec{display:flex}}
 
 .list{overflow:hidden}
+.tile{min-height:60px}
+.s-d{background:#ece8f6}.s-d h4{color:#5a4a9a}
+.app-card{background:var(--card);border-radius:16px;padding:12px}
+.app-card small{display:block;font-size:12px;color:var(--mut);margin:0 2px 10px}
+.seg{display:flex;gap:4px;background:var(--soft);border-radius:13px;padding:4px}
+.seg button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:800;padding:9px 6px;border-radius:10px;color:var(--mut)}
+.seg button svg{width:15px;height:15px}
+.seg button.on{background:var(--ink);color:#fff}
+.app-row{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:16px;padding:10px 10px 10px 12px;margin-top:8px}
+.app-row .ico{width:36px;height:36px;border-radius:11px;color:#fff}
+.app-row b{font-size:13.5px;flex:1}
+.app-row .seg{flex:none;width:170px}
 .sl-list .li{padding:11px 0}
 .sl-list .dot{width:34px;height:34px;border-radius:50%}
 .sl-list .dot svg{width:16px;height:16px}
@@ -225,8 +237,8 @@ const THEMES={
   orange:{label:'Test : vert + orange',name:'Test couleurs',ini:'T',brand:'#c65d3b',accent:'#5f7f3a',font:'"Fraunces",serif',fw:700}
 };
 const VERS={
-  v1:['1 · Réglages en liste, chapeaux du resto','Mon établissement, Mon site et Sécurité passent en listes comme Communication, avec le même chapeau bleu doux.'],
-  v2:['2 · Réglages en liste, chapeaux de couleur','Mêmes listes, mais chaque chapeau garde sa couleur de réglage : bleu, vert, gris.']
+  v1:['1 · Apparence en bloc','Réglages comme avant, sans sous-titres. Apparence dans son propre bloc sous Mon site : Clair, Sombre ou Système.'],
+  v2:['2 · Apparence dans Mon site','Même chose, mais Apparence est une ligne au bas de Mon site, avec un simple choix Clair / Sombre.']
 };
 const MODE=()=>'hd';
 // titre de section : dehors (v1/v2) ou dans la bulle (v3/v4/v5)
@@ -270,6 +282,8 @@ const P={
   pres:'<rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><rect x="3" y="15" width="7" height="5" rx="1.5"/><rect x="14" y="15" width="7" height="5" rx="1.5"/>',
   coul:'<circle cx="13.5" cy="6.5" r="1"/><circle cx="17.5" cy="10.5" r="1"/><circle cx="8.5" cy="7.5" r="1"/><circle cx="6.5" cy="12.5" r="1"/><path d="M12 2a10 10 0 0 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.4A5.6 5.6 0 0 0 22 9.8C22 5.5 17.5 2 12 2z"/>',
   sauv:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 4v4h4"/>',
+  lune:'<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/>',
+  ecran:'<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
   plus:'<path d="M12 5v14M5 12h14"/>',
   hist:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>'
 };
@@ -304,13 +318,21 @@ const comm=()=>`<section class="a-comm comm">${outT('Communication')}${tagT('Com
   <a class="li" href="#"><span class="dot" style="background:var(--accent);color:var(--on-accent)">${I('boost')}</span><div><b>Table Boost</b><small>Mettre un plat en avant pour remplir les tables</small></div><span class="chev">›</span></a>
   <a class="li" href="#"><span class="dot" style="background:var(--brand);color:var(--on-brand)">${I('mail')}</span><div><b>Campagne email</b><small>Écrire à vos 1 240 clients</small></div><span class="chev">›</span></a>
 </div></section>`;
-const SETS=[['s-a','Mon établissement',[['compte','Mon compte','Will · admin'],['etab','Informations','Nom, logo, adresse'],['hor','Horaires','Ouvert · ferme à 23 h'],['res','Réseaux sociaux','2 comptes liés']]],
-  ['s-b','Mon site',[['acc',"Page d'accueil",'Vidéo plein écran'],['plats','Menus et plats','5 catégories'],['pres','Présentation','Grille photos'],['coul','Couleurs','Tout est lisible']]],
-  ['s-c','Sécurité',[['sauv','Sauvegardes',"Dernière : aujourd'hui"],['hist','Historique','Restaurer une version']]]];
-const setsInner=()=>`<div class="sets">${SETS.map(([c,h,ts])=>`<div class="set ${c}"><h4>${h}</h4><div class="tiles">${ts.map(([k,l,s])=>`<a class="tile" href="#"><span class="ico">${I(k)}</span><div><b>${l}</b><span>${s}</span></div></a>`).join('')}</div></div>`).join('')}</div>`;
+const SETS=[['s-a','Mon établissement',[['compte','Mon compte'],['etab','Informations'],['hor','Horaires'],['res','Réseaux sociaux']]],
+  ['s-b','Mon site',[['acc','Accueil'],['plats','Menu'],['pres','Présentation'],['coul','Couleurs']]],
+  ['s-c','Sécurité',[['sauv','Sauvegardes'],['hist','Historique']]]];
+let APP='clair';
+const tiles=ts=>`<div class="tiles">${ts.map(([k,l])=>`<a class="tile" href="#"><span class="ico">${I(k)}</span><div><b>${l}</b></div></a>`).join('')}</div>`;
+const appSeg=opts=>`<div class="seg">${opts.map(([k,l,ic])=>`<button type="button" data-app="${k}" class="${APP===k?'on':''}">${I(ic)}${l}</button>`).join('')}</div>`;
+const APP3=[['clair','Clair','jour'],['sombre','Sombre','lune'],['systeme','Système','ecran']], APP2=APP3.slice(0,2);
+const setsInner=()=>`<div class="sets">${SETS.map(([c,h,ts])=>{
+  let x=`<div class="set ${c}"><h4>${h}</h4>${tiles(ts)}${V==='v2'&&c==='s-b'?`<div class="app-row"><span class="ico">${I('lune')}</span><b>Apparence</b>${appSeg(APP2)}</div>`:''}</div>`;
+  if(V==='v1'&&c==='s-b')x+=`<div class="set s-d"><h4>Apparence</h4><div class="app-card"><small>Le thème du panneau admin</small>${appSeg(APP3)}</div></div>`;
+  return x;}).join('')}</div>`;
+const sets=()=>`<section class="full a-sets"><div class="sec">Réglages</div>${setsInner()}</section>`;
 const SETINK={'s-a':'var(--set-a-ink)','s-b':'var(--set-b-ink)','s-c':'var(--ink)'};
 const SETICO={'s-a':'etab','s-b':'acc','s-c':'sauv'};
-const sets=()=>SETS.map(([c,h,ts])=>`<section class="a-set ${c}"><div class="list sl-list">${inT(h,SETICO[c])}${ts.map(([k,l])=>`<a class="li" href="#"><span class="dot" style="background:${SETINK[c]}">${I(k)}</span><div><b>${l}</b></div><span class="chev">›</span></a>`).join('')}</div></section>`).join('');
+const setsList=()=>SETS.map(([c,h,ts])=>`<section class="a-set ${c}"><div class="list sl-list">${inT(h,SETICO[c])}${ts.map(([k,l])=>`<a class="li" href="#"><span class="dot" style="background:${SETINK[c]}">${I(k)}</span><div><b>${l}</b></div><span class="chev">›</span></a>`).join('')}</div></section>`).join('');
 const visits=()=>`<section class="full a-vis">${outT('Statistiques du site')}${tagT('Statistiques du site','stats')}<div class="c vis">${inT('Statistiques du site','stats','7 derniers jours')}
   <div><h3 style="margin-bottom:12px"><span class="ico">${I('vue')}</span>Visites</h3><div class="k num">1 248</div><small>7 derniers jours · <b style="color:var(--ok)">+12 %</b></small></div>
   <div><div class="spark"><i style="height:40%"></i><i style="height:55%"></i><i style="height:35%"></i><i style="height:60%"></i><i style="height:75%"></i><i style="height:90%"></i><i class="on" style="height:100%"></i></div><div class="days"><span>sam</span><span>dim</span><span>lun</span><span>mar</span><span>mer</span><span>jeu</span><span>ven</span></div></div>
@@ -344,6 +366,7 @@ document.addEventListener('click',e=>{
   if(t){KEY=t.dataset.t;render();return;}
   if(o){if(o.dataset.o==='mdj')MDJ=!MDJ;else SVC=o.dataset.o.slice(4);render();return;}
   if(m){MDJ=!MDJ;render();return;}
+  const ap=e.target.closest('[data-app]');if(ap){APP=ap.dataset.app;render();return;}
   const a=e.target.closest('a');if(a&&a.getAttribute('href')==='#')e.preventDefault();
 });
 (()=>{const [v,k,m,s]=(location.hash.slice(1)||'').split('-');if(VERS[v])V=v;if(THEMES[k])KEY=k;if(m!==undefined&&m!=='')MDJ=m==='1';if(SERVICES[s])SVC=s;})();
