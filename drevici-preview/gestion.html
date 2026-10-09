@@ -510,6 +510,8 @@ button.lk.red{color:var(--alert)}
 .logo.img.sq,.side .who .logo.img.sq,.mtop .logo.img.sq{padding:0;min-width:0;width:48px;height:48px;border-radius:50%;overflow:hidden}.logo.img.sq img,.side .who .logo.img.sq img,.mtop .logo.img.sq img{width:100%;height:100%;max-height:none;max-width:none;object-fit:cover}
 .side .who .logo.img.sq{width:42px;height:42px}.mtop .logo.img.sq{width:36px;height:36px}
 .hd h1 a{color:inherit}
+.upl{display:flex;gap:14px;align-items:center}.upl-th{width:88px;height:88px;border-radius:18px;background:var(--brand);display:grid;place-items:center;flex:none;overflow:hidden;color:var(--on-brand);font-family:var(--display);font-size:26px}.upl-th img{width:100%;height:100%;object-fit:contain}
+.upl-a{display:flex;flex-direction:column;align-items:flex-start;gap:8px}.upl-btn{cursor:pointer;padding:10px 14px}.upl-btn svg{transform:none}
 .mv{background:var(--soft);border:0;border-radius:8px;width:28px;height:28px;cursor:pointer;color:var(--ink)}
 
 </style>
@@ -535,6 +537,7 @@ const SLUG=QS.get('slug')||'drevici-test';
 const RESA_SLUG='drevici-paris', STATS_SLUG='drevici';
 const SITE_URL='https://drevici-preview.beltab.app/';
 const RESA_ADMIN_URL='https://drevici.beltab.app/admin';
+const UPLOAD_URL='https://upload.beltab.app/upload';
 const sb=supabase.createClient(SB_URL,SB_KEY);
 
 let DATA=null, SESSION=null, LOADED=false;
@@ -1008,11 +1011,12 @@ function pageEtab(){
     return `<div class="rw"><div class="rw-a"><b>${day}</b></div><div class="rw-b">${on?(d.services||[]).map((sv,si)=>`<span style="display:inline-flex;gap:4px;align-items:center;margin-right:10px"><input class="in" style="width:62px;padding:7px 8px" value="${sv.open??''}" data-bind="sched.${di}.${si}.open" inputmode="decimal">–<input class="in" style="width:62px;padding:7px 8px" value="${sv.close??''}" data-bind="sched.${di}.${si}.close" inputmode="decimal"></span>`).join(''):'<span style="color:var(--mut)">Fermé</span>'}</div><div class="rw-d">${tgl(on,'dayToggle',`data-i="${di}"`)}</div></div>`; }).join('');
   return mtop('Tableau de bord','dash')+ph('Mon établissement','Les informations de votre restaurant · enregistrement automatique','')+
   `<div class="pgrid g-1-1"><div>${card('Mon compte','compte',row('Connecté',esc((SESSION&&SESSION.user&&SESSION.user.email)||'—'))+`<div class="acts2" style="justify-content:flex-start"><button class="btn g" data-act="logout">${I('out')}Se déconnecter</button></div>`)}
-   ${card('Informations','etab',`<div class="frm">${fin('Nom',DATA.restaurantName||'','root.restaurantName','w')}${fin('Rue',a.street||'','addr.street','w')}${fin('Code postal',a.zip||'','addr.zip')}${fin('Ville',a.city||'','addr.city')}${fin('Téléphone',a.phone||'','addr.phone')}${fin('Lien Google Maps',a.mapsUrl||'','addr.mapsUrl')}${fin('Logo (lien)',DATA.restaurantLogo||'','root.restaurantLogo','w')}</div>`)}
+   ${card('Informations','etab',`<div class="frm">${fin('Nom',DATA.restaurantName||'','root.restaurantName','w')}${fin('Rue',a.street||'','addr.street','w')}${fin('Code postal',a.zip||'','addr.zip')}${fin('Ville',a.city||'','addr.city')}${fin('Téléphone',a.phone||'','addr.phone')}${fin('Lien Google Maps',a.mapsUrl||'','addr.mapsUrl')}${logoField()}</div>`)}
    ${card('Réseaux sociaux','res',`<div class="frm">${fin('Instagram',s.instagram||'','soc.instagram')}${fin('TikTok',s.tiktok||'','soc.tiktok')}${fin('Facebook',s.facebook||'','soc.facebook')}${fin('Site internet',s.website||'','soc.website')}</div>`)}</div>
    <div>${card('Horaires','hor',sched+'<p class="note">Heures en chiffres : 17 = 17 h, 17.5 = 17 h 30, 2 ou 26 = 2 h du matin.</p>')}
    ${card('Salle et services','resa',row('Espaces',esc(SPACES.map(x=>x.name).join(' · ')||'—'))+row('Tables',`${TABLES.length} tables · ${capacity()} places`)+row('Services',esc(SERVICES.map(x=>x.name).join(' · ')||'—'))+`<p class="note">Pour les réservations · se gèrent dans l'admin des réservations.</p>`,'','Réservations')}</div></div>`;
 }
+function logoField(){ const u=DATA.restaurantLogo||''; return `<div class="fd w"><span>Logo</span><div class="upl"><div class="upl-th">${u?`<img src="${esc(u)}" alt="">`:`<span>${esc(initials())}</span>`}</div><div class="upl-a"><label class="btn w upl-btn">${I('share')}${u?'Changer le logo':'Envoyer le logo'}<input type="file" accept="image/*" data-act="logoUp" hidden></label>${u?'<button class="lk red" data-act="logoDel">Retirer</button>':''}<small class="muted2">PNG, JPG, WebP ou SVG. Il apparaît sur le site, les exports et ce panneau.</small></div></div></div>`; }
 function pageSite(){
   const hc=DATA.homeCover||{}, bc=DATA.brandColors||{};
   return mtop('Tableau de bord','dash')+ph('Mon site','Ce que vos clients voient en ouvrant votre site',`<a class="btn w" href="${SITE_URL}" target="_blank" rel="noopener">${I('share')}Voir le site ↗</a>`)+
@@ -1076,9 +1080,29 @@ document.addEventListener('change',async e=>{
   if(a==='dImport'&&el.value){ const f=findF(ARG); const [n,d,p]=el.value.split('|'); const s=f.tabs[+el.dataset.si]; s.cards[0].dishes.push({name:{fr:n},desc:{fr:d},price:p}); touch(true); }
   if(a==='tunerFont'){ tunerTarget().obj.instaFont=el.value||undefined; touch(true); }
   if(a==='igFont'){ pS().instaFont=el.value; touch(true); }
-  if(a==='pdfLogo'&&el.files&&el.files[0]){ const url=await fileToWebp(el.files[0]); pS().logoData=url; touch(true); }
+  if(a==='pdfLogo'&&el.files&&el.files[0]){ const url=await uploadImage(el.files[0],'logo-impression'); if(url){ pS().logoData=url; touch(true); } }
+  if(a==='logoUp'&&el.files&&el.files[0]){ const url=await uploadImage(el.files[0],'logo'); if(url){ DATA.restaurantLogo=url; touch(true); } }
 });
-function fileToWebp(file){ return new Promise(res=>{ const r=new FileReader(); r.onload=()=>{ const img=new Image(); img.onload=()=>{ const max=900, sc=Math.min(1,max/Math.max(img.width,img.height)); const c=document.createElement('canvas'); c.width=Math.round(img.width*sc); c.height=Math.round(img.height*sc); c.getContext('2d').drawImage(img,0,0,c.width,c.height); res(c.toDataURL('image/webp',.85)); }; img.src=r.result; }; r.readAsDataURL(file); }); }
+function fileToWebpBlob(file,max=1600){ return new Promise((res,rej)=>{ if(file.type==='image/svg+xml'){ res(file); return; } const r=new FileReader(); r.onerror=rej; r.onload=()=>{ const img=new Image(); img.onerror=rej; img.onload=()=>{ const sc=Math.min(1,max/Math.max(img.width,img.height)); const c=document.createElement('canvas'); c.width=Math.round(img.width*sc); c.height=Math.round(img.height*sc); c.getContext('2d').drawImage(img,0,0,c.width,c.height); c.toBlob(b=>b?res(b):rej(new Error('conversion')),'image/webp',.88); }; img.src=r.result; }; r.readAsDataURL(file); }); }
+const blobToDataUrl=b=>new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(b); });
+// Envoie l'image sur le serveur d'images (media.beltab.app) et renvoie son adresse.
+// Si le serveur n'est pas encore branché, l'image est gardée dans la carte (comme l'admin actuel).
+async function uploadImage(file,kind){
+  if(!file||!/^image\//.test(file.type)){ toast('Choisissez une image (PNG, JPG, WebP ou SVG)'); return null; }
+  toast('Envoi de l\'image…');
+  const blob=await fileToWebpBlob(file, kind==='logo'?900:1600);
+  try{
+    const r=await fetch(UPLOAD_URL+'?slug='+encodeURIComponent(SLUG)+'&kind='+encodeURIComponent(kind),{method:'POST',headers:{'Authorization':'Bearer '+(SESSION&&SESSION.access_token||''),'Content-Type':blob.type||'image/webp'},body:blob});
+    const j=await r.json().catch(()=>({}));
+    if(r.ok&&j.url){ toast('Image enregistrée sur le serveur'); return j.url; }
+    if(r.status===401||r.status===403){ toast('⚠ '+(j.error||'Accès refusé')); return null; }
+    throw new Error(j.error||('HTTP '+r.status));
+  }catch(e){
+    console.warn('upload',e);
+    toast('Serveur d\'images pas encore branché : image gardée dans la carte');
+    return await blobToDataUrl(blob);
+  }
+}
 
 // ══ Actions (clics) ══
 document.addEventListener('click',async e=>{
@@ -1138,6 +1162,7 @@ document.addEventListener('click',async e=>{
     case 'delAsk': UI.delc=d.k; render(); break;
     case 'delNo': UI.delc=null; render(); break;
     case 'dayToggle': { const day=DATA.schedule[+d.i]; const on=day.active!==false&&(day.services||[]).some(x=>x.open!=null); if(on){ day.active=false; } else { day.active=true; if(!day.services||!day.services.length) day.services=[{label:'',open:12,close:14}]; day.services.forEach(s=>{ if(s.open==null){ s.open=19; s.close=22; } }); day.open=day.services[0].open; day.close=day.services[0].close; } touch(true); break; }
+    case 'logoDel': DATA.restaurantLogo=''; touch(true); break;
     case 'rootFlag': DATA[d.k]=DATA[d.k]===false; touch(true); break;
     case 'backup': { const blob=new Blob([JSON.stringify(DATA,null,2)],{type:'application/json'}); const u=URL.createObjectURL(blob); const ln=document.createElement('a'); const n=new Date(); ln.download=`${SLUG}-${iso(n).replace(/-/g,'')}-${String(n.getHours()).padStart(2,'0')}${String(n.getMinutes()).padStart(2,'0')}.json`; ln.href=u; ln.click(); setTimeout(()=>URL.revokeObjectURL(u),2000); break; }
     case 'restore': { const {data,error}=await sb.from('menu_data_history').select('data').eq('id',d.id).maybeSingle(); if(error||!data){ toast('⚠ Version introuvable'); break; } try{ await sb.from('menu_data_history').insert({client_slug:SLUG,data:DATA}); }catch(x){} DATA=data.data; UI.delc=null; HIST=null; await save(); applyTheme(); render(); toast('Version restaurée'); break; }
