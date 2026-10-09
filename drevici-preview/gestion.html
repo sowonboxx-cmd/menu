@@ -442,7 +442,7 @@ button.lk.red{color:var(--alert)}
 @media(max-width:899px){
   .mtop{display:flex;align-items:center;gap:10px;margin:0 0 12px}
   .mtop a{width:40px;height:40px;border-radius:50%;background:var(--card);display:grid;place-items:center;font-size:20px;flex:none}
-  .mtop b{font-size:14px;color:var(--mut)}
+  .mtop b{font-size:14px;color:var(--mut);flex:1}.mtop a.mt-home{width:auto;height:auto;background:none;border-radius:0}.mtop .logo{width:36px;height:36px;font-size:13px}.mtop .logo.img{min-width:36px;padding:6px 9px;border-radius:10px}.mtop .logo.img img{max-height:20px;max-width:100px}
   .ph{flex-wrap:wrap}.ph h2{font-size:26px}.ph-a{margin-left:0;flex-wrap:wrap}
   .pgrid,.g-3-1,.g-2-1,.g-1-1{grid-template-columns:1fr!important}
   .xsplit,.xsplit.l,.xsplit.f{grid-template-columns:1fr!important}
@@ -504,6 +504,10 @@ button.lk.red{color:var(--alert)}
 .cat-h{display:flex;align-items:center;gap:10px}
 .cat-h input.in{font-weight:800}
 @media(max-width:899px){.dish-ed .top{flex-wrap:wrap}.dish-ed .top input.pr{flex:1 1 100%;text-align:left}.fdi input.in.pr{flex:0 0 110px}}
+.logo.img{width:auto;min-width:48px;padding:8px 12px;border-radius:14px}.logo.img img{display:block;max-height:30px;max-width:150px;object-fit:contain}
+.side .who .logo.img{min-width:44px;height:auto;padding:6px 9px;border-radius:12px}.side .who .logo.img img{max-height:34px;max-width:130px}
+.side a.who{color:var(--ink);text-decoration:none}
+.hd h1 a{color:inherit}
 .mv{background:var(--soft);border:0;border-radius:8px;width:28px;height:28px;cursor:pointer;color:var(--ink)}
 
 </style>
@@ -730,9 +734,10 @@ const NAV=[['dash','stats','Tableau de bord'],['resa','resa','Réservations'],['
 const NAVS=[['etab','etab','Mon établissement'],['site','acc','Mon site'],['app','lune','Apparence'],['secu','sauv','Sécurité']];
 const PARENT={export:'carte',xprint:'carte',xgbiz:'carte',xinsta:'carte',xcol:'carte',mdj:'menus',formule:'menus',tuner:'menus'};
 const nv=([k,ic,l])=>`<a class="nv${(PG===k||PARENT[PG]===k)?' on':''}" href="#/${k}">${I(ic)}${l}</a>`;
-const side=()=>`<nav class="side"><div class="who"><div class="logo">${esc(initials())}</div><b>${esc(DATA.restaurantName||'Mon restaurant')}</b></div>
+const side=()=>`<nav class="side"><a class="who" href="#/dash" title="Tableau de bord">${logoBox()}<b>${esc(DATA.restaurantName||'Mon restaurant')}</b></a>
   ${NAV.map(nv).join('')}<div class="gap"></div><div class="mini">Réglages</div>${NAVS.map(nv).join('')}
   <div class="gap"></div><a class="nv" href="${SITE_URL}" target="_blank" rel="noopener">${I('share')}Voir le site ↗</a><a class="nv" href="#" data-act="logout">${I('out')}Se déconnecter</a></nav>`;
+function logoBox(){ const u=DATA&&DATA.restaurantLogo; return u?`<div class="logo img"><img src="${esc(u)}" alt="" onerror="this.parentNode.classList.remove('img');this.parentNode.textContent='${esc(initials())}'"></div>`:`<div class="logo">${esc(initials())}</div>`; }
 function initials(){ const n=(DATA&&DATA.restaurantName)||'B'; return n.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase(); }
 
 // ══ Composants ══
@@ -744,7 +749,7 @@ const tgl=(on,act,data='')=>`<button type="button" class="tg ${on?'on':''}" data
 const opt=(l,on,act,data='',hint='')=>`<div class="op"><div><b>${l}</b>${hint?`<small>${hint}</small>`:''}</div>${tgl(on,act,data)}</div>`;
 const segb=(items,cur,act,extra='')=>`<div class="seg sm">${items.map(([v,l])=>`<button type="button" class="${String(v)===String(cur)?'on':''}" data-act="${act}" data-v="${v}" ${extra}>${l}</button>`).join('')}</div>`;
 const crumb=a=>`<div class="crb">${a.map((x,i)=>i<a.length-1?`<a href="#/${x[1]}">${x[0]}</a><span>/</span>`:`<b>${x[0]}</b>`).join('')}</div>`;
-const mtop=(label,back)=>`<div class="mtop"><a href="#/${back}" aria-label="Retour">‹</a><b>${label}</b></div>`;
+const mtop=(label,back)=>`<div class="mtop"><a href="#/${back}" aria-label="Retour">‹</a><b>${label}</b><a class="mt-home" href="#/dash" title="Tableau de bord">${logoBox()}</a></div>`;
 const btn=(t,ic,cls='',attrs='')=>`<button type="button" class="btn ${cls}" ${attrs}>${ic?I(ic):''}${t}</button>`;
 const linkBtn=(t,ic,href,cls='')=>`<a class="btn ${cls}" href="${href}">${ic?I(ic):''}${t}</a>`;
 const fin=(label,val,path,extra='',type='text')=>`<label class="fd ${extra}"><span>${label}</span><input class="in" type="${type}" value="${esc(val)}" data-bind="${path}"></label>`;
@@ -802,7 +807,7 @@ function dash(){
 }
 const setBlock=(c,h,ts)=>`<div class="set ${c}"><h4>${h}</h4><div class="tiles">${ts.map(([k,l,p])=>`<a class="tile" href="#/${p}"><span class="ico">${I(k)}</span><div><b>${l}</b></div></a>`).join('')}</div></div>`;
 function appSeg(){ const m=applyAppearance(); return `<div class="seg">${[['clair','Clair','jour'],['sombre','Sombre','lune'],['systeme','Système','ecran']].map(([k,l,ic])=>`<button type="button" data-act="appearance" data-v="${k}" class="${m===k?'on':''}">${I(ic)}${l}</button>`).join('')}</div>`; }
-function header(){ return `<header class="hd"><div class="logo">${esc(initials())}</div><div style="min-width:0"><h1>${esc(DATA.restaurantName||'Mon restaurant')}</h1><p>${openLine()} · <span class="pill-test">Copie de test</span></p></div><a class="site" href="${SITE_URL}" target="_blank" rel="noopener">Voir le site ↗</a></header>`; }
+function header(){ return `<header class="hd"><a href="#/dash" class="hd-logo">${logoBox()}</a><div style="min-width:0"><h1><a href="#/dash">${esc(DATA.restaurantName||'Mon restaurant')}</a></h1><p>${openLine()} · <span class="pill-test">Copie de test</span></p></div><a class="site" href="${SITE_URL}" target="_blank" rel="noopener">Voir le site ↗</a></header>`; }
 function openLine(){
   const days=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
   const d=(DATA.schedule||[]).find(x=>x.day===days[new Date().getDay()]);
