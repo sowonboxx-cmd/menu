@@ -579,6 +579,15 @@ body{font-family:var(--ui)}
 .bb-h p{font-size:16px}.c6 b{font-size:15px}.c6 small{font-size:13px}.kpis small{font-size:14px}
 [data-theme="dark"] .cc .bul li,[data-theme="dark"] .cc .fs small,[data-theme="dark"] .cc .sg small{color:#a1a1a6}
 @media(max-width:899px){.cc .hook,.csolo .cc .hook{font-size:21px}.csolo .cc .segs{grid-template-columns:1fr 1fr}.rtabs a{padding:8px 14px;font-size:14px}}
+
+.cc .fs small{font-weight:500;color:#515154}.cc .bul li{font-weight:500;color:#515154}.cc .bul li b{font-weight:700}.cc .sg small{font-weight:500;color:#515154}
+[data-theme="dark"] .cc .fs small,[data-theme="dark"] .cc .bul li,[data-theme="dark"] .cc .sg small{color:#c7c7cc}
+/* essais de couleur des boutons : ?btn=or | jaune | noir | bleu */
+html[data-btn="jaune"]{--accent-btn:#FFD60A;--on-accent-btn:#16181d}
+html[data-btn="noir"]{--accent-btn:#16181d;--on-accent-btn:#ffffff}
+html[data-btn="bleu"]{--accent-btn:#0071E3;--on-accent-btn:#ffffff}
+html[data-btn="jaune"] .btn,html[data-btn="noir"] .btn,html[data-btn="bleu"] .btn{border-radius:999px}
+html[data-btn] .btn.w{background:var(--card);color:var(--ink)}html[data-btn] .btn.g{background:var(--soft);color:var(--ink)}
 </style>
 </head>
 <body>
@@ -660,7 +669,7 @@ function applyTheme(){
   s.setProperty('--brand-tint',light?'rgba(22,24,29,.09)':'rgba(255,255,255,.15)');
   const soft=mix(brand,'#ffffff',.86); s.setProperty('--brand-soft',soft); s.setProperty('--brand-text',darkEnough(brand,soft));
   s.setProperty('--accent',accent); s.setProperty('--on-accent',textOn(accent));
-  { let b=accent; if(textOn(accent)===INK){ for(let t=0;t<.7&&contrast(b,INK)<9;t+=.03) b=mix(accent,'#ffffff',t); } s.setProperty('--accent-btn',b); s.setProperty('--on-accent-btn',textOn(b)); } s.setProperty('--accent-soft',mix(accent,'#ffffff',.84)); s.setProperty('--accent-text',darkEnough(accent,mix(accent,'#ffffff',.84)));
+  { let b=accent; if(textOn(accent)===INK){ for(let t=0;t<.7&&contrast(b,INK)<9;t+=.03) b=mix(accent,'#ffffff',t); } if(!document.documentElement.dataset.btn){ s.setProperty('--accent-btn',b); s.setProperty('--on-accent-btn',textOn(b)); } } s.setProperty('--accent-soft',mix(accent,'#ffffff',.84)); s.setProperty('--accent-text',darkEnough(accent,mix(accent,'#ffffff',.84)));
   const font=(DATA&&DATA.restoFont)||'DM Serif Display';
   if(!document.getElementById('restoFontLink')){const l=document.createElement('link');l.id='restoFontLink';l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family='+encodeURIComponent(font).replace(/%20/g,'+')+':wght@400;700&display=swap';document.head.appendChild(l);}
   s.setProperty('--display',`"${font}",Georgia,serif`); s.setProperty('--display-w','700');
@@ -1300,6 +1309,7 @@ async function boot(){
   engine().then(w=>{ try{ ENGFONTS=w.__fonts(); }catch(e){} if(['tuner','xinsta'].includes(PG)) render(); else refreshPreviews(); });
 }
 (async()=>{
+  { const b=QS.get('btn'); if(b) document.documentElement.dataset.btn=b; }
   applyAppearance(); parseHash();
   const {data}=await sb.auth.getSession(); SESSION=data.session;
   if(SESSION) await boot(); else render();
