@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/morphdom@2.7.4/dist/morphdom-umd.min.js"></script>
 <style>
 :root{
   --bg:#f5f3ef; --card:#fff; --soft:#f1eee8; --ink:#16181d; --mut:#6b7080; --line:#ece8e0;
@@ -505,7 +506,7 @@ button.lk.red{color:var(--alert)}
 .cat-h input.in{font-weight:800}
 @media(max-width:899px){.dish-ed .top{flex-wrap:wrap}.dish-ed .top input.pr{flex:1 1 100%;text-align:left}.fdi input.in.pr{flex:0 0 110px}}
 .logo.img{width:auto;min-width:48px;padding:8px 12px;border-radius:14px}.logo.img img{display:block;max-height:30px;max-width:150px;object-fit:contain}
-.side .who .logo.img{min-width:44px;height:auto;padding:6px 9px;border-radius:12px}.side .who .logo.img img{max-height:34px;max-width:130px}
+.v2 .side .who .logo.img{width:auto;min-width:44px;height:auto;padding:6px 9px;border-radius:12px}.v2 .side .who .logo.img img{max-height:34px;max-width:130px}
 .side a.who{color:var(--ink);text-decoration:none}
 .logo.img.sq,.side .who .logo.img.sq,.mtop .logo.img.sq{padding:0;min-width:0;width:48px;height:48px;border-radius:50%;overflow:hidden}.logo.img.sq img,.side .who .logo.img.sq img,.mtop .logo.img.sq img{width:100%;height:100%;max-height:none;max-width:none;object-fit:cover}
 .side .who .logo.img.sq{width:42px;height:42px}.mtop .logo.img.sq{width:36px;height:36px}
@@ -701,7 +702,7 @@ async function fillPreviews(){
     const key=fr.dataset.prev+'|'+(fr.dataset.opt||'');
     if(!cache[key]){ try{ cache[key]=w.__prev(fr.dataset.prev, fr.dataset.opt?JSON.parse(fr.dataset.opt):{}); }catch(e){ console.error(e); cache[key]=[]; } }
     const docs=cache[key], i=+(fr.dataset.i||0);
-    if(docs[i]){ fr.srcdoc=docs[i]; const ph=fr.closest('.pv-wrap'); if(ph) ph.style.display=''; }
+    if(docs[i]){ if(fr._doc!==docs[i]){ fr._doc=docs[i]; fr.srcdoc=docs[i]; } const ph=fr.closest('.pv-wrap'); if(ph) ph.style.display=''; }
     else { const ph=fr.closest('.pv-wrap'); if(ph&&fr.dataset.hideEmpty) ph.style.display='none'; }
   }
 }
@@ -742,7 +743,9 @@ const nv=([k,ic,l])=>`<a class="nv${(PG===k||PARENT[PG]===k)?' on':''}" href="#/
 const side=()=>`<nav class="side"><a class="who" href="#/dash" title="Tableau de bord">${logoBox()}<b>${esc(DATA.restaurantName||'Mon restaurant')}</b></a>
   ${NAV.map(nv).join('')}<div class="gap"></div><div class="mini">Réglages</div>${NAVS.map(nv).join('')}
   <div class="gap"></div><a class="nv" href="${SITE_URL}" target="_blank" rel="noopener">${I('share')}Voir le site ↗</a><a class="nv" href="#" data-act="logout">${I('out')}Se déconnecter</a></nav>`;
-function logoBox(){ const u=DATA&&DATA.restaurantLogo; return u?`<div class="logo img"><img src="${esc(u)}" alt="" onload="if(Math.abs(this.naturalWidth-this.naturalHeight)<this.naturalWidth*.08)this.parentNode.classList.add('sq')" onerror="this.parentNode.classList.remove('img');this.parentNode.textContent='${esc(initials())}'"></div>`:`<div class="logo">${esc(initials())}</div>`; }
+const LOGO_SQ={};
+function logoLoaded(img){ const sq=Math.abs(img.naturalWidth-img.naturalHeight)<img.naturalWidth*.08; LOGO_SQ[img.getAttribute('src')]=sq; img.parentNode.classList.toggle('sq',sq); }
+function logoBox(){ const u=DATA&&DATA.restaurantLogo; return u?`<div class="logo img${LOGO_SQ[u]?' sq':''}"><img src="${esc(u)}" alt="" onload="logoLoaded(this)" onerror="this.parentNode.classList.remove('img');this.parentNode.textContent='${esc(initials())}'"></div>`:`<div class="logo">${esc(initials())}</div>`; }
 function initials(){ const n=(DATA&&DATA.restaurantName)||'B'; return n.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase(); }
 
 // ══ Composants ══
@@ -1042,9 +1045,22 @@ function render(){
   const fn=PAGES[PG]||dash;
   const focus=document.activeElement&&document.activeElement.dataset?document.activeElement.dataset.bind:null;
   const y=scrollY;
-  app.innerHTML=PG==='tuner'?`<div class="v2">${fn()}</div>`:`<div class="v2"><div class="shell">${side()}<div class="main">${fn()}</div></div></div>`;
-  if(focus){ const el=app.querySelector(`[data-bind="${focus}"]`); if(el){ el.focus(); try{ const l=el.value.length; el.setSelectionRange(l,l);}catch(e){} } }
-  scrollTo(0,y);
+  const html=PG==='tuner'?`<div class="v2">${fn()}</div>`:`<div class="v2"><div class="shell">${side()}<div class="main">${fn()}</div></div></div>`;
+  // Mise à jour fine plutôt que tout redessiner : seuls les éléments qui changent
+  // sont touchés, donc plus de clignotement (images, aperçus, interrupteurs).
+  if(window.morphdom&&app.firstElementChild){
+    const next=document.createElement('div'); next.id='app'; next.className=app.className; next.innerHTML=html;
+    morphdom(app,next,{onBeforeElUpdated(from,to){
+      if(from===document.activeElement&&(from.tagName==='INPUT'||from.tagName==='TEXTAREA'||from.tagName==='SELECT')) return false;
+      if(from.tagName==='IFRAME'&&from.getAttribute('data-prev')===to.getAttribute('data-prev')&&from.getAttribute('data-opt')===to.getAttribute('data-opt')&&from.getAttribute('data-i')===to.getAttribute('data-i')){ for(const at of ['class','style']) if(to.hasAttribute(at)) from.setAttribute(at,to.getAttribute(at)); return false; }
+      if(from.isEqualNode(to)) return false;
+      return true;
+    }});
+  } else {
+    app.innerHTML=html;
+    if(focus){ const el=app.querySelector(`[data-bind="${focus}"]`); if(el){ el.focus(); try{ const l=el.value.length; el.setSelectionRange(l,l);}catch(e){} } }
+    scrollTo(0,y);
+  }
   refreshPreviews();
 }
 function loginView(){ return `<div class="login"><div class="c"><h1>Beltab</h1><p>Panneau de gestion · version test</p><form id="loginForm"><label class="fd"><span>Email</span><input class="in" type="email" name="email" autocomplete="username" required></label><label class="fd"><span>Mot de passe</span><input class="in" type="password" name="pw" autocomplete="current-password" required></label><button class="btn" type="submit">Se connecter</button><div class="err" id="loginErr"></div></form></div></div>`; }
