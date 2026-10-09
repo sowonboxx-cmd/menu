@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Beltab · Tableau de bord (final)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Cormorant+Garamond:wght@600;700&family=DM+Serif+Display&display=swap">
+<style>
+:root{
+  --bg:#f5f3ef; --card:#fff; --soft:#f1eee8; --ink:#16181d; --mut:#6b7080; --line:#ece8e0;
+  --ok:#1f9d55; --ok-soft:#e2f4ea; --alert:#d93636; --alert-soft:#fbe7e7;
+  --r:22px;
+  --brand:#1d4f7a; --on-brand:#fff; --on-brand-mut:rgba(255,255,255,.74); --brand-tint:rgba(255,255,255,.15); --brand-soft:#e3ebf2; --brand-text:#1d4f7a;
+  --accent:#f0a830; --on-accent:#16181d; --accent-soft:#fdf1dc; --accent-text:#8a5a00;
+  --display:"Inter",system-ui,sans-serif; --display-w:800;
+  /* réglages : 3 couleurs fixes, lisibles quel que soit le thème */
+  --set-a:#e4edfb; --set-a-ink:#2557a7; --set-b:#e3f1e6; --set-b-ink:#2f7a45; --set-c:#ece9e3; --set-c-ink:#5d6170;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+.num{font-variant-numeric:tabular-nums}
+
+/* barre de maquette (hors produit) */
+.mk{position:sticky;top:0;z-index:20;background:rgba(22,24,29,.94);backdrop-filter:blur(10px);color:#fff;padding:max(8px,env(safe-area-inset-top)) 14px 8px}
+.mk-row{max-width:1240px;margin:0 auto;display:flex;align-items:center;gap:10px}
+.mk-row+.mk-row{margin-top:6px}
+.mk b{font-size:11px;letter-spacing:.1em;text-transform:uppercase;opacity:.6;white-space:nowrap;width:84px;flex:none}
+.mk .ch{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
+.mk .ch::-webkit-scrollbar{display:none}
+.mk .ch button{flex:none;display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:#fff;background:rgba(255,255,255,.1);border-radius:999px;padding:6px 11px}
+.mk .ch button.on{background:#fff;color:var(--ink)}
+.mk .ch i{width:14px;height:14px;border-radius:50%;display:inline-block}
+
+.wrap{max-width:1240px;margin:0 auto;padding:16px 22px 60px}
+.pitch{font-size:13px;color:var(--mut);margin:0 2px 14px;line-height:1.45}
+.pitch b{color:var(--ink)}
+
+.hd{display:flex;align-items:center;gap:12px;margin:2px 0 16px}
+.logo{width:48px;height:48px;border-radius:50%;background:var(--brand);color:var(--on-brand);display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:18px;flex:none}
+.hd h1{margin:0;font-family:var(--display);font-weight:var(--display-w);font-size:22px;line-height:1.05}
+.hd p{margin:3px 0 0;font-size:12.5px;color:var(--mut)}
+.live{color:var(--ok);font-weight:700}
+.live::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ok);margin-right:5px;vertical-align:1px}
+.site{margin-left:auto;font-size:12.5px;font-weight:700;background:var(--card);border-radius:999px;padding:9px 13px;white-space:nowrap}
+
+.c{border-radius:var(--r);padding:18px;background:var(--card);position:relative;overflow:hidden;min-width:0}
+.c h3{margin:0;font-size:15px;font-weight:800;display:flex;align-items:center;gap:10px}
+.c h3 .more{margin-left:auto;font-size:12.5px;font-weight:800;color:var(--accent-text);white-space:nowrap}
+.ico{width:34px;height:34px;border-radius:11px;background:var(--soft);display:flex;align-items:center;justify-content:center;flex:none}
+.ico svg,.dot svg{width:18px;height:18px;display:block}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;border-radius:999px;padding:4px 9px;white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}.pill.alert{background:var(--alert-soft);color:var(--alert)}.pill.soon{background:var(--ink);color:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border-radius:13px;padding:12px 14px;font-size:13.5px;font-weight:800;background:var(--accent);color:var(--on-accent);white-space:nowrap}
+.btn svg{width:16px;height:16px}
+.btn.w{background:var(--card);color:var(--ink)}
+.btn.g{background:var(--soft);color:var(--ink)}
+.sec{font-size:13.5px;font-weight:800;margin:24px 4px 10px;display:flex;align-items:center;justify-content:space-between}
+
+/* 1 · réservations */
+.resa{background:var(--brand);color:var(--on-brand)}
+.resa .sub{font-size:12px;color:var(--on-brand-mut)}
+.resa .ico{background:var(--brand-tint);color:var(--on-brand)}
+.resa h3 .more{color:var(--on-brand)}
+.svc{display:grid;grid-template-columns:repeat(var(--n,2),minmax(0,1fr));gap:8px;margin-top:12px}
+.svc>div{background:var(--brand-tint);border-radius:15px;padding:12px}
+.svc .l{font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.82}
+.svc .n{font-size:25px;font-weight:900;margin-top:2px}
+.svc .n small{font-size:12px;font-weight:600}
+.svc .cv{font-size:12px;opacity:.88}
+.bar{height:6px;border-radius:9px;background:var(--brand-tint);margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:9px;background:var(--accent)}
+.row2{display:flex;gap:8px;margin-top:12px}
+.row2 .btn{flex:1}
+
+/* 2 · ma carte et mes menus (liste) */
+.list{background:var(--card);border-radius:var(--r);padding:4px 16px}
+.li{display:flex;align-items:center;gap:12px;padding:14px 0}
+.li+.li,.li+.mdj,.mdj+.li{border-top:1px solid var(--line)}
+.dot{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;color:#fff}
+.li b{display:block;font-size:14.5px}
+.li small{display:block;font-size:12.5px;color:var(--mut);line-height:1.35}
+.li>div{min-width:0;flex:1}
+.chev{color:var(--mut);font-size:18px;margin-left:auto}
+.lks{display:flex;gap:12px;font-size:12.5px;font-weight:800;margin-left:auto;white-space:nowrap}
+.lks a{color:var(--accent-text)}
+.tg{width:46px;height:28px;border-radius:999px;background:#d8d4cb;position:relative;flex:none;margin-left:auto}
+.tg::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.15);transition:left .15s}
+.tg.on{background:var(--ok)}.tg.on::after{left:21px}
+.mdj{padding:14px 0 16px}
+.mdj .top{display:flex;align-items:center;gap:12px}
+.mdj .box{margin-top:12px;border-radius:18px;padding:14px 16px;background:var(--brand-soft)}
+.mdj .box .ln em{color:var(--brand-text)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.chips span{font-size:11.5px;font-weight:700;background:var(--soft);border-radius:999px;padding:4px 9px;color:var(--ink)}
+.mdj .ln{display:flex;gap:12px;font-size:14px;padding:5px 0}
+.mdj .ln em{font-style:normal;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--mut);width:60px;flex:none;padding-top:2px}
+.mdj .ft{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px}
+.mdj .price{font-size:26px;font-weight:900}
+.mdj .acts{display:flex;gap:8px;margin-top:12px}
+.mdj .acts .btn{flex:1;padding:10px 12px}
+
+/* 3 · export */
+.exp{padding:0}
+.exp .hdr{background:var(--brand-soft);padding:16px 18px;display:flex;align-items:center;gap:10px}
+.exp .hdr b{font-size:15px;color:var(--brand-text)}
+.exp .hdr .ico{background:rgba(255,255,255,.7);color:var(--brand-text)}
+.exp .hdr .more{margin-left:auto;font-size:12.5px;font-weight:800;color:var(--brand-text)}
+.exp .bd{padding:14px 18px 18px}
+.exp .bd>small{font-size:12.5px;color:var(--mut)}
+.fmts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.fmts a{border-radius:16px;background:var(--soft);padding:14px 6px 12px;text-align:center;font-size:12.5px;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:8px;min-height:104px}
+.fmts .pv{border-radius:6px;background:var(--brand);display:block}
+.fmts a:nth-child(1) .pv{height:46px;width:28px}.fmts a:nth-child(2) .pv{height:34px;width:30px}.fmts a:nth-child(3) .pv{height:24px;width:40px}.fmts a:nth-child(4) .pv{height:38px;width:28px;background:#fbfaf6;box-shadow:inset 0 0 0 2px var(--brand)}
+
+/* réglages */
+.sets{display:grid;gap:12px}
+.set{border-radius:var(--r);padding:16px}
+.set h4{margin:2px 4px 12px;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.tile{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:16px;padding:12px;min-width:0}
+.tile .ico{width:36px;height:36px;border-radius:11px;color:#fff}
+.tile b{display:block;font-size:13.5px;line-height:1.2}
+.tile>div{min-width:0}
+.tile>div>span{display:block;font-size:11.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.s-a{background:var(--set-a)}.s-a h4{color:var(--set-a-ink)}.s-a .ico{background:var(--set-a-ink)}
+.s-b{background:var(--set-b)}.s-b h4{color:var(--set-b-ink)}.s-b .ico{background:var(--set-b-ink)}
+.s-c{background:var(--set-c)}.s-c h4{color:var(--set-c-ink)}.s-c .ico{background:var(--ink)}
+
+/* visites (pleine largeur) */
+.vis{display:grid;gap:14px}
+.vis .k{font-size:32px;font-weight:900;letter-spacing:-.02em;line-height:1}
+.vis small{font-size:12.5px;color:var(--mut)}
+.spark{display:flex;align-items:flex-end;gap:5px;height:60px}
+.spark i{flex:1;border-radius:5px 5px 2px 2px;background:var(--soft)}.spark i.on{background:var(--brand)}
+.days{display:flex;gap:5px}.days span{flex:1;text-align:center;font-size:10.5px;color:var(--mut);font-weight:700}
+.srcs{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.srcs div{background:var(--soft);border-radius:12px;padding:9px 11px;font-size:12px;color:var(--mut)}
+.srcs b{display:block;font-size:16px;color:var(--ink)}
+
+/* ── intégration des titres dans les bulles ── */
+/* A · titre dans la bulle */
+.ttl{font-family:var(--display);font-weight:var(--display-w);font-size:19px;line-height:1.1;padding:16px 0 8px;display:flex;align-items:center;gap:8px}
+.ttl small{margin-left:auto;font-family:Inter,system-ui,sans-serif;font-size:12px;font-weight:700;color:var(--mut)}
+.c>.ttl{padding-top:0}
+/* B · bandeau de couleur (comme Exporter la carte) */
+.bh{background:var(--brand-soft);color:var(--brand-text);padding:15px 16px;font-size:15px;font-weight:800;display:flex;align-items:center;gap:10px}
+.bh .ico{background:rgba(255,255,255,.7);color:var(--brand-text)}
+.bh small{margin-left:auto;font-size:12px;font-weight:700;opacity:.8}
+.list>.bh{margin:-4px -16px 0}
+.c>.bh{margin:-18px -18px 4px}
+/* C · étiquette en bulle posée sur la carte */
+.tag{position:relative;z-index:1;display:inline-flex;align-items:center;gap:7px;margin:22px 0 -15px 14px;background:var(--ink);color:#fff;border-radius:999px;padding:7px 14px;font-size:12.5px;font-weight:800;box-shadow:0 0 0 4px var(--bg)}
+.tag svg{width:14px;height:14px}
+.tag+.list,.tag+.c{padding-top:16px}
+.tag+.c.box-sets{padding-top:22px}
+/* boîte qui regroupe les 3 blocs de réglages */
+.box-sets{padding:12px}
+.box-sets>.ttl{padding:4px 6px 12px}
+.box-sets>.bh{margin:-12px -12px 12px}
+.box-sets .set{padding:14px}
+.vis>.ttl,.vis>.bh{grid-column:1/-1}
+/* V2 : titres de section plus présents */
+.v2 .sec{font-family:var(--display);font-weight:var(--display-w);font-size:20px;margin:28px 4px 12px}
+
+/* ── mise en page ordinateur ── */
+.L{display:grid;gap:12px}
+@media(min-width:900px){
+  .L{gap:16px;grid-template-columns:1fr 1fr;align-items:start}
+  .L>.a-resa,.L>.full{grid-column:1/-1}
+  .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .sets{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .sets .tiles{grid-template-columns:1fr}
+  .vis{grid-template-columns:1.1fr 1.6fr 1fr;align-items:center}
+  .srcs{grid-template-columns:1fr 1fr}
+}
+.mobile-sec{display:block}
+@media(min-width:900px){.mobile-sec{display:none}}
+.desk-sec{display:none}
+@media(min-width:900px){.desk-sec{display:flex}}
+
+</style>
+</head>
+<body>
+<div class="mk">
+  <div class="mk-row"><b>Version</b><div class="ch" id="vers"></div></div>
+  <div class="mk-row"><b>Restaurant</b><div class="ch" id="themes"></div></div>
+  <div class="mk-row"><b>Essais</b><div class="ch" id="opts"></div></div>
+</div>
+<div class="wrap" id="app"></div>
+
+<script>
+const THEMES={
+  phare:{label:'Le Phare · fruits de mer',name:'Le Phare',ini:'LP',brand:'#1d4f7a',accent:'#f0a830',font:'"DM Serif Display",serif',fw:400},
+  anatolia:{label:'Anatolia · kebab',name:'Anatolia Grill',ini:'A',brand:'#f39c12',accent:'#1f6f8b',font:'"Inter",system-ui,sans-serif',fw:900},
+  feuille:{label:'Feuille · salades',name:'Feuille',ini:'F',brand:'#4f9d69',accent:'#f2c14e',font:'"Inter",system-ui,sans-serif',fw:800},
+  maison:{label:'Maison Céleste · gastro',name:'Maison Céleste',ini:'MC',brand:'#7d6e57',accent:'#3d5a73',font:'"Cormorant Garamond",serif',fw:700},
+  beltab:{label:'Beltab',name:'Votre restaurant',ini:'B',brand:'#3a2e5c',accent:'#ff7a59',font:'"Inter",system-ui,sans-serif',fw:800},
+  orange:{label:'Test : vert + orange',name:'Test couleurs',ini:'T',brand:'#c65d3b',accent:'#5f7f3a',font:'"Fraunces",serif',fw:700}
+};
+const VERS={
+  v1:['1 · Définitive','Vos retouches : encart bleu du menu du jour repris dans le bandeau Exporter, boutons Modifier / Partager, Menus spéciaux cliquable, « Visites » en bas.'],
+  v2:['2 · Définitive, grands titres','Exactement la même, avec les titres de section dans la police du restaurant, plus présents.'],
+  v3:['3 · Titre dans la bulle','Intégration : le titre de chaque section passe à l\'intérieur de sa carte. Plus de titres qui flottent.'],
+  v4:['4 · Bandeau de couleur','Intégration : chaque carte a un bandeau doux de la couleur du resto, comme Exporter la carte. Tout se répond.'],
+  v5:['5 · Étiquette en bulle','Intégration : le titre devient une petite bulle noire posée sur le bord de la carte.']
+};
+const MODE=()=>({v3:'in',v4:'hd',v5:'tag'})[V]||'';
+// titre de section : dehors (v1/v2) ou dans la bulle (v3/v4/v5)
+const outT=t=>MODE()?'':`<div class="sec">${t}</div>`;
+const tagT=(t,k)=>MODE()==='tag'?`<div class="tag">${I(k)}${t}</div>`:'';
+const inT=(t,k,extra='')=>MODE()==='in'?`<div class="ttl">${t}${extra?`<small>${extra}</small>`:''}</div>`:MODE()==='hd'?`<div class="bh"><span class="ico">${I(k)}</span>${t}${extra?`<small>${extra}</small>`:''}</div>`:'';
+// garde-fou couleurs
+const hex=h=>{h=h.replace('#','');return [0,2,4].map(i=>parseInt(h.substr(i,2),16));};
+const lum=c=>{const [r,g,b]=hex(c).map(v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4);});return .2126*r+.7152*g+.0722*b;};
+const contrast=(a,b)=>{const x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);};
+const mix=(a,b,t)=>'#'+hex(a).map((v,i)=>Math.round(v+(hex(b)[i]-v)*t).toString(16).padStart(2,'0')).join('');
+const INK='#16181d', textOn=bg=>contrast(bg,'#ffffff')>=contrast(bg,INK)?'#ffffff':INK;
+function darkEnough(c,bg){let t=0,x=c;while(contrast(x,bg)<4.5&&t<1){t+=.05;x=mix(c,INK,t);}return x;}
+function toHsl(h){let [r,g,b]=hex(h).map(v=>v/255);const mx=Math.max(r,g,b),mn=Math.min(r,g,b);let H=0,S=0,L=(mx+mn)/2;
+  if(mx!==mn){const d=mx-mn;S=L>.5?d/(2-mx-mn):d/(mx+mn);H=mx===r?(g-b)/d+(g<b?6:0):mx===g?(b-r)/d+2:(r-g)/d+4;H/=6;}return [H,S,L];}
+function fromHsl(H,S,L){const f=n=>{const k=(n+H*12)%12,a=S*Math.min(L,1-L);return Math.round(255*(L-a*Math.max(-1,Math.min(k-3,9-k,1)))).toString(16).padStart(2,'0');};return '#'+f(0)+f(8)+f(4);}
+function tame(c,{lmin=.32,lmax=.62,smax=.62}={}){let [H,S,L]=toHsl(c);S=Math.min(S,smax);L=Math.min(lmax,Math.max(lmin,L));
+  let x=fromHsl(H,S,L),on=textOn(x);for(let i=0;i<30&&contrast(x,on)<4.5;i++){L+=on==='#ffffff'?-.02:.02;x=fromHsl(H,S,Math.min(.95,Math.max(.05,L)));}return x;}
+// Nouveau garde-fou : l'accent doit se détacher de la couleur principale
+// (sinon un bouton vert sur fond orange ne se voit pas).
+function separate(acc,brand){let [H,S,L]=toHsl(acc);const up=lum(brand)<.18;let x=acc;
+  for(let i=0;i<40&&contrast(x,brand)<2.6;i++){L=Math.min(.92,Math.max(.08,L+(up?.025:-.025)));x=fromHsl(H,S,L);}return x;}
+
+const P={
+  resa:'<path d="M4 7h16v13H4z"/><path d="M4 11h16M9 3v4M15 3v4"/>',
+  stats:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  boost:'<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
+  edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/>',
+  jour:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  spe:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h7"/>',
+  share:'<path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/>',
+  post:'<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".8" fill="currentColor"/>',
+  mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+  vue:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  compte:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  etab:'<path d="M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  hor:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  res:'<circle cx="6" cy="12" r="2.3"/><circle cx="18" cy="6" r="2.3"/><circle cx="18" cy="18" r="2.3"/><path d="M8 11l8-4M8 13l8 4"/>',
+  acc:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>',
+  plats:'<path d="M4 18h16M6 18a6 6 0 0 1 12 0M12 9V7M10 7h4"/>',
+  pres:'<rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><rect x="3" y="15" width="7" height="5" rx="1.5"/><rect x="14" y="15" width="7" height="5" rx="1.5"/>',
+  coul:'<circle cx="13.5" cy="6.5" r="1"/><circle cx="17.5" cy="10.5" r="1"/><circle cx="8.5" cy="7.5" r="1"/><circle cx="6.5" cy="12.5" r="1"/><path d="M12 2a10 10 0 0 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.4A5.6 5.6 0 0 0 22 9.8C22 5.5 17.5 2 12 2z"/>',
+  sauv:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 4v4h4"/>',
+  hist:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>'
+};
+const I=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${P[k]}</svg>`;
+
+let T, V='v1', KEY='phare', MDJ=true, SVC='ms';
+const SERVICES={ms:[['Midi',7,22,40],['Soir',18,64,80]],m:[['Midi',11,34,40]],s:[['Soir',18,64,80]],c:[['Service',23,71,90]]};
+const header=()=>`<header class="hd"><div class="logo">${T.ini}</div><div style="min-width:0"><h1>${T.name}</h1><p><span class="live">Ouvert</span> · ferme à 23 h</p></div><a class="site" href="#">Voir le site ↗</a></header>`;
+const resa=()=>{const sv=SERVICES[SVC];return `<section class="c resa a-resa" style="--n:${sv.length}"><h3><span class="ico">${I('resa')}</span>Réservations · aujourd'hui<a class="more" href="#">Tout voir →</a></h3><div class="sub" style="margin-top:2px">Mis à jour il y a 1 min</div>
+  <div class="inner"><div class="svc">${sv.map(([l,n,c,cap])=>{const p=Math.round(c/cap*100);return `<div><div class="l">${l}</div><div class="n num">${n} <small>résas</small></div><div class="cv">${c} / ${cap} couv. · <b>${p} %</b></div><div class="bar"><i style="width:${p}%"></i></div></div>`;}).join('')}</div>
+  <div class="row2"><a class="btn w" href="#">${I('stats')}Statistiques</a><a class="btn" href="#">${I('boost')}Table Boost</a></div></div></section>`;};
+const mdjBlock=()=>MDJ?`<div class="mdj"><div class="top"><span class="dot" style="background:var(--accent);color:var(--on-accent)">${I('jour')}</span><div style="flex:1;min-width:0"><b style="font-size:14.5px">Menu du jour</b><small style="display:block;font-size:12.5px;color:var(--ok);font-weight:700">● En ligne · vendredi 9 octobre</small></div><button class="tg on" data-mdj aria-label="Menu du jour"></button></div>
+  <div class="box"><div class="ln"><em>Entrée</em>Velouté de potimarron</div><div class="ln"><em>Plat</em>Risotto aux cèpes</div><div class="ln"><em>Dessert</em>Tiramisu maison</div>
+  <div class="ft"><span style="font-size:12.5px;opacity:.75">Entrée + plat + dessert</span><span class="price num">19 €</span></div>
+  <div class="acts"><a class="btn w" href="#">${I('edit')}Modifier</a><a class="btn" href="#">${I('share')}Partager</a></div></div></div>`
+ :`<div class="li"><span class="dot" style="background:#c9c4b8">${I('jour')}</span><div><b>Menu du jour</b><small>Désactivé · activez-le si vous en proposez un</small></div><button class="tg" data-mdj aria-label="Menu du jour"></button></div>`;
+const carte=()=>`<section class="a-carte">${outT('Ma carte et mes menus')}${tagT('Ma carte et mes menus','spe')}<div class="list">${inT('Ma carte et mes menus','spe')}
+  <a class="li" href="#"><span class="dot" style="background:var(--brand);color:var(--on-brand)">${I('edit')}</span><div><b>Modifier ma carte</b><small>52 plats · 2 en rupture · sur le site ↗</small></div><span class="chev">›</span></a>
+  ${mdjBlock()}
+  <a class="li" href="#"><span class="dot" style="background:var(--ink)">${I('spe')}</span><div><b>Menus spéciaux</b><div class="chips"><span>Formule midi</span><span>Étudiante</span><span>Groupe</span></div></div><span class="chev">›</span></a>
+</div></section>`;
+const exp=()=>`<section class="a-exp">${MODE()?'':'<div class="sec desk-sec">Partager</div>'}<div class="c exp"><div class="hdr"><span class="ico">${I('share')}</span><b>Exporter la carte</b><a class="more" href="#">Couleurs →</a></div>
+  <div class="bd"><small>Prêt à poster ou imprimer, à vos couleurs</small><div class="fmts"><a href="#"><span class="pv"></span>Story</a><a href="#"><span class="pv"></span>Post</a><a href="#"><span class="pv"></span>Google</a><a href="#"><span class="pv"></span>Imprimer</a></div></div></div></section>`;
+const comm=()=>`<section class="a-comm comm">${outT('Communication')}${tagT('Communication','mail')}<div class="list">${inT('Communication','mail')}
+  <a class="li" href="#"><span class="dot" style="background:#e1306c">${I('post')}</span><div><b>Poster sur les réseaux</b><small>Une photo de votre carte, un post automatique</small></div><span class="pill soon" style="margin-left:auto">Bientôt</span></a>
+  <a class="li" href="#"><span class="dot" style="background:var(--accent);color:var(--on-accent)">${I('boost')}</span><div><b>Table Boost</b><small>Mettre un plat en avant pour remplir les tables</small></div><span class="chev">›</span></a>
+  <a class="li" href="#"><span class="dot" style="background:var(--brand);color:var(--on-brand)">${I('mail')}</span><div><b>Campagne email</b><small>Écrire à vos 1 240 clients</small></div><span class="chev">›</span></a>
+</div></section>`;
+const SETS=[['s-a','Mon établissement',[['compte','Mon compte','Will · admin'],['etab','Informations','Nom, logo, adresse'],['hor','Horaires','Ouvert · ferme à 23 h'],['res','Réseaux sociaux','2 comptes liés']]],
+  ['s-b','Mon site',[['acc',"Page d'accueil",'Vidéo plein écran'],['plats','Menus et plats','5 catégories'],['pres','Présentation','Grille photos'],['coul','Couleurs','Tout est lisible']]],
+  ['s-c','Sécurité',[['sauv','Sauvegardes',"Dernière : aujourd'hui"],['hist','Historique','Restaurer une version']]]];
+const setsInner=()=>`<div class="sets">${SETS.map(([c,h,ts])=>`<div class="set ${c}"><h4>${h}</h4><div class="tiles">${ts.map(([k,l,s])=>`<a class="tile" href="#"><span class="ico">${I(k)}</span><div><b>${l}</b><span>${s}</span></div></a>`).join('')}</div></div>`).join('')}</div>`;
+const sets=()=>MODE()?`<section class="full a-sets">${tagT('Réglages','etab')}<div class="c box-sets">${inT('Réglages','etab')}${setsInner()}</div></section>`
+  :`<section class="full a-sets">${outT('Réglages')}${setsInner()}</section>`;
+const visits=()=>`<section class="full a-vis">${outT('Statistiques du site')}${tagT('Statistiques du site','stats')}<div class="c vis">${inT('Statistiques du site','stats','7 derniers jours')}
+  <div><h3 style="margin-bottom:12px"><span class="ico">${I('vue')}</span>Visites</h3><div class="k num">1 248</div><small>7 derniers jours · <b style="color:var(--ok)">+12 %</b></small></div>
+  <div><div class="spark"><i style="height:40%"></i><i style="height:55%"></i><i style="height:35%"></i><i style="height:60%"></i><i style="height:75%"></i><i style="height:90%"></i><i class="on" style="height:100%"></i></div><div class="days"><span>sam</span><span>dim</span><span>lun</span><span>mar</span><span>mer</span><span>jeu</span><span>ven</span></div></div>
+  <div class="srcs"><div><b class="num">412</b>QR codes</div><div><b class="num">356</b>Instagram</div><div><b class="num">298</b>Google</div><div><b class="num">182</b>Direct</div></div>
+</div></section>`;
+const body=()=>`<div class="L">${resa()}${carte()}${exp()}${comm()}${sets()}${visits()}</div>`;
+
+function applyTheme(){
+  const t0=THEMES[KEY], brand=tame(t0.brand), acc0=tame(t0.accent,{lmin:.36,lmax:.66,smax:.7}), accent=separate(acc0,brand), s=document.documentElement.style, onB=textOn(brand), light=onB!=='#ffffff';
+  s.setProperty('--brand',brand); s.setProperty('--on-brand',onB);
+  s.setProperty('--on-brand-mut',light?'rgba(22,24,29,.66)':'rgba(255,255,255,.74)');
+  s.setProperty('--brand-tint',light?'rgba(22,24,29,.09)':'rgba(255,255,255,.15)');
+  s.setProperty('--brand-soft',mix(brand,'#ffffff',.86)); s.setProperty('--brand-text',darkEnough(brand,mix(brand,'#ffffff',.86)));
+  s.setProperty('--accent',accent); s.setProperty('--on-accent',textOn(accent)); s.setProperty('--accent-soft',mix(accent,'#ffffff',.84)); s.setProperty('--accent-text',darkEnough(accent,mix(accent,'#ffffff',.84)));
+  s.setProperty('--display',t0.font); s.setProperty('--display-w',t0.fw); T=t0;
+}
+function render(){
+  applyTheme();
+  document.getElementById('app').innerHTML=`<p class="pitch"><b>${VERS[V][0]}</b> — ${VERS[V][1]} </p><div class="${V}">${header()}${body()}</div>`;
+  document.querySelectorAll('#vers button').forEach(b=>b.classList.toggle('on',b.dataset.v===V));
+  document.querySelectorAll('#themes button').forEach(b=>b.classList.toggle('on',b.dataset.t===KEY));
+  document.querySelectorAll('#opts button').forEach(b=>b.classList.toggle('on',(b.dataset.o==='mdj'&&MDJ)||b.dataset.o==='svc-'+SVC));
+  history.replaceState(null,'','#'+[V,KEY,MDJ?1:0,SVC].join('-'));
+}
+document.getElementById('vers').innerHTML=Object.entries(VERS).map(([k,v])=>`<button type="button" data-v="${k}">${v[0]}</button>`).join('');
+document.getElementById('themes').innerHTML=Object.entries(THEMES).map(([k,t])=>`<button type="button" data-t="${k}"><i style="background:linear-gradient(135deg,${t.brand} 50%,${t.accent} 50%)"></i>${t.label}</button>`).join('');
+document.getElementById('opts').innerHTML=`<button type="button" data-o="mdj">Menu du jour activé</button><button type="button" data-o="svc-ms">Midi + soir</button><button type="button" data-o="svc-m">Midi seul</button><button type="button" data-o="svc-s">Soir seul</button><button type="button" data-o="svc-c">Service continu</button>`;
+document.addEventListener('click',e=>{
+  const v=e.target.closest('[data-v]'),t=e.target.closest('[data-t]'),o=e.target.closest('[data-o]'),m=e.target.closest('[data-mdj]');
+  if(v){V=v.dataset.v;render();scrollTo(0,0);return;}
+  if(t){KEY=t.dataset.t;render();return;}
+  if(o){if(o.dataset.o==='mdj')MDJ=!MDJ;else SVC=o.dataset.o.slice(4);render();return;}
+  if(m){MDJ=!MDJ;render();return;}
+  const a=e.target.closest('a');if(a&&a.getAttribute('href')==='#')e.preventDefault();
+});
+(()=>{const [v,k,m,s]=(location.hash.slice(1)||'').split('-');if(VERS[v])V=v;if(THEMES[k])KEY=k;if(m!==undefined&&m!=='')MDJ=m==='1';if(SERVICES[s])SVC=s;})();
+render();
+</script>
+</body>
+</html>
