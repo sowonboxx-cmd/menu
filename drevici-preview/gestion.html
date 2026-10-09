@@ -751,6 +751,22 @@ input[type=number].in{font-size:17px;font-weight:600}
 .pill.ca{background:#FFE9DC!important;color:#D9480F!important;font-weight:800}
 [data-theme="dark"] .pill.ca{background:#4a2414!important;color:#ff9a6b!important}
 .pill.ca .up{width:13px;height:13px;margin:0 -1px 0 1px}
+
+/* ══ Accueil téléphone : accès rapides ══ */
+.mhome{display:none}
+@media(max-width:899px){
+  .a-carte,.a-menus,.a-comm,.a-sets,.a-vis{display:none!important}
+  .mhome{display:block}
+  .msec{font-size:14px;font-weight:600;color:var(--mut);margin:20px 6px 8px}.mhome .msec:first-child{margin-top:4px}
+  .mlist{background:var(--card);border-radius:22px;padding:2px 16px}
+  .mli{display:flex;align-items:center;gap:14px;padding:14px 0;border-top:1px solid var(--line);color:var(--ink)}.mli:first-child{border-top:0}
+  .mic{flex:none;width:26px;display:grid;place-items:center}.mic svg{width:23px;height:23px;stroke-width:1.7}
+  .mtx{flex:1;min-width:0}.mtx b{display:block;font-size:16.5px;font-weight:600}.mtx small{display:block;font-size:13.5px;font-weight:500;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+  .mli .chev{color:#b0b3bb;font-size:22px;line-height:1}
+  .msel{position:relative;display:flex;align-items:center;gap:8px;color:var(--mut);font-size:16px;font-weight:500}.msel svg{width:14px;height:14px}
+  .msel select{position:absolute;inset:0;opacity:0;width:100%;font-size:16px}
+  .a-resa .next{display:block}.a-resa .next .nx:nth-child(n+4){display:none}
+}
 </style>
 </head>
 <body>
@@ -1067,7 +1083,16 @@ function dash(){
     ${setBlock('s-b','Mon site',[['acc','Accueil','site/acc'],['plats','Menu','site/plats'],['pres','Présentation','site/pres'],['coul','Couleurs','site/coul']])}
     <div class="set s-d"><h4>Apparence</h4><div class="app-card">${appSeg()}</div></div>
     ${setBlock('s-c','Sécurité',[['sauv','Sauvegardes','secu'],['hist','Historique','secu']])}</div></section>`;
-  return `${header()}<div class="L">${resa}${carte}${menus}${comm}${sets}${visitsCard()}</div>`;
+  // Téléphone : accès rapides en liste (une ligne par rubrique), le détail s'ouvre au clic
+  const mrow=([href,k,t,sub,c])=>`<a class="mli" href="#/${href}"><span class="mic" style="color:${c}">${I(k)}</span><span class="mtx"><b>${t}</b><small>${sub}</small></span><span class="chev">›</span></a>`;
+  const am=applyAppearance();
+  const mhome=`<section class="mhome full">
+    <div class="msec">Au quotidien</div><div class="mlist">${[['carte','carte','Ma carte','Modifier · Exporter','#1E5AA8'],['menus','spe','Mes menus','Menu du jour · Menus personnalisés','#B4561B'],['comm','mail','Communication','Réseaux sociaux · Table Boost · Emails','#7B3FB8']].map(mrow).join('')}</div>
+    <div class="msec">Réglages</div><div class="mlist">${[['etab','etab','Mon établissement','Informations générales','#2E7D4F'],['site','acc','Mon site','Accueil · Menu · Couleurs','#C0392B']].map(mrow).join('')}</div>
+    <div class="msec">Autres</div><div class="mlist">${[['stats','vue','Statistiques','Scans des QR codes · visites du site','#0E8A8A'],['secu','sauv','Sécurité','Sauvegardes · Historique','#6B7080']].map(mrow).join('')}</div>
+    <div class="msec">Thème</div><div class="mlist"><div class="mli"><span class="mic" style="color:#6E56CF">${I('lune')}</span><span class="mtx"><b>Apparence</b></span><label class="msel">${{clair:'Clair',sombre:'Sombre',systeme:'Système'}[am]}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"/></svg><select data-act="appSel" aria-label="Apparence">${[['systeme','Système'],['clair','Clair'],['sombre','Sombre']].map(([k,l])=>`<option value="${k}"${am===k?' selected':''}>${l}</option>`).join('')}</select></label></div></div>
+  </section>`;
+  return `${header()}<div class="L">${resa}${carte}${menus}${comm}${sets}${visitsCard()}${mhome}</div>`;
 }
 const setBlock=(c,h,ts)=>`<div class="set ${c}"><h4>${h}</h4><div class="tiles">${ts.map(([k,l,p])=>`<a class="tile" href="#/${p}"><span class="ico">${I(k)}</span><div><b>${l}</b></div></a>`).join('')}</div></div>`;
 function appSeg(){ const m=applyAppearance(); return `<div class="seg">${[['clair','Clair','jour'],['sombre','Sombre','lune'],['systeme','Système','ecran']].map(([k,l,ic])=>`<button type="button" data-act="appearance" data-v="${k}" class="${m===k?'on':''}">${I(ic)}${l}</button>`).join('')}</div>`; }
@@ -1523,6 +1548,7 @@ document.addEventListener('change',async e=>{
   if(a==='pdfLogo'&&el.files&&el.files[0]){ const url=await uploadImage(el.files[0],'logo-impression'); if(url){ pS().logoData=url; touch(true); } }
   if(a==='siteUp'&&el.files&&el.files[0]){ const sl=el.dataset.slot, hc=DATA.homeCover; const url=sl==='video'?await uploadVideo(el.files[0]):await uploadImage(el.files[0],sl==='logo'?'logo-accueil':'accueil'); if(url){ if(/^s\d$/.test(sl)) hc.slideshow[+sl[1]].image=url; else hc[sl]=url; touch(true); } }
   if(a==='itemImg'&&el.files&&el.files[0]){ const x=itemAt(el.dataset.p); const sl=el.dataset.slot; const url=await uploadImage(el.files[0],sl==='main'?(isBevCard(x.c)?'boisson':'plat'):'galerie'); if(url){ if(sl==='main') x.it.img=url; else { const g=x.it.gallery||[]; g[+sl.slice(1)]=url; x.it.gallery=g; } touch(true); } }
+  if(a==='appSel'){ setAppearance(el.value); return; }
   if(a==='logoUp'&&el.files&&el.files[0]){ const url=await uploadImage(el.files[0],'logo'); if(url){ DATA.restaurantLogo=url; touch(true); } }
 });
 function fileToWebpBlob(file,max=1600){ return new Promise((res,rej)=>{ if(file.type==='image/svg+xml'){ res(file); return; } const r=new FileReader(); r.onerror=rej; r.onload=()=>{ const img=new Image(); img.onerror=rej; img.onload=()=>{ const sc=Math.min(1,max/Math.max(img.width,img.height)); const c=document.createElement('canvas'); c.width=Math.round(img.width*sc); c.height=Math.round(img.height*sc); c.getContext('2d').drawImage(img,0,0,c.width,c.height); c.toBlob(b=>b?res(b):rej(new Error('conversion')),'image/webp',.88); }; img.src=r.result; }; r.readAsDataURL(file); }); }
