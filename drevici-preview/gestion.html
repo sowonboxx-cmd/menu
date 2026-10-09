@@ -733,6 +733,16 @@ input[type=number].in{font-size:17px;font-weight:600}
 .nx span{font-size:14.5px;font-weight:500}.nx b{font-size:15px}
 .fmts a{font-size:14px;font-weight:600}
 @media(max-width:899px){.li b,.a-comm .li b,.mdj .top b,.op b,.tile b,.sets .tile b{font-size:15px!important}.li small,.a-comm small.cm,.mdj .top small,.op small{font-size:13px!important}}
+
+/* Mes menus (tableau de bord) : lignes simples + sous-menus */
+.v2 .a-menus>.list>.li:last-child{margin-top:0}
+.subm{margin:-4px 0 10px 50px;display:flex;flex-direction:column;min-width:0}.L>section,.a-menus .list,.subm a{min-width:0}
+.subm a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--soft);margin-top:6px;color:var(--ink)}
+.subm a span:first-child{flex:1;min-width:0}.subm b{display:block;font-size:15px;font-weight:600}
+.subm small{display:block;font-size:13px;font-weight:500;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.subm .more2{background:none;font-size:13.5px;font-weight:600;color:var(--brand-text);padding:8px 12px}
+.li .pill{vertical-align:2px;margin-left:6px}.li .pill:not(.ok){background:var(--soft);color:var(--mut)}
+.xp .fmts{margin-top:22px}
 </style>
 </head>
 <body>
@@ -1034,12 +1044,11 @@ function dash(){
   const items=jourItems(sp), LBL=['Entrée','Plat','Dessert'];
   const lines=LBL.map((l,i)=>{const it=items[i]||{};return `<div class="ln"><em>${esc(it.s||l)}</em>${it.n?`<b>${esc(it.n)}</b>`:'<span class="vide">À renseigner</span>'}</div>`;}).join('');
   const sketch=`<svg class="sk" viewBox="0 0 62 82" fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 4.2c9-.9 30.8-.4 48.6.3.9 14.6 1.2 49.2.4 72.9-15.7.6-35.6.9-49.3.2C5.4 61 5.8 25 6.5 4.2z"/><path d="M10.8 8.6c11.6-.4 27.4-.2 40.2.4.5 13.1.6 46.3 0 64.2-12.8.4-28 .5-40 .1-.6-17.9-.7-49.4-.2-64.7z" opacity=".55"/><path d="M22 18.5c5.8-.6 12.5-.5 18.2.2"/><path d="M26.4 23.4c3.1-.2 6-.2 9.3.1" opacity=".7"/><path d="M17.5 33.2c8.4-.3 18.4-.2 27.4.3M17.8 38.4c6.2-.2 14.6-.1 20.6.2"/><path d="M17.3 48.1c8.7-.4 18.6-.2 27.6.2M17.6 53.2c5.4-.2 12.2-.2 17.2.1"/><path d="M17.4 62.6c8.3-.2 18.5-.1 27.1.3"/><path d="M28.4 43.4c1.6-.4 3.6-.4 5.2.1M28.6 57.6c1.6-.3 3.4-.3 5 0" opacity=".6"/></svg>`;
+  const fsD=DATA.formules||[];
   const menus=`<section class="a-menus"><div class="list"><div class="bh"><span class="ico">${I('spe')}</span>Mes menus</div>
-    <div class="mdj fix${sp.active?'':' off'}"><div class="top"><span class="dot" style="background:var(--accent);color:var(--on-accent)">${I('jour')}</span><div style="flex:1;min-width:0"><b style="font-size:14.5px">Menu du jour</b>${sp.active?`<small style="display:block;font-size:12.5px;color:var(--ok);font-weight:700">● En ligne${sp.date?' · '+esc(sp.date):''}</small>`:`<small style="display:block;font-size:12.5px;color:var(--mut)">Désactivé · activez-le si vous en proposez un</small>`}</div>${tgl(sp.active,'mdjToggle')}</div>
-      <div class="box">${lines}${sketch}
-      <div class="ft"><span style="font-size:12.5px;opacity:.75">${esc(sp.formule||'')}</span><span class="price num">${esc(sp.price||'')}</span></div></div>
-      <div class="acts"><a class="btn w" href="#/mdj"${sp.active?'':' tabindex="-1" aria-disabled="true"'}>${I('edit')}Modifier</a><a class="btn" href="#/tuner/mdj"${sp.active?'':' tabindex="-1" aria-disabled="true"'}>${I('share')}Partager</a></div></div>
-    <a class="li" href="#/menus"><span class="dot" style="background:var(--ink);color:var(--card)">${I('spe')}</span><div><b>Menus personnalisés</b><small>Ajouter · modifier · exporter${DATA.formules.length?' · '+DATA.formules.length+' menu'+(DATA.formules.length>1?'s':''):''}</small></div><span class="chev">›</span></a></div></section>`;
+    <a class="li" href="#/mdj"><span class="dot">${I('jour')}</span><div><b>Menu du jour ${sp.active?'<span class="pill ok">En ligne</span>':'<span class="pill">Hors ligne</span>'}</b><small>Activer, modifier, exporter votre menu du jour</small></div><span class="chev">›</span></a>
+    <a class="li" href="#/menus"><span class="dot">${I('spe')}</span><div><b>Menus personnalisés</b><small>Ajouter · modifier · exporter${fsD.length?' · '+fsD.length+' menu'+(fsD.length>1?'s':''):''}</small></div><span class="chev">›</span></a>
+    ${fsD.length?`<div class="subm">${fsD.slice(0,3).map(f=>`<a href="#/formule/${encodeURIComponent(f.id)}"><span><b>${esc(f.name||f.title||'(sans nom)')}</b><small>${esc(stripHtml(f.freeText||'').replace(/\n/g,' · '))}</small></span><span class="chev">›</span></a>`).join('')}${fsD.length>3?`<a class="more2" href="#/menus">Voir les ${fsD.length} menus →</a>`:''}</div>`:''}</div></section>`;
   const comm=`<section class="a-comm comm"><div class="list"><div class="bh"><span class="ico">${I('mail')}</span>Communication</div>
     <a class="li" href="#/comm/social"><span class="dot">${I('post')}</span><div><b>Poster sur les réseaux</b><small class="cm">Vos médias sont déjà sur le site. Un clic, c'est publié.</small></div><span class="chev">›</span></a>
     <a class="li" href="#/comm/boost"><span class="dot">${I('boost')}</span><div><b>Table Boost <span class="pill ca">Remplir les tables · + de CA</span></b><small class="cm">Une table vide ? Deux clics, remplissez la salle.</small></div><span class="chev">›</span></a>
