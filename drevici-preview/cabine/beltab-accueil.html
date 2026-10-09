@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Beltab · Tableau de bord (6 propositions)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Cormorant+Garamond:wght@600;700&display=swap">
+<style>
+:root{
+  --bg:#f5f3ef; --card:#fff; --soft:#f1eee8; --ink:#16181d; --mut:#6b7080; --line:#ece8e0;
+  --ok:#1f9d55; --ok-soft:#e2f4ea; --alert:#d93636; --alert-soft:#fbe7e7; --warn:#9a6a0b; --warn-soft:#fbf0d9;
+  --r:22px;
+  --brand:#3a2e5c; --on-brand:#fff; --on-brand-mut:rgba(255,255,255,.72); --brand-tint:rgba(255,255,255,.14);
+  --brand-soft:#ebe8f1; --brand-deep:#28203f; --brand-text:#3a2e5c;
+  --accent:#ff7a59; --on-accent:#16181d; --accent-soft:#ffe9e2; --accent-text:#c2452a;
+  --display:"Inter",system-ui,sans-serif; --display-w:800;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+.num{font-variant-numeric:tabular-nums}
+
+/* barre de maquette */
+.mk{position:sticky;top:0;z-index:20;background:rgba(22,24,29,.94);backdrop-filter:blur(10px);color:#fff;padding:max(8px,env(safe-area-inset-top)) 14px 8px}
+.mk-row{max-width:1240px;margin:0 auto;display:flex;align-items:center;gap:10px}
+.mk-row+.mk-row{margin-top:6px}
+.mk b{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.65;white-space:nowrap;width:86px;flex:none}
+.mk .ch{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
+.mk .ch::-webkit-scrollbar{display:none}
+.mk .ch button{flex:none;display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:#fff;background:rgba(255,255,255,.1);border-radius:999px;padding:6px 11px}
+.mk .ch button.on{background:#fff;color:var(--ink)}
+.mk .ch i{width:14px;height:14px;border-radius:50%;display:inline-block}
+
+.wrap{max-width:1240px;margin:0 auto;padding:16px 22px 60px}
+.pitch{font-size:13px;color:var(--mut);margin:0 2px 14px;line-height:1.45}
+.pitch b{color:var(--ink)}
+
+/* ── éléments communs ── */
+.hd{display:flex;align-items:center;gap:12px;margin:2px 0 16px}
+.logo{width:48px;height:48px;border-radius:50%;background:var(--brand);color:var(--on-brand);display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:18px;flex:none}
+.hd h1{margin:0;font-family:var(--display);font-weight:var(--display-w);font-size:22px;line-height:1.05}
+.hd p{margin:3px 0 0;font-size:12.5px;color:var(--mut)}
+.live{color:var(--ok);font-weight:700}
+.live::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ok);margin-right:5px;vertical-align:1px}
+.site{margin-left:auto;font-size:12.5px;font-weight:700;background:var(--card);border-radius:999px;padding:9px 13px;white-space:nowrap}
+
+.c{border-radius:var(--r);padding:18px;background:var(--card);position:relative;overflow:hidden;min-width:0}
+.c h3{margin:0;font-size:14.5px;font-weight:800;display:flex;align-items:center;gap:9px}
+.c h3 .more{margin-left:auto;font-size:12px;font-weight:800;color:var(--accent-text);white-space:nowrap}
+.c small{font-size:12px;color:var(--mut)}
+.ico{width:32px;height:32px;border-radius:10px;background:var(--soft);display:flex;align-items:center;justify-content:center;flex:none}
+.ico svg{width:18px;height:18px;display:block}
+.k{font-size:30px;font-weight:900;line-height:1;letter-spacing:-.02em}
+.k small{font-size:13px;font-weight:600;letter-spacing:0}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;border-radius:999px;padding:4px 9px;white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}.pill.alert{background:var(--alert-soft);color:var(--alert)}
+.pill.soon{background:var(--ink);color:#fff}
+.lk{display:inline-flex;gap:12px;margin-top:10px;font-size:12.5px;font-weight:800}
+.lk a{color:var(--accent-text)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border-radius:13px;padding:11px 14px;font-size:13px;font-weight:800;background:var(--accent);color:var(--on-accent);white-space:nowrap}
+.btn.w{background:var(--card);color:var(--ink)}.btn.g{background:var(--soft);color:var(--ink)}.btn.t{background:var(--brand-tint);color:inherit}
+
+/* carte couleur du resto */
+.brand{background:var(--brand);color:var(--on-brand)}
+.brand small,.brand .sub{color:var(--on-brand-mut)}
+.brand .ico{background:var(--brand-tint);color:var(--on-brand)}
+.brand h3 .more{color:var(--on-brand)}
+.svc{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.svc>div{background:var(--brand-tint);border-radius:15px;padding:11px 12px}
+.svc .l{font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.8}
+.svc .n{font-size:24px;font-weight:900;margin-top:2px}
+.svc .n small{font-size:12px;font-weight:600}
+.svc .cv{font-size:12px;opacity:.85}
+.bar{height:6px;border-radius:9px;background:var(--brand-tint);margin-top:7px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:9px;background:var(--accent)}
+.row2{display:flex;gap:8px;margin-top:12px}
+.row2 .btn{flex:1}
+
+.mdl{margin-top:10px}
+.mdl div{display:flex;gap:10px;font-size:13.5px;padding:5px 0}
+.mdl em{font-style:normal;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;opacity:.6;width:56px;flex:none;padding-top:2px}
+.price{font-size:26px;font-weight:900}
+
+.fmts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.fmts a{border-radius:14px;background:var(--soft);padding:12px 6px 10px;text-align:center;font-size:12px;font-weight:800;display:flex;flex-direction:column;align-items:center;gap:7px}
+.fmts .pv{width:26px;border-radius:5px;background:var(--brand);display:block}
+.fmts a:nth-child(1) .pv{height:42px}.fmts a:nth-child(2) .pv{height:32px;width:28px}.fmts a:nth-child(3) .pv{height:22px;width:36px}.fmts a:nth-child(4) .pv{height:34px;width:26px;background:#fbfaf6;box-shadow:inset 0 0 0 1.5px var(--brand)}
+
+.comm{display:grid;gap:8px;margin-top:12px}
+.act{display:flex;align-items:center;gap:12px;border-radius:16px;padding:12px;background:var(--soft)}
+.act b{display:block;font-size:14px}
+.act small{display:block;font-size:12px;color:var(--mut);line-height:1.35}
+.act .pill{margin-left:auto}
+.act .go{margin-left:auto;font-weight:800;color:var(--mut)}
+
+.spark{display:flex;align-items:flex-end;gap:4px;height:30px;margin-top:10px}
+.spark i{flex:1;border-radius:4px 4px 2px 2px;background:var(--soft)}.spark i.on{background:var(--accent)}
+
+/* réglages par thème */
+.sets{display:grid;gap:12px}
+.set{border-radius:var(--r);padding:16px}
+.set h4{margin:0 0 12px;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.set h4 .em{font-size:16px}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.tile{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:15px;padding:11px 12px;min-width:0}
+.tile .ico{width:34px;height:34px;border-radius:11px}
+.tile b{display:block;font-size:13px;line-height:1.2}
+.tile>div>span{display:block;font-size:11px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile>div{min-width:0}
+.t-a{background:var(--brand-soft)}.t-a h4{color:var(--brand-text)}.t-a .ico{background:var(--brand);color:var(--on-brand)}
+.t-b{background:var(--accent-soft)}.t-b h4{color:var(--accent-text)}.t-b .ico{background:var(--accent);color:var(--on-accent)}
+.t-c{background:#ece8e0}.t-c h4{color:var(--mut)}.t-c .ico{background:var(--ink);color:#fff}
+
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.s2{grid-column:span 2}
+.band-title{font-size:11.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);margin:22px 4px 10px;display:flex;align-items:center;gap:8px}
+@media(min-width:900px){
+  .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+  .d2{grid-column:span 2}.d4{grid-column:span 4}.d1{grid-column:span 1}.r2{grid-row:span 2}
+  .tiles{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .sets.cols3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .sets.cols3 .tiles{grid-template-columns:1fr}
+}
+
+/* ── A · Cabine ── */
+.pA .menuC{background:var(--accent-soft)}
+.pA .menuC .ico{background:var(--accent);color:var(--on-accent)}
+.pA .commC{background:var(--ink);color:#fff}
+.pA .commC small{color:#b9bcc6}.pA .commC .ico{background:rgba(255,255,255,.12);color:#fff}
+.pA .commC .act{background:rgba(255,255,255,.08)}.pA .commC .act small{color:#b9bcc6}
+.pA .commC .pill.soon{background:var(--accent);color:var(--on-accent)}
+
+/* ── B · Actions d'abord ── */
+.quick{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}
+@media(min-width:900px){.quick{grid-template-columns:repeat(4,1fr)}}
+.q{border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:22px;min-height:120px}
+.q b{font-size:15px;line-height:1.2}
+.q small{display:block;font-size:11.5px;opacity:.75;font-weight:600;margin-top:3px}
+.q .ico{background:rgba(255,255,255,.22);color:inherit}
+.q1{background:var(--brand);color:var(--on-brand)}
+.q2{background:var(--accent);color:var(--on-accent)}
+.q3{background:var(--ink);color:#fff}
+.q4{background:var(--card)}.q4 .ico{background:var(--soft)}
+.pB .strip{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.pB .strip::-webkit-scrollbar{display:none}
+.pB .strip .act{flex:0 0 230px;background:var(--card);flex-direction:column;align-items:flex-start;gap:8px}
+.pB .strip .act .pill{margin-left:0}
+
+/* ── C · Bandes ── */
+.pC .band{margin:0 -22px;padding:22px 22px 24px}
+.pC .band h2{margin:0 0 14px;font-family:var(--display);font-weight:var(--display-w);font-size:24px;display:flex;align-items:center;gap:10px}
+.pC .band h2 small{font-family:Inter;font-weight:600;font-size:12.5px;opacity:.7}
+.pC .b1{background:var(--brand);color:var(--on-brand)}
+.pC .b1 .c{background:var(--brand-tint);color:inherit}
+.pC .b1 .c small,.pC .b1 .c .mdl em{color:var(--on-brand-mut)}
+.pC .b1 .c .ico{background:var(--brand-tint);color:inherit}
+.pC .b1 .c h3 .more,.pC .b1 .lk a{color:var(--on-brand)}
+.pC .b1 .svc>div{background:rgba(255,255,255,.1)}
+.pC .b2{background:var(--accent-soft)}
+.pC .b3{background:var(--bg)}
+@media(min-width:900px){.pC .band{margin:0;border-radius:28px;margin-bottom:14px}}
+
+/* ── D · Widgets ── */
+.pD .grid{grid-auto-rows:minmax(150px,auto)}
+.pD .w1{background:var(--brand);color:var(--on-brand)}
+.pD .w2{background:var(--accent);color:var(--on-accent)}.pD .w2 small,.pD .w2 .mdl em{color:inherit;opacity:.75}.pD .w2 .ico{background:rgba(255,255,255,.25);color:inherit}.pD .w2 .lk a{color:inherit}
+.pD .w3{background:var(--brand-soft)}.pD .w3 .ico{background:var(--brand);color:var(--on-brand)}
+.pD .w4{background:var(--ink);color:#fff}.pD .w4 small{color:#b9bcc6}.pD .w4 .ico{background:rgba(255,255,255,.12);color:#fff}
+.pD .w5{background:var(--accent-soft)}.pD .w5 .ico{background:var(--accent);color:var(--on-accent)}
+.pD .wq{display:flex;flex-direction:column;justify-content:space-between}
+.pD .wq b{font-size:15.5px}
+
+/* ── E · Deux colonnes ── */
+.pE .cols{display:grid;gap:14px}
+@media(min-width:900px){.pE .cols{grid-template-columns:1fr 1fr;align-items:start}}
+.pE .colh{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin:4px 4px 10px}
+.pE .colh i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.pE .stack{display:grid;gap:10px}
+.pE .hdr{border-radius:var(--r) var(--r) 0 0;margin:-18px -18px 14px;padding:14px 18px}
+.pE .h-b{background:var(--brand-soft);color:var(--brand-text)}.pE .h-a{background:var(--accent-soft);color:var(--accent-text)}.pE .h-i{background:var(--ink);color:#fff}
+.pE .set{background:var(--card)}
+
+/* ── F · Épuré premium ── */
+.pF .hero{background:var(--brand);color:var(--on-brand);border-radius:28px;padding:20px}
+.pF .tabs{display:flex;gap:6px;background:var(--brand-tint);border-radius:14px;padding:4px;margin:14px 0 4px}
+.pF .tabs span{flex:1;text-align:center;font-size:12.5px;font-weight:800;padding:8px;border-radius:10px}
+.pF .tabs span.on{background:var(--card);color:var(--ink)}
+.pF .list{background:var(--card);border-radius:var(--r);padding:6px 16px}
+.pF .li{display:flex;align-items:center;gap:12px;padding:13px 0}
+.pF .li+.li{border-top:1px solid var(--line)}
+.pF .li .dotc{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none}
+.pF .li .dotc svg{width:17px;height:17px}
+.pF .li b{display:block;font-size:14px}
+.pF .li small{display:block;font-size:12px;color:var(--mut)}
+.pF .li .chev{margin-left:auto;color:var(--mut)}
+.pF .fmtsF{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding:2px 0}
+.pF .fmtsF::-webkit-scrollbar{display:none}
+.pF .fcard{flex:0 0 132px;border-radius:18px;background:var(--card);padding:10px}
+.pF .fcard .art{border-radius:12px;background:linear-gradient(160deg,var(--brand),var(--brand-deep));height:150px;margin-bottom:8px;position:relative}
+.pF .fcard:nth-child(2) .art{height:120px}.pF .fcard:nth-child(3) .art{height:90px}.pF .fcard:nth-child(4) .art{height:110px;background:#fbfaf6;box-shadow:inset 0 0 0 1px var(--line)}
+.pF .fcard b{font-size:13px}
+.pF .sec{font-size:13px;font-weight:800;margin:22px 4px 10px;display:flex;justify-content:space-between}
+.pF .sec a{color:var(--accent-text);font-size:12px}
+</style>
+</head>
+<body>
+<div class="mk">
+  <div class="mk-row"><b>Proposition</b><div class="ch" id="props"></div></div>
+  <div class="mk-row"><b>Restaurant</b><div class="ch" id="themes"></div></div>
+</div>
+<div class="wrap" id="app"></div>
+
+<script>
+const THEMES={
+  beltab:{label:'Beltab',name:'Votre restaurant',ini:'B',brand:'#3a2e5c',accent:'#ff7a59',font:'"Inter",system-ui,sans-serif',fw:800},
+  pasta:{label:'Pasta Mia',name:'Pasta Mia',ini:'P',brand:'#c65d3b',accent:'#5f7f3a',font:'"Fraunces",serif',fw:700},
+  anatolia:{label:'Anatolia',name:'Anatolia Grill',ini:'A',brand:'#f39c12',accent:'#1f6f8b',font:'"Inter",system-ui,sans-serif',fw:900},
+  feuille:{label:'Feuille',name:'Feuille',ini:'F',brand:'#4f9d69',accent:'#f2c14e',font:'"Inter",system-ui,sans-serif',fw:800},
+  maison:{label:'Maison Céleste',name:'Maison Céleste',ini:'MC',brand:'#7d6e57',accent:'#3d5a73',font:'"Cormorant Garamond",serif',fw:700}
+};
+const PROPS={
+  A:['A · Cabine','Bento coloré comme La Cabine : chaque bloc a sa couleur (réservations aux couleurs du resto, menu du jour sur fond doux, communication en noir), puis les réglages en 3 thèmes colorés.'],
+  B:['B · Actions d\'abord','4 gros boutons en haut pour ce qu\'on fait tous les jours (menu du jour, story, modifier la carte, réservation), puis les chiffres, la communication en carrousel et les réglages.'],
+  C:['C · Bandes','La page découpée en 3 grandes bandes de couleur : « Aujourd\'hui » (couleur du resto), « Partager » (fond doux), « Réglages ». On comprend où on est en un coup d\'œil.'],
+  D:['D · Widgets','Des tuiles façon widgets de téléphone, chacune d\'une couleur dérivée du thème. Très visuel, très « appli ».'],
+  E:['E · Deux colonnes','À gauche ce qui se passe au resto (réservations, carte, menu du jour), à droite ce qu\'on partage (export, communication). Chaque carte a un bandeau de titre coloré.'],
+  F:['F · Épuré premium','Une seule grande carte aux couleurs du resto avec onglets Réservations / Menu du jour, les exports en carrousel visuel, et des listes très propres avec pastilles de couleur.']
+};
+// ── couleurs : garde-fou de lisibilité ──
+const hex=h=>{h=h.replace('#','');return [0,2,4].map(i=>parseInt(h.substr(i,2),16));};
+const lum=c=>{const [r,g,b]=hex(c).map(v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4);});return .2126*r+.7152*g+.0722*b;};
+const contrast=(a,b)=>{const x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);};
+const mix=(a,b,t)=>'#'+hex(a).map((v,i)=>Math.round(v+(hex(b)[i]-v)*t).toString(16).padStart(2,'0')).join('');
+const INK='#16181d', textOn=bg=>contrast(bg,'#ffffff')>=contrast(bg,INK)?'#ffffff':INK;
+function darkEnough(c,bg){let t=0,x=c;while(contrast(x,bg)<4.5&&t<1){t+=.05;x=mix(c,INK,t);}return x;}
+function toHsl(h){let [r,g,b]=hex(h).map(v=>v/255);const mx=Math.max(r,g,b),mn=Math.min(r,g,b);let H=0,S=0,L=(mx+mn)/2;
+  if(mx!==mn){const d=mx-mn;S=L>.5?d/(2-mx-mn):d/(mx+mn);H=mx===r?(g-b)/d+(g<b?6:0):mx===g?(b-r)/d+2:(r-g)/d+4;H/=6;}return [H,S,L];}
+function fromHsl(H,S,L){const f=n=>{const k=(n+H*12)%12,a=S*Math.min(L,1-L);return Math.round(255*(L-a*Math.max(-1,Math.min(k-3,9-k,1)))).toString(16).padStart(2,'0');};return '#'+f(0)+f(8)+f(4);}
+function tame(c,{lmin=.32,lmax=.62,smax=.62}={}){let [H,S,L]=toHsl(c);S=Math.min(S,smax);L=Math.min(lmax,Math.max(lmin,L));
+  let x=fromHsl(H,S,L),on=textOn(x);for(let i=0;i<30&&contrast(x,on)<4.5;i++){L+=on==='#ffffff'?-.02:.02;x=fromHsl(H,S,Math.min(.95,Math.max(.05,L)));}return x;}
+
+// ── icônes ──
+const P={
+  resa:'<path d="M4 7h16v13H4z"/><path d="M4 11h16M9 3v4M15 3v4"/>',
+  carte:'<path d="M5 3h11l3 3v15H5z"/><path d="M9 9h6M9 13h6M9 17h4"/>',
+  edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/>',
+  jour:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  story:'<rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M10 18h4"/>',
+  share:'<path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/>',
+  stats:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  post:'<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".8" fill="currentColor"/>',
+  boost:'<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
+  mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+  vue:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  compte:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  etab:'<path d="M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  hor:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  res:'<circle cx="6" cy="12" r="2.3"/><circle cx="18" cy="6" r="2.3"/><circle cx="18" cy="18" r="2.3"/><path d="M8 11l8-4M8 13l8 4"/>',
+  acc:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>',
+  plats:'<path d="M4 18h16M6 18a6 6 0 0 1 12 0M12 9V7M10 7h4"/>',
+  pres:'<rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><rect x="3" y="15" width="7" height="5" rx="1.5"/><rect x="14" y="15" width="7" height="5" rx="1.5"/>',
+  coul:'<circle cx="13.5" cy="6.5" r="1"/><circle cx="17.5" cy="10.5" r="1"/><circle cx="8.5" cy="7.5" r="1"/><circle cx="6.5" cy="12.5" r="1"/><path d="M12 2a10 10 0 0 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.4A5.6 5.6 0 0 0 22 9.8C22 5.5 17.5 2 12 2z"/>',
+  spe:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h7"/>',
+  sauv:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 4v4h4"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>'
+};
+const I=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${P[k]}</svg>`;
+const ico=k=>`<span class="ico">${I(k)}</span>`;
+
+// ── contenu partagé ──
+let T;
+const header=()=>`<header class="hd"><div class="logo">${T.ini}</div><div style="min-width:0"><h1>${T.name}</h1><p><span class="live">Ouvert</span> · ferme à 23 h</p></div><a class="site" href="#">Voir le site ↗</a></header>`;
+const resa=(cls='')=>`<section class="c brand ${cls}"><h3>${ico('resa')}Réservations · aujourd'hui<a class="more" href="#">Tout voir →</a></h3><small class="sub">Mis à jour il y a 1 min</small>
+  <div class="svc"><div><div class="l">Midi</div><div class="n num">7 <small>résas</small></div><div class="cv">22 / 40 couv. · <b>55 %</b></div><div class="bar"><i style="width:55%"></i></div></div>
+  <div><div class="l">Soir</div><div class="n num">18 <small>résas</small></div><div class="cv">64 / 80 couv. · <b>80 %</b></div><div class="bar"><i style="width:80%"></i></div></div></div>
+  <div class="row2"><a class="btn w" href="#">${I('stats').replace('<svg','<svg width="16" height="16"')}Statistiques</a><a class="btn" href="#">+ Réservation</a></div></section>`;
+const carte=(cls='')=>`<section class="c ${cls}"><h3>${ico('edit')}Ma carte</h3><div class="k num" style="margin-top:12px">52 <small>plats</small></div><small>Modifiez directement sur votre site</small><br><span class="pill alert" style="margin-top:8px">● 2 en rupture</span><div class="lk"><a href="#">Modifier ma carte ↗</a></div></section>`;
+const menuJour=(cls='')=>`<section class="c ${cls}"><h3>${ico('jour')}Menu du jour<span class="pill ok" style="margin-left:auto">● En ligne</span></h3>
+  <div class="mdl"><div><em>Entrée</em>Velouté de potimarron</div><div><em>Plat</em>Risotto aux cèpes</div><div><em>Dessert</em>Tiramisu maison</div></div>
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px"><div class="lk"><a href="#">Modifier</a><a href="#">Partager en story</a></div><span class="price num">19 €</span></div>
+  <div style="border-top:1px solid rgba(0,0,0,.07);margin-top:12px;padding-top:10px;display:flex;align-items:center;gap:8px;font-size:13px"><b>Menus spéciaux</b><small>· 3</small><span class="lk" style="margin:0 0 0 auto"><a href="#">＋ Ajouter</a><a href="#">Modifier</a></span></div></section>`;
+const exportC=(cls='')=>`<section class="c ${cls}"><h3>${ico('share')}Exporter la carte<a class="more" href="#">Couleurs →</a></h3><small>Prêt à poster ou imprimer, à vos couleurs</small>
+  <div class="fmts"><a href="#"><span class="pv"></span>Story</a><a href="#"><span class="pv"></span>Post</a><a href="#"><span class="pv"></span>Google</a><a href="#"><span class="pv"></span>Imprimer</a></div></section>`;
+const actsComm=()=>`<a class="act" href="#">${ico('post')}<div><b>Poster sur les réseaux</b><small>Choisissez une photo de votre carte, le post se fait tout seul</small></div><span class="pill soon">Bientôt</span></a>
+  <a class="act" href="#">${ico('boost')}<div><b>Table Boost</b><small>Mettez un plat en avant pour remplir les tables creuses</small></div><span class="go">›</span></a>
+  <a class="act" href="#">${ico('mail')}<div><b>Campagne email</b><small>Écrivez à vos 1 240 clients en 3 gestes</small></div><span class="go">›</span></a>`;
+const comm=(cls='')=>`<section class="c ${cls}"><h3>${ico('mail')}Communication</h3><small>Faites venir du monde</small><div class="comm">${actsComm()}</div></section>`;
+const visits=(cls='')=>`<a class="c ${cls}" href="#"><h3>${ico('vue')}Visites du site</h3><div class="k num" style="margin-top:12px">1 248</div><small>7 jours · <b style="color:var(--ok)">+12 %</b></small><div class="spark"><i style="height:40%"></i><i style="height:55%"></i><i style="height:35%"></i><i style="height:60%"></i><i style="height:75%"></i><i style="height:90%"></i><i class="on" style="height:100%"></i></div></a>`;
+const SETS=[
+  ['t-a','🏠','Mon établissement',[['compte','Mon compte','Will · admin'],['etab','Informations','Nom, logo, adresse'],['hor','Horaires','Ouvert · ferme à 23 h'],['res','Réseaux sociaux','2 comptes liés']]],
+  ['t-b','🎨','Mon site',[['acc',"Page d'accueil",'Vidéo plein écran'],['plats','Menus et plats','5 catégories'],['pres','Présentation','Grille photos'],['coul','Couleurs','Tout est lisible']]],
+  ['t-c','🛟','Sécurité',[['sauv','Sauvegardes',"Dernière : aujourd'hui"],['spe','Historique','Restaurer une version']]]
+];
+const tile=([k,l,s])=>`<a class="tile" href="#">${ico(k)}<div><b>${l}</b><span>${s}</span></div></a>`;
+const sets=(cls='')=>`<div class="sets ${cls}">${SETS.map(([t,em,h,ts])=>`<section class="set ${t}"><h4><span class="em">${em}</span>${h}</h4><div class="tiles">${ts.map(tile).join('')}</div></section>`).join('')}</div>`;
+
+// ── les 6 propositions ──
+const R={
+A:()=>`${header()}<div class="grid pA">
+  ${resa('s2 d2')}${menuJour('s2 d2 menuC')}${exportC('s2 d2')}${carte('d1')}${visits('d1')}${comm('s2 d4 commC')}
+</div><div class="band-title">Réglages</div>${sets('cols3')}`,
+
+B:()=>`${header()}<div class="quick">
+  <a class="q q1" href="#">${ico('jour')}<div><b>Menu du jour</b><small>Modifier · 19 €</small></div></a>
+  <a class="q q2" href="#">${ico('story')}<div><b>Story du jour</b><small>Générée en 1 geste</small></div></a>
+  <a class="q q3" href="#">${ico('edit')}<div><b>Modifier ma carte</b><small>Sur le site ↗</small></div></a>
+  <a class="q q4" href="#">${ico('plus')}<div><b>Réservation</b><small>Ajouter à la main</small></div></a>
+</div><div class="grid">${resa('s2 d2')}${exportC('s2 d2')}${visits('d1')}${carte('d1')}${menuJour('s2 d2')}</div>
+<div class="band-title">${'📣'} Communication</div><div class="strip">${actsComm()}</div>
+<div class="band-title">Réglages</div>${sets()}`,
+
+C:()=>`${header()}
+<section class="band b1"><h2>Aujourd'hui <small>vendredi 9 octobre</small></h2><div class="grid">${resa('s2 d2').replace('c brand','c')}${menuJour('s2 d2')}</div></section>
+<section class="band b2"><h2>Partager <small>carte, réseaux, emails</small></h2><div class="grid">${exportC('s2 d2')}${comm('s2 d2')}${carte('d1')}${visits('d1')}</div></section>
+<section class="band b3"><h2>Réglages</h2>${sets('cols3')}</section>`,
+
+D:()=>`${header()}<div class="grid pD">
+  ${resa('s2 d2 w1')}
+  <section class="c w2 s2 d2">${menuJour('').replace(/^<section class="c ">|<\/section>$/g,'')}</section>
+  <a class="c w3 wq" href="#">${ico('edit')}<div><b>Modifier ma carte</b><br><small>52 plats · 2 ruptures</small></div></a>
+  <a class="c w5 wq" href="#">${ico('story')}<div><b>Story du jour</b><br><small>Prête en 1 geste</small></div></a>
+  ${exportC('s2 d2')}
+  <a class="c w4 wq" href="#">${ico('post')}<div><b>Poster sur les réseaux</b><br><span class="pill soon" style="background:var(--accent);color:var(--on-accent);margin-top:6px">Bientôt</span></div></a>
+  <a class="c w3 wq" href="#">${ico('boost')}<div><b>Table Boost</b><br><small>Mettre un plat en avant</small></div></a>
+  <a class="c w5 wq" href="#">${ico('mail')}<div><b>Campagne email</b><br><small>1 240 clients</small></div></a>
+  ${visits('')}
+</div><div class="band-title">Réglages</div>${sets('cols3')}`,
+
+E:()=>`${header()}<div class="cols pE">
+  <div><div class="colh"><i style="background:var(--brand)"></i>Au resto</div><div class="stack">${resa()}${menuJour('').replace('<h3>','<div class="hdr h-b"><h3>').replace('</h3>','</h3></div>')}${carte('')}</div></div>
+  <div><div class="colh"><i style="background:var(--accent)"></i>Partager</div><div class="stack">${exportC('').replace('<h3>','<div class="hdr h-a"><h3>').replace('</h3>','</h3></div>')}${comm('').replace('<h3>','<div class="hdr h-i"><h3>').replace('</h3>','</h3></div>')}${visits('')}</div></div>
+</div><div class="band-title">Réglages</div>${sets('cols3')}`,
+
+F:()=>`${header()}<section class="hero"><div class="tabs"><span class="on">Réservations</span><span>Menu du jour</span></div>
+  <div class="svc"><div><div class="l">Midi</div><div class="n num">7 <small>résas</small></div><div class="cv">22 / 40 couv. · <b>55 %</b></div><div class="bar"><i style="width:55%"></i></div></div><div><div class="l">Soir</div><div class="n num">18 <small>résas</small></div><div class="cv">64 / 80 couv. · <b>80 %</b></div><div class="bar"><i style="width:80%"></i></div></div></div>
+  <div class="row2"><a class="btn w" href="#">Statistiques</a><a class="btn" href="#">+ Réservation</a></div></section>
+<div class="sec">Exporter la carte <a href="#">Couleurs →</a></div>
+<div class="fmtsF">${['Story','Post','Google','Imprimer'].map(x=>`<a class="fcard" href="#"><div class="art"></div><b>${x}</b></a>`).join('')}</div>
+<div class="sec">Ma carte et mes menus</div>
+<div class="list">${[['edit','var(--brand)','Modifier ma carte','52 plats · 2 en rupture · sur le site ↗'],['jour','var(--accent)','Menu du jour','En ligne · 19 € · Modifier'],['spe','var(--ink)','Menus spéciaux','3 menus · Ajouter / Modifier']].map(([k,c,b,s])=>`<a class="li" href="#"><span class="dotc" style="background:${c};color:#fff">${I(k)}</span><div><b>${b}</b><small>${s}</small></div><span class="chev">›</span></a>`).join('')}</div>
+<div class="sec">Communication</div>
+<div class="list">${[['post','#e1306c','Poster sur les réseaux','Une photo de votre carte, un post automatique · bientôt'],['boost','var(--accent)','Table Boost','Mettre un plat en avant'],['mail','var(--brand)','Campagne email','1 240 clients']].map(([k,c,b,s])=>`<a class="li" href="#"><span class="dotc" style="background:${c};color:#fff">${I(k)}</span><div><b>${b}</b><small>${s}</small></div><span class="chev">›</span></a>`).join('')}</div>
+<div class="sec">Réglages</div>${sets('cols3')}`
+};
+
+let PROP='A', KEY='beltab';
+function applyTheme(){
+  const t0=THEMES[KEY], brand=tame(t0.brand), accent=tame(t0.accent,{lmin:.36,lmax:.66,smax:.7}), s=document.documentElement.style, onB=textOn(brand), light=onB!=='#ffffff';
+  s.setProperty('--brand',brand); s.setProperty('--on-brand',onB);
+  s.setProperty('--on-brand-mut',light?'rgba(22,24,29,.66)':'rgba(255,255,255,.74)');
+  s.setProperty('--brand-tint',light?'rgba(22,24,29,.09)':'rgba(255,255,255,.15)');
+  s.setProperty('--brand-soft',mix(brand,'#ffffff',.86)); s.setProperty('--brand-deep',mix(brand,'#000000',.35)); s.setProperty('--brand-text',darkEnough(brand,mix(brand,'#ffffff',.86)));
+  s.setProperty('--accent',accent); s.setProperty('--on-accent',textOn(accent)); s.setProperty('--accent-soft',mix(accent,'#ffffff',.85)); s.setProperty('--accent-text',darkEnough(accent,mix(accent,'#ffffff',.85)));
+  s.setProperty('--display',t0.font); s.setProperty('--display-w',t0.fw);
+  T=t0;
+}
+function render(){
+  applyTheme();
+  document.getElementById('app').innerHTML=`<p class="pitch"><b>${PROPS[PROP][0]}</b> — ${PROPS[PROP][1]}</p><div class="p${PROP}">${R[PROP]()}</div>`;
+  document.querySelectorAll('#props button').forEach(b=>b.classList.toggle('on',b.dataset.p===PROP));
+  document.querySelectorAll('#themes button').forEach(b=>b.classList.toggle('on',b.dataset.t===KEY));
+  history.replaceState(null,'','#'+PROP+'-'+KEY);
+}
+document.getElementById('props').innerHTML=Object.entries(PROPS).map(([k,v])=>`<button type="button" data-p="${k}">${v[0]}</button>`).join('');
+document.getElementById('themes').innerHTML=Object.entries(THEMES).map(([k,t])=>`<button type="button" data-t="${k}"><i style="background:linear-gradient(135deg,${t.brand} 50%,${t.accent} 50%)"></i>${t.label}</button>`).join('');
+document.getElementById('props').onclick=e=>{const b=e.target.closest('[data-p]');if(b){PROP=b.dataset.p;render();scrollTo(0,0);}};
+document.getElementById('themes').onclick=e=>{const b=e.target.closest('[data-t]');if(b){KEY=b.dataset.t;render();}};
+document.addEventListener('click',e=>{const a=e.target.closest('a');if(a&&a.getAttribute('href')==='#')e.preventDefault();});
+(()=>{const [p,k]=(location.hash.slice(1)||'').split('-');if(PROPS[p])PROP=p;if(THEMES[k])KEY=k;})();
+render();
+</script>
+</body>
+</html>
