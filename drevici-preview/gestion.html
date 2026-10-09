@@ -767,6 +767,25 @@ input[type=number].in{font-size:17px;font-weight:600}
   .msel select{position:absolute;inset:0;opacity:0;width:100%;font-size:16px}
   .a-resa .next{display:block}.a-resa .next .nx:nth-child(n+4){display:none}
 }
+
+/* Fiche plat : séparations, bloc d'actions, bouton i et fenêtre d'info */
+.grp.sep{margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.pc.plain .pb{padding-top:4px}.pc.plain .rw:first-child{border-top:0}.rw.del{padding:12px 0}
+.slots.one{justify-content:center}
+.bh .ib{margin-left:auto}
+.ib{width:22px;height:22px;border-radius:50%;border:1.5px solid currentColor;background:none;color:var(--mut);font:italic 700 12.5px/1 Georgia,serif;cursor:pointer;display:inline-grid;place-items:center;padding:0;vertical-align:1px;opacity:.85}
+.ib:hover{color:var(--brand-text);opacity:1}.rw .ib{margin-left:6px;width:20px;height:20px;font-size:11.5px}
+.capx{margin-top:10px;border-radius:14px;border:1.5px dashed var(--line);padding:10px 14px}.capx small{display:block;font-size:12.5px;font-weight:600;color:var(--mut);margin-bottom:4px}
+.capx pre,.imod pre{margin:0;font:500 14px/1.5 var(--ui);white-space:pre-wrap;color:var(--ink)}
+.imod{position:fixed;inset:0;z-index:80;background:rgba(15,18,24,.38);display:grid;place-items:center;padding:20px;animation:imf .15s ease}
+@keyframes imf{from{opacity:0}to{opacity:1}}
+.imod-c{position:relative;background:var(--card);color:var(--ink);border-radius:24px;max-width:460px;width:100%;padding:26px 26px 22px;box-shadow:0 20px 60px rgba(0,0,0,.22)}
+.imod-c h3{margin:0 0 12px;font-size:20px;font-weight:700;letter-spacing:-.01em}
+.imod-c p{margin:0 0 10px;font-size:15px;line-height:1.5;font-weight:500}.imod-c p.mut{color:var(--mut)}.imod-c p.warn{color:#b45309;margin-top:10px}
+.imod-c pre{background:var(--soft);border-radius:14px;padding:12px 14px;margin:4px 0 12px}
+.imod-x{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;border:0;background:var(--soft);color:var(--mut);font-size:14px;cursor:pointer}
+.imod-ok{margin-top:8px;width:100%;justify-content:center}
+.rk{background:var(--soft);border-radius:16px;padding:14px;margin-top:6px}.rk-t{font-size:14px;font-weight:600;margin-bottom:10px}.rk .seg{background:var(--card)}.rk .seg button{flex:1;font-size:15px;font-weight:700}.rk sup{font-size:.62em;margin-left:1px;vertical-align:.5em;line-height:0}.rk small{display:block;margin-top:8px;color:var(--mut);font-weight:500;font-size:13px}
 </style>
 </head>
 <body>
@@ -990,7 +1009,8 @@ function showGallery(imgs){
 // ══ Navigation ══
 function go(p){ location.hash='#/'+p; }
 function parseHash(){ const h=(location.hash||'').replace(/^#\/?/,''); const [p,...rest]=h.split('/'); PG=p||'dash'; ARG=decodeURIComponent(rest.join('/')||''); }
-window.addEventListener('hashchange',()=>{ parseHash(); UI.delc=null; render(); scrollTo(0,0); jumpToBlock(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&UI.info){ UI.info=null; render(); } });
+window.addEventListener('hashchange',()=>{ parseHash(); UI.delc=null; UI.info=null; render(); scrollTo(0,0); jumpToBlock(); });
 function jumpToBlock(){ if(!(PG==='etab'||PG==='site')||!ARG) return; const el=document.getElementById('b-'+ARG); if(!el) return; el.scrollIntoView({block:'start',behavior:'smooth'}); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
 
 const NAV=[['dash','stats','Tableau de bord'],['resa','resa','Réservations'],['carte','carte','Ma carte'],['menus','spe','Mes menus'],['stats','vue','Statistiques']];
@@ -1324,22 +1344,46 @@ function pageItem(ti,ci,ix){
       :`<div class="pr-row">${fEur('Prix',priceNum(it.price),`${P}.priceNum`)}</div>`;
     price+=`<button type="button" class="lk" data-act="itemDual" data-p="${path}">${it.priceType==='dual'?'Revenir à un prix unique':'＋ Double offre (ex : les 6 / les 12)'}</button>`;
   }
-  const n=pinCount(tb.id), on=pinOn(it);
-  const pinHint=on?(!it.img?'Ajoutez une photo pour qu\'il apparaisse dans le bandeau':it.hidden?'Masqué : il n\'apparaît pas dans le bandeau':'Affiché dans le bandeau en tête de la catégorie'):(n>=PIN_MAX?`Déjà ${PIN_MAX} incontournables dans cette catégorie`:'Le mettre en avant dans le bandeau photo de la catégorie');
+  const on=pinOn(it), rank=on?pinRank(tb.id,it._pid):0;
   const main=card(bev?'Boisson':'Plat',bev?'plats':'edit',
     fIn(bev?'Nom de la boisson':'Titre du plat',trL(it.name),`${P}.name`,phL(it.name,bev?'Ex : Sancerre blanc':'Nom du plat'),'w')+
     fTa(bev?'Sous-titre / notes de dégustation':'Sous-titre / description courte',trL(it.desc),`${P}.desc`,phL(it.desc,bev?'Ex : Domaine Vacheron — vif et minéral':'Ex : À la sauce échalote & frites'),'w')+
     `<div class="grp">${price}</div>`+
-    (bev?'':`<div class="grp"><div class="grp-t">Informations alimentaires</div>${badgeRow(it,ti,ci,ix)}</div>`)+
-    (bev?'':row(`<b><i class="star">★</i> Incontournable</b>`,pinHint,'',tgl(on,'pinTog',`data-p="${path}"`)))+
-    row(`<b>Masquer ${bev?'la boisson':'le plat'}</b>`,it.hidden?'Masqué sur le site':'Visible sur le site','',tgl(!!it.hidden,'itemVis',`data-p="${path}"`))+
-    `<div class="acts2" style="justify-content:flex-start">${UI.delc==='i'+path?`<span class="delc">Supprimer « ${esc(nm)} » ?<button class="btn g" data-act="delNo">Non</button><button class="btn red" data-act="itemDel" data-p="${path}">Oui</button></span>`:`<button class="lk red" data-act="delAsk" data-k="i${path}">Supprimer ${bev?'la boisson':'le plat'}</button>`}</div>`);
+    (bev?'':`<div class="grp sep"><div class="grp-t">Informations alimentaires</div>${badgeRow(it,ti,ci,ix)}</div>`));
+  const acts=`<section class="list pc plain"><div class="pb">`+
+    (bev?'':row(`<b><i class="star">★</i> Incontournable ${infoBtn('pin')}</b>`,on?`${rank} sur ${PIN_MAX} dans « ${esc(tr(tb.label))} »`:'','',tgl(on,'pinTog',`data-p="${path}"`)))+
+    row(`<b>Masquer ${bev?'la boisson':'le plat'}</b>`,it.hidden?'Masqué sur le site':'','',tgl(!!it.hidden,'itemVis',`data-p="${path}"`))+
+    `<div class="rw del">${UI.delc==='i'+path?`<span class="delc">Supprimer « ${esc(nm)} » ?<button class="btn g" data-act="delNo">Non</button><button class="btn red" data-act="itemDel" data-p="${path}">Oui</button></span>`:`<button class="lk red" data-act="delAsk" data-k="i${path}">Supprimer ${bev?'la boisson':'le plat'}</button>`}</div></div></section>`;
   const g=it.gallery||[];
-  const media=card('Photo',`acc`,`<div class="slots one">${upSlot(it.img,path,'main',bev?'La bouteille ou le verre':'Le plat seul')}</div><p class="note">Elle s'affiche sur le site${bev?'':', dans le bandeau des incontournables'} et dans les exports.</p>`)+
-    card('Galerie réseaux sociaux','post',`<div class="slots">${[0,1,2].map(k=>upSlot(g[k],path,'g'+k,'Photo '+(k+2))).join('')}</div><p class="note">Photos 2 à 4 : en situation, le détail. Elles servent pour poster sur les réseaux.</p>`)+
-    card('Caption Instagram','post',fTa('Caption pré-enregistrée',it.caption||'',`${P}.caption`,bev?'Ex : Notre sélection du moment 🍷':'Ex : Nos huîtres Spéciales N°3 — iodées, fraîches, servies sur glace 🦪','w cap')+`<p class="note">Reprise automatiquement quand vous postez ce ${bev?'produit':'plat'} sur les réseaux.</p>`);
+  const media=cardI('Photo principale','acc','photo',`<div class="slots one">${upSlot(it.img,path,'main',bev?'La bouteille ou le verre':'Le plat seul')}</div>`)+
+    cardI('Galerie réseaux sociaux','post','galerie',`<div class="slots">${[0,1,2].map(k=>upSlot(g[k],path,'g'+k,'Photo '+(k+2))).join('')}</div>`)+
+    cardI('Description Instagram','post','caption',fTa('Caption · description pré-enregistrée',it.caption||'',`${P}.caption`,bev?'Ex : Notre sélection du moment 🍷':'Ex : Nos huîtres Spéciales N°3 — iodées, fraîches, servies sur glace 🦪','w cap')+
+      `<div class="capx"><small>Ajouté automatiquement à la fin</small><pre>${esc(restoSig())}</pre></div>`);
+  const modal=UI.info?infoModal(UI.info,{tb,it,on,rank,path,bev}):'';
   return mtop(esc(tr(tb.label)),`carte/${ti}`)+crumb([['Ma carte','carte'],[esc(tr(tb.label))||'Catégorie','carte/'+ti],[esc(nm)]])+ph(esc(nm),`${esc(tr(tb.label))}${tr(c.label)?' · '+esc(tr(c.label)):''} · ${bev?'boisson':'plat'} ${ix+1} sur ${its.length}`,nav)+
-    `<div class="pgrid g-1-1"><div>${main}</div><div>${media}</div></div>`;
+    `<div class="pgrid g-1-1"><div>${main}${acts}</div><div>${media}</div></div>${modal}`;
+}
+// ── Bouton « i » + fenêtre d'information ──
+const infoBtn=k=>`<button type="button" class="ib" data-act="info" data-k="${k}" title="En savoir plus" aria-label="En savoir plus">i</button>`;
+const cardI=(t,ic,k,body)=>`<section class="list pc" id="b-${ic}"><div class="bh"><span class="ico">${I(ic)}</span>${t}${infoBtn(k)}</div><div class="pb">${body}</div></section>`;
+function fmtPhone(p){ const d=String(p||'').replace(/\D/g,''); return d.length===10?d.replace(/(\d{2})(?=\d)/g,'$1 ').trim():(p||''); }
+function restoSig(){ const a=DATA.address||{}; const L=[]; L.push('📍 '+(DATA.restaurantName||'Mon restaurant'));
+  const ad=[a.street,[a.zip,a.city].filter(Boolean).join(' ')].filter(Boolean).join(', '); if(ad) L.push(ad);
+  if(a.phone) L.push('📞 '+fmtPhone(a.phone)); L.push('🗓️ Réservation : lien en bio'); return L.join('\n'); }
+const pinsOf=tabId=>(DATA.pinnedDishes||[]).filter(p=>p.tabId===tabId);
+const pinRank=(tabId,pid)=>pinsOf(tabId).findIndex(p=>p.pid===pid)+1;
+function setPinRank(tabId,pid,r){ const all=DATA.pinnedDishes||[]; const i=all.findIndex(p=>p.pid===pid); if(i<0) return; const [me]=all.splice(i,1);
+  const mine=all.map((p,k)=>[p,k]).filter(([p])=>p.tabId===tabId); const at=r-1<mine.length?mine[r-1][1]:(mine.length?mine[mine.length-1][1]+1:all.length); all.splice(at,0,me); }
+function infoModal(k,x){
+  const T={
+    photo:['Photo principale',`<p>C'est la photo du ${x.bev?'produit':'plat'} seul, celle que vos clients voient en premier.</p><p>Elle s'affiche sur votre site à côté du ${x.bev?'produit':'plat'}${x.bev?'':', dans le bandeau des incontournables s\'il en fait partie,'} et dans vos exports (Instagram, Google, impression).</p><p><b>Conseil :</b> une photo carrée, bien éclairée, le ${x.bev?'produit':'plat'} au centre, sans texte par-dessus.</p>`],
+    galerie:['Galerie réseaux sociaux',`<p>Les photos 2 à 4 montrent le ${x.bev?'produit':'plat'} en situation : en salle, en gros plan, avec une boisson, en train d'être servi…</p><p>Elles servent quand vous postez ce ${x.bev?'produit':'plat'} sur les réseaux : Instagram les publie à la suite de la photo principale (carrousel), ce qui donne plus envie qu'une seule image.</p><p>Elles sont facultatives : une seule photo principale suffit pour commencer.</p>`],
+    caption:['Description Instagram',`<p>Sur Instagram, la <b>caption</b> est le texte affiché sous la photo : c'est là qu'on présente le plat, qu'on donne envie, qu'on ajoute les hashtags.</p><p>Vous l'écrivez <b>une seule fois</b> ici. Ensuite, chaque fois que vous postez ce ${x.bev?'produit':'plat'} depuis Beltab, elle est reprise automatiquement : plus besoin de la réécrire.</p><p>Les informations de votre restaurant sont ajoutées à la fin de chaque publication, quoi que vous écriviez :</p><pre>${esc(restoSig())}</pre><p class="mut">Elles viennent de « Mon établissement » : changez-les là-bas, elles se mettent à jour partout.</p>`],
+    pin:['Incontournable',`<p>Les incontournables sont les plats phares d'une catégorie : ceux que vous voulez que tout le monde voie.</p><p>Ils s'affichent <b>tout en haut de la catégorie</b>, en grand avec leur photo, dans un bandeau. Il y en a ${PIN_MAX} au maximum par catégorie.</p>`+
+      (x.on?`<div class="rk"><div class="rk-t">Place dans le bandeau de « ${esc(tr(x.tb.label))} »</div><div class="seg">${Array.from({length:pinsOf(x.tb.id).length},(_,i)=>`<button type="button" data-act="pinRank" data-p="${x.path}" data-r="${i+1}" class="${x.rank===i+1?'on':''}">${i+1}${i===0?'<sup>er</sup>':'<sup>e</sup>'}</button>`).join('')}</div><small>${x.rank} sur ${PIN_MAX} · ${pinsOf(x.tb.id).length} incontournable${pinsOf(x.tb.id).length>1?'s':''} dans cette catégorie</small>${!x.it.img?'<p class="warn">Ce plat n\'a pas encore de photo : ajoutez-en une pour qu\'il apparaisse dans le bandeau.</p>':''}</div>`
+      :`<p class="mut">${pinCount(x.tb.id)>=PIN_MAX?`Cette catégorie a déjà ${PIN_MAX} incontournables : retirez-en un pour mettre celui-ci.`:'Activez l\'interrupteur pour en faire un incontournable, puis choisissez sa place ici.'}</p>`)]
+  }[k]; if(!T) return '';
+  return `<div class="imod" data-act="infoClose"><div class="imod-c" role="dialog" aria-modal="true"><button type="button" class="imod-x" data-act="infoClose" aria-label="Fermer">✕</button><h3>${T[0]}</h3>${T[1]}<button type="button" class="btn imod-ok" data-act="infoClose">J'ai compris</button></div></div>`;
 }
 const BEV_FMT=[['','—'],['verre','Verre'],['bouteille','Bouteille'],['coupe','Coupe'],['pinte','Pinte'],['demi','Demi'],['canette','Canette'],['galopin','Galopin']];
 const BEV_AUTO={pinte:50,demi:25,galopin:12.5};
@@ -1594,6 +1638,9 @@ document.addEventListener('click',async e=>{
     case 'logout': await sb.auth.signOut(); SESSION=null; DATA=null; render(); break;
     case 'appearance': setAppearance(d.v); break;
     case 'goResa': go('resa'); break;
+    case 'info': UI.info=d.k; render(); break;
+    case 'infoClose': if(el.classList.contains('imod')&&e.target!==el) break; UI.info=null; render(); break;
+    case 'pinRank': { const x=itemAt(d.p); setPinRank(DATA.tabs[x.ti].id,x.it._pid,+d.r); touch(true); break; }
     case 'dishDual': { const d=DATA.tabs[+el.dataset.ti].cards[+el.dataset.ci].dishes[+el.dataset.di];
       if(d.priceType==='dual'){ d.priceType=''; d.price=d.p1?fmtEur(d.p1)+'€':''; }
       else { const n=priceNum(d.price); d.priceType='dual'; if(!d.p1&&n) d.p1=n; dualSync(d); }
