@@ -286,6 +286,14 @@ document.getElementById('themes').innerHTML=Object.entries(THEMES).map(([k,t])=>
 document.getElementById('themes').onclick=e=>{const b=e.target.closest('[data-t]');if(b)apply(b.dataset.t);};
 document.addEventListener('click',e=>{if(e.target.closest('a[href="#"]'))e.preventDefault();});
 apply((location.hash||'').slice(1)||'beltab');
+
+// Navigation depuis le tableau de bord : ?ecran=… amène sur le bon écran, « ‹ » y revient.
+(function(){const ids=['compte', 'etablissement', 'horaires', 'reseaux'];const secs=[...document.querySelectorAll('.screens>section')];
+  secs.forEach((x,i)=>x.id='ecran-'+ids[i]);
+  const e=new URLSearchParams(location.search).get('ecran'),t=e&&document.getElementById('ecran-'+e);
+  if(t)setTimeout(()=>{t.scrollIntoView({block:'start'});scrollBy(0,-64);t.querySelector('.screen').animate([{boxShadow:'0 0 0 3px var(--accent)'},{boxShadow:'0 0 0 0 transparent'}],{duration:1600});},300);
+  document.addEventListener('click',ev=>{if(ev.target.closest('.back'))location.href='beltab-maquettes.html'+location.hash;});
+  document.querySelectorAll('.back').forEach(b=>b.style.cursor='pointer');})();
 </script>
 </body>
 </html>
