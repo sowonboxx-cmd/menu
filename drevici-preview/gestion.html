@@ -911,13 +911,13 @@ function dash(){
   const now=new Date().toTimeString().slice(0,5);
   const todayList=activeResa().filter(r=>r.date_iso===todayIso());
   const up=todayList.filter(r=>(r.slot||'')>=now&&!r.attended), past=todayList.filter(r=>!((r.slot||'')>=now&&!r.attended));
-  const next=[...up.slice(0,3)]; if(next.length<3) next.push(...past.slice(-(3-next.length)));
+  const NX=5; const next=[...up.slice(0,NX)]; if(next.length<NX) next.push(...past.slice(-(NX-next.length)));
   next.sort((a,b)=>(a.slot||'').localeCompare(b.slot||''));
   const visible=svc;
   const resa=`<section class="c resa a-resa" style="--n:${Math.max(1,visible.length)}"><h3><span class="ico">${I('resa')}</span>Réservations · aujourd'hui<a class="more" href="#/resa">Tout voir →</a></h3><div class="sub" style="margin-top:2px">${esc(fmtDay(todayIso()))}</div>
     <div class="inner">${visible.length?`<div class="svc">${visible.map(s=>{const cov=s.items.reduce((a,r)=>a+(+r.covers||0),0);const p=cap?Math.min(100,Math.round(cov/cap*100)):0;return `<div><div class="l">${esc(s.label)}</div><div class="n num">${s.items.length} <small>résas</small></div><div class="cv">${cov}${cap?` / ${cap}`:''} couv.${cap?` · <b>${p} %</b>`:''}</div><div class="bar"><i style="width:${p}%"></i></div></div>`;}).join('')}</div>`:'<div class="svc-empty">Aucune réservation aujourd\'hui.</div>'}
     <div class="next"><div class="nx-t">Réservations du jour</div>${next.length?next.map(r=>`<div class="nx${((r.slot||'')<now||r.attended)?' past':''}"><b class="num">${esc((r.slot||'').slice(0,5))}</b><span>${esc(r.from_name||'—')} · ${+r.covers||0} pers.${r.note?` · <em>${esc(r.note)}</em>`:''}</span><small>${tableNames(r)}</small></div>`).join(''):'<div class="nx"><span>Aucune réservation aujourd\'hui.</span></div>'}</div>
-    <div class="row2"><a class="btn w" href="#/resa">${I('stats')}Statistiques</a><a class="btn" href="#/comm/boost">${I('boost')}Table Boost</a></div></div></section>`;
+    </div></section>`;
   const nbPlats=(DATA.tabs||[]).reduce((s,t)=>s+(t.cards||[]).reduce((a,c)=>a+((c.dishes||c.items||[]).length),0),0);
   const nbHidden=(DATA.tabs||[]).reduce((s,t)=>s+(t.cards||[]).reduce((a,c)=>a+((c.dishes||[]).filter(d=>d.hidden).length),0),0);
   const CV=new URLSearchParams(location.search).get('carte')||'1';
