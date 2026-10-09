@@ -786,6 +786,7 @@ input[type=number].in{font-size:17px;font-weight:600}
 .imod-x{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;border:0;background:var(--soft);color:var(--mut);font-size:14px;cursor:pointer}
 .imod-ok{margin-top:8px;width:100%;justify-content:center}
 .rk{background:var(--soft);border-radius:16px;padding:14px;margin-top:6px}.rk-t{font-size:14px;font-weight:600;margin-bottom:10px}.rk .seg{background:var(--card)}.rk .seg button{flex:1;font-size:15px;font-weight:700}.rk sup{font-size:.62em;margin-left:1px;vertical-align:.5em;line-height:0}.rk small{display:block;margin-top:8px;color:var(--mut);font-weight:500;font-size:13px}
+.pc.diet .pb{padding:14px 16px 16px}.pc.diet .grp-t{color:var(--ink)!important;font-size:16px;font-weight:600!important;margin:0 0 10px 2px}
 </style>
 </head>
 <body>
@@ -1349,7 +1350,7 @@ function pageItem(ti,ci,ix){
     fIn(bev?'Nom de la boisson':'Titre du plat',trL(it.name),`${P}.name`,phL(it.name,bev?'Ex : Sancerre blanc':'Nom du plat'),'w')+
     fTa(bev?'Sous-titre / notes de dégustation':'Sous-titre / description courte',trL(it.desc),`${P}.desc`,phL(it.desc,bev?'Ex : Domaine Vacheron — vif et minéral':'Ex : À la sauce échalote & frites'),'w')+
     `<div class="grp">${price}</div>`+
-    (bev?'':`<div class="grp sep"><div class="grp-t">Informations alimentaires</div>${badgeRow(it,ti,ci,ix)}</div>`));
+    '')+(bev?'':`<section class="list pc plain diet"><div class="pb"><div class="grp-t">Informations alimentaires</div>${badgeRow(it,ti,ci,ix)}</div></section>`);
   const acts=`<section class="list pc plain"><div class="pb">`+
     (bev?'':row(`<b><i class="star">★</i> Incontournable ${infoBtn('pin')}</b>`,on?`${rank} sur ${PIN_MAX} dans « ${esc(tr(tb.label))} »`:'','',tgl(on,'pinTog',`data-p="${path}"`)))+
     row(`<b>Masquer ${bev?'la boisson':'le plat'}</b>`,it.hidden?'Masqué sur le site':'','',tgl(!!it.hidden,'itemVis',`data-p="${path}"`))+
@@ -1367,8 +1368,8 @@ function pageItem(ti,ci,ix){
 const infoBtn=k=>`<button type="button" class="ib" data-act="info" data-k="${k}" title="En savoir plus" aria-label="En savoir plus">i</button>`;
 const cardI=(t,ic,k,body)=>`<section class="list pc" id="b-${ic}"><div class="bh"><span class="ico">${I(ic)}</span>${t}${infoBtn(k)}</div><div class="pb">${body}</div></section>`;
 function fmtPhone(p){ const d=String(p||'').replace(/\D/g,''); return d.length===10?d.replace(/(\d{2})(?=\d)/g,'$1 ').trim():(p||''); }
-function restoSig(){ const a=DATA.address||{}; const L=[]; L.push('📍 '+(DATA.restaurantName||'Mon restaurant'));
-  const ad=[a.street,[a.zip,a.city].filter(Boolean).join(' ')].filter(Boolean).join(', '); if(ad) L.push(ad);
+function restoSig(){ const a=DATA.address||{}; const L=[]; const nm=DATA.restaurantName||'Mon restaurant'; L.push((/oyster|huître|huitre/i.test(nm)?'🦪 ':'🍽️ ')+nm);
+  const ad=[a.street,[a.zip,a.city].filter(Boolean).join(' ')].filter(Boolean).join(', '); if(ad) L.push('📍 '+ad);
   if(a.phone) L.push('📞 '+fmtPhone(a.phone)); L.push('🗓️ Réservation : lien en bio'); return L.join('\n'); }
 const pinsOf=tabId=>(DATA.pinnedDishes||[]).filter(p=>p.tabId===tabId);
 const pinRank=(tabId,pid)=>pinsOf(tabId).findIndex(p=>p.pid===pid)+1;
