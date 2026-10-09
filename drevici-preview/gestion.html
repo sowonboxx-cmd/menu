@@ -634,6 +634,8 @@ html[data-ico="blocs"] .set .tile .ico{background:var(--card)!important}
 .pc{scroll-margin-top:20px}
 .pc.flash{animation:flash 1.2s ease}
 @keyframes flash{0%,40%{box-shadow:0 0 0 3px var(--brand-soft),0 0 0 5px color-mix(in srgb,var(--brand) 35%,transparent)}100%{box-shadow:0 0 0 0 transparent}}
+
+.a-resa{cursor:pointer}.a-resa .nxd{display:block;font-size:10.5px;font-weight:700;opacity:.7;text-transform:capitalize;line-height:1}
 </style>
 </head>
 <body>
@@ -802,7 +804,9 @@ const ENGINE_HELPERS=`window.__prev=function(kind,o){o=o||{};
 };
 window.__printDoc=function(){const cfg=pdfCfg();const css=buildPdfCSS(cfg);const pages=paginatePdfPages(cfg);const rn=getRestaurantName()||'Menu';
   const ph=pages.map((p,i)=>'<div class="pdf-page" style="'+(i<pages.length-1?'page-break-after:always;break-after:page;':'')+(p.spaceScale&&p.spaceScale!==1?'--space-scale:'+p.spaceScale+';':'')+(i>0?'--top-pad-trim:5px;':'')+'">'+p.html+'</div>').join('');
-  return '<!DOCTYPE html><html><head><link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Lovelo:wght@400;700&family=Open+Sans:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><meta charset="UTF-8"><title>'+rn+'</title><style>'+css+'</style></head><body>'+ph+'</body></html>';};
+  return '<!DOCTYPE html><html><head><link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Lovelo:wght@400;700&family=Open+Sans:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><meta charset="UTF-8"><title>'+rn+'</title><style>'+css+'
+.a-resa{cursor:pointer}.a-resa .nxd{display:block;font-size:10.5px;font-weight:700;opacity:.7;text-transform:capitalize;line-height:1}
+</style></head><body>'+ph+'</body></html>';};
 window.__fonts=function(){return INSTA_FONT_OPTIONS.slice();};
 window.__tabsMeta=function(){return DATA.tabs.map(t=>({id:t.id,label:(t.label&&t.label.fr)||t.id,bevs:(t.cards||[]).some(c=>c.type==='bevs')}));};`;
 async function eng(){
@@ -909,14 +913,15 @@ const tableNames=r=>{ const ids=r.table_ids||[]; if(!ids.length) return '<b clas
 function dash(){
   const sp=jour(), svc=todayBySvc(), cap=capacity();
   const now=new Date().toTimeString().slice(0,5);
-  const todayList=activeResa().filter(r=>r.date_iso===todayIso());
-  const up=todayList.filter(r=>(r.slot||'')>=now&&!r.attended), past=todayList.filter(r=>!((r.slot||'')>=now&&!r.attended));
-  const NX=5; const next=[...up.slice(0,NX)]; if(next.length<NX) next.push(...past.slice(-(NX-next.length)));
-  next.sort((a,b)=>(a.slot||'').localeCompare(b.slot||''));
+  // Les 3 prochaines arrivées (aujourd'hui puis les jours suivants), jamais celles déjà passées
+  const T0=todayIso();
+  const next=activeResa().filter(r=>!r.attended&&(r.date_iso>T0||(r.date_iso===T0&&(r.slot||'')>=now)))
+    .sort((a,b)=>(a.date_iso+(a.slot||'')).localeCompare(b.date_iso+(b.slot||''))).slice(0,3);
+  const dLbl=d=>d===T0?'':new Date(d+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'short',day:'numeric'}).replace('.','');
   const visible=svc;
-  const resa=`<section class="c resa a-resa" style="--n:${Math.max(1,visible.length)}"><h3><span class="ico">${I('resa')}</span>Réservations · aujourd'hui<a class="more" href="#/resa">Tout voir →</a></h3><div class="sub" style="margin-top:2px">${esc(fmtDay(todayIso()))}</div>
+  const resa=`<section class="c resa a-resa" data-act="goResa" role="link" title="Voir les réservations" style="--n:${Math.max(1,visible.length)}"><h3><span class="ico">${I('resa')}</span>Réservations · aujourd'hui<a class="more" href="#/resa">Tout voir →</a></h3><div class="sub" style="margin-top:2px">${esc(fmtDay(todayIso()))}</div>
     <div class="inner">${visible.length?`<div class="svc">${visible.map(s=>{const cov=s.items.reduce((a,r)=>a+(+r.covers||0),0);const p=cap?Math.min(100,Math.round(cov/cap*100)):0;return `<div><div class="l">${esc(s.label)}</div><div class="n num">${s.items.length} <small>résas</small></div><div class="cv">${cov}${cap?` / ${cap}`:''} couv.${cap?` · <b>${p} %</b>`:''}</div><div class="bar"><i style="width:${p}%"></i></div></div>`;}).join('')}</div>`:'<div class="svc-empty">Aucune réservation aujourd\'hui.</div>'}
-    <div class="next"><div class="nx-t">Réservations du jour</div>${next.length?next.map(r=>`<div class="nx${((r.slot||'')<now||r.attended)?' past':''}"><b class="num">${esc((r.slot||'').slice(0,5))}</b><span>${esc(r.from_name||'—')} · ${+r.covers||0} pers.${r.note?` · <em>${esc(r.note)}</em>`:''}</span><small>${tableNames(r)}</small></div>`).join(''):'<div class="nx"><span>Aucune réservation aujourd\'hui.</span></div>'}</div>
+    <div class="next"><div class="nx-t">Prochaines réservations</div>${next.length?next.map(r=>`<div class="nx"><b class="num">${dLbl(r.date_iso)?`<small class="nxd">${esc(dLbl(r.date_iso))}</small>`:''}${esc((r.slot||'').slice(0,5))}</b><span>${esc(r.from_name||'—')} · ${+r.covers||0} pers.${r.note?` · <em>${esc(r.note)}</em>`:''}</span><small>${tableNames(r)}</small></div>`).join(''):'<div class="nx"><span>Aucune réservation à venir.</span></div>'}</div>
     </div></section>`;
   const nbPlats=(DATA.tabs||[]).reduce((s,t)=>s+(t.cards||[]).reduce((a,c)=>a+((c.dishes||c.items||[]).length),0),0);
   const nbHidden=(DATA.tabs||[]).reduce((s,t)=>s+(t.cards||[]).reduce((a,c)=>a+((c.dishes||[]).filter(d=>d.hidden).length),0),0);
@@ -927,7 +932,7 @@ function dash(){
     :CV==='2'?`<div class="fill"><div class="ft2">Accès rapide · ${nbCat} catégories</div><div class="chips">${(DATA.tabs||[]).map(t=>{const n=(t.cards||[]).reduce((a,c)=>a+((c.dishes||c.items||[]).length),0);return `<button type="button" data-act="catGo" data-id="${esc(t.id)}">${esc(tr(t.label))}<small>${n}</small></button>`;}).join('')}</div></div>`:'';
   const carte=`<section class="a-carte cv${esc(CV)}"><div class="list"><div class="bh"><span class="ico">${I('edit')}</span>Ma carte</div>
     <a class="li" href="#/carte"><span class="dot" style="background:var(--brand);color:var(--on-brand)">${I('edit')}</span><div><b>Modifier ma carte</b><small>${nbPlats} plats et boissons${nbHidden?` · ${nbHidden} masqué${nbHidden>1?'s':''}`:''}</small></div><span class="chev">›</span></a>
-    <div class="mdj xp"><div class="top"><span class="dot" style="background:var(--accent);color:var(--on-accent)">${I('share')}</span><div style="flex:1;min-width:0"><b style="font-size:14.5px">Exporter la carte</b><small style="display:block;font-size:12.5px;color:var(--mut)">Prêt à poster ou imprimer, à vos couleurs</small></div><a class="more" href="#/xcol">Couleurs →</a></div>
+    <div class="mdj xp"><div class="top"><span class="dot" style="background:var(--accent);color:var(--on-accent)">${I('share')}</span><div style="flex:1;min-width:0"><b style="font-size:14.5px">Exporter ma carte</b><small style="display:block;font-size:12.5px;color:var(--mut)">Prêt à poster ou imprimer, à vos couleurs</small></div><a class="more" href="#/xcol">Couleurs →</a></div>
     <div class="fmts"><a href="#/xinsta/story"><span class="pv"></span>Story</a><a href="#/xinsta/post"><span class="pv"></span>Post</a><a href="#/xgbiz"><span class="pv"></span>Google</a><a href="#/xprint"><span class="pv"></span>Imprimer</a></div></div>${fill}</div></section>`;
   const items=jourItems(sp), LBL=['Entrée','Plat','Dessert'];
   const lines=LBL.map((l,i)=>{const it=items[i]||{};return `<div class="ln"><em>${esc(it.s||l)}</em>${it.n?`<b>${esc(it.n)}</b>`:'<span class="vide">À renseigner</span>'}</div>`;}).join('');
@@ -1113,7 +1118,7 @@ function pageCarte(){
        <button class="lk add" data-act="dishAdd" data-ti="${ti}" data-ci="${ci}">＋ Ajouter un plat</button></div>`;
      }).join(''));
   }
-  return mtop('Tableau de bord','dash')+ph('Ma carte',`${DATA.tabs.length} catégories · enregistrement automatique sur la copie de test`,linkBtn('Exporter la carte','share','#/export'))+
+  return mtop('Tableau de bord','dash')+ph('Ma carte',`${DATA.tabs.length} catégories · enregistrement automatique sur la copie de test`,linkBtn('Exporter ma carte','share','#/export'))+
   `<div class="pgrid g-1-2" style="grid-template-columns:minmax(0,1fr) minmax(0,1.7fr)"><div>${card('Catégories','spe',cats+`<button class="lk add" data-act="catAdd">＋ Ajouter une catégorie</button>`)}${card('Exporter','share',`<a class="lk" href="#/export">Ouvrir l'export en grand →</a><div class="fmts" style="margin-top:10px"><a href="#/xinsta/story"><span class="pv"></span>Story</a><a href="#/xinsta/post"><span class="pv"></span>Post</a><a href="#/xgbiz"><span class="pv"></span>Google</a><a href="#/xprint"><span class="pv"></span>Imprimer</a></div>`)}</div><div>${edit}</div></div>`;
 }
 
@@ -1292,6 +1297,7 @@ document.addEventListener('click',async e=>{
   switch(a){
     case 'logout': await sb.auth.signOut(); SESSION=null; DATA=null; render(); break;
     case 'appearance': setAppearance(d.v); break;
+    case 'goResa': go('resa'); break;
     case 'mdjToggle': sp.active=!sp.active; touch(true); break;
     case 'catGo': UI.catOpen=el.dataset.id; go('carte'); break;
     case 'copySite': try{ navigator.clipboard.writeText(SITE_URL); toast('Lien copié'); }catch(e){ toast(SITE_URL); } break;
