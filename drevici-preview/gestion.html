@@ -1247,7 +1247,7 @@ function pageXcol(){
 // ══ Ma carte — éditeur complet ══
 // Routes : #/carte · #/carte/<ti> · #/carte/<ti>/<ci>/<idx> (plat ou boisson)
 const LANGS=[['fr','FR'],['en','EN'],['es','ES'],['it','IT'],['kr','KR'],['jp','JP']];
-const LG=()=>UI.lang||'fr';
+const LG=()=>'fr'; // traductions : plus tard, automatiques (IA)
 const trL=o=>o==null?'':typeof o==='string'?(LG()==='fr'?o:''):(o[LG()]||'');
 const setL=(o,v)=>{ if(!o||typeof o!=='object') o={fr:typeof o==='string'?o:''}; o[LG()]=v; return o; };
 const phL=(o,def)=>LG()==='fr'?def:(tr(o)||def);
@@ -1289,7 +1289,7 @@ function pageCarte(){
       <button type="button" class="mv" data-act="cardMove" data-ti="${ti}" data-ci="${ci}" data-d="-1" title="Monter">↑</button><button type="button" class="mv" data-act="cardMove" data-ti="${ti}" data-ci="${ci}" data-d="1" title="Descendre">↓</button>
       <button type="button" class="lk" data-act="cardVis" data-ti="${ti}" data-ci="${ci}">${c.hidden?'Afficher':'Masquer'}</button>
       ${UI.delc===`c${ti}.${ci}`?`<span class="delc">Supprimer avec ${its.length} élément${its.length>1?'s':''} ?<button class="btn g" data-act="delNo">Non</button><button class="btn red" data-act="cardDel" data-ti="${ti}" data-ci="${ci}">Oui</button></span>`:`<button type="button" class="lk red" data-act="delAsk" data-k="c${ti}.${ci}">Supprimer</button>`}</div>`:'';
-    const rows=its.map((it,ix)=>`<a class="it${it.hidden?' off':''}" href="#/carte/${ti}/${ci}/${ix}">${thumb(it.img)}<span class="it-n"><b>${esc(tr(it.name))||'(sans nom)'}${pinOn(it)?' <i class="star" title="Incontournable">★</i>':''}</b><small>${esc(stripHtml(tr(it.desc))).slice(0,90)}</small></span><span class="it-p num">${esc(priceLabel(it))}</span>${it.hidden?pill('Masqué'):''}<span class="mvs"><button type="button" class="mv" data-act="itemMove" data-ti="${ti}" data-ci="${ci}" data-ix="${ix}" data-d="-1" title="Monter">↑</button><button type="button" class="mv" data-act="itemMove" data-ti="${ti}" data-ci="${ci}" data-ix="${ix}" data-d="1" title="Descendre">↓</button></span><span class="chev">›</span></a>`).join('');
+    const rows=its.map((it,ix)=>`<a class="it${it.hidden?' off':''}" href="#/carte/${ti}/${ci}/${ix}">${thumb(it.img)}<span class="it-n"><b>${esc(tr(it.name))||'(sans nom)'}${pinOn(it)?' <i class="star" title="Incontournable">★</i>':''}</b></span><span class="it-p num">${esc(priceLabel(it))}</span>${it.hidden?pill('Masqué'):''}<span class="mvs"><button type="button" class="mv" data-act="itemMove" data-ti="${ti}" data-ci="${ci}" data-ix="${ix}" data-d="-1" title="Monter">↑</button><button type="button" class="mv" data-act="itemMove" data-ti="${ti}" data-ci="${ci}" data-ix="${ix}" data-d="1" title="Descendre">↓</button></span><span class="chev">›</span></a>`).join('');
     return `<div class="sc">${head}${rows||`<div class="empty">${bev?'Aucune boisson.':'Aucun plat.'}</div>`}<button type="button" class="lk add" data-act="itemAdd" data-ti="${ti}" data-ci="${ci}">＋ ${bev?'Ajouter une boisson':'Ajouter un plat'}</button></div>`;
   }).join('');
   const isBevTab=(tb.cards||[]).length&&(tb.cards||[]).every(isBevCard);
@@ -1298,7 +1298,7 @@ function pageCarte(){
     row('<b>Masquer la catégorie</b>',tb.visible===false?'Masquée sur le site':'Visible sur le site','',tgl(tb.visible===false,'tabVis',`data-ti="${ti}"`))+
     row('<b>Incontournables</b>',`${pinCount(tb.id)} / ${PIN_MAX} · le bandeau photo en tête de la catégorie (étoile dans la fiche du plat)`)+
     `<div class="acts2" style="justify-content:flex-start">${UI.delc===`t${ti}`?`<span class="delc">Supprimer « ${esc(tr(tb.label))} » et tout son contenu ?<button class="btn g" data-act="delNo">Non</button><button class="btn red" data-act="tabDel" data-ti="${ti}">Oui</button></span>`:`<button class="lk red" data-act="delAsk" data-k="t${ti}">Supprimer la catégorie</button>`}</div>`);
-  return mtop('Tableau de bord','dash')+ph('Ma carte',`${DATA.tabs.length} catégories · enregistrement automatique sur la copie de test`,langSeg()+linkBtn('Exporter ma carte','share','#/export'))+langNote()+
+  return mtop('Tableau de bord','dash')+ph('Ma carte',`${DATA.tabs.length} catégories · enregistrement automatique sur la copie de test`,linkBtn('Exporter ma carte','share','#/export'))+
   `<div class="pgrid carte-g"><div>${card('Catégories','spe',`<div class="cats">${cats}</div><button class="lk add" data-act="catAdd">＋ Ajouter une catégorie</button>`)}</div>
   <div>${card(esc(tr(tb.label))||'Catégorie','plats',secs+`<div class="sc-add"><button type="button" class="lk add" data-act="cardAdd" data-ti="${ti}" data-bev="${isBevTab?1:''}">＋ Ajouter une sous-catégorie</button></div>`)}${manage}</div></div>`;
 }
@@ -1338,7 +1338,7 @@ function pageItem(ti,ci,ix){
   const media=card('Photo',`acc`,`<div class="slots one">${upSlot(it.img,path,'main',bev?'La bouteille ou le verre':'Le plat seul')}</div><p class="note">Elle s'affiche sur le site${bev?'':', dans le bandeau des incontournables'} et dans les exports.</p>`)+
     card('Galerie réseaux sociaux','post',`<div class="slots">${[0,1,2].map(k=>upSlot(g[k],path,'g'+k,'Photo '+(k+2))).join('')}</div><p class="note">Photos 2 à 4 : en situation, le détail. Elles servent pour poster sur les réseaux.</p>`)+
     card('Caption Instagram','post',fTa('Caption pré-enregistrée',it.caption||'',`${P}.caption`,bev?'Ex : Notre sélection du moment 🍷':'Ex : Nos huîtres Spéciales N°3 — iodées, fraîches, servies sur glace 🦪','w cap')+`<p class="note">Reprise automatiquement quand vous postez ce ${bev?'produit':'plat'} sur les réseaux.</p>`);
-  return mtop(esc(tr(tb.label)),`carte/${ti}`)+crumb([['Ma carte','carte'],[esc(tr(tb.label))||'Catégorie','carte/'+ti],[esc(nm)]])+ph(esc(nm),`${esc(tr(tb.label))}${tr(c.label)?' · '+esc(tr(c.label)):''} · ${bev?'boisson':'plat'} ${ix+1} sur ${its.length}`,langSeg()+nav)+langNote()+
+  return mtop(esc(tr(tb.label)),`carte/${ti}`)+crumb([['Ma carte','carte'],[esc(tr(tb.label))||'Catégorie','carte/'+ti],[esc(nm)]])+ph(esc(nm),`${esc(tr(tb.label))}${tr(c.label)?' · '+esc(tr(c.label)):''} · ${bev?'boisson':'plat'} ${ix+1} sur ${its.length}`,nav)+
     `<div class="pgrid g-1-1"><div>${main}</div><div>${media}</div></div>`;
 }
 const BEV_FMT=[['','—'],['verre','Verre'],['bouteille','Bouteille'],['coupe','Coupe'],['pinte','Pinte'],['demi','Demi'],['canette','Canette'],['galopin','Galopin']];
@@ -1442,7 +1442,7 @@ function pageSite(){
     </div>`);
   const pres=card('Présentation','pres',
     opt('Afficher la présentation',!!DATA.intro.active,'introFlag','','Le texte d\'introduction en tête du menu')+
-    `<div style="margin-top:10px">${langSeg()}</div>`+
+    
     fTa('Texte de présentation'+(LG()==='fr'?'':' ('+LG().toUpperCase()+')'),(DATA.intro.text||{})[LG()]||'','intro.text',LG()==='fr'?'Quelques mots sur votre maison':((DATA.intro.text||{}).fr||''),'w cap')+
     fontSel('Police du site (nom et titres)',DATA.restoFont,'root.restoFont','Cormorant Garamond'));
   const menu=card('Menu','plats',
