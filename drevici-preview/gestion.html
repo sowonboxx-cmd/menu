@@ -743,6 +743,10 @@ input[type=number].in{font-size:17px;font-weight:600}
 .subm .more2{background:none;font-size:13.5px;font-weight:600;color:var(--brand-text);padding:8px 12px}
 .li .pill{vertical-align:2px;margin-left:6px}.li .pill:not(.ok){background:var(--soft);color:var(--mut)}
 .xp .fmts{margin-top:22px}
+
+.mrow{display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:14px;background:var(--soft);margin-top:8px;color:var(--ink)}
+.mrow:first-child{margin-top:4px}.mrow b{flex:1;min-width:0;font-size:16px;font-weight:600}.mrow .pill.off{background:var(--card);color:var(--mut)}
+.mrow:hover{background:var(--brand-soft)}
 </style>
 </head>
 <body>
@@ -1114,9 +1118,10 @@ function dishOptions(){ return (DATA.tabs||[]).map(t=>(t.cards||[]).map(c=>(c.di
 // ── menus personnalisés ──
 function pageMenus(){
   const sp=jour(), fs=DATA.formules;
+  const ln=(href,name,extra='')=>`<a class="mrow" href="${href}"><b>${name}</b>${extra}<span class="chev">›</span></a>`;
   return mtop('Tableau de bord','dash')+ph('Mes menus','Menu du jour et menus personnalisés, affichés sur votre site et exportables',btn('Nouveau menu personnalisé','plus','','data-act="fAdd"'))+
-  `<div class="pgrid g-1-1"><div>${card('Menu du jour','jour',row(`<b>${sp.active?'En ligne':'Hors ligne'}</b>`,esc(tr(sp.title)||'Menu du jour'),'',tgl(sp.active,'mdjToggle'))+`<div class="acts2" style="justify-content:flex-start">${linkBtn('Modifier','edit','#/mdj','w')}${linkBtn('Partager','share','#/tuner/mdj')}</div>`)}</div>
-   <div>${card('Menus personnalisés','spe',(fs.length?fs.map(f=>row(`<b>${esc(f.name||f.title||'(sans nom)')}</b><small style="display:block">${esc(f.freeText||'')}</small>`,'','',`<a class="lk" href="#/formule/${encodeURIComponent(f.id)}">Modifier</a> <a class="lk" href="#/tuner/${encodeURIComponent(f.id)}">Exporter</a>`)).join(''):'<div class="empty">Aucun menu personnalisé pour l\'instant.</div>')+
+  `<div class="pgrid g-1-1"><div>${card('Menu du jour','jour',ln('#/mdj','Menu du jour',sp.active?'<span class="pill ok">En ligne</span>':'<span class="pill off">Hors ligne</span>'))}</div>
+   <div>${card('Menus personnalisés','spe',(fs.length?fs.map(f=>ln('#/formule/'+encodeURIComponent(f.id),esc(f.name||f.title||'(sans nom)'))).join(''):'<div class="empty">Aucun menu personnalisé pour l\'instant.</div>')+
      `<button class="lk add" data-act="fAdd">＋ Ajouter un menu personnalisé</button>${fs.length>=10?'<p class="note">La limite de 10 est atteinte : en ajouter un nouveau remplacera le plus ancien.</p>':''}`)}</div></div>`;
 }
 function findF(id){ return DATA.formules.find(f=>f.id===id); }
