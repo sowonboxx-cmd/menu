@@ -635,7 +635,7 @@ html[data-ico="blocs"] .set .tile .ico{background:var(--card)!important}
 .pc.flash{animation:flash 1.2s ease}
 @keyframes flash{0%,40%{box-shadow:0 0 0 3px var(--brand-soft),0 0 0 5px color-mix(in srgb,var(--brand) 35%,transparent)}100%{box-shadow:0 0 0 0 transparent}}
 
-.a-resa{cursor:pointer}.a-resa .nxd{display:block;font-size:10.5px;font-weight:700;opacity:.7;text-transform:capitalize;line-height:1}
+.a-resa .nx.demo{opacity:.55}.a-resa{cursor:pointer}.a-resa .nxd{display:block;font-size:10.5px;font-weight:700;opacity:.7;text-transform:capitalize;line-height:1}
 </style>
 </head>
 <body>
@@ -804,9 +804,7 @@ const ENGINE_HELPERS=`window.__prev=function(kind,o){o=o||{};
 };
 window.__printDoc=function(){const cfg=pdfCfg();const css=buildPdfCSS(cfg);const pages=paginatePdfPages(cfg);const rn=getRestaurantName()||'Menu';
   const ph=pages.map((p,i)=>'<div class="pdf-page" style="'+(i<pages.length-1?'page-break-after:always;break-after:page;':'')+(p.spaceScale&&p.spaceScale!==1?'--space-scale:'+p.spaceScale+';':'')+(i>0?'--top-pad-trim:5px;':'')+'">'+p.html+'</div>').join('');
-  return '<!DOCTYPE html><html><head><link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Lovelo:wght@400;700&family=Open+Sans:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><meta charset="UTF-8"><title>'+rn+'</title><style>'+css+'
-.a-resa{cursor:pointer}.a-resa .nxd{display:block;font-size:10.5px;font-weight:700;opacity:.7;text-transform:capitalize;line-height:1}
-</style></head><body>'+ph+'</body></html>';};
+  return '<!DOCTYPE html><html><head><link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Lovelo:wght@400;700&family=Open+Sans:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><meta charset="UTF-8"><title>'+rn+'</title><style>'+css+'</style></head><body>'+ph+'</body></html>';};
 window.__fonts=function(){return INSTA_FONT_OPTIONS.slice();};
 window.__tabsMeta=function(){return DATA.tabs.map(t=>({id:t.id,label:(t.label&&t.label.fr)||t.id,bevs:(t.cards||[]).some(c=>c.type==='bevs')}));};`;
 async function eng(){
@@ -917,15 +915,17 @@ function dash(){
   const T0=todayIso();
   const next=activeResa().filter(r=>!r.attended&&(r.date_iso>T0||(r.date_iso===T0&&(r.slot||'')>=now)))
     .sort((a,b)=>(a.date_iso+(a.slot||'')).localeCompare(b.date_iso+(b.slot||''))).slice(0,3);
+  // Copie de test : on complète avec des exemples pour toujours voir 3 lignes
+  if(/-test$/.test(SLUG)) [['19:30','Exemple · Martin',4,'Table 1'],['20:00','Exemple · Léa B.',2,'Table 2'],['20:45','Exemple · Groupe',6,'Table 5']].slice(next.length).forEach(([sl,n,c,t])=>next.push({slot:sl,from_name:n,covers:c,date_iso:T0,_demo:t}));
   const dLbl=d=>d===T0?'':new Date(d+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'short',day:'numeric'}).replace('.','');
   const visible=svc;
   const resa=`<section class="c resa a-resa" data-act="goResa" role="link" title="Voir les réservations" style="--n:${Math.max(1,visible.length)}"><h3><span class="ico">${I('resa')}</span>Réservations · aujourd'hui<a class="more" href="#/resa">Tout voir →</a></h3><div class="sub" style="margin-top:2px">${esc(fmtDay(todayIso()))}</div>
     <div class="inner">${visible.length?`<div class="svc">${visible.map(s=>{const cov=s.items.reduce((a,r)=>a+(+r.covers||0),0);const p=cap?Math.min(100,Math.round(cov/cap*100)):0;return `<div><div class="l">${esc(s.label)}</div><div class="n num">${s.items.length} <small>résas</small></div><div class="cv">${cov}${cap?` / ${cap}`:''} couv.${cap?` · <b>${p} %</b>`:''}</div><div class="bar"><i style="width:${p}%"></i></div></div>`;}).join('')}</div>`:'<div class="svc-empty">Aucune réservation aujourd\'hui.</div>'}
-    <div class="next"><div class="nx-t">Prochaines réservations</div>${next.length?next.map(r=>`<div class="nx"><b class="num">${dLbl(r.date_iso)?`<small class="nxd">${esc(dLbl(r.date_iso))}</small>`:''}${esc((r.slot||'').slice(0,5))}</b><span>${esc(r.from_name||'—')} · ${+r.covers||0} pers.${r.note?` · <em>${esc(r.note)}</em>`:''}</span><small>${tableNames(r)}</small></div>`).join(''):'<div class="nx"><span>Aucune réservation à venir.</span></div>'}</div>
+    <div class="next"><div class="nx-t">Prochaines réservations</div>${next.length?next.map(r=>`<div class="nx${r._demo?' demo':''}"><b class="num">${dLbl(r.date_iso)?`<small class="nxd">${esc(dLbl(r.date_iso))}</small>`:''}${esc((r.slot||'').slice(0,5))}</b><span>${esc(r.from_name||'—')} · ${+r.covers||0} pers.${r.note?` · <em>${esc(r.note)}</em>`:''}</span><small>${r._demo?esc(r._demo):tableNames(r)}</small></div>`).join(''):'<div class="nx"><span>Aucune réservation à venir.</span></div>'}</div>
     </div></section>`;
   const nbPlats=(DATA.tabs||[]).reduce((s,t)=>s+(t.cards||[]).reduce((a,c)=>a+((c.dishes||c.items||[]).length),0),0);
   const nbHidden=(DATA.tabs||[]).reduce((s,t)=>s+(t.cards||[]).reduce((a,c)=>a+((c.dishes||[]).filter(d=>d.hidden).length),0),0);
-  const CV=new URLSearchParams(location.search).get('carte')||'1';
+  const CV=new URLSearchParams(location.search).get('carte')||'0';
   const nbCat=(DATA.tabs||[]).length;
   const qrSvg=`<svg class="qr" viewBox="0 0 29 29" fill="currentColor" aria-hidden="true">${(()=>{let o='';const f=(x,y)=>{o+=`<rect x="${x}" y="${y}" width="7" height="7" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.4" transform="translate(.7 .7) scale(.9)"/><rect x="${x+2.2}" y="${y+2.2}" width="2.8" height="2.8" rx=".6"/>`;};f(0,0);f(22,0);f(0,22);let r=7;for(let y=0;y<29;y++)for(let x=0;x<29;x++){if((x<9&&y<9)||(x>19&&y<9)||(x<9&&y>19))continue;r=(r*1103515245+12345)&0x7fffffff;if(r%3===0)o+=`<rect x="${x}" y="${y}" width="1" height="1"/>`;}return o;})()}</svg>`;
   const fill=CV==='1'?`<div class="fill"><div class="ft2">Votre carte en ligne</div><div class="onl2">${qrSvg}<div style="min-width:0"><div class="u">${esc(SITE_URL.replace(/^https?:\/\//,'').replace(/\/$/,''))}</div><small style="display:block;font-size:12.5px;color:var(--mut)">Le lien et le QR code de vos tables</small><div class="bts"><button class="btn w" type="button" data-act="copySite">${I('share')}Copier le lien</button><a class="btn w" href="${SITE_URL}" target="_blank" rel="noopener">Voir ↗</a></div></div></div></div>`
