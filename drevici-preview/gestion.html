@@ -626,6 +626,14 @@ html[data-ico="blocs"] .set .tile .ico{background:var(--card)!important}
 /* Bureau : Apparence et Sécurité sont déjà dans le menu de gauche */
 @media(min-width:900px){.v2 .a-sets .s-c,.v2 .a-sets .s-d{display:none}}
 .themes{justify-content:center;margin:0 auto}
+
+/* Bureau : Mon établissement et Mon site passent dans le menu de gauche, Statistiques aussi */
+@media(min-width:900px){.v2 .a-sets,.v2 .a-vis{display:none}
+  .v2 .side{max-height:calc(100vh - 40px);overflow-y:auto;scrollbar-width:thin}
+  .v2 .side a.nv{padding:8px 10px}.v2 .side .gap{margin:8px 6px}}
+.pc{scroll-margin-top:20px}
+.pc.flash{animation:flash 1.2s ease}
+@keyframes flash{0%,40%{box-shadow:0 0 0 3px var(--brand-soft),0 0 0 5px color-mix(in srgb,var(--brand) 35%,transparent)}100%{box-shadow:0 0 0 0 transparent}}
 </style>
 </head>
 <body>
@@ -848,14 +856,18 @@ function showGallery(imgs){
 // ══ Navigation ══
 function go(p){ location.hash='#/'+p; }
 function parseHash(){ const h=(location.hash||'').replace(/^#\/?/,''); const [p,...rest]=h.split('/'); PG=p||'dash'; ARG=decodeURIComponent(rest.join('/')||''); }
-window.addEventListener('hashchange',()=>{ parseHash(); UI.delc=null; render(); scrollTo(0,0); });
+window.addEventListener('hashchange',()=>{ parseHash(); UI.delc=null; render(); scrollTo(0,0); jumpToBlock(); });
+function jumpToBlock(){ if(!(PG==='etab'||PG==='site')||!ARG) return; const el=document.getElementById('b-'+ARG); if(!el) return; el.scrollIntoView({block:'start',behavior:'smooth'}); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
 
-const NAV=[['dash','stats','Tableau de bord'],['resa','resa','Réservations'],['carte','edit','Ma carte'],['menus','spe','Mes menus'],['comm','mail','Communication'],['stats','vue','Statistiques du site']];
-const NAVS=[['etab','etab','Mon établissement'],['site','acc','Mon site'],['app','lune','Apparence'],['secu','sauv','Sécurité']];
+const NAV=[['dash','stats','Tableau de bord'],['resa','resa','Réservations'],['carte','edit','Ma carte'],['menus','spe','Mes menus'],['comm','mail','Communication'],['stats','vue','Statistiques']];
+const NAVS=[['app','lune','Apparence'],['secu','sauv','Sécurité']];
+// Sous-rubriques : chaque lien ouvre la page et descend jusqu'au bloc
+const NAV_ETAB=[['etab/compte','compte','Mon compte'],['etab/etab','etab','Informations'],['etab/hor','hor','Horaires'],['etab/res','res','Réseaux sociaux']];
+const NAV_SITE=[['site/acc','acc','Accueil'],['site/plats','plats','Menu'],['site/pres','pres','Présentation'],['site/coul','coul','Couleurs']];
 const PARENT={export:'carte',xprint:'carte',xgbiz:'carte',xinsta:'carte',xcol:'carte',mdj:'menus',formule:'menus',tuner:'menus'};
-const nv=([k,ic,l])=>`<a class="nv${(PG===k||PARENT[PG]===k)?' on':''}" href="#/${k}">${I(ic)}${l}</a>`;
+const nv=([k,ic,l])=>{ const [pg,sub]=k.split('/'); const on=sub?(PG===pg&&(ARG===sub||(!ARG&&(pg==='etab'?'compte':'acc')===sub))):(PG===k||PARENT[PG]===k); return `<a class="nv${on?' on':''}" href="#/${k}">${I(ic)}${l}</a>`; };
 const side=()=>`<nav class="side"><a class="who" href="#/dash" title="Tableau de bord">${logoBox()}<b>${esc(DATA.restaurantName||'Mon restaurant')}</b></a>
-  ${NAV.map(nv).join('')}<div class="gap"></div><div class="mini">Réglages</div>${NAVS.map(nv).join('')}
+  ${NAV.map(nv).join('')}<div class="gap"></div><div class="mini">Mon établissement</div>${NAV_ETAB.map(nv).join('')}<div class="gap"></div><div class="mini">Mon site</div>${NAV_SITE.map(nv).join('')}<div class="gap"></div><div class="mini">Réglages</div>${NAVS.map(nv).join('')}
   <div class="gap"></div><a class="nv" href="${SITE_URL}" target="_blank" rel="noopener">${I('share')}Voir le site ↗</a><a class="nv" href="#" data-act="logout">${I('out')}Se déconnecter</a></nav>`;
 const LOGO_SQ={};
 function logoLoaded(img){ const sq=Math.abs(img.naturalWidth-img.naturalHeight)<img.naturalWidth*.08; LOGO_SQ[img.getAttribute('src')]=sq; img.parentNode.classList.toggle('sq',sq); }
@@ -864,7 +876,7 @@ function initials(){ const n=(DATA&&DATA.restaurantName)||'B'; return n.split(/\
 
 // ══ Composants ══
 const ph=(t,sub,acts='')=>`<div class="ph"><div><h2>${t}</h2><p>${sub}</p></div><div class="ph-a">${acts}</div></div>`;
-const card=(t,ic,body,extra='')=>`<section class="list pc"><div class="bh"><span class="ico">${I(ic)}</span>${t}${extra?`<small>${extra}</small>`:''}</div><div class="pb">${body}</div></section>`;
+const card=(t,ic,body,extra='')=>`<section class="list pc" id="b-${ic}"><div class="bh"><span class="ico">${I(ic)}</span>${t}${extra?`<small>${extra}</small>`:''}</div><div class="pb">${body}</div></section>`;
 const row=(a,b,c='',d='')=>`<div class="rw"><div class="rw-a">${a}</div><div class="rw-b">${b}</div>${c?`<div class="rw-c">${c}</div>`:''}${d?`<div class="rw-d">${d}</div>`:''}</div>`;
 const pill=(t,c='')=>`<span class="pl ${c}">${t}</span>`;
 const tgl=(on,act,data='')=>`<button type="button" class="tg ${on?'on':''}" data-act="${act}" ${data}></button>`;
@@ -931,8 +943,8 @@ function dash(){
     <a class="li" href="#/comm/boost"><span class="dot">${I('boost')}</span><div><b>Table Boost <span class="pill ca">Remplir les tables · + de CA</span></b><small class="cm">Une table vide ? Deux clics, remplissez la salle.</small></div><span class="chev">›</span></a>
     <a class="li" href="#/comm/email"><span class="dot">${I('mail')}</span><div><b>Campagne email</b><small class="cm">Écrivez à vos clients pour les informer et les fidéliser.</small></div><span class="chev">›</span></a></div></section>`;
   const sets=`<section class="full a-sets"><div class="sec mobile-sec">Réglages</div><div class="sets">
-    ${setBlock('s-a','Mon établissement',[['compte','Mon compte','etab'],['etab','Informations','etab'],['hor','Horaires','etab'],['res','Réseaux sociaux','etab']])}
-    ${setBlock('s-b','Mon site',[['acc','Accueil','site'],['plats','Menu','carte'],['pres','Présentation','site'],['coul','Couleurs','site']])}
+    ${setBlock('s-a','Mon établissement',[['compte','Mon compte','etab/compte'],['etab','Informations','etab/etab'],['hor','Horaires','etab/hor'],['res','Réseaux sociaux','etab/res']])}
+    ${setBlock('s-b','Mon site',[['acc','Accueil','site/acc'],['plats','Menu','site/plats'],['pres','Présentation','site/pres'],['coul','Couleurs','site/coul']])}
     <div class="set s-d"><h4>Apparence</h4><div class="app-card">${appSeg()}</div></div>
     ${setBlock('s-c','Sécurité',[['sauv','Sauvegardes','secu'],['hist','Historique','secu']])}</div></section>`;
   return `${header()}<div class="L">${resa}${carte}${menus}${comm}${sets}${visitsCard()}</div>`;
@@ -954,7 +966,7 @@ function visitsCard(){
   const by={}; QR.filter(x=>Date.now()-new Date(x.at)<7*864e5).forEach(x=>{ by[x.code]=(by[x.code]||0)+1; });
   const top=Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,4);
   const dn=['dim','lun','mar','mer','jeu','ven','sam'];
-  return `<section class="full a-vis"><div class="c vis"><div class="bh"><span class="ico">${I('stats')}</span>Statistiques du site<small>7 derniers jours</small></div>
+  return `<section class="full a-vis"><div class="c vis"><div class="bh"><span class="ico">${I('stats')}</span>Statistiques<small>7 derniers jours</small></div>
     <div><h3 style="margin-bottom:12px"><span class="ico">${I('vue')}</span>Scans QR</h3><div class="k num">${tot7}</div><small>7 derniers jours · le compteur de visites du site arrive bientôt</small></div>
     <div><div class="spark">${days.map((x,i)=>`<i class="${i===6?'on':''}" style="height:${Math.max(6,Math.round(x.n/max*100))}%" title="${x.n}"></i>`).join('')}</div><div class="days">${days.map(x=>`<span>${dn[new Date(x.d+'T12:00').getDay()]}</span>`).join('')}</div></div>
     <div class="srcs">${top.length?top.map(([c,n])=>`<div><b class="num">${n}</b>${esc(c)}</div>`).join(''):'<div><b>—</b>Pas encore de scan</div>'}</div></div></section>`;
@@ -1153,7 +1165,7 @@ function pageComm(){
   if(ARG==='boost') return mtop('Communication','comm')+ph('Table Boost','Remplissez vos tables, boostez votre CA','')+subs+boost;
   return mtop('Tableau de bord','dash')+ph('Communication','Faites venir du monde quand vous en avez besoin','')+subs+`<div class="cgrid">${social}${email}</div>${boost}`;
 }
-function pageStats(){ return mtop('Tableau de bord','dash')+ph('Statistiques du site','Scans des QR codes (le compteur de visites du site arrive bientôt)','')+`<div class="L">${visitsCard()}</div>`; }
+function pageStats(){ return mtop('Tableau de bord','dash')+ph('Statistiques','Scans des QR codes (le compteur de visites du site arrive bientôt)','')+`<div class="L">${visitsCard()}</div>`; }
 
 // ── réglages ──
 const DAYS=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
