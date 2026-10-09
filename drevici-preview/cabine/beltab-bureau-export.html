@@ -351,7 +351,8 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
 .stage.p{flex-direction:column;align-items:center;min-height:0}.stage.p .doc{width:min(100%,520px);max-width:none}
 .stage.g,.stage.s,.stage.f{min-height:0}
 .stage.g .doc{max-width:330px}
-.stage.s{flex-wrap:wrap}.stage.s .doc{width:calc(50% - 12px);max-width:260px}
+.stage.s{flex-wrap:wrap}.stage.s .doc{width:calc(50% - 12px);max-width:260px}.stage.s.po .doc{max-width:300px}
+.seg.big{background:var(--card);flex:none}.seg.big button{padding:9px 18px;flex:none}
 .stage.c{display:grid;grid-template-columns:1fr 1fr;gap:28px 24px;align-items:end}
 .stage.c figure{margin:0}.stage.c figcaption{font-size:12px;font-weight:800;color:var(--mut);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}.stage.c .doc{width:100%;max-width:none}
 .stage.f{flex-direction:row;align-items:flex-start}.stage.f>.doc{width:58%;max-width:none}
@@ -398,6 +399,13 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
 .steps{display:flex;justify-content:space-between;font-size:11px;color:#9a9eaa;margin:6px 34px 0}.steps b{color:#fff}
 .tun .font{color:#fff}.tun .font .lk{color:var(--accent)}
 .cols{display:flex;gap:12px;padding:4px}.tun .swc{box-shadow:inset 0 0 0 1px rgba(255,255,255,.2),0 0 0 3px #23262d,0 0 0 4px rgba(255,255,255,.15)}.tun .swc.on{box-shadow:inset 0 0 0 1px rgba(255,255,255,.2),0 0 0 3px #23262d,0 0 0 5px #fff}
+.exb{background:var(--card);border-radius:var(--r);padding:20px 22px}
+.exb-t{font-family:var(--display);font-weight:var(--display-w);font-size:20px}
+.exb p{font-size:13.5px;color:var(--mut);line-height:1.5;margin:8px 0 12px}
+.exb-f{display:flex;gap:8px;margin-bottom:14px}.exb-f span{font-size:12px;font-weight:800;background:var(--brand-soft);color:var(--brand-text);border-radius:999px;padding:5px 11px}
+.exb .btn{width:100%}
+.delc{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;background:var(--alert-soft);color:var(--alert);border-radius:14px;padding:6px 6px 6px 14px}
+.btn.red{background:var(--alert);color:#fff}
 </style>
 </head>
 <body>
@@ -533,7 +541,7 @@ function applyTheme(){
   s.setProperty('--display',t0.font); s.setProperty('--display-w',t0.fw); T=t0;
 }
 // ── pages de détail (ordinateur) ──
-let PG='dash';
+let PG='dash', IGF='st', DELC=0;
 const NAV=[['dash','stats','Tableau de bord'],['resa','resa','Réservations'],['carte','edit','Ma carte'],['menus','spe','Mes menus'],['comm','mail','Communication'],['stats','vue','Statistiques du site']];
 const NAVS=[['etab','etab','Mon établissement'],['site','acc','Mon site'],['app','lune','Apparence'],['secu','sauv','Sécurité']];
 const nv=([k,ic,l])=>`<a class="nv${PG===k?' on':''}" href="#" data-pg="${k}">${I(ic)}${l}</a>`;
@@ -633,25 +641,26 @@ xgbiz:()=>crumb([['Ma carte','carte'],['Exporter','export'],['Google Business']]
  `<div class="xsplit"><div class="stage g">${docG(MENU.slice(0,2),'1/2')}${docG(MENU.slice(2),'2/2')}</div>
  <aside class="panel">${card('Répartition des pages','spe',MENU.map((c,i)=>`<div class="op"><div><b>${c[0]}</b></div><div class="seg sm"><button type="button" class="${i<2?'on':''}">Page 1</button><button type="button" class="${i>=2?'on':''}">Page 2</button><button type="button">Page 3</button></div></div>`).join('')+`<div class="tip ok sm">${I('vue')}<span>Tout rentre : 2 pages.</span></div>`)}
  ${card('Après génération','share',`<p class="lead">Les images s'affichent en grand avec un bouton « Télécharger » sous chacune. Sur ordinateur, un clic suffit.</p>`)}</aside></div>`,
-xinsta:()=>crumb([['Ma carte','carte'],['Exporter','export'],['Instagram']])+ph('Instagram','Une image par catégorie, en story ou en post',`${bigBtn('Télécharger pour Story','share','w')}${bigBtn('Télécharger pour Post','share')}`)+
- `<div class="xsplit"><div class="stage s">${MENU.map(docStory).join('')}</div>
- <aside class="panel">${card('Police','edit',`<div class="font">Aa <span>DM Serif Display</span><a class="lk">Voir et choisir →</a></div>`)}
- ${card('Tailles','pres',['Titre des catégories','Nom des plats','Description des plats'].map((l,i)=>`<div class="op"><b>${l}</b>${seg(['S','M','L','XL'],i===0?2:1)}</div>`).join(''))}
+xinsta:()=>crumb([['Ma carte','carte'],['Exporter','export'],['Instagram']])+ph('Instagram','Une image par catégorie · '+(IGF==='st'?'Story 9:16 (1080 × 1920)':'Post 3:4 (1080 × 1440)'),`<div class="seg big">${[['st','Story'],['po','Post']].map(([k,l])=>`<button type="button" data-igf="${k}" class="${IGF===k?'on':''}">${l}</button>`).join('')}</div>${bigBtn(IGF==='st'?'Télécharger les stories':'Télécharger les posts','share')}`)+
+ `<div class="xsplit"><div class="stage s ${IGF}">${MENU.map(IGF==='st'?docStory:docPost).join('')}</div>
+ <aside class="panel">${card('Police','edit',`<div class="font">Aa <span>DM Serif Display</span><a class="lk">Voir et choisir →</a></div><small class="muted2">La même pour la story et le post.</small>`)}
+ ${card('Tailles · '+(IGF==='st'?'Story':'Post'),'pres',['Titre des catégories','Nom des plats','Description des plats'].map((l,i)=>`<div class="op"><b>${l}</b>${seg(['S','M','L','XL'],IGF==='st'?(i===0?3:2):(i===0?2:1))}</div>`).join('')+`<small class="muted2">Réglées à part pour ${IGF==='st'?'la story (plus haute, plus de place)':'le post'}.</small>`)}
  ${card('Boissons','spe',opt('Inclure les boissons de « Vins »',0,'Exclues par défaut'))}</aside></div>`,
 xcol:()=>crumb([['Ma carte','carte'],['Exporter','export'],['Couleurs des menus']])+ph('Couleurs des menus','Vos essais s\'affichent tout de suite mais ne partent en ligne qu\'une fois validés.',`<a class="btn g" href="#">Réinitialiser</a>${bigBtn('Valider les couleurs','edit','ok')}`)+
  `<div class="xsplit l"><aside class="panel">${card('Texte','edit',[['Titre des catégories','var(--brand)'],['Nom des plats','#16181d'],['Description des plats','#6b7080'],['Arrière-plan','#fbfaf6']].map(([l,c])=>`<div class="op"><b>${l}</b>${sw(c)}</div>`).join(''))}
  ${card('Décoration','coul',[['Cadre et sous-catégories','var(--accent)',''],['Pointillés','#c9c4b8','Entre le nom du plat et son prix'],['Séparateur','#e3dccd','Trait entre les plats sur Instagram']].map(([l,c,h])=>`<div class="op"><div><b>${l}</b>${h?`<small>${h}</small>`:''}</div>${sw(c)}</div>`).join(''))}</aside>
  <div class="stage c">${[['Impression',docA4(MENU.slice(0,2))],['Google Business',docG(MENU.slice(0,2),'1/2')],['Instagram — Post',docPost(MENU[0])],['Instagram — Story',docStory(MENU[1])]].map(([l,d])=>`<figure><figcaption>${l}</figcaption>${d}</figure>`).join('')}</div></div>`,
-formule:()=>crumb([['Mes menus','menus'],['Menus spéciaux','menus'],['Formule étudiante']])+ph('Formule étudiante','Menu spécial · modifié aujourd\'hui',`<a class="btn g" href="#">Supprimer</a>${bigBtn('Exporter (A4, Post, Story)','share')}`)+
+formule:()=>crumb([['Mes menus','menus'],['Menus spéciaux','menus'],['Formule étudiante']])+ph('Formule étudiante','Menu spécial · modifié aujourd\'hui',delBtn())+
  `<div class="xsplit f"><div class="fcol">${card('Le menu','spe',`<div class="frm">${fld('Titre du menu','Formule étudiante','w')}${fld('Sous-titre (description)','Plat + boisson — 12 €, du lundi au vendredi midi','w')}</div>`)}
  ${card('Sections du menu','plats',[['Plat',[['Burger du Phare','12'],['Moules frites','12']]],['Boisson',[['Soda ou bière pression','—']]]].map(([s,ds])=>`<div class="fsec"><div class="fsh"><span class="hdl">⋮⋮</span><b>${s}</b><a class="lk">Renommer</a></div>${ds.map(([n,p])=>`<div class="fdi"><div class="in">${n}</div><div class="in pr">${p}</div><span class="trash">✕</span></div>`).join('')}<div class="fadd"><span class="in sel">Importer un plat existant…</span><a class="lk">＋ Ajouter un plat</a></div></div>`).join('')+`<a class="lk add">＋ Ajouter une section</a>`)}
  ${card('Majuscules et minuscules','edit',[['Nom des sections',0],['Nom des plats',0],['Description',1]].map(([l,i])=>`<div class="op"><b>${l}</b>${seg(['Majuscule','Minuscule'],i)}</div>`).join(''))}</div>
- <div class="stage f">${fdoc('a4')}<div class="fsm">${fdoc('po')}${fdoc('st')}</div></div></div>`,
-mdj:()=>crumb([['Mes menus','menus'],['Menu du jour']])+ph('Menu du jour','Vendredi 9 octobre · en ligne sur votre site',`${tg(1)}<span class="onl">En ligne</span>${bigBtn('Partager','share')}`)+
+ <div class="fcol"><div class="stage f">${fdoc('a4')}<div class="fsm">${fdoc('po')}${fdoc('st')}</div></div>${exBlock('Exporter','tuner')}</div></div>`,
+mdj:()=>crumb([['Mes menus','menus'],['Menu du jour']])+ph('Menu du jour','Vendredi 9 octobre · en ligne sur votre site',`${tg(1)}<span class="onl">En ligne</span>`)+
  `<div class="xsplit f"><div class="fcol">${card('Le menu du jour','jour',`<div class="frm">${fld('Date','Vendredi 9 octobre')}${fld('Service','Midi')}${fld('Prix','19 €')}${fld('Formule','Entrée + plat + dessert')}</div>`)}
  ${card('Composition','plats',[['Entrée','Velouté de potimarron','Crème de châtaigne'],['Plat','Risotto aux cèpes','Parmesan 24 mois'],['Dessert','Tiramisu maison','']].map(([s,n,d])=>`<div class="fsec"><div class="fsh"><b>${s}</b></div><div class="fdi"><div class="in">${n}</div></div><div class="fdi"><div class="in muted3">${d||'Description (optionnel)'}</div></div></div>`).join('')+`<div class="fadd"><span class="in sel">Importer un plat existant…</span><a class="lk">＋ Ajouter une ligne</a></div>`)}
- ${card('Sur le site','acc',opt('Afficher en grand sur l\'accueil')+opt('Afficher en premier dans la carte',0)+opt('Le reprendre demain',0,'Garder le même menu le jour suivant'))}</div>
- <div class="stage f">${mdoc('st')}<div class="fsm col">${mdoc('po')}${mdoc('a4')}</div></div></div>`,
+ ${card('Sur le site','acc',opt('Afficher en grand sur l\'accueil')+opt('Afficher en premier dans la carte',0)+opt('Le reprendre demain',0,'Garder le même menu le jour suivant'))}
+ ${card('Personnalisation','coul',opt('Afficher le logo',1,'Sur l\'A4 et la story'))}</div>
+ <div class="fcol"><div class="stage f">${mdoc('st')}<div class="fsm col">${mdoc('po')}${mdoc('a4')}</div></div>${exBlock('Partager','tuner')}</div></div>`,
 tuner:()=>`<div class="tun"><div class="tun-top"><a class="x" href="#" data-pg="formule">✕</a><b>Formule étudiante · export</b><div class="seg"><button type="button">A4</button><button type="button">Post</button><button type="button" class="on">Story</button></div><span class="sp"></span>${bigBtn('Télécharger A4','share','w')}${bigBtn('Télécharger Post','share','w')}${bigBtn('Télécharger Story','share')}</div>
  <div class="tun-body"><div class="tun-stage"><div class="side-prev">${fdoc('a4')}<small>A4</small></div><div class="main-prev">${fdoc('st')}<div class="zoom"><button type="button">−</button><span>100 %</span><button type="button">＋</button></div></div><div class="side-prev">${fdoc('po')}<small>Post</small></div></div>
  <aside class="tun-tools"><div class="tt-h">Je règle</div><div class="chips">${['Titre','Sous-titre','Sections','Plats','Description','Arrière-plan'].map((x,i)=>`<span class="${i===3?'on':''}">${x}</span>`).join('')}</div>
@@ -663,6 +672,8 @@ tuner:()=>`<div class="tun"><div class="tun-top"><a class="x" href="#" data-pg="
  <div class="tt-h">Logo <small>(A4 et Story)</small></div>${seg(['Aucun','Petit','Moyen','Grand'],2)}
  <div class="tt-h">Majuscules et minuscules</div>${seg(['Majuscule','Minuscule'],0)}</aside></div></div>`
 });
+const exBlock=(verb,pg)=>`<div class="exb"><div class="exb-t">${verb} en A4, Post ou Story</div><p>Ouvre l'éditeur : vous voyez les trois formats côte à côte, vous réglez police, tailles, couleurs et logo, puis vous téléchargez seulement ceux que vous voulez (A4 pour imprimer, Post et Story pour Instagram).</p><div class="exb-f">${['A4 · impression','Post · 3:4','Story · 9:16'].map(x=>`<span>${x}</span>`).join('')}</div><a class="btn" href="#" data-pg="${pg}">${I('edit')}Modifier et ${verb.toLowerCase()}</a></div>`;
+const delBtn=()=>DELC?`<span class="delc">Supprimer cette formule ?<a class="btn g" href="#" data-del="0">Annuler</a><a class="btn red" href="#" data-del="0">Oui, supprimer</a></span>`:`<a class="btn g" href="#" data-del="1">Supprimer</a>`;
 const FDATA=[['Plat',[['Burger du Phare','12'],['Moules frites','12']]],['Boisson',[['Soda ou bière pression','']]]];
 const fdoc=(k)=>`<div class="doc ${k}"><div class="fr"><div class="dlogo">${T.ini}</div><div class="dtit">Formule étudiante</div><div class="dsub">Plat + boisson — 12 €</div>${FDATA.map(([s,ds])=>`<div class="dc ctr"><div class="dct">${s}</div>${ds.map(([n])=>`<div class="dd"><div class="dn cen"><span>${n.toUpperCase()}</span></div></div>`).join('')}</div>`).join('')}<div class="dfoot">Du lundi au vendredi midi</div></div></div>`;
 const mdoc=(k)=>`<div class="doc ${k}"><div class="fr"><div class="dlogo">${T.ini}</div><div class="dtit">Menu du jour</div><div class="dsub">Vendredi 9 octobre · 19 €</div>${[['Entrée','Velouté de potimarron'],['Plat','Risotto aux cèpes'],['Dessert','Tiramisu maison']].map(([s,n])=>`<div class="dc ctr"><div class="dct">${s}</div><div class="dd"><div class="dn cen"><span>${n}</span></div></div></div>`).join('')}<div class="dfoot">Entrée + plat + dessert</div></div></div>`;
@@ -685,6 +696,8 @@ document.addEventListener('click',e=>{
   if(t){KEY=t.dataset.t;render();return;}
   if(o){if(o.dataset.o==='mdj')MDJ=!MDJ;else SVC=o.dataset.o.slice(4);render();return;}
   if(m){MDJ=!MDJ;render();return;}
+  const ig=e.target.closest('[data-igf]');if(ig){IGF=ig.dataset.igf;render();return;}
+  const dl=e.target.closest('[data-del]');if(dl){DELC=dl.dataset.del==='1'?1:0;render();return;}
   const pgl=e.target.closest('[data-pg]');if(pgl){e.preventDefault();PG=pgl.dataset.pg;render();scrollTo(0,0);return;}
   const ap=e.target.closest('[data-app]');if(ap){APP=ap.dataset.app;render();return;}
   const a=e.target.closest('a');if(a&&a.getAttribute('href')==='#')e.preventDefault();
