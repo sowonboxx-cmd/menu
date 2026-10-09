@@ -636,6 +636,17 @@ html[data-ico="blocs"] .set .tile .ico{background:var(--card)!important}
 @keyframes flash{0%,40%{box-shadow:0 0 0 3px var(--brand-soft),0 0 0 5px color-mix(in srgb,var(--brand) 35%,transparent)}100%{box-shadow:0 0 0 0 transparent}}
 
 .a-resa .nx.demo{opacity:.55}.a-resa{cursor:pointer}.a-resa .nxd{display:block;font-size:10.5px;font-weight:700;opacity:.7;text-transform:capitalize;line-height:1}
+
+/* Prix en chiffres + euro, double offre, infos alimentaires */
+.dish-ed .eur{position:relative;flex:0 0 130px;display:block}.dish-ed .eur input.in{width:100%;padding-right:30px;text-align:right}
+.dish-ed .eur span{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--mut);font-weight:700;pointer-events:none}
+.dual{margin-top:10px}.dual-t{font-size:12px;font-weight:800;color:var(--mut);margin:0 0 6px 2px}
+.dual-g{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.dual-g label span{display:block;font-size:11.5px;color:var(--mut);margin:0 0 4px 2px}.dual-g input.in{width:100%}
+.bdg{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.bdg button{border:0;background:var(--soft);color:var(--mut);border-radius:999px;padding:5px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;filter:grayscale(1);opacity:.75}
+.bdg button.on{background:var(--brand-soft);color:var(--brand-text);filter:none;opacity:1}
+input[type=number].in::-webkit-inner-spin-button,input[type=number].in::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}input[type=number].in{-moz-appearance:textfield;appearance:textfield}
+@media(max-width:899px){.dish-ed .eur{flex:1 1 100%}.dual-g{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -1114,7 +1125,7 @@ function pageCarte(){
      (tb.cards||[]).map((c,ci)=>{
        if(c.type==='bevs'||c.items) return `<div class="fsec"><div class="fsh"><b>${esc(tr(c.label))||'Boissons'}</b></div>${(c.items||[]).map(it=>row(esc(tr(it.name)),`<small>${esc((it.formats||it.prices||[]).map?(it.formats||[]).map(f=>[f.label,f.size,f.price].filter(Boolean).join(' ')).join(' · '):'')}</small>`)).join('')||'<div class="empty">Aucune boisson.</div>'}<p class="note">Les boissons (formats, contenances) se modifient pour l'instant depuis l'admin du site.</p></div>`;
        return `<div class="fsec">${(tb.cards.length>1||tr(c.label))?`<div class="fsh"><input class="in" style="font-weight:800" value="${esc(tr(c.label))}" data-bind="tab.${ti}.cards.${ci}.label" placeholder="Sous-catégorie (optionnel)"></div>`:''}
-       ${(c.dishes||[]).map((d,di)=>`<div class="dish-ed"><div class="top"><input class="in" value="${esc(tr(d.name))}" data-bind="tab.${ti}.cards.${ci}.d.${di}.name" placeholder="Nom du plat"><input class="in pr" value="${esc(d.price||'')}" data-bind="tab.${ti}.cards.${ci}.d.${di}.price" placeholder="Prix"></div><textarea class="in" data-bind="tab.${ti}.cards.${ci}.d.${di}.desc" placeholder="Description">${esc(tr(d.desc))}</textarea><div class="ops"><span style="display:flex;align-items:center;gap:8px">${tgl(!d.hidden,'dishVis',`data-ti="${ti}" data-ci="${ci}" data-di="${di}"`)}${d.hidden?'Masqué sur le site':'Visible'}</span><button class="mv" data-act="dishMove" data-ti="${ti}" data-ci="${ci}" data-di="${di}" data-d="-1">↑</button><button class="mv" data-act="dishMove" data-ti="${ti}" data-ci="${ci}" data-di="${di}" data-d="1">↓</button><span style="flex:1"></span>${UI.delc===`d${ti}.${ci}.${di}`?`<span class="delc">Supprimer ?<button class="btn g" data-act="delNo">Non</button><button class="btn red" data-act="dishDel" data-ti="${ti}" data-ci="${ci}" data-di="${di}">Oui</button></span>`:`<button class="lk red" data-act="delAsk" data-k="d${ti}.${ci}.${di}">Supprimer</button>`}</div></div>`).join('')}
+       ${(c.dishes||[]).map((d,di)=>`<div class="dish-ed"><div class="top"><input class="in" value="${esc(tr(d.name))}" data-bind="tab.${ti}.cards.${ci}.d.${di}.name" placeholder="Nom du plat">${d.priceType==='dual'?'':`<label class="eur"><input class="in" type="number" min="0" step="0.1" inputmode="decimal" value="${esc(priceNum(d.price))}" data-bind="tab.${ti}.cards.${ci}.d.${di}.priceNum" placeholder="Prix"><span>€</span></label>`}</div>${d.priceType==='dual'?dualPrice(d,`tab.${ti}.cards.${ci}.d.${di}`):''}<textarea class="in" data-bind="tab.${ti}.cards.${ci}.d.${di}.desc" placeholder="Description">${esc(tr(d.desc))}</textarea>${badgeRow(d,ti,ci,di)}<div class="ops"><span style="display:flex;align-items:center;gap:8px">${tgl(!d.hidden,'dishVis',`data-ti="${ti}" data-ci="${ci}" data-di="${di}"`)}${d.hidden?'Masqué sur le site':'Visible'}</span><button class="mv" data-act="dishMove" data-ti="${ti}" data-ci="${ci}" data-di="${di}" data-d="-1">↑</button><button class="mv" data-act="dishMove" data-ti="${ti}" data-ci="${ci}" data-di="${di}" data-d="1">↓</button><button class="lk" data-act="dishDual" data-ti="${ti}" data-ci="${ci}" data-di="${di}">${d.priceType==='dual'?'Prix unique':'＋ Double offre'}</button><span style="flex:1"></span>${UI.delc===`d${ti}.${ci}.${di}`?`<span class="delc">Supprimer ?<button class="btn g" data-act="delNo">Non</button><button class="btn red" data-act="dishDel" data-ti="${ti}" data-ci="${ci}" data-di="${di}">Oui</button></span>`:`<button class="lk red" data-act="delAsk" data-k="d${ti}.${ci}.${di}">Supprimer</button>`}</div></div>`).join('')}
        <button class="lk add" data-act="dishAdd" data-ti="${ti}" data-ci="${ci}">＋ Ajouter un plat</button></div>`;
      }).join(''));
   }
@@ -1234,12 +1245,23 @@ function loginView(){ return `<div class="login"><div class="c"><h1>Beltab</h1><
 function missingView(){ return `<div class="login"><div class="c"><h1>Copie de test absente</h1><p>La copie « ${esc(SLUG)} » de la carte n'existe pas encore. Collez le fichier <b>sql/gestion-test.sql</b> dans Supabase (SQL Editor → Run), puis rechargez cette page.</p><button class="btn" onclick="location.reload()">Recharger</button><p style="margin-top:14px"><button class="lk" data-act="logout">Se déconnecter</button></p></div></div>`; }
 
 // ══ Saisie : data-bind ══
+// ── Prix : uniquement des nombres, en euros ──
+const fmtEur=v=>{ const n=parseFloat(String(v).replace(',','.')); return isNaN(n)?'':String(Math.round(n*100)/100); }; // même format que l'admin du site : 20.5€
+const priceNum=p=>{ const m=String(p||'').replace(/\s/g,'').match(/^(\d+(?:[.,]\d+)?)€?$/); return m?m[1].replace(',','.'):''; };
+function dualSync(d){ d.price=`Les ${d.qty1||'?'} — ${d.p1||'?'}€ · Les ${d.qty2||'?'} — ${d.p2||'?'}€`; }
+const dualPrice=(d,b)=>`<div class="dual"><div class="dual-t">Prix (double offre)</div><div class="dual-g">${[['qty1','Qté 1','6'],['p1','Prix 1 (€)','12'],['qty2','Qté 2','12'],['p2','Prix 2 (€)','22']].map(([k,l,ph])=>`<label><span>${l}</span><input class="in" type="number" min="0" step="${k[0]==='q'?1:0.1}" inputmode="decimal" value="${esc(d[k]||'')}" data-bind="${b}.${k}" placeholder="${ph}"></label>`).join('')}</div></div>`;
+// ── Informations alimentaires (mêmes clés que le site) ──
+const BADGES=[['vegetarian','Végétarien','🌿'],['vegan','Vegan','🌱'],['glutenfree','Sans gluten','🌾'],['lactosefree','Sans lactose','🥛'],['spicy','Piquant','🌶️']];
+const badgeRow=(d,ti,ci,di)=>`<div class="bdg">${BADGES.map(([k,l,e])=>`<button type="button" class="${d[k]?'on':''}" data-act="dishBadge" data-k="${k}" data-ti="${ti}" data-ci="${ci}" data-di="${di}">${e} ${l}</button>`).join('')}</div>`;
 function setByBind(path,val){
   const p=path.split('.');
   if(p[0]==='jour'){ const sp=jour(); if(p[1]==='items'){ sp.items[+p[2]][p[3]]=val; jourSync(sp); } else if(p[1]==='title'){ sp.title=setTr(sp.title,val); } else sp[p[1]]=val; return; }
   if(p[0]==='f'){ const f=DATA.formules[+p[1]]; if(p[2]==='title'){ f.title=val; f.name=val; return; } if(p[2]==='freeText'){ f.freeText=val; return; }
     if(p[2]==='tabs'){ const s=f.tabs[+p[3]]; if(p[4]==='label'){ s.label=setTr(s.label,val); return; } if(p[4]==='d'){ const d=s.cards[0].dishes[+p[5]]; if(p[6]==='price') d.price=val; else d[p[6]]=setTr(d[p[6]],val); } } return; }
-  if(p[0]==='tab'){ const t=DATA.tabs[+p[1]]; if(p[2]==='label'){ t.label=setTr(t.label,val); return; } const c=t.cards[+p[3]]; if(p[4]==='label'){ c.label=setTr(c.label,val); return; } const d=c.dishes[+p[5]]; if(p[6]==='price') d.price=val; else d[p[6]]=setTr(d[p[6]],val); return; }
+  if(p[0]==='tab'){ const t=DATA.tabs[+p[1]]; if(p[2]==='label'){ t.label=setTr(t.label,val); return; } const c=t.cards[+p[3]]; if(p[4]==='label'){ c.label=setTr(c.label,val); return; } const d=c.dishes[+p[5]]; if(p[6]==='price') d.price=val;
+    else if(p[6]==='priceNum') d.price=val===''?'':fmtEur(val)+'€';
+    else if(['qty1','p1','qty2','p2'].includes(p[6])){ d[p[6]]=val; dualSync(d); }
+    else d[p[6]]=setTr(d[p[6]],val); return; }
   if(p[0]==='pdf'){ pS()[p[1]]=val; return; }
   if(p[0]==='root'){ DATA[p[1]]=val; return; }
   if(p[0]==='addr'){ if(!DATA.address) DATA.address={}; DATA.address[p[1]]=val; return; }
@@ -1298,6 +1320,11 @@ document.addEventListener('click',async e=>{
     case 'logout': await sb.auth.signOut(); SESSION=null; DATA=null; render(); break;
     case 'appearance': setAppearance(d.v); break;
     case 'goResa': go('resa'); break;
+    case 'dishDual': { const d=DATA.tabs[+el.dataset.ti].cards[+el.dataset.ci].dishes[+el.dataset.di];
+      if(d.priceType==='dual'){ d.priceType=''; d.price=d.p1?fmtEur(d.p1)+'€':''; }
+      else { const n=priceNum(d.price); d.priceType='dual'; if(!d.p1&&n) d.p1=n; dualSync(d); }
+      touch(true); break; }
+    case 'dishBadge': { const d=DATA.tabs[+el.dataset.ti].cards[+el.dataset.ci].dishes[+el.dataset.di]; const k=el.dataset.k; if(d[k]) delete d[k]; else d[k]=true; touch(true); break; }
     case 'mdjToggle': sp.active=!sp.active; touch(true); break;
     case 'catGo': UI.catOpen=el.dataset.id; go('carte'); break;
     case 'copySite': try{ navigator.clipboard.writeText(SITE_URL); toast('Lien copié'); }catch(e){ toast(SITE_URL); } break;
