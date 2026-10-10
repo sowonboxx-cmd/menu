@@ -847,6 +847,7 @@ input[type=number].in{font-size:17px;font-weight:600}
   .chev{display:none!important}
   .sc .it{margin:0 -6px;padding:10px 6px}.sc .it+.it:before{left:6px;right:6px}
 }
+input.in.hr{width:76px;text-align:center;padding:8px 10px;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
@@ -1187,6 +1188,9 @@ function openLine(){
   const s=d.services.filter(x=>x.open!=null).map(x=>`${hh(x.open)}–${hh(x.close)}`).join(' · ');
   return `<span class="live">Ouvert aujourd'hui</span> · ${s}`;
 }
+// Heures stockées en nombre (17.5 = 17 h 30, 26 = 2 h du matin) ; saisies et affichées en 24 h (17:30, 02:00)
+const toHM=v=>{ if(v==null||v==='') return ''; const n=+v; let h=Math.floor(n)%24, m=Math.round((n-Math.floor(n))*60); if(m===60){h=(h+1)%24;m=0;} return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); };
+const fromHM=v=>{ const t=String(v||'').trim().toLowerCase().replace(/\s/g,''); if(!t) return null; let m=t.match(/^(\d{1,2})(?:[:h.](\d{0,2}))?$/)||t.match(/^(\d{2})(\d{2})$/); if(!m) return null; const h=+m[1], mi=+(m[2]||0); if(h>24||mi>59) return null; return h+mi/60; };
 const hh=v=>{ if(v==null||v==='') return '?'; const n=+v; const h=Math.floor(n)%24, m=Math.round((n-Math.floor(n))*60); return h+'h'+(m?String(m).padStart(2,'0'):''); };
 function qrByDay(){ const days=[]; for(let i=6;i>=0;i--){ const d=iso(Date.now()-i*864e5); days.push({d,n:QR.filter(x=>iso(x.at)===d).length}); } return days; }
 function visitsCard(){
@@ -1513,12 +1517,12 @@ function pageEtab(){
   const a=DATA.address||{}, s=DATA.social||{};
   const sched=DAYS.map(day=>{ let d=(DATA.schedule||[]).find(x=>x.day===day); const di=(DATA.schedule||[]).indexOf(d); if(!d) return row(`<b>${day}</b>`,'—');
     const on=d.active!==false&&(d.services||[]).some(x=>x.open!=null);
-    return `<div class="rw"><div class="rw-a"><b>${day}</b></div><div class="rw-b">${on?(d.services||[]).map((sv,si)=>`<span style="display:inline-flex;gap:4px;align-items:center;margin-right:10px"><input class="in" style="width:62px;padding:7px 8px" value="${sv.open??''}" data-bind="sched.${di}.${si}.open" inputmode="decimal">–<input class="in" style="width:62px;padding:7px 8px" value="${sv.close??''}" data-bind="sched.${di}.${si}.close" inputmode="decimal"></span>`).join(''):'<span style="color:var(--mut)">Fermé</span>'}</div><div class="rw-d">${tgl(on,'dayToggle',`data-i="${di}"`)}</div></div>`; }).join('');
-  return mtop('Tableau de bord','dash')+ph('Mon établissement','Les informations de votre restaurant · enregistrement automatique','')+
+    return `<div class="rw"><div class="rw-a"><b>${day}</b></div><div class="rw-b">${on?(d.services||[]).map((sv,si)=>`<span style="display:inline-flex;gap:4px;align-items:center;margin-right:10px"><input class="in hr" type="text" inputmode="numeric" maxlength="5" placeholder="17:30" value="${toHM(sv.open)}" data-bind="sched.${di}.${si}.open" data-hm="1">–<input class="in hr" type="text" inputmode="numeric" maxlength="5" placeholder="02:00" value="${toHM(sv.close)}" data-bind="sched.${di}.${si}.close" data-hm="1"></span>`).join(''):'<span style="color:var(--mut)">Fermé</span>'}</div><div class="rw-d">${tgl(on,'dayToggle',`data-i="${di}"`)}</div></div>`; }).join('');
+  return mtop('Tableau de bord','dash')+ph('Mon établissement','','')+
   `<div class="pgrid g-1-1"><div>${card('Mon compte','compte',row('Connecté',esc((SESSION&&SESSION.user&&SESSION.user.email)||'—'))+`<div class="acts2" style="justify-content:flex-start"><button class="btn g" data-act="logout">${I('out')}Se déconnecter</button></div>`)}
    ${card('Informations','etab',`<div class="frm">${fin('Nom',DATA.restaurantName||'','root.restaurantName','w')}${fin('Rue',a.street||'','addr.street','w')}${fin('Code postal',a.zip||'','addr.zip')}${fin('Ville',a.city||'','addr.city')}${fin('Téléphone',a.phone||'','addr.phone')}${fin('Lien Google Maps',a.mapsUrl||'','addr.mapsUrl')}${logoField()}</div>`)}
    ${card('Réseaux sociaux','res',`<div class="frm">${fin('Instagram',s.instagram||'','soc.instagram')}${fin('TikTok',s.tiktok||'','soc.tiktok')}${fin('Facebook',s.facebook||'','soc.facebook')}${fin('Site internet',s.website||'','soc.website')}</div>`)}</div>
-   <div>${card('Horaires','hor',sched+'<p class="note">Heures en chiffres : 17 = 17 h, 17.5 = 17 h 30, 2 ou 26 = 2 h du matin.</p>')}
+   <div>${card('Horaires','hor',sched+'')}
    ${card('Salle et services','resa',row('Espaces',esc(SPACES.map(x=>x.name).join(' · ')||'—'))+row('Tables',`${TABLES.length} tables · ${capacity()} places`)+row('Services',esc(SERVICES.map(x=>x.name).join(' · ')||'—'))+`<p class="note">Pour les réservations · se gèrent dans l'admin des réservations.</p>`,'','Réservations')}</div></div>`;
 }
 function logoField(){ const u=DATA.restaurantLogo||''; return `<div class="fd w"><span>Logo</span><div class="upl"><div class="upl-th">${u?`<img src="${esc(u)}" alt="">`:`<span>${esc(initials())}</span>`}</div><div class="upl-a"><label class="btn w upl-btn">${I('share')}${u?'Changer le logo':'Envoyer le logo'}<input type="file" accept="image/*" data-act="logoUp" hidden></label>${u?'<button class="lk red" data-act="logoDel">Retirer</button>':''}<small class="muted2">PNG, JPG, WebP ou SVG. Il apparaît sur le site, les exports et ce panneau.</small></div></div></div>`; }
@@ -1637,7 +1641,10 @@ function setByBind(path,val){
   if(p[0]==='root'){ DATA[p[1]]=val; if(p[1]==='restoFont') UI.needRender=true; return; }
   if(p[0]==='addr'){ if(!DATA.address) DATA.address={}; DATA.address[p[1]]=val; return; }
   if(p[0]==='soc'){ if(!DATA.social) DATA.social={}; DATA.social[p[1]]=val; return; }
-  if(p[0]==='sched'){ const d=DATA.schedule[+p[1]]; const sv=d.services[+p[2]]; const n=val===''?null:parseFloat(String(val).replace(',','.')); sv[p[3]]=isNaN(n)?null:n; if(+p[2]===0) d[p[3]]=sv[p[3]]; return; }
+  if(p[0]==='sched'){ const d=DATA.schedule[+p[1]]; const sv=d.services[+p[2]]; let n=fromHM(val);
+    if(n!=null&&p[3]==='close'&&sv.open!=null&&n<=sv.open) n+=24; // fermeture après minuit (2h → 26)
+    if(n!=null&&p[3]==='open'&&sv.close!=null){ const c=sv.close%24; sv.close=c<=n?c+24:c; }
+    sv[p[3]]=n; if(+p[2]===0) d[p[3]]=sv[p[3]]; return; }
 }
 document.addEventListener('input',e=>{
   const el=e.target; if(!el.dataset) return;
@@ -1651,6 +1658,7 @@ function refreshPreviewsTuner(){ // l'objet formule utilisé par les aperçus es
   clearTimeout(prevT); prevT=setTimeout(()=>render(),250);
 }
 document.addEventListener('change',async e=>{
+  if(e.target.dataset&&e.target.dataset.hm){ e.target.value=toHM(fromHM(e.target.value)); render(); }
   const el=e.target, a=el.dataset&&el.dataset.act; if(!a) return;
   if(a==='jourImport'&&el.value){ const [n,d]=el.value.split('|'); jour().items.push({s:'',n,d}); jourSync(jour()); touch(true); }
   if(a==='dImport'&&el.value){ const f=findF(ARG); const [n,d,p]=el.value.split('|'); const s=f.tabs[+el.dataset.si]; s.cards[0].dishes.push({name:{fr:n},desc:{fr:d},price:p}); touch(true); }
