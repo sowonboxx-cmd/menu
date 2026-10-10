@@ -824,6 +824,14 @@ input[type=number].in{font-size:17px;font-weight:600}
   .mng-row .mchip{flex:1;display:flex;align-items:center;gap:8px;background:var(--soft);border-radius:14px;padding:0 12px 0 14px;height:52px;font-size:15px;font-weight:600}.mng-row .mchip span{flex:1}.mng-row .tg{margin:0}
   .mng-del2{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;height:52px;border:0;border-radius:14px;background:#fdecea;color:#d93025;font:inherit;font-size:15px;font-weight:700;cursor:pointer}.mng-del2 svg{width:19px;height:19px}
 }
+
+.pshort,.mob-i{display:none}
+@media(max-width:899px){
+  .pfull,.desk-i{display:none}.pshort,.mob-i{display:inline}
+  .carte-g.nosel>div:nth-child(2){display:none}
+  .carte-g.sel>div:first-child{display:none}
+  .carte-g.nosel .cats .cat.on{background:none;color:var(--ink)}.carte-g.nosel .cats .cat.on .cat-n b{color:var(--ink)}
+}
 </style>
 </head>
 <body>
@@ -1348,7 +1356,7 @@ function pageCarte(){
     const head=titled?`<div class="sc-h${c.hidden?' off':''}"><input class="in" value="${esc(trL(c.label))}" data-bind="cardL.${ti}.${ci}" placeholder="${esc(phL(c.label,'Nom de la sous-catégorie'))}">
       <div class="sgrp"><button type="button" class="sg-mv" data-act="cardMove" data-ti="${ti}" data-ci="${ci}" data-d="-1" title="Monter">${I('aup')}</button><button type="button" class="sg-mv" data-act="cardMove" data-ti="${ti}" data-ci="${ci}" data-d="1" title="Descendre">${I('adown')}</button><button type="button" data-act="cardVis" data-ti="${ti}" data-ci="${ci}" title="${c.hidden?'Afficher':'Masquer'}">${I(c.hidden?'eyeoff':'eye')}</button><button type="button" class="r" data-act="delAsk" data-k="c${ti}.${ci}" title="Supprimer">${I('trash')}</button></div></div>
       ${UI.delc===`c${ti}.${ci}`?`<div class="mdel" style="display:flex;margin:0 0 6px"><span>Supprimer « ${esc(tr(c.label))||'cette sous-catégorie'} » et ${its.length} élément${its.length>1?'s':''} ?</span><button class="btn g" data-act="cardDel" data-ti="${ti}" data-ci="${ci}">Oui</button><button class="btn red" data-act="delNo">Non</button></div>`:''}`:'';
-    const rows=its.map((it,ix)=>`<a class="it${it.hidden?' off':''}" href="#/carte/${ti}/${ci}/${ix}">${thumb(it.img)}<span class="it-n"><b>${esc(tr(it.name))||'(sans nom)'}${pinOn(it)?' <i class="star" title="Favori">★</i>':''}</b></span><span class="it-p num">${esc(priceLabel(it))}</span>${it.hidden?pill('Masqué'):''}<span class="mvs sgrp sm"><button type="button" data-act="itemMove" data-ti="${ti}" data-ci="${ci}" data-ix="${ix}" data-d="-1" title="Monter">${I('aup')}</button><button type="button" data-act="itemMove" data-ti="${ti}" data-ci="${ci}" data-ix="${ix}" data-d="1" title="Descendre">${I('adown')}</button></span><span class="chev">›</span></a>`).join('');
+    const rows=its.map((it,ix)=>`<a class="it${it.hidden?' off':''}" href="#/carte/${ti}/${ci}/${ix}">${thumb(it.img)}<span class="it-n"><b>${esc(tr(it.name))||'(sans nom)'}${pinOn(it)?' <i class="star" title="Favori">★</i>':''}</b></span><span class="it-p num">${it.priceType==='dual'?`<span class="pfull">${esc(priceLabel(it))}</span><span class="pshort">${esc((it.qty1||'?')+' · '+(it.p1||'?')+' €')}</span>`:esc(priceLabel(it))}</span>${it.hidden?pill('Masqué'):''}<span class="mvs sgrp sm"><button type="button" data-act="itemMove" data-ti="${ti}" data-ci="${ci}" data-ix="${ix}" data-d="-1" title="Monter">${I('aup')}</button><button type="button" data-act="itemMove" data-ti="${ti}" data-ci="${ci}" data-ix="${ix}" data-d="1" title="Descendre">${I('adown')}</button></span><span class="chev">›</span></a>`).join('');
     return `<div class="sc">${head}${rows||`<div class="empty">${bev?'Aucune boisson.':'Aucun plat.'}</div>`}<button type="button" class="lk add" data-act="itemAdd" data-ti="${ti}" data-ci="${ci}">＋ ${bev?'Ajouter une boisson':'Ajouter un plat'}</button></div>`;
   }).join('');
   const isBevTab=(tb.cards||[]).length&&(tb.cards||[]).every(isBevCard);
@@ -1356,8 +1364,9 @@ function pageCarte(){
     fIn('Nom de la catégorie',trL(tb.label),`tabL.${ti}`,phL(tb.label,'Ex : Entrées'),'w')+
     `<div class="mng-row"><div class="mchip"><span>Masquée</span>${tgl(tb.visible===false,'tabVis',`data-ti="${ti}"`)}</div><button type="button" class="mng-del2" data-act="delAsk" data-k="t${ti}">${I('trash')}Supprimer</button></div>`+
     (UI.delc===`t${ti}`?`<div class="mdel" style="display:flex;margin-top:10px"><span>Supprimer « ${esc(tr(tb.label))} » et tout son contenu ?</span><button class="btn g" data-act="tabDel" data-ti="${ti}">Oui</button><button class="btn red" data-act="delNo">Non</button></div>`:'')+`</div></section>`;
-  return mtop('Tableau de bord','dash')+ph('Ma carte',`${DATA.tabs.length} catégories · enregistrement automatique sur la copie de test`,linkBtn('Exporter ma carte','share','#/export'))+
-  `<div class="pgrid carte-g"><div>${card('Catégories','spe',`<div class="cats">${cats}</div><button class="lk add" data-act="catAdd">＋ Ajouter une catégorie</button>`)}</div>
+  const hasArg=(ARG||'')!=='';
+  return (hasArg?mtop('Ma carte','carte'):mtop('Tableau de bord','dash'))+(hasArg?`<div class="mob">${crumb([['Ma carte','carte'],[esc(tr(tb.label))||'Catégorie']])}</div>`:'')+ph(hasArg?`<span class="desk-i">Ma carte</span><span class="mob-i">${esc(tr(tb.label))}</span>`:'Ma carte',`${DATA.tabs.length} catégories · enregistrement automatique sur la copie de test`,linkBtn('Exporter ma carte','share','#/export'))+
+  `<div class="pgrid carte-g ${hasArg?'sel':'nosel'}"><div>${card('Catégories','spe',`<div class="cats">${cats}</div><button class="lk add" data-act="catAdd">＋ Ajouter une catégorie</button>`)}</div>
   <div>${card(esc(tr(tb.label))||'Catégorie','plats',secs+`<div class="sc-add"><button type="button" class="lk add" data-act="cardAdd" data-ti="${ti}" data-bev="${isBevTab?1:''}">＋ Ajouter une sous-catégorie</button></div>`)}${manage}</div></div>`;
 }
 
