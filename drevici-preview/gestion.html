@@ -803,6 +803,10 @@ input[type=number].in{font-size:17px;font-weight:600}
 }
 .mchip .star{color:#E3A22B;font-style:normal}
 .mdiet-h small{flex:none!important;max-width:none!important}
+
+.mng .bh .mng-a{margin-left:auto;display:flex;align-items:center;gap:10px}.mng .bh .mng-a small{font-size:13.5px;font-weight:600;color:var(--mut);margin:0}
+.mng .bh .tg{margin:0}.mng-del{width:34px;height:34px;border-radius:10px;border:0;background:var(--card);color:#d93025;display:grid;place-items:center;cursor:pointer}.mng-del svg{width:18px;height:18px}
+.mdel{align-items:center;gap:8px;background:var(--soft);border-radius:14px;padding:10px 12px;font-size:14px;font-weight:600}.mdel span{flex:1}
 </style>
 </head>
 <body>
@@ -1331,11 +1335,9 @@ function pageCarte(){
     return `<div class="sc">${head}${rows||`<div class="empty">${bev?'Aucune boisson.':'Aucun plat.'}</div>`}<button type="button" class="lk add" data-act="itemAdd" data-ti="${ti}" data-ci="${ci}">＋ ${bev?'Ajouter une boisson':'Ajouter un plat'}</button></div>`;
   }).join('');
   const isBevTab=(tb.cards||[]).length&&(tb.cards||[]).every(isBevCard);
-  const manage=card('Gestion de la catégorie','etab',
+  const manage=`<section class="list pc mng"><div class="bh"><span class="ico">${I('etab')}</span>Gestion de la catégorie<span class="mng-a"><small>Masquée</small>${tgl(tb.visible===false,'tabVis',`data-ti="${ti}"`)}<button type="button" class="mng-del" data-act="delAsk" data-k="t${ti}" title="Supprimer la catégorie" aria-label="Supprimer la catégorie">${I('trash')}</button></span></div><div class="pb">`+
     fIn('Nom de la catégorie',trL(tb.label),`tabL.${ti}`,phL(tb.label,'Ex : Entrées'),'w')+
-    row('<b>Masquer la catégorie</b>',tb.visible===false?'Masquée sur le site':'Visible sur le site','',tgl(tb.visible===false,'tabVis',`data-ti="${ti}"`))+
-    row('<b>Favoris</b>',`${pinCount(tb.id)} / ${PIN_MAX} · en tête de la catégorie, dans le bandeau « Incontournables » du site`)+
-    `<div class="acts2" style="justify-content:flex-start">${UI.delc===`t${ti}`?`<span class="delc">Supprimer « ${esc(tr(tb.label))} » et tout son contenu ?<button class="btn g" data-act="delNo">Non</button><button class="btn red" data-act="tabDel" data-ti="${ti}">Oui</button></span>`:`<button class="lk red" data-act="delAsk" data-k="t${ti}">Supprimer la catégorie</button>`}</div>`);
+    (UI.delc===`t${ti}`?`<div class="mdel" style="display:flex;margin-top:10px"><span>Supprimer « ${esc(tr(tb.label))} » et tout son contenu ?</span><button class="btn g" data-act="delNo">Non</button><button class="btn red" data-act="tabDel" data-ti="${ti}">Oui</button></div>`:'')+`</div></section>`;
   return mtop('Tableau de bord','dash')+ph('Ma carte',`${DATA.tabs.length} catégories · enregistrement automatique sur la copie de test`,linkBtn('Exporter ma carte','share','#/export'))+
   `<div class="pgrid carte-g"><div>${card('Catégories','spe',`<div class="cats">${cats}</div><button class="lk add" data-act="catAdd">＋ Ajouter une catégorie</button>`)}</div>
   <div>${card(esc(tr(tb.label))||'Catégorie','plats',secs+`<div class="sc-add"><button type="button" class="lk add" data-act="cardAdd" data-ti="${ti}" data-bev="${isBevTab?1:''}">＋ Ajouter une sous-catégorie</button></div>`)}${manage}</div></div>`;
