@@ -832,6 +832,21 @@ input[type=number].in{font-size:17px;font-weight:600}
   .carte-g.sel>div:first-child{display:none}
   .carte-g.nosel .cats .cat.on{background:none;color:var(--ink)}.carte-g.nosel .cats .cat.on .cat-n b{color:var(--ink)}
 }
+
+/* Catégories : survol bleu pleine largeur, collé au titre */
+.cats{margin-top:-6px}.cats .cat:first-child{padding-top:18px}
+.cats .cat:hover{background:var(--brand-soft);color:var(--brand-text)}.cats .cat:hover .cat-n b{color:var(--brand-text)}
+.cats .cat:hover+.cat,.cats .cat.on+.cat{border-top-color:transparent}
+.pc.pick .pb{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:46px 20px}.pc.pick svg{width:30px;height:30px;color:var(--mut);margin-bottom:4px}.pc.pick b{font-size:16px}.pc.pick small{color:var(--mut);font-size:13.5px;font-weight:500}
+/* Plats : survol très doux, arrondi, sans trait autour */
+.sc .it{border-top:0!important;border-radius:14px;margin:0 -10px;padding:11px 10px;position:relative}
+.sc .it+.it:before{content:"";position:absolute;left:10px;right:10px;top:0;height:1px;background:var(--line)}
+.sc .it:hover{background:#f6f4ef}.sc .it:hover:before,.sc .it:hover+.it:before{display:none}
+[data-theme="dark"] .sc .it:hover{background:color-mix(in srgb,var(--card) 85%,#fff)}
+@media(max-width:899px){
+  .chev{display:none!important}
+  .sc .it{margin:0 -6px;padding:10px 6px}.sc .it+.it:before{left:6px;right:6px}
+}
 </style>
 </head>
 <body>
@@ -1347,9 +1362,9 @@ function pageCarte(){
   if(!DATA.tabs.length) return mtop('Tableau de bord','dash')+ph('Ma carte','Aucune catégorie pour l\'instant','')+`<div class="pgrid g-1">${card('Catégories','spe',`<button class="lk add" data-act="catAdd">＋ Ajouter une catégorie</button>`)}</div>`;
   const R=carteRoute();
   if(R.ix!=null&&!isNaN(R.ix)) return pageItem(R.ti,R.ci,R.ix);
-  const ti=Math.min(R.ti,DATA.tabs.length-1), tb=DATA.tabs[ti];
+  const ti=Math.min(R.ti,DATA.tabs.length-1), tb=DATA.tabs[ti], hasArg=(ARG||'')!=='';
   const cats=DATA.tabs.map((t,i)=>{ const n=(t.cards||[]).reduce((a,c)=>a+itemsOf(c).length,0), bev=(t.cards||[]).some(isBevCard);
-    return `<a class="cat${i===ti?' on':''}" href="#/carte/${i}"><span class="mvs"><button type="button" class="mv" data-act="catMove" data-i="${i}" data-d="-1" title="Monter">↑</button></span><span class="cat-n"><b>${esc(tr(t.label))||'(sans nom)'}</b><small>${n} ${bev?'boisson':'plat'}${n>1?'s':''}${t.visible===false?' · masquée':''}</small></span><span class="chev">›</span></a>`; }).join('');
+    return `<a class="cat${hasArg&&i===ti?' on':''}" href="#/carte/${i}"><span class="mvs"><button type="button" class="mv" data-act="catMove" data-i="${i}" data-d="-1" title="Monter">↑</button></span><span class="cat-n"><b>${esc(tr(t.label))||'(sans nom)'}</b><small>${n} ${bev?'boisson':'plat'}${n>1?'s':''}${t.visible===false?' · masquée':''}</small></span><span class="chev">›</span></a>`; }).join('');
   const multi=(tb.cards||[]).length>1;
   const secs=(tb.cards||[]).map((c,ci)=>{
     const bev=isBevCard(c), its=itemsOf(c), titled=multi||tr(c.label);
@@ -1364,10 +1379,9 @@ function pageCarte(){
     fIn('Nom de la catégorie',trL(tb.label),`tabL.${ti}`,phL(tb.label,'Ex : Entrées'),'w')+
     `<div class="mng-row"><div class="mchip"><span>Masquée</span>${tgl(tb.visible===false,'tabVis',`data-ti="${ti}"`)}</div><button type="button" class="mng-del2" data-act="delAsk" data-k="t${ti}">${I('trash')}Supprimer</button></div>`+
     (UI.delc===`t${ti}`?`<div class="mdel" style="display:flex;margin-top:10px"><span>Supprimer « ${esc(tr(tb.label))} » et tout son contenu ?</span><button class="btn g" data-act="tabDel" data-ti="${ti}">Oui</button><button class="btn red" data-act="delNo">Non</button></div>`:'')+`</div></section>`;
-  const hasArg=(ARG||'')!=='';
   return (hasArg?mtop('Ma carte','carte'):mtop('Tableau de bord','dash'))+(hasArg?`<div class="mob">${crumb([['Ma carte','carte'],[esc(tr(tb.label))||'Catégorie']])}</div>`:'')+ph(hasArg?`<span class="desk-i">Ma carte</span><span class="mob-i">${esc(tr(tb.label))}</span>`:'Ma carte',`${DATA.tabs.length} catégories · enregistrement automatique sur la copie de test`,linkBtn('Exporter ma carte','share','#/export'))+
   `<div class="pgrid carte-g ${hasArg?'sel':'nosel'}"><div>${card('Catégories','spe',`<div class="cats">${cats}</div><button class="lk add" data-act="catAdd">＋ Ajouter une catégorie</button>`)}</div>
-  <div>${card(esc(tr(tb.label))||'Catégorie','plats',secs+`<div class="sc-add"><button type="button" class="lk add" data-act="cardAdd" data-ti="${ti}" data-bev="${isBevTab?1:''}">＋ Ajouter une sous-catégorie</button></div>`)}${manage}</div></div>`;
+  <div>${hasArg?card(esc(tr(tb.label))||'Catégorie','plats',secs+`<div class="sc-add"><button type="button" class="lk add" data-act="cardAdd" data-ti="${ti}" data-bev="${isBevTab?1:''}">＋ Ajouter une sous-catégorie</button></div>`)+manage:`<section class="list pc pick"><div class="pb">${I('carte')}<b>Choisissez une catégorie</b><small>Cliquez sur une catégorie à gauche pour voir et modifier ses plats.</small></div></section>`}</div></div>`;
 }
 
 function pageItem(ti,ci,ix){
