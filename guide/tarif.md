@@ -4,7 +4,7 @@ Référence des prix pour tous les devis et factures. **À relire avant chaque p
 
 - Tous les prix sont **HT**.
 - Un prix est toujours un **pack** : il comprend tout le contenu listé, rien de plus, aucun frais caché.
-- Dernière mise à jour : 7 octobre 2026.
+- Dernière mise à jour : 10 octobre 2026 (Master passe de 329 € à 399 € / mois).
 - Positionnement : environ 15 à 20 % sous l'équivalent Zenchef (Reserve + site = 158 €, Manage + site + marketing = 227 €, Grow + options = 375 € par mois).
 
 ---
@@ -22,7 +22,7 @@ Chaque formule comprend la précédente. Les frais de mise en service sont payé
 |---|---|---|---|
 | **Starter** | Maîtrisez votre présence. Tout est à jour, tout le temps. | 129 € / mois · 1 419 € / an | 799 € |
 | **Pro** | Maîtrisez vos offres. Menus créés, promo instantanée. | 229 € / mois · 2 519 € / an | 999 € |
-| **Master** | Maîtrisez votre activité. Attirez, communiquez, fidélisez. | 329 € / mois · 3 619 € / an | 1 299 € |
+| **Master** | Maîtrisez votre activité. Attirez, communiquez, fidélisez. | 399 € / mois · 4 389 € / an | 1 299 € |
 
 **Contenu de chaque formule :**
 
