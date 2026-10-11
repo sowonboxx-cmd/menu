@@ -932,6 +932,14 @@ input.in.hr{width:76px;text-align:center;padding:8px 10px;font-size:15px;font-we
 .emtabs button{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;border:0;background:none;border-radius:11px;padding:11px;font:600 14.5px Inter,sans-serif;color:var(--mut);cursor:pointer}
 .emtabs button svg{width:17px;height:17px}.emtabs button.on{background:var(--brand);color:var(--on-brand)}
 @media(max-width:899px){.emgrid2.tab-edit .emprevw{display:none}.emgrid2.tab-prev>div:first-child{display:none}.emgrid2.tab-prev .emprevw .emh{display:none}}
+
+.spbox{background:var(--soft);border-radius:16px;padding:12px;margin:0 0 10px}
+.sphd{display:flex;align-items:center;gap:10px;margin:0 0 6px}.spname{flex:1;font-weight:600;background:var(--card)!important}.spseats{font-size:13.5px;color:var(--mut);font-weight:600;white-space:nowrap}
+.sptb{display:flex;align-items:center;gap:8px;padding:6px 0}.sptb .in{flex:1;min-width:0;background:var(--card)!important}.spno{font-size:12.5px;color:var(--mut);font-weight:600;width:28px}
+.spsel{display:flex;align-items:center;gap:6px;flex:none}.spsel select{width:64px;flex:none!important}.spsel span{font-size:12.5px;color:var(--mut)}
+.spadd{display:flex;gap:8px;margin-top:6px}.spadd .in{flex:1}
+.sptrash{width:34px;height:34px;border:0;border-radius:10px;background:var(--card);color:#d93025;display:grid;place-items:center;cursor:pointer;flex:none}.sptrash svg{width:16px;height:16px}
+@media(max-width:899px){.spno{display:none}.spsel span{display:none}.spsel select{width:74px;padding-left:12px!important;padding-right:4px!important}}
 </style>
 </head>
 <body>
@@ -1569,7 +1577,7 @@ function pageResa(){
   <div class="pgrid g-3-1"><div>${card('À venir','resa',body)}</div>
   <div>${card('À traiter','alert',row(pill(String(noTable.length),noTable.length?'warn':''),'Réservation'+(noTable.length>1?'s':'')+' sans table')+row(pill(String(WAIT.length)),'Liste d\'attente'))}
   ${card('Fermetures','hor',BLOCKED.length?BLOCKED.slice(0,6).map(b=>row(esc(fmtDay(b.date_iso)),'Jour bloqué')).join(''):'<div class="empty">Aucun jour bloqué.</div>')}
-  ${card('Salle et services','etab',row('Espaces',esc(SPACES.map(s=>s.name).join(' · ')||'—'))+row('Tables',`${TABLES.length} tables · ${capacity()} places`)+row('Services',esc(SERVICES.map(s=>`${s.name} ${String(s.start_time||'').slice(0,5)}–${String(s.end_time||'').slice(0,5)}`).join(' · ')||'—')))}</div></div>`;
+  ${card('Salle, espaces et tables','resa',spacesEditor())}</div></div>`;
 }
 
 // ── communication ──
@@ -1618,7 +1626,7 @@ function pageEtab(){
    ${card('Informations','etab',`<div class="frm">${fin('Nom',DATA.restaurantName||'','root.restaurantName','w')}${fin('Rue',a.street||'','addr.street','w')}${fin('Code postal',a.zip||'','addr.zip')}${fin('Ville',a.city||'','addr.city')}${fin('Téléphone',a.phone||'','addr.phone')}${fin('Lien Google Maps',a.mapsUrl||'','addr.mapsUrl')}${logoField()}</div>`)}
    ${card('Réseaux sociaux','res',`<div class="frm">${fin('Instagram',s.instagram||'','soc.instagram')}${fin('TikTok',s.tiktok||'','soc.tiktok')}${fin('Facebook',s.facebook||'','soc.facebook')}${fin('Site internet',s.website||'','soc.website')}</div>`)}</div>
    <div>${card('Horaires','hor',sched+'')}
-   ${card('Salle et services','resa',row('Espaces',esc(SPACES.map(x=>x.name).join(' · ')||'—'))+row('Tables',`${TABLES.length} tables · ${capacity()} places`)+row('Services',esc(SERVICES.map(x=>x.name).join(' · ')||'—'))+`<p class="note">Pour les réservations · se gèrent dans l'admin des réservations.</p>`,'','Réservations')}</div></div>`;
+   ${card('Salle, espaces et tables','resa',spacesEditor())}</div></div>`;
 }
 function logoField(){ const u=DATA.restaurantLogo||''; return `<div class="fd w"><span>Logo</span><div class="upl"><div class="upl-th">${u?`<img src="${esc(u)}" alt="">`:`<span>${esc(initials())}</span>`}</div><div class="upl-a"><label class="btn w upl-btn">${I('share')}${u?'Changer le logo':'Envoyer le logo'}<input type="file" accept="image/*" data-act="logoUp" hidden></label>${u?'<button class="lk red" data-act="logoDel">Retirer</button>':''}<small class="muted2">PNG, JPG, WebP ou SVG. Il apparaît sur le site, les exports et ce panneau.</small></div></div></div>`; }
 const SITE_FONTS = ["Jost", "Montserrat", "Oswald", "Raleway", "Poppins", "Merriweather", "Playfair Display", "Libre Baskerville", "Josefin Sans", "Quicksand", "Inter", "Cormorant Garamond", "EB Garamond", "Spectral", "Source Serif Pro", "Bitter", "Dancing Script", "Pacifico", "Lobster", "Satisfy", "Abril Fatface", "Bebas Neue", "Anton", "Righteous", "Cinzel", "Teko", "Fraunces", "DM Serif Display", "Prata", "Marcellus", "Bodoni Moda", "Yeseva One", "Italiana", "Cinzel Decorative", "Great Vibes", "Tangerine", "Sacramento", "Yellowtail", "Grand Hotel", "Kaushan Script", "Caveat", "Amatic SC", "Permanent Marker", "Fredoka", "Comfortaa", "Baloo 2", "Alfa Slab One", "Passion One", "Bungee", "Monoton", "Fjalla One"];
@@ -1756,6 +1764,21 @@ async function emSend(test){
   UI.emSending=false; render();
 }
 
+
+// ══ Espaces et tables (même base que la page de réservation : restaurant_spaces / restaurant_tables) ══
+function spacesEditor(){
+  const seatsOf=id=>TABLES.filter(t=>t.space_id===id).reduce((a,t)=>a+(+t.seats||0),0);
+  const opts=v=>Array.from({length:25},(_,i)=>`<option ${i+1===+v?'selected':''}>${i+1}</option>`).join('');
+  const sp=SPACES.map(x=>{ const tb=TABLES.filter(t=>t.space_id===x.id);
+    const del=UI.delc==='sp'+x.id?`<span class="delc">Supprimer l'espace et ses tables ?<button class="btn g" data-act="spDel" data-id="${x.id}">Oui</button><button class="btn red" data-act="delNo">Non</button></span>`:`<button class="mng-del" data-act="delAsk" data-k="sp${x.id}" aria-label="Supprimer">${I('trash')}</button>`;
+    return `<div class="spbox"><div class="sphd"><input class="in spname" value="${esc(x.name)}" data-spn="${x.id}"><span class="spseats">${seatsOf(x.id)} pl.</span>${del}</div>
+      ${tb.map((t,i)=>`<div class="sptb"><span class="spno">#${String(i+1).padStart(2,'0')}</span><input class="in" value="${esc(t.name||'')}" placeholder="Nom (facultatif)" data-tbn="${t.id}"><label class="spsel"><select class="in" data-tbs="${t.id}">${opts(t.seats)}</select><span>places</span></label><button class="sptrash" data-act="tbDel" data-id="${t.id}" aria-label="Retirer">${I('trash')}</button></div>`).join('')}
+      <button class="lk" data-act="tbAdd" data-id="${x.id}">+ Ajouter une table</button></div>`; }).join('');
+  return `<p class="note" style="margin:0 0 12px">Ce que vos clients choisissent à l'étape « Espace » de la réservation. Les tables servent à calculer votre capacité : ${capacity()} places au total.</p>${sp||'<div class="empty">Aucun espace pour l\'instant.</div>'}
+    <div class="spadd"><input class="in" id="spNew" placeholder="Nouvel espace (ex. Terrasse)"><button class="btn" data-act="spAdd">${I('plus')}Ajouter</button></div>`;
+}
+async function spRun(p,ok){ const {error}=await p; if(error){ toast('⚠ '+error.message); return false; } if(ok) toast(ok); await loadSide(); return true; }
+
 // ══ Rendu ══
 const PAGES={dash,resa:pageResa,carte:pageCarte,menus:pageMenus,mdj:pageMdj,formule:pageFormule,tuner:pageTuner,export:pageExport,xprint:pageXprint,xgbiz:pageXgbiz,xinsta:pageXinsta,xcol:pageXcol,comm:pageComm,stats:pageStats,etab:pageEtab,site:pageSite,app:pageApp,secu:pageSecu,clients:pageClients,emails:pageEmails};
 // Téléphone : même au premier niveau, fil d'Ariane « Accueil › Page » à la place du simple retour
@@ -1851,6 +1874,10 @@ function refreshPreviewsTuner(){ // l'objet formule utilisé par les aperçus es
   clearTimeout(prevT); prevT=setTimeout(()=>render(),250);
 }
 document.addEventListener('change',async e=>{
+  { const t=e.target, ds=t.dataset||{};
+    if(ds.spn){ await spRun(sb.from('restaurant_spaces').update({name:t.value.trim()}).eq('id',ds.spn),'Enregistré'); return; }
+    if(ds.tbn){ await spRun(sb.from('restaurant_tables').update({name:t.value.trim()||null}).eq('id',ds.tbn),'Enregistré'); return; }
+    if(ds.tbs){ await spRun(sb.from('restaurant_tables').update({seats:+t.value}).eq('id',ds.tbs),'Enregistré'); return; } }
   if(e.target.dataset&&e.target.dataset.emdish&&UI.em){ const d=allDishes()[+e.target.value]; UI.em.f.dish=d||null; if(d&&d.img&&!UI.em.f.image) UI.em.f.image=d.img; render(); emPreview(true); return; }
   if(e.target.dataset&&e.target.dataset.emimg&&UI.em){ const u=await uploadImage(e.target.files[0],'email'); if(u){ UI.em.f.image=u; render(); emPreview(true); } return; }
   if(e.target.dataset&&e.target.dataset.hm){ e.target.value=toHM(fromHM(e.target.value)); render(); }
@@ -1916,6 +1943,10 @@ document.addEventListener('click',async e=>{
     case 'emGo': emSend(false); break;
     case 'emTest': emSend(true); break;
     case 'emTab': UI.emTab=d.k; render(); if(d.k==='prev') setTimeout(()=>emPreview(true),30); break;
+    case 'spAdd': { const v=($('#spNew')||{}).value||''; if(!v.trim()) { toast('Donnez un nom à l\'espace'); break; } await spRun(sb.from('restaurant_spaces').insert({client_slug:RESA_SLUG,name:v.trim(),sort_order:SPACES.length?Math.max(...SPACES.map(x=>x.sort_order||0))+1:0}),'Espace ajouté'); break; }
+    case 'spDel': UI.delc=null; await spRun(sb.from('restaurant_tables').delete().eq('space_id',d.id)); await spRun(sb.from('restaurant_spaces').delete().eq('id',d.id),'Espace supprimé'); break;
+    case 'tbAdd': await spRun(sb.from('restaurant_tables').insert({client_slug:RESA_SLUG,space_id:d.id,seats:2})); break;
+    case 'tbDel': await spRun(sb.from('restaurant_tables').delete().eq('id',d.id)); break;
     case 'logout': await sb.auth.signOut(); SESSION=null; DATA=null; render(); break;
     case 'appearance': setAppearance(d.v); break;
     case 'goResa': go('resa'); break;
