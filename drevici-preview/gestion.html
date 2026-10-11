@@ -1066,7 +1066,7 @@ async function save(){
   if(!DATA||!LOADED) return;
   // Un autre appareil (téléphone / ordinateur) a enregistré depuis : on recharge au lieu d'écraser ses modifications.
   try{ const {data:cur}=await sb.from('menu_data').select('updated_at').eq('client_slug',SLUG).maybeSingle();
-    if(cur&&cur.updated_at&&LOADED_AT&&cur.updated_at>LOADED_AT){ setSave(''); toast('Modifié sur un autre appareil : la version la plus récente est rechargée. Refaites votre dernier changement.'); await loadAll(); render(); return; } }catch(e){}
+    if(cur&&cur.updated_at&&LOADED_AT&&Date.parse(cur.updated_at)>Date.parse(LOADED_AT)+500){ setSave(''); toast('Modifié sur un autre appareil : la version la plus récente est rechargée. Refaites votre dernier changement.'); await loadAll(); render(); return; } }catch(e){}
   const now=new Date().toISOString();
   const {error}=await sb.from('menu_data').upsert({client_slug:SLUG,data:DATA,updated_at:now},{onConflict:'client_slug'});
   if(error){ setSave(''); toast('⚠ Non enregistré : '+error.message); return; }
@@ -1077,7 +1077,7 @@ async function save(){
 document.addEventListener('visibilitychange',async()=>{
   if(document.visibilityState!=='visible'||!SESSION||!LOADED||saveState==='Enregistrement…') return;
   try{ const {data:cur}=await sb.from('menu_data').select('updated_at').eq('client_slug',SLUG).maybeSingle();
-    if(cur&&cur.updated_at&&cur.updated_at>LOADED_AT){ await loadAll(); render(); } }catch(e){}
+    if(cur&&cur.updated_at&&Date.parse(cur.updated_at)>Date.parse(LOADED_AT)+500){ await loadAll(); render(); } }catch(e){}
 });
 window.addEventListener('beforeunload',e=>{ if(saveT&&saveState==='Enregistrement…'){ e.preventDefault(); e.returnValue=''; } });
 
