@@ -1034,7 +1034,7 @@ async function loadAll(){
   const {data,error}=await sb.from('menu_data').select('data,updated_at').eq('client_slug',SLUG).maybeSingle();
   if(error){ DATA=null; return {err:'Lecture impossible : '+error.message}; }
   if(!data){ DATA=null; return {err:'missing'}; }
-  DATA=data.data||{}; LOADED=true;
+  DATA=data.data||{}; LOADED=true; LOADED_AT=data.updated_at||'';
   ['tabs','formules','specials'].forEach(k=>{ if(!Array.isArray(DATA[k])) DATA[k]=[]; });
   if(!DATA.specials.find(s=>s.id==='jour')) DATA.specials.unshift({id:'jour',active:false,label:{fr:'Menu du jour'},title:{fr:'Menu du jour'},desc:{fr:''},price:'',showHome:true,showFirst:true});
   applyTheme();
@@ -1059,16 +1059,26 @@ async function loadSide(){
 }
 
 // ── enregistrement automatique ──
-let saveT=null, lastSnap=0, saveState='';
+let saveT=null, lastSnap=0, saveState='', LOADED_AT='';
 function touch(rerender){ setSave('Enregistrement…'); clearTimeout(saveT); saveT=setTimeout(save,900); if(rerender) render(); }
 function setSave(t){ saveState=t; const b=$('#savebar'); if(!b) return; b.textContent=t; b.classList.toggle('on',!!t); if(t==='Enregistré') setTimeout(()=>{ if(saveState==='Enregistré') b.classList.remove('on'); },1600); }
 async function save(){
   if(!DATA||!LOADED) return;
-  const {error}=await sb.from('menu_data').upsert({client_slug:SLUG,data:DATA,updated_at:new Date().toISOString()},{onConflict:'client_slug'});
+  // Un autre appareil (téléphone / ordinateur) a enregistré depuis : on recharge au lieu d'écraser ses modifications.
+  try{ const {data:cur}=await sb.from('menu_data').select('updated_at').eq('client_slug',SLUG).maybeSingle();
+    if(cur&&cur.updated_at&&LOADED_AT&&cur.updated_at>LOADED_AT){ setSave(''); toast('Modifié sur un autre appareil : la version la plus récente est rechargée. Refaites votre dernier changement.'); await loadAll(); render(); return; } }catch(e){}
+  const now=new Date().toISOString();
+  const {error}=await sb.from('menu_data').upsert({client_slug:SLUG,data:DATA,updated_at:now},{onConflict:'client_slug'});
   if(error){ setSave(''); toast('⚠ Non enregistré : '+error.message); return; }
+  LOADED_AT=now;
   setSave('Enregistré');
   if(Date.now()-lastSnap>10*60*1000){ lastSnap=Date.now(); try{ await sb.from('menu_data_history').insert({client_slug:SLUG,data:DATA}); HIST=null; }catch(e){} }
 }
+document.addEventListener('visibilitychange',async()=>{
+  if(document.visibilityState!=='visible'||!SESSION||!LOADED||saveState==='Enregistrement…') return;
+  try{ const {data:cur}=await sb.from('menu_data').select('updated_at').eq('client_slug',SLUG).maybeSingle();
+    if(cur&&cur.updated_at&&cur.updated_at>LOADED_AT){ await loadAll(); render(); } }catch(e){}
+});
 window.addEventListener('beforeunload',e=>{ if(saveT&&saveState==='Enregistrement…'){ e.preventDefault(); e.returnValue=''; } });
 
 // ══ Moteur d'export (le site dans une iframe cachée) ══
