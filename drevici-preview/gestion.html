@@ -927,6 +927,11 @@ input.in.hr{width:76px;text-align:center;padding:8px 10px;font-size:15px;font-we
 .emprevw{background:var(--card);border-radius:20px;padding:16px;position:sticky;top:16px}
 #emPrev{width:100%;height:760px;border:0;border-radius:12px;background:#f5f3ef;display:block}
 @media(max-width:899px){.emgrid{grid-template-columns:1fr 1fr;gap:10px}.emcard{padding:16px}.emprevw{position:static;padding:10px}.clmeta small{display:none}}
+
+.emtabs{display:flex;background:var(--card);border-radius:14px;padding:4px;margin:0 0 12px;position:sticky;top:8px;z-index:5;box-shadow:0 4px 14px rgba(0,0,0,.06)}
+.emtabs button{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;border:0;background:none;border-radius:11px;padding:11px;font:600 14.5px Inter,sans-serif;color:var(--mut);cursor:pointer}
+.emtabs button svg{width:17px;height:17px}.emtabs button.on{background:var(--brand);color:var(--on-brand)}
+@media(max-width:899px){.emgrid2.tab-edit .emprevw{display:none}.emgrid2.tab-prev>div:first-child{display:none}.emgrid2.tab-prev .emprevw .emh{display:none}}
 </style>
 </head>
 <body>
@@ -1726,7 +1731,8 @@ function pageEmails(){
     <div class="emact">${btn('M\'envoyer un test','mail','w','data-act="emTest"')}${btn(UI.emSending?'Envoi…':`Envoyer à ${n} client${n>1?'s':''}`,'mega','',`data-act="emSend" ${n&&!UI.emSending?'':'disabled'}`)}</div>${conf}</div></section>`;
   setTimeout(()=>{ const fr=document.getElementById('emPrev'); if(fr&&!fr.srcdoc) emPreview(true); },0);
   return mtop('Emails','emails')+crumb([['Emails','emails'],[t.n]])+ph(t.n,'Un titre, une phrase : l\'aperçu se met à jour tout seul','')+
-    `<div class="pgrid g-1-1 emgrid2"><div>${left}</div><div class="emprevw"><div class="emh">Aperçu</div><iframe id="emPrev" title="Aperçu de l'email"></iframe></div></div>`;
+    `<div class="mob"><div class="emtabs"><button class="${(UI.emTab||'edit')==='edit'?'on':''}" data-act="emTab" data-k="edit">${I('edit')}Modifier</button><button class="${UI.emTab==='prev'?'on':''}" data-act="emTab" data-k="prev">${I('eye')}Aperçu</button></div></div>`+
+    `<div class="pgrid g-1-1 emgrid2 tab-${UI.emTab||'edit'}"><div>${left}</div><div class="emprevw"><div class="emh">Aperçu</div><iframe id="emPrev" title="Aperçu de l'email"></iframe></div></div>`;
 }
 function clExport(){
   const rows=[['Nom','Email','Téléphone','Visites','Première visite','Dernière visite','Accepte les offres']].concat((CLIENTS||[]).map(c=>[c.name||'',c.email,c.phone?'+'+c.phone:'',c.visits||1,fdate(c.first_seen),fdate(c.last_seen),c.marketing_optin?'oui':'non']));
@@ -1899,6 +1905,7 @@ document.addEventListener('click',async e=>{
     case 'emNo': UI.emConfirm=false; render(); break;
     case 'emGo': emSend(false); break;
     case 'emTest': emSend(true); break;
+    case 'emTab': UI.emTab=d.k; render(); if(d.k==='prev') setTimeout(()=>emPreview(true),30); break;
     case 'logout': await sb.auth.signOut(); SESSION=null; DATA=null; render(); break;
     case 'appearance': setAppearance(d.v); break;
     case 'goResa': go('resa'); break;
