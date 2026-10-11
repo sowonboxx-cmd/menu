@@ -1605,6 +1605,16 @@ function pageSecu(){
 
 // ══ Rendu ══
 const PAGES={dash,resa:pageResa,carte:pageCarte,menus:pageMenus,mdj:pageMdj,formule:pageFormule,tuner:pageTuner,export:pageExport,xprint:pageXprint,xgbiz:pageXgbiz,xinsta:pageXinsta,xcol:pageXcol,comm:pageComm,stats:pageStats,etab:pageEtab,site:pageSite,app:pageApp,secu:pageSecu};
+// Téléphone : même au premier niveau, fil d'Ariane « Accueil › Page » à la place du simple retour
+function levelOneCrumb(html){
+  if(html.indexOf('class="crb"')>=0) return html;
+  const m=html.match(/<div class="mtop"><a class="mback" href="#\/([^"]*)"[^>]*>.*?<span>([^<]*)<\/span><\/a><\/div>/);
+  if(!m) return html;
+  const h=html.match(/<h2>([\s\S]*?)<\/h2>/); if(!h) return html;
+  const tmp=document.createElement('div'); tmp.innerHTML=h[1]; const mi=tmp.querySelector('.mob-i'); const title=(mi?mi.textContent:tmp.textContent).trim();
+  const trail=m[1]==='dash'?[[esc(title)]]:[[m[2],m[1]],[esc(title)]];
+  return html.replace(m[0],`<div class="mob">${crumb(trail)}</div>`);
+}
 function render(){
   const app=$('#app');
   if(!SESSION){ app.innerHTML=loginView(); return; }
@@ -1612,7 +1622,8 @@ function render(){
   const fn=PAGES[PG]||dash;
   const focus=document.activeElement&&document.activeElement.dataset?document.activeElement.dataset.bind:null;
   const y=scrollY;
-  const html=PG==='tuner'?`<div class="v2">${fn()}</div>`:`<div class="v2"><div class="shell">${side()}<div class="main">${fn()}</div></div></div>`;
+  let html=PG==='tuner'?`<div class="v2">${fn()}</div>`:`<div class="v2"><div class="shell">${side()}<div class="main">${fn()}</div></div></div>`;
+  html=levelOneCrumb(html);
   // Mise à jour fine plutôt que tout redessiner : seuls les éléments qui changent
   // sont touchés, donc plus de clignotement (images, aperçus, interrupteurs).
   if(window.morphdom&&app.firstElementChild){
