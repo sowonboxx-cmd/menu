@@ -1,0 +1,19 @@
+// Emails et SMS des réservations via Brevo. Voir workers/resa-notify.js.
+// Servi sur resa.beltab.app. Rappels : tâche planifiée toutes les heures (à :05).
+// Secrets à créer dans Cloudflare (jamais dans ce fichier) :
+//   BREVO_API_KEY, SUPABASE_SERVICE_KEY
+// Commande de déploiement dans Cloudflare :
+//   npx wrangler deploy --config wrangler.resa-notify.jsonc
+{
+  "name": "resa-notify",
+  "compatibility_date": "2026-10-01",
+  "main": "./workers/resa-notify.js",
+  "routes": [{ "pattern": "resa.beltab.app", "custom_domain": true }],
+  "triggers": { "crons": ["5 * * * *"] },
+  "vars": {
+    "SUPABASE_URL": "https://fdbzzkzfipzabryfanun.supabase.co",
+    "SENDER_EMAIL": "reservation@beltab.app",
+    "ADMIN_EMAIL": "",
+    "ALLOWED_ORIGINS": "*.workers.dev,https://drevicioyster.com,https://www.drevicioyster.com,*.beltab.app"
+  }
+}

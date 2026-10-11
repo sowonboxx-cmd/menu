@@ -4,7 +4,7 @@ Référence des prix pour tous les devis et factures. **À relire avant chaque p
 
 - Tous les prix sont **HT**.
 - Un prix est toujours un **pack** : il comprend tout le contenu listé, rien de plus, aucun frais caché.
-- Dernière mise à jour : 10 octobre 2026 (Master passe de 329 € à 399 € / mois).
+- Dernière mise à jour : 11 octobre 2026 (SMS et emails de la formule Master ; Master à 399 € / mois depuis le 10 octobre).
 - Positionnement : environ 15 à 20 % sous l'équivalent Zenchef (Reserve + site = 158 €, Manage + site + marketing = 227 €, Grow + options = 375 € par mois).
 
 ---
@@ -40,6 +40,24 @@ Chaque formule comprend la précédente. Les frais de mise en service sont payé
   - Publiez sur vos réseaux sociaux
 
 La réservation en ligne est incluse dans les trois formules, à trois niveaux : Basique (Starter), Avancée (Pro), Pro (Master).
+
+### SMS et emails (formule Master)
+
+| Usage | Inclus chaque mois | Au-delà |
+|---|---|---|
+| Emails (confirmation, rappel, campagnes) | Illimités | — |
+| Rappels de réservation par SMS | 500 SMS | Le rappel part par email, automatiquement |
+| SMS marketing (promos, campagnes) | 200 SMS | Packs prépayés ci-dessous |
+
+| Pack SMS marketing | Prix |
+|---|---|
+| 500 SMS | 29 € |
+| 1 000 SMS | 55 € |
+| 2 500 SMS | 129 € |
+
+- Les SMS inclus repartent à zéro chaque mois ; les packs achetés n'expirent pas.
+- Avant chaque campagne, le restaurant voit combien de SMS elle utilisera et combien il lui en reste : aucune mauvaise surprise.
+- SMS marketing uniquement vers les clients qui ont coché la case « offres » (consentement), avec mention STOP.
 
 ---
 
