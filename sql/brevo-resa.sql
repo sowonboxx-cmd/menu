@@ -88,6 +88,13 @@ end $$;
 revoke all on function resa_upsert_client(text,text,text,text,boolean) from public, anon, authenticated;
 revoke all on function sms_take(text,text,int) from public, anon, authenticated;
 
+-- Droits du Worker (clé service) : sur les projets Supabase récents, ils ne sont pas donnés automatiquement.
+grant select, insert, update on resa_settings, resa_clients, sms_usage to service_role;
+grant usage, select on sequence resa_clients_id_seq to service_role;
+grant select, update on restaurant_reservations to service_role;
+grant execute on function resa_upsert_client(text,text,text,text,boolean) to service_role;
+grant execute on function sms_take(text,text,int) to service_role;
+
 -- 7) Restaurant de TEST (la résa de la préview écrit sous « drevici-test »).
 --    ⚠️ Remplace les deux adresses par la tienne avant de lancer.
 insert into resa_settings (client_slug, restaurant_name, reply_to, notify_email, address, phone, site_url)
