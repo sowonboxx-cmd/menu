@@ -1187,8 +1187,8 @@ table.matrix tr:hover td{background:#fafaf7}
     <div class="section-hdr-row">
       <div>
         <div class="section-label">En option</div>
-        <h2 class="section-title">Modules complémentaires</h2>
-        <p class="section-sub">Des modules à part, avec leur propre abonnement mensuel. Ils ne sont liés à aucune offre en particulier et peuvent être vendus en solo ou ajoutés à n'importe quelle offre.</p>
+        <h2 class="section-title">Offres annexes</h2>
+        <p class="section-sub">Des offres à part, ponctuelles ou avec abonnement mensuel. Elles ne sont liées à aucune formule : elles se prennent seules ou en complément.</p>
       </div>
     </div>
     <div class="feature-table" id="addonModulesTable"></div>
@@ -2182,7 +2182,7 @@ function renderAddonModules(){
   const el = document.getElementById('addonModulesTable');
   if(!el) return;
   const mods = DATA.addonModules || [];
-  el.innerHTML = mods.map((m, mi) => `
+  el.innerHTML = mods.map((m, mi) => (m.agency && !editMode) ? '' : `
     <div class="feature-row" data-mi="${mi}" ${editMode?'draggable="true"':''}>
       ${editMode ? '<span class="feature-drag addon-drag">⠿</span>' : ''}
       ${editMode
@@ -2191,11 +2191,11 @@ function renderAddonModules(){
       }
       ${editMode
         ? `<input class="feature-price-input" type="number" value="${m.price||0}" placeholder="€/mois" onchange="DATA.addonModules[${mi}].price=parseInt(this.value)||0;save();renderSimulator()" title="Montant de l'abonnement mensuel">`
-        : `<span style="font-size:11px;color:var(--text3);width:80px;text-align:right">${(m.price||0).toLocaleString('fr-FR')} €/mois</span>`
+        : `<span style="font-size:11px;color:var(--text3);width:80px;text-align:right">${m.price ? (m.price||0).toLocaleString('fr-FR')+' €/mois' : 'Ponctuel'}</span>`
       }
       ${editMode
         ? `<input class="feature-price-input" type="number" value="${m.setup||0}" placeholder="€ onboarding" onchange="DATA.addonModules[${mi}].setup=parseInt(this.value)||0;save();renderSimulator()" title="Prix d'onboarding (unique)">`
-        : (m.setup ? `<span style="font-size:11px;color:var(--text3);width:100px;text-align:right">+ ${m.setup.toLocaleString('fr-FR')} € onboarding</span>` : '<span style="width:100px"></span>')
+        : (m.setup ? `<span style="font-size:11px;color:var(--text3);width:100px;text-align:right">${m.price?'+ ':''}${m.setup.toLocaleString('fr-FR')} €${m.price?' onboarding':''}</span>` : '<span style="width:100px"></span>')
       }
       ${editMode ? `<button class="feature-del" onclick="deleteAddonModule(${mi})">✕</button>` : ''}
     </div>

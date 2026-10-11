@@ -4,7 +4,7 @@ Référence des prix pour tous les devis et factures. **À relire avant chaque p
 
 - Tous les prix sont **HT**.
 - Un prix est toujours un **pack** : il comprend tout le contenu listé, rien de plus, aucun frais caché.
-- Dernière mise à jour : 11 octobre 2026 (SMS et emails de la formule Master ; Master à 399 € / mois depuis le 10 octobre).
+- Dernière mise à jour : 11 octobre 2026 (offres annexes chiffrées : Aperçu du menu, Avis Google, Google Business ; SMS et emails de la formule Master ; Master à 399 € / mois depuis le 10 octobre).
 - Positionnement : environ 15 à 20 % sous l'équivalent Zenchef (Reserve + site = 158 €, Manage + site + marketing = 227 €, Grow + options = 375 € par mois).
 
 ---
@@ -95,12 +95,14 @@ Les frais de déplacement apparaissent sur une ligne séparée du devis et de la
 
 ## 3. Offres annexes
 
+Offres à part, liées à aucune formule : elles se prennent seules ou en complément (anciennement « modules complémentaires »). Toutes figurent dans le simulateur de revenus.
+
 | Offre | Prix | Contenu |
 |---|---|---|
-| **Google Business** | 249 € | Menu PDF + menu intégré dans la fiche Google, avec les descriptions des plats. Les photos ne sont pas incluses : elles se facturent à part, selon la grille Photos (section 2). |
-| **Aperçu du menu** | À définir | Le client scanne un QR code et voit le menu en grand, en HD, avec les meilleurs plats en photo. Fait entrer les passants qui ne lisent pas les menus papier ou qui ne connaissent pas la cuisine. |
-| **Avis Google** | Environ 39 € / mois | QR code posé près de la caisse : le client le scanne, joue à un petit jeu et laisse un avis Google. Collecte du numéro de téléphone encore à décider. |
-| **La Cabine · tableau de bord 360°** | Mise en service 490 € · 89 € / mois par établissement (149 € / mois pour 2) | Une page d'entrée pour piloter le restaurant : réservations du jour, calendrier réseaux, events (récurrents et campagnes), suivi des QR codes (affiches de rue, cartes serveurs, réseaux sociaux) et commissions par personne. L'abonnement comprend la création des nouveaux codes et QR, l'ajout des events, le relevé mensuel des commissions et les mises à jour. Même engagement de 12 mois que la formule. |
+| **Google Business** | 249 € (ponctuel) | Menu PDF généré + menu intégré dans la fiche Google, avec les descriptions des plats. **À proposer à chaque nouveau client, quelle que soit sa formule** : la première mise en place est faite par nous (ensuite le client peut régénérer son PDF lui-même). Les photos ne sont pas incluses : elles se facturent à part, selon la grille Photos (section 2). |
+| **Aperçu du menu** | 49 € / mois · mise en service 149 € | Le client scanne un QR code et voit le menu en grand, en HD, avec les meilleurs plats en photo. Fait entrer les passants qui ne lisent pas les menus papier ou qui ne connaissent pas la cuisine. |
+| **Avis Google** | 39 € / mois · mise en service 99 € | QR code posé près de la caisse : le client le scanne, joue à un petit jeu et laisse un avis Google. Collecte du numéro de téléphone encore à décider. |
+| **La Cabine · tableau de bord 360°** (clients en mode agence uniquement) | Mise en service 490 € · 89 € / mois par établissement (149 € / mois pour 2) | Une page d'entrée pour piloter le restaurant : réservations du jour, calendrier réseaux, events (récurrents et campagnes), suivi des QR codes (affiches de rue, cartes serveurs, réseaux sociaux) et commissions par personne. L'abonnement comprend la création des nouveaux codes et QR, l'ajout des events, le relevé mensuel des commissions et les mises à jour. Même engagement de 12 mois que la formule. |
 
 ---
 
