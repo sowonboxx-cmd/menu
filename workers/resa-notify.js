@@ -172,7 +172,10 @@ async function settings(env, slug) {
   return r && r[0];
 }
 async function sb(env, path, { method = 'GET', body, prefer } = {}) {
-  const h = { apikey: env.SUPABASE_SERVICE_KEY, authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY, 'content-type': 'application/json' };
+  // Nouvelles clés Supabase (sb_secret_…) : en-tête apikey seul. Anciennes clés JWT : apikey + Bearer.
+  const k = env.SUPABASE_SERVICE_KEY || '';
+  const h = { apikey: k, 'content-type': 'application/json' };
+  if (!k.startsWith('sb_')) h.authorization = 'Bearer ' + k;
   if (prefer) h.prefer = prefer;
   const r = await fetch(`${env.SUPABASE_URL}/rest/v1/${path}`, { method, headers: h, body: body ? JSON.stringify(body) : undefined });
   if (!r.ok) throw new Error('Supabase ' + r.status + ' ' + await r.text());
