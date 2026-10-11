@@ -94,6 +94,7 @@ grant usage, select on sequence resa_clients_id_seq to service_role;
 grant select, update on restaurant_reservations to service_role;
 grant execute on function resa_upsert_client(text,text,text,text,boolean) to service_role;
 grant execute on function sms_take(text,text,int) to service_role;
+grant select on restaurant_admins to service_role;
 
 -- 7) Restaurant de TEST (la résa de la préview écrit sous « drevici-test »).
 --    ⚠️ Remplace les deux adresses par la tienne avant de lancer.
