@@ -36,7 +36,7 @@ Chaque formule comprend la précédente. Les frais de mise en service sont payé
   - Impression de vos menus
 - **Master** : tout Pro, plus
   - Remplissez vos tables vides (Table Boost)
-  - Envoyez des emails à vos clients
+  - Envoyez des emails et SMS à vos clients
   - Publiez sur vos réseaux sociaux
 
 La réservation en ligne est incluse dans les trois formules, à trois niveaux : Basique (Starter), Avancée (Pro), Pro (Master).
