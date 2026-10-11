@@ -940,6 +940,16 @@ input.in.hr{width:76px;text-align:center;padding:8px 10px;font-size:15px;font-we
 .spadd{display:flex;gap:8px;margin-top:6px}.spadd .in{flex:1}
 .sptrash{width:34px;height:34px;border:0;border-radius:10px;background:var(--card);color:#d93025;display:grid;place-items:center;cursor:pointer;flex:none}.sptrash svg{width:16px;height:16px}
 @media(max-width:899px){.spno{display:none}.spsel span{display:none}.spsel select{width:74px;padding-left:12px!important;padding-right:4px!important}}
+
+.ssum>b{display:block;font-size:14.5px;margin:0 0 8px}.ssrow{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line);font-size:14.5px}.ssrow em{font-style:normal;color:var(--mut);font-weight:600}
+.ssbtn{width:100%;justify-content:center;margin-top:12px}
+.spwrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;align-items:start}.spwrap>.note,.spwrap>.spadd,.spwrap>.empty{grid-column:1/-1}.spwrap .spbox{background:var(--card);margin:0;padding:16px;border-radius:20px}.spwrap .spname,.spwrap .sptb .in,.spwrap .sptrash{background:var(--soft)!important}
+.svrow{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)}.svrow:first-of-type{border-top:0}.svname{flex:1;min-width:0}.svrow .hr{width:84px;text-align:center}.svto{color:var(--mut)}.svnew{margin-top:8px;border-top:1px solid var(--line)!important}
+.kgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:0 0 14px}.kc{background:var(--card);border-radius:18px;padding:16px}.kc b{display:block;font-size:24px;font-weight:700}.kc span{display:block;color:var(--mut);font-size:13px;font-weight:500;margin-top:2px}
+.sd{display:block;margin-top:6px;font-size:12.5px;font-weight:600}.sd.up{color:#1f8a4c}.sd.down{color:#d93025}.sd.n{color:var(--mut)}
+.fdr{display:flex;align-items:center;gap:10px;padding:7px 0}.fdn{width:84px;font-size:14px}.fdb{flex:1;height:10px;background:var(--soft);border-radius:9px;overflow:hidden}.fdb i{display:block;height:100%;background:var(--brand);border-radius:9px}.fdr em{font-style:normal;width:48px;text-align:right;font-weight:600;font-size:13.5px}
+.rtabs{overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap!important;max-width:100%;min-width:0}.main{min-width:0}.rtabs::-webkit-scrollbar{display:none}.rtabs a{white-space:nowrap}
+@media(max-width:899px){.kgrid{grid-template-columns:1fr 1fr}.spwrap{grid-template-columns:1fr}.svrow{flex-wrap:wrap}.svname{flex:1 1 100%}}
 </style>
 </head>
 <body>
@@ -1567,6 +1577,9 @@ const itemAt=p=>{ const [ti,ci,ix]=String(p).split('.').map(Number); const c=DAT
 // ── réservations ──
 function pageResa(){
   if(ARG==='boost') return pageResaBoost();
+  if(ARG==='esp') return pageResaEsp();
+  if(ARG==='svc') return pageResaSvc();
+  if(ARG==='stats') return pageResaStats();
   const t=todayIso(), list=activeResa();
   const days=[...new Set(list.map(r=>r.date_iso))].slice(0,7);
   const noTable=list.filter(r=>!(r.table_ids||[]).length);
@@ -1577,11 +1590,11 @@ function pageResa(){
   <div class="pgrid g-3-1"><div>${card('À venir','resa',body)}</div>
   <div>${card('À traiter','alert',row(pill(String(noTable.length),noTable.length?'warn':''),'Réservation'+(noTable.length>1?'s':'')+' sans table')+row(pill(String(WAIT.length)),'Liste d\'attente'))}
   ${card('Fermetures','hor',BLOCKED.length?BLOCKED.slice(0,6).map(b=>row(esc(fmtDay(b.date_iso)),'Jour bloqué')).join(''):'<div class="empty">Aucun jour bloqué.</div>')}
-  ${card('Salle, espaces et tables','resa',spacesEditor())}</div></div>`;
+  ${card('Salle, espaces et tables','resa',salleSummary())}${card('Services','hor',svcSummary())}</div></div>`;
 }
 
 // ── communication ──
-const resaTabs=()=>`<div class="rtabs"><a href="#/resa" class="${ARG!=='boost'?'on':''}">Réservations</a><a href="#/resa/boost" class="${ARG==='boost'?'on':''}">Table Boost</a></div>`;
+const resaTabs=()=>`<div class="rtabs">${[['','Réservations'],['boost','Table Boost'],['esp','Espaces et tables'],['svc','Services'],['stats','Statistiques']].map(([k,l])=>`<a href="#/resa${k?'/'+k:''}" class="${(ARG||'')===k?'on':''}">${l}</a>`).join('')}</div>`;
 function pageResaBoost(){
   return mtop('Tableau de bord','dash')+ph('Réservations','Table Boost · remplir les tables',`<a class="btn" href="${RESA_ADMIN_URL}" target="_blank" rel="noopener">${I('boost')}Créer une offre ↗</a>`)+resaTabs()+
   `<div class="infobox">${I('alert')}<span>Pour ce test, les offres se créent dans l'admin des réservations (bouton ci-dessus). Elles arriveront ici avec la partie réseaux sociaux.</span></div>
@@ -1626,7 +1639,7 @@ function pageEtab(){
    ${card('Informations','etab',`<div class="frm">${fin('Nom',DATA.restaurantName||'','root.restaurantName','w')}${fin('Rue',a.street||'','addr.street','w')}${fin('Code postal',a.zip||'','addr.zip')}${fin('Ville',a.city||'','addr.city')}${fin('Téléphone',a.phone||'','addr.phone')}${fin('Lien Google Maps',a.mapsUrl||'','addr.mapsUrl')}${logoField()}</div>`)}
    ${card('Réseaux sociaux','res',`<div class="frm">${fin('Instagram',s.instagram||'','soc.instagram')}${fin('TikTok',s.tiktok||'','soc.tiktok')}${fin('Facebook',s.facebook||'','soc.facebook')}${fin('Site internet',s.website||'','soc.website')}</div>`)}</div>
    <div>${card('Horaires','hor',sched+'')}
-   ${card('Salle, espaces et tables','resa',spacesEditor())}</div></div>`;
+   ${card('Salle, espaces et tables','resa',salleSummary())}${card('Services','hor',svcSummary())}</div></div>`;
 }
 function logoField(){ const u=DATA.restaurantLogo||''; return `<div class="fd w"><span>Logo</span><div class="upl"><div class="upl-th">${u?`<img src="${esc(u)}" alt="">`:`<span>${esc(initials())}</span>`}</div><div class="upl-a"><label class="btn w upl-btn">${I('share')}${u?'Changer le logo':'Envoyer le logo'}<input type="file" accept="image/*" data-act="logoUp" hidden></label>${u?'<button class="lk red" data-act="logoDel">Retirer</button>':''}<small class="muted2">PNG, JPG, WebP ou SVG. Il apparaît sur le site, les exports et ce panneau.</small></div></div></div>`; }
 const SITE_FONTS = ["Jost", "Montserrat", "Oswald", "Raleway", "Poppins", "Merriweather", "Playfair Display", "Libre Baskerville", "Josefin Sans", "Quicksand", "Inter", "Cormorant Garamond", "EB Garamond", "Spectral", "Source Serif Pro", "Bitter", "Dancing Script", "Pacifico", "Lobster", "Satisfy", "Abril Fatface", "Bebas Neue", "Anton", "Righteous", "Cinzel", "Teko", "Fraunces", "DM Serif Display", "Prata", "Marcellus", "Bodoni Moda", "Yeseva One", "Italiana", "Cinzel Decorative", "Great Vibes", "Tangerine", "Sacramento", "Yellowtail", "Grand Hotel", "Kaushan Script", "Caveat", "Amatic SC", "Permanent Marker", "Fredoka", "Comfortaa", "Baloo 2", "Alfa Slab One", "Passion One", "Bungee", "Monoton", "Fjalla One"];
@@ -1779,6 +1792,61 @@ function spacesEditor(){
 }
 async function spRun(p,ok){ const {error}=await p; if(error){ toast('⚠ '+error.message); return false; } if(ok) toast(ok); await loadSide(); return true; }
 
+
+// ══ Réservations : résumé salle, onglets Espaces / Services / Statistiques ══
+function salleSummary(){
+  const seatsOf=id=>TABLES.filter(t=>t.space_id===id).reduce((a,t)=>a+(+t.seats||0),0);
+  const tot=`${SPACES.length} espace${SPACES.length>1?'s':''} · ${TABLES.length} table${TABLES.length>1?'s':''} · ${capacity()} places`;
+  return `<div class="ssum"><b>${tot}</b>${SPACES.map(x=>`<div class="ssrow"><span>${esc(x.name)}</span><em>${seatsOf(x.id)} pl.</em></div>`).join('')||'<div class="empty">Aucun espace.</div>'}
+    <a class="btn w ssbtn" href="#/resa/esp">${I('edit')}Gérer les espaces et tables</a></div>`;
+}
+function svcSummary(){
+  return `<div class="ssum">${SERVICES.map(x=>`<div class="ssrow"><span>${esc(x.name)}</span><em>${esc((x.start_time||'').slice(0,5))} – ${esc((x.end_time||'').slice(0,5))}</em></div>`).join('')||'<div class="empty">Aucun service.</div>'}
+    <a class="btn w ssbtn" href="#/resa/svc">${I('edit')}Gérer les services</a></div>`;
+}
+function pageResaEsp(){
+  return mtop('Réservations','resa')+crumb([['Réservations','resa'],['Espaces et tables']])+ph('Espaces et tables',`${SPACES.length} espaces · ${TABLES.length} tables · ${capacity()} places`,'')+resaTabs()+`<div class="spwrap">${spacesEditor()}</div>`;
+}
+function pageResaSvc(){
+  const rows=SERVICES.map(x=>{ const del=UI.delc==='sv'+x.id?`<span class="delc">Supprimer ?<button class="btn g" data-act="svDel" data-id="${x.id}">Oui</button><button class="btn red" data-act="delNo">Non</button></span>`:`<button class="sptrash" data-act="delAsk" data-k="sv${x.id}" aria-label="Supprimer">${I('trash')}</button>`;
+    return `<div class="svrow"><input class="in svname" value="${esc(x.name)}" data-svn="${x.id}"><input class="in hr" value="${esc((x.start_time||'').slice(0,5))}" data-svt="${x.id}|start_time" inputmode="numeric" placeholder="19:00"><span class="svto">→</span><input class="in hr" value="${esc((x.end_time||'').slice(0,5))}" data-svt="${x.id}|end_time" inputmode="numeric" placeholder="21:00">${del}</div>`; }).join('');
+  return mtop('Réservations','resa')+crumb([['Réservations','resa'],['Services']])+ph('Services','Midi, soir, premier et second service : les créneaux proposés à la réservation','')+resaTabs()+
+   `<section class="list pc plain"><div class="pb"><p class="note" style="margin:0 0 12px">Heures au format 24 h (19:00, 22:30).</p>${rows||'<div class="empty">Aucun service.</div>'}
+   <div class="svrow svnew"><input class="in svname" id="svNewN" placeholder="Nouveau service (ex. Service du soir)"><input class="in hr" id="svNewA" placeholder="19:00" inputmode="numeric"><span class="svto">→</span><input class="in hr" id="svNewB" placeholder="22:00" inputmode="numeric"><button class="btn" data-act="svAdd">${I('plus')}Ajouter</button></div></div></section>`;
+}
+let ALLRESA=null, ALLRESA_ST='';
+function loadAllResa(){ if(ALLRESA_ST) return; ALLRESA_ST='loading';
+  sb.from('restaurant_reservations').select('date_iso,covers,status,attended,from_email,phone,from_name').eq('client_slug',RESA_SLUG).limit(20000).then(r=>{ ALLRESA=r.data||[]; ALLRESA_ST=r.error?'err':'ok'; render(); }); }
+function pageResaStats(){
+  loadAllResa();
+  const per=UI.stp||'month', now=new Date(), iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  let rg=null;
+  if(per==='week'){ const dow=(now.getDay()+6)%7, mo=new Date(now); mo.setDate(now.getDate()-dow); const su=new Date(mo); su.setDate(mo.getDate()+6); const pm=new Date(mo); pm.setDate(mo.getDate()-7); const ps=new Date(mo); ps.setDate(mo.getDate()-1); rg=[iso(mo),iso(su),iso(pm),iso(ps)]; }
+  if(per==='month') rg=[iso(new Date(now.getFullYear(),now.getMonth(),1)),iso(new Date(now.getFullYear(),now.getMonth()+1,0)),iso(new Date(now.getFullYear(),now.getMonth()-1,1)),iso(new Date(now.getFullYear(),now.getMonth(),0))];
+  if(per==='year') rg=[now.getFullYear()+'-01-01',now.getFullYear()+'-12-31',(now.getFullYear()-1)+'-01-01',(now.getFullYear()-1)+'-12-31'];
+  const all=(ALLRESA||[]).filter(r=>(r.status||'confirmed')!=='removed');
+  const cur=rg?all.filter(r=>r.date_iso>=rg[0]&&r.date_iso<=rg[1]):all, prev=rg?all.filter(r=>r.date_iso>=rg[2]&&r.date_iso<=rg[3]):null;
+  const seats=capacity(), today=iso(now);
+  const st=rows=>{ const ok=rows.filter(r=>(r.status||'confirmed')==='confirmed'); const cov=ok.reduce((a,r)=>a+(+r.covers||0),0); const days=new Set(ok.map(r=>r.date_iso)).size||1;
+    const ns=ok.filter(r=>r.date_iso<today&&!r.attended).length+rows.filter(r=>r.status==='noshow').length;
+    const keys={}; ok.forEach(r=>{ const k=(r.from_email||r.phone||r.from_name||'').trim().toLowerCase(); if(k) keys[k]=(keys[k]||0)+1; });
+    return {n:rows.length,cov,fill:seats?Math.round(cov/(seats*days)*100):null,ns,can:rows.filter(r=>r.status==='cancelled').length,ret:Object.values(keys).filter(v=>v>1).length,ok}; };
+  const a=st(cur), b=prev?st(prev):null;
+  const DN=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+  const byDay={}; a.ok.forEach(r=>{ const d=DN[new Date(r.date_iso+'T12:00:00').getDay()]; byDay[d]=(byDay[d]||0)+1; });
+  const sd=Object.entries(byDay).sort((x,y)=>y[1]-x[1]);
+  const delta=(c,p)=>{ if(p==null) return ''; if(!p&&!c) return '<small class="sd n">—</small>'; if(!p) return `<small class="sd up">▲ nouveau</small>`; const pc=Math.round((c-p)/p*100); return `<small class="sd ${pc>0?'up':pc<0?'down':'n'}">${pc>0?'▲ +':pc<0?'▼ ':''}${pc}%</small>`; };
+  const kc=(v,l,c,p,inv)=>`<div class="kc"><b>${v}</b><span>${l}</span>${b?delta(c,p).replace(inv?/up|down/g:/$^/,m=>m==='up'?'down':'up'):''}</div>`;
+  const fillDays=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'].map(n=>{ const rs=a.ok.filter(r=>DN[new Date(r.date_iso+'T12:00:00').getDay()]===n); const cov=rs.reduce((x,r)=>x+(+r.covers||0),0); const dd=new Set(rs.map(r=>r.date_iso)).size; const rate=seats&&dd?Math.round(cov/(seats*dd)*100):null;
+    return `<div class="fdr"><span class="fdn">${n}</span><div class="fdb"><i style="width:${rate==null?0:Math.min(rate,100)}%"></i></div><em>${rate==null?'—':rate+' %'}</em></div>`; }).join('');
+  const tabs=`<div class="clchips">${[['week','Semaine'],['month','Mois'],['year','Année'],['total','Total']].map(([k,l])=>`<button class="clchip${per===k?' on':''}" data-act="stPer" data-k="${k}">${l}</button>`).join('')}</div>`;
+  const body=ALLRESA_ST!=='ok'?`<div class="empty">${ALLRESA_ST==='err'?'Statistiques illisibles.':'Chargement…'}</div>`:
+   `<div class="kgrid">${kc(a.n,'Réservations',a.n,b&&b.n)}${kc(a.cov,'Couverts',a.cov,b&&b.cov)}${kc(a.fill==null?'—':a.fill+' %','Taux de remplissage',a.fill||0,b&&(b.fill||0))}${kc(a.ret,'Clients revenus',a.ret,b&&b.ret)}${kc(a.ns,'No-shows',a.ns,b&&b.ns,1)}${kc(a.can,'Annulations',a.can,b&&b.can,1)}
+    <div class="kc"><b>${sd[0]?sd[0][0]:'—'}</b><span>Jour le plus demandé</span>${sd[0]?`<small class="sd n">${sd[0][1]} résas</small>`:''}</div><div class="kc"><b>${sd.length?sd[sd.length-1][0]:'—'}</b><span>Jour le moins demandé</span>${sd.length?`<small class="sd n">${sd[sd.length-1][1]} résas</small>`:''}</div></div>
+    ${card('Remplissage par jour','stats',seats?fillDays:'<div class="empty">Ajoutez vos tables (onglet Espaces et tables) pour calculer le remplissage.</div>')}`;
+  return mtop('Réservations','resa')+crumb([['Réservations','resa'],['Statistiques']])+ph('Statistiques des réservations',b?'Comparé à la période précédente':'Depuis le début','')+resaTabs()+tabs+body;
+}
+
 // ══ Rendu ══
 const PAGES={dash,resa:pageResa,carte:pageCarte,menus:pageMenus,mdj:pageMdj,formule:pageFormule,tuner:pageTuner,export:pageExport,xprint:pageXprint,xgbiz:pageXgbiz,xinsta:pageXinsta,xcol:pageXcol,comm:pageComm,stats:pageStats,etab:pageEtab,site:pageSite,app:pageApp,secu:pageSecu,clients:pageClients,emails:pageEmails};
 // Téléphone : même au premier niveau, fil d'Ariane « Accueil › Page » à la place du simple retour
@@ -1875,6 +1943,8 @@ function refreshPreviewsTuner(){ // l'objet formule utilisé par les aperçus es
 }
 document.addEventListener('change',async e=>{
   { const t=e.target, ds=t.dataset||{};
+    if(ds.svn){ await spRun(sb.from('restaurant_services').update({name:t.value.trim()}).eq('id',ds.svn),'Enregistré'); return; }
+    if(ds.svt){ const [id,f]=ds.svt.split('|'); const v=toHM(fromHM(t.value)); if(!v){ toast('Heure invalide'); return; } t.value=v; await spRun(sb.from('restaurant_services').update({[f]:v}).eq('id',id),'Enregistré'); return; }
     if(ds.spn){ await spRun(sb.from('restaurant_spaces').update({name:t.value.trim()}).eq('id',ds.spn),'Enregistré'); return; }
     if(ds.tbn){ await spRun(sb.from('restaurant_tables').update({name:t.value.trim()||null}).eq('id',ds.tbn),'Enregistré'); return; }
     if(ds.tbs){ await spRun(sb.from('restaurant_tables').update({seats:+t.value}).eq('id',ds.tbs),'Enregistré'); return; } }
@@ -1947,6 +2017,9 @@ document.addEventListener('click',async e=>{
     case 'spDel': UI.delc=null; await spRun(sb.from('restaurant_tables').delete().eq('space_id',d.id)); await spRun(sb.from('restaurant_spaces').delete().eq('id',d.id),'Espace supprimé'); break;
     case 'tbAdd': await spRun(sb.from('restaurant_tables').insert({client_slug:RESA_SLUG,space_id:d.id,seats:2})); break;
     case 'tbDel': await spRun(sb.from('restaurant_tables').delete().eq('id',d.id)); break;
+    case 'stPer': UI.stp=d.k; render(); break;
+    case 'svAdd': { const n=($('#svNewN')||{}).value||'', A=toHM(fromHM(($('#svNewA')||{}).value)), B=toHM(fromHM(($('#svNewB')||{}).value)); if(!n.trim()||!A||!B){ toast('Nom, heure de début et de fin'); break; } await spRun(sb.from('restaurant_services').insert({client_slug:RESA_SLUG,name:n.trim(),start_time:A,end_time:B,sort_order:SERVICES.length?Math.max(...SERVICES.map(x=>x.sort_order||0))+1:0}),'Service ajouté'); break; }
+    case 'svDel': UI.delc=null; await spRun(sb.from('restaurant_services').delete().eq('id',d.id),'Service supprimé'); break;
     case 'logout': await sb.auth.signOut(); SESSION=null; DATA=null; render(); break;
     case 'appearance': setAppearance(d.v); break;
     case 'goResa': go('resa'); break;
