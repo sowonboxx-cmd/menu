@@ -202,7 +202,7 @@ const mailResto = (st, r) => page(st.restaurant_name,
    ${line('Offres', r.marketing_optin ? 'accepte de recevoir les offres' : 'non')}</table>
    <p style="color:#6b7080;font-size:13.5px">Répondre à cet email écrit directement au client.</p>`);
 function page(title, inner) {
-  return `<!doctype html><html><body style="margin:0;background:#f5f3ef;font-family:-apple-system,Segoe UI,Inter,Arial,sans-serif;color:#16181d">
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light only"><style>:root{color-scheme:light only;supported-color-schemes:light only}</style></head><body style="margin:0;background:#f5f3ef;font-family:-apple-system,Segoe UI,Inter,Arial,sans-serif;color:#16181d">
   <div style="max-width:520px;margin:0 auto;padding:28px 18px"><div style="text-align:center;font-family:Georgia,serif;font-size:24px;font-weight:700;letter-spacing:.03em;color:#10285e;margin-bottom:18px">${esc(title)}</div>
   <div style="background:#fff;border-radius:18px;padding:22px 22px 18px;line-height:1.5">${inner}</div>
   <p style="text-align:center;color:#a3a7b1;font-size:11.5px;margin-top:16px">Réservation gérée avec Beltab</p></div></body></html>`;
@@ -326,7 +326,7 @@ function campaignHtml(st, tpl, f, unsubUrl) {
       ${f.info1 || f.info2 ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="8" style="margin:0 0 14px"><tr>${box('Quand', f.info1)}${box('Prix', f.info2)}</tr></table>` : ''}${btn()}</div>`;
   }
   const foot = [st.restaurant_name, st.address, st.phone].filter(Boolean).map(esc).join(' · ');
-  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=${encodeURIComponent(font).replace(/%20/g, '+')}:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><title>${esc(f.title || st.restaurant_name)}</title></head>
+  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light only"><style>:root{color-scheme:light only;supported-color-schemes:light only}</style><link href="https://fonts.googleapis.com/css2?family=${encodeURIComponent(font).replace(/%20/g, '+')}:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><title>${esc(f.title || st.restaurant_name)}</title></head>
 <body style="margin:0;padding:0;background:#f5f3ef"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ef"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#ffffff;border-radius:18px;overflow:hidden"><tr><td>
 <div style="text-align:center;padding:22px 20px 18px;font-family:${serif};font-size:22px;font-weight:bold;letter-spacing:3px;color:${col}">${esc(String(st.restaurant_name).toUpperCase())}</div>
