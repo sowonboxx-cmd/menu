@@ -710,6 +710,7 @@ body.home-cover-showing{overflow:hidden}
 .hcs-kb-pan-bottom{animation-name:hcsPanBottom}
 .hcs-kb-pan-left{animation-name:hcsPanLeft}
 .hcs-kb-pan-right{animation-name:hcsPanRight}
+.home-cover-dim{position:absolute;inset:0;pointer-events:none}
 .home-cover-overlay{position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.65) 0%,rgba(0,0,0,.15) 45%,rgba(0,0,0,.35) 100%)}
 /* Name is NOT part of the fade group below — it stays put the whole
    time, so the handoff to the real header's own name (once the cover
@@ -3883,7 +3884,7 @@ function renderHomeCover(){
   const headlineHtml=escapeHtmlLocal(hc.headline||'').replace(/\n/g,'<br>');
   el.innerHTML=`<div class="home-cover" id="homeCoverEl">
     <div class="home-cover-media">${mediaHtml}</div>
-    <div class="home-cover-overlay"></div>
+    <div class="home-cover-overlay"></div>${(()=>{ const dim=hc.dim!=null&&hc.dim!==''?+hc.dim:(hc.mediaType==='video'?30:0); return dim>0?`<div class="home-cover-dim" style="background:rgba(0,0,0,${Math.min(80,dim)/100})"></div>`:''; })()}
     <div class="home-cover-top">
       ${hc.logo
         ? `<img src="${escAttr(hc.logo)}" alt="${escAttr(getRestaurantName())}" class="home-cover-logo" onerror="this.style.display='none'">`
