@@ -40,15 +40,21 @@ export default {
       catch (e) { return json({ ok: false, error: String(e && e.message || e) }, 500, cors); }
     }
     // ── Espace restaurateur (/gestion) : session Supabase + admin du resto ──
-    if (['/clients', '/campaign/preview', '/campaign/send', '/club/redeem'].includes(url.pathname)) {
+    if (['/clients', '/campaign/preview', '/campaign/send', '/club/redeem', '/club/tier'].includes(url.pathname)) {
       try {
         const body = req.method === 'POST' ? await req.json() : {};
         const slug = String(body.slug || url.searchParams.get('slug') || '');
         const who = await adminOf(env, req, slug);
         if (!who) return json({ ok: false, error: 'Accès refusé' }, 403, cors);
         if (url.pathname === '/clients') {
-          const rows = await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&select=id,email,phone,name,visits,first_seen,last_seen,marketing_optin,club_member,club_code,club_no,club_joined_at,coupe_used_at,source&order=last_seen.desc&limit=5000`);
+          const rows = await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&select=id,email,phone,name,visits,first_seen,last_seen,marketing_optin,club_member,club_code,club_no,club_joined_at,coupe_used_at,source,club_tier,club_card&order=last_seen.desc&limit=5000`);
           return json({ ok: true, clients: rows || [] }, 200, cors);
+        }
+        if (url.pathname === '/club/tier') {
+          const id = parseInt(body.id, 10), tier = String(body.tier || 'membre'), card = body.card ? String(body.card) : null;
+          if (!id || !['membre', 'vip', 'staff'].includes(tier) || (card && !['navy', 'gold', 'noir'].includes(card))) return json({ ok: false, error: 'Valeur invalide' }, 400, cors);
+          await sb(env, `resa_clients?id=eq.${id}&client_slug=eq.${enc(slug)}`, { method: 'PATCH', body: { club_tier: tier, club_card: tier === 'staff' ? card : null } });
+          return json({ ok: true }, 200, cors);
         }
         if (url.pathname === '/club/redeem') {
           const code = String(body.code || '').toUpperCase().replace(/[^A-Z0-9-]/g, '');

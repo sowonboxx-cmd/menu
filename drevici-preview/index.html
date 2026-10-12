@@ -1882,6 +1882,9 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 .club-card span{display:block;font-size:21px;font-weight:800;letter-spacing:.12em}
 .club-wc{font-size:14.5px;color:#16181d;line-height:1.45;margin-bottom:16px}.club-wc small{color:#6b7080;font-size:12px}
 .club-later{background:none;border:0;color:#6b7080;font-size:13.5px;margin-top:10px;cursor:pointer;padding:6px}
+.club-dl{background:#fdf1e4;border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.5;color:#7a3b12;margin-bottom:14px}
+.club-ig{background:#fff;border-radius:16px;padding:14px;box-shadow:inset 0 0 0 1px #e8e2d6}.club-ig b{display:block;font-size:15px;color:#10285e}.club-ig span{display:block;font-size:13px;color:#6b7080;margin:4px 0 12px;line-height:1.4}
+.club-iga{display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(90deg,#f58529,#dd2a7b 50%,#8134af)}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
@@ -3886,7 +3889,7 @@ function clubWelcome(me,already){
       <div class="club-card"><img src="charte/files/mascotte/DreviciOyster_Mascotte_Affiche_Vins-Champagnes.webp" alt=""><div><small>Carte membre</small><b>Drevici Oyster</b><span>${clubEsc(me.code)}</span></div></div>
       <div class="club-wc">🥂 Votre coupe vous attend avec votre repas<br><b>jusqu'au ${clubLimit(me)}</b>.<br><small>Donnez ce code en arrivant. Il vous a aussi été envoyé par email.</small></div>
       <a class="club-cta club-a" href="resa.html?${q}">Réserver ma table</a>
-      <button type="button" class="club-later" onclick="closeClubSheet()">Plus tard</button>
+      <button type="button" class="club-later" onclick="clubLater()">Plus tard</button>
     </div>`);
   if(!already) clubConfetti();
 }
@@ -3897,6 +3900,18 @@ function clubConfetti(){
   let t=0; (function f(){ x.clearRect(0,0,box.width,box.height); P.forEach(p=>{ p.vy+=.18; p.x+=p.vx; p.y+=p.vy; p.r+=p.vr; x.save(); x.translate(p.x,p.y); x.rotate(p.r); x.fillStyle=p.c; x.fillRect(-p.s/2,-p.s/4,p.s,p.s/2); x.restore(); }); if(++t<150) requestAnimationFrame(f); else x.clearRect(0,0,box.width,box.height); })();
 }
 function clubLinkRefresh(){ const me=clubMe(), l=document.querySelector('.club-link-t'); if(l&&me&&me.code) l.innerHTML='✓ MEMBRE DU CLUB <em>· voir ma carte</em><i>›</i>'; }
+function clubLater(){
+  const me=clubMe()||{}, end=new Date((me.at||Date.now())+30*864e5), left=Math.max(0,Math.ceil((end-Date.now())/864e5));
+  const ig=((DATA&&DATA.social&&DATA.social.instagram)||'drevicioysterbar').replace(/^@/,'').replace(/^https?:\/\/(www\.)?instagram\.com\//,'').replace(/\/$/,'');
+  clubShell(`<div class="club-wel">
+    <div class="club-wt" style="font-size:24px">Pas de souci !</div>
+    <div class="club-ws" style="margin-bottom:12px">Votre carte vous attend, et votre coupe aussi…</div>
+    <div class="club-dl">⏳ Plus que <b>${left} jour${left>1?'s':''}</b> pour en profiter, jusqu'au <b>${end.toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}</b>.<br>Venez vite !</div>
+    <div class="club-ig"><b>En attendant, suivez-nous sur Instagram</b><span>Jeux et cadeaux à gagner, soirées et nouveautés en avant-première.</span>
+      <a class="club-cta club-a club-iga" href="https://instagram.com/${clubEsc(ig)}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>Suivre @${clubEsc(ig)}</a></div>
+    <a class="club-cta club-a" style="background:#fff;color:#10285e;box-shadow:inset 0 0 0 1.5px #10285e;margin-top:10px" href="resa.html?${new URLSearchParams({club:me.code||'',t:String(me.at||Date.now()),prenom:me.first||'',nom:me.last||'',email:me.email||'',tel:me.phone||''})}">Réserver ma table</a>
+    <button type="button" class="club-later" onclick="closeClubSheet()">Fermer</button></div>`);
+}
 function closeClubSheet(){ const el=document.getElementById('clubSheet'); if(el) el.classList.remove('open'); }
 // Lien direct (story, affiche) : …/?club ou #club ouvre la feuille.
 if(CLUB_ON&&(/[?&]club\b/.test(location.search)||location.hash==='#club')) setTimeout(openClubSheet,900);
