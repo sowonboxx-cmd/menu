@@ -200,7 +200,8 @@ async function quotaAlert(env, st) {
 async function sendEmail(env, st, to, toName, subject, html, replyTo) {
   const body = {
     sender: { name: st.restaurant_name, email: env.SENDER_EMAIL },
-    to: [{ email: to, name: toName || undefined }],
+    // Plusieurs destinataires possibles, séparés par des virgules (ex. notify_email = « resto@…, moi@… »).
+    to: String(to).split(/[,;\s]+/).filter(Boolean).map(e => ({ email: e, name: toName || undefined })),
     subject, htmlContent: html,
   };
   const rt = replyTo || st.reply_to;
