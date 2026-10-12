@@ -4433,7 +4433,7 @@ function renderAdminHomeCover(){
     <div class="af">
       <div class="ai-img-wrap ig-merged-upload">
         <input class="ai ig-tall-field ig-placeholder-normal-size" style="width:100%;padding:14px 50px 14px 16px!important" value="${escAttr(hc.video||'')}" placeholder="Uploadez votre vidéo" oninput="DATA.homeCover.video=this.value.trim();renderAll();scheduleCoverAutoSave()">
-        <label class="ig-inline-upload-icon" title="Uploader une vidéo (bientôt disponible)" onclick="event.preventDefault();showToast('⏳ Upload direct de vidéo bientôt disponible — utilisez un lien pour l\\'instant.')">
+        <label class="ig-inline-upload-icon" title="Uploader une vidéo (MP4, 60 Mo max)"><input type="file" accept="video/mp4,video/webm,video/quicktime" hidden onchange="uploadCoverVideo(this)">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.22,20.75H5.78A2.64,2.64,0,0,1,3.25,18V15a.75.75,0,0,1,1.5,0v3a1.16,1.16,0,0,0,1,1.25H18.22a1.16,1.16,0,0,0,1-1.25V15a.75.75,0,0,1,1.5,0v3A2.64,2.64,0,0,1,18.22,20.75Z"/><path d="M16,8.75a.74.74,0,0,1-.53-.22L12,5.06,8.53,8.53A.75.75,0,0,1,7.47,7.47l4-4a.75.75,0,0,1,1.06,0l4,4a.75.75,0,0,1,0,1.06A.74.74,0,0,1,16,8.75Z"/><path d="M12,15.75a.76.76,0,0,1-.75-.75V4a.75.75,0,0,1,1.5,0V15A.76.76,0,0,1,12,15.75Z"/></svg>
         </label>
       </div>
@@ -11698,6 +11698,21 @@ function compressImageFile(file, {ratio=null, maxDim=1000, quality=0.8}={}){
 function readImageFileSafe(file, onOk, opts){
   if(!file) return;
   compressImageFile(file, opts).then(onOk).catch(e => showToast('⚠️ '+e.message));
+}
+// Vidéo plein écran de l'accueil : envoyée sur media.beltab.app (même serveur d'envoi que /gestion).
+async function uploadCoverVideo(input){
+  const file=input.files&&input.files[0]; input.value=''; if(!file) return;
+  if(IS_PREVIEW){ showToast('👁 Preview en lecture seule'); return; }
+  if(!/^video\//.test(file.type)){ showToast('Choisissez une vidéo MP4 ou WebM'); return; }
+  if(file.size>60*1024*1024){ showToast('Vidéo trop lourde (60 Mo max) : raccourcissez-la'); return; }
+  if(!supaSession){ showToast('Connectez-vous d\'abord'); return; }
+  showToast('Envoi de la vidéo… (peut prendre une minute)');
+  try{
+    const r=await fetch('https://upload.beltab.app/upload?slug='+encodeURIComponent(CLIENT_SLUG)+'&kind=video',{method:'POST',headers:{'Authorization':'Bearer '+supaSession.access_token,'Content-Type':file.type},body:file});
+    const j=await r.json().catch(()=>({}));
+    if(r.ok&&j.url){ DATA.homeCover.video=j.url; DATA.homeCover.mediaType='video'; renderAll(); scheduleCoverAutoSave(); showToast('✓ Vidéo enregistrée'); }
+    else showToast('⚠ '+(j.error||('Envoi impossible ('+r.status+')')));
+  }catch(e){ console.warn('video',e); showToast('⚠ Serveur d\'envoi injoignable'); }
 }
 function uploadImgFile(fileInput, ratio){
   const file = fileInput.files[0];
