@@ -1689,8 +1689,9 @@ function pageSite(){
     ?`<div class="slots two">${siteUp(hc.image,'image','Photo plein écran')}${siteUp(hc.mobileImage,'mobileImage','Photo mobile (optionnel)')}</div>
       <div class="mpos"><label class="fd"><span>Cadrage sur mobile · <b>${pos} %</b></span><input type="range" min="0" max="100" value="${pos}" data-bind="hc.mobilePos"></label><div class="phone">${hc.mobileImage||hc.image?`<img src="${esc(hc.mobileImage||hc.image)}" alt="" style="object-position:${hc.mobileImage?50:pos}% center">`:'<small>Aperçu mobile</small>'}</div></div>`
     :mt==='video'
-    ?`<div class="slots one">${siteUp(hc.video,'video','Vidéo (MP4, 60 Mo max)','video')}</div><p class="note">Coupée du son, en boucle. Une vidéo courte (10 à 20 s) se charge plus vite.</p>`
+    ?`<div class="slots one">${siteUp(hc.video,'video','Vidéo (MP4, 60 Mo max)','video')}</div><p class="note">Coupée du son, en boucle. Une vidéo courte (10 à 20 s) se charge plus vite.</p>${dimField(30)}`
     :`<div class="slots">${hc.slideshow.slice(0,3).map((sl,i)=>`<div>${siteUp(sl.image,'s'+i,'Photo '+(i+1))}<label class="fd kb"><span>Mouvement</span><select class="in" data-bind="hc.kb.${i}">${KB.map(([k,l])=>`<option value="${k}"${(sl.kenBurns||'zoom-in')===k?' selected':''}>${l}</option>`).join('')}</select></label></div>`).join('')}</div>`;
+  function dimField(def){ const v=hc.dim!=null&&hc.dim!==''?+hc.dim:def; return `<label class="fd" style="margin-top:12px"><span>Voile sombre sur le visuel · <b class="dimv">${v} %</b></span><input type="range" min="0" max="70" step="5" value="${v}" data-bind="hc.dim"></label><p class="note">Assombrit légèrement la vidéo pour que le logo et les textes blancs restent lisibles, même sur des images claires.</p>`; }
   const accueil=card('Accueil','acc',
     opt('Afficher l\'écran d\'accueil',hc.active!==false,'hcFlag','data-k="active"','Le grand visuel à l\'ouverture du site')+
     `<div class="grp"><div class="grp-t">Visuel</div><div class="seg big">${[['photo','Photo'],['video','Vidéo'],['slideshow','Diaporama']].map(([k,l])=>`<button type="button" data-act="hcType" data-v="${k}" class="${mt===k?'on':''}">${l}</button>`).join('')}</div><div style="margin-top:12px">${media}</div></div>
@@ -1985,7 +1986,7 @@ function setByBind(path,val){
     if(f==='caption'){ it.caption=val; return; }
     if(f==='sz'){ const z=it.sizes[+p[5]]; z[p[6]]=val; if(p[6]==='format'&&BEV_AUTO[val]!=null){ z.cl=BEV_AUTO[val]; z.unit='cl'; UI.needRender=true; } return; }
     return; }
-  if(p[0]==='hc'){ const hc=DATA.homeCover; if(p[1]==='kb'){ hc.slideshow[+p[2]].kenBurns=val; return; } if(p[1]==='mobilePos'){ hc.mobilePos=parseInt(val)||0; const im=document.querySelector('.phone img'); if(im) im.style.objectPosition=val+'% center'; const b=document.querySelector('.mpos .fd b'); if(b) b.textContent=val+' %'; return; } hc[p[1]]=val; if(p[1]==='headlineFont'||p[1]==='statusBarColor') UI.needRender=true; return; }
+  if(p[0]==='hc'){ const hc=DATA.homeCover; if(p[1]==='kb'){ hc.slideshow[+p[2]].kenBurns=val; return; } if(p[1]==='dim'){ hc.dim=parseInt(val)||0; const b=document.querySelector('.dimv'); if(b) b.textContent=hc.dim+' %'; return; } if(p[1]==='mobilePos'){ hc.mobilePos=parseInt(val)||0; const im=document.querySelector('.phone img'); if(im) im.style.objectPosition=val+'% center'; const b=document.querySelector('.mpos .fd b'); if(b) b.textContent=val+' %'; return; } hc[p[1]]=val; if(p[1]==='headlineFont'||p[1]==='statusBarColor') UI.needRender=true; return; }
   if(p[0]==='intro'){ if(!DATA.intro.text||typeof DATA.intro.text!=='object') DATA.intro.text={fr:DATA.intro.text||''}; DATA.intro.text[LG()]=val; return; }
   if(p[0]==='pdf'){ pS()[p[1]]=val; return; }
   if(p[0]==='root'){ DATA[p[1]]=val; if(p[1]==='restoFont') UI.needRender=true; return; }
