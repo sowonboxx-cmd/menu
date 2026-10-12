@@ -1846,6 +1846,26 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 .sk::after{content:'';position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.09),transparent);animation:skShimmer 1.3s infinite}
 @keyframes skShimmer{to{transform:translateX(100%)}}
 @media (prefers-reduced-motion:reduce){.sk::after{animation:none}}
+
+/* Club : lien souligné doré + flèche (préview) */
+.club-link{display:inline-block;margin:16px auto 0;background:none;border:0;padding:6px 4px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.club-link-t{display:inline-flex;align-items:center;gap:6px;color:#fff;font-family:'Jost',sans-serif;font-weight:600;font-size:13px;letter-spacing:.06em;padding-bottom:5px;border-bottom:1px solid rgba(240,217,168,.9);white-space:nowrap}
+.club-link-t em{font-style:normal;font-weight:500;letter-spacing:0;color:#f0d9a8}
+.club-link-t i{font-style:normal;color:#f0d9a8;font-size:16px;line-height:1;margin-left:2px;display:inline-block;animation:clubNudge 1.8s ease-in-out infinite}
+@keyframes clubNudge{0%,60%,100%{transform:translateX(0)}30%{transform:translateX(4px)}}
+.club-link:hover .club-link-t{border-bottom-color:#f0d9a8}
+@media(prefers-reduced-motion:reduce){.club-link-t i{animation:none}}
+.club-sheet-wrap{position:fixed;inset:0;z-index:100000;pointer-events:none}
+.club-dim{position:absolute;inset:0;background:rgba(0,0,0,.45);opacity:0;transition:opacity .25s}
+.club-sheet{position:absolute;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:#f5f1ea;border-radius:26px 26px 0 0;padding:12px 22px calc(24px + env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .3s cubic-bezier(.2,.8,.2,1);font-family:Inter,'Open Sans',sans-serif;color:#16181d}
+.club-sheet-wrap.open{pointer-events:auto}.club-sheet-wrap.open .club-dim{opacity:1}.club-sheet-wrap.open .club-sheet{transform:none}
+.club-grab{width:42px;height:5px;border-radius:9px;background:#d4cec3;margin:0 auto 12px}
+.club-sh{display:flex;gap:14px;align-items:center;margin-bottom:14px}.club-sh img{width:72px;height:72px;border-radius:18px;object-fit:cover;object-position:center 35%;background:#fff}
+.club-sh small{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#b8945a;font-weight:700}.club-sh b{display:block;font-family:'Playfair Display',serif;font-size:20px;color:#10285e;line-height:1.15;margin-top:3px}
+.club-f{display:block;background:#fff;border-radius:13px;padding:8px 13px;margin:0 0 8px}.club-f small{display:block;font-size:11px;color:#7a7f8a}.club-f input{border:0;outline:0;width:100%;font-size:16px;padding:2px 0;background:none;color:#16181d}
+.club-ck{display:flex;gap:8px;font-size:12px;color:#555;margin:8px 2px 12px;line-height:1.35;align-items:flex-start}.club-ck input{margin-top:1px}
+.club-cta{width:100%;border:0;background:#10285e;color:#fff;border-radius:999px;padding:15px;font-weight:600;font-size:15.5px;cursor:pointer}.club-cta:disabled{opacity:.85}
+.club-note{font-size:10.5px;color:#8a8f99;text-align:center;margin:10px 0 0;line-height:1.4}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
@@ -3786,6 +3806,7 @@ function renderHomeCover(){
             : `<button type="button" class="home-cover-cta home-cover-cta-menu" onclick="dismissHomeCover()">${escapeHtmlLocal(hc.cta1Label||'Voir le menu')}</button>`}
           <a class="home-cover-cta home-cover-cta-reserve" href="${escAttr(cta2Url)}">${escapeHtmlLocal(hc.cta2Label||'Réserver')}</a>
         </div>
+        ${CLUB_ON?`<button type="button" class="club-link" onclick="openClubSheet()"><span class="club-link-t">🥂 REJOINDRE LE CLUB <em>· coupe offerte</em><i>›</i></span></button>`:''}
       </div>
     </div>
   </div>`;
@@ -3794,6 +3815,25 @@ function renderHomeCover(){
   if(themeMeta) themeMeta.setAttribute('content', hc.statusBarColor || (DATA.brandColors&&DATA.brandColors.accent) || '#000000');
   startHomeCoverSlideshow();
 }
+// ── Club (préview) : lien sous les boutons de l'accueil + feuille d'inscription ──
+const CLUB_ON = /preview|localhost|127\.0\.0\.1|file:/.test(location.href);
+function openClubSheet(){
+  let el=document.getElementById('clubSheet');
+  if(!el){ el=document.createElement('div'); el.id='clubSheet'; el.className='club-sheet-wrap';
+    el.innerHTML=`<div class="club-dim" onclick="closeClubSheet()"></div><div class="club-sheet" role="dialog" aria-label="Rejoindre le club">
+      <div class="club-grab"></div>
+      <div class="club-sh"><img src="charte/files/mascotte/DreviciOyster_Mascotte_Affiche_Vins-Champagnes.webp" alt=""><div><small>Le Club Drevici</small><b>Une coupe offerte à votre 1<sup>re</sup> visite</b></div></div>
+      <label class="club-f"><small>Prénom</small><input autocomplete="given-name" placeholder="Votre prénom"></label>
+      <label class="club-f"><small>Email</small><input type="email" autocomplete="email" placeholder="vous@exemple.fr"></label>
+      <label class="club-f"><small>Téléphone</small><input type="tel" autocomplete="tel" placeholder="06 12 34 56 78"></label>
+      <label class="club-ck"><input type="checkbox"> Recevoir les soirées et offres du Drevici par email et SMS. Désinscription en 1 clic.</label>
+      <button type="button" class="club-cta" onclick="this.textContent='Le club ouvre très bientôt 🥂';this.disabled=true">Je rejoins le club 🥂</button>
+      <p class="club-note">Coupe offerte pour un repas réservé, une par membre. Réservé aux plus de 18 ans. L'abus d'alcool est dangereux pour la santé.</p>
+    </div>`;
+    document.body.appendChild(el); }
+  requestAnimationFrame(()=>el.classList.add('open'));
+}
+function closeClubSheet(){ const el=document.getElementById('clubSheet'); if(el) el.classList.remove('open'); }
 // Cycles through the slideshow's slides via a crossfade — each slide's
 // own Ken Burns animation (see CSS) restarts automatically because
 // adding/removing .hcs-active re-triggers it (animation resets when an
