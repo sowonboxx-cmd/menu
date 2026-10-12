@@ -3854,11 +3854,10 @@ function openClubSheet(){
       <label class="club-f"><small>Téléphone</small><input name="phone" type="tel" autocomplete="tel" placeholder="06 12 34 56 78" required></label>
       <input name="hp" tabindex="-1" autocomplete="off" class="club-hp" aria-hidden="true">
       <label class="club-ck"><input type="checkbox" name="consent" onchange="document.getElementById('clubGo').disabled=!this.checked"> J'accepte de recevoir les soirées, avant-premières et offres du club par email et SMS. C'est le principe du club ; désinscription en 1 clic (lien ou STOP).</label>
-      <label class="club-ck sm"><input type="checkbox" name="hide"> Ne pas afficher mon prénom dans la liste des membres.</label>
       <div class="club-err" id="clubErr"></div>
       <button type="submit" class="club-cta" id="clubGo" disabled>Je rejoins le club 🥂</button>
     </form>
-    <p class="club-note">Coupe offerte pour un repas réservé, une par membre. Réservé aux plus de 18 ans. L'abus d'alcool est dangereux pour la santé.</p>`);
+    <p class="club-note">Votre prénom et l'initiale de votre nom pourront apparaître dans la liste des premiers membres (retrait sur simple demande). Coupe offerte pour un repas réservé, une par membre. Réservé aux plus de 18 ans. L'abus d'alcool est dangereux pour la santé.</p>`);
 }
 async function clubSubmit(e){
   e.preventDefault(); const f=e.target, v=n=>(f.elements[n].value||'').trim(), err=document.getElementById('clubErr'), go=document.getElementById('clubGo');
@@ -3869,7 +3868,7 @@ async function clubSubmit(e){
   let src='SITE'; try{ const o=JSON.parse(localStorage.getItem('beltab_src')||'null'); if(o&&o.code&&Date.now()-o.t<7*864e5) src=o.code; }catch(_){}
   go.disabled=true; go.textContent='Un instant…';
   try{
-    const r=await fetch(CLUB_API+'/club/join',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({slug:CLUB_SLUG,first:v('first'),last:v('last'),email:v('email'),phone:v('phone'),consent:f.elements.consent.checked,show:!f.elements.hide.checked,hp:v('hp'),src,site:location.origin+'/resa.html'})});
+    const r=await fetch(CLUB_API+'/club/join',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({slug:CLUB_SLUG,first:v('first'),last:v('last'),email:v('email'),phone:v('phone'),consent:f.elements.consent.checked,show:true,hp:v('hp'),src,site:location.origin+'/resa.html'})});
     const d=await r.json();
     if(!d.ok){ err.textContent=d.error||'Une erreur est survenue, réessayez.'; go.disabled=false; go.textContent='Je rejoins le club 🥂'; return; }
     const me={code:d.code,no:d.no,first:d.first||v('first'),last:v('last'),email:v('email'),phone:v('phone')};
