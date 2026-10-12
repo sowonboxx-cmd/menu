@@ -66,6 +66,8 @@ async function route(request, url, env, ctx, isPreview) {
   }
 
   const res = await env.ASSETS.fetch(request);
+  // Transition : un site pas encore republié n'a pas /book → on renvoie vers /resa (et inversement).
+  if (res.status === 404 && (path === '/book' || path === '/book.html')) return Response.redirect(url.origin + '/resa' + url.search, 302);
   const type = res.headers.get('content-type') || '';
   if ((path === '/' || path === '/index.html') && res.ok && type.includes('text/html')) {
     const row = await loadRow(env, ctx);
