@@ -81,6 +81,7 @@ def index(s):
     s = rep(s, "#drevicioyster #paris #evenement #huitres</div>", "${BT.hashtags||''}</div>", 1)
     s = rep(s, "const hashtags = '#huitres #paris #morbihan #fruitsdemer #drevicioyster #directproducteur';",
             "const hashtags = BT.hashtags || '';", 1)
+    s = rep(s, "  setSiteIcon(logo);", "  setSiteIcon(DATA.favicon||logo);", 1, 'favicon')
     s = rep(s, "a.download = `drevici-${s.tplId}-${fmt}.png`;", "a.download = `${CLIENT_SLUG}-${s.tplId}-${fmt}.png`;", 1)
     return s
 

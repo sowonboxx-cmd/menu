@@ -130,6 +130,7 @@ def _pid_of(name):
 DATA = {
     'restaurantName': 'Chez Soyonne',
     'restaurantLogo': IMG + 'logo-bandeau.png',
+    'favicon': IMG + 'favicon.png',
     'showHeaderLogo': True,
     'headerStyle': 'band',
     'defaultView': 'grid',
