@@ -1,11 +1,38 @@
 // Deploiement Cloudflare de Drevici Oyster (production).
-// Publie UNIQUEMENT le dossier drevici/, a la racine du domaine.
-// Sans ce fichier, wrangler devine le dossier tout seul et prend le
-// premier qui contient un index.html (c'etait baguette/).
+// Publie le dossier drevici/ + le Worker SEO/IA commun (workers/menu-seo.js) :
+// titre, description, image de partage, donnees structurees, carte en texte pour
+// les robots, robots.txt / sitemap.xml / llms.txt. Site indexe (SITE_ENV production).
 // Commande de deploiement dans Cloudflare :
 //   npx wrangler deploy --config wrangler.drevici.jsonc
 {
   "name": "drevici",
   "compatibility_date": "2026-10-01",
-  "assets": { "directory": "./drevici" }
+  "main": "./workers/menu-seo.js",
+  "assets": {
+    "directory": "./drevici",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "vars": {
+    "CLIENT_SLUG": "drevici",
+    "SITE_ENV": "production",
+    "CANONICAL_ORIGIN": "",
+    "SUPABASE_URL": "https://fdbzzkzfipzabryfanun.supabase.co",
+    "SUPABASE_KEY": "sb_publishable_9PaqDuXnWV3aOCBPk9ImmQ_4YgYTU9n",
+    // Référencement préparé sur la recette (validé par Will le 12/10/2026). Publié le 12/10/2026.
+    "SEO": {
+      "name": "Drevici Oyster Bar",
+      "title": "Drevici Oyster Bar · Producteurs ostréiculteurs · Paris 17e",
+      "description": "Huîtres de Surzur en direct de notre parc familial, captage naturel. Bar à huîtres, vins et champagnes, 8 rue Biot Paris 17e. Réservation, soirées, livraison.",
+      "about": "Bienvenue chez Drevici Oyster, une entreprise familiale d'ostréiculteurs installée à Surzur, dans le Morbihan. Passionnés par notre métier et ancrés dans notre territoire, nous cultivons des huîtres issues de captages naturels, dans le respect des traditions et avec des pratiques innovantes et durables. Des huîtres pures, naturelles et authentiques, de notre parc breton jusqu'à notre bar à huîtres parisien du 8 rue Biot (Paris 17e) : huîtres de Bretagne, plateaux de fruits de mer, vins blancs et champagnes.",
+      "services": ["Réservation en ligne", "Soirées et événements (Girls' Night, ateliers dégustation et ouverture d'huîtres, DJ)", "Privatisation et prestations sur mesure", "Livraison", "Plateaux de fêtes"],
+      "schemaType": ["Restaurant", "BarOrPub"],
+      "cuisine": ["Huîtres", "Fruits de mer"],
+      "priceRange": "15 € – 45 €",
+      "image": "/seo/og-a1.jpg",
+      "imageWidth": "1200",
+      "imageHeight": "630",
+      "imageAlt": "Ostréiculteurs Drevici au travail dans leur parc à huîtres de Surzur, aquarelle"
+    }
+    }
 }
