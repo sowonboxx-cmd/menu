@@ -4,7 +4,7 @@ Référence des prix pour tous les devis et factures. **À relire avant chaque p
 
 - Tous les prix sont **HT**.
 - Un prix est toujours un **pack** : il comprend tout le contenu listé, rien de plus, aucun frais caché.
-- Dernière mise à jour : 12 octobre 2026 (ajout de la personnalisation sur mesure, sur devis) ; 11 octobre 2026 (offres annexes chiffrées : Aperçu du menu, Avis Google, Google Business ; SMS et emails de la formule Master ; Master à 399 € / mois depuis le 10 octobre).
+- Dernière mise à jour : 12 octobre 2026 (personnalisation sur mesure sur devis ; plan de salle visuel réservé à Master) ; 11 octobre 2026 (offres annexes chiffrées : Aperçu du menu, Avis Google, Google Business ; SMS et emails de la formule Master ; Master à 399 € / mois depuis le 10 octobre).
 - Positionnement : environ 15 à 20 % sous l'équivalent Zenchef (Reserve + site = 158 €, Manage + site + marketing = 227 €, Grow + options = 375 € par mois).
 
 ---
@@ -38,6 +38,7 @@ Chaque formule comprend la précédente. Les frais de mise en service sont payé
   - Remplissez vos tables vides (Table Boost)
   - Envoyez des emails et SMS à vos clients
   - Publiez sur vos réseaux sociaux
+  - Plan de salle visuel : le restaurant dessiné vu de haut (salles, fenêtres, tables, chaises), avec la vue service en direct. La gestion des salles et tables en liste reste incluse dès Pro.
 
 La réservation en ligne est incluse dans les trois formules, à trois niveaux : Basique (Starter), Avancée (Pro), Pro (Master).
 

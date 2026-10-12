@@ -951,6 +951,7 @@ input.in.hr{width:76px;text-align:center;padding:8px 10px;font-size:15px;font-we
 .rtabs{overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap!important;max-width:100%;min-width:0}.main{min-width:0}.rtabs::-webkit-scrollbar{display:none}.rtabs a{white-space:nowrap}
 @media(max-width:899px){.kgrid{grid-template-columns:1fr 1fr}.spwrap{grid-template-columns:1fr}.svrow{flex-wrap:wrap}.svname{flex:1 1 100%}}
 .favp{display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap}.favt{display:inline-flex;align-items:center;gap:8px;background:#eef1f6;border-radius:9px 9px 0 0;padding:7px 14px 7px 10px;font-size:12.5px;color:#333;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:inset 0 -1px 0 var(--line)}.favt i{font-style:normal;overflow:hidden;text-overflow:ellipsis}.favt img{width:16px;height:16px;object-fit:contain;flex:none;border-radius:3px}.favp small{flex:1;min-width:180px}
+.fpsec{background:#fff;border-radius:22px;box-shadow:0 0 0 1px var(--line);margin-top:22px;overflow:hidden}.fphd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:18px 20px 0}.fphd h3{margin:0;font-size:18px}.fphd p{flex-basis:100%;margin:2px 0 0;color:var(--mut);font-size:13.5px;line-height:1.5}.pill-master{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;background:#10285e;color:#fff;border-radius:999px;padding:4px 9px}
 </style>
 </head>
 <body>
@@ -1807,7 +1808,7 @@ function svcSummary(){
     <a class="btn w ssbtn" href="#/resa/svc">${I('edit')}Gérer les services</a></div>`;
 }
 function pageResaEsp(){
-  return mtop('Réservations','resa')+crumb([['Réservations','resa'],['Espaces et tables']])+ph('Espaces et tables',`${SPACES.length} espaces · ${TABLES.length} tables · ${capacity()} places`,'')+resaTabs()+`<div class="spwrap">${spacesEditor()}</div>`;
+  return mtop('Réservations','resa')+crumb([['Réservations','resa'],['Espaces et tables']])+ph('Espaces et tables',`${SPACES.length} espaces · ${TABLES.length} tables · ${capacity()} places`,'')+resaTabs()+`<div class="spwrap">${spacesEditor()}</div>`+`<section class="fpsec"><div class="fphd"><h3>Plan de salle</h3><span class="pill-master">Master</span><p>Votre restaurant vu de haut. En <b>Service</b>, qui est assis où aujourd'hui ; en <b>Modifier</b>, dessinez la salle. Les places et les espaces sont ceux de la liste ci-dessus.</p></div><div id="fpHost"></div></section>`;
 }
 function pageResaSvc(){
   const rows=SERVICES.map(x=>{ const del=UI.delc==='sv'+x.id?`<span class="delc">Supprimer ?<button class="btn g" data-act="svDel" data-id="${x.id}">Oui</button><button class="btn red" data-act="delNo">Non</button></span>`:`<button class="sptrash" data-act="delAsk" data-k="sv${x.id}" aria-label="Supprimer">${I('trash')}</button>`;
@@ -1877,7 +1878,7 @@ function render(){
   if(window.morphdom&&app.firstElementChild){
     const next=document.createElement('div'); next.id='app'; next.className=app.className; next.innerHTML=html;
     morphdom(app,next,{onBeforeElUpdated(from,to){
-      if(from.id==='emPrev') return false;
+      if(from.id==='emPrev'||from.id==='fpHost') return false;
       if(from===document.activeElement&&(from.tagName==='INPUT'||from.tagName==='TEXTAREA'||from.tagName==='SELECT')) return false;
       if(from.tagName==='IFRAME'&&from.getAttribute('data-prev')===to.getAttribute('data-prev')&&from.getAttribute('data-opt')===to.getAttribute('data-opt')&&from.getAttribute('data-i')===to.getAttribute('data-i')){ for(const at of ['class','style']) if(to.hasAttribute(at)) from.setAttribute(at,to.getAttribute(at)); return false; }
       if(from.isEqualNode(to)) return false;
@@ -1889,6 +1890,7 @@ function render(){
     scrollTo(0,y);
   }
   refreshPreviews();
+  if(window.FP&&PG==='resa'&&ARG==='esp') FP.sync();
 }
 function loginView(){ return `<div class="login"><div class="c"><h1>Beltab</h1><p>Panneau de gestion · version test</p><form id="loginForm"><label class="fd"><span>Email</span><input class="in" type="email" name="email" autocomplete="username" required></label><label class="fd"><span>Mot de passe</span><input class="in" type="password" name="pw" autocomplete="current-password" required></label><button class="btn" type="submit">Se connecter</button><div class="err" id="loginErr"></div></form></div></div>`; }
 function missingView(){ return `<div class="login"><div class="c"><h1>Copie de test absente</h1><p>La copie « ${esc(SLUG)} » de la carte n'existe pas encore. Collez le fichier <b>sql/gestion-test.sql</b> dans Supabase (SQL Editor → Run), puis rechargez cette page.</p><button class="btn" onclick="location.reload()">Recharger</button><p style="margin-top:14px"><button class="lk" data-act="logout">Se déconnecter</button></p></div></div>`; }
@@ -2140,5 +2142,6 @@ async function boot(){
 })();
 
 </script>
+<script src="floorplan.js"></script>
 </body>
 </html>
