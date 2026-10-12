@@ -3857,7 +3857,7 @@ function openClubSheet(){
       <div class="club-err" id="clubErr"></div>
       <button type="submit" class="club-cta" id="clubGo" disabled>Je rejoins le club 🥂</button>
     </form>
-    <p class="club-note">Votre prénom et l'initiale de votre nom pourront apparaître dans la liste des premiers membres (retrait sur simple demande). Coupe offerte pour un repas réservé, une par membre. Réservé aux plus de 18 ans. L'abus d'alcool est dangereux pour la santé.</p>`);
+    <p class="club-note">Votre prénom et l'initiale de votre nom pourront apparaître dans la liste des premiers membres (retrait sur simple demande). Coupe offerte pour un repas réservé, une par membre, valable 30 jours après l'inscription. Réservé aux plus de 18 ans. L'abus d'alcool est dangereux pour la santé.</p>`);
 }
 async function clubSubmit(e){
   e.preventDefault(); const f=e.target, v=n=>(f.elements[n].value||'').trim(), err=document.getElementById('clubErr'), go=document.getElementById('clubGo');
@@ -3871,11 +3871,12 @@ async function clubSubmit(e){
     const r=await fetch(CLUB_API+'/club/join',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({slug:CLUB_SLUG,first:v('first'),last:v('last'),email:v('email'),phone:v('phone'),consent:f.elements.consent.checked,show:true,hp:v('hp'),src,site:location.origin+'/resa.html'})});
     const d=await r.json();
     if(!d.ok){ err.textContent=d.error||'Une erreur est survenue, réessayez.'; go.disabled=false; go.textContent='Je rejoins le club 🥂'; return; }
-    const me={code:d.code,no:d.no,first:d.first||v('first'),last:v('last'),email:v('email'),phone:v('phone')};
+    const me={at:Date.now(),code:d.code,no:d.no,first:d.first||v('first'),last:v('last'),email:v('email'),phone:v('phone')};
     try{ localStorage.setItem('club_'+CLUB_SLUG,JSON.stringify(me)); }catch(_){}
     clubWelcome(me,!!d.already); clubLinkRefresh();
   }catch(x){ err.textContent='Connexion impossible, réessayez.'; go.disabled=false; go.textContent='Je rejoins le club 🥂'; }
 }
+function clubLimit(me){ const t=new Date((me.at||Date.now())+30*864e5); return t.toLocaleDateString('fr-FR',{day:'numeric',month:'long'}); }
 function clubWelcome(me,already){
   const q=new URLSearchParams({club:me.code,prenom:me.first||'',nom:me.last||'',email:me.email||'',tel:me.phone||''});
   clubShell(`<div class="club-wel">
@@ -3883,7 +3884,7 @@ function clubWelcome(me,already){
       <div class="club-wt">${already?'Vous êtes déjà membre ✓':`Bienvenue ${clubEsc(me.first)} !`}</div>
       <div class="club-ws">${already?'Voici votre carte.':'Vous avez rejoint le club'+(me.no?` · membre n° ${me.no}`:'')}</div>
       <div class="club-card"><img src="charte/files/mascotte/DreviciOyster_Mascotte_Affiche_Vins-Champagnes.webp" alt=""><div><small>Carte membre</small><b>Drevici Oyster</b><span>${clubEsc(me.code)}</span></div></div>
-      <div class="club-wc">🥂 Votre coupe vous attend avec votre repas.<br><small>Donnez ce code en arrivant. Il vous a aussi été envoyé par email.</small></div>
+      <div class="club-wc">🥂 Votre coupe vous attend avec votre repas<br><b>jusqu'au ${clubLimit(me)}</b>.<br><small>Donnez ce code en arrivant. Il vous a aussi été envoyé par email.</small></div>
       <a class="club-cta club-a" href="resa.html?${q}">Réserver ma table</a>
       <button type="button" class="club-later" onclick="closeClubSheet()">Plus tard</button>
     </div>`);

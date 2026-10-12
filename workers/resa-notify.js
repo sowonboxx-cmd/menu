@@ -403,12 +403,14 @@ async function clubMembers(env, slug) {
   const rows = await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&club_member=eq.true&select=name,club_no,club_show&order=club_no.asc&limit=100`) || [];
   return { ok: true, total: rows.length, members: rows.filter(r => r.club_show !== false).map(r => { const [f, ...l] = String(r.name || '').split(' '); return { no: r.club_no, name: f + (l.length ? ' ' + l[l.length - 1][0] + '.' : '') }; }) };
 }
+const COUPE_DAYS = 30;
+const coupeLimit = d => new Date(d.getTime() + COUPE_DAYS * 864e5).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', timeZone: 'Europe/Paris' });
 const mailClub = (st, first, code, no, site) => page(st.restaurant_name,
   `<p>Bonjour ${esc(first)},</p><p>Bienvenue au club ! Vous êtes le membre <b>n° ${no}</b>.</p>
    <div style="margin:18px 0;padding:20px;border-radius:16px;background:#10285e;color:#fff;text-align:center">
      <div style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#f0d9a8">Carte membre</div>
      <div style="font-family:Georgia,serif;font-size:22px;margin:6px 0 10px">${esc(st.restaurant_name)}</div>
      <div style="font-size:26px;font-weight:800;letter-spacing:.12em">${esc(code)}</div></div>
-   <p>🥂 <b>Une coupe vous attend</b> lors de votre premier repas réservé. Donnez simplement ce code en arrivant.</p>
+   <p>🥂 <b>Une coupe vous attend jusqu'au ${coupeLimit(new Date())}</b>, lors de votre premier repas réservé. Donnez simplement ce code en arrivant.</p>
    ${site ? `<p style="text-align:center;margin:22px 0"><a href="${esc(site)}" style="background:#10285e;color:#fff;text-decoration:none;border-radius:999px;padding:13px 26px;font-weight:600;display:inline-block">Réserver ma table</a></p>` : ''}
-   <p style="color:#6b7080;font-size:12.5px">Une coupe par membre, pour un repas réservé. Réservé aux plus de 18 ans. L'abus d'alcool est dangereux pour la santé, à consommer avec modération.</p>${infos(st)}`);
+   <p style="color:#6b7080;font-size:12.5px">Une coupe par membre, pour un repas réservé, valable 30 jours après l'inscription. Réservé aux plus de 18 ans. L'abus d'alcool est dangereux pour la santé, à consommer avec modération.</p>${infos(st)}`);
