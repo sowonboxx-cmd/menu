@@ -62,7 +62,7 @@ async function route(request, url, env, ctx, isPreview) {
   }
   if (path === '/llms.txt') {
     const row = await loadRow(env, ctx);
-    return text(row ? llmsTxt(row.data, origin(url, env)) : '# Menu\n');
+    return text(row ? llmsTxt(withSeo(row.data, env), origin(url, env)) : '# Menu\n');
   }
 
   const res = await env.ASSETS.fetch(request);
@@ -70,12 +70,22 @@ async function route(request, url, env, ctx, isPreview) {
   if ((path === '/' || path === '/index.html') && res.ok && type.includes('text/html')) {
     const row = await loadRow(env, ctx);
     if (!row) return res;
-    return enrichHomePage(res, row.data, origin(url, env), isPreview);
+    return enrichHomePage(res, withSeo(row.data, env), origin(url, env), isPreview);
   }
   return res;
 }
 
 // ---------- données ----------
+
+// Réglages SEO propres à un déploiement (bloc "vars" → SEO du fichier wrangler) : ils passent
+// par-dessus data.seo. Sert à préparer le référencement sur la recette sans toucher aux données
+// du site en ligne (même ligne Supabase). Sans SEO dans le wrangler : rien ne change.
+function withSeo(d, env) {
+  let o = env.SEO;
+  if (typeof o === 'string') { try { o = JSON.parse(o); } catch (e) { o = null; } }
+  if (!o || typeof o !== 'object') return d;
+  return Object.assign({}, d, { seo: Object.assign({}, d.seo || {}, o) });
+}
 
 async function loadRow(env, ctx) {
   const slug = env.CLIENT_SLUG;
@@ -115,7 +125,7 @@ function niceName(raw) {
 
 function info(d) {
   const seo = d.seo || {};
-  const name = niceName(d.restaurantName) || 'Restaurant';
+  const name = clean(seo.name) || niceName(d.restaurantName) || 'Restaurant';
   const a = d.address || {};
   const street = clean(a.street), zip = clean(a.zip), city = clean(a.city);
   const addrLine = [street, [zip, city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
@@ -132,7 +142,7 @@ function info(d) {
     s.website, a.mapsUrl
   ].filter(Boolean);
   const reserveUrl = clean((d.homeCover || {}).cta2Url);
-  const image = clean((d.homeCover || {}).image) || clean(((d.homeCover || {}).slideshow || [])[0] && d.homeCover.slideshow[0].image);
+  const image = clean(seo.image) || clean((d.homeCover || {}).image) || clean(((d.homeCover || {}).slideshow || [])[0] && d.homeCover.slideshow[0].image);
   const logo = clean((d.homeCover || {}).logo) || clean(d.restaurantLogo);
   // Icône du site (favicon, écran d'accueil) = le logo de « Informations de l'établissement ».
   const icon = clean(d.restaurantLogo) || logo;
@@ -149,7 +159,8 @@ function info(d) {
         })).filter(x => x.name)
       })).filter(g => g.dishes.length)
     })).filter(s => s.name && s.groups.length);
-  return { seo, name, street, zip, city, addrLine, headline, intro, phoneIntl, phonePretty, sameAs, reserveUrl, image, logo, icon, mapsUrl: clean(a.mapsUrl), hours: hours(d.schedule), sections };
+  const about = clean(seo.about), services = (seo.services || []).map(clean).filter(Boolean);
+  return { seo, about, services, name, street, zip, city, addrLine, headline, intro, phoneIntl, phonePretty, sameAs, reserveUrl, image, logo, icon, mapsUrl: clean(a.mapsUrl), hours: hours(d.schedule), sections };
 }
 
 // Carte « parfums » (un produit, plusieurs variantes) : un seul plat, un prix par variante.
@@ -225,15 +236,16 @@ function jsonLd(i, base) {
     '@id': `${base}/#restaurant`,
     name: i.name,
     url: `${base}/`,
-    description: texts(i).desc
+    description: i.about || texts(i).desc
   };
-  if (i.image) ld.image = [i.image];
+  if (i.image) ld.image = [abs(i.image, base)];
   if (i.logo) ld.logo = i.logo;
   if (i.phoneIntl) ld.telephone = i.phoneIntl;
   if (i.street || i.city) ld.address = { '@type': 'PostalAddress', streetAddress: i.street, postalCode: i.zip, addressLocality: i.city, addressCountry: 'FR' };
   if (i.mapsUrl) ld.hasMap = i.mapsUrl;
   if (i.seo.cuisine) ld.servesCuisine = i.seo.cuisine;
   if (i.seo.priceRange) ld.priceRange = i.seo.priceRange;
+  if (i.services.length) ld.amenityFeature = i.services.map(v => ({ '@type': 'LocationFeatureSpecification', name: v, value: true }));
   if (i.reserveUrl) ld.acceptsReservations = i.reserveUrl;
   if (i.sameAs.length) ld.sameAs = i.sameAs;
   const spec = [];
@@ -265,9 +277,13 @@ function jsonLd(i, base) {
 
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+const abs = (u, base) => /^\//.test(u) ? base + u : u;
 function headHtml(i, base, isPreview) {
   const t = texts(i);
-  const img = i.image ? `<meta property="og:image" content="${esc(i.image)}">\n<meta name="twitter:image" content="${esc(i.image)}">\n` : '';
+  const im = i.image ? abs(i.image, base) : '';
+  const size = i.seo.imageWidth ? `<meta property="og:image:width" content="${esc(i.seo.imageWidth)}">\n<meta property="og:image:height" content="${esc(i.seo.imageHeight || '')}">\n` : '';
+  const alt = i.seo.imageAlt ? `<meta property="og:image:alt" content="${esc(i.seo.imageAlt)}">\n` : '';
+  const img = im ? `<meta property="og:image" content="${esc(im)}">\n${size}${alt}<meta name="twitter:image" content="${esc(im)}">\n` : '';
   const icon = i.icon ? `<link rel="icon" href="${esc(i.icon)}">\n<link rel="apple-touch-icon" href="${esc(i.icon)}">\n` : '';
   return `
 <meta name="description" content="${esc(t.desc)}">
@@ -298,7 +314,8 @@ ${g.name ? `<h3>${esc(g.name)}</h3>` : ''}<ul>${g.dishes.map(x => `<li><strong>$
 </section>`).join('');
   return `<div id="kuistoSeo" style="max-width:760px;margin:0 auto;padding:24px;font-family:system-ui,sans-serif;line-height:1.5">
 <header><h1>${esc(i.name)}${t.where ? ` — ${esc(t.tagline || 'Restaurant')}` : ''}</h1>
-${i.intro ? `<p>${esc(i.intro)}</p>` : ''}</header>
+${i.about ? `<p>${esc(i.about)}</p>` : ''}${i.intro ? `<p>${esc(i.intro)}</p>` : ''}</header>
+${i.services.length ? `<section><h2>Services</h2><ul>${i.services.map(v => `<li>${esc(v)}</li>`).join('')}</ul></section>` : ''}
 <section><h2>Infos pratiques</h2><ul>
 ${i.addrLine ? `<li>Adresse : ${i.mapsUrl ? `<a href="${esc(i.mapsUrl)}">${esc(i.addrLine)}</a>` : esc(i.addrLine)}</li>` : ''}
 ${i.phonePretty ? `<li>Téléphone : <a href="tel:${esc(i.phoneIntl)}">${esc(i.phonePretty)}</a></li>` : ''}
@@ -351,7 +368,9 @@ function llmsTxt(data, base) {
   const i = info(data);
   const t = texts(i);
   const lines = [`# ${i.name}`, '', `> ${t.desc}`, ''];
+  if (i.about) lines.push(i.about, '');
   if (i.intro) lines.push(i.intro, '');
+  if (i.services.length) lines.push('## Services', ...i.services.map(v => `- ${v}`), '');
   lines.push('## Infos pratiques');
   if (i.addrLine) lines.push(`- Adresse : ${i.addrLine}`);
   if (i.phonePretty) lines.push(`- Téléphone : ${i.phonePretty}`);
