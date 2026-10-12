@@ -993,15 +993,39 @@ if (new URLSearchParams(window.location.search).get('admin') === '1') {
 }
 </script>
 <script>
-// Club : arrivée depuis la carte membre → formulaire prérempli + bandeau
+// Club : arrivée depuis la carte membre → formulaire prérempli + bandeau + explication
 (function(){ const q=new URLSearchParams(location.search), code=q.get('club'); if(!code||!/^CLUB-[A-Z0-9]{4}$/.test(code)) return;
   const set=(id,v)=>{ const el=document.getElementById(id); if(el&&v&&!el.value) el.value=v; };
   set('fPre',q.get('prenom')); set('fNom',q.get('nom')); set('fMail',q.get('email'));
   let t=(q.get('tel')||'').replace(/[^\d+]/g,'').replace(/^\+33|^0033/,'').replace(/^0/,''); set('fTel',t);
   const n=document.getElementById('fNote'); if(n&&!n.value) n.value='Membre du club '+code+' (coupe offerte)';
   const o=document.getElementById('fOptin'); if(o) o.checked=true;
-  const b=document.createElement('div'); b.style.cssText='background:#10285e;color:#fff;border-radius:14px;padding:12px 16px;margin:10px auto 14px;max-width:560px;font:600 14px Inter,sans-serif;text-align:center';
-  b.innerHTML='🥂 Membre du club · votre coupe vous attend <span style="color:#f0d9a8;letter-spacing:.08em;margin-left:6px">'+code+'</span>';
+  const at=+q.get('t')||0, end=at?new Date(at+30*864e5):null, left=end?Math.ceil((end-Date.now())/864e5):null;
+  const endTxt=end?end.toLocaleDateString('fr-FR',{day:'numeric',month:'long'}):'';
+  const st=document.createElement('style'); st.textContent=`
+  .clubbn{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;background:#10285e;color:#fff;border:0;border-radius:14px;padding:10px 14px;margin:10px 16px 12px;font:600 13px Inter,system-ui,sans-serif;line-height:1.35;text-align:center;cursor:pointer;width:calc(100% - 32px);max-width:560px;box-sizing:border-box}
+  @media(min-width:592px){.clubbn{margin:10px auto 12px}}
+  .clubbn u{color:#f0d9a8;letter-spacing:.06em;text-underline-offset:3px;text-decoration-thickness:1px}
+  .clubbn small{display:block;width:100%;font-weight:500;font-size:11.5px;color:#c9d3e8}
+  .clubpop{position:fixed;inset:0;z-index:99999;background:rgba(10,15,30,.5);display:flex;align-items:center;justify-content:center;padding:20px}
+  .clubpop>div{background:#fff;border-radius:22px;max-width:380px;width:100%;padding:24px 22px 20px;font-family:Inter,system-ui,sans-serif;color:#16181d;box-shadow:0 20px 50px rgba(0,0,0,.3);text-align:center}
+  .clubpop h3{margin:6px 0 4px;font-family:'Playfair Display',Georgia,serif;font-size:22px;color:#10285e}
+  .clubpop .cd{display:inline-block;margin:10px 0 14px;padding:8px 16px;border-radius:12px;background:#10285e;color:#f0d9a8;font-weight:800;letter-spacing:.14em;font-size:18px}
+  .clubpop ol{text-align:left;margin:0 0 14px;padding-left:22px;font-size:14px;line-height:1.55}
+  .clubpop .dl{font-size:13.5px;padding:10px 12px;border-radius:12px;background:#f5f1e6;margin-bottom:14px}
+  .clubpop .dl.exp{background:#fdecea;color:#c0392b}
+  .clubpop button{width:100%;border:0;background:#10285e;color:#fff;border-radius:999px;padding:13px;font-weight:600;font-size:15px;cursor:pointer}`;
+  document.head.appendChild(st);
+  const b=document.createElement('button'); b.type='button'; b.className='clubbn';
+  b.innerHTML='🥂 Membre du club · <u>'+code+'</u>'+(left!=null?'<small>'+(left>=0?'Coupe valable encore '+left+' jour'+(left>1?'s':''):'Coupe expirée depuis '+(-left)+' j')+' · en savoir plus</small>':'<small>Votre coupe vous attend · en savoir plus</small>');
+  b.onclick=()=>{ const p=document.createElement('div'); p.className='clubpop'; p.onclick=e=>{ if(e.target===p) p.remove(); };
+    p.innerHTML=`<div><div style="font-size:30px">🥂</div><h3>Votre coupe est offerte !</h3><p style="margin:0;color:#555;font-size:14px">En tant que membre du club, une coupe de champagne vous attend lors de votre repas.</p>
+      <div class="cd">${code}</div>
+      <ol><li>Réservez votre table ici (c'est déjà prérempli).</li><li>Sur place, montrez ce code au serveur.</li><li>Il le valide et vous sert votre coupe. Santé&nbsp;!</li></ol>
+      <div class="dl${left!=null&&left<0?' exp':''}">${left==null?'Valable 30 jours après votre inscription.':left>=0?`Valable jusqu'au <b>${endTxt}</b> · encore <b>${left} jour${left>1?'s':''}</b>.`:`Votre coupe a expiré le ${endTxt}. Demandez quand même au serveur, on fera notre possible !`}</div>
+      <p style="font-size:11px;color:#8a8f99;margin:0 0 14px">Une coupe par membre, pour un repas réservé. Réservé aux plus de 18 ans. L'abus d'alcool est dangereux pour la santé.</p>
+      <button type="button">J'ai compris</button></div>`;
+    p.querySelector('button').onclick=()=>p.remove(); document.body.appendChild(p); };
   (document.querySelector('main')||document.body).prepend(b);
   if(typeof onFormInput==='function') try{ onFormInput(); }catch(e){}
 })();
