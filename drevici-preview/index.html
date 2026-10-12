@@ -1937,6 +1937,12 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 @keyframes bcRise{0%{opacity:0;transform:translateY(70px) rotateX(24deg) rotateY(-28deg) scale(.82)}55%{opacity:1;transform:translateY(-8px) rotateX(-4deg) rotateY(9deg) scale(1.04)}80%{transform:translateY(2px) rotateY(-3deg) scale(.995)}100%{transform:none}}
 .bc-reveal .bc:before{content:"";position:absolute;inset:0;z-index:10;pointer-events:none;background:linear-gradient(105deg,transparent 38%,rgba(255,255,255,.6) 50%,transparent 62%);transform:translateX(-130%);animation:bcShine 1.1s .8s ease-in-out both}
 @keyframes bcShine{0%{transform:translateX(-130%)}100%{transform:translateX(130%)}}
+.bc-wrap.bc-show{animation:bcShow 1.6s cubic-bezier(.22,.9,.24,1) both;transform-origin:50% 55%}
+@keyframes bcShow{0%{opacity:0;transform:translateY(48px) rotateY(-40deg) rotateX(14deg) scale(.9)}45%{opacity:1}70%{transform:translateY(-4px) rotateY(7deg) rotateX(-2deg) scale(1.02)}100%{transform:none}}
+.bc-show .bc{animation:bcGlow 2.2s .3s ease-out both}
+@keyframes bcGlow{0%{box-shadow:0 22px 40px -14px rgba(0,0,0,.45)}45%{box-shadow:0 22px 40px -14px rgba(0,0,0,.45),0 0 0 2px rgba(240,217,168,.55),0 0 34px 6px rgba(240,217,168,.45)}100%{box-shadow:0 22px 40px -14px rgba(0,0,0,.45),0 2px 6px rgba(0,0,0,.18)}}
+.bc-show .bc:before{content:"";position:absolute;inset:0;z-index:10;pointer-events:none;background:linear-gradient(105deg,transparent 36%,rgba(255,255,255,.18) 44%,rgba(255,255,255,.62) 50%,rgba(255,255,255,.18) 56%,transparent 64%);transform:translateX(-130%);animation:bcShine 1.3s 1s cubic-bezier(.45,.05,.25,1) both}
+@media(prefers-reduced-motion:reduce){.bc-wrap.bc-show,.bc-show .bc,.bc-show .bc:before{animation:none}}
 .club-deck-find.spin .club-slot{transition-duration:.45s}
 .club-deck-find.spin .club-slot.pf{filter:drop-shadow(0 0 14px rgba(240,217,168,.75))}
 @media(prefers-reduced-motion:reduce){.bc-wrap.bc-reveal,.bc-reveal .bc:before{animation:none}}
@@ -3916,7 +3922,7 @@ function clubShell(inner){
   return el;
 }
 function openClubSheet(){
-  const me=clubMe(); if(me&&me.code) return clubWelcome(me,true);
+  const me=clubMe(); if(me&&me.code) return clubWelcome(me,true,'show');
   const nx=clubNext||'';
   clubShell(`<div class="club-deck" aria-hidden="true">
       <div class="club-slot pf"><div class="bc-wrap">${clubCardHTML({first:'Votre prénom',code:'CLUB-····',no:nx||'···'})}</div></div>
@@ -4070,15 +4076,15 @@ function clubWelcome(me,already,reveal){
   const q=new URLSearchParams({club:me.code,t:String(me.at||Date.now()),prenom:me.first||'',nom:me.last||'',email:me.email||'',tel:me.phone||''});
   clubShell(`<div class="club-wel">
       <canvas id="clubConf"></canvas>
-      <div class="club-wt">${reveal?`Vous revoilà${me.first?', '+clubEsc(me.first):''} !`:already?'Vous êtes déjà membre ✓':`Bienvenue ${clubEsc(me.first)} !`}</div>
+      <div class="club-wt">${reveal==='show'?`Bonjour${me.first?' '+clubEsc(me.first):''} !`:reveal?`Vous revoilà${me.first?', '+clubEsc(me.first):''} !`:already?'Vous êtes déjà membre ✓':`Bienvenue ${clubEsc(me.first)} !`}</div>
       <div class="club-ws">${already?'Voici votre carte.':'Vous avez rejoint le club'+(me.no?` · membre n° ${me.no}`:'')}</div>
-      <div id="clubTierB">${clubTierBadge(me)}</div><div class="club-stage"><div class="bc-wrap${reveal?' bc-reveal':''}">${clubCardHTML(me)}</div></div>
+      <div id="clubTierB">${clubTierBadge(me)}</div><div class="club-stage"><div class="bc-wrap${reveal==='show'?' bc-show':reveal?' bc-reveal':''}">${clubCardHTML(me)}</div></div>
       <div class="club-wc">${me.used?'🥂 Votre coupe vous a déjà été offerte.<br><small>Merci, et à très vite au bar !</small>':`🥂 Votre coupe vous attend avec votre repas<br><b>jusqu'au ${clubLimit(me)}</b>.<small class="club-wc2">Champagne, ou un verre de vin, une bière, un soft.<br><b class="club-give">Donnez ce code en arrivant</b> : <span class="club-codepill">${clubEsc(me.code)}</span></small>`}</div>
       <a class="club-cta club-a" href="resa.html?${q}">Réserver ma table</a>
       <button type="button" class="club-later" onclick="clubLater()">Plus tard</button>
     </div>`);
   clubFonts(); requestAnimationFrame(clubFit); if(document.fonts) document.fonts.ready.then(clubFit); clubSyncCard();
-  if(!already||reveal) clubConfetti();
+  if(!already||(reveal&&reveal!=='show')) clubConfetti();
 }
 function clubConfetti(){
   const c=document.getElementById('clubConf'); if(!c||matchMedia('(prefers-reduced-motion:reduce)').matches) return;
