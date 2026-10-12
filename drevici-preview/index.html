@@ -1866,6 +1866,22 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 .club-ck{display:flex;gap:8px;font-size:12px;color:#555;margin:8px 2px 12px;line-height:1.35;align-items:flex-start}.club-ck input{margin-top:1px}
 .club-cta{width:100%;border:0;background:#10285e;color:#fff;border-radius:999px;padding:15px;font-weight:600;font-size:15.5px;cursor:pointer}.club-cta:disabled{opacity:.35;cursor:default}
 .club-note{font-size:10.5px;color:#8a8f99;text-align:center;margin:10px 0 0;line-height:1.4}
+
+.club-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.club-2 .club-f{margin-bottom:8px}
+.club-hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.club-ck.sm{font-size:11.5px;margin-top:-4px;color:#777}
+.club-err{color:#c0392b;font-size:13px;min-height:4px;margin:0 2px 8px}
+.club-a{display:block;text-align:center;text-decoration:none;box-sizing:border-box}
+.club-wel{position:relative;text-align:center;padding:4px 0 2px}
+.club-wel canvas{position:absolute;inset:-12px -22px 0;width:calc(100% + 44px);height:100%;pointer-events:none}
+.club-wt{font-family:'Playfair Display',serif;font-size:26px;color:#10285e;font-weight:700;margin-top:4px}
+.club-ws{font-size:13.5px;color:#6b7080;margin:4px 0 16px}
+.club-card{display:flex;align-items:center;gap:14px;background:#10285e;color:#fff;border-radius:18px;padding:16px 18px;text-align:left;margin:0 auto 14px;max-width:340px;box-shadow:0 10px 24px rgba(16,40,94,.25)}
+.club-card img{width:58px;height:58px;border-radius:14px;object-fit:cover;object-position:center 35%;background:#fff;flex:none}
+.club-card small{display:block;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:#f0d9a8}.club-card b{display:block;font-family:'Playfair Display',serif;font-size:18px;margin:2px 0 4px}
+.club-card span{display:block;font-size:21px;font-weight:800;letter-spacing:.12em}
+.club-wc{font-size:14.5px;color:#16181d;line-height:1.45;margin-bottom:16px}.club-wc small{color:#6b7080;font-size:12px}
+.club-later{background:none;border:0;color:#6b7080;font-size:13.5px;margin-top:10px;cursor:pointer;padding:6px}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
@@ -3806,7 +3822,7 @@ function renderHomeCover(){
             : `<button type="button" class="home-cover-cta home-cover-cta-menu" onclick="dismissHomeCover()">${escapeHtmlLocal(hc.cta1Label||'Voir le menu')}</button>`}
           <a class="home-cover-cta home-cover-cta-reserve" href="${escAttr(cta2Url)}">${escapeHtmlLocal(hc.cta2Label||'Réserver')}</a>
         </div>
-        ${CLUB_ON?`<button type="button" class="club-link" onclick="openClubSheet()"><span class="club-link-t">🥂 REJOINDRE LE CLUB <em>· coupe offerte</em><i>›</i></span></button>`:''}
+        ${CLUB_ON?`<button type="button" class="club-link" onclick="openClubSheet()"><span class="club-link-t">${(clubMe()||{}).code?'✓ MEMBRE DU CLUB <em>· voir ma carte</em>':'🥂 REJOINDRE LE CLUB <em>· coupe offerte</em>'}<i>›</i></span></button>`:''}
       </div>
     </div>
   </div>`;
@@ -3817,23 +3833,73 @@ function renderHomeCover(){
 }
 // ── Club (préview) : lien sous les boutons de l'accueil + feuille d'inscription ──
 const CLUB_ON = /preview|localhost|127\.0\.0\.1|file:/.test(location.href);
-function openClubSheet(){
+const CLUB_SLUG = 'drevici-test';            // même copie de test que la résa de la préview
+const CLUB_API = 'https://resa.beltab.app';
+const clubMe = () => { try{ return JSON.parse(localStorage.getItem('club_'+CLUB_SLUG)||'null'); }catch(e){ return null; } };
+const clubEsc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function clubShell(inner){
   let el=document.getElementById('clubSheet');
-  if(!el){ el=document.createElement('div'); el.id='clubSheet'; el.className='club-sheet-wrap';
-    el.innerHTML=`<div class="club-dim" onclick="closeClubSheet()"></div><div class="club-sheet" role="dialog" aria-label="Rejoindre le club">
-      <div class="club-grab"></div>
-      <div class="club-sh"><img src="charte/files/mascotte/DreviciOyster_Mascotte_Affiche_Vins-Champagnes.webp" alt=""><div><small>Le Club Drevici</small><b>Une coupe offerte à votre 1<sup>re</sup> visite</b></div></div>
-      <label class="club-f"><small>Prénom</small><input autocomplete="given-name" placeholder="Votre prénom"></label>
-      <label class="club-f"><small>Email</small><input type="email" autocomplete="email" placeholder="vous@exemple.fr"></label>
-      <label class="club-f"><small>Téléphone</small><input type="tel" autocomplete="tel" placeholder="06 12 34 56 78"></label>
-      <label class="club-ck"><input type="checkbox" onchange="document.getElementById('clubGo').disabled=!this.checked"> J'accepte de recevoir les soirées, avant-premières et offres du club par email et SMS. C'est le principe du club ; désinscription en 1 clic (lien ou STOP).</label>
-      <button type="button" class="club-cta" id="clubGo" disabled onclick="this.textContent='Le club ouvre très bientôt 🥂';this.disabled=true">Je rejoins le club 🥂</button>
-      <p class="club-note">Coupe offerte pour un repas réservé, une par membre. Réservé aux plus de 18 ans. L'abus d'alcool est dangereux pour la santé.</p>
-    </div>`;
-    document.body.appendChild(el); }
-  requestAnimationFrame(()=>el.classList.add('open'));
+  if(!el){ el=document.createElement('div'); el.id='clubSheet'; el.className='club-sheet-wrap'; document.body.appendChild(el); }
+  el.innerHTML=`<div class="club-dim" onclick="closeClubSheet()"></div><div class="club-sheet" role="dialog" aria-label="Le club"><div class="club-grab"></div>${inner}</div>`;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('open')));
+  return el;
 }
+function openClubSheet(){
+  const me=clubMe(); if(me&&me.code) return clubWelcome(me,true);
+  clubShell(`<div class="club-sh"><img src="charte/files/mascotte/DreviciOyster_Mascotte_Affiche_Vins-Champagnes.webp" alt=""><div><small>Le Club Drevici</small><b>Une coupe offerte à votre 1<sup>re</sup> visite</b></div></div>
+    <form id="clubForm" onsubmit="clubSubmit(event)" novalidate>
+      <div class="club-2"><label class="club-f"><small>Prénom</small><input name="first" autocomplete="given-name" placeholder="Votre prénom" required></label>
+      <label class="club-f"><small>Nom</small><input name="last" autocomplete="family-name" placeholder="Votre nom"></label></div>
+      <label class="club-f"><small>Email</small><input name="email" type="email" autocomplete="email" placeholder="vous@exemple.fr" required></label>
+      <label class="club-f"><small>Téléphone</small><input name="phone" type="tel" autocomplete="tel" placeholder="06 12 34 56 78" required></label>
+      <input name="hp" tabindex="-1" autocomplete="off" class="club-hp" aria-hidden="true">
+      <label class="club-ck"><input type="checkbox" name="consent" onchange="document.getElementById('clubGo').disabled=!this.checked"> J'accepte de recevoir les soirées, avant-premières et offres du club par email et SMS. C'est le principe du club ; désinscription en 1 clic (lien ou STOP).</label>
+      <label class="club-ck sm"><input type="checkbox" name="hide"> Ne pas afficher mon prénom dans la liste des membres.</label>
+      <div class="club-err" id="clubErr"></div>
+      <button type="submit" class="club-cta" id="clubGo" disabled>Je rejoins le club 🥂</button>
+    </form>
+    <p class="club-note">Coupe offerte pour un repas réservé, une par membre. Réservé aux plus de 18 ans. L'abus d'alcool est dangereux pour la santé.</p>`);
+}
+async function clubSubmit(e){
+  e.preventDefault(); const f=e.target, v=n=>(f.elements[n].value||'').trim(), err=document.getElementById('clubErr'), go=document.getElementById('clubGo');
+  err.textContent='';
+  if(!v('first')) return err.textContent='Votre prénom, s\'il vous plaît.';
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v('email'))) return err.textContent='Cet email ne semble pas valide.';
+  if(v('phone').replace(/\D/g,'').length<9) return err.textContent='Ce numéro de téléphone ne semble pas valide.';
+  let src='SITE'; try{ const o=JSON.parse(localStorage.getItem('beltab_src')||'null'); if(o&&o.code&&Date.now()-o.t<7*864e5) src=o.code; }catch(_){}
+  go.disabled=true; go.textContent='Un instant…';
+  try{
+    const r=await fetch(CLUB_API+'/club/join',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({slug:CLUB_SLUG,first:v('first'),last:v('last'),email:v('email'),phone:v('phone'),consent:f.elements.consent.checked,show:!f.elements.hide.checked,hp:v('hp'),src,site:location.origin+'/resa.html'})});
+    const d=await r.json();
+    if(!d.ok){ err.textContent=d.error||'Une erreur est survenue, réessayez.'; go.disabled=false; go.textContent='Je rejoins le club 🥂'; return; }
+    const me={code:d.code,no:d.no,first:d.first||v('first'),last:v('last'),email:v('email'),phone:v('phone')};
+    try{ localStorage.setItem('club_'+CLUB_SLUG,JSON.stringify(me)); }catch(_){}
+    clubWelcome(me,!!d.already); clubLinkRefresh();
+  }catch(x){ err.textContent='Connexion impossible, réessayez.'; go.disabled=false; go.textContent='Je rejoins le club 🥂'; }
+}
+function clubWelcome(me,already){
+  const q=new URLSearchParams({club:me.code,prenom:me.first||'',nom:me.last||'',email:me.email||'',tel:me.phone||''});
+  clubShell(`<div class="club-wel">
+      <canvas id="clubConf"></canvas>
+      <div class="club-wt">${already?'Vous êtes déjà membre ✓':`Bienvenue ${clubEsc(me.first)} !`}</div>
+      <div class="club-ws">${already?'Voici votre carte.':'Vous avez rejoint le club'+(me.no?` · membre n° ${me.no}`:'')}</div>
+      <div class="club-card"><img src="charte/files/mascotte/DreviciOyster_Mascotte_Affiche_Vins-Champagnes.webp" alt=""><div><small>Carte membre</small><b>Drevici Oyster</b><span>${clubEsc(me.code)}</span></div></div>
+      <div class="club-wc">🥂 Votre coupe vous attend avec votre repas.<br><small>Donnez ce code en arrivant. Il vous a aussi été envoyé par email.</small></div>
+      <a class="club-cta club-a" href="resa.html?${q}">Réserver ma table</a>
+      <button type="button" class="club-later" onclick="closeClubSheet()">Plus tard</button>
+    </div>`);
+  if(!already) clubConfetti();
+}
+function clubConfetti(){
+  const c=document.getElementById('clubConf'); if(!c||matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+  const box=c.parentElement.getBoundingClientRect(), dpr=devicePixelRatio||1; c.width=box.width*dpr; c.height=box.height*dpr; const x=c.getContext('2d'); x.scale(dpr,dpr);
+  const cols=['#f0d9a8','#e3b65b','#10285e','#ffffff','#c9a35c'], P=Array.from({length:90},()=>({x:box.width/2+(Math.random()-.5)*60,y:box.height*.25,vx:(Math.random()-.5)*7,vy:-Math.random()*7-3,s:Math.random()*5+3,c:cols[Math.random()*cols.length|0],r:Math.random()*6,vr:(Math.random()-.5)*.3}));
+  let t=0; (function f(){ x.clearRect(0,0,box.width,box.height); P.forEach(p=>{ p.vy+=.18; p.x+=p.vx; p.y+=p.vy; p.r+=p.vr; x.save(); x.translate(p.x,p.y); x.rotate(p.r); x.fillStyle=p.c; x.fillRect(-p.s/2,-p.s/4,p.s,p.s/2); x.restore(); }); if(++t<150) requestAnimationFrame(f); else x.clearRect(0,0,box.width,box.height); })();
+}
+function clubLinkRefresh(){ const me=clubMe(), l=document.querySelector('.club-link-t'); if(l&&me&&me.code) l.innerHTML='✓ MEMBRE DU CLUB <em>· voir ma carte</em><i>›</i>'; }
 function closeClubSheet(){ const el=document.getElementById('clubSheet'); if(el) el.classList.remove('open'); }
+// Lien direct (story, affiche) : …/?club ou #club ouvre la feuille.
+if(CLUB_ON&&(/[?&]club\b/.test(location.search)||location.hash==='#club')) setTimeout(openClubSheet,900);
 // Cycles through the slideshow's slides via a crossfade — each slide's
 // own Ken Burns animation (see CSS) restarts automatically because
 // adding/removing .hcs-active re-triggers it (animation resets when an

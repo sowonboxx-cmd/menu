@@ -30,16 +30,37 @@ export default {
       }
     }
     if (req.method === 'GET' && url.pathname === '/unsub') return unsub(env, url);
+    // ── Club : inscription publique + liste des premiers membres ──
+    if (req.method === 'POST' && url.pathname === '/club/join') {
+      try { return json(await clubJoin(env, await req.json()), 200, cors); }
+      catch (e) { return json({ ok: false, error: String(e && e.message || e) }, 500, cors); }
+    }
+    if (req.method === 'GET' && url.pathname === '/club/members') {
+      try { return json(await clubMembers(env, String(url.searchParams.get('slug') || '')), 200, cors); }
+      catch (e) { return json({ ok: false, error: String(e && e.message || e) }, 500, cors); }
+    }
     // ── Espace restaurateur (/gestion) : session Supabase + admin du resto ──
-    if (['/clients', '/campaign/preview', '/campaign/send'].includes(url.pathname)) {
+    if (['/clients', '/campaign/preview', '/campaign/send', '/club/redeem'].includes(url.pathname)) {
       try {
         const body = req.method === 'POST' ? await req.json() : {};
         const slug = String(body.slug || url.searchParams.get('slug') || '');
         const who = await adminOf(env, req, slug);
         if (!who) return json({ ok: false, error: 'Accès refusé' }, 403, cors);
         if (url.pathname === '/clients') {
-          const rows = await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&select=id,email,phone,name,visits,first_seen,last_seen,marketing_optin&order=last_seen.desc&limit=5000`);
+          const rows = await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&select=id,email,phone,name,visits,first_seen,last_seen,marketing_optin,club_member,club_code,club_no,club_joined_at,coupe_used_at,source&order=last_seen.desc&limit=5000`);
           return json({ ok: true, clients: rows || [] }, 200, cors);
+        }
+        if (url.pathname === '/club/redeem') {
+          const code = String(body.code || '').toUpperCase().replace(/[^A-Z0-9-]/g, '');
+          const full = code.startsWith('CLUB-') ? code : 'CLUB-' + code;
+          const rows = await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&club_code=eq.${enc(full)}&select=id,name,email,club_no,coupe_used_at,club_joined_at`);
+          const c = rows && rows[0];
+          if (!c) return json({ ok: false, error: 'Code inconnu' }, 404, cors);
+          if (c.coupe_used_at) return json({ ok: false, used: true, client: c, error: 'Coupe déjà offerte' }, 409, cors);
+          if (body.check) return json({ ok: true, client: c }, 200, cors);
+          const now = new Date().toISOString();
+          await sb(env, `resa_clients?id=eq.${c.id}&coupe_used_at=is.null`, { method: 'PATCH', body: { coupe_used_at: now } });
+          return json({ ok: true, client: { ...c, coupe_used_at: now } }, 200, cors);
         }
         const st = await settings(env, slug);
         if (!st) return json({ ok: false, error: 'Restaurant non configuré pour les emails' }, 404, cors);
@@ -50,7 +71,7 @@ export default {
         let list;
         if (body.test) list = [{ id: 0, email: who.email, name: '' }];
         else {
-          const all = await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&marketing_optin=eq.true&select=id,email,name,visits,last_seen&limit=5000`) || [];
+          const all = await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&marketing_optin=eq.true&select=id,email,name,visits,last_seen,club_member&limit=5000`) || [];
           list = all.filter(c => inSegment(c, body.segment));
         }
         if (!list.length) return json({ ok: false, error: 'Aucun destinataire' }, 400, cors);
@@ -274,6 +295,7 @@ function inSegment(c, seg) {
   if (seg === 'fideles') return (c.visits || 0) >= 3;
   if (seg === 'relance') return days > 60;
   if (seg === 'nouveaux') return (c.visits || 0) <= 1;
+  if (seg === 'club') return !!c.club_member;
   return true;
 }
 async function sign(env, msg) {
@@ -334,3 +356,59 @@ ${body}
 <div style="text-align:center;padding:18px 20px 22px;border-top:1px solid #f0ede7;font-family:Arial,sans-serif;font-size:12px;line-height:1.6;color:#8a8f99">${foot}<br><a href="${unsubUrl}" style="color:#8a8f99">Se désinscrire</a></div>
 </td></tr></table></td></tr></table></body></html>`;
 }
+
+
+// ════════════════ Club ════════════════
+const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const clubCode = () => 'CLUB-' + Array.from(crypto.getRandomValues(new Uint8Array(4)), b => CODE_CHARS[b % CODE_CHARS.length]).join('');
+const cap = s => String(s || '').trim().replace(/\s+/g, ' ').slice(0, 40).replace(/(^|[\s'-])(\p{L})/gu, (m, a, b) => a + b.toUpperCase());
+async function clubJoin(env, b) {
+  const slug = String(b.slug || '');
+  if (!/^[a-z0-9-]{2,60}$/.test(slug)) return { ok: false, error: 'Restaurant inconnu' };
+  if (b.hp) return { ok: true, code: 'CLUB-OK', no: 0 }; // robot (champ caché rempli)
+  const st = await settings(env, slug);
+  if (!st) return { ok: false, error: 'Restaurant inconnu' };
+  const email = String(b.email || '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return { ok: false, error: 'Email invalide' };
+  const phone = normPhone(b.phone);
+  if (!phone || phone.length < 10) return { ok: false, error: 'Téléphone invalide' };
+  if (!b.consent) return { ok: false, error: 'Merci d\'accepter de recevoir les offres du club' };
+  const first = cap(b.first), last = cap(b.last);
+  if (!first) return { ok: false, error: 'Prénom requis' };
+  const src = String(b.src || 'site').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 60) || 'SITE';
+  // Déjà membre (même email, ou même téléphone) → on renvoie sa carte, jamais une 2e coupe.
+  const ex = await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&or=${enc(`(email.eq."${email}",phone.eq."${phone}")`)}&select=id,email,name,club_member,club_code,club_no,coupe_used_at&order=club_member.desc.nullslast`) || [];
+  const mem = ex.find(c => c.club_member && c.club_code);
+  if (mem) return { ok: true, already: true, code: mem.club_code, no: mem.club_no, first: (mem.name || first).split(' ')[0], used: !!mem.coupe_used_at };
+  const all = await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&club_member=eq.true&select=club_no&order=club_no.desc.nullslast&limit=1`) || [];
+  const no = ((all[0] && all[0].club_no) || 0) + 1;
+  const row = { club_member: true, club_joined_at: new Date().toISOString(), club_no: no, club_show: b.show !== false, marketing_optin: true,
+    phone, name: [first, last].filter(Boolean).join(' '), source: src };
+  let code = '';
+  for (let i = 0; i < 5 && !code; i++) {
+    const c = clubCode();
+    try {
+      const own = ex.find(x => x.email === email);
+      if (own) await sb(env, `resa_clients?id=eq.${own.id}`, { method: 'PATCH', body: { ...row, club_code: c } });
+      else await sb(env, 'resa_clients', { method: 'POST', body: { client_slug: slug, email, visits: 0, ...row, club_code: c } });
+      code = c;
+    } catch (e) { if (!/duplicate|23505/.test(String(e))) throw e; }
+  }
+  if (!code) return { ok: false, error: 'Réessayez dans un instant' };
+  try { await sendEmail(env, st, email, first, `Bienvenue au club ${st.restaurant_name} 🥂`, mailClub(st, first, code, no, b.site)); } catch (e) { console.warn('club email', e); }
+  return { ok: true, code, no, first };
+}
+async function clubMembers(env, slug) {
+  if (!/^[a-z0-9-]{2,60}$/.test(slug)) return { ok: false };
+  const rows = await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&club_member=eq.true&select=name,club_no,club_show&order=club_no.asc&limit=100`) || [];
+  return { ok: true, total: rows.length, members: rows.filter(r => r.club_show !== false).map(r => { const [f, ...l] = String(r.name || '').split(' '); return { no: r.club_no, name: f + (l.length ? ' ' + l[l.length - 1][0] + '.' : '') }; }) };
+}
+const mailClub = (st, first, code, no, site) => page(st.restaurant_name,
+  `<p>Bonjour ${esc(first)},</p><p>Bienvenue au club ! Vous êtes le membre <b>n° ${no}</b>.</p>
+   <div style="margin:18px 0;padding:20px;border-radius:16px;background:#10285e;color:#fff;text-align:center">
+     <div style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#f0d9a8">Carte membre</div>
+     <div style="font-family:Georgia,serif;font-size:22px;margin:6px 0 10px">${esc(st.restaurant_name)}</div>
+     <div style="font-size:26px;font-weight:800;letter-spacing:.12em">${esc(code)}</div></div>
+   <p>🥂 <b>Une coupe vous attend</b> lors de votre premier repas réservé. Donnez simplement ce code en arrivant.</p>
+   ${site ? `<p style="text-align:center;margin:22px 0"><a href="${esc(site)}" style="background:#10285e;color:#fff;text-decoration:none;border-radius:999px;padding:13px 26px;font-weight:600;display:inline-block">Réserver ma table</a></p>` : ''}
+   <p style="color:#6b7080;font-size:12.5px">Une coupe par membre, pour un repas réservé. Réservé aux plus de 18 ans. L'abus d'alcool est dangereux pour la santé, à consommer avec modération.</p>${infos(st)}`);

@@ -992,5 +992,19 @@ if (new URLSearchParams(window.location.search).get('admin') === '1') {
   document.body.classList.add('has-admin-sticky');
 }
 </script>
+<script>
+// Club : arrivée depuis la carte membre → formulaire prérempli + bandeau
+(function(){ const q=new URLSearchParams(location.search), code=q.get('club'); if(!code||!/^CLUB-[A-Z0-9]{4}$/.test(code)) return;
+  const set=(id,v)=>{ const el=document.getElementById(id); if(el&&v&&!el.value) el.value=v; };
+  set('fPre',q.get('prenom')); set('fNom',q.get('nom')); set('fMail',q.get('email'));
+  let t=(q.get('tel')||'').replace(/[^\d+]/g,'').replace(/^\+33|^0033/,'').replace(/^0/,''); set('fTel',t);
+  const n=document.getElementById('fNote'); if(n&&!n.value) n.value='Membre du club '+code+' (coupe offerte)';
+  const o=document.getElementById('fOptin'); if(o) o.checked=true;
+  const b=document.createElement('div'); b.style.cssText='background:#10285e;color:#fff;border-radius:14px;padding:12px 16px;margin:10px auto 14px;max-width:560px;font:600 14px Inter,sans-serif;text-align:center';
+  b.innerHTML='🥂 Membre du club · votre coupe vous attend <span style="color:#f0d9a8;letter-spacing:.08em;margin-left:6px">'+code+'</span>';
+  (document.querySelector('main')||document.body).prepend(b);
+  if(typeof onFormInput==='function') try{ onFormInput(); }catch(e){}
+})();
+</script>
 </body>
 </html>
