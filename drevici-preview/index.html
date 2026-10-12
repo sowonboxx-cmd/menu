@@ -1862,8 +1862,8 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 .club-grab{width:42px;height:5px;border-radius:9px;background:#d4cec3;margin:0 auto 12px}
 .club-sh{display:flex;gap:14px;align-items:center;margin-bottom:14px}.club-sh img{width:72px;height:72px;border-radius:18px;object-fit:cover;object-position:center 35%;background:#fff}
 .club-sh small{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#b8945a;font-weight:700}.club-sh b{display:block;font-family:'Playfair Display',serif;font-size:20px;color:#10285e;line-height:1.15;margin-top:3px}
-.club-f{display:block;background:#fff;border-radius:13px;padding:8px 13px;margin:0 0 8px}.club-f small{display:block;font-size:11px;color:#7a7f8a}.club-f input{border:0;outline:0;width:100%;font-size:16px;padding:2px 0;background:none;color:#16181d}
-.club-ck{display:flex;gap:8px;font-size:12px;color:#555;margin:8px 2px 12px;line-height:1.35;align-items:flex-start}.club-ck input{margin-top:1px}
+.club-f{display:block;background:#fff;border-radius:13px;padding:8px 13px;margin:0 0 8px;box-shadow:inset 0 0 0 1px #e2dbcd}.club-f small{display:block;font-size:11.5px;font-weight:700;color:#10285e;letter-spacing:.02em}.club-f input::placeholder{color:#a3a7b0}.club-f input{border:0;outline:0;width:100%;font-size:16px;padding:2px 0;background:none;color:#16181d}
+.club-ck{display:flex;gap:8px;font-size:12px;color:#444;margin:8px 2px 12px;line-height:1.35;align-items:flex-start}.club-ck input{margin-top:1px}
 .club-cta{width:100%;border:0;background:#10285e;color:#fff;border-radius:999px;padding:15px;font-weight:600;font-size:15.5px;cursor:pointer}.club-cta:disabled{opacity:.35;cursor:default}
 .club-note{font-size:10.5px;color:#8a8f99;text-align:center;margin:10px 0 0;line-height:1.4}
 
@@ -1920,6 +1920,14 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 .club-cnt-n{flex:none;width:62px;height:62px;border-radius:50%;background:#fff;color:#10285e;display:grid;place-items:center;text-align:center;line-height:1;font-family:'Playfair Display',serif;font-weight:800;font-size:26px;box-shadow:0 0 0 3px #10285e,0 0 0 4.5px #c9a24f}
 .club-cnt-n small{display:block;font-family:Inter,sans-serif;font-size:8px;font-weight:700;letter-spacing:.18em;margin-top:2px;color:#b8945a}
 .club-cnt-t{color:#dfe6f5;font-size:13.5px;line-height:1.5}.club-cnt-t b{color:#f0d9a8}
+.club-deck{position:relative;height:172px;margin:0 0 10px}
+.club-slot{position:absolute;left:50%;top:8px;width:min(240px,62vw);transition:transform .9s cubic-bezier(.45,.05,.25,1),filter .9s}
+.club-slot .bc-wrap{margin:0;max-width:none}
+.club-slot.pf{transform:translateX(-50%) translateY(8px) scale(1.12);z-index:3}
+.club-slot.pr{transform:translateX(calc(-50% + 70px)) rotate(7deg) scale(.86);z-index:2;filter:brightness(.8)}
+.club-slot.pl{transform:translateX(calc(-50% - 70px)) rotate(-7deg) scale(.86);z-index:1;filter:brightness(.8)}
+.club-capt{text-align:center;font-size:12.5px;color:#6b7080;margin:0 0 10px}.club-capt b{color:#10285e}
+.club-head{text-align:center;margin-bottom:12px}.club-head small{display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#b8945a;font-weight:700}.club-head b{display:block;font-family:'Playfair Display',serif;font-size:22px;color:#10285e;line-height:1.15;margin-top:4px}
 .club-tierb{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;border-radius:999px;padding:4px 10px;margin:-6px 0 12px}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -3885,18 +3893,40 @@ function clubShell(inner){
 }
 function openClubSheet(){
   const me=clubMe(); if(me&&me.code) return clubWelcome(me,true);
-  clubShell(`<div class="club-sh"><img src="charte/files/mascotte/DreviciOyster_Mascotte_Affiche_Vins-Champagnes.webp" alt=""><div><small>Le Club Drevici</small><b>Une coupe offerte à votre 1<sup>re</sup> visite</b></div></div>
+  const nx=clubNext||'';
+  clubShell(`<div class="club-deck" aria-hidden="true">
+      <div class="club-slot pf"><div class="bc-wrap">${clubCardHTML({first:'Votre prénom',code:'CLUB-····',no:nx||'···'})}</div></div>
+      <div class="club-slot pr"><div class="bc-wrap">${clubCardHTML({first:'Claire',code:'CLUB-K8RT',no:7,tier:'vip'})}</div></div>
+      <div class="club-slot pl"><div class="bc-wrap">${clubCardHTML({first:'Louis',code:'CLUB-2M9P',no:1,tier:'staff',joined:new Date().toISOString()})}</div></div></div>
+    <div class="club-capt" id="clubCapt">${nx?`Vous serez le membre <b>n° ${String(nx).padStart(3,'0')}</b>`:'&nbsp;'}</div>
+    <div class="club-head"><small>Le Club Drevici</small><b>Une coupe offerte<br>à votre première visite</b></div>
     <form id="clubForm" onsubmit="clubSubmit(event)" novalidate>
-      <div class="club-2"><label class="club-f"><small>Prénom</small><input name="first" autocomplete="given-name" placeholder="Votre prénom" required></label>
+      <div class="club-2"><label class="club-f"><small>Prénom</small><input name="first" autocomplete="given-name" placeholder="Votre prénom" required oninput="clubLiveName(this.value)"></label>
       <label class="club-f"><small>Nom</small><input name="last" autocomplete="family-name" placeholder="Votre nom"></label></div>
       <label class="club-f"><small>Email</small><input name="email" type="email" autocomplete="email" placeholder="vous@exemple.fr" required></label>
       <label class="club-f"><small>Téléphone</small><input name="phone" type="tel" autocomplete="tel" placeholder="06 12 34 56 78" required></label>
       <input name="hp" tabindex="-1" autocomplete="off" class="club-hp" aria-hidden="true">
       <label class="club-ck"><input type="checkbox" name="consent" onchange="document.getElementById('clubGo').disabled=!this.checked"> J'accepte de recevoir les soirées, avant-premières et offres du club par email et SMS. C'est le principe du club ; désinscription en 1 clic (lien ou STOP).</label>
       <div class="club-err" id="clubErr"></div>
-      <button type="submit" class="club-cta" id="clubGo" disabled>Je rejoins le club 🥂</button>
+      <button type="submit" class="club-cta" id="clubGo" disabled>Je rejoins le club</button>
     </form>
     <p class="club-note">Votre prénom et l'initiale de votre nom pourront apparaître dans la liste des premiers membres (retrait sur simple demande). Coupe offerte pour un repas réservé, une par membre, valable 30 jours après l'inscription. Réservé aux plus de 18 ans. L'abus d'alcool est dangereux pour la santé.</p>`);
+  clubFonts(); requestAnimationFrame(clubFit); if(document.fonts) document.fonts.ready.then(clubFit); clubDeckStart(); clubLoadNext();
+}
+// Formulaire : 3 cartes qui tournent (Navy = la sienne, Gold, Staff), prénom tapé affiché en direct, n° du prochain membre.
+let clubNext=null, clubDeckT=null;
+function clubDeckStart(){
+  clearInterval(clubDeckT); if(matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+  clubDeckT=setInterval(()=>{ const d=document.querySelector('#clubSheet.open .club-deck'); if(!d){ clearInterval(clubDeckT); return; }
+    d.querySelectorAll('.club-slot').forEach(c=>{ const k=c.classList.contains('pf')?'pl':c.classList.contains('pr')?'pf':'pr'; c.classList.remove('pf','pr','pl'); c.classList.add(k); }); },2800);
+}
+function clubLiveName(v){ const n=document.querySelector('.club-deck .club-slot:first-child .name'); if(n) n.textContent=(v.trim()||'Votre prénom').toUpperCase().slice(0,14); }
+async function clubLoadNext(){
+  try{ const r=await fetch(CLUB_API+'/club/next?slug='+encodeURIComponent(CLUB_SLUG)); const d=await r.json(); if(!d.ok||!d.next) return;
+    clubNext=d.next; const no=String(d.next).padStart(3,'0');
+    const c=document.getElementById('clubCapt'); if(c) c.innerHTML=`Vous serez le membre <b>n° ${no}</b>`;
+    const b=document.querySelector('.club-deck .club-slot:first-child .no b'); if(b) b.textContent=no;
+  }catch(_){}
 }
 async function clubSubmit(e){
   e.preventDefault(); const f=e.target, v=n=>(f.elements[n].value||'').trim(), err=document.getElementById('clubErr'), go=document.getElementById('clubGo');
@@ -3909,11 +3939,11 @@ async function clubSubmit(e){
   try{
     const r=await fetch(CLUB_API+'/club/join',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({slug:CLUB_SLUG,first:v('first'),last:v('last'),email:v('email'),phone:v('phone'),consent:f.elements.consent.checked,show:true,hp:v('hp'),src,site:location.origin+'/resa.html'})});
     const d=await r.json();
-    if(!d.ok){ err.textContent=d.error||'Une erreur est survenue, réessayez.'; go.disabled=false; go.textContent='Je rejoins le club 🥂'; return; }
+    if(!d.ok){ err.textContent=d.error||'Une erreur est survenue, réessayez.'; go.disabled=false; go.textContent='Je rejoins le club'; return; }
     const me={at:Date.now(),code:d.code,no:d.no,first:d.first||v('first'),last:v('last'),email:v('email'),phone:v('phone')};
     try{ localStorage.setItem('club_'+CLUB_SLUG,JSON.stringify(me)); }catch(_){}
     clubWelcome(me,!!d.already); clubLinkRefresh();
-  }catch(x){ err.textContent='Connexion impossible, réessayez.'; go.disabled=false; go.textContent='Je rejoins le club 🥂'; }
+  }catch(x){ err.textContent='Connexion impossible, réessayez.'; go.disabled=false; go.textContent='Je rejoins le club'; }
 }
 // ── Cartes du club : Navy (membre), Gold (VIP), Noir (staff) ──
 const CLUB_ANCHOR='<svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="vertical-align:-1px;margin-left:4px"><circle cx="12" cy="5" r="2.2"/><path d="M12 7.5V21M7 11h10M4.5 14.5c1 4 4 6.5 7.5 6.5s6.5-2.5 7.5-6.5"/></svg>';

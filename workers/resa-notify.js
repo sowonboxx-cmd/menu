@@ -39,6 +39,14 @@ export default {
       try { return json(await clubMembers(env, String(url.searchParams.get('slug') || '')), 200, cors); }
       catch (e) { return json({ ok: false, error: String(e && e.message || e) }, 500, cors); }
     }
+    if (req.method === 'GET' && url.pathname === '/club/next') {
+      try {
+        const slug = String(url.searchParams.get('slug') || '');
+        if (!/^[a-z0-9-]{2,60}$/.test(slug)) return json({ ok: false }, 400, cors);
+        const all = await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&club_member=eq.true&select=club_no&order=club_no.desc.nullslast&limit=1`) || [];
+        return json({ ok: true, next: ((all[0] && all[0].club_no) || 0) + 1 }, 200, cors);
+      } catch (e) { return json({ ok: false, error: String(e && e.message || e) }, 500, cors); }
+    }
     if (req.method === 'GET' && url.pathname === '/club/card') {
       try { return json(await clubCard(env, String(url.searchParams.get('slug') || ''), String(url.searchParams.get('code') || '')), 200, cors); }
       catch (e) { return json({ ok: false, error: String(e && e.message || e) }, 500, cors); }
