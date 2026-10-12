@@ -24,7 +24,7 @@
 
 const CACHE_SECONDS = 300;
 const PUBLIC_PAGES = ['/', '/resa'];
-const PRIVATE_PATHS = ['/admin', '/admin.html', '/gestion', '/gestion.html', '/qrc', '/qrc.html', '/qrf', '/qrf.html', '/calendar', '/calendar.html', '/fidelite', '/fidelite.html'];
+const PRIVATE_PATHS = ['/admin', '/admin.html', '/gestion', '/gestion.html', '/reservations', '/reservations.html', '/qrc', '/qrc.html', '/qrf', '/qrf.html', '/calendar', '/calendar.html', '/fidelite', '/fidelite.html'];
 const DAYS_FR = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 const DAYS_SCHEMA = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
