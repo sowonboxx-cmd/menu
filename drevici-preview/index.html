@@ -1940,6 +1940,14 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 .club-deck-find.spin .club-slot{transition-duration:.45s}
 .club-deck-find.spin .club-slot.pf{filter:drop-shadow(0 0 14px rgba(240,217,168,.75))}
 @media(prefers-reduced-motion:reduce){.bc-wrap.bc-reveal,.bc-reveal .bc:before{animation:none}}
+.club-prank-ov{position:fixed;inset:0;z-index:100001;background:rgba(10,16,32,.55);display:grid;place-items:center;padding:24px;animation:cpFade .2s ease both}
+.club-prank-pop{width:100%;max-width:320px;background:#fff;border-radius:24px;padding:22px 20px 18px;text-align:center;box-shadow:0 24px 50px -16px rgba(0,0,0,.5);animation:cpPin .5s cubic-bezier(.2,1.4,.4,1) both;font-family:Inter,sans-serif}
+.club-prank-pop img{height:120px;margin-top:-74px;filter:drop-shadow(0 8px 12px rgba(0,0,0,.25));animation:cpWig .9s ease-in-out infinite;transform-origin:50% 90%}
+.club-prank-pop h3{font-family:'Playfair Display',serif;font-size:22px;color:#10285e;margin:8px 0 6px;line-height:1.15}
+.club-prank-pop p{margin:0 0 14px;font-size:14.5px;color:#44506a;line-height:1.45}.club-prank-pop p b{color:#10285e}
+.club-prank-bar{height:4px;border-radius:9px;background:#efe9de;overflow:hidden}.club-prank-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#f58529,#dd2a7b 50%,#8134af);animation:cpBar 1.6s linear forwards}
+.club-prank-pop small{display:block;font-size:11.5px;color:#8a8f99;margin-top:8px}
+@keyframes cpFade{from{opacity:0}}@keyframes cpPin{0%{opacity:0;transform:scale(.6)}100%{opacity:1;transform:none}}@keyframes cpWig{0%,100%{transform:rotate(0)}25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}@keyframes cpBar{to{width:100%}}
 .club-tierb{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;border-radius:999px;padding:4px 10px;margin:-6px 0 12px}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -4081,9 +4089,18 @@ function clubLater(){
     <div class="club-ig"><b>En attendant, suivez-nous sur Instagram</b><span style="margin-bottom:6px;white-space:nowrap;font-size:min(12px,3.05vw);letter-spacing:-.01em">Jeux, cadeaux, soirées, nouveautés en avant-première.</span>
       <a class="club-pile" href="https://instagram.com/${clubEsc(ig)}" target="_blank" rel="noopener" aria-label="Voir nos photos sur Instagram">${CLUB_PHOTOS.map(([src,t],i)=>`<div class="club-pol ${['f','r','l'][i]}"><img src="${src}" alt=""><i>${t}</i></div>`).join('')}</a>
       <a class="club-cta club-a club-iga" href="https://instagram.com/${clubEsc(ig)}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>Suivre @${clubEsc(ig)}</a></div>
-    <a class="club-cta club-a club-prank" style="margin-top:12px" href="https://instagram.com/${clubEsc(ig)}" target="_blank" rel="noopener">Ne cliquez pas ici !</a>
+    <a class="club-cta club-a club-prank" style="margin-top:12px" href="https://instagram.com/${clubEsc(ig)}" onclick="return clubPrank(this.href)">Ne cliquez pas ici !</a>
     <button type="button" class="club-later" onclick="closeClubSheet()">Fermer</button></div>`);
   clubFonts(); if(!document.getElementById('clubCaveat')){ const l=document.createElement('link'); l.id='clubCaveat'; l.rel='stylesheet'; l.href='https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap'; document.head.appendChild(l); } clubPileStart();
+}
+// « Ne cliquez pas ici ! » : petit pop-up canular (1,6 s) par-dessus l'écran, puis Instagram.
+function clubPrank(url){
+  if(document.getElementById('clubPrank')) return false;
+  const d=document.createElement('div'); d.id='clubPrank'; d.className='club-prank-ov';
+  d.innerHTML=`<div class="club-prank-pop"><img src="club/gentleman.webp" alt=""><h3>On vous avait dit de ne pas cliquer…</h3><p>Maintenant, il faut assumer…<br><b>et s'abonner 🦪</b></p><div class="club-prank-bar"><i></i></div><small>On vous emmène sur Instagram…</small></div>`;
+  document.body.appendChild(d);
+  setTimeout(()=>{ location.href=url; setTimeout(()=>d.remove(),1500); },1700);
+  return false;
 }
 function closeClubSheet(){ const el=document.getElementById('clubSheet'); if(el) el.classList.remove('open'); }
 // Lien direct (story, affiche) : …/?club ou #club ouvre la feuille.
