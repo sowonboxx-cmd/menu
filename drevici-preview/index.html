@@ -1929,6 +1929,17 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 .club-capt{text-align:center;font-size:12.5px;color:#6b7080;margin:0 0 10px}.club-capt b{color:#10285e}
 .club-head{text-align:center;margin-bottom:12px}.club-head small{display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#b8945a;font-weight:700}.club-head b{display:block;font-family:'Playfair Display',serif;font-size:22px;color:#10285e;line-height:1.15;margin-top:4px}
 .club-found{display:block;width:100%;background:none;border:0;margin:10px 0 0;padding:6px;font-size:13.5px;color:#10285e;cursor:pointer;font-family:inherit}.club-found u{text-underline-offset:3px}
+.club-already{display:block;margin:6px auto 0;background:none;border:0;color:rgba(255,255,255,.78);font-family:'Jost',sans-serif;font-size:12px;letter-spacing:.03em;cursor:pointer;padding:4px}.club-already u{text-underline-offset:3px;text-decoration-color:rgba(240,217,168,.7)}
+.club-wc2{display:block;margin-top:8px;font-size:12.5px!important;line-height:1.55;color:#6b7080}.club-give{color:#10285e;text-decoration:underline;text-decoration-color:#c9a24f;text-decoration-thickness:2px;text-underline-offset:3px}
+.club-codepill{display:inline-block;font-family:'IBM Plex Mono',ui-monospace,monospace;font-weight:600;letter-spacing:.08em;color:#10285e;background:#fff;border-radius:7px;padding:1px 7px;box-shadow:inset 0 0 0 1px #e2dbcd}
+.club-stage{perspective:900px}
+.bc-wrap.bc-reveal{animation:bcRise 1.1s cubic-bezier(.2,.8,.2,1) both;transform-origin:50% 60%}
+@keyframes bcRise{0%{opacity:0;transform:translateY(70px) rotateX(24deg) rotateY(-28deg) scale(.82)}55%{opacity:1;transform:translateY(-8px) rotateX(-4deg) rotateY(9deg) scale(1.04)}80%{transform:translateY(2px) rotateY(-3deg) scale(.995)}100%{transform:none}}
+.bc-reveal .bc:before{content:"";position:absolute;inset:0;z-index:10;pointer-events:none;background:linear-gradient(105deg,transparent 38%,rgba(255,255,255,.6) 50%,transparent 62%);transform:translateX(-130%);animation:bcShine 1.1s .8s ease-in-out both}
+@keyframes bcShine{0%{transform:translateX(-130%)}100%{transform:translateX(130%)}}
+.club-deck-find.spin .club-slot{transition-duration:.45s}
+.club-deck-find.spin .club-slot.pf{filter:drop-shadow(0 0 14px rgba(240,217,168,.75))}
+@media(prefers-reduced-motion:reduce){.bc-wrap.bc-reveal,.bc-reveal .bc:before{animation:none}}
 .club-tierb{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;border-radius:999px;padding:4px 10px;margin:-6px 0 12px}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -3870,7 +3881,7 @@ function renderHomeCover(){
             : `<button type="button" class="home-cover-cta home-cover-cta-menu" onclick="dismissHomeCover()">${escapeHtmlLocal(hc.cta1Label||'Voir le menu')}</button>`}
           <a class="home-cover-cta home-cover-cta-reserve" href="${escAttr(cta2Url)}">${escapeHtmlLocal(hc.cta2Label||'Réserver')}</a>
         </div>
-        ${CLUB_ON?`<button type="button" class="club-link" onclick="openClubSheet()"><span class="club-link-t">${(clubMe()||{}).code?'✓ MEMBRE DU CLUB <em>· voir ma carte</em>':'🥂 REJOINDRE LE CLUB <em>· coupe offerte</em>'}<i>›</i></span></button>`:''}
+        ${CLUB_ON?`<button type="button" class="club-link" onclick="openClubSheet()"><span class="club-link-t">${(clubMe()||{}).code?'✓ MEMBRE DU CLUB <em>· voir ma carte</em>':'🥂 REJOINDRE LE CLUB <em>· coupe offerte</em>'}<i>›</i></span></button>${(clubMe()||{}).code?'':`<button type="button" class="club-already" onclick="clubFindSheet()">Déjà membre ? <u>Retrouver ma carte</u></button>`}`:''}
       </div>
     </div>
   </div>`;
@@ -3917,10 +3928,10 @@ function openClubSheet(){
 }
 // Formulaire : 3 cartes qui tournent (Navy = la sienne, Gold, Staff), prénom tapé affiché en direct, n° du prochain membre.
 let clubNext=null, clubDeckT=null;
-function clubDeckStart(){
+function clubDeckStart(ms){
   clearInterval(clubDeckT); if(matchMedia('(prefers-reduced-motion:reduce)').matches) return;
   clubDeckT=setInterval(()=>{ const d=document.querySelector('#clubSheet.open .club-deck'); if(!d){ clearInterval(clubDeckT); return; }
-    d.querySelectorAll('.club-slot').forEach(c=>{ const k=c.classList.contains('pf')?'pl':c.classList.contains('pr')?'pf':'pr'; c.classList.remove('pf','pr','pl'); c.classList.add(k); }); },2800);
+    d.querySelectorAll('.club-slot').forEach(c=>{ const k=c.classList.contains('pf')?'pl':c.classList.contains('pr')?'pf':'pr'; c.classList.remove('pf','pr','pl'); c.classList.add(k); }); },ms||2800);
 }
 function clubLiveName(v){ const n=document.querySelector('.club-deck .club-slot:first-child .name'); if(n) n.textContent=(v.trim()||'Votre prénom').toUpperCase().slice(0,14); }
 async function clubLoadNext(){
@@ -3932,8 +3943,12 @@ async function clubLoadNext(){
 }
 // Déjà membre sur un autre téléphone / navigateur : email + téléphone → sa carte revient.
 function clubFindSheet(){
-  clubShell(`<div class="club-head" style="margin-top:4px"><small>Le Club Drevici</small><b>Retrouver ma carte</b></div>
-    <p style="text-align:center;font-size:13.5px;color:#6b7080;margin:-4px 0 14px">Indiquez l'email et le téléphone utilisés à l'inscription.</p>
+  clubShell(`<div class="club-deck club-deck-find" aria-hidden="true">
+      <div class="club-slot pf"><div class="bc-wrap">${clubCardHTML({first:'Votre prénom',code:'CLUB-····',no:'···'})}</div></div>
+      <div class="club-slot pr"><div class="bc-wrap">${clubCardHTML({first:'Votre prénom',code:'CLUB-····',no:'···',tier:'vip'})}</div></div>
+      <div class="club-slot pl"><div class="bc-wrap">${clubCardHTML({first:'Votre prénom',code:'CLUB-····',no:'···',tier:'staff',joined:new Date().toISOString()})}</div></div></div>
+    <div class="club-head"><small>Le Club Drevici</small><b>Retrouver ma carte</b></div>
+    <p style="text-align:center;font-size:13.5px;color:#6b7080;margin:-4px 0 14px">L'email et le téléphone de votre inscription.</p>
     <form onsubmit="clubFindGo(event)" novalidate>
       <label class="club-f"><small>Email</small><input name="email" type="email" autocomplete="email" placeholder="vous@exemple.fr" required></label>
       <label class="club-f"><small>Téléphone</small><input name="phone" type="tel" autocomplete="tel" placeholder="06 12 34 56 78" required></label>
@@ -3941,20 +3956,24 @@ function clubFindSheet(){
       <button type="submit" class="club-cta" id="clubGo">Retrouver ma carte</button>
     </form>
     <button type="button" class="club-found" onclick="openClubSheet()">Pas encore membre ? <u>Rejoindre le club</u></button>`);
+  clubFonts(); requestAnimationFrame(clubFit); if(document.fonts) document.fonts.ready.then(clubFit); clubDeckStart(2200);
 }
 async function clubFindGo(e){
   e.preventDefault(); const f=e.target, err=document.getElementById('clubErr'), go=document.getElementById('clubGo');
   const email=(f.elements.email.value||'').trim(), phone=(f.elements.phone.value||'').trim();
   if(!email||!phone){ err.textContent='Indiquez votre email et votre téléphone.'; return; }
-  go.disabled=true; go.textContent='Recherche…'; err.textContent='';
+  go.disabled=true; go.textContent='Recherche de votre carte…'; err.textContent='';
+  const deck=document.querySelector('.club-deck-find'); if(deck) deck.classList.add('spin'); clubDeckStart(520);
+  const t0=Date.now();
   try{
     const r=await fetch(CLUB_API+'/club/find',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({slug:CLUB_SLUG,email,phone})});
     const d=await r.json();
-    if(!d.ok){ err.textContent=d.error||'Aucune carte trouvée.'; go.disabled=false; go.textContent='Retrouver ma carte'; return; }
+    if(!d.ok){ err.textContent=d.error||'Aucune carte trouvée.'; go.disabled=false; go.textContent='Retrouver ma carte'; if(deck) deck.classList.remove('spin'); clubDeckStart(2200); return; }
     const me={at:d.joined?Date.parse(d.joined):Date.now(),code:d.code,no:d.no,first:d.first,last:d.last,email,phone,tier:d.tier,card:d.card,joined:d.joined,used:d.used};
     try{ localStorage.setItem('club_'+CLUB_SLUG,JSON.stringify(me)); }catch(_){}
-    clubWelcome(me,true); clubLinkRefresh();
-  }catch(x){ err.textContent='Connexion impossible, réessayez.'; go.disabled=false; go.textContent='Retrouver ma carte'; }
+    await new Promise(r=>setTimeout(r,Math.max(0,1400-(Date.now()-t0)))); clearInterval(clubDeckT);
+    clubWelcome(me,true,true); clubLinkRefresh();
+  }catch(x){ err.textContent='Connexion impossible, réessayez.'; go.disabled=false; go.textContent='Retrouver ma carte'; if(deck) deck.classList.remove('spin'); clubDeckStart(2200); }
 }
 async function clubSubmit(e){
   e.preventDefault(); const f=e.target, v=n=>(f.elements[n].value||'').trim(), err=document.getElementById('clubErr'), go=document.getElementById('clubGo');
@@ -4024,19 +4043,19 @@ async function clubSyncCard(){
   }catch(_){}
 }
 function clubLimit(me){ const t=new Date((me.joined?Date.parse(me.joined):(me.at||Date.now()))+30*864e5); return t.toLocaleDateString('fr-FR',{day:'numeric',month:'long'}); }
-function clubWelcome(me,already){
+function clubWelcome(me,already,reveal){
   const q=new URLSearchParams({club:me.code,t:String(me.at||Date.now()),prenom:me.first||'',nom:me.last||'',email:me.email||'',tel:me.phone||''});
   clubShell(`<div class="club-wel">
       <canvas id="clubConf"></canvas>
-      <div class="club-wt">${already?'Vous êtes déjà membre ✓':`Bienvenue ${clubEsc(me.first)} !`}</div>
+      <div class="club-wt">${reveal?`Vous revoilà${me.first?', '+clubEsc(me.first):''} !`:already?'Vous êtes déjà membre ✓':`Bienvenue ${clubEsc(me.first)} !`}</div>
       <div class="club-ws">${already?'Voici votre carte.':'Vous avez rejoint le club'+(me.no?` · membre n° ${me.no}`:'')}</div>
-      <div id="clubTierB">${clubTierBadge(me)}</div><div class="bc-wrap">${clubCardHTML(me)}</div>
-      <div class="club-wc">🥂 Votre coupe vous attend avec votre repas<br><b>jusqu'au ${clubLimit(me)}</b>.<br><small style="display:block;margin:2px 0 4px">Champagne… ou, si vous préférez, un verre de vin, une bière ou un soft.</small><small>Donnez ce code en arrivant. Il vous a aussi été envoyé par email.</small></div>
+      <div id="clubTierB">${clubTierBadge(me)}</div><div class="club-stage"><div class="bc-wrap${reveal?' bc-reveal':''}">${clubCardHTML(me)}</div></div>
+      <div class="club-wc">${me.used?'🥂 Votre coupe vous a déjà été offerte.<br><small>Merci, et à très vite au bar !</small>':`🥂 Votre coupe vous attend avec votre repas<br><b>jusqu'au ${clubLimit(me)}</b>.<small class="club-wc2">Champagne, ou un verre de vin, une bière, un soft.<br><b class="club-give">Donnez ce code en arrivant</b> : <span class="club-codepill">${clubEsc(me.code)}</span></small>`}</div>
       <a class="club-cta club-a" href="resa.html?${q}">Réserver ma table</a>
       <button type="button" class="club-later" onclick="clubLater()">Plus tard</button>
     </div>`);
   clubFonts(); requestAnimationFrame(clubFit); if(document.fonts) document.fonts.ready.then(clubFit); clubSyncCard();
-  if(!already) clubConfetti();
+  if(!already||reveal) clubConfetti();
 }
 function clubConfetti(){
   const c=document.getElementById('clubConf'); if(!c||matchMedia('(prefers-reduced-motion:reduce)').matches) return;
@@ -4044,7 +4063,7 @@ function clubConfetti(){
   const cols=['#f0d9a8','#e3b65b','#10285e','#ffffff','#c9a35c'], P=Array.from({length:90},()=>({x:box.width/2+(Math.random()-.5)*60,y:box.height*.25,vx:(Math.random()-.5)*7,vy:-Math.random()*7-3,s:Math.random()*5+3,c:cols[Math.random()*cols.length|0],r:Math.random()*6,vr:(Math.random()-.5)*.3}));
   let t=0; (function f(){ x.clearRect(0,0,box.width,box.height); P.forEach(p=>{ p.vy+=.18; p.x+=p.vx; p.y+=p.vy; p.r+=p.vr; x.save(); x.translate(p.x,p.y); x.rotate(p.r); x.fillStyle=p.c; x.fillRect(-p.s/2,-p.s/4,p.s,p.s/2); x.restore(); }); if(++t<150) requestAnimationFrame(f); else x.clearRect(0,0,box.width,box.height); })();
 }
-function clubLinkRefresh(){ const me=clubMe(), l=document.querySelector('.club-link-t'); if(l&&me&&me.code) l.innerHTML='✓ MEMBRE DU CLUB <em>· voir ma carte</em><i>›</i>'; }
+function clubLinkRefresh(){ const me=clubMe(), l=document.querySelector('.club-link-t'); if(me&&me.code){ const x=document.querySelector('.club-already'); if(x) x.remove(); } if(l&&me&&me.code) l.innerHTML='✓ MEMBRE DU CLUB <em>· voir ma carte</em><i>›</i>'; }
 // Tas de polaroïds (écran « Plus tard ») : tourne de droite à gauche toutes les 3 s, clic → Instagram.
 const CLUB_PHOTOS=[['club/photos/drevici-1.webp','En mer'],['club/photos/drevici-2.webp',"L'équipe"],['club/photos/drevici-3.webp','À table !']];
 let clubPileT=null;
