@@ -1928,6 +1928,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 .club-slot.pl{transform:translateX(calc(-50% - 70px)) rotate(-7deg) scale(.86);z-index:1;filter:brightness(.8)}
 .club-capt{text-align:center;font-size:12.5px;color:#6b7080;margin:0 0 10px}.club-capt b{color:#10285e}
 .club-head{text-align:center;margin-bottom:12px}.club-head small{display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#b8945a;font-weight:700}.club-head b{display:block;font-family:'Playfair Display',serif;font-size:22px;color:#10285e;line-height:1.15;margin-top:4px}
+.club-found{display:block;width:100%;background:none;border:0;margin:10px 0 0;padding:6px;font-size:13.5px;color:#10285e;cursor:pointer;font-family:inherit}.club-found u{text-underline-offset:3px}
 .club-tierb{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;border-radius:999px;padding:4px 10px;margin:-6px 0 12px}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -3910,6 +3911,7 @@ function openClubSheet(){
       <div class="club-err" id="clubErr"></div>
       <button type="submit" class="club-cta" id="clubGo" disabled>Je rejoins le club</button>
     </form>
+    <button type="button" class="club-found" onclick="clubFindSheet()">Déjà membre ? <u>Retrouver ma carte</u></button>
     <p class="club-note">Votre prénom et l'initiale de votre nom pourront apparaître dans la liste des premiers membres (retrait sur simple demande). Coupe de champagne offerte (ou un verre de vin, une bière ou un soft, jusqu'à 10 €) pour un repas réservé, une par membre, valable 30 jours après l'inscription. Réservé aux plus de 18 ans. L'abus d'alcool est dangereux pour la santé.</p>`);
   clubFonts(); requestAnimationFrame(clubFit); if(document.fonts) document.fonts.ready.then(clubFit); clubDeckStart(); clubLoadNext();
 }
@@ -3927,6 +3929,32 @@ async function clubLoadNext(){
     const c=document.getElementById('clubCapt'); if(c) c.innerHTML=`Vous serez le membre <b>n° ${no}</b>`;
     const b=document.querySelector('.club-deck .club-slot:first-child .no b'); if(b) b.textContent=no;
   }catch(_){}
+}
+// Déjà membre sur un autre téléphone / navigateur : email + téléphone → sa carte revient.
+function clubFindSheet(){
+  clubShell(`<div class="club-head" style="margin-top:4px"><small>Le Club Drevici</small><b>Retrouver ma carte</b></div>
+    <p style="text-align:center;font-size:13.5px;color:#6b7080;margin:-4px 0 14px">Indiquez l'email et le téléphone utilisés à l'inscription.</p>
+    <form onsubmit="clubFindGo(event)" novalidate>
+      <label class="club-f"><small>Email</small><input name="email" type="email" autocomplete="email" placeholder="vous@exemple.fr" required></label>
+      <label class="club-f"><small>Téléphone</small><input name="phone" type="tel" autocomplete="tel" placeholder="06 12 34 56 78" required></label>
+      <div class="club-err" id="clubErr"></div>
+      <button type="submit" class="club-cta" id="clubGo">Retrouver ma carte</button>
+    </form>
+    <button type="button" class="club-found" onclick="openClubSheet()">Pas encore membre ? <u>Rejoindre le club</u></button>`);
+}
+async function clubFindGo(e){
+  e.preventDefault(); const f=e.target, err=document.getElementById('clubErr'), go=document.getElementById('clubGo');
+  const email=(f.elements.email.value||'').trim(), phone=(f.elements.phone.value||'').trim();
+  if(!email||!phone){ err.textContent='Indiquez votre email et votre téléphone.'; return; }
+  go.disabled=true; go.textContent='Recherche…'; err.textContent='';
+  try{
+    const r=await fetch(CLUB_API+'/club/find',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({slug:CLUB_SLUG,email,phone})});
+    const d=await r.json();
+    if(!d.ok){ err.textContent=d.error||'Aucune carte trouvée.'; go.disabled=false; go.textContent='Retrouver ma carte'; return; }
+    const me={at:d.joined?Date.parse(d.joined):Date.now(),code:d.code,no:d.no,first:d.first,last:d.last,email,phone,tier:d.tier,card:d.card,joined:d.joined,used:d.used};
+    try{ localStorage.setItem('club_'+CLUB_SLUG,JSON.stringify(me)); }catch(_){}
+    clubWelcome(me,true); clubLinkRefresh();
+  }catch(x){ err.textContent='Connexion impossible, réessayez.'; go.disabled=false; go.textContent='Retrouver ma carte'; }
 }
 async function clubSubmit(e){
   e.preventDefault(); const f=e.target, v=n=>(f.elements[n].value||'').trim(), err=document.getElementById('clubErr'), go=document.getElementById('clubGo');
