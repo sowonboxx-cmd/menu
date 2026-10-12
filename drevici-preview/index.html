@@ -1885,6 +1885,30 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 .club-dl{background:#fdf1e4;border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.5;color:#7a3b12;margin-bottom:14px}
 .club-ig{background:#fff;border-radius:16px;padding:14px;box-shadow:inset 0 0 0 1px #e8e2d6}.club-ig b{display:block;font-size:15px;color:#10285e}.club-ig span{display:block;font-size:13px;color:#6b7080;margin:4px 0 12px;line-height:1.4}
 .club-iga{display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(90deg,#f58529,#dd2a7b 50%,#8134af)}
+
+/* Cartes du club (Navy = membre, Gold = VIP, Noir = staff) — maquettes validées : cabine/beltab-cartes-v3.html (M1, H1, C2) */
+.bc-wrap{width:100%;max-width:340px;margin:0 auto 14px;aspect-ratio:440/277;position:relative}
+.bc{position:absolute;left:0;top:0;width:440px;height:277px;border-radius:18px;overflow:hidden;transform-origin:0 0;box-shadow:0 22px 40px -14px rgba(0,0,0,.45),0 2px 6px rgba(0,0,0,.18);isolation:isolate;text-align:left;font-family:Inter,sans-serif;-webkit-font-smoothing:antialiased}
+.bc>*{position:absolute}
+.bc:after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.16) 45%,transparent 60%);pointer-events:none;z-index:9}
+.bc .wm1{font-family:'Playfair Display',serif;font-weight:800;font-size:22px;letter-spacing:.09em;white-space:nowrap}
+.bc .wm2{font-family:'Playfair Display',serif;font-weight:800;font-size:17px;letter-spacing:.09em;line-height:1.45}
+.bc .bzh{font-size:9px;font-weight:700;letter-spacing:.45em}
+.bc .kind{font-size:9px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;white-space:nowrap}
+.bc .name{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:20px;letter-spacing:.14em;white-space:nowrap}
+.bc .code{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:12.5px;letter-spacing:.22em;white-space:nowrap}
+.bc .no{text-align:right;font-size:7.5px;letter-spacing:.2em;font-weight:700;text-transform:uppercase;line-height:1.4}
+.bc .no b{display:block;font-family:'IBM Plex Mono',monospace;font-size:15px;letter-spacing:.12em}
+.bc .chip{width:42px;height:32px;border-radius:7px;background:linear-gradient(135deg,#f7e3a6,#c9a24f 45%,#f1d78f 70%,#a8822f);box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
+.bc .chip:before,.bc .chip:after{content:"";position:absolute;inset:9px 0;border-top:1px solid rgba(0,0,0,.22);border-bottom:1px solid rgba(0,0,0,.22)}
+.bc .chip:after{inset:0 13px;border:0;border-left:1px solid rgba(0,0,0,.22);border-right:1px solid rgba(0,0,0,.22)}
+.bc .emb{text-shadow:0 1px 0 rgba(255,255,255,.3),0 -1px 0 rgba(0,0,0,.35)}
+.bc .gl{font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:600}
+.bc .masc{height:94%;bottom:4%}
+.bc.navy{background:radial-gradient(120% 140% at 85% 10%,#2a4a8f 0%,#10285e 45%,#0a1838 100%);color:#fff}
+.bc.gold{background:#d9b878;color:#2b1f0b}
+.bc.noir{background:linear-gradient(160deg,#1c1c1e,#0b0b0c 70%);color:#e9c982}
+.club-tierb{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;border-radius:999px;padding:4px 10px;margin:-6px 0 12px}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
@@ -3879,18 +3903,69 @@ async function clubSubmit(e){
     clubWelcome(me,!!d.already); clubLinkRefresh();
   }catch(x){ err.textContent='Connexion impossible, réessayez.'; go.disabled=false; go.textContent='Je rejoins le club 🥂'; }
 }
-function clubLimit(me){ const t=new Date((me.at||Date.now())+30*864e5); return t.toLocaleDateString('fr-FR',{day:'numeric',month:'long'}); }
+// ── Cartes du club : Navy (membre), Gold (VIP), Noir (staff) ──
+const CLUB_ANCHOR='<svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="vertical-align:-1px;margin-left:4px"><circle cx="12" cy="5" r="2.2"/><path d="M12 7.5V21M7 11h10M4.5 14.5c1 4 4 6.5 7.5 6.5s6.5-2.5 7.5-6.5"/></svg>';
+function clubFonts(){ if(document.getElementById('clubFonts')) return; const l=document.createElement('link'); l.id='clubFonts'; l.rel='stylesheet'; l.href='https://fonts.googleapis.com/css2?family=Playfair+Display:wght@800&family=IBM+Plex+Mono:wght@500;600&family=Cormorant+Garamond:ital,wght@1,600&display=swap'; document.head.appendChild(l); }
+function clubCardHTML(me){
+  const card=me.card||(me.tier==='staff'?'noir':me.tier==='vip'?'gold':'navy');
+  const name=clubEsc(String(me.first||'').toUpperCase()), code=clubEsc(String(me.code||'').replace(/^CLUB-/,'CLUB · '));
+  const no=String(me.no||'').padStart(3,'0'), d=new Date(me.joined||me.at||Date.now()), since=String(d.getMonth()+1).padStart(2,'0')+' / '+String(d.getFullYear()).slice(2);
+  const vert=(t,c)=>`<div class="kind" style="right:22px;top:50%;transform:translateY(-50%) rotate(90deg);transform-origin:right center;color:${c};font-size:8px">${t}</div>`;
+  const staff=me.tier==='staff';
+  if(card==='noir') return `<div class="bc noir">
+    <div style="inset:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.035) 0 2px,transparent 2px 4px),repeating-linear-gradient(-45deg,rgba(0,0,0,.25) 0 2px,transparent 2px 4px)"></div>
+    <div style="inset:10px;border:1px solid rgba(233,201,130,.4);border-radius:12px"></div>
+    <img class="masc" src="club/gentleman-or.webp" alt="" style="left:50%;transform:translateX(-50%);height:104%;bottom:-6%;opacity:.95">
+    <div class="wm2" style="left:24px;top:22px">DREVICI<br>OYSTER</div>
+    <div class="kind" style="right:24px;top:24px">Carte ${staff?'<span style="color:#e0524b">staff</span>':'membre'}</div><div class="gl" style="right:24px;top:40px;font-size:13px;color:#bfa36a">Gentleman Oyster</div>
+    <div style="right:22px;top:56px;font-family:'Playfair Display',serif;font-weight:800;font-size:34px;color:rgba(233,201,130,.85)">${no}</div>
+    <div class="name" style="left:24px;bottom:46px;color:#f3dfa8;font-size:18px">${name}</div><div class="code" style="left:24px;bottom:26px;color:#bfa36a">${code}</div>
+    <div class="no" style="right:24px;bottom:26px;color:#8d7a52">Membre depuis<b style="color:#e9c982;font-size:12.5px">${since}</b></div></div>`;
+  if(card==='gold') return `<div class="bc gold">
+    <div style="inset:0;background:linear-gradient(125deg,#d4b06a 0%,#ecd39a 30%,#dcbd7c 50%,#f0dba8 68%,#cfa962 100%)"></div>
+    <div style="inset:0;background:repeating-linear-gradient(90deg,rgba(255,255,255,.07) 0 1px,transparent 1px 3px)"></div>
+    <div style="inset:9px;border:1.5px solid rgba(80,55,15,.5);border-radius:12px"></div><div style="inset:13px;border:.5px solid rgba(80,55,15,.4);border-radius:9px"></div>
+    <img class="masc" src="club/gentleman.webp" alt="" style="right:48px;mix-blend-mode:multiply"><img class="masc" src="club/gentleman.webp" alt="" style="right:48px;opacity:.3">
+    <div class="wm1" style="left:26px;top:24px;color:#2b1f0b">DREVICI OYSTER</div><div class="bzh" style="left:26px;top:58px;color:#6b4b14">BZH${CLUB_ANCHOR}</div>
+    <div class="chip" style="left:26px;top:108px"></div>${vert(staff?'Carte staff':'Carte Gold','#6b4b14')}
+    <div class="name" style="left:26px;bottom:46px;color:#2b1f0b">${name}</div><div class="code" style="left:26px;bottom:26px;color:#3a2a0c">${code}</div>
+    <div class="no" style="right:26px;bottom:24px;color:#6b4b14">Membre n°<b style="color:#2b1f0b">${no}</b></div></div>`;
+  return `<div class="bc navy">
+    <div style="inset:9px;border:1px solid rgba(240,217,168,.6);border-radius:12px"></div>
+    <img class="masc" src="club/gentleman.webp" alt="" style="right:50px;opacity:.85">
+    <div class="wm1" style="left:24px;top:22px">DREVICI OYSTER</div><div class="bzh" style="left:24px;top:58px;color:#f0d9a8">BZH${CLUB_ANCHOR}</div>
+    <div class="chip" style="left:24px;top:112px"></div>
+    <div class="name emb" style="left:24px;bottom:46px">${name}</div><div class="code" style="left:24px;bottom:26px;color:#cfd8ea">${code}</div>
+    ${vert(staff?'Carte staff':'Carte membre','rgba(240,217,168,.75)')}<div class="no" style="right:24px;bottom:24px;color:#9fb0d0">Membre n°<b style="color:#fff">${no}</b></div></div>`;
+}
+function clubFit(){ document.querySelectorAll('.bc-wrap').forEach(w=>{ const c=w.querySelector('.bc'); if(c) c.style.transform='scale('+(w.clientWidth/440)+')'; }); }
+addEventListener('resize',clubFit);
+const CLUB_TIER_LABEL={membre:['Membre','#10285e','#e8edf7'],vip:['VIP · Carte Gold','#6b4b14','#f6ecd2'],staff:['Staff','#e9c982','#16161a']};
+function clubTierBadge(me){ const t=CLUB_TIER_LABEL[me.tier]; return (t&&me.tier!=='membre')?`<span class="club-tierb" style="color:${t[1]};background:${t[2]}">${t[0]}</span><br>`:''; }
+// Relit le niveau et le visuel de la carte (changés depuis /gestion → Clients) puis rafraîchit la carte affichée.
+async function clubSyncCard(){
+  const me=clubMe(); if(!me||!me.code) return;
+  try{
+    const r=await fetch(CLUB_API+'/club/card?'+new URLSearchParams({slug:CLUB_SLUG,code:me.code})); const d=await r.json(); if(!d.ok) return;
+    const nx={...me,tier:d.tier,card:d.card,no:d.no||me.no,joined:d.joined||me.joined,used:d.used};
+    try{ localStorage.setItem('club_'+CLUB_SLUG,JSON.stringify(nx)); }catch(_){}
+    const w=document.querySelector('#clubSheet .bc-wrap');
+    if(w&&(nx.tier!==me.tier||nx.card!==me.card||nx.no!==me.no||nx.joined!==me.joined)){ w.innerHTML=clubCardHTML(nx); const b=document.getElementById('clubTierB'); if(b) b.innerHTML=clubTierBadge(nx); clubFit(); }
+  }catch(_){}
+}
+function clubLimit(me){ const t=new Date((me.joined?Date.parse(me.joined):(me.at||Date.now()))+30*864e5); return t.toLocaleDateString('fr-FR',{day:'numeric',month:'long'}); }
 function clubWelcome(me,already){
   const q=new URLSearchParams({club:me.code,t:String(me.at||Date.now()),prenom:me.first||'',nom:me.last||'',email:me.email||'',tel:me.phone||''});
   clubShell(`<div class="club-wel">
       <canvas id="clubConf"></canvas>
       <div class="club-wt">${already?'Vous êtes déjà membre ✓':`Bienvenue ${clubEsc(me.first)} !`}</div>
       <div class="club-ws">${already?'Voici votre carte.':'Vous avez rejoint le club'+(me.no?` · membre n° ${me.no}`:'')}</div>
-      <div class="club-card"><img src="charte/files/mascotte/DreviciOyster_Mascotte_Affiche_Vins-Champagnes.webp" alt=""><div><small>Carte membre</small><b>Drevici Oyster</b><span>${clubEsc(me.code)}</span></div></div>
+      <div id="clubTierB">${clubTierBadge(me)}</div><div class="bc-wrap">${clubCardHTML(me)}</div>
       <div class="club-wc">🥂 Votre coupe vous attend avec votre repas<br><b>jusqu'au ${clubLimit(me)}</b>.<br><small>Donnez ce code en arrivant. Il vous a aussi été envoyé par email.</small></div>
       <a class="club-cta club-a" href="resa.html?${q}">Réserver ma table</a>
       <button type="button" class="club-later" onclick="clubLater()">Plus tard</button>
     </div>`);
+  clubFonts(); requestAnimationFrame(clubFit); if(document.fonts) document.fonts.ready.then(clubFit); clubSyncCard();
   if(!already) clubConfetti();
 }
 function clubConfetti(){

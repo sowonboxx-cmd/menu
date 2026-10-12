@@ -39,6 +39,10 @@ export default {
       try { return json(await clubMembers(env, String(url.searchParams.get('slug') || '')), 200, cors); }
       catch (e) { return json({ ok: false, error: String(e && e.message || e) }, 500, cors); }
     }
+    if (req.method === 'GET' && url.pathname === '/club/card') {
+      try { return json(await clubCard(env, String(url.searchParams.get('slug') || ''), String(url.searchParams.get('code') || '')), 200, cors); }
+      catch (e) { return json({ ok: false, error: String(e && e.message || e) }, 500, cors); }
+    }
     // ── Espace restaurateur (/gestion) : session Supabase + admin du resto ──
     if (['/clients', '/campaign/preview', '/campaign/send', '/club/redeem', '/club/tier'].includes(url.pathname)) {
       try {
@@ -403,6 +407,18 @@ async function clubJoin(env, b) {
   if (!code) return { ok: false, error: 'Réessayez dans un instant' };
   try { await sendEmail(env, st, email, first, `Bienvenue au club ${st.restaurant_name} 🥂`, mailClub(st, first, code, no, b.site)); } catch (e) { console.warn('club email', e); }
   return { ok: true, code, no, first };
+}
+// Carte du membre (niveau + visuel), lue par le site à partir du code stocké sur le téléphone.
+// Ne renvoie que le prénom et l'initiale, jamais l'email ni le téléphone.
+async function clubCard(env, slug, code) {
+  code = code.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+  if (!/^[a-z0-9-]{2,60}$/.test(slug) || !/^CLUB-[A-Z0-9]{4}$/.test(code)) return { ok: false };
+  const rows = await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&club_code=eq.${enc(code)}&club_member=eq.true&select=name,club_no,club_joined_at,coupe_used_at,club_tier,club_card&limit=1`) || [];
+  const r = rows[0]; if (!r) return { ok: false };
+  const tier = ['membre', 'vip', 'staff'].includes(r.club_tier) ? r.club_tier : 'membre';
+  const card = tier === 'staff' ? (['navy', 'gold', 'noir'].includes(r.club_card) ? r.club_card : 'noir') : tier === 'vip' ? 'gold' : 'navy';
+  const [f, ...l] = String(r.name || '').trim().split(/\s+/);
+  return { ok: true, tier, card, first: f || '', initial: l.length ? l[l.length - 1][0].toUpperCase() : '', no: r.club_no, joined: r.club_joined_at, used: !!r.coupe_used_at };
 }
 async function clubMembers(env, slug) {
   if (!/^[a-z0-9-]{2,60}$/.test(slug)) return { ok: false };
