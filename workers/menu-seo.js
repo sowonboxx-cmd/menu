@@ -141,7 +141,8 @@ function info(d) {
     s.tiktok && (/^https?:/.test(s.tiktok) ? s.tiktok : `https://www.tiktok.com/@${s.tiktok.replace(/^@/, '')}`),
     s.website, a.mapsUrl
   ].filter(Boolean);
-  const reserveUrl = clean((d.homeCover || {}).cta2Url);
+  const rawResa = clean((d.homeCover || {}).cta2Url);
+  const reserveUrl = (!rawResa || /github\.io/.test(rawResa)) ? '/resa' : rawResa;
   const image = clean(seo.image) || clean((d.homeCover || {}).image) || clean(((d.homeCover || {}).slideshow || [])[0] && d.homeCover.slideshow[0].image);
   const logo = clean((d.homeCover || {}).logo) || clean(d.restaurantLogo);
   // Icône du site (favicon, écran d'accueil) = le logo de « Informations de l'établissement ».
@@ -246,7 +247,7 @@ function jsonLd(i, base) {
   if (i.seo.cuisine) ld.servesCuisine = i.seo.cuisine;
   if (i.seo.priceRange) ld.priceRange = i.seo.priceRange;
   if (i.services.length) ld.amenityFeature = i.services.map(v => ({ '@type': 'LocationFeatureSpecification', name: v, value: true }));
-  if (i.reserveUrl) ld.acceptsReservations = i.reserveUrl;
+  if (i.reserveUrl) ld.acceptsReservations = abs(i.reserveUrl, base);
   if (i.sameAs.length) ld.sameAs = i.sameAs;
   const spec = [];
   i.hours.forEach(h => h.services.forEach(s => spec.push({ '@type': 'OpeningHoursSpecification', dayOfWeek: `https://schema.org/${h.schemaDay}`, opens: hhmm(s.open), closes: hhmm(s.close) })));
@@ -375,7 +376,7 @@ function llmsTxt(data, base) {
   if (i.addrLine) lines.push(`- Adresse : ${i.addrLine}`);
   if (i.phonePretty) lines.push(`- Téléphone : ${i.phonePretty}`);
   lines.push(`- Horaires : ${i.hours.map(h => `${h.day} ${hoursLine(h)}`).join(' ; ')}`);
-  if (i.reserveUrl) lines.push(`- Réservation en ligne : ${i.reserveUrl}`);
+  if (i.reserveUrl) lines.push(`- Réservation en ligne : ${abs(i.reserveUrl, base)}`);
   lines.push('', '## Liens', `- [Site et carte](${base}/)`);
   if (i.mapsUrl) lines.push(`- [Plan Google Maps](${i.mapsUrl})`);
   i.sameAs.filter(u => u !== i.mapsUrl).forEach(u => lines.push(`- ${u}`));
