@@ -132,6 +132,7 @@ export default {
   },
   async scheduled(_evt, env, ctx) {
     ctx.waitUntil(sendReminders(env));
+    ctx.waitUntil(coupeReminders(env).catch(e => console.warn('coupe reminders', e)));
   },
 };
 
@@ -472,6 +473,39 @@ async function clubFind(env, b) {
   const [f, ...l] = String(r.name || '').trim().split(/\s+/);
   return { ok: true, code: r.club_code, no: r.club_no, first: f || '', last: l.join(' '), joined: r.club_joined_at, used: !!r.coupe_used_at, tier, card };
 }
+// ── Relances « votre coupe vous attend » ──────────────────────────
+// Membres du club qui n'ont pas encore eu leur coupe et acceptent les offres :
+// un email quand il reste 15 jours, puis quand il en reste 7. Une seule fois chacun.
+// Envoi entre 10 h et 20 h (heure de Paris) pour ne pas réveiller les gens.
+async function coupeReminders(env) {
+  const hour = Number(new Date().toLocaleString('fr-FR', { hour: '2-digit', hour12: false, timeZone: 'Europe/Paris' }));
+  if (hour < 10 || hour >= 20) return;
+  const all = await sb(env, 'resa_settings?active=eq.true&select=*');
+  for (const st of all || []) {
+    const slug = st.client_slug;
+    const now = Date.now(), d = n => new Date(now - (COUPE_DAYS - n) * 864e5).toISOString();
+    // fenêtre : inscrits il y a entre 15 et 23 jours (J-15) / entre 23 et 30 jours (J-7)
+    for (const [left, col, from, to] of [[15, 'coupe_rem15_at', d(7), d(15)], [7, 'coupe_rem7_at', d(0), d(7)]]) {
+      const rows = await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&club_member=eq.true&coupe_used_at=is.null&marketing_optin=eq.true&${col}=is.null&club_joined_at=gt.${enc(from)}&club_joined_at=lte.${enc(to)}&select=id,email,name,club_code,club_no,club_joined_at,club_tier,club_card&limit=200`).catch(() => []) || [];
+      for (const c of rows) {
+        const claimed = await sb(env, `resa_clients?id=eq.${c.id}&${col}=is.null`, { method: 'PATCH', body: { [col]: new Date().toISOString() }, prefer: 'return=representation' }).catch(() => null);
+        if (!claimed || !claimed.length || !c.email) continue;
+        const first = String(c.name || '').trim().split(/\s+/)[0];
+        const daysLeft = Math.max(1, Math.ceil(COUPE_DAYS - (now - Date.parse(c.club_joined_at)) / 864e5));
+        const u = await unsubUrl(env, slug, c.id);
+        try {
+          await sendEmail(env, st, c.email, c.name, left === 15 ? `Votre coupe vous attend encore ${daysLeft} jours 🥂` : `Plus que ${daysLeft} jours pour votre coupe 🥂`, mailCoupeReminder(st, c, first, daysLeft, u), null, u);
+        } catch (e) { console.warn('coupe reminder', e); }
+      }
+    }
+  }
+}
+const mailCoupeReminder = (st, c, first, left, unsub) => page(st.restaurant_name,
+  `<p>Bonjour ${esc(first)},</p><p>${left <= 7 ? `Plus que <b>${left} jours</b> pour profiter de votre coupe offerte !` : `Votre coupe offerte vous attend encore <b>${left} jours</b>.`}</p>
+   ${cardMail({ first, code: c.club_code, no: c.club_no, joined: c.club_joined_at, tier: c.club_tier || 'membre', card: c.club_card })}
+   <p>🥂 Réservez votre table et donnez votre code en arrivant : <b style="font-family:'Courier New',monospace;letter-spacing:1px">${esc(c.club_code)}</b>.<br>Champagne, ou un verre de vin, une bière, un soft.</p>
+   ${st.site_url ? `<p style="text-align:center;margin:22px 0"><a href="${esc(String(st.site_url).replace(/\/$/, ''))}/resa.html?club=${enc(c.club_code)}" style="background:#10285e;color:#fff;text-decoration:none;border-radius:999px;padding:13px 26px;font-weight:600;display:inline-block">Réserver ma table</a></p>` : ''}
+   <p style="color:#6b7080;font-size:12.5px">Une coupe par membre, pour un repas réservé. Réservé aux plus de 18 ans. L'abus d'alcool est dangereux pour la santé, à consommer avec modération.</p>${infos(st)}${unsubFoot(unsub)}`);
 async function clubMembers(env, slug) {
   if (!/^[a-z0-9-]{2,60}$/.test(slug)) return { ok: false };
   const rows = await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&club_member=eq.true&select=name,club_no,club_show&order=club_no.asc&limit=100`) || [];
