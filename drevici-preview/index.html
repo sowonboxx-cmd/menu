@@ -10305,9 +10305,20 @@ function applyRestaurantBranding(){
     if(logoEl) logoEl.style.display='none';
     if(textEl){ textEl.style.display='block'; textEl.textContent=name||'Mon Restaurant'; }
   }
+  // Icone du site (onglet, favoris, ecran d'accueil du telephone) = le logo de l'etablissement.
+  setSiteIcon(logo);
   // SEO : quand le serveur (workers/menu-seo.js) a deja ecrit le vrai titre du restaurant, on le
   // garde — Google lit le titre APRES le JavaScript, et « NOM — Menu » effacait le bon titre.
   if(!document.documentElement.hasAttribute('data-seo')) document.title=(name||'Menu')+' — Menu';
+}
+
+function setSiteIcon(url){
+  ['icon','apple-touch-icon'].forEach(rel=>{
+    let l=document.head.querySelector('link[rel="'+rel+'"]');
+    if(!url){ return; }
+    if(!l){ l=document.createElement('link'); l.rel=rel; document.head.appendChild(l); }
+    if(l.getAttribute('href')!==url) l.href=url;
+  });
 }
 
 function restaurantSettingHtml(){

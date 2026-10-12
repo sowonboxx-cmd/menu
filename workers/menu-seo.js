@@ -134,6 +134,8 @@ function info(d) {
   const reserveUrl = clean((d.homeCover || {}).cta2Url);
   const image = clean((d.homeCover || {}).image) || clean(((d.homeCover || {}).slideshow || [])[0] && d.homeCover.slideshow[0].image);
   const logo = clean((d.homeCover || {}).logo) || clean(d.restaurantLogo);
+  // Icône du site (favicon, écran d'accueil) = le logo de « Informations de l'établissement ».
+  const icon = clean(d.restaurantLogo) || logo;
   const sections = (d.tabs || [])
     .filter(t => t.visible !== false && t.id !== '__home')
     .map(t => ({
@@ -147,7 +149,7 @@ function info(d) {
         })).filter(x => x.name)
       })).filter(g => g.dishes.length)
     })).filter(s => s.name && s.groups.length);
-  return { seo, name, street, zip, city, addrLine, headline, intro, phoneIntl, phonePretty, sameAs, reserveUrl, image, logo, mapsUrl: clean(a.mapsUrl), hours: hours(d.schedule), sections };
+  return { seo, name, street, zip, city, addrLine, headline, intro, phoneIntl, phonePretty, sameAs, reserveUrl, image, logo, icon, mapsUrl: clean(a.mapsUrl), hours: hours(d.schedule), sections };
 }
 
 // Carte « parfums » (un produit, plusieurs variantes) : un seul plat, un prix par variante.
@@ -266,7 +268,7 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&a
 function headHtml(i, base, isPreview) {
   const t = texts(i);
   const img = i.image ? `<meta property="og:image" content="${esc(i.image)}">\n<meta name="twitter:image" content="${esc(i.image)}">\n` : '';
-  const icon = i.logo ? `<link rel="icon" href="${esc(i.logo)}">\n<link rel="apple-touch-icon" href="${esc(i.logo)}">\n` : '';
+  const icon = i.icon ? `<link rel="icon" href="${esc(i.icon)}">\n<link rel="apple-touch-icon" href="${esc(i.icon)}">\n` : '';
   return `
 <meta name="description" content="${esc(t.desc)}">
 ${isPreview ? '<meta name="robots" content="noindex, nofollow">\n' : ''}<link rel="canonical" href="${esc(base)}/">

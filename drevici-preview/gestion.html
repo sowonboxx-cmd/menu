@@ -950,6 +950,7 @@ input.in.hr{width:76px;text-align:center;padding:8px 10px;font-size:15px;font-we
 .fdr{display:flex;align-items:center;gap:10px;padding:7px 0}.fdn{width:84px;font-size:14px}.fdb{flex:1;height:10px;background:var(--soft);border-radius:9px;overflow:hidden}.fdb i{display:block;height:100%;background:var(--brand);border-radius:9px}.fdr em{font-style:normal;width:48px;text-align:right;font-weight:600;font-size:13.5px}
 .rtabs{overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap!important;max-width:100%;min-width:0}.main{min-width:0}.rtabs::-webkit-scrollbar{display:none}.rtabs a{white-space:nowrap}
 @media(max-width:899px){.kgrid{grid-template-columns:1fr 1fr}.spwrap{grid-template-columns:1fr}.svrow{flex-wrap:wrap}.svname{flex:1 1 100%}}
+.favp{display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap}.favt{display:inline-flex;align-items:center;gap:8px;background:#eef1f6;border-radius:9px 9px 0 0;padding:7px 14px 7px 10px;font-size:12.5px;color:#333;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:inset 0 -1px 0 var(--line)}.favt i{font-style:normal;overflow:hidden;text-overflow:ellipsis}.favt img{width:16px;height:16px;object-fit:contain;flex:none;border-radius:3px}.favp small{flex:1;min-width:180px}
 </style>
 </head>
 <body>
@@ -1641,7 +1642,8 @@ function pageEtab(){
    <div>${card('Horaires','hor',sched+'')}
    ${card('Salle, espaces et tables','resa',salleSummary())}${card('Services','hor',svcSummary())}</div></div>`;
 }
-function logoField(){ const u=DATA.restaurantLogo||''; return `<div class="fd w"><span>Logo</span><div class="upl"><div class="upl-th">${u?`<img src="${esc(u)}" alt="">`:`<span>${esc(initials())}</span>`}</div><div class="upl-a"><label class="btn w upl-btn">${I('share')}${u?'Changer le logo':'Envoyer le logo'}<input type="file" accept="image/*" data-act="logoUp" hidden></label>${u?'<button class="lk red" data-act="logoDel">Retirer</button>':''}<small class="muted2">PNG, JPG, WebP ou SVG. Il apparaît sur le site, les exports et ce panneau.</small></div></div></div>`; }
+function setFav(u){ let l=document.head.querySelector('link[rel="icon"]'); if(!u){ if(l) l.remove(); return; } if(!l){ l=document.createElement('link'); l.rel='icon'; document.head.appendChild(l); } if(l.getAttribute('href')!==u) l.href=u; }
+function logoField(){ const u=DATA.restaurantLogo||''; return `<div class="fd w"><span>Logo</span><div class="upl"><div class="upl-th">${u?`<img src="${esc(u)}" alt="">`:`<span>${esc(initials())}</span>`}</div><div class="upl-a"><label class="btn w upl-btn">${I('share')}${u?'Changer le logo':'Envoyer le logo'}<input type="file" accept="image/*" data-act="logoUp" hidden></label>${u?'<button class="lk red" data-act="logoDel">Retirer</button>':''}<small class="muted2">PNG, JPG, WebP ou SVG. Il apparaît sur le site, les exports et ce panneau.</small></div></div>${u?`<div class="favp"><div class="favt"><img src="${esc(u)}" alt=""><i>${esc(DATA.restaurantName||'Mon restaurant')}</i></div><small class="muted2">C'est aussi l'<b>icône du site</b> : l'onglet du navigateur, les favoris et l'écran d'accueil du téléphone. Un logo carré, sur fond plein, se lit mieux en tout petit.</small></div>`:''}</div>`; }
 const SITE_FONTS = ["Jost", "Montserrat", "Oswald", "Raleway", "Poppins", "Merriweather", "Playfair Display", "Libre Baskerville", "Josefin Sans", "Quicksand", "Inter", "Cormorant Garamond", "EB Garamond", "Spectral", "Source Serif Pro", "Bitter", "Dancing Script", "Pacifico", "Lobster", "Satisfy", "Abril Fatface", "Bebas Neue", "Anton", "Righteous", "Cinzel", "Teko", "Fraunces", "DM Serif Display", "Prata", "Marcellus", "Bodoni Moda", "Yeseva One", "Italiana", "Cinzel Decorative", "Great Vibes", "Tangerine", "Sacramento", "Yellowtail", "Grand Hotel", "Kaushan Script", "Caveat", "Amatic SC", "Permanent Marker", "Fredoka", "Comfortaa", "Baloo 2", "Alfa Slab One", "Passion One", "Bungee", "Monoton", "Fjalla One"];
 const KB=[['zoom-in','Zoom avant'],['zoom-out','Zoom arrière'],['pan-top','Vers le haut'],['pan-bottom','Vers le bas'],['pan-left','Zoom à gauche'],['pan-right','Zoom à droite']];
 const fontSel=(label,val,bind,def)=>fld(label,`<select class="in" data-bind="${bind}" style="font-family:'${esc(val||def)}',serif">${SITE_FONTS.map(f=>`<option value="${esc(f)}"${(val||def)===f?' selected':''}>${esc(f)}</option>`).join('')}</select>`);
@@ -1863,6 +1865,7 @@ function render(){
   const app=$('#app');
   if(!SESSION){ app.innerHTML=loginView(); return; }
   if(!DATA){ app.innerHTML=missingView(); return; }
+  setFav(DATA.restaurantLogo);
   const fn=PAGES[PG]||dash;
   const focus=document.activeElement&&document.activeElement.dataset?document.activeElement.dataset.bind:null;
   const y=scrollY;
