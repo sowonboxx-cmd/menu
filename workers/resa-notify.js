@@ -442,5 +442,6 @@ const mailClub = (st, first, code, no, site) => page(st.restaurant_name,
      <div style="font-family:Georgia,serif;font-size:22px;margin:6px 0 10px">${esc(st.restaurant_name)}</div>
      <div style="font-size:26px;font-weight:800;letter-spacing:.12em">${esc(code)}</div></div>
    <p>🥂 <b>Une coupe vous attend jusqu'au ${coupeLimit(new Date())}</b>, lors de votre premier repas réservé. Donnez simplement ce code en arrivant.</p>
+   <p>Pas champagne ? Un verre de vin, une bière ou un soft, au choix.</p>
    ${site ? `<p style="text-align:center;margin:22px 0"><a href="${esc(site)}" style="background:#10285e;color:#fff;text-decoration:none;border-radius:999px;padding:13px 26px;font-weight:600;display:inline-block">Réserver ma table</a></p>` : ''}
-   <p style="color:#6b7080;font-size:12.5px">Une coupe par membre, pour un repas réservé, valable 30 jours après l'inscription. Réservé aux plus de 18 ans. L'abus d'alcool est dangereux pour la santé, à consommer avec modération.</p>${infos(st)}`);
+   <p style="color:#6b7080;font-size:12.5px">Une coupe par membre (champagne, ou tout autre verre de la carte jusqu'à 10 €), pour un repas réservé, valable 30 jours après l'inscription. Réservé aux plus de 18 ans. L'abus d'alcool est dangereux pour la santé, à consommer avec modération.</p>${infos(st)}`);

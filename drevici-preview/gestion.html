@@ -1730,11 +1730,11 @@ function pageClients(){
    clubBox()+`<div class="clbar"><input class="in clq" type="search" placeholder="Rechercher un nom, un email, un téléphone" value="${esc(UI.clq||'')}" data-cl="q"></div>${chips}<section class="list pc clist"><div class="pb">${body}</div></section>`;
 }
 const coupeLeft=d=>d?Math.ceil(30-(Date.now()-Date.parse(d))/864e5):30;
-const coupeState=d=>{ const n=coupeLeft(d); return n>=0?`<b>coupe à offrir</b> (encore ${n} j)`:`coupe expirée depuis ${-n} j`; };
+const coupeState=d=>{ const n=coupeLeft(d); return n>=0?`<b>coupe à offrir</b> (ou verre au choix jusqu'à 10 €, encore ${n} j)`:`coupe expirée depuis ${-n} j`; };
 function clubBox(){ const r=UI.clres, nb=(CLIENTS||[]).filter(c=>c.club_member).length, used=(CLIENTS||[]).filter(c=>c.coupe_used_at).length;
   const res=!r?'':r.err?`<div class="clubres bad">${esc(r.err)}${r.client?` · ${esc(r.client.name||r.client.email)}${r.client.coupe_used_at?' · le '+fdate(r.client.coupe_used_at):''}`:''}</div>`
     :r.done?`<div class="clubres ok">✓ Coupe offerte à <b>${esc(r.client.name||r.client.email)}</b> (membre n° ${r.client.club_no||'?'})</div>`
-    :`<div class="clubres">🥂 <b>${esc(r.client.name||r.client.email)}</b> · membre n° ${r.client.club_no||'?'} · ${coupeLeft(r.client.club_joined_at)>=0?'coupe valable encore '+coupeLeft(r.client.club_joined_at)+' j':'<b>coupe expirée depuis '+(-coupeLeft(r.client.club_joined_at))+' j</b> (vous pouvez l\'offrir quand même)'} <button class="btn" data-act="clRedeem">Valider la coupe</button></div>`;
+    :`<div class="clubres">🥂 <b>${esc(r.client.name||r.client.email)}</b> · membre n° ${r.client.club_no||'?'} · ${coupeLeft(r.client.club_joined_at)>=0?'coupe valable encore '+coupeLeft(r.client.club_joined_at)+' j':'<b>coupe expirée depuis '+(-coupeLeft(r.client.club_joined_at))+' j</b> (vous pouvez l\'offrir quand même)'}<small style="flex-basis:100%;color:#6b7080">Champagne, ou tout autre verre de la carte jusqu'à 10 € (vin, bière, soft).</small> <button class="btn" data-act="clRedeem">Valider la coupe</button></div>`;
   return `<section class="clubbox"><div class="clubh"><b>🥂 Valider une coupe du club</b><small>${nb} membre${nb>1?'s':''} · ${used} coupe${used>1?'s':''} offerte${used>1?'s':''}</small></div>
     <div class="clubin"><input class="in" placeholder="Code de la carte, ex. CLUB-4F7K" value="${esc(UI.clcode||'')}" data-cl="code" autocapitalize="characters"><button class="btn w" data-act="clCheck">Vérifier</button></div>${res}</section>`; }
 // Bibliothèque d'emails : un titre, une phrase, l'aperçu tout de suite
