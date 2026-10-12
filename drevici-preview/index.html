@@ -1908,6 +1908,15 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 .bc.navy{background:radial-gradient(120% 140% at 85% 10%,#2a4a8f 0%,#10285e 45%,#0a1838 100%);color:#fff}
 .bc.gold{background:#d9b878;color:#2b1f0b}
 .bc.noir{background:linear-gradient(160deg,#1c1c1e,#0b0b0c 70%);color:#e9c982}
+.club-pile{position:relative;display:block;height:226px;margin:6px 0 12px;cursor:pointer;-webkit-tap-highlight-color:transparent;text-decoration:none}
+.club-pol{position:absolute;left:50%;top:22px;width:150px;background:#fffdf8;padding:8px 8px 30px;box-shadow:0 8px 18px -6px rgba(0,0,0,.35),0 1px 2px rgba(0,0,0,.15);transition:transform .9s cubic-bezier(.45,.05,.25,1),box-shadow .9s;will-change:transform}
+.club-pol img{display:block;width:100%;aspect-ratio:1;object-fit:cover}
+.club-pol i{position:absolute;left:0;right:0;bottom:6px;font-family:Caveat,cursive;font-style:normal;font-weight:700;font-size:18px;color:#10285e;text-align:center}
+.club-pol:before{content:"";position:absolute;top:-9px;left:50%;width:54px;height:18px;transform:translateX(-50%) rotate(-3deg);background:rgba(240,217,168,.75);box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.club-pol.f{transform:translateX(-50%) translateY(-14px) rotate(2deg) scale(1.06);z-index:3;box-shadow:0 16px 26px -8px rgba(0,0,0,.4),0 1px 2px rgba(0,0,0,.15)}
+.club-pol.r{transform:translateX(calc(-50% + 92px)) rotate(9deg) scale(.9);z-index:2}
+.club-pol.l{transform:translateX(calc(-50% - 92px)) rotate(-8deg) scale(.9);z-index:1}
+.club-pile:after{content:"Voir sur Instagram ›";position:absolute;left:50%;bottom:-2px;transform:translateX(-50%);font-size:11px;font-weight:600;color:#8a7a5a;letter-spacing:.04em;white-space:nowrap}
 .club-tierb{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;border-radius:999px;padding:4px 10px;margin:-6px 0 12px}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -3975,6 +3984,14 @@ function clubConfetti(){
   let t=0; (function f(){ x.clearRect(0,0,box.width,box.height); P.forEach(p=>{ p.vy+=.18; p.x+=p.vx; p.y+=p.vy; p.r+=p.vr; x.save(); x.translate(p.x,p.y); x.rotate(p.r); x.fillStyle=p.c; x.fillRect(-p.s/2,-p.s/4,p.s,p.s/2); x.restore(); }); if(++t<150) requestAnimationFrame(f); else x.clearRect(0,0,box.width,box.height); })();
 }
 function clubLinkRefresh(){ const me=clubMe(), l=document.querySelector('.club-link-t'); if(l&&me&&me.code) l.innerHTML='✓ MEMBRE DU CLUB <em>· voir ma carte</em><i>›</i>'; }
+// Tas de polaroïds (écran « Plus tard ») : tourne de droite à gauche toutes les 3 s, clic → Instagram.
+const CLUB_PHOTOS=[['club/photos/drevici-1.webp','En mer'],['club/photos/drevici-2.webp',"L'équipe"],['club/photos/drevici-3.webp','À table !']];
+let clubPileT=null;
+function clubPileStart(){
+  clearInterval(clubPileT); if(matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+  clubPileT=setInterval(()=>{ const p=document.querySelector('#clubSheet.open .club-pile'); if(!p){ clearInterval(clubPileT); return; }
+    p.querySelectorAll('.club-pol').forEach(c=>{ const k=c.classList.contains('f')?'l':c.classList.contains('r')?'f':'r'; c.classList.remove('f','r','l'); c.classList.add(k); }); },3000);
+}
 function clubLater(){
   const me=clubMe()||{}, end=new Date((me.at||Date.now())+30*864e5), left=Math.max(0,Math.ceil((end-Date.now())/864e5));
   const ig=((DATA&&DATA.social&&DATA.social.instagram)||'drevicioysterbar').replace(/^@/,'').replace(/^https?:\/\/(www\.)?instagram\.com\//,'').replace(/\/$/,'');
@@ -3982,10 +3999,12 @@ function clubLater(){
     <div class="club-wt" style="font-size:24px">Pas de souci !</div>
     <div class="club-ws" style="margin-bottom:12px">Votre carte vous attend, et votre coupe aussi…</div>
     <div class="club-dl">Plus que <b>${left} jour${left>1?'s':''}</b> pour en profiter,<br>jusqu'au <b>${end.toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}</b>, venez vite !</div>
-    <div class="club-ig"><b>En attendant, suivez-nous sur Instagram</b><span>Jeux et cadeaux à gagner, soirées et nouveautés en avant-première.</span>
+    <div class="club-ig"><b>En attendant, suivez-nous sur Instagram</b><span style="margin-bottom:6px">Jeux et cadeaux à gagner, soirées et nouveautés en avant-première.</span>
+      <a class="club-pile" href="https://instagram.com/${clubEsc(ig)}" target="_blank" rel="noopener" aria-label="Voir nos photos sur Instagram">${CLUB_PHOTOS.map(([src,t],i)=>`<div class="club-pol ${['f','r','l'][i]}"><img src="${src}" alt=""><i>${t}</i></div>`).join('')}</a>
       <a class="club-cta club-a club-iga" href="https://instagram.com/${clubEsc(ig)}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>Suivre @${clubEsc(ig)}</a></div>
     <a class="club-cta club-a" style="margin-top:12px" href="resa.html?${new URLSearchParams({club:me.code||'',t:String(me.at||Date.now()),prenom:me.first||'',nom:me.last||'',email:me.email||'',tel:me.phone||''})}">Réserver ma table</a>
     <button type="button" class="club-later" onclick="closeClubSheet()">Fermer</button></div>`);
+  clubFonts(); if(!document.getElementById('clubCaveat')){ const l=document.createElement('link'); l.id='clubCaveat'; l.rel='stylesheet'; l.href='https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap'; document.head.appendChild(l); } clubPileStart();
 }
 function closeClubSheet(){ const el=document.getElementById('clubSheet'); if(el) el.classList.remove('open'); }
 // Lien direct (story, affiche) : …/?club ou #club ouvre la feuille.
