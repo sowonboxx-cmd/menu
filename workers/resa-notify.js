@@ -69,8 +69,21 @@ export default {
         if (url.pathname === '/club/tier') {
           const id = parseInt(body.id, 10), tier = String(body.tier || 'membre'), card = body.card ? String(body.card) : null;
           if (!id || !['membre', 'vip', 'staff'].includes(tier) || (card && !['navy', 'gold', 'noir'].includes(card))) return json({ ok: false, error: 'Valeur invalide' }, 400, cors);
+          const before = (await sb(env, `resa_clients?id=eq.${id}&client_slug=eq.${enc(slug)}&select=email,name,club_member,club_code,club_no,club_joined_at,club_tier`) || [])[0];
           await sb(env, `resa_clients?id=eq.${id}&client_slug=eq.${enc(slug)}`, { method: 'PATCH', body: { club_tier: tier, club_card: tier === 'staff' ? card : null } });
-          return json({ ok: true }, 200, cors);
+          // Passage en VIP (carte Gold) ou en Staff : le membre reçoit sa nouvelle carte par email.
+          let mailed = false;
+          if (before && before.club_member && before.email && (tier === 'vip' || tier === 'staff') && (before.club_tier || 'membre') !== tier) {
+            try {
+              const st = await settings(env, slug);
+              if (st) {
+                const c = { first: String(before.name || '').trim().split(/\s+/)[0], code: before.club_code, no: before.club_no, joined: before.club_joined_at, tier, card: card || 'noir' };
+                await sendEmail(env, st, before.email, before.name, tier === 'staff' ? `Votre carte Staff ${st.restaurant_name}` : `Votre nouvelle carte Gold ✨ ${st.restaurant_name}`, mailCard(st, c, st.site_url));
+                mailed = true;
+              }
+            } catch (e) { console.warn('tier email', e); }
+          }
+          return json({ ok: true, mailed }, 200, cors);
         }
         if (url.pathname === '/club/redeem') {
           const code = String(body.code || '').toUpperCase().replace(/[^A-Z0-9-]/g, '');
@@ -456,12 +469,34 @@ async function clubMembers(env, slug) {
 }
 const COUPE_DAYS = 30;
 const coupeLimit = d => new Date(d.getTime() + COUPE_DAYS * 864e5).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', timeZone: 'Europe/Paris' });
+// Carte du club dans les emails : image de fond (sans texte) + prénom, code et numéro écrits par-dessus.
+// Sans images (Outlook…), le fond uni de la carte reste et le texte reste lisible.
+const CARD_IMG = 'https://drevici-preview.beltab.app/club/email/carte-';
+const cardKind = (tier, card) => tier === 'staff' ? ({ noir: 'staff', gold: 'gold', navy: 'navy' }[card || 'noir'] || 'staff') : tier === 'vip' ? 'gold' : 'navy';
+function cardMail(c) {
+  const k = cardKind(c.tier, c.card), staff = c.tier === 'staff', url = CARD_IMG + k + '.jpg';
+  const C = { navy: { bg: '#10285e', nm: '#ffffff', cd: '#cfd8ea', lb: '#9fb0d0', no: '#ffffff' }, gold: { bg: '#dcbd7c', nm: '#2b1f0b', cd: '#3a2a0c', lb: '#6b4b14', no: '#2b1f0b' }, staff: { bg: '#141416', nm: '#f3dfa8', cd: '#bfa36a', lb: '#8d7a52', no: '#e9c982' } }[k];
+  const no = String(c.no || '').padStart(3, '0'), d = c.joined ? new Date(c.joined) : new Date();
+  const since = String(d.getMonth() + 1).padStart(2, '0') + ' / ' + String(d.getFullYear()).slice(2);
+  const mono = "font-family:'Courier New',Courier,monospace";
+  const right = (staff && k === 'staff') ? `<div style="font-family:Arial,sans-serif;font-size:6px;letter-spacing:1.5px;color:${C.lb};text-transform:uppercase">Membre depuis</div><div style="${mono};font-size:10px;font-weight:700;color:${C.no};letter-spacing:1px">${since}</div>`
+    : `<div style="font-family:Arial,sans-serif;font-size:6px;letter-spacing:1.5px;color:${C.lb};text-transform:uppercase">Membre n°</div><div style="${mono};font-size:12px;font-weight:700;color:${C.no};letter-spacing:1.5px">${no}</div>`;
+  const top = (staff && k === 'staff') ? `<div style="font-family:Georgia,serif;font-size:25px;font-weight:700;color:rgba(233,201,130,.9);text-align:right;padding:38px 16px 0 0">${no}</div>` : '';
+  return `<table role="presentation" width="320" cellpadding="0" cellspacing="0" align="center" style="width:320px;margin:18px auto;border-collapse:separate">
+  <tr><td width="320" height="201" background="${url}" bgcolor="${C.bg}" style="background:${C.bg} url('${url}') center / cover no-repeat;border-radius:13px;height:201px;padding:0">
+  <table role="presentation" width="100%" height="201" cellpadding="0" cellspacing="0" style="height:201px"><tr><td valign="top" height="140">${top}</td></tr>
+  <tr><td valign="bottom" style="padding:0 18px 15px 18px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+    <td valign="bottom" style="${mono};color:${C.nm}"><div style="font-size:14px;font-weight:700;letter-spacing:2px">${esc(String(c.first || '').toUpperCase())}</div><div style="font-size:9px;letter-spacing:2.5px;color:${C.cd};margin-top:3px">${esc(String(c.code || '').replace(/^CLUB-/, 'CLUB · '))}</div></td>
+    <td valign="bottom" align="right">${right}</td></tr></table></td></tr></table></td></tr></table>`;
+}
+const mailCard = (st, c, site) => page(st.restaurant_name,
+  `<p>Bonjour ${esc(c.first)},</p>${c.tier === 'staff' ? `<p>Bienvenue dans l'équipe ! Voici votre <b>carte Staff</b> ${esc(st.restaurant_name)}.</p>` : `<p>Bonne nouvelle : vous passez <b>membre VIP</b>. Voici votre nouvelle <b>carte Gold</b> ✨</p>`}
+   ${cardMail(c)}
+   <p style="text-align:center">Votre code reste le même : <b style="font-family:'Courier New',monospace;letter-spacing:1px">${esc(c.code)}</b></p>
+   ${site ? `<p style="text-align:center;margin:22px 0"><a href="${esc(site.replace(/\/$/, ''))}/#club" style="background:#10285e;color:#fff;text-decoration:none;border-radius:999px;padding:13px 26px;font-weight:600;display:inline-block">Voir ma carte</a></p>` : ''}${infos(st)}`);
 const mailClub = (st, first, code, no, site) => page(st.restaurant_name,
   `<p>Bonjour ${esc(first)},</p><p>Bienvenue au club ! Vous êtes le membre <b>n° ${no}</b>.</p>
-   <div style="margin:18px 0;padding:20px;border-radius:16px;background:#10285e;color:#fff;text-align:center">
-     <div style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#f0d9a8">Carte membre</div>
-     <div style="font-family:Georgia,serif;font-size:22px;margin:6px 0 10px">${esc(st.restaurant_name)}</div>
-     <div style="font-size:26px;font-weight:800;letter-spacing:.12em">${esc(code)}</div></div>
+   ${cardMail({ first, code, no, tier: 'membre' })}
    <p>🥂 <b>Une coupe vous attend jusqu'au ${coupeLimit(new Date())}</b>, lors de votre premier repas réservé. Donnez simplement ce code en arrivant.</p>
    <p>Pas champagne ? Un verre de vin, une bière ou un soft, au choix.</p>
    ${site ? `<p style="text-align:center;margin:22px 0"><a href="${esc(site)}" style="background:#10285e;color:#fff;text-decoration:none;border-radius:999px;padding:13px 26px;font-weight:600;display:inline-block">Réserver ma table</a></p>` : ''}
