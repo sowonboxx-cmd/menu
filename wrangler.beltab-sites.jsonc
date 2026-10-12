@@ -1,0 +1,23 @@
+// Worker COMMUN Beltab : un seul déploiement pour tous les restaurants du socle.
+// Sert le dossier beltab/ (le socle, fabriqué par tools/socle.py depuis le labo drevici-preview)
+// et reconnaît le restaurant par l'adresse (workers/tenants.js).
+// Ajouter un restaurant = son entrée dans tenants.js + son domaine sur ce Worker
+// (Cloudflare → Workers → beltab-sites → Settings → Domains & Routes → Add → Custom domain).
+// Commande de déploiement dans Cloudflare :
+//   npx wrangler deploy --config wrangler.beltab-sites.jsonc
+{
+  "name": "beltab-sites",
+  "compatibility_date": "2026-10-01",
+  "main": "./workers/beltab-sites.js",
+  "assets": {
+    "directory": "./beltab",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "vars": {
+    "SUPABASE_URL": "https://fdbzzkzfipzabryfanun.supabase.co",
+    "SUPABASE_KEY": "sb_publishable_9PaqDuXnWV3aOCBPk9ImmQ_4YgYTU9n",
+    // Restaurant montré sur l'adresse beltab-sites.<compte>.workers.dev (avant le vrai domaine).
+    "DEV_TENANT": "soyonne"
+  }
+}
