@@ -29,7 +29,7 @@ export default {
         return json({ ok: false, error: String(e && e.message || e) }, 500, cors);
       }
     }
-    if (req.method === 'GET' && url.pathname === '/unsub') return unsub(env, url);
+    if ((req.method === 'GET' || req.method === 'POST') && url.pathname === '/unsub') return unsub(env, url);
     // ── Club : inscription publique + liste des premiers membres ──
     if (req.method === 'POST' && url.pathname === '/club/join') {
       try { return json(await clubJoin(env, await req.json()), 200, cors); }
@@ -78,7 +78,8 @@ export default {
               const st = await settings(env, slug);
               if (st) {
                 const c = { first: String(before.name || '').trim().split(/\s+/)[0], code: before.club_code, no: before.club_no, joined: before.club_joined_at, tier, card: card || 'noir' };
-                await sendEmail(env, st, before.email, before.name, tier === 'staff' ? `Votre carte Staff ${st.restaurant_name}` : `Votre nouvelle carte Gold ✨ ${st.restaurant_name}`, mailCard(st, c, st.site_url));
+                const u = await unsubUrl(env, slug, id);
+                await sendEmail(env, st, before.email, before.name, tier === 'staff' ? `Votre carte Staff ${st.restaurant_name}` : `Votre nouvelle carte Gold ✨ ${st.restaurant_name}`, mailCard(st, c, st.site_url, u), null, u);
                 mailed = true;
               }
             } catch (e) { console.warn('tier email', e); }
@@ -210,7 +211,7 @@ async function quotaAlert(env, st) {
 }
 
 // ── Brevo ─────────────────────────────────────────────────────────
-async function sendEmail(env, st, to, toName, subject, html, replyTo) {
+async function sendEmail(env, st, to, toName, subject, html, replyTo, unsubUrl) {
   const body = {
     sender: { name: st.restaurant_name, email: env.SENDER_EMAIL },
     // Plusieurs destinataires possibles, séparés par des virgules (ex. notify_email = « resto@…, moi@… »).
@@ -219,6 +220,8 @@ async function sendEmail(env, st, to, toName, subject, html, replyTo) {
   };
   const rt = replyTo || st.reply_to;
   if (rt) body.replyTo = { email: rt };
+  // Désinscription en 1 clic dans Gmail / Apple Mail (en plus du lien en bas de l'email).
+  if (unsubUrl) body.headers = { 'List-Unsubscribe': `<${unsubUrl}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' };
   const r = await fetch(BREVO + '/smtp/email', { method: 'POST', headers: brevoHeaders(env), body: JSON.stringify(body) });
   if (!r.ok) throw new Error('Brevo email ' + r.status + ' ' + await r.text());
 }
@@ -334,6 +337,9 @@ function inSegment(c, seg) {
   if (seg === 'club') return !!c.club_member;
   return true;
 }
+// Lien de désinscription signé (même lien que les campagnes).
+const unsubUrl = async (env, slug, id) => id ? `https://resa.beltab.app/unsub?s=${enc(slug)}&c=${id}&t=${await sign(env, slug + ':' + id)}` : '';
+const unsubFoot = u => u ? `<p style="color:#9aa0aa;font-size:11.5px;text-align:center;margin:18px 0 0">Vous recevez cet email car vous êtes membre du club. <a href="${esc(u)}" style="color:#9aa0aa">Se désinscrire des offres</a></p>` : '';
 async function sign(env, msg) {
   const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(env.SUPABASE_SERVICE_KEY), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const b = new Uint8Array(await crypto.subtle.sign('HMAC', k, new TextEncoder().encode(msg)));
@@ -431,7 +437,11 @@ async function clubJoin(env, b) {
     } catch (e) { if (!/duplicate|23505/.test(String(e))) throw e; }
   }
   if (!code) return { ok: false, error: 'Réessayez dans un instant' };
-  try { await sendEmail(env, st, email, first, `Bienvenue au club ${st.restaurant_name} 🥂`, mailClub(st, first, code, no, b.site)); } catch (e) { console.warn('club email', e); }
+  try {
+    const me = (await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&club_code=eq.${enc(code)}&select=id&limit=1`) || [])[0];
+    const u = await unsubUrl(env, slug, me && me.id);
+    await sendEmail(env, st, email, first, `Bienvenue au club ${st.restaurant_name} 🥂`, mailClub(st, first, code, no, b.site, u), null, u);
+  } catch (e) { console.warn('club email', e); }
   return { ok: true, code, no, first };
 }
 // Carte du membre (niveau + visuel), lue par le site à partir du code stocké sur le téléphone.
@@ -489,15 +499,15 @@ function cardMail(c) {
     <td valign="bottom" style="${mono};color:${C.nm}"><div style="font-size:14px;font-weight:700;letter-spacing:2px">${esc(String(c.first || '').toUpperCase())}</div><div style="font-size:9px;letter-spacing:2.5px;color:${C.cd};margin-top:3px">${esc(String(c.code || '').replace(/^CLUB-/, 'CLUB · '))}</div></td>
     <td valign="bottom" align="right">${right}</td></tr></table></td></tr></table></td></tr></table>`;
 }
-const mailCard = (st, c, site) => page(st.restaurant_name,
+const mailCard = (st, c, site, unsub) => page(st.restaurant_name,
   `<p>Bonjour ${esc(c.first)},</p>${c.tier === 'staff' ? `<p>Bienvenue dans l'équipe ! Voici votre <b>carte Staff</b> ${esc(st.restaurant_name)}.</p>` : `<p>Bonne nouvelle : vous passez <b>membre VIP</b>. Voici votre nouvelle <b>carte Gold</b> ✨</p>`}
    ${cardMail(c)}
    <p style="text-align:center">Votre code reste le même : <b style="font-family:'Courier New',monospace;letter-spacing:1px">${esc(c.code)}</b></p>
-   ${site ? `<p style="text-align:center;margin:22px 0"><a href="${esc(site.replace(/\/$/, ''))}/#club" style="background:#10285e;color:#fff;text-decoration:none;border-radius:999px;padding:13px 26px;font-weight:600;display:inline-block">Voir ma carte</a></p>` : ''}${infos(st)}`);
-const mailClub = (st, first, code, no, site) => page(st.restaurant_name,
+   ${site ? `<p style="text-align:center;margin:22px 0"><a href="${esc(site.replace(/\/$/, ''))}/#club" style="background:#10285e;color:#fff;text-decoration:none;border-radius:999px;padding:13px 26px;font-weight:600;display:inline-block">Voir ma carte</a></p>` : ''}${infos(st)}${unsubFoot(unsub)}`);
+const mailClub = (st, first, code, no, site, unsub) => page(st.restaurant_name,
   `<p>Bonjour ${esc(first)},</p><p>Bienvenue au club ! Vous êtes le membre <b>n° ${no}</b>.</p>
    ${cardMail({ first, code, no, tier: 'membre' })}
    <p>🥂 <b>Une coupe vous attend jusqu'au ${coupeLimit(new Date())}</b>, lors de votre premier repas réservé. Donnez simplement ce code en arrivant.</p>
    <p>Pas champagne ? Un verre de vin, une bière ou un soft, au choix.</p>
    ${site ? `<p style="text-align:center;margin:22px 0"><a href="${esc(site)}" style="background:#10285e;color:#fff;text-decoration:none;border-radius:999px;padding:13px 26px;font-weight:600;display:inline-block">Réserver ma table</a></p>` : ''}
-   <p style="color:#6b7080;font-size:12.5px">Une coupe par membre (champagne, ou tout autre verre de la carte jusqu'à 10 €), pour un repas réservé, valable 30 jours après l'inscription. Réservé aux plus de 18 ans. L'abus d'alcool est dangereux pour la santé, à consommer avec modération.</p>${infos(st)}`);
+   <p style="color:#6b7080;font-size:12.5px">Une coupe par membre (champagne, ou tout autre verre de la carte jusqu'à 10 €), pour un repas réservé, valable 30 jours après l'inscription. Réservé aux plus de 18 ans. L'abus d'alcool est dangereux pour la santé, à consommer avec modération.</p>${infos(st)}${unsubFoot(unsub)}`);
