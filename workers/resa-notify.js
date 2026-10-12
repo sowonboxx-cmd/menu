@@ -504,7 +504,7 @@ const mailCoupeReminder = (st, c, first, left, unsub) => page(st.restaurant_name
   `<p>Bonjour ${esc(first)},</p><p>${left <= 7 ? `Plus que <b>${left} jours</b> pour profiter de votre coupe offerte !` : `Votre coupe offerte vous attend encore <b>${left} jours</b>.`}</p>
    ${cardMail({ first, code: c.club_code, no: c.club_no, joined: c.club_joined_at, tier: c.club_tier || 'membre', card: c.club_card })}
    <p>🥂 Réservez votre table et donnez votre code en arrivant : <b style="font-family:'Courier New',monospace;letter-spacing:1px">${esc(c.club_code)}</b>.<br>Champagne, ou un verre de vin, une bière, un soft.</p>
-   ${st.site_url ? `<p style="text-align:center;margin:22px 0"><a href="${esc(String(st.site_url).replace(/\/$/, ''))}/resa.html?club=${enc(c.club_code)}" style="background:#10285e;color:#fff;text-decoration:none;border-radius:999px;padding:13px 26px;font-weight:600;display:inline-block">Réserver ma table</a></p>` : ''}
+   ${st.site_url ? `<p style="text-align:center;margin:22px 0"><a href="${esc(String(st.site_url).replace(/\/$/, ''))}/book?club=${enc(c.club_code)}" style="background:#10285e;color:#fff;text-decoration:none;border-radius:999px;padding:13px 26px;font-weight:600;display:inline-block">Réserver ma table</a></p>` : ''}
    <p style="color:#6b7080;font-size:12.5px">Une coupe par membre, pour un repas réservé. Réservé aux plus de 18 ans. L'abus d'alcool est dangereux pour la santé, à consommer avec modération.</p>${infos(st)}${unsubFoot(unsub)}`);
 async function clubMembers(env, slug) {
   if (!/^[a-z0-9-]{2,60}$/.test(slug)) return { ok: false };

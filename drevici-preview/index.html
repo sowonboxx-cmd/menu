@@ -2154,7 +2154,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
         <div class="header-top-sched"><div class="hdr-sched" id="schedWidgetHeader"></div></div>
         <div class="header-top-sched-m"><div class="sched-mob" id="schedWidgetBar"></div></div>
         <div class="header-top-left">
-          <a class="reserve-desk" href="resa">Réserver une table</a>
+          <a class="reserve-desk" href="book">Réserver une table</a>
         </div>
         <div class="logo-centered" style="display:flex;flex-direction:column;align-items:center;cursor:pointer;pointer-events:auto" onclick="returnToHomeCover()">
           <img class="logo-img" alt="Drevici Oyster" style="display:none" onerror="this.style.display='none'"/>
@@ -2189,7 +2189,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
         <span class="view-tab-label" id="viewLabel" style="padding-left:16px"></span>
         <div style="display:flex;align-items:center;gap:10px">
           <div id="schedWidgetInline"></div>
-          <a class="header-reserve-btn" href="resa">RÉSERVER</a>
+          <a class="header-reserve-btn" href="book">RÉSERVER</a>
         </div>
       </div>
     </div>
@@ -2216,7 +2216,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="12" rx="3.6"/><circle cx="8" cy="8" r="2.9"/><circle cx="11.5" cy="4.5" r="0.75" fill="currentColor" stroke="none"/></svg>
           </button>
         </div>
-        <a class="reserve-pill" id="reserveMain" href="resa">Réserver une table</a>
+        <a class="reserve-pill" id="reserveMain" href="book">Réserver une table</a>
         <div class="admin-quick">
           <button class="mode-link" id="modeLinkEdit" title="Mode modification" aria-label="Mode modification" onclick="setEditMode(!editMode)">
             <svg id="modeLinkEditIcon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 2.6H3.7A1.7 1.7 0 0 0 2 4.3v8A1.7 1.7 0 0 0 3.7 14h8a1.7 1.7 0 0 0 1.7-1.7V7.6"/><path d="M12.1 2.1a1.55 1.55 0 0 1 2.2 2.2l-5.9 5.9-2.9.7.7-2.9 5.9-5.9z"/></svg>
@@ -3881,7 +3881,7 @@ function renderHomeCover(){
   }
   const cta1Url=hc.cta1Url||'';
   // Bouton Réserver : toujours la page « resa » du site, sauf lien externe choisi (anciennes adresses GitHub remplacées).
-  const cta2Url=(!hc.cta2Url||/github\.io/.test(hc.cta2Url))?'resa':hc.cta2Url;
+  const cta2Url=(!hc.cta2Url||/github\.io|\/resa(\.html)?$/.test(hc.cta2Url))?'book':hc.cta2Url;
   const headlineHtml=escapeHtmlLocal(hc.headline||'').replace(/\n/g,'<br>');
   el.innerHTML=`<div class="home-cover" id="homeCoverEl">
     <div class="home-cover-media">${mediaHtml}</div>
@@ -4015,7 +4015,7 @@ async function clubSubmit(e){
   let src='SITE'; try{ const o=JSON.parse(localStorage.getItem('beltab_src')||'null'); if(o&&o.code&&Date.now()-o.t<7*864e5) src=o.code; }catch(_){}
   go.disabled=true; go.textContent='Un instant…';
   try{
-    const r=await fetch(CLUB_API+'/club/join',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({slug:CLUB_SLUG,first:v('first'),last:v('last'),email:v('email'),phone:v('phone'),consent:f.elements.consent.checked,show:true,hp:v('hp'),src,site:location.origin+'/resa.html'})});
+    const r=await fetch(CLUB_API+'/club/join',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({slug:CLUB_SLUG,first:v('first'),last:v('last'),email:v('email'),phone:v('phone'),consent:f.elements.consent.checked,show:true,hp:v('hp'),src,site:location.origin+'/book'})});
     const d=await r.json();
     if(!d.ok){ err.textContent=d.error||'Une erreur est survenue, réessayez.'; go.disabled=false; go.textContent='Je rejoins le club'; return; }
     const me={at:Date.now(),code:d.code,no:d.no,first:d.first||v('first'),last:v('last'),email:v('email'),phone:v('phone')};
@@ -4082,7 +4082,7 @@ function clubWelcome(me,already,reveal){
       <div class="club-ws">${already?'Voici votre carte.':'Vous avez rejoint le club'+(me.no?` · membre n° ${me.no}`:'')}</div>
       <div id="clubTierB">${clubTierBadge(me)}</div><div class="club-stage"><div class="bc-wrap${reveal==='show'?' bc-show':reveal?' bc-reveal':''}">${clubCardHTML(me)}</div></div>
       <div class="club-wc">${me.used?'🥂 Votre coupe vous a déjà été offerte.<br><small>Merci, et à très vite au bar !</small>':`🥂 Votre coupe vous attend avec votre repas<br><b>jusqu'au ${clubLimit(me)}</b>.<small class="club-wc2">Champagne, ou un verre de vin, une bière, un soft.<br><b class="club-give">Donnez ce code en arrivant</b> : <span class="club-codepill">${clubEsc(me.code)}</span></small>`}</div>
-      <a class="club-cta club-a" href="resa.html?${q}">Réserver ma table</a>
+      <a class="club-cta club-a" href="book?${q}">Réserver ma table</a>
       <button type="button" class="club-later" onclick="clubLater()">Plus tard</button>
     </div>`);
   clubFonts(); requestAnimationFrame(clubFit); if(document.fonts) document.fonts.ready.then(clubFit); clubSyncCard();
@@ -7427,7 +7427,7 @@ const CLIENT_SLUG = _lastSegment.replace(/-preview$/, '');
 // branche — elle ne sert qu'en recette.
 const PROD_BASE = 'https://drevici.beltab.app/';
 const RESA_ADMIN_URL = IS_PREVIEW ? PROD_BASE + 'reservations' : 'reservations'; // ancien tableau des réservations (le nouvel espace restaurateur est /admin)
-if(IS_PREVIEW) document.querySelectorAll('a[href="resa"]').forEach(a => { a.href = PROD_BASE + 'resa'; });
+if(IS_PREVIEW) document.querySelectorAll('a[href="book"]').forEach(a => { a.href = PROD_BASE + 'book'; });
 
 const supabaseClient = (SUPABASE_URL !== 'COLLE_ICI_SUPABASE_URL' && window.supabase)
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)

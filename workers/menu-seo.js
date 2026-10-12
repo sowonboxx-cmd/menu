@@ -23,8 +23,8 @@
 //   SUPABASE_URL / SUPABASE_KEY  même projet et même clé publique que la page
 
 const CACHE_SECONDS = 300;
-const PUBLIC_PAGES = ['/', '/resa'];
-const PRIVATE_PATHS = ['/admin', '/admin.html', '/gestion', '/gestion.html', '/reservations', '/reservations.html', '/qrc', '/qrc.html', '/qrf', '/qrf.html', '/calendar', '/calendar.html', '/fidelite', '/fidelite.html'];
+const PUBLIC_PAGES = ['/', '/book'];
+const PRIVATE_PATHS = ['/studio', '/studio/', '/admin', '/admin.html', '/gestion', '/gestion.html', '/reservations', '/reservations.html', '/qrc', '/qrc.html', '/qrf', '/qrf.html', '/calendar', '/calendar.html', '/fidelite', '/fidelite.html'];
 const DAYS_FR = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 const DAYS_SCHEMA = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -142,7 +142,7 @@ function info(d) {
     s.website, a.mapsUrl
   ].filter(Boolean);
   const rawResa = clean((d.homeCover || {}).cta2Url);
-  const reserveUrl = (!rawResa || /github\.io/.test(rawResa)) ? '/resa' : rawResa;
+  const reserveUrl = (!rawResa || /github\.io|\/resa(\.html)?$/.test(rawResa)) ? '/book' : rawResa;
   const image = clean(seo.image) || clean((d.homeCover || {}).image) || clean(((d.homeCover || {}).slideshow || [])[0] && d.homeCover.slideshow[0].image);
   const logo = clean((d.homeCover || {}).logo) || clean(d.restaurantLogo);
   // Icône du site (favicon, écran d'accueil) = le logo de « Informations de l'établissement ».

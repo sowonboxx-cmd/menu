@@ -6,7 +6,7 @@ Ne touche pas aux fichiers propres au site en ligne (reservations.html = ancien 
 import shutil, os, re, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC, DST = os.path.join(ROOT, 'drevici-preview'), os.path.join(ROOT, 'drevici')
-FILES = ['index.html', 'resa.html', 'admin.html', 'gestion.html', 'floorplan.js']
+FILES = ['index.html', 'book.html', 'resa.html', 'admin.html', 'gestion.html', 'floorplan.js']
 DIRS = ['club', 'seo', 'media', 'charte']
 
 def sub(text, old, new, path):
@@ -19,6 +19,27 @@ old = os.path.join(DST, 'admin.html')
 if os.path.exists(old) and 'Espace restaurateur' not in open(old, encoding='utf-8').read() and not os.path.exists(os.path.join(DST, 'reservations.html')):
     os.rename(old, os.path.join(DST, 'reservations.html'))
 for f in FILES: shutil.copy2(os.path.join(SRC, f), os.path.join(DST, f))
+
+# Adresses standard (une seule fois) : /cabine → /studio, outils et landing pages rangés,
+# avec une petite page de redirection à chaque ancienne adresse (QR codes déjà imprimés).
+def redirect(path, target, title):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    open(path, 'w', encoding='utf-8').write(f'<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>{title}</title><script>location.replace({target!r}+location.search+location.hash);</script><meta http-equiv="refresh" content="0;url={target}"></head><body><a href="{target}">{title}</a></body></html>')
+def move(src, dst, target, title):
+    s, d = os.path.join(DST, src), os.path.join(DST, dst)
+    if os.path.exists(s) and 'location.replace' not in open(s, encoding='utf-8', errors='ignore').read()[:600]:
+        os.makedirs(os.path.dirname(d), exist_ok=True); shutil.move(s, d); redirect(s, target, title)
+if os.path.isdir(os.path.join(DST, 'cabine')) and not os.path.isdir(os.path.join(DST, 'studio')):
+    shutil.move(os.path.join(DST, 'cabine'), os.path.join(DST, 'studio'))
+    redirect(os.path.join(DST, 'cabine', 'index.html'), '/studio/', 'Studio')
+    redirect(os.path.join(DST, 'cabine', 'tracker.html'), '/studio/tracker', 'Studio')
+move('calendar.html', 'studio/calendar.html', '/studio/calendar', 'Calendrier')
+for f in ('qrc', 'qrf', 'fidelite'): move(f + '.html', 'p/' + f + '.html', '/p/' + f, 'Drevici Oyster')
+st = os.path.join(DST, 'studio', 'index.html')
+if os.path.exists(st):
+    t = open(st, encoding='utf-8').read()
+    t = t.replace('data-prod="calendar.html"', 'data-prod="studio/calendar"').replace('data-prod="admin.html"', 'data-prod="reservations"')
+    open(st, 'w', encoding='utf-8').write(t)
 for d in DIRS:
     if os.path.isdir(os.path.join(SRC, d)): shutil.copytree(os.path.join(SRC, d), os.path.join(DST, d), dirs_exist_ok=True)
 
@@ -28,7 +49,7 @@ P = {
    ("const CLUB_ON = /preview|localhost|127\\.0\\.0\\.1|file:/.test(location.href);", "const CLUB_ON = true;"),
    ("const CLUB_SLUG = 'drevici-test';", "const CLUB_SLUG = 'drevici-paris';"),
  ],
- 'resa.html': [
+ 'book.html': [
    ("const WRITE_SLUG = 'drevici-test';", "const WRITE_SLUG = 'drevici-paris';"),
  ],
  'admin.html': [
