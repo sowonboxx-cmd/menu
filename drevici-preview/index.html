@@ -3495,7 +3495,9 @@ function renderCategoryRail(tab){
   // la place du plat dans la categorie, sans qu'on puisse y toucher.
   const pinOrder=(DATA.pinnedDishes||[]).filter(p=>p.tabId===tab.id).map(p=>p.pid);
   const pinned=pinOrder.map(pid=>shots.find(sh=>sh.dish._pid===pid)).filter(Boolean);
-  const items=pinned.length?pinned:shots.slice(0,6);
+  // Règle (13/10) : pas d'incontournable choisi dans la catégorie → pas de bandeau (plus de repli sur les 6 premières photos).
+  if(!pinned.length) return '';
+  const items=pinned;
   const head=pinned.length
     ? `<div class="rail-hdr"><span class="rail-star">★</span><span class="rail-title">Nos incontournables</span></div>`
     : '';
