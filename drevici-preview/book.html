@@ -54,6 +54,8 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
 .seg.active{background:#fff;color:var(--navy)}
 .seg.filled:not(.active){color:#fff}
 
+.ofb{display:flex;align-items:center;gap:12px;border-radius:var(--r);padding:13px 15px;margin-bottom:14px;background:#fff4dc;color:#5b4a26}.ofb b{display:block;font-size:14.5px;color:var(--text)}.ofb small{display:block;font-size:12.5px;margin-top:2px}.ofb .ofb-t{flex:1;min-width:0}.ofb .ofb-s{flex:none;font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;background:#1f9d55;color:#fff;white-space:nowrap}
+.ofb.warn{background:#fff1e0}.ofb.warn .ofb-s{background:#d97706}.ofb.off{background:#f1eee8;color:var(--text2)}.ofb.off b{color:var(--text2)}.ofb.off .ofb-s{background:#8a8f96}
 .panel{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:14px}
 .panel-label{font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:14px;display:flex;align-items:center;gap:6px}
 
@@ -180,6 +182,9 @@ body.has-admin-sticky .wrap{padding-bottom:88px}
 
 <div class="wrap">
 
+
+  <!-- Offre Table Boost (lien ?o=CODE ou code tapé) -->
+  <div class="ofb hidden" id="offerBan"></div>
 
   <!-- 3-segment tab bar: Date / Couverts / Horaire -->
   <div class="seg-bar" id="segBar">
@@ -322,6 +327,7 @@ body.has-admin-sticky .wrap{padding-bottom:88px}
         </div>
       </div>
       <div class="fr"><label class="fl">Commentaires, préférences ou restrictions alimentaires :</label><input class="fi" id="fNote" type="text" placeholder="Sans gluten, anniversaire…"></div>
+      <div class="fr"><label class="fl">Code offre (facultatif) :</label><input class="fi" id="fCode" type="text" placeholder="ex. K7Q2" autocapitalize="characters" autocomplete="off" style="text-transform:uppercase" onchange="loadOffer(this.value,false)"></div>
       <div class="fr"><label style="display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.4;cursor:pointer"><input type="checkbox" id="fOptin" style="margin-top:3px;width:18px;height:18px;flex:none"><span>J'accepte de recevoir les offres et actualités du restaurant par email et SMS. Désinscription possible à tout moment.</span></label></div>
 
       <div class="err" id="sendErr">Erreur d'envoi. Vérifiez votre configuration EmailJS.</div>
@@ -947,6 +953,7 @@ async function sendResa() {
     location: params.location,
     note: params.note,
     marketing_optin: optin,
+    offer_code: ((document.getElementById('fCode') || {}).value || '').trim().toUpperCase() || null,
   });
   if (error) { console.warn('Supabase insert failed:', error); fail(); return; }
   try {
@@ -970,6 +977,42 @@ function showSuccess(email, ref) {
   document.getElementById('sOk').classList.remove('hidden');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
+// ── Table Boost : l'offre du lien (?o=CODE) ou du code tapé. La base revérifie tout à l'enregistrement. ──
+let OFFER = null;
+const isoOf = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+async function loadOffer(code, click) {
+  code = String(code || '').trim().toUpperCase();
+  if (!code || !supabaseClient) { OFFER = null; renderOffer(); return; }
+  try { const { data } = await supabaseClient.rpc('boost_offer', { p_code: code, p_click: !!click }); OFFER = data || { missing: code }; }
+  catch (e) { OFFER = null; }
+  const f = document.getElementById('fCode'); if (f && OFFER && OFFER.code) f.value = OFFER.code;
+  renderOffer();
+}
+function renderOffer() {
+  const el = document.getElementById('offerBan'); if (!el) return;
+  if (!OFFER) { el.className = 'ofb hidden'; return; }
+  if (OFFER.missing) { el.className = 'ofb off'; el.innerHTML = '<div class="ofb-t"><b>Code « ' + OFFER.missing + ' » inconnu</b><small>Vérifiez le code, ou réservez normalement.</small></div>'; return; }
+  const d = new Date(OFFER.date_iso + 'T12:00:00'), dl = new Date(OFFER.deadline);
+  const day = DAY_FUL[(d.getDay() + 6) % 7] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()].toLowerCase();
+  const svc = (OFFER.service || '').toLowerCase(), hh = dl.getHours() + ' h' + (dl.getMinutes() ? String(dl.getMinutes()).padStart(2,'0') : '');
+  const when = day + (svc ? ' · ' + svc : '');
+  let cls = '', title = OFFER.title, sub = when + ' · réservez avant ' + hh + (OFFER.min_covers > 1 ? ' · dès ' + OFFER.min_covers + ' personnes' : ''), st = 'Appliquée';
+  if (OFFER.state === 'expired') { cls = 'off'; title = 'Cette offre a expiré'; sub = 'Elle était valable jusqu’au ' + dl.getDate() + ' ' + MONTHS[dl.getMonth()].toLowerCase() + ' à ' + hh + '. Vous pouvez réserver normalement.'; st = 'Expirée'; }
+  else if (OFFER.state === 'full' || OFFER.state === 'off') { cls = 'off'; title = 'Toutes les offres sont parties'; sub = 'Vous pouvez réserver normalement, sans l’offre.'; st = 'Complète'; }
+  else {
+    const badDay = S.date && isoOf(S.date) !== OFFER.date_iso;
+    const badSlot = S.slot && ((OFFER.slot_from && S.slot < OFFER.slot_from) || (OFFER.slot_to && S.slot >= OFFER.slot_to));
+    const badCov = S.covers && S.covers < (OFFER.min_covers || 1);
+    if (badDay || badSlot || badCov) { cls = 'warn'; sub = 'Valable seulement le ' + when.toLowerCase() + (OFFER.min_covers > 1 ? ', dès ' + OFFER.min_covers + ' personnes' : '') + '. Sinon, vous réservez sans l’offre.'; st = 'Non valable ici'; }
+  }
+  el.className = 'ofb ' + cls;
+  el.innerHTML = '<div class="ofb-t"><b>' + title.replace(/</g,'&lt;') + '</b><small>' + sub + '</small></div><span class="ofb-s">' + st + '</span>';
+}
+document.addEventListener('click', () => setTimeout(renderOffer, 0));
+(() => { const q = new URLSearchParams(location.search).get('o'); if (q) { try { sessionStorage.setItem('boost_o', q); } catch (e) {} }
+  let c = q; if (!c) { try { c = sessionStorage.getItem('boost_o'); } catch (e) {} }
+  if (c) loadOffer(c, !!q); })();
 
 renderCal();
 renderSlots();
