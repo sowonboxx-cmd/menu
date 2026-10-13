@@ -27,10 +27,13 @@ const IC={room:'<svg viewBox="0 0 26 20"><rect x="3" y="3" width="20" height="14
 
 const CSS=`
 .fp{--fpl:#e6ecf0}
-.fp-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:14px 16px}
-.fp-seg{display:inline-flex;background:#eef1f5;border-radius:999px;padding:3px}
-.fp-seg button{font:600 13px Inter,sans-serif;border:0;background:none;border-radius:999px;padding:7px 14px;cursor:pointer;color:#36495e}
-.fp-seg button.on{background:#fff;color:#14171a;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.fp-bar{padding:16px 20px 14px;display:flex;flex-direction:column;gap:14px}
+.fp-row1{display:flex;align-items:center;gap:18px;flex-wrap:wrap}.fp-ttl{margin:0;font:800 20px Inter,sans-serif;color:#16181d;white-space:nowrap}
+.fp-row2{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.fp-row2>div:empty{display:none}
+.fp-lg{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:#7a7f88;font-weight:600}.fp-lg i{width:10px;height:10px;border-radius:3px}
+.fp-seg{display:inline-flex;background:#f1eee8;border-radius:999px;padding:4px;margin-left:auto}
+.fp-seg button{font:700 14px Inter,sans-serif;border:0;background:none;border-radius:999px;padding:9px 18px;cursor:pointer;color:#7a7f88}
+.fp-seg button[data-fm=svc].on{background:#1f9d55;color:#fff}.fp-seg button[data-fm=edit].on{background:#e03b3b;color:#fff}
 .fp-hrs{display:flex;gap:6px;flex-wrap:wrap}
 .fp-hrs button{font:600 12.5px Inter,sans-serif;border:1px solid var(--fpl);background:#fff;border-radius:999px;padding:6px 11px;cursor:pointer}
 .fp-hrs button.on{background:#10285e;color:#fff;border-color:#10285e}
@@ -63,9 +66,9 @@ const CSS=`
 .fp-tog{display:flex;align-items:center;gap:8px;margin:8px 0;font-size:12.5px;cursor:pointer}
 .fp-ed:not(.svc){grid-template-columns:minmax(0,1fr)!important}.fp-ed:not(.svc)>.fp-pal,.fp-ed:not(.svc)>.fp-side{display:none!important}
 .fp-cv{position:relative}
-.fp-cnt{display:flex;gap:8px}.fp-cnt div{background:#f1eee8;border-radius:14px;padding:7px 14px;text-align:center;min-width:74px}.fp-cnt b{display:block;font-size:20px;line-height:1.15;color:#16181d}.fp-cnt span{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#7a7f88}
+.fp-cnt{font-size:15px;color:#7a7f88;white-space:nowrap}.fp-cnt b{color:#16181d;font-size:17px}
 .fp-tools{display:flex;gap:8px;flex-wrap:wrap}.fp-tool{display:inline-flex;align-items:center;gap:7px;background:#f1eee8;border:0;border-radius:999px;padding:10px 16px;font:600 14px Inter,sans-serif;color:#16181d;cursor:pointer}.fp-tool.pr{background:#10285e;color:#fff}.fp-spl{display:inline-flex;align-items:center;gap:6px;font:600 12.5px Inter,sans-serif;color:#7a7f88}.fp-spl select{border:0;background:#f1eee8;border-radius:999px;padding:7px 12px;font:600 13px Inter,sans-serif;color:#16181d}.fp-mn{font:700 13.5px Inter,sans-serif;white-space:nowrap;padding:0 4px}.fp-tool.fp-renum{background:none;box-shadow:inset 0 0 0 1.5px #d9d4cb}.fp-tool i{font-style:normal;font-size:17px;line-height:1;font-weight:500}
-.fp-bar .fp-seg{margin-left:auto}.fp-hint{font-size:12.5px;color:#7a7f88}
+.fp-row1 .fp-seg{margin-left:auto}.fp-hint{font-size:12.5px;color:#7a7f88}
 .fp-pop{position:absolute;left:14px;top:12px;z-index:5;background:#fff;border-radius:18px;padding:16px;box-shadow:0 0 0 1px #e7e2d9;width:320px;max-width:calc(100% - 28px)}
 .fp-pop .st{display:flex;gap:6px;margin-bottom:12px}.fp-pop .st i{flex:1;height:4px;border-radius:4px;background:#e7e2d9}.fp-pop .st i.on{background:#10285e}
 .fp-pop h4{margin:0 0 4px;font-size:16px;text-transform:none;letter-spacing:0;color:#16181d}.fp-pop .rc{font-size:12.5px;color:#7a7f88;margin:0 0 12px;min-height:16px}
@@ -77,7 +80,7 @@ const CSS=`
 .fp-bub{position:absolute;z-index:4;width:max-content;display:flex;align-items:center;gap:8px;background:#fff;border-radius:16px;padding:8px 10px;box-shadow:0 0 0 1px #e7e2d9;white-space:nowrap;font:500 13px Inter,sans-serif}
 .fp-bub input{width:92px;font:700 13.5px Inter,sans-serif;border:0;background:#f1eee8;border-radius:10px;padding:6px 8px}.fp-bub .stp{display:inline-flex;align-items:center;background:#f1eee8;border-radius:999px}.fp-bub .stp button{border:0;background:none;width:30px;height:30px;font-weight:700;color:#7a7f88;font-size:16px;cursor:pointer}.fp-bub .stp em{font-style:normal;font-weight:700;min-width:70px;text-align:center}
 .fp-bub .fp-b{border:0;background:#f1eee8;border-radius:999px;padding:8px 12px;font:600 12.5px Inter,sans-serif;color:#16181d;cursor:pointer}.fp-bub .fp-b.red{background:#fdecec;color:#c62828}.fp-bub .sep{width:1px;height:22px;background:#e7e2d9}
-@media(max-width:700px){.fp-bub{flex-wrap:wrap;white-space:normal;max-width:calc(100% - 16px)}.fp-cnt div{min-width:0;padding:6px 10px}.fp-cnt b{font-size:17px}.fp-tool{padding:9px 13px;font-size:13px}}
+@media(max-width:700px){.fp-bub{flex-wrap:wrap;white-space:normal;max-width:calc(100% - 16px)}.fp-cnt{font-size:13.5px}.fp-cnt b{font-size:15px}.fp-ttl{font-size:18px}.fp-tool{padding:9px 13px;font-size:13px}}
 @media(max-width:900px){.fp-ed,.fp-ed.svc{grid-template-columns:minmax(0,1fr)}.fp-pal{border-right:0;border-bottom:1px solid var(--fpl)}.fp-side{border-left:0;border-top:1px solid var(--fpl)}.fp-chips{margin-left:0}.fp-pal .fp-desk{display:none}}
 @media(min-width:901px){.fp-pal .fp-mob{display:none}.fp-desk{display:contents}}
 @media(max-width:900px){.fp-cv{order:1}.fp-pal{order:2}.fp-side{order:3}.fp-pal{flex-direction:row;flex-wrap:wrap;align-items:end}.fp-into{flex:1 1 160px}.fp-mob{flex:1 1 160px}.fp-mob select{width:100%}}`;
@@ -283,9 +286,9 @@ function draw(){ const host=document.getElementById('fpHost'); if(!host||!L) ret
   let chips=`<span class="fp-chip"><b>${its.filter(t=>t.kind!=='chair'&&t.kind!=='stool').length}</b> tables</span><span class="fp-chip">Total <b>${cap}</b> places</span>`;
   if(!ed){ const v=Object.values(res), occ=v.reduce((a,r)=>a+(r.k==='a'?r.cov:0),0), rv=v.reduce((a,r)=>a+(r.k==='r'?r.cov:0),0); chips=`<span class="fp-chip">À table <b>${occ}</b></span><span class="fp-chip">Attendus <b>${rv}</b></span><span class="fp-chip">Libres <b>${Math.max(0,cap-occ-rv)}</b> places</span>`; }
   const nTb=its.filter(t=>t.kind!=='chair'&&t.kind!=='stool').length, nSp=spacesNow().length;
-  host.querySelector('.fp-cnt').innerHTML=`<div><b>${nSp}</b><span>espace${nSp>1?'s':''}</span></div><div><b>${nTb}</b><span>table${nTb>1?'s':''}</span></div><div><b>${cap}</b><span>places</span></div>`;
+  host.querySelector('.fp-cnt').innerHTML=`<b>${nSp}</b> espace${nSp>1?'s':''} · <b>${nTb}</b> table${nTb>1?'s':''} · <b>${cap}</b> place${cap>1?'s':''}`;
   host.querySelector('.fp-tools').innerHTML=ed?[['table','Table',1],['door','Porte'],['pf','Porte-fenêtre'],['win','Fenêtre'],['stairs','Escalier'],['room','Pièce']].map(([k,l,pr])=>`<button class="fp-tool${pr?' pr':''}" data-ftool="${k}"><i>+</i>${l}</button>`).join(''):'';
-  if(ed) chips='<span class="fp-hint">Glissez une table pour la déplacer · tracez un cadre (ou Ctrl/⌘ + clic) pour en prendre plusieurs · le titre d\'une pièce la déplace</span>';
+  if(ed) chips=''; else chips=`<span class="fp-lg"><i style="background:${ST.l}"></i>Libre</span><span class="fp-lg"><i style="background:${ST.r}"></i>Réservée</span><span class="fp-lg"><i style="background:${ST.a}"></i>À table</span>`+chips;
   host.querySelector('.fp-chips').innerHTML=chips;
   const sec=host.closest('.fpsec'); if(sec) sec.classList.toggle('fp-editing',ed);
   const sv=typeof SERVICES!=='undefined'?SERVICES:[];
@@ -557,7 +560,7 @@ function mount(){ const host=document.getElementById('fpHost'); if(!host) return
     ['car','rect','lon','ron'].forEach(id=>{ let m=MD(id); if(!m){ const d=defaults().models.find(q=>q.id===id); L.models.push(m=Object.assign({},d)); } Object.assign(m,STD[id]); }); }
   Object.values(L.pos).forEach(p=>{ if(p&&p.kind==='bar'){ const vert=(p.rot||0)%2; delete p.kind; delete p.w; delete p.h; p.model='lon'; p.rot=vert?1:0; p.side='one'; } });   // le bar = une table comme les autres
   pack(); setTimeout(autoNumber,0);
-  if(!host.querySelector('.fp')){ host.innerHTML=`<div class="fp"><div class="fp-bar"><div class="fp-cnt"></div><div class="fp-tools"></div><div class="fp-hrs"></div><div class="fp-chips"></div><div class="fp-seg"><button data-fm="svc" class="on">Service</button><button data-fm="edit">Modifier</button></div></div><div class="fp-ed svc"><div class="fp-pal"></div><div class="fp-cv"><svg class="fp-svg"></svg></div><div class="fp-side"></div></div></div>`; }
+  if(!host.querySelector('.fp')){ host.innerHTML=`<div class="fp"><div class="fp-bar"><div class="fp-row1"><h3 class="fp-ttl">Plan de salle</h3><span class="fp-cnt"></span><div class="fp-seg"><button data-fm="svc" class="on">Service</button><button data-fm="edit">Modifier</button></div></div><div class="fp-row2"><div class="fp-tools"></div><div class="fp-hrs"></div><div class="fp-chips"></div></div></div><div class="fp-ed svc"><div class="fp-pal"></div><div class="fp-cv"><svg class="fp-svg"></svg></div><div class="fp-side"></div></div></div>`; }
   draw(); }
 let bound=false;
 window.FP={ sync(){ if(!bound){ bound=true; document.addEventListener('click',onClick); document.addEventListener('change',onChange); document.addEventListener('pointerdown',onDown); document.addEventListener('pointermove',onMove); document.addEventListener('pointerup',onUp); document.addEventListener('pointercancel',onUp); } mount(); },
