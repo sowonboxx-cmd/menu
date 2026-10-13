@@ -99,7 +99,7 @@ function seed(){ const l=defaults(), tb=tablesNow(), sps=spacesNow();
 
 // Tables affichées = lignes de restaurant_tables + leur position enregistrée.
 function items(){ const out=[];
-  tablesNow().forEach(row=>{ const p=L.pos[row.id]||(L.pos[row.id]=autoPos(row)); const t=Object.assign({},p,{id:row.id,name:row.name,seats:+row.seats||1,space_id:row.space_id});
+  tablesNow().forEach(row=>{ const p=L.pos[row.id]||(L.pos[row.id]=autoPos(row)); const t=Object.assign({},p,{id:row.id,name:row.name||('Table '+(tablesNow().filter(o=>o.space_id===row.space_id).indexOf(row)+1)),seats:+row.seats||1,space_id:row.space_id});
     const md=t.model&&MD(t.model);
     if(t.kind==='chair'){ t.w=t.rot?14:20; t.h=t.rot?20:14; }
     else if(t.kind==='stool'){ t.w=t.h=20; }
@@ -108,7 +108,14 @@ function items(){ const out=[];
     else { t.w=p.w||80; t.h=p.h||56; }
     out.push(t); });
   return out; }
-function autoPos(row){ const s0=L.rooms[0], n=+row.seats||2; return {x:snap(s0.x+s0.w*.5),y:snap(s0.y+s0.h*.45),model:n<=2?'car':n<=4?'rect':'lon'}; }
+// Nouvelle table (ajoutée depuis la liste) : posée dans la pièce de son espace, sur la première place libre (jamais sur une autre table).
+function autoPos(row){ const n=+row.seats||2, model=n<=2?'car':n<=4?'rect':'lon', md=MD(model)||{w:80,h:56};
+  const sp=spacesNow().find(x=>x.id===row.space_id), nm=((sp&&sp.name)||'').toLowerCase();
+  const room=L.rooms.find(r=>(r.name||'').toLowerCase()===nm)||(/terr|ext/.test(nm)&&L.rooms.find(r=>r.kind==='terrace'))||L.rooms[0];
+  const boxes=tablesNow().filter(o=>o.id!==row.id&&L.pos[o.id]).map(o=>{ const q=L.pos[o.id], m=q.model&&MD(q.model); const Ln=m?m.w*(q.units||1):(q.w||80), H2=m?m.h:(q.h||56); return {x:q.x,y:q.y,w:q.rot?H2:Ln,h:q.rot?Ln:H2}; });
+  const free=(x,y)=>boxes.every(b=>x+md.w+30<b.x||x>b.x+b.w+30||y+md.h+30<b.y||y>b.y+b.h+30);
+  for(let y=room.y+60;y+md.h<room.y+room.h-20;y+=24) for(let x=room.x+30;x+md.w<room.x+room.w-20;x+=24) if(free(x,y)) return {x:snap(x),y:snap(y),model};
+  return {x:snap(room.x+room.w*.5),y:snap(room.y+room.h*.45),model}; }
 function seatSides(t){ const n=t.seats, hz=t.w>=t.h; if(t.side==='one') return hz?{t:n,b:0,l:0,r:0}:{t:0,b:0,l:0,r:n}; const a=Math.ceil(n/2), b=Math.floor(n/2); return hz?{t:a,b,l:0,r:0}:{t:0,b:0,l:a,r:b}; }
 function chairs(t){ const o=[], cw=20, ch=12, g=5; if(t.kind&&t.kind!=='round') return o;
   if(t.kind==='round'){ const n=t.seats, cx=t.x+t.w/2, cy=t.y+t.h/2, Rr=t.w/2+g+7; for(let i=0;i<n;i++){ const a=-Math.PI/2+i*2*Math.PI/n; o.push({x:cx+Rr*Math.cos(a)-7,y:cy+Rr*Math.sin(a)-7,w:14,h:14,rx:7}); } return o; }

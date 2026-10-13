@@ -2039,7 +2039,7 @@ function svcSummary(){
 function pageResaEsp(){
   const v=UI.espv||'plan';
   const vs=`<div><div class="vsel">${[['plan','Plan de salle'],['list','Liste des tables']].map(([k,l])=>`<a href="#" data-act="espV" data-v="${k}" class="${v===k?'on':''}">${l}</a>`).join('')}</div></div>`;
-  const plan=`<section class="fpsec fpB"><div class="fphd"><h3>Plan de salle</h3><span class="pill-master">Master</span></div><div class="fpleg"><span><i style="background:#8fae7c"></i>Libre</span><span><i style="background:#5b8fc7"></i>Réservée</span><span><i style="background:#2f3437"></i>À table</span><em>Touchez une table pour voir sa réservation.</em></div><div id="fpHost"></div></section>`;
+  const plan=`<section class="fpsec fpB"><div class="fphd"><h3>Plan de salle</h3></div><div class="fpleg"><span><i style="background:#8fae7c"></i>Libre</span><span><i style="background:#5b8fc7"></i>Réservée</span><span><i style="background:#2f3437"></i>À table</span><em>Touchez une table pour voir sa réservation.</em></div><div id="fpHost"></div></section>`;
   return mtop('Réservations','resa')+crumb([['Réservations','resa'],['Salle et tables']])+ph('Salle et tables',`${SPACES.length} espace${SPACES.length>1?'s':''} · ${TABLES.length} tables · ${capacity()} places`,'')+resaTabs()+vs+(v==='plan'?plan:`<div class="spwrap2">${spacesEditor()}</div>`);
 }
 function pageResaSvc(){
@@ -2273,7 +2273,7 @@ document.addEventListener('click',async e=>{
     case 'emTab': UI.emTab=d.k; render(); if(d.k==='prev') setTimeout(()=>emPreview(true),30); break;
     case 'spAdd': { const v=($('#spNew')||{}).value||''; if(!v.trim()) { toast('Donnez un nom à l\'espace'); break; } UI.spNewOpen=false; await spRun(sb.from('restaurant_spaces').insert({client_slug:RESA_SLUG,name:v.trim(),sort_order:SPACES.length?Math.max(...SPACES.map(x=>x.sort_order||0))+1:0}),'Espace ajouté'); break; }
     case 'spDel': UI.delc=null; await spRun(sb.from('restaurant_tables').delete().eq('space_id',d.id)); await spRun(sb.from('restaurant_spaces').delete().eq('id',d.id),'Espace supprimé'); break;
-    case 'tbAdd': await spRun(sb.from('restaurant_tables').insert({client_slug:RESA_SLUG,space_id:d.id,seats:2})); break;
+    case 'tbAdd': { const nums=TABLES.map(t=>+((String(t.name||'').match(/(\d+)\s*$/)||[])[1]||0)); await spRun(sb.from('restaurant_tables').insert({client_slug:RESA_SLUG,space_id:d.id,seats:2,name:'Table '+(Math.max(TABLES.length,...nums)+1)}),'Table ajoutée'); break; }
     case 'tbDel': await spRun(sb.from('restaurant_tables').delete().eq('id',d.id)); break;
     case 'tbSeat': await spRun(sb.from('restaurant_tables').update({seats:+d.v}).eq('id',d.id)); break;
     case 'spNewOpen': UI.spNewOpen=true; render(); setTimeout(()=>{ const i=$('#spNew'); if(i) i.focus(); },30); break;
