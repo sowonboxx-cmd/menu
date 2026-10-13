@@ -1005,7 +1005,7 @@ input.in.hr{width:76px;text-align:center;padding:8px 10px;font-size:15px;font-we
 .etsel-w{position:sticky;top:0;z-index:20;background:var(--bg);padding:14px 0 0;margin:-14px 0 20px}.etsel{display:flex;background:#e9e6e0;border-radius:14px;padding:4px}.etsel a{flex:1;text-align:center;padding:9px 0;border-radius:10px;font-size:13.5px;font-weight:600;color:#555;text-decoration:none}.etsel a.on{background:#fff;color:var(--ink)}
 .rr{display:flex;align-items:center;gap:12px;padding:10px 12px;margin:0 -12px;border-radius:12px;font-size:14px;cursor:pointer;white-space:nowrap}
 @media(hover:hover){.rr:hover{background:var(--soft)}}.rr.on{background:var(--soft)}.rr.on .pl{background:#fff}
-.rr-t{width:44px;flex:none;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink)}.rr-n{font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}.rr-c{color:var(--mut);flex:none}.rr-e{color:var(--mut);overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}.rr-b{flex:none;font-size:13px;color:var(--mut)}.rr-b.warn,.rr-b .warn{color:#d33;font-weight:700}
+.rr-t{width:44px;flex:none;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink)}.rr-n{font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}.rr-c{color:var(--mut);flex:none}.rr-e{color:var(--mut);overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}.rr-b{flex:none;font-size:13px;color:var(--mut)}.rr-ts{margin-left:auto;border:0;background:transparent;font:600 13px Inter,system-ui,sans-serif;color:var(--mut);cursor:pointer;text-align:right;padding:5px 4px;border-radius:8px;max-width:190px}.rr-ts:hover{background:var(--soft);color:var(--ink)}.rr-ts.un{color:#d33;font-weight:700}.rr-b.warn,.rr-b .warn{color:#d33;font-weight:700}
 .rdet{position:relative}.rdet-x{position:absolute;top:16px;right:16px;width:30px;height:30px;border-radius:50%;border:0;background:#fff;color:var(--mut);font-size:13px;cursor:pointer;z-index:2}
 .rd-l{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;font-size:14px;border-top:1px solid var(--line)}.rd-l:first-child{border-top:0}.rd-l span{color:var(--mut);flex:none}.rd-l b{font-weight:600;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}.rd-l b.rd-note{white-space:normal}.rd-l a{color:var(--brand-text,#1f3c88);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .rd-sel{background:var(--soft);border:0;border-radius:10px;padding:6px 10px;font:600 13.5px Inter,system-ui,sans-serif;color:var(--ink);max-width:62%}
@@ -1693,7 +1693,7 @@ function pageResa(){
   if(ARG==='stats') return pageResaStats();
   const t=todayIso(), list=activeResa();
   const days=[...new Set(list.map(r=>r.date_iso))].slice(0,7);
-  const noTable=list.filter(r=>!(r.table_ids||[]).length);
+  const noTable=list.filter(r=>!liveTables(r).length);
   const sel=UI.rsel&&list.find(r=>r.ref===UI.rsel);
   const tm=iso(Date.now()+864e5), dlab=d=>d===t?'Aujourd\u2019hui':d===tm?'Demain':(x=>x.charAt(0).toUpperCase()+x.slice(1))(fmtDay(d));
   const body=days.length?days.map(d=>{ const its=list.filter(r=>r.date_iso===d); const cov=its.reduce((a,r)=>a+(+r.covers||0),0);
@@ -1701,16 +1701,17 @@ function pageResa(){
   return mtop('Tableau de bord','dash')+ph('Réservations',`${list.filter(r=>r.date_iso===t).length} aujourd'hui · ${list.length} sur 14 jours`,`<a class="btn w" href="${RESA_ADMIN_URL}" target="_blank" rel="noopener">${I('stats')}Admin des réservations ↗</a>`)+
   resaTabs()+`<div class="pgrid g-3-1"><div><div class="jw">${body}</div></div>
   <div>${sel?`<div class="rdet desk">${card('Réservation · '+esc(sel.ref||''),'resa',resaDetail(sel)).replace('id="b-resa"','id="b-rdet"')}<button type="button" class="rdet-x" data-act="rsClose" aria-label="Fermer">✕</button></div>`:''}${card('À traiter','alert',row(pill(String(noTable.length),noTable.length?'warn':''),'Réservation'+(noTable.length>1?'s':'')+' sans table')+row(pill(String(WAIT.length)),'Liste d\'attente'))}
-  ${card('Fermetures','hor',BLOCKED.length?BLOCKED.slice(0,6).map(b=>row(esc(fmtDay(b.date_iso)),'Jour bloqué')).join(''):'<div class="empty">Aucun jour bloqué.</div>').replace('id="b-hor"','id="b-ferm"')}
-  ${card('Salle, espaces et tables','resa',salleSummary()).replace('id="b-resa"','id="b-salle"')}${card('Services','hor',svcSummary()).replace('id="b-hor"','id="b-svcs"')}</div></div>`;
+  ${card('Salle, espaces et tables','resa',salleSummary()).replace('id="b-resa"','id="b-salle"')}</div></div>`;
 }
 // Une réservation = une ligne. Clic : fiche dans la colonne de droite (ordinateur) ou fiche qui monte du bas (mobile).
-const resaRow=(r,on)=>`<div class="rr${on?' on':''}" data-act="rsel" data-ref="${esc(r.ref)}"><span class="rr-t">${esc((r.slot||'').slice(0,5))}</span><span class="rr-n">${esc(r.from_name||'—')}</span><span class="rr-c">${+r.covers||0} pers.</span><span class="rr-e">${esc(r.espace||'')}</span>${liveTables(r).length?`<span class="rr-b">${tableNames(r)}</span>`:'<span class="rr-b warn">Non affectée</span>'}${r.attended?pill('Venu','ok'):''}</div>`;
+// Menu de table d'une résa : « Non affectée » puis les tables groupées par espace.
+function tableSel(r,cls){ const cur=liveTables(r).map(t=>String(t.id)), multi=cur.length>1, o=t=>`<option value="${esc(t.id)}"${cur[0]===String(t.id)&&!multi?' selected':''}>${esc(t.name||'Table')} · ${+t.seats||0} pl.</option>`;
+  const opts=SPACES.map(sp=>{ const ts=TABLES.filter(t=>String(t.space_id)===String(sp.id)); return ts.length?`<optgroup label="${esc(sp.name)}">${ts.map(o).join('')}</optgroup>`:''; }).join('')+TABLES.filter(t=>!SPACES.some(sp=>String(sp.id)===String(t.space_id))).map(o).join('');
+  return `<select class="${cls}${cur.length?'':' un'}" data-rtab="${esc(r.ref)}" aria-label="Table"><option value="">Non affectée</option>${multi?`<option value="__m" selected>${esc(tableNames(r).replace(/<[^>]*>/g,''))}</option>`:''}${opts}</select>`; }
+const resaRow=(r,on)=>`<div class="rr${on?' on':''}" data-act="rsel" data-ref="${esc(r.ref)}"><span class="rr-t">${esc((r.slot||'').slice(0,5))}</span><span class="rr-n">${esc(r.from_name||'—')}</span><span class="rr-c">${+r.covers||0} pers.</span><span class="rr-e">${esc(r.espace||'')}</span>${tableSel(r,'rr-b rr-ts')}${r.attended?pill('Venu','ok'):''}</div>`;
 function resaDetail(r){
   const day=fmtDay(r.date_iso), D=day.charAt(0).toUpperCase()+day.slice(1), ph=String(r.phone||''), pd=ph.replace(/[^\d+]/g,'');
-  const cur=liveTables(r).map(t=>String(t.id)), multi=cur.length>1;
-  const opts=SPACES.map(sp=>{ const ts=TABLES.filter(t=>String(t.space_id)===String(sp.id)); return ts.length?`<optgroup label="${esc(sp.name)}">${ts.map(t=>`<option value="${esc(t.id)}"${cur[0]===String(t.id)&&!multi?' selected':''}>${esc(t.name||'Table')} · ${+t.seats||0} pl.</option>`).join('')}</optgroup>`:''; }).join('')+TABLES.filter(t=>!SPACES.some(sp=>String(sp.id)===String(t.space_id))).map(t=>`<option value="${esc(t.id)}"${cur[0]===String(t.id)&&!multi?' selected':''}>${esc(t.name||'Table')} · ${+t.seats||0} pl.</option>`).join('');
-  const tsel=`<select class="rd-sel" data-rtab="${esc(r.ref)}"><option value="">Non affectée</option>${multi?`<option value="__m" selected>${esc(tableNames(r).replace(/<[^>]*>/g,''))}</option>`:''}${opts}</select>`;
+  const tsel=tableSel(r,'rd-sel');
   const L=(k,v)=>`<div class="rd-l"><span>${k}</span>${v}</div>`, cr=r.created_at?new Date(r.created_at).toLocaleDateString('fr-FR'):'';
   const del=UI.rdel===r.ref?`<div class="rd-why"><small>Pour quelle raison ? Seulement pour les statistiques, le client n'en voit rien.</small><div class="rd-a3"><button type="button" data-act="rsDel" data-ref="${esc(r.ref)}" data-v="cancelled">Annulation</button><button type="button" data-act="rsDel" data-ref="${esc(r.ref)}" data-v="noshow">No-show</button><button type="button" data-act="rsDel" data-ref="${esc(r.ref)}" data-v="removed">Erreur, test</button></div><button type="button" class="rd-del" style="color:var(--mut)" data-act="rsDelAsk" data-ref="">Annuler</button></div>`
     :`<button type="button" class="rd-del" data-act="rsDelAsk" data-ref="${esc(r.ref)}">Supprimer la réservation</button>`;
@@ -2269,6 +2270,7 @@ async function uploadImage(file,kind){
 
 // ══ Actions (clics) ══
 document.addEventListener('click',async e=>{
+  if(e.target.closest('select')) return;
   const el=e.target.closest('[data-act]'); if(!el) return;
   const a=el.dataset.act, d=el.dataset;
   if(el.tagName==='A'||(el.tagName==='BUTTON'&&el.closest('a'))) e.preventDefault();
