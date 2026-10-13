@@ -998,6 +998,11 @@ input.in.hr{width:76px;text-align:center;padding:8px 10px;font-size:15px;font-we
 .tt:after{content:"";position:absolute;width:10px;height:10px;background:#fff;transform:rotate(45deg);top:-5px;left:var(--ax);box-shadow:-2px -2px 3px rgba(16,24,40,.05)}
 .tt.up:after{top:auto;bottom:-5px;box-shadow:2px 2px 3px rgba(16,24,40,.05)}
 .tipbox{max-width:360px;text-align:left}.tipbox p{color:var(--ink);font-size:14.5px;line-height:1.5;margin:6px 28px 16px 0}
+.fsel{display:flex;align-items:baseline;gap:10px;width:100%;text-align:left;cursor:pointer}.fsel b{font-size:19px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.fsel small{font-size:12px;color:var(--mut);white-space:nowrap}.fsel em{margin-left:auto;font-style:normal;font-size:13px;font-weight:700;color:var(--ink,#1a1a1a);white-space:nowrap}
+.fpk{position:relative;background:var(--card);border-radius:22px;width:560px;max-width:100%;max-height:calc(100vh - 32px);display:flex;flex-direction:column;overflow:hidden}.fpk-h{padding:20px 24px 14px;box-shadow:0 1px 0 rgba(0,0,0,.06)}.fpk-h h3{margin:0;font-size:18px}.fpk-h p{margin:3px 0 0;font-size:13px;color:var(--mut)}.fpk-l{overflow:auto;padding:6px 10px 12px}
+.fpk-s{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);padding:12px 14px 4px}.fpk-r{display:block;width:100%;text-align:left;background:none;border:0;border-radius:14px;padding:11px 14px 12px;cursor:pointer;color:inherit}@media(hover:hover){.fpk-r:hover{background:var(--soft)}}.fpk-r.on{background:var(--soft)}
+.fpk-r span{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--mut)}.fpk-r span i{font-style:normal;letter-spacing:0;text-transform:none;font-weight:700;color:#1f8a4c}.fpk-r span i:before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:#1f8a4c;margin-right:5px;vertical-align:1px}.fpk-r b{display:block;font-size:26px;font-weight:700;line-height:1.25;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.etsel-w{position:sticky;top:0;z-index:20;background:var(--bg);padding:14px 0 0;margin:-14px 0 20px}.etsel{display:flex;background:#e9e6e0;border-radius:14px;padding:4px}.etsel a{flex:1;text-align:center;padding:9px 0;border-radius:10px;font-size:13.5px;font-weight:600;color:#555;text-decoration:none}.etsel a.on{background:#fff;color:var(--ink)}
 .hph-ov{position:fixed;inset:0;z-index:9999;background:rgba(16,20,30,.55);display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto}
 .hph-box{position:relative;background:var(--card);border-radius:22px;padding:22px 26px 24px;text-align:center;max-width:100%}
 .hph-box h3{margin:0 0 4px;font-size:18px}.hph-box p{margin:0 0 18px;color:var(--mut);font-size:13px}
@@ -1253,7 +1258,7 @@ function go(p){ location.hash='#/'+p; }
 function parseHash(){ const h=(location.hash||'').replace(/^#\/?/,''); const [p,...rest]=h.split('/'); PG=p||'dash'; ARG=decodeURIComponent(rest.join('/')||''); }
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&UI.info){ UI.info=null; render(); } });
 window.addEventListener('hashchange',()=>{ parseHash(); UI.delc=null; UI.info=null; render(); scrollTo(0,0); jumpToBlock(); });
-function jumpToBlock(){ if(!(PG==='etab'||PG==='site')||!ARG) return; const el=document.getElementById('b-'+ARG); if(!el) return; el.scrollIntoView({block:'start',behavior:'smooth'}); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+function jumpToBlock(){ if(!(PG==='etab'||PG==='site')||!ARG) return; if(PG==='etab'&&matchMedia('(max-width:899px)').matches) return; const el=document.getElementById('b-'+ARG); if(!el) return; el.scrollIntoView({block:'start',behavior:'smooth'}); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
 
 const NAV=[['dash','stats','Tableau de bord'],['resa','resa','Réservations'],['clients','users','Clients'],['emails','mail','Emails'],['carte','carte','Ma carte'],['menus','spe','Mes menus'],['stats','vue','Statistiques']];
 const NAVS=[['app','lune','Apparence'],['secu','sauv','Sécurité']];
@@ -1700,8 +1705,9 @@ function pageEtab(){
   const sched=DAYS.map(day=>{ let d=(DATA.schedule||[]).find(x=>x.day===day); const di=(DATA.schedule||[]).indexOf(d); if(!d) return row(`<b>${day}</b>`,'—');
     const on=d.active!==false&&(d.services||[]).some(x=>x.open!=null);
     return `<div class="rw"><div class="rw-a"><b>${day}</b></div><div class="rw-b">${on?(d.services||[]).map((sv,si)=>`<span style="display:inline-flex;gap:4px;align-items:center;margin-right:10px"><input class="in hr" type="text" inputmode="numeric" maxlength="5" placeholder="17:30" value="${toHM(sv.open)}" data-bind="sched.${di}.${si}.open" data-hm="1">–<input class="in hr" type="text" inputmode="numeric" maxlength="5" placeholder="02:00" value="${toHM(sv.close)}" data-bind="sched.${di}.${si}.close" data-hm="1"></span>`).join(''):'<span style="color:var(--mut)">Fermé</span>'}</div><div class="rw-d">${tgl(on,'dayToggle',`data-i="${di}"`)}</div></div>`; }).join('');
-  return mtop('Tableau de bord','dash')+ph('Mon établissement','','')+
-  `<div class="pgrid g-1-1"><div>${card('Informations','etab',`<div class="frm">${fin('Nom',DATA.restaurantName||'','root.restaurantName','w')}${fin('Rue',a.street||'','addr.street','w')}${fin('Code postal',a.zip||'','addr.zip')}${fin('Ville',a.city||'','addr.city')}${fin('Téléphone',a.phone||'','addr.phone')}${fin('Lien Google Maps',a.mapsUrl||'','addr.mapsUrl')}</div>`)}
+  const ek=['etab','logo','hor','res'].includes(ARG)?ARG:'etab';
+  return mtop('Tableau de bord','dash')+`<div class="mob etsel-w"><div class="etsel">${[['etab','Infos'],['logo','Logo'],['hor','Horaires'],['res','Réseaux']].map(([k,l])=>`<a href="#/etab/${k}" class="${k===ek?'on':''}">${l}</a>`).join('')}</div></div><style>@media(max-width:899px){.etone .pc:not(#b-${ek}){display:none}.etone>div:not(:has(#b-${ek})){display:none}}</style>`+ph('Mon établissement','','')+
+  `<div class="pgrid g-1-1 etone"><div>${card('Informations','etab',`<div class="frm">${fin('Nom',DATA.restaurantName||'','root.restaurantName','w')}${fin('Rue',a.street||'','addr.street','w')}${fin('Code postal',a.zip||'','addr.zip')}${fin('Ville',a.city||'','addr.city')}${fin('Téléphone',a.phone||'','addr.phone')}${fin('Lien Google Maps',a.mapsUrl||'','addr.mapsUrl')}</div>`)}
    ${card('Horaires','hor',sched+'')}</div>
    <div>${card('Logo','logo',logoField())}
    ${card('Réseaux sociaux','res',`<div class="frm">${fin('Instagram',s.instagram||'','soc.instagram')}${fin('TikTok',s.tiktok||'','soc.tiktok')}${fin('Facebook',s.facebook||'','soc.facebook')}${fin('LinkedIn',s.linkedin||'','soc.linkedin')}</div>`)}</div></div>`;
@@ -1748,7 +1754,22 @@ function openHdrPhones(){
 }
 const SITE_FONTS = ["Jost", "Montserrat", "Oswald", "Raleway", "Poppins", "Merriweather", "Playfair Display", "Libre Baskerville", "Josefin Sans", "Quicksand", "Inter", "Cormorant Garamond", "EB Garamond", "Spectral", "Source Serif Pro", "Bitter", "Dancing Script", "Pacifico", "Lobster", "Satisfy", "Abril Fatface", "Bebas Neue", "Anton", "Righteous", "Cinzel", "Teko", "Fraunces", "DM Serif Display", "Prata", "Marcellus", "Bodoni Moda", "Yeseva One", "Italiana", "Cinzel Decorative", "Great Vibes", "Tangerine", "Sacramento", "Yellowtail", "Grand Hotel", "Kaushan Script", "Caveat", "Amatic SC", "Permanent Marker", "Fredoka", "Comfortaa", "Baloo 2", "Alfa Slab One", "Passion One", "Bungee", "Monoton", "Fjalla One"];
 const KB=[['zoom-in','Zoom avant'],['zoom-out','Zoom arrière'],['pan-top','Vers le haut'],['pan-bottom','Vers le bas'],['pan-left','Zoom à gauche'],['pan-right','Zoom à droite']];
-const fontSel=(label,val,bind,def)=>fld(label,`<select class="in" data-bind="${bind}" style="font-family:'${esc(val||def)}',serif">${SITE_FONTS.map(f=>`<option value="${esc(f)}"${(val||def)===f?' selected':''}>${esc(f)}</option>`).join('')}</select>`);
+// Choix de police : la liste montre le nom du restaurant écrit dans chaque police. Toucher = choisir.
+// DATA.extraFonts = polices ajoutées pour CE restaurant à l'import (toujours des Google Fonts), en tête de liste.
+const fontTxt=bind=>{ const n=DATA.restaurantName||'Mon restaurant'; if(bind==='hc.headlineFont'){ const h=String((DATA.homeCover||{}).headline||'').replace(/<[^>]*>/g,'').trim(); return (h||n).slice(0,40); } return n; };
+function gfLoad(fonts,txt){ const todo=fonts.filter(f=>f&&!document.getElementById('gfp-'+f.replace(/\W/g,''))); for(let i=0;i<todo.length;i+=15){ const ch=todo.slice(i,i+15); const l=document.createElement('link'); l.rel='stylesheet'; l.href='https://fonts.googleapis.com/css2?'+ch.map(f=>'family='+encodeURIComponent(f).replace(/%20/g,'+')+':wght@400;700').join('&')+'&display=swap'+(txt?'&text='+encodeURIComponent([...new Set(txt+txt.toUpperCase()+txt.toLowerCase())].join('')):''); document.head.appendChild(l); ch.forEach(f=>{ const m=document.createElement('meta'); m.id='gfp-'+f.replace(/\W/g,''); document.head.appendChild(m); }); } }
+const fontSel=(label,val,bind,def)=>{ const f=val||def, t=fontTxt(bind); gfLoad([f]); return fld(label,`<button type="button" class="in fsel" data-act="fontPick" data-k="${bind}" data-def="${esc(def)}"><b style="font-family:'${esc(f)}',serif">${esc(t)}</b><small>${esc(f)}</small><em>Changer</em></button>`); };
+function openFontPick(k,def){
+  const cur=(k==='hc.headlineFont'?(DATA.homeCover||{}).headlineFont:DATA[k.split('.')[1]])||def, t=fontTxt(k);
+  const extra=(Array.isArray(DATA.extraFonts)?DATA.extraFonts:[]).filter(Boolean), all=SITE_FONTS.filter(f=>!extra.includes(f));
+  gfLoad(extra.concat(all),t);
+  const row=f=>`<button type="button" class="fpk-r${f===cur?' on':''}" data-f="${esc(f)}"><span>${esc(f)}${f===cur?'<i>Choisie</i>':''}</span><b style="font-family:'${esc(f)}',serif">${esc(t)}</b></button>`;
+  const d=document.createElement('div'); d.className='hph-ov';
+  d.innerHTML=`<div class="fpk" role="dialog" aria-modal="true"><div class="fpk-h"><h3>Choisir une police</h3><p>Touchez une police pour la choisir.</p><button type="button" class="imod-x" data-x="1" aria-label="Fermer">✕</button></div><div class="fpk-l">${extra.length?`<div class="fpk-s">Pour votre restaurant</div>${extra.map(row).join('')}<div class="fpk-s">Toutes les polices</div>`:''}${all.map(row).join('')}</div></div>`;
+  d.addEventListener('click',e=>{ const r=e.target.closest('.fpk-r'); if(r){ setByBind(k,r.dataset.f); UI.needRender=false; loadSiteFonts(); touch(true); d.remove(); toast('Police : '+r.dataset.f); return; } if(e.target===d||e.target.closest('[data-x]')) d.remove(); });
+  document.body.appendChild(d);
+  const on=d.querySelector('.fpk-r.on'); if(on) on.scrollIntoView({block:'center'});
+}
 const siteUp=(url,slot,label,kind='image')=>`<div class="slot${url?' has':''}">${url?(kind==='video'?`<video src="${esc(url)}" muted playsinline loop autoplay></video>`:`<img src="${esc(url)}" alt="">`):`<span class="ph">${I(kind==='video'?'ecran':'acc')}<small>${label}</small></span>`}
   <div class="slot-a"><label class="btn w">${I('share')}${url?'Changer':'Ajouter'}<input type="file" accept="${kind==='video'?'video/mp4,video/webm,video/quicktime':'image/*'}" hidden data-act="siteUp" data-slot="${slot}"></label>${url?`<button type="button" class="lk red" data-act="siteDel" data-slot="${slot}">Retirer</button>`:''}</div></div>`;
 function loadSiteFonts(){ const fs=[DATA.restoFont,(DATA.homeCover||{}).headlineFont].filter(Boolean); fs.forEach(f=>{ const id='gf-'+f.replace(/\W/g,''); if(document.getElementById(id)) return; const l=document.createElement('link'); l.id=id; l.rel='stylesheet'; l.href='https://fonts.googleapis.com/css2?family='+encodeURIComponent(f).replace(/%20/g,'+')+'&display=swap'; document.head.appendChild(l); }); }
@@ -2275,6 +2296,7 @@ document.addEventListener('click',async e=>{
     case 'viewSet': DATA.defaultView=d.v; touch(true); break;
     case 'tipShow': tipShow(d.t,el); break;
     case 'hdrPhones': openHdrPhones(); break;
+    case 'fontPick': openFontPick(d.k,d.def); break;
     case 'hdrMode': DATA.headerMode=d.v==='name'?'name':'logo'; touch(true); break;
     case 'siteDel': { const hc=DATA.homeCover, sl=d.slot; if(/^s\d$/.test(sl)) hc.slideshow[+sl[1]].image=''; else hc[sl]=''; touch(true); break; }
     case 'rootFlag': DATA[d.k]=DATA[d.k]===false; touch(true); break;
