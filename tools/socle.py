@@ -94,7 +94,6 @@ def book(s):
     s = rep(s, '<span class="logo-text" id="headerLogoText">Drevici Oyster</span>', '<span class="logo-text" id="headerLogoText"></span>', 1)
     s = rex(s, r'<div class="cov-note">Pour les groupes de plus de 10 personnes.*?</div>',
             '<div class="cov-note" id="covNote"></div>', 'note groupes')
-    s = rep(s, '<a href="https://drevicioyster.com" style="display:block', '<a href="/" style="display:block', 1)
     s = rep(s, "const CLIENT_SLUG = 'drevici-paris';", "const CLIENT_SLUG = BT.resaSlug || BT.slug;", 1)
     s = rep(s, "const WRITE_SLUG = 'drevici-test';", "const WRITE_SLUG = BT.preview ? (BT.testSlug || 'test') : CLIENT_SLUG;", 1)
     s = rep(s, "const MENU_CLIENT_SLUG = 'drevici';", "const MENU_CLIENT_SLUG = BT.slug;", 1)
