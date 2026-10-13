@@ -1883,6 +1883,16 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 .club-card span{display:block;font-size:21px;font-weight:800;letter-spacing:.12em}
 .club-wc{font-size:14.5px;color:#16181d;line-height:1.45;margin-bottom:16px}.club-wc small{color:#6b7080;font-size:12px}
 .club-later{background:none;border:0;color:#6b7080;font-size:13.5px;margin-top:10px;cursor:pointer;padding:6px}
+/* Tirage des T-shirts : taille demandée juste après l'inscription (membres seulement) */
+.club-ts{background:#fff;border-radius:16px;padding:12px 14px 13px;margin:-4px 0 14px;text-align:center}
+.club-ts b.t{display:block;font-size:14.5px;color:#10285e}.club-ts p{margin:3px 0 10px;font-size:12.5px;color:#6b7080;line-height:1.4}
+.club-ts-sz{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.club-ts-sz button{min-width:44px;border:0;border-radius:999px;padding:9px 10px;font:600 13.5px Inter,system-ui,sans-serif;color:#10285e;background:#eef1f8;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.club-ts-sz button:active{transform:scale(.96)}.club-ts-sz button[disabled]{opacity:.5}
+.club-ts.done{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;font-size:13.5px;color:#16181d;padding:11px 14px}
+.club-ts.done b{color:#10285e}.club-ts-lk{background:none;border:0;padding:0;color:#6b7080;font-size:12px;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.club-ts .club-ts-lk{margin-top:9px}
+.club-ts-ed{display:inline-grid;place-items:center;width:30px;height:30px;border:0;border-radius:50%;background:#eef1f8;color:#10285e;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent}.club-ts-ed:active{transform:scale(.92)}
 .club-dl{background:#fdf1e4;border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.5;color:#7a3b12;margin-bottom:14px}
 .club-ig{background:#fff;border-radius:16px;padding:14px}.club-ig b{display:block;font-size:15px;color:#10285e}.club-ig span{display:block;font-size:13px;color:#6b7080;margin:4px 0 12px;line-height:1.4}
 .club-iga{display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(90deg,#f58529,#dd2a7b 50%,#8134af)}
@@ -4000,7 +4010,7 @@ async function clubFindGo(e){
     const r=await fetch(CLUB_API+'/club/find',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({slug:CLUB_SLUG,email,phone})});
     const d=await r.json();
     if(!d.ok){ err.textContent=d.error||'Aucune carte trouvée.'; go.disabled=false; go.textContent='Retrouver ma carte'; if(deck) deck.classList.remove('spin'); clubDeckStart(2200); return; }
-    const me={at:d.joined?Date.parse(d.joined):Date.now(),code:d.code,no:d.no,first:d.first,last:d.last,email,phone,tier:d.tier,card:d.card,joined:d.joined,used:d.used};
+    const me={at:d.joined?Date.parse(d.joined):Date.now(),code:d.code,no:d.no,first:d.first,last:d.last,email,phone,tier:d.tier,card:d.card,joined:d.joined,used:d.used,tshirt:d.tshirt||null};
     try{ localStorage.setItem('club_'+CLUB_SLUG,JSON.stringify(me)); }catch(_){}
     await new Promise(r=>setTimeout(r,Math.max(0,1400-(Date.now()-t0)))); clearInterval(clubDeckT);
     clubWelcome(me,true,true); clubLinkRefresh();
@@ -4067,7 +4077,8 @@ async function clubSyncCard(){
   const me=clubMe(); if(!me||!me.code) return;
   try{
     const r=await fetch(CLUB_API+'/club/card?'+new URLSearchParams({slug:CLUB_SLUG,code:me.code})); const d=await r.json(); if(!d.ok) return;
-    const nx={...me,tier:d.tier,card:d.card,no:d.no||me.no,joined:d.joined||me.joined,used:d.used};
+    const nx={...me,tier:d.tier,card:d.card,no:d.no||me.no,joined:d.joined||me.joined,used:d.used,tshirt:d.tshirt||null};
+    if(nx.tshirt!==(me.tshirt||null)){ const ts=document.getElementById('clubTs'); if(ts) ts.innerHTML=clubTsHTML(nx); }
     try{ localStorage.setItem('club_'+CLUB_SLUG,JSON.stringify(nx)); }catch(_){}
     const w=document.querySelector('#clubSheet .bc-wrap');
     if(w&&(nx.tier!==me.tier||nx.card!==me.card||nx.no!==me.no||nx.joined!==me.joined)){ w.innerHTML=clubCardHTML(nx); const b=document.getElementById('clubTierB'); if(b) b.innerHTML=clubTierBadge(nx); clubFit(); }
@@ -4081,12 +4092,48 @@ function clubWelcome(me,already,reveal){
       <div class="club-wt">${reveal==='show'?`Bonjour${me.first?' '+clubEsc(me.first):''} !`:reveal?`Vous revoilà${me.first?', '+clubEsc(me.first):''} !`:already?'Vous êtes déjà membre ✓':`Bienvenue ${clubEsc(me.first)} !`}</div>
       <div class="club-ws">${already?'Voici votre carte.':'Vous avez rejoint le club'+(me.no?` · membre n° ${me.no}`:'')}</div>
       <div id="clubTierB">${clubTierBadge(me)}</div><div class="club-stage"><div class="bc-wrap${reveal==='show'?' bc-show':reveal?' bc-reveal':''}">${clubCardHTML(me)}</div></div>
-      <div class="club-wc">${me.used?'🥂 Votre coupe vous a déjà été offerte.<br><small>Merci, et à très vite au bar !</small>':`🥂 Votre coupe vous attend avec votre repas<br><b>jusqu'au ${clubLimit(me)}</b>.<small class="club-wc2">Champagne, ou un verre de vin, une bière, un soft.<br><b class="club-give">Donnez ce code en arrivant</b> : <span class="club-codepill">${clubEsc(me.code)}</span></small>`}</div>
+      <div class="club-wc">${me.used?'Votre coupe vous a déjà été offerte.<br><small>Merci, et à très vite au bar !</small>':`Votre coupe vous attend avec votre repas<br><b>jusqu'au ${clubLimit(me)}</b>.<small class="club-wc2">Champagne, ou un verre de vin, une bière, un soft.<br><b class="club-give">Donnez ce code en arrivant</b> : <span class="club-codepill">${clubEsc(me.code)}</span></small>`}</div>
+      <div id="clubTs">${clubTsHTML(me)}</div>
       <a class="club-cta club-a" href="book?${q}">Réserver ma table</a>
       <button type="button" class="club-later" onclick="clubLater()">Plus tard</button>
     </div>`);
   clubFonts(); requestAnimationFrame(clubFit); if(document.fonts) document.fonts.ready.then(clubFit); clubSyncCard();
   if(!already||(reveal&&reveal!=='show')) clubConfetti();
+}
+// ── Tirage des T-shirts : seuls les membres le voient (écran de bienvenue / « voir ma carte »). ──
+const CLUB_TS_SIZES=['XS','S','M','L','XL','XXL'];
+const CLUB_TS_DRAW='vendredi 23 octobre';
+function clubTsHTML(me){
+  if(!me||!me.code) return '';
+  if(me.tshirt) return `<div class="club-ts done"><span>Taille <b>${clubEsc(me.tshirt)}</b> · vous participez au tirage</span><button type="button" class="club-ts-ed" onclick="clubTsEdit()" aria-label="Modifier la taille" title="Modifier la taille"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div>`;
+  const first=!me.no||me.no<=100;
+  return `<div class="club-ts"><b class="t">${first?'Gagnez un T-shirt Drevici Oyster':'Votre taille de T-shirt'}</b>
+    <p>${first?`Membre parmi les 100 premiers : vous participez au tirage au sort du ${CLUB_TS_DRAW}. Indiquez simplement votre taille.`:'Pour nos prochains tirages réservés aux membres du club.'}</p>
+    <div class="club-ts-sz">${CLUB_TS_SIZES.map(z=>`<button type="button" onclick="clubTsSet('${z}',this)">${z}</button>`).join('')}</div>
+    <button type="button" class="club-ts-lk" onclick="clubTsRules()">Règlement du tirage</button></div>`;
+}
+function clubTsEdit(){ const me=clubMe(); if(!me) return; const ts=document.getElementById('clubTs'); if(ts) ts.innerHTML=clubTsHTML({...me,tshirt:null}); }
+async function clubTsSet(size,btn){
+  const me=clubMe(); if(!me||!me.code) return;
+  document.querySelectorAll('.club-ts-sz button').forEach(b=>b.disabled=true); if(btn) btn.textContent='…';
+  try{
+    const r=await fetch(CLUB_API+'/club/tshirt',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({slug:CLUB_SLUG,code:me.code,size})});
+    const d=await r.json(); if(!d.ok) throw new Error(d.error||'');
+    const nx={...me,tshirt:d.size}; try{ localStorage.setItem('club_'+CLUB_SLUG,JSON.stringify(nx)); }catch(_){}
+    const ts=document.getElementById('clubTs'); if(ts) ts.innerHTML=clubTsHTML(nx);
+  }catch(x){ document.querySelectorAll('.club-ts-sz button').forEach(b=>{ b.disabled=false; b.textContent=b.textContent==='…'?size:b.textContent; }); alert('Connexion impossible, réessayez.'); }
+}
+// Règlement du tirage (ouvert seulement depuis le bloc T-shirt, donc vu par les membres).
+function clubTsRules(){
+  const d=document.createElement('div'); d.className='club-prank-ov'; d.onclick=e=>{ if(e.target===d||e.target.closest('[data-x]')) d.remove(); };
+  d.innerHTML=`<div class="club-info"><button type="button" class="club-info-x" data-x="1" aria-label="Fermer">✕</button><h3>Tirage des T-shirts</h3>
+    <ul><li><b>Qui participe</b> : les 100 premiers membres du Club Drevici qui ont indiqué leur taille. Participation gratuite, sans obligation d'achat.</li>
+    <li><b>Les lots</b> : des T-shirts Drevici Oyster, dans la limite du stock et des tailles disponibles. Le tirage se fait parmi les participants dont la taille correspond à un T-shirt disponible.</li>
+    <li><b>Le tirage</b> : au sort, le ${CLUB_TS_DRAW} 2026. Les gagnants sont prévenus par email. Un T-shirt par personne.</li>
+    <li><b>Le retrait</b> : exclusivement au restaurant, Drevici Oyster Bar, 8 rue Biot, Paris 17e, en montrant votre carte de membre. Aucun envoi par la poste, ni échange, ni contrepartie en argent.</li>
+    <li><b>Votre taille</b> sert uniquement aux tirages réservés aux membres du club. Vous pouvez la modifier à tout moment depuis votre carte.</li></ul>
+    <button type="button" class="club-cta" data-x="1">J'ai compris</button></div>`;
+  document.body.appendChild(d);
 }
 function clubConfetti(){
   const c=document.getElementById('clubConf'); if(!c||matchMedia('(prefers-reduced-motion:reduce)').matches) return;
