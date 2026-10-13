@@ -563,6 +563,12 @@ function mount(){ const host=document.getElementById('fpHost'); if(!host) return
   if(!host.querySelector('.fp')){ host.innerHTML=`<div class="fp"><div class="fp-bar"><div class="fp-row1"><h3 class="fp-ttl">Plan de salle</h3><span class="fp-cnt"></span><div class="fp-seg"><button data-fm="svc" class="on">Service</button><button data-fm="edit">Modifier</button></div></div><div class="fp-row2"><div class="fp-tools"></div><div class="fp-hrs"></div><div class="fp-chips"></div></div></div><div class="fp-ed svc"><div class="fp-pal"></div><div class="fp-cv"><svg class="fp-svg"></svg></div><div class="fp-side"></div></div></div>`; }
   draw(); }
 let bound=false;
-window.FP={ sync(){ if(!bound){ bound=true; document.addEventListener('click',onClick); document.addEventListener('change',onChange); document.addEventListener('pointerdown',onDown); document.addEventListener('pointermove',onMove); document.addEventListener('pointerup',onUp); document.addEventListener('pointercancel',onUp); } mount(); },
+// Une seule fois sur le vrai site : on reprend le plan dessiné sur la préview (sa copie de test).
+let IMP=false;
+function importPreviewPlan(){ if(IMP==='wait') return true; if(IMP||typeof SLUG==='undefined'||SLUG!=='drevici'||typeof DATA==='undefined'||!DATA||DATA.fpFromPreview||typeof sb==='undefined') return false; IMP='wait';
+  sb.from('menu_data').select('data').eq('client_slug',SLUG+'-test').maybeSingle().then(({data})=>{ const fp=data&&data.data&&data.data.floorPlan;
+    if(fp&&fp.rooms){ DATA.floorPlan=JSON.parse(JSON.stringify(fp)); DATA.fpFromPreview=1; L=null; if(typeof touch==='function') touch(false); } else DATA.fpFromPreview=1;
+    IMP=true; mount(); }).catch(()=>{ IMP=true; mount(); }); return true; }
+window.FP={ sync(){ if(!bound){ bound=true; document.addEventListener('click',onClick); document.addEventListener('change',onChange); document.addEventListener('pointerdown',onDown); document.addEventListener('pointermove',onMove); document.addEventListener('pointerup',onUp); document.addEventListener('pointercancel',onUp); } if(importPreviewPlan()) return; mount(); },
   reset(){ L=null; } };
 })();
