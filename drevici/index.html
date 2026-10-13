@@ -572,6 +572,35 @@ body.hdr-light .hdr-sched .resto-badge-inline svg{color:rgba(20,35,70,.55)!impor
 .dish-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 /* Ordinateur : 3 plats par ligne, la carte s'élargit un peu (820 px) pour garder de grandes photos. */
 @media(min-width:641px){.dish-grid{grid-template-columns:repeat(3,1fr)}.tab-content .container:has(.dish-grid){max-width:820px}}
+/* Ordinateur : pas d'intertitre « Toutes les huîtres » au-dessus de la grille, la page reste plus nette. */
+@media(min-width:641px){.cat-list-hdr{display:none!important}}
+/* Fin de grille sur ordinateur : 1 plat seul = bandeau photo sur 2/3 + encart réserver ; 2 plats seuls = encart à côté. */
+.cta-tile{display:none}
+@media(min-width:641px){
+.dish-grid{grid-template-columns:repeat(6,1fr)}.dish-grid>*{grid-column:span 2}
+.dish-grid>.gc-o1{grid-column:span 4;position:relative;height:340px}
+.gc-o1 .gc-wrap{height:100%}.gc-o1 .gc-img{aspect-ratio:auto;height:100%}
+.gc-o1 .gc-body{position:absolute;left:0;right:0;bottom:0;padding:60px 24px 20px;background:linear-gradient(transparent,rgba(10,20,45,.85));pointer-events:none}
+.gc-o1 .gc-name{color:#fff!important;font-size:22px!important}.gc-o1 .gc-desc{color:rgba(255,255,255,.82);font-size:13px!important}.gc-o1 .gc-price{color:#e7c873;font-size:15px}
+.cta-tile{grid-column:span 2;background:var(--navy);border-radius:var(--r);color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:26px 22px;gap:10px;position:relative;overflow:hidden;min-height:260px}
+.cta-tile .cta-i{width:54px;height:54px;background:#fff;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center}
+.cta-tile b{white-space:nowrap;font-family:'Cormorant Garamond',serif;font-size:27px;line-height:1.1;font-weight:700;position:relative}
+.cta-tile small{font-size:13px;opacity:.8;font-family:'Open Sans',sans-serif;line-height:1.5;max-width:230px;position:relative}
+.cta-tile hr{width:34px;border:0;border-top:1px solid var(--gold,#C6A24A);margin:2px 0}
+.cta-tile a{margin-top:6px;background:#fff;color:var(--navy);border-radius:999px;padding:10px 20px;font:600 11px Jost,sans-serif;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;position:relative}
+.cta-tile a:hover{opacity:.9}
+.cta-w{position:absolute;left:-10px;right:-10px;bottom:-18px;height:70px;background:#fff;opacity:.12;-webkit-mask-size:100% 100%;mask-size:100% 100%}
+.cta-d{position:absolute;width:70px;height:70px;background:#fff;opacity:.08;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+}
+/* « À propos » aux couleurs du bandeau. */
+.intro-card{background:var(--navy)!important}.intro-card-label{color:var(--gold,#C6A24A)!important;font-size:12px!important}.intro-card-text{color:#fff!important;font-family:'Open Sans',sans-serif!important;font-size:14px!important}
+/* Mobile : « À propos » limité à 3 lignes ; au-delà, on touche et l'histoire complète s'ouvre dans une fenêtre bleue. */
+@media(max-width:640px){.intro-card-text{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.intro-card.ab-more{cursor:pointer}}
+.ab-ov{position:fixed;inset:0;z-index:99990;background:rgba(10,16,30,.55);display:flex;align-items:center;justify-content:center;padding:20px}
+.ab-box{position:relative;background:var(--navy);color:#fff;border-radius:var(--r);padding:22px 22px 24px;max-width:520px;width:100%;max-height:80vh;overflow:auto}
+.ab-box .intro-card-label{margin-bottom:10px}.ab-box .intro-card-text{display:block;-webkit-line-clamp:unset;overflow:visible;white-space:pre-line}
+.ab-x{position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:0;background:rgba(255,255,255,.12);color:#fff;font-size:14px;cursor:pointer}
+
 /* Cartes de plats en vue grille : plus de bordure — le fond blanc sur
    le beige de la page suffit à les détacher, et sans le liseré la
    grille respire beaucoup mieux. */
@@ -3333,6 +3362,47 @@ function catGenre(mot){
   if(/(age|ment|eau|ier|isme|oir|at|et|al|ail|ou|in|on)$/.test(sg)) return 'm';
   return 'm';   // le masculin est le defaut du francais, pas un choix esthetique
 }
+// « À propos » sur mobile : 3 lignes max ; si le texte est coupé, un toucher ouvre l'histoire complète.
+function introMark(){ document.querySelectorAll('.intro-card').forEach(c=>{ const t=c.querySelector('.intro-card-text'); if(t) c.classList.toggle('ab-more', t.scrollHeight>t.clientHeight+2); }); }
+new MutationObserver(()=>{ clearTimeout(window.__abT); window.__abT=setTimeout(introMark,80); }).observe(document.documentElement,{childList:true,subtree:true});
+addEventListener('resize',()=>introMark());
+document.addEventListener('click',e=>{
+  const c=e.target.closest&&e.target.closest('.intro-card.ab-more'); if(!c) return;
+  if(typeof editMode!=='undefined'&&editMode) return;
+  if(!matchMedia('(max-width:640px)').matches) return;
+  e.preventDefault(); e.stopPropagation();
+  const d=document.createElement('div'); d.className='ab-ov';
+  d.innerHTML=`<div class="ab-box" role="dialog" aria-modal="true"><button type="button" class="ab-x" aria-label="Fermer">✕</button><div class="intro-card-label">${c.querySelector('.intro-card-label')?.innerHTML||'À propos'}</div><div class="intro-card-text">${c.querySelector('.intro-card-text').innerHTML}</div></div>`;
+  d.addEventListener('click',ev=>{ if(ev.target===d||ev.target.closest('.ab-x')) d.remove(); });
+  document.body.appendChild(d);
+},true);
+// Encart « réserver » en fin de grille (ordinateur). Un message tiré au hasard à chaque visite.
+// Thème mer / huîtres (Drevici) avec ses icônes ; sinon messages neutres, sans icône.
+const CTA_SETS={
+  mer:[
+    {i:'oyster',t:'On vous attend<br>ce soir',s:'Réservez en ligne en 30 secondes.'},
+    {i:'anchor',t:'Tout est prêt',s:'Votre table vous attend, il ne manque plus que vous.',hr:1},
+    {i:'lancette',t:'Une envie<br>d’huîtres&nbsp;?',s:'Tout droit de Surzur. On les ouvre pour vous ce soir.'},
+    {i:'seashell',t:'Venez comme<br>vous êtes',s:'L’équipe vous accueille avec le sourire. Réservez en 30 secondes.'},
+    {i:'phare',t:'Ce soir,<br>cap sur Drevici',s:'Réservez votre table en ligne, on s’occupe du reste.',waves:1},
+    {i:'oyster',t:'Votre table<br>est prête',s:'On vous attend ce soir. Réservation en ligne en 30 secondes.',deco:1}
+  ],
+  neutre:[
+    {t:'On vous attend<br>ce soir',s:'Réservez en ligne en 30 secondes.'},
+    {t:'Tout est prêt',s:'Votre table vous attend, il ne manque plus que vous.',hr:1},
+    {t:'Venez comme<br>vous êtes',s:'L’équipe vous accueille avec le sourire. Réservez en 30 secondes.'},
+    {t:'Votre table<br>est prête',s:'On vous attend ce soir. Réservation en ligne en 30 secondes.'}
+  ]
+};
+let CTA_PICK=null;
+function ctaTileHtml(){
+  const theme=DATA.ctaTheme||(/oyster|huître|huitre/i.test(DATA.restaurantName||'')?'mer':'neutre');
+  const set=CTA_SETS[theme]||CTA_SETS.neutre;
+  if(CTA_PICK===null||CTA_PICK>=set.length) CTA_PICK=Math.floor(Math.random()*set.length);
+  const m=set[CTA_PICK], ic=n=>`<span class="cta-i" style="-webkit-mask-image:url(media/cta/${n}.svg);mask-image:url(media/cta/${n}.svg)"></span>`;
+  const deco=m.deco?['oyster:top:14px;left:12px;transform:rotate(-14deg)','seashell:top:20px;right:18px;width:50px;height:50px','lancette:bottom:22px;left:18px;width:54px;height:54px','anchor:bottom:18px;right:14px;transform:rotate(12deg)'].map(x=>{const [n,st]=x.split(/:(.*)/s);return `<span class="cta-d" style="${st};-webkit-mask-image:url(media/cta/${n}.svg);mask-image:url(media/cta/${n}.svg)"></span>`;}).join(''):'';
+  return `<div class="cta-tile">${deco}${m.i?ic(m.i):''}<b>${m.t}</b>${m.hr?'<hr>':''}<small>${m.s}</small><a href="book">Réserver</a>${m.waves?`<span class="cta-w" style="-webkit-mask-image:url(media/cta/waves.svg);mask-image:url(media/cta/waves.svg)"></span>`:''}</div>`;
+}
 // « Toutes les huitres », « tout terre et mer », « toute la carte ».
 function catListLabel(tab){
   // Surcharge par categorie, puis globale : le texte reste a la main du
@@ -5103,7 +5173,14 @@ function renderTabContent(tab,lbOffset){
         gridItems.push(`<div class="gc" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${ci}" data-di="${di}"${d.img?` data-lbidx="${idx}"`:''}><div class="gc-wrap">${d.img?`<img class="gc-img" src="${d.img}" alt="${dishAlt(d)}" loading="lazy">`:'<div style="aspect-ratio:1;background:#ece8e1"></div>'}</div><div class="gc-body">${gcBody}</div></div>`);
       });
     });
-    if(gridItems.length) html+=`<div class="dish-grid">${gridItems.join('')}</div>`;
+    if(gridItems.length){
+      // Ordinateur (3 par ligne) : s'il reste 1 ou 2 plats seuls sur la dernière ligne, on comble le trou
+      // avec un encart « réserver ». 1 plat seul : il passe en bandeau photo sur deux tiers.
+      const rest=gridItems.length%3;
+      if(rest===1) gridItems[gridItems.length-1]=gridItems[gridItems.length-1].replace('<div class="gc"','<div class="gc gc-o1"');
+      if(rest) gridItems.push(ctaTileHtml());
+      html+=`<div class="dish-grid">${gridItems.join('')}</div>`;
+    }
     if(bevsCardsHtml) html+=bevsCardsHtml;
     if(editMode){
       const _ti=DATA.tabs.indexOf(tab);
