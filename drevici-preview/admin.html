@@ -994,6 +994,9 @@ input.in.hr{width:76px;text-align:center;padding:8px 10px;font-size:15px;font-we
 .lgsub .hdro{background:#fff}.lgsub .favt{background:#fff}.lgsub .favp{margin-top:0}.hdrpk.lgsub{margin-top:0}
 .pbtn{display:inline-flex;align-items:center;gap:8px;border:0;background:#fff;border-radius:999px;padding:10px 16px;font:600 14px Inter,system-ui,sans-serif;color:var(--ink);cursor:pointer}.pbtn svg{width:17px;height:17px}
 .ii{display:inline-grid;place-items:center;width:22px;height:22px;border:0;border-radius:50%;background:#fff;padding:0;font:italic 700 12px/1 Georgia,serif;color:var(--mut);cursor:pointer;flex:none}
+.tt{position:fixed;z-index:10000;max-width:260px;background:#fff;color:#16181d;font:500 13px/1.45 Inter,system-ui,sans-serif;border-radius:12px;padding:10px 12px;box-shadow:0 10px 28px -8px rgba(16,24,40,.28),0 2px 6px rgba(16,24,40,.08);pointer-events:none}
+.tt:after{content:"";position:absolute;width:10px;height:10px;background:#fff;transform:rotate(45deg);top:-5px;left:var(--ax);box-shadow:-2px -2px 3px rgba(16,24,40,.05)}
+.tt.up:after{top:auto;bottom:-5px;box-shadow:2px 2px 3px rgba(16,24,40,.05)}
 .tipbox{max-width:360px;text-align:left}.tipbox p{color:var(--ink);font-size:14.5px;line-height:1.5;margin:6px 28px 16px 0}
 .hph-ov{position:fixed;inset:0;z-index:9999;background:rgba(16,20,30,.55);display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto}
 .hph-box{position:relative;background:var(--card);border-radius:22px;padding:22px 26px 24px;text-align:center;max-width:100%}
@@ -1711,7 +1714,21 @@ function logoField(){ const u=DATA.restaurantLogo||'';
   return logo+fav+hdrPick(u); }
 // Petit « i » : un clic ouvre l'explication (au lieu d'un long texte sous chaque réglage).
 const tipI=t=>`<button type="button" class="ii" data-act="tipShow" data-t="${esc(t)}" title="En savoir plus" aria-label="En savoir plus">i</button>`;
-function tipShow(t){ const d=document.createElement('div'); d.className='hph-ov'; d.innerHTML=`<div class="hph-box tipbox"><button type="button" class="imod-x" data-x="1" aria-label="Fermer">✕</button><p>${esc(t)}</p><button type="button" class="btn" data-x="1">J'ai compris</button></div>`; d.addEventListener('click',e=>{ if(e.target===d||e.target.closest('[data-x]')) d.remove(); }); document.body.appendChild(d); }
+// Tooltip (carte blanche, flèche vers le « i ») : survol sur ordinateur, toucher sur téléphone ; un clic ailleurs le ferme.
+function tipHide(){ document.querySelectorAll('.tt').forEach(x=>x.remove()); }
+function tipShow(t,el){
+  if(!el) return; const open=document.querySelector('.tt'); if(open&&open._for===el){ tipHide(); return; } tipHide();
+  const d=document.createElement('div'); d.className='tt'; d.textContent=t; d._for=el; d.setAttribute('role','tooltip'); document.body.appendChild(d);
+  const r=el.getBoundingClientRect(), w=d.offsetWidth, h=d.offsetHeight, cx=r.left+r.width/2, vw=innerWidth;
+  const L=Math.max(8,Math.min(cx-w/2,vw-w-8)), below=r.bottom+10+h<innerHeight-8;
+  d.style.left=L+'px'; d.style.top=(below?r.bottom+10:r.top-h-10)+'px'; d.style.setProperty('--ax',(cx-L-5)+'px'); d.classList.toggle('up',!below);
+}
+document.addEventListener('click',e=>{ if(!e.target.closest('.ii,.tt')) tipHide(); },true);
+addEventListener('scroll',tipHide,true); addEventListener('resize',tipHide);
+if(matchMedia('(hover:hover)').matches){
+  document.addEventListener('mouseover',e=>{ const b=e.target.closest&&e.target.closest('.ii'); if(b&&b.dataset.t){ const o=document.querySelector('.tt'); if(!o||o._for!==b) tipShow(b.dataset.t,b); } });
+  document.addEventListener('mouseout',e=>{ const b=e.target.closest&&e.target.closest('.ii'); if(b&&!(e.relatedTarget&&b.contains(e.relatedTarget))) tipHide(); });
+}
 // Bandeau du menu : logo ou nom écrit, avec l'aperçu du vrai bandeau (même couleur, même police).
 function hdrPick(u){
   const name=DATA.restaurantName||'Mon restaurant', mode=DATA.headerMode==='name'?'name':'logo', bc=(DATA.brandColors||{}).primary||'#10285e';
@@ -2256,7 +2273,7 @@ document.addEventListener('click',async e=>{
     case 'hcType': DATA.homeCover.mediaType=d.v; touch(true); break;
     case 'introFlag': DATA.intro.active=!DATA.intro.active; touch(true); break;
     case 'viewSet': DATA.defaultView=d.v; touch(true); break;
-    case 'tipShow': tipShow(d.t); break;
+    case 'tipShow': tipShow(d.t,el); break;
     case 'hdrPhones': openHdrPhones(); break;
     case 'hdrMode': DATA.headerMode=d.v==='name'?'name':'logo'; touch(true); break;
     case 'siteDel': { const hc=DATA.homeCover, sl=d.slot; if(/^s\d$/.test(sl)) hc.slideshow[+sl[1]].image=''; else hc[sl]=''; touch(true); break; }
