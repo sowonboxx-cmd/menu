@@ -1808,9 +1808,17 @@ const tbEur=n=>Math.round(n).toLocaleString('fr-FR')+' €';
 const tbHM=s=>{ const [h,m]=String(s||'').split(':'); return (+h)+' h'+(m&&m!=='00'?' '+m:''); };
 function tbSvcs(){ return services(); }
 function tbSvcOf(lbl){ const sv=tbSvcs(); return sv.find(s=>s.label===lbl)||sv[sv.length-1]; }
+// Ouvert ce jour-là, pour ce service ? D'après « Horaires » (Mon établissement) : jour actif et
+// au moins une plage d'ouverture qui croise le service. Sans horaires saisis : ouvert.
+function tbOpen(d,sv){ const sc=DATA&&DATA.schedule; if(!Array.isArray(sc)||sc.length<7) return true;
+  const day=sc[(new Date(d+'T12:00:00').getDay()+6)%7]; if(!day) return true; if(day.active===false) return false;
+  const h=t=>{ const [a,b]=String(t||'0:0').split(':'); return +a+(+b||0)/60; }, s0=h(sv.start), s1=h(sv.end)<=s0?h(sv.end)+24:h(sv.end);
+  const pl=(day.services||[]).filter(p=>p&&p.open!=null&&p.open!=='').map(p=>{ const o=+p.open, c=(p.close==null||p.close==='')?o+6:+p.close; return [o,c<=o?c+24:c]; });
+  if(!pl.length){ if(day.open==null) return true; const o=+day.open, c=day.close==null?o+6:+day.close; pl.push([o,c<=o?c+24:c]); }
+  return pl.some(([o,c])=>o<s1&&c>s0); }
 // Remplissage d'un service : couverts, places, tables vides, réservations (dont Table Boost).
 function tbStat(d,lbl){
-  const sv=tbSvcOf(lbl), blocked=BLOCKED.some(b=>b.date_iso===d);
+  const sv=tbSvcOf(lbl), blocked=BLOCKED.some(b=>b.date_iso===d)||!tbOpen(d,sv);
   const rs=MRESA.filter(r=>(r.status||'confirmed')==='confirmed'&&r.date_iso===d&&(!sv||((r.slot||'')>=sv.start&&(r.slot||'')<sv.end)));
   const cap=capacity(), cov=rs.reduce((a,r)=>a+(+r.covers||0),0), used=new Set();
   rs.forEach(r=>liveTables(r).forEach(t=>used.add(String(t.id))));
@@ -1858,11 +1866,11 @@ function pageResaBoost(){
     grid=`<div class="tb-cal">${cells}</div><div class="tb-note">Point bleu : une offre en cours ce jour-là · cadre noir : aujourd’hui · cadre bleu : jour choisi</div>`;
   } else grid=`<div class="tb-days">${days.map(dayCard).join('')}</div>`;
   const svSeg=`<div class="tb-seg">${sv.map(s=>`<button type="button" class="${s.label===UI.tbs?'on':''}" data-act="tbSvc" data-v="${esc(s.label)}">${esc(s.label)}</button>`).join('')}</div>`;
-  const dash=`<div class="tb-dash"><div class="tb-kp main ${S.lv}"><span>${esc(short(S.d))} · ${esc(S.sv.label.toLowerCase())}</span><b>${S.blocked?'Fermé':S.pct+' %'}</b><em>${S.blocked?'jour fermé':'rempli · '+S.lab.toLowerCase()}</em></div>
+  const dash=`<div class="tb-dash"><div class="tb-kp main ${S.lv}"><span>${esc(short(S.d))} · ${esc(S.sv.label.toLowerCase())}</span><b>${S.blocked?'Fermé':S.pct+' %'}</b><em>${S.blocked?'pas d’offre possible':'rempli · '+S.lab.toLowerCase()}</em></div>
     <div class="tb-kp"><span>Places libres</span><b>${S.free}<small> / ${S.cap}</small></b><em>${S.cov} couvert${S.cov>1?'s':''} réservé${S.cov>1?'s':''}</em></div>
     <div class="tb-kp"><span>Tables vides</span><b>${S.tv}<small> / ${S.tt}</small></b><a href="#/resa/esp">Voir la salle</a></div>
     <div class="tb-kp"><span>Réservations</span><b>${S.n}</b><em>dont ${S.nb} via Table Boost</em></div></div>
-    <div class="tb-cta"><div><b>${S.blocked?'Ce jour est fermé':S.lv==='lo'?`${esc(short(S.d))} ${esc(S.sv.label.toLowerCase())} est creux : lancez une offre`:`Remplir ${esc(short(S.d).toLowerCase())} ${esc(S.sv.label.toLowerCase())}`}</b>${S.blocked?'<small>Choisissez un autre jour</small>':'<small>Prête à poster en 2 minutes</small>'}</div>${S.blocked?'':`<button type="button" class="tb-btn" data-act="tbNew">Lancer une offre</button>`}</div>`;
+    <div class="tb-cta"><div><b>${S.blocked?`Le restaurant est fermé ${esc(short(S.d).toLowerCase())} ${esc(S.sv.label.toLowerCase())}`:S.lv==='lo'?`${esc(short(S.d))} ${esc(S.sv.label.toLowerCase())} est creux : lancez une offre`:`Remplir ${esc(short(S.d).toLowerCase())} ${esc(S.sv.label.toLowerCase())}`}</b>${S.blocked?'<small>Choisissez un autre jour</small>':'<small>Prête à poster en 2 minutes</small>'}</div>${S.blocked?'':`<button type="button" class="tb-btn" data-act="tbNew">Lancer une offre</button>`}</div>`;
   const g=tbGains(), tk=tbTicket();
   const gain=`<section class="tb-gain"><div class="tb-gh"><h3>Ce que Table Boost vous a rapporté</h3><label class="tb-tk">Ticket moyen <input type="number" min="0" step="1" value="${tk||''}" placeholder="—" data-tbtk="1"> €</label></div>
     <div class="tb-gl">Cette semaine</div><div class="tb-eq"><b>${g.wn}</b> résa${g.wn>1?'s':''} · <b>${g.wc}</b> couvert${g.wc>1?'s':''} × <b>${tk?tbEur(tk):'—'}</b> = <b class="tb-tot">${tk?tbEur(g.wc*tk):'—'}</b></div>
@@ -1967,7 +1975,8 @@ async function tbAct(a,d){ const W=UI.tbw;
     case 'tbBack': W.step=Math.max(1,W.step-1); return render();
     case 'tbPick': if(d.k==='plat'){ const x=tbDishes().find(o=>o.id===d.id); if(!x) return; Object.assign(W,{kind:'plat',dish:x.id,title:x.nm+' à '+Math.round(x.price*0.85)+' € au lieu de '+x.price+' €',detail:x.desc.slice(0,80),emoji:'',photo:x.img,min:1}); }
       else Object.assign(W,{kind:'rapide',dish:'',title:d.t,detail:d.dt,emoji:d.e||'',min:+d.mn||1}); return render();
-    case 'tbNext': if(W.step===1&&!W.title.trim()){ toast('Écrivez ou choisissez une offre'); return; } if(W.step===2&&new Date(W.deadline)<new Date()){ toast('La date limite est déjà passée'); return; } W.step++; return render();
+    case 'tbNext': if(W.step===1&&!W.title.trim()){ toast('Écrivez ou choisissez une offre'); return; }
+      if(W.step===2&&tbStat(W.date,W.sv).blocked){ toast('Le restaurant est fermé ce '+new Date(W.date+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long'})+' ('+W.sv.toLowerCase()+')'); return; } if(W.step===2&&new Date(W.deadline)<new Date()){ toast('La date limite est déjà passée'); return; } W.step++; return render();
     case 'tbPhoto': W.photo=d.v; return render();
     case 'tbSave': return tbSave();
     case 'tbOpen': { const o=BOOSTS.find(x=>String(x.id)===String(d.id)); if(!o) return; const dl=new Date(o.deadline), pad=n=>String(n).padStart(2,'0');
