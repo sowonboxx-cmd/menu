@@ -135,13 +135,13 @@ function autoPos(row){ const n=+row.seats||2, model=n<=2?'car':n<=4?'rect':'lon'
   const free=(x,y)=>boxes.every(b=>x+md.w+30<b.x||x>b.x+b.w+30||y+md.h+30<b.y||y>b.y+b.h+30);
   for(let y=room.y+60;y+md.h<room.y+room.h-20;y+=24) for(let x=room.x+30;x+md.w<room.x+room.w-20;x+=24) if(free(x,y)) return {x:snap(x),y:snap(y),model};
   return {x:snap(room.x+room.w*.5),y:snap(room.y+room.h*.45),model}; }
-function seatSides(t){ const n=t.seats, hz=t.w>=t.h; if(t.side==='one'){ const k=['t','r','b','l'][t.r4||0], o={t:0,b:0,l:0,r:0}; o[(hz&&(k==='l'||k==='r'))?'t':(!hz&&(k==='t'||k==='b'))?'r':k]=n; return o; } const a=Math.ceil(n/2), b=Math.floor(n/2); return hz?{t:a,b,l:0,r:0}:{t:0,b:0,l:a,r:b}; }
+function seatSides(t){ const n=t.seats, hz=t.w>t.h||(t.w===t.h&&!t.rot); if(t.side==='one'){ const k=['t','r','b','l'][t.r4||0], o={t:0,b:0,l:0,r:0}; o[(hz&&(k==='l'||k==='r'))?'t':(!hz&&(k==='t'||k==='b'))?'r':k]=n; return o; } const a=Math.ceil(n/2), b=Math.floor(n/2); return hz?{t:a,b,l:0,r:0}:{t:0,b:0,l:a,r:b}; }
 function chairs(t){ const o=[], cw=20, ch=12, g=5; if(t.kind&&t.kind!=='round') return o;
   if(t.kind==='round'){ const n=t.seats, cx=t.x+t.w/2, cy=t.y+t.h/2, Rr=t.w/2+g+7; for(let i=0;i<n;i++){ const a=-Math.PI/2+i*2*Math.PI/n; o.push({x:cx+Rr*Math.cos(a)-7,y:cy+Rr*Math.sin(a)-7,w:14,h:14,rx:7}); } return o; }
   const s=seatSides(t), side=(n,hz,f)=>{ for(let i=0;i<n;i++){ const Ln=hz?t.w:t.h, p=(hz?t.x:t.y)+Ln*(i+.5)/n; o.push(hz?{x:p-cw/2,y:f,w:cw,h:ch,rx:5}:{x:f,y:p-cw/2,w:ch,h:cw,rx:5}); } };
   side(s.t,1,t.y-g-ch); side(s.b,1,t.y+t.h+g); side(s.l,0,t.x-g-ch); side(s.r,0,t.x+t.w+g); return o; }
 function seams(t){ let s=''; const u=t.units||1; for(let i=1;i<u;i++){ if(t.w>=t.h){ const x=t.x+t.w*i/u; s+=`<line x1="${x}" y1="${t.y}" x2="${x}" y2="${t.y+t.h}" stroke="${COL.floor}" stroke-width="3"/>`; } else { const y=t.y+t.h*i/u; s+=`<line x1="${t.x}" y1="${y}" x2="${t.x+t.w}" y2="${y}" stroke="${COL.floor}" stroke-width="3"/>`; } } return s; }
-const bbox=t=>isDeco(t)?{x:t.x-t.r,y:t.y-t.r,w:t.r*2,h:t.r*2}:{x:t.x,y:t.y,w:t.w,h:t.h};
+const bbox=t=>t.kind==='stairs'?{x:t.x,y:t.y,w:(t.rot%2)?t.h:t.w,h:(t.rot%2)?t.w:t.h}:isDeco(t)?{x:t.x-t.r,y:t.y-t.r,w:t.r*2,h:t.r*2}:{x:t.x,y:t.y,w:t.w,h:t.h};
 const roomOf=(x,y)=>L.rooms.slice().reverse().find(r=>x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h);
 function seg(o){ const r=L.rooms.find(x=>x.id===o.room); if(!r) return null; const Ln=(o.side==='t'||o.side==='b')?r.w:r.h; o.pos=Math.max(8,Math.min(Ln-o.len-8,o.pos));
   if(o.side==='t') return {x:r.x+o.pos,y:r.y,hz:1,r}; if(o.side==='b') return {x:r.x+o.pos,y:r.y+r.h,hz:1,r}; if(o.side==='l') return {x:r.x,y:r.y+o.pos,hz:0,r}; return {x:r.x+r.w,y:r.y+o.pos,hz:0,r}; }
@@ -173,10 +173,20 @@ function draw(){ const host=document.getElementById('fpHost'); if(!host||!L) ret
   L.opens.forEach(o=>{ const g=seg(o); if(!g) return; const on=ed&&isSel('open',o.id); let q='';
     q+=g.hz?R(g.x,g.y-5,o.len,10,0,'fill="#fff"'):R(g.x-5,g.y,10,o.len,0,'fill="#fff"');
     if(o.type==='win') q+=g.hz?`<line x1="${g.x}" y1="${g.y}" x2="${g.x+o.len}" y2="${g.y}" stroke="${COL.wall}" stroke-width="1.5"/>`:`<line x1="${g.x}" y1="${g.y}" x2="${g.x}" y2="${g.y+o.len}" stroke="${COL.wall}" stroke-width="1.5"/>`;
-    else { const Ln=o.len; let d; if(o.side==='r') d=`M${g.x} ${g.y} L${g.x-Ln} ${g.y} A${Ln} ${Ln} 0 0 0 ${g.x} ${g.y+Ln}Z`; else if(o.side==='l') d=`M${g.x} ${g.y} L${g.x+Ln} ${g.y} A${Ln} ${Ln} 0 0 1 ${g.x} ${g.y+Ln}Z`; else if(o.side==='t') d=`M${g.x} ${g.y} L${g.x} ${g.y+Ln} A${Ln} ${Ln} 0 0 0 ${g.x+Ln} ${g.y}Z`; else d=`M${g.x} ${g.y} L${g.x} ${g.y-Ln} A${Ln} ${Ln} 0 0 1 ${g.x+Ln} ${g.y}Z`; q=`<path d="${d}" fill="${COL.ter}"/>`+q; }
+    else { const nrm={t:[0,1],b:[0,-1],l:[1,0],r:[-1,0]}[o.side], sg=o.out?-1:1, n=[nrm[0]*sg,nrm[1]*sg], a=g.hz?[1,0]:[0,1];
+      const leaf=(Hx,Hy,Ex,Ey,Ln)=>{ const Px=Hx+n[0]*Ln, Py=Hy+n[1]*Ln, c=(Px-Hx)*(Ey-Hy)-(Py-Hy)*(Ex-Hx); return `<path d="M${Hx} ${Hy} L${Px} ${Py} A${Ln} ${Ln} 0 0 ${c>0?1:0} ${Ex} ${Ey}Z" fill="${COL.ter}" stroke="${COL.wall}" stroke-width="1" stroke-opacity=".35"/>`; };
+      const Sx=g.x, Sy=g.y, Fx=g.x+a[0]*o.len, Fy=g.y+a[1]*o.len;
+      let d=''; if(o.type==='pf'){ const Mx=(Sx+Fx)/2, My=(Sy+Fy)/2, h=o.len/2; d=leaf(Sx,Sy,Mx,My,h)+leaf(Fx,Fy,Mx,My,h); q+=`<line x1="${Sx}" y1="${Sy}" x2="${Fx}" y2="${Fy}" stroke="${COL.wall}" stroke-width="1.5"/>`; }
+      else d=o.flip?leaf(Fx,Fy,Sx,Sy,o.len):leaf(Sx,Sy,Fx,Fy,o.len);
+      q=d+q; }
     s+=`<g data-fk="open" data-id="${o.id}" style="cursor:${ed?'grab':'default'}">${g.hz?R(g.x,g.y-12,o.len,24,0,'fill="transparent"'):R(g.x-12,g.y,24,o.len,0,'fill="transparent"')}${q}</g>`;
     if(on){ top+=g.hz?R(g.x-4,g.y-10,o.len+8,20,6,`fill="none" stroke="${COL.sel}" stroke-width="2" stroke-dasharray="4 4" pointer-events="none"`):R(g.x-10,g.y-4,20,o.len+8,6,`fill="none" stroke="${COL.sel}" stroke-width="2" stroke-dasharray="4 4" pointer-events="none"`); top+=handle(g.hz?g.x+o.len:g.x,g.hz?g.y:g.y+o.len,'open',o.id,'end'); } });
-  L.deco.forEach(t=>{ const on=ed&&isSel('deco',t.id); const g=t.kind==='plant'?C(t.x,t.y,t.r,`fill="${COL.plant}"`):C(t.x,t.y,t.r,`fill="${COL.paras}"`)+C(t.x,t.y,5,`fill="${COL.wall}"`);
+  L.deco.forEach(t=>{ const on=ed&&isSel('deco',t.id);
+    if(t.kind==='stairs'){ const b=bbox(t), vt=b.h>b.w, n=Math.max(4,Math.round((vt?b.h:b.w)/14)); let g=R(b.x,b.y,b.w,b.h,4,`fill="#e9e1d2" stroke="${COL.wall}" stroke-width="2"`);
+      for(let i=1;i<n;i++){ const f=i/n; g+=vt?`<line x1="${b.x}" y1="${b.y+b.h*f}" x2="${b.x+b.w}" y2="${b.y+b.h*f}" stroke="${COL.wall}" stroke-width="1.2" opacity=".55"/>`:`<line x1="${b.x+b.w*f}" y1="${b.y}" x2="${b.x+b.w*f}" y2="${b.y+b.h}" stroke="${COL.wall}" stroke-width="1.2" opacity=".55"/>`; }
+      const cx=b.x+b.w/2, cy=b.y+b.h/2, ang=[0,90,180,270][t.rot||0]; g+=`<g transform="rotate(${ang} ${cx} ${cy})"><line x1="${cx-22}" y1="${cy}" x2="${cx+18}" y2="${cy}" stroke="${COL.wall}" stroke-width="2.5"/><path d="M${cx+22} ${cy} l-10 -7 v14z" fill="${COL.wall}"/></g>`;
+      s+=`<g data-fk="deco" data-id="${t.id}" style="cursor:${ed?'grab':'default'}">${g}</g>`; if(on) top+=R(b.x-8,b.y-8,b.w+16,b.h+16,10,`fill="none" stroke="${COL.sel}" stroke-width="2" stroke-dasharray="5 4" pointer-events="none"`); return; }
+    const g=t.kind==='plant'?C(t.x,t.y,t.r,`fill="${COL.plant}"`):C(t.x,t.y,t.r,`fill="${COL.paras}"`)+C(t.x,t.y,5,`fill="${COL.wall}"`);
     s+=`<g data-fk="deco" data-id="${t.id}" style="cursor:${ed?'grab':'default'}">${g}</g>`; if(on){ top+=C(t.x,t.y,t.r+7,`fill="none" stroke="${COL.sel}" stroke-width="2" stroke-dasharray="5 4" pointer-events="none"`)+handle(t.x+t.r*.71+5,t.y+t.r*.71+5,'deco',t.id,'se'); } });
   its.forEach(t=>{ const r=res[t.id], k=r?r.k:'l', on=isSel('item',t.id), cc=ed?COL.chair:ST[k]; let g='';
     if(t.kind==='chair') g=R(t.x,t.y,t.w,t.h,5,`fill="${ed?(on?COL.sel:COL.chair):ST[k]}"`);
@@ -203,7 +213,7 @@ function draw(){ const host=document.getElementById('fpHost'); if(!host||!L) ret
   if(!ed){ const v=Object.values(res), occ=v.reduce((a,r)=>a+(r.k==='a'?r.cov:0),0), rv=v.reduce((a,r)=>a+(r.k==='r'?r.cov:0),0); chips=`<span class="fp-chip">À table <b>${occ}</b></span><span class="fp-chip">Attendus <b>${rv}</b></span><span class="fp-chip">Libres <b>${Math.max(0,cap-occ-rv)}</b> places</span>`; }
   const nTb=its.filter(t=>t.kind!=='chair'&&t.kind!=='stool').length, nSp=spacesNow().length;
   host.querySelector('.fp-cnt').innerHTML=`<div><b>${nSp}</b><span>espace${nSp>1?'s':''}</span></div><div><b>${nTb}</b><span>table${nTb>1?'s':''}</span></div><div><b>${cap}</b><span>places</span></div>`;
-  host.querySelector('.fp-tools').innerHTML=ed?[['table','Table',1],['bar','Bar'],['door','Porte'],['win','Fenêtre'],['room','Pièce']].map(([k,l,pr])=>`<button class="fp-tool${pr?' pr':''}" data-ftool="${k}"><i>+</i>${l}</button>`).join(''):'';
+  host.querySelector('.fp-tools').innerHTML=ed?[['table','Table',1],['bar','Bar'],['door','Porte'],['pf','Porte-fenêtre'],['win','Fenêtre'],['stairs','Escalier'],['room','Pièce']].map(([k,l,pr])=>`<button class="fp-tool${pr?' pr':''}" data-ftool="${k}"><i>+</i>${l}</button>`).join(''):'';
   if(ed) chips='<span class="fp-hint">Glissez pour déplacer · coin pour agrandir</span>';
   host.querySelector('.fp-chips').innerHTML=chips;
   const sec=host.closest('.fpsec'); if(sec) sec.classList.toggle('fp-editing',ed);
@@ -272,8 +282,8 @@ function bubHtml(its){ if(!SEL||MODE!=='edit'||drag) return '';
     const r2=(nb.length||canDiv)?`<div class="fp-r2">${nb.map(o=>`<button class="fp-b" data-fj="${o.id}">Coller avec ${H(o.name||'la table')}</button>`).join('')}${canDiv?`<button class="fp-b" data-fx="div">Diviser en ${(L.pos[t.id].units||1)>1?(L.pos[t.id].units):2} tables</button>`:''}</div>`:'';
     return `<div class="fp-r1"><input value="${H(t.name||'')}" placeholder="Nom" data-ff="name">${solo?'':`<span class="stp"><button data-fx="n-" aria-label="Une place de moins">−</button><em>${t.seats} ${bar?'tabouret':'place'}${t.seats>1?'s':''}</em><button data-fx="n+" aria-label="Une place de plus">+</button></span>`}<span class="sep"></span>${t.kind==='round'?'':'<button class="fp-b" data-fx="rot">⟳ Tourner</button>'}${bar||solo?'':`<button class="fp-b" data-fx="sz">⤡ Taille ${Math.round((L.pos[t.id].sc||1)*100)} %</button>`}<span class="sep"></span><button class="fp-b red" data-fx="del">Supprimer</button></div>${r2}`; }
   if(SEL.k==='room'){ const r=L.rooms.find(x=>x.id===SEL.id); if(!r) return ''; return `<input value="${H(r.name)}" data-ff="rname"><button class="fp-b" data-fx="rkind">${r.kind==='terrace'?'Passer en intérieur':'Passer en extérieur'}</button>${L.rooms.length>1?'<span class="sep"></span><button class="fp-b red" data-fx="del">Supprimer</button>':''}`; }
-  if(SEL.k==='open'){ const o=L.opens.find(x=>x.id===SEL.id); if(!o) return ''; return `<b>${o.type==='win'?'Fenêtre':'Porte'}</b><button class="fp-b" data-fx="otype">Changer en ${o.type==='win'?'porte':'fenêtre'}</button><span class="sep"></span><button class="fp-b red" data-fx="del">Supprimer</button>`; }
-  if(SEL.k==='deco') return `<button class="fp-b red" data-fx="del">Supprimer</button>`;
+  if(SEL.k==='open'){ const o=L.opens.find(x=>x.id===SEL.id); if(!o) return ''; const nm={win:'Fenêtre',door:'Porte',pf:'Porte-fenêtre'}; return `<b>${nm[o.type]}</b>${o.type==='door'?'<button class="fp-b" data-fx="oflip">⇄ Ouvrir de l\'autre côté</button>':''}${o.type!=='win'?`<button class="fp-b" data-fx="oout">${o.out?'Ouvrir vers l\'intérieur':'Ouvrir vers l\'extérieur'}</button>`:''}<button class="fp-b" data-fx="otype">→ ${nm[o.type==='win'?'door':o.type==='door'?'pf':'win']}</button><span class="sep"></span><button class="fp-b red" data-fx="del">Supprimer</button>`; }
+  if(SEL.k==='deco'){ const t=L.deco.find(x=>x.id===SEL.id); return `${t&&t.kind==='stairs'?'<b>Escalier</b><button class="fp-b" data-fx="rot">⟳ Tourner</button><span class="sep"></span>':''}<button class="fp-b red" data-fx="del">Supprimer</button>`; }
   return ''; }
 function overlay(its){ const cv=document.querySelector('#fpHost .fp-cv'), svg=cv&&cv.querySelector('svg.fp-svg'); if(!cv||!svg) return;
   cv.querySelectorAll('.fp-pop,.fp-bub').forEach(x=>x.remove());
@@ -346,15 +356,16 @@ function onClick(e){ const host=document.getElementById('fpHost'); if(!host||!ho
   if(d.fx) return sideAct(d.fx); }
 function addThing(k){ const s0=L.rooms.find(r=>r.kind==='room')||L.rooms[0], id='x'+Date.now().toString(36)+(NID++);
   if(k==='room'){ L.rooms.push({id,name:'Nouvelle pièce',kind:'room',x:VB.x+VB.w-320,y:VB.y+40,w:300,h:240}); SEL={k:'room',id}; saveLayout(); return draw(); }
-  if(k==='win'||k==='door'){ L.opens.push({id,type:k,room:s0.id,side:'t',pos:120,len:k==='win'?90:72}); SEL={k:'open',id}; saveLayout(); return draw(); }
+  if(k==='win'||k==='door'||k==='pf'){ L.opens.push({id,type:k,room:s0.id,side:'t',pos:120,len:k==='win'?90:k==='pf'?120:72}); SEL={k:'open',id}; saveLayout(); return draw(); }
+  if(k==='stairs'){ const fp=freePos('rect',(spacesNow()[0]||{}).id,1.2); L.deco.push({id,kind:'stairs',x:fp.x,y:fp.y,w:120,h:70,rot:0}); SEL={k:'deco',id}; saveLayout(); return draw(); }
   if(k==='p'||k==='u'){ L.deco.push({id,kind:k==='p'?'plant':'parasol',x:snap(s0.x+s0.w*.7),y:snap(s0.y+s0.h*.7),r:k==='p'?16:50}); SEL={k:'deco',id}; saveLayout(); return draw(); }
   if(k==='c') return addTable('chair'); if(k==='s') return addTable('stool'); if(k==='bar') return addTable('bar');
   if(k.startsWith('m:')){ let mid=k.slice(2); if(mid==='new'){ mid='m'+Date.now().toString(36); L.models.push({id:mid,name:'Modèle '+(L.models.length+1),w:100,h:56,seats:4}); } return addTable(null,mid); } }
 async function setSeats(t,n){ const row=tablesNow().find(x=>x.id===t.id); if(!row) return; row.seats=n; draw(); clearTimeout(seatT); seatT=setTimeout(()=>db(sb.from('restaurant_tables').update({seats:n}).eq('id',t.id)).then(reload),600); }
 async function sideAct(x){ const its=items(); const D=6;
   if(SEL&&SEL.k==='room'){ const r=L.rooms.find(o=>o.id===SEL.id); if(x==='rw+') r.w+=30; if(x==='rw-') r.w=Math.max(120,r.w-30); if(x==='rh+') r.h+=30; if(x==='rh-') r.h=Math.max(120,r.h-30); if(x==='rkind') r.kind=r.kind==='terrace'?'room':'terrace'; if(x==='del'){ L.rooms=L.rooms.filter(o=>o!==r); L.opens=L.opens.filter(o=>o.room!==r.id); SEL=null; } saveLayout(); return draw(); }
-  if(SEL&&SEL.k==='open'){ const o=L.opens.find(q=>q.id===SEL.id); if(x==='ol+') o.len+=12; if(x==='ol-') o.len=Math.max(30,o.len-12); if(x==='otype') o.type=o.type==='win'?'door':'win'; if(x==='del'){ L.opens=L.opens.filter(q=>q!==o); SEL=null; } saveLayout(); return draw(); }
-  if(SEL&&SEL.k==='deco'){ const t=L.deco.find(q=>q.id===SEL.id); if(x==='dr+') t.r+=3; if(x==='dr-') t.r=Math.max(8,t.r-3); if(x==='del'){ L.deco=L.deco.filter(q=>q!==t); SEL=null; } saveLayout(); return draw(); }
+  if(SEL&&SEL.k==='open'){ const o=L.opens.find(q=>q.id===SEL.id); if(x==='ol+') o.len+=12; if(x==='ol-') o.len=Math.max(30,o.len-12); if(x==='otype') o.type=o.type==='win'?'door':o.type==='door'?'pf':'win'; if(x==='oflip') o.flip=!o.flip; if(x==='oout') o.out=!o.out; if(x==='del'){ L.opens=L.opens.filter(q=>q!==o); SEL=null; } saveLayout(); return draw(); }
+  if(SEL&&SEL.k==='deco'){ const t=L.deco.find(q=>q.id===SEL.id); if(x==='rot'&&t.kind==='stairs'){ const b0=bbox(t); t.rot=((t.rot||0)+1)%4; const b1=bbox(t); t.x=snap(t.x+(b0.w-b1.w)/2); t.y=snap(t.y+(b0.h-b1.h)/2); } if(x==='dr+') t.r+=3; if(x==='dr-') t.r=Math.max(8,t.r-3); if(x==='del'){ L.deco=L.deco.filter(q=>q!==t); SEL=null; } saveLayout(); return draw(); }
   if(!SEL) return; const t=its.find(o=>String(o.id)===String(SEL.id)); if(!t) return; const p=L.pos[t.id], md=t.model&&MD(t.model);
   if(x==='n+'||x==='n-'){ const n=Math.max(1,Math.min(25,t.seats+(x==='n+'?1:-1))); if(n<t.seats&&window.capaConfirm&&!await window.capaConfirm({title:'Retirer une place à « '+H(t.name||'cette table')+' » ?',pl:n-t.seats,ok:'Oui, retirer une place'})) return; if(t.kind==='bar'){ p.w=Math.max(p.w||200,n*50); } return setSeats(t,n); }
   if(md&&/^m[lwd][+-]$/.test(x)){ if(!LAST||String(LAST.tid)!==String(t.id)||LAST.mid!==md.id) LAST={tid:t.id,mid:md.id,orig:{w:md.w,h:md.h}}; const d=x.endsWith('+')?D:-D; if(x[1]==='l') md.w=Math.max(24,md.w+d); else if(x[1]==='w') md.h=Math.max(24,md.h+d); else md.w=md.h=Math.max(36,md.w+d); saveLayout(); return draw(); }
