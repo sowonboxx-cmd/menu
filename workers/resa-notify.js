@@ -30,6 +30,11 @@ export default {
       }
     }
     if ((req.method === 'GET' || req.method === 'POST') && url.pathname === '/unsub') return unsub(env, url);
+    // ── Message d'un client depuis le site (bouton « Message ») ──
+    if (req.method === 'POST' && url.pathname === '/message') {
+      try { const r = await contactMessage(env, await req.json()); return json(r, r.ok ? 200 : 400, cors); }
+      catch (e) { return json({ ok: false, error: String(e && e.message || e) }, 500, cors); }
+    }
     // ── Club : inscription publique + liste des premiers membres ──
     if (req.method === 'POST' && url.pathname === '/club/join') {
       try { return json(await clubJoin(env, await req.json()), 200, cors); }
@@ -172,6 +177,31 @@ async function notifyNew(env, slug, ref) {
   const res = await Promise.allSettled(jobs);
   return { ok: true, sent: res.filter(x => x.status === 'fulfilled').length };
 }
+
+// ── Messages des clients : enregistrés (contact_messages) puis envoyés au resto + à Will ──
+async function contactMessage(env, b) {
+  if (b && b.hp) return { ok: true };                       // champ piège rempli = robot : on ignore sans le dire
+  const cut = (v, n) => String(v || '').trim().slice(0, n);
+  const slug = cut(b.slug, 60), name = cut(b.name, 80), email = cut(b.email, 120).toLowerCase(), phone = cut(b.phone, 30), message = cut(b.message, 2000);
+  if (!slug || !name || !message || (!email && !phone)) return { ok: false, error: 'Indiquez votre nom, votre message, et un email ou un téléphone.' };
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, error: 'Adresse email invalide.' };
+  const st = await settings(env, slug);
+  if (!st) return { ok: false, error: 'restaurant non configuré' };
+  // Pas plus de 3 messages en 10 minutes par personne.
+  const since = new Date(Date.now() - 10 * 60e3).toISOString();
+  const who = email ? `email=eq.${enc(email)}` : `phone=eq.${enc(phone)}`;
+  const recent = await sb(env, `contact_messages?client_slug=eq.${enc(slug)}&created_at=gte.${enc(since)}&${who}&select=id`).catch(() => []);
+  if (recent && recent.length >= 3) return { ok: false, error: 'Trop de messages d’un coup, réessayez dans quelques minutes.' };
+  await sb(env, 'contact_messages', { method: 'POST', body: { client_slug: slug, name, email: email || null, phone: phone || null, message, page: cut(b.page, 200) || null } });
+  const to = [...new Set([st.notify_email, env.ADMIN_EMAIL].filter(Boolean).join(',').split(/[,;\s]+/).filter(Boolean).map(x => x.toLowerCase()))].join(',');
+  if (to) await sendEmail(env, st, to, st.restaurant_name, `Nouveau message de ${name}`, mailMessage(st, { name, email, phone, message }), email || undefined).catch(() => {});
+  return { ok: true };
+}
+const mailMessage = (st, m) => page(st.restaurant_name,
+  `<p><b>Nouveau message depuis le site</b></p>
+   <div style="background:#f6f4f0;border-radius:12px;padding:14px 16px;margin:12px 0;white-space:pre-line;font-size:15px">${esc(m.message)}</div>
+   <table style="border-collapse:collapse;font-size:15px">${line('De', m.name)}${m.email ? line('Email', m.email) : ''}${m.phone ? line('Téléphone', m.phone) : ''}</table>
+   <p style="color:#6b7080;font-size:13.5px">${m.email ? 'Répondre à cet email écrit directement au client.' : 'Pas d’email laissé : rappelez le client.'} Tous les messages sont aussi dans /admin → Messages.</p>`);
 
 // ── Rappels (~24 h avant) ─────────────────────────────────────────
 async function sendReminders(env) {
