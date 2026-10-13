@@ -51,19 +51,25 @@ export default {
         return json({ ok: true, next: ((all[0] && all[0].club_no) || 0) + 1 }, 200, cors);
       } catch (e) { return json({ ok: false, error: String(e && e.message || e) }, 500, cors); }
     }
+    // Tirage des T-shirts : le membre donne sa taille depuis l'écran de bienvenue (avec son code de carte).
+    if (req.method === 'POST' && url.pathname === '/club/tshirt') {
+      try { return json(await clubTshirt(env, await req.json()), 200, cors); }
+      catch (e) { return json({ ok: false, error: String(e && e.message || e) }, 500, cors); }
+    }
     if (req.method === 'GET' && url.pathname === '/club/card') {
       try { return json(await clubCard(env, String(url.searchParams.get('slug') || ''), String(url.searchParams.get('code') || '')), 200, cors); }
       catch (e) { return json({ ok: false, error: String(e && e.message || e) }, 500, cors); }
     }
     // ── Espace restaurateur (/gestion) : session Supabase + admin du resto ──
-    if (['/clients', '/campaign/preview', '/campaign/send', '/club/redeem', '/club/tier'].includes(url.pathname)) {
+    if (['/clients', '/campaign/preview', '/campaign/send', '/club/redeem', '/club/tier', '/club/tshirt-won'].includes(url.pathname)) {
       try {
         const body = req.method === 'POST' ? await req.json() : {};
         const slug = String(body.slug || url.searchParams.get('slug') || '');
         const who = await adminOf(env, req, slug);
         if (!who) return json({ ok: false, error: 'Accès refusé' }, 403, cors);
         if (url.pathname === '/clients') {
-          const rows = await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&select=id,email,phone,name,visits,first_seen,last_seen,marketing_optin,club_member,club_code,club_no,club_joined_at,coupe_used_at,source,club_tier,club_card&order=last_seen.desc&limit=5000`);
+          // select=* : les nouvelles colonnes (ex. taille de T-shirt) arrivent sans redéployer.
+          const rows = await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&select=*&order=last_seen.desc&limit=5000`);
           return json({ ok: true, clients: rows || [] }, 200, cors);
         }
         if (url.pathname === '/club/tier') {
@@ -85,6 +91,13 @@ export default {
             } catch (e) { console.warn('tier email', e); }
           }
           return json({ ok: true, mailed }, 200, cors);
+        }
+        if (url.pathname === '/club/tshirt-won') {
+          const id = parseInt(body.id, 10);
+          if (!id) return json({ ok: false, error: 'Valeur invalide' }, 400, cors);
+          const at = body.won ? new Date().toISOString() : null;
+          await sb(env, `resa_clients?id=eq.${id}&client_slug=eq.${enc(slug)}`, { method: 'PATCH', body: { tshirt_won_at: at } });
+          return json({ ok: true, tshirt_won_at: at }, 200, cors);
         }
         if (url.pathname === '/club/redeem') {
           const code = String(body.code || '').toUpperCase().replace(/[^A-Z0-9-]/g, '');
@@ -450,12 +463,23 @@ async function clubJoin(env, b) {
 async function clubCard(env, slug, code) {
   code = code.toUpperCase().replace(/[^A-Z0-9-]/g, '');
   if (!/^[a-z0-9-]{2,60}$/.test(slug) || !/^CLUB-[A-Z0-9]{4}$/.test(code)) return { ok: false };
-  const rows = await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&club_code=eq.${enc(code)}&club_member=eq.true&select=name,club_no,club_joined_at,coupe_used_at,club_tier,club_card&limit=1`) || [];
+  const rows = await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&club_code=eq.${enc(code)}&club_member=eq.true&select=*&limit=1`) || [];
   const r = rows[0]; if (!r) return { ok: false };
   const tier = ['membre', 'vip', 'staff'].includes(r.club_tier) ? r.club_tier : 'membre';
   const card = tier === 'staff' ? (['navy', 'gold', 'noir'].includes(r.club_card) ? r.club_card : 'noir') : tier === 'vip' ? 'gold' : 'navy';
   const [f, ...l] = String(r.name || '').trim().split(/\s+/);
-  return { ok: true, tier, card, first: f || '', initial: l.length ? l[l.length - 1][0].toUpperCase() : '', no: r.club_no, joined: r.club_joined_at, used: !!r.coupe_used_at };
+  return { ok: true, tier, card, first: f || '', initial: l.length ? l[l.length - 1][0].toUpperCase() : '', no: r.club_no, joined: r.club_joined_at, used: !!r.coupe_used_at, tshirt: r.tshirt_size || null };
+}
+// Taille de T-shirt du membre (tirage au sort des 100 premiers membres). size vide = ne participe pas.
+const TSHIRT_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+async function clubTshirt(env, b) {
+  const slug = String(b.slug || ''), code = String(b.code || '').toUpperCase().replace(/[^A-Z0-9-]/g, '');
+  const size = String(b.size || '').toUpperCase();
+  if (!/^[a-z0-9-]{2,60}$/.test(slug) || !/^CLUB-[A-Z0-9]{4}$/.test(code)) return { ok: false, error: 'Carte inconnue' };
+  if (size && !TSHIRT_SIZES.includes(size)) return { ok: false, error: 'Taille inconnue' };
+  const done = await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&club_code=eq.${enc(code)}&club_member=eq.true`, { method: 'PATCH', body: { tshirt_size: size || null, tshirt_at: new Date().toISOString() }, prefer: 'return=representation' });
+  if (!done || !done.length) return { ok: false, error: 'Carte inconnue' };
+  return { ok: true, size: size || null };
 }
 // « Déjà membre ? Retrouver ma carte » (nouveau téléphone, autre navigateur…) :
 // il faut l'email ET le téléphone de l'inscription, sur la même fiche, pour récupérer le code.
@@ -465,13 +489,13 @@ async function clubFind(env, b) {
   const email = String(b.email || '').trim().toLowerCase();
   const phone = normPhone(b.phone);
   if (!email || !phone || phone.length < 10) return { ok: false, error: 'Indiquez votre email et votre téléphone' };
-  const rows = await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&email=eq.${enc(email)}&phone=eq.${enc(phone)}&club_member=eq.true&select=name,club_code,club_no,club_joined_at,coupe_used_at,club_tier,club_card&limit=1`) || [];
+  const rows = await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&email=eq.${enc(email)}&phone=eq.${enc(phone)}&club_member=eq.true&select=*&limit=1`) || [];
   const r = rows[0];
   if (!r || !r.club_code) return { ok: false, error: 'Aucune carte trouvée avec cet email et ce téléphone.' };
   const tier = ['membre', 'vip', 'staff'].includes(r.club_tier) ? r.club_tier : 'membre';
   const card = tier === 'staff' ? (['navy', 'gold', 'noir'].includes(r.club_card) ? r.club_card : 'noir') : tier === 'vip' ? 'gold' : 'navy';
   const [f, ...l] = String(r.name || '').trim().split(/\s+/);
-  return { ok: true, code: r.club_code, no: r.club_no, first: f || '', last: l.join(' '), joined: r.club_joined_at, used: !!r.coupe_used_at, tier, card };
+  return { ok: true, code: r.club_code, no: r.club_no, first: f || '', last: l.join(' '), joined: r.club_joined_at, used: !!r.coupe_used_at, tier, card, tshirt: r.tshirt_size || null };
 }
 // ── Relances « votre coupe vous attend » ──────────────────────────
 // Membres du club qui n'ont pas encore eu leur coupe et acceptent les offres :
