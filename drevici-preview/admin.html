@@ -1095,6 +1095,8 @@ input.in.hr{width:76px;text-align:center;padding:8px 10px;font-size:15px;font-we
 .tb-empty{color:var(--mut);font-size:14px;margin:4px 0}
 .tb-ban{display:flex;align-items:center;gap:12px;background:#fff4dc;border-radius:16px;padding:12px 16px;margin-top:16px;font-size:14px}.tb-ban b{flex:1}.tb-ban .tb-btn{padding:9px 14px;font-size:13.5px}
 /* parcours */
+.tb-ideas{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.tb-idea{border:2px solid transparent;background:#fdf6e8;border-radius:14px;padding:11px 12px;font:600 13.5px/1.35 Inter,sans-serif;text-align:left;cursor:pointer;color:var(--ink)}.tb-idea small{display:block;font:800 10.5px Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#a15c00;margin-bottom:4px}.tb-idea.on{border-color:#10285e;background:#f3f6fc}
+@media(max-width:899px){.tb-ideas{grid-template-columns:1fr 1fr}}
 .tb-dh{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:16px 0 8px}.tb-dh .tb-sec{margin:0}.tb-dk{display:flex;align-items:center;gap:8px;border:0;background:none;font:600 13px Inter,sans-serif;color:var(--mut);cursor:pointer;padding:0}.tb-dk i{position:relative;width:34px;height:20px;border-radius:999px;background:#ddd8cf;transition:background .15s}.tb-dk i::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s}.tb-dk.on{color:var(--ink)}.tb-dk.on i{background:#1f9d55}.tb-dk.on i::after{left:16px}
 .tb-dsr{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}.tb-dsr input{flex:1 1 220px;border:0;background:#f6f4f0;border-radius:12px;padding:11px 12px;font:500 14.5px Inter,sans-serif;color:var(--ink)}
 .tb-dc{display:flex;gap:6px;flex-wrap:wrap}.tb-dc button{border:0;background:#f1eee8;color:var(--mut);font:700 12.5px Inter,sans-serif;padding:7px 12px;border-radius:999px;cursor:pointer}.tb-dc button.on{background:#10285e;color:#fff}
@@ -1924,6 +1926,18 @@ function tbQuick(){ const names=tbDishes().map(d=>d.nm.toLowerCase()).join(' '),
   q.push(['🍷','Le verre de vin offert','À l’apéritif',1],['🍰','Le dessert offert','Pour chaque convive',1],['☕','Le café offert','En fin de repas',1],['','−15 % sur l’addition','Sur tout le repas',2]);
   return q.slice(0,6); }
 
+// Idées d'offres « qui font parler » : un clic remplit « Écrire mon offre », tout reste modifiable (le prénom, le verre…).
+// Toujours sur un critère que chacun peut avoir (prénom, anniversaire, mois de naissance…), jamais sur le sexe ou l'âge.
+function tbIdeas(){ const t=JSON.stringify(DATA.tabs||[]).slice(0,300000), v=/champagne/i.test(t)?'une coupe de champagne':/cocktail/i.test(t)?'un cocktail':'un verre';
+  const mo=new Date().toLocaleDateString('fr-FR',{month:'long'});
+  return [['Le prénom du jour','Vous vous appelez Sophie ? '+tbCap(v)+' offert'+(v.startsWith('une')?'e':''),'Sur présentation d’une pièce d’identité',1],
+    ['La lettre','Votre prénom finit par A ? '+tbCap(v)+' offert'+(v.startsWith('une')?'e':''),'Sur présentation d’une pièce d’identité',1],
+    ['Né ce mois-ci','Né(e) en '+mo+' ? Le dessert est offert','Sur présentation d’une pièce d’identité',1],
+    ['Anniversaire','C’est votre anniversaire ? '+tbCap(v)+' offert'+(v.startsWith('une')?'e':''),'Le jour de votre anniversaire, sur présentation d’une pièce d’identité',1],
+    ['La tablée','Venez à 4, la 4e entrée est offerte','Dès 4 personnes',4],
+    ['Le mot de passe','Dites « je viens de la story » : le café est offert','À dire en commandant',1],
+    ['La couleur','Venez habillé(e) en bleu : '+v+' offert'+(v.startsWith('une')?'e':''),'Une pièce bleue suffit',1],
+    ['Les premiers','Les 5 premières tables : '+v+' offert'+(v.startsWith('une')?'e':'')+' à chacun','Pour les 5 premières tables réservées',2]]; }
 function pageResaBoost(){
   if(UI.tbw) return tbWizard();
   const sv=tbSvcs(); if(!UI.tbs||!sv.some(s=>s.label===UI.tbs)) UI.tbs=sv[sv.length-1].label;
@@ -1976,6 +1990,7 @@ function tbWizard(){ const W=UI.tbw, S=tbStat(W.date,W.sv), dd=tbDishes();
     return mtop('Table Boost','resa/boost')+head+`<h2>Quelle offre ?</h2><p class="tb-s">${sub}</p>
       <div class="tb-write${W.kind==='perso'?' on':''}"><label>Écrire mon offre</label><input type="text" maxlength="60" placeholder="ex. Le verre de muscadet offert" value="${W.kind==='perso'?esc(W.title):''}" data-tbf="perso"></div>
       <div class="tb-sec">Offres rapides</div><div class="tb-opts">${q.map(([e,t,dt,mn])=>`<button type="button" class="tb-opt${W.kind==='rapide'&&W.title===t?' on':''}" data-act="tbPick" data-k="rapide" data-t="${esc(t)}" data-dt="${esc(dt)}" data-e="${e}" data-mn="${mn}">${esc(t)}</button>`).join('')}</div>
+      <div class="tb-sec">Idées qui font parler</div><p class="tb-s" style="margin:-4px 0 8px">Un clic remplit votre offre : changez le prénom (la fête du jour marche très bien), la lettre ou le verre.</p><div class="tb-ideas">${tbIdeas().map(([k,t,dt,mn])=>`<button type="button" class="tb-idea${W.kind==='perso'&&W.title===t?' on':''}" data-act="tbPick" data-k="idee" data-t="${esc(t)}" data-dt="${esc(dt)}" data-mn="${mn}"><small>${esc(k)}</small>${esc(t)}</button>`).join('')}</div>
       ${dd.length?`<div class="tb-dh"><div class="tb-sec">Mettre un plat de la carte en avant</div><button type="button" class="tb-dk${W.drinks?' on':''}" data-act="tbDrinks"><i></i>Inclure les boissons</button></div>
       <div class="tb-dsr"><input type="search" placeholder="Chercher un plat…" value="${esc(W.dq||'')}" data-tbf="dq"><div class="tb-dc">${['',...cats].map(c=>`<button type="button" class="${(W.dcat||'')===c?'on':''}" data-act="tbCat" data-v="${esc(c)}">${c?esc(c):'Tout'}</button>`).join('')}</div></div>
       <div class="tb-dl">${ds.length?ds.map(d=>{ const np=Math.round(d.price*0.85); return `<button type="button" class="tb-dish${W.dish===d.id?' on':''}" data-act="tbPick" data-k="plat" data-id="${esc(d.id)}"><span class="im${d.img?'':' no'}"${d.img?` style="background-image:url('${esc(d.img)}')"`:''}></span><span class="tx"><b>${esc(d.nm)}</b><small>${esc(d.cat)}${d.desc?' · '+esc(d.desc).slice(0,60):''}</small></span><span class="pr">${d.price?`<s>${d.price} €</s>${np} €`:''}</span></button>`; }).join(''):'<div class="tb-empty">Aucun plat trouvé.</div>'}</div>`:''}`+
@@ -2053,6 +2068,7 @@ async function tbAct(a,d){ const W=UI.tbw;
     case 'tbClose': UI.tbw=null; return render();
     case 'tbBack': W.step=Math.max(1,W.step-1); return render();
     case 'tbPick': if(d.k==='plat'){ const x=tbDishes().find(o=>o.id===d.id); if(!x) return; Object.assign(W,{kind:'plat',dish:x.id,title:x.price?x.nm+' à '+Math.round(x.price*0.85)+' € au lieu de '+x.price+' €':x.nm+' offert',detail:x.desc.slice(0,80),emoji:'',photo:x.img,min:1}); }
+      else if(d.k==='idee'){ Object.assign(W,{kind:'perso',dish:'',title:d.t,detail:d.dt,emoji:'',min:+d.mn||1}); if(/5 premières tables/.test(d.t)) W.maxT=5; render(); const i=document.querySelector('[data-tbf=perso]'); if(i){ i.focus(); i.select(); } return; }
       else Object.assign(W,{kind:'rapide',dish:'',title:d.t,detail:d.dt,emoji:d.e||'',min:+d.mn||1}); return render();
     case 'tbNext': if(W.step===1&&!W.title.trim()){ toast('Écrivez ou choisissez une offre'); return; }
       if(W.step===2&&tbStat(W.date,W.sv).blocked){ toast('Le restaurant est fermé ce '+new Date(W.date+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long'})+' ('+W.sv.toLowerCase()+')'); return; } if(W.step===2&&new Date(W.deadline)<new Date()){ toast('La date limite est déjà passée'); return; } W.step++; return render();
