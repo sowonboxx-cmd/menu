@@ -397,6 +397,30 @@ const CLIENT_SLUG = 'drevici-paris';
 // de test sont écrites sous « drevici-test » (jamais dans le vrai admin).
 const WRITE_SLUG = 'drevici-test';
 const RESA_NOTIFY_URL = 'https://resa.beltab.app/notify';
+// ── Statistiques du site (même compteur que l'accueil ; voir la notice « codes de suivi ») ──
+const BT = (() => { const API = 'https://resa.beltab.app/t', q = new URLSearchParams(location.search);
+  const off = window.top !== window || q.get('admin') === '1' || /localhost|127\.0\.0\.1|file:/.test(location.href);
+  let sid = ''; try { sid = sessionStorage.getItem('bt_sid') || ''; if (!sid) { sid = Math.random().toString(36).slice(2, 10) + Date.now().toString(36); sessionStorage.setItem('bt_sid', sid); } } catch (e) { sid = Math.random().toString(36).slice(2, 12); }
+  const from = () => { const o = q.get('o'), c = q.get('src');
+    if (o && /^[A-Za-z0-9]{2,12}$/.test(o)) return 'OFFRE:' + o.toUpperCase();
+    if (c && /^[A-Za-z0-9-]{2,40}$/.test(c)) return 'QR:' + c.toUpperCase();
+    let h = ''; try { h = new URL(document.referrer).hostname.replace(/^www\./, ''); } catch (e) {}
+    if (!h || h === location.hostname || /beltab\.app$/.test(h)) return '';
+    if (/instagram/.test(h)) return 'INSTAGRAM'; if (/facebook|^fb\.|messenger/.test(h)) return 'FACEBOOK'; if (/tiktok/.test(h)) return 'TIKTOK';
+    if (/google\./.test(h)) return 'GOOGLE'; if (/bing|qwant|duckduckgo|ecosia|yahoo|brave/.test(h)) return 'MOTEUR';
+    if (/chatgpt|openai|perplexity|claude|gemini|copilot|mistral/.test(h)) return 'IA';
+    return 'WEB:' + h.slice(0, 40); };
+  let src = from();
+  try { if (src) { sessionStorage.setItem('bt_src', src); if (/^(OFFRE|QR):/.test(src)) localStorage.setItem('bt_last', JSON.stringify({ src, t: Date.now() })); } else src = sessionStorage.getItem('bt_src') || 'DIRECT'; } catch (e) { src = src || 'DIRECT'; }
+  function send(k, n) { if (off) return;
+    const b = JSON.stringify({ slug: WRITE_SLUG, sid, k, n: n || '', src, p: location.pathname.slice(0, 80) });
+    try { if (navigator.sendBeacon && navigator.sendBeacon(API, new Blob([b], { type: 'text/plain' }))) return; } catch (e) {}
+    try { fetch(API, { method: 'POST', body: b, keepalive: true, mode: 'no-cors' }); } catch (e) {} }
+  // Source gardée sur la réservation : le dernier QR / offre des 7 derniers jours, sinon la source de cette visite.
+  function attrib() { try { const o = JSON.parse(localStorage.getItem('bt_last') || 'null'); if (o && o.src && Date.now() - o.t < 7 * 864e5) return o.src; } catch (e) {} return src; }
+  try { if (!sessionStorage.getItem('bt_v_book')) { sessionStorage.setItem('bt_v_book', '1'); send('view', 'book'); } } catch (e) { send('view', 'book'); }
+  return { send, attrib };
+})();
 
 // The menu (index.html) uses a different client_slug than this
 // reservation system — see the note above. Used only to fetch the
@@ -939,7 +963,7 @@ async function sendResa() {
     document.getElementById('sendErr').style.display = 'block'; };
   if (!supabaseClient) { fail(); return; }
   const optin = !!(document.getElementById('fOptin') || {}).checked;
-  const { error } = await supabaseClient.from('restaurant_reservations').insert({
+  const row = {
     ref: ref,
     client_slug: WRITE_SLUG,
     from_name: params.from_name,
@@ -954,8 +978,13 @@ async function sendResa() {
     note: params.note,
     marketing_optin: optin,
     offer_code: ((document.getElementById('fCode') || {}).value || '').trim().toUpperCase() || null,
-  });
+    source_code: BT.attrib(),
+  };
+  let { error } = await supabaseClient.from('restaurant_reservations').insert(row);
+  // Colonne source_code absente (SQL des statistiques pas encore lancé) : on réserve quand même, sans la source.
+  if (error && /source_code/.test(error.message || '')) { delete row.source_code; ({ error } = await supabaseClient.from('restaurant_reservations').insert(row)); }
   if (error) { console.warn('Supabase insert failed:', error); fail(); return; }
+  BT.send('click', 'reservation_faite');
   try {
     const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 8000);
     await fetch(RESA_NOTIFY_URL, { method: 'POST', headers: { 'content-type': 'application/json' },

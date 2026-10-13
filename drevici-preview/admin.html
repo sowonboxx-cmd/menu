@@ -1138,6 +1138,29 @@ input.in.hr{width:76px;text-align:center;padding:8px 10px;font-size:15px;font-we
 .msg-del{border:0;background:none;color:#d33;font:700 13.5px Inter,sans-serif;cursor:pointer;margin-left:auto;padding:8px}
 .msg-empty{color:var(--mut);font-size:14px;padding:20px}.msg-box1{background:#fff;border-radius:22px;box-shadow:0 0 0 1px var(--line)}
 @media(max-width:899px){.msgd{border-radius:18px;padding:14px 16px}.msg-det{padding:18px}.msg-ct{grid-template-columns:1fr}.msg-del{margin-left:0}}
+
+/* ── Statistiques du site ── */
+.st-seg{display:inline-flex;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:3px}
+.st-seg button{border:0;background:none;font:600 13px Inter,sans-serif;color:var(--mut);padding:7px 14px;border-radius:999px;cursor:pointer}.st-seg button.on{background:var(--ink);color:#fff}
+.st-k{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.st-k .c small{display:block;color:var(--mut);font-size:12.5px;font-weight:600}.st-k .n{font-size:30px;font-weight:800;letter-spacing:-.03em;margin:6px 0 2px;line-height:1.1}
+.st-d{font-size:12px;font-weight:600;color:var(--ok)}.st-d.dn{color:#b4462f}.st-d.mu{color:var(--mut)}
+.st-g{display:grid;grid-template-columns:1.35fr 1fr;gap:12px;align-items:start}.st-col{display:grid;gap:12px}
+.st-c h3{font-size:15px;margin:0 0 3px}.st-c .s{color:var(--mut);font-size:12.5px;margin:0 0 14px}
+.st-bars{display:flex;align-items:flex-end;gap:4px;height:130px}.st-bars div{flex:1;background:var(--brand-soft);border-radius:5px 5px 2px 2px;position:relative;min-height:3px}.st-bars div i{position:absolute;left:0;right:0;bottom:0;background:var(--brand);border-radius:5px 5px 2px 2px}
+.st-days{display:flex;gap:4px;margin-top:6px}.st-days span{flex:1;min-width:0;text-align:center;font-size:10.5px;color:var(--mut);white-space:nowrap;overflow:visible}
+.st-w{display:grid;gap:12px}
+.st-leg{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--mut);margin-top:10px}.st-leg b{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.st-fun{display:grid;gap:10px}.st-fr{display:grid;grid-template-columns:1fr auto;gap:4px 10px;font-size:13.5px}.st-fr em{font-style:normal;color:var(--mut);font-size:12px;margin-left:4px}
+.st-fr .bar{grid-column:1/-1;height:9px;background:var(--soft);border-radius:9px;overflow:hidden}.st-fr .bar i{display:block;height:100%;background:var(--brand);border-radius:9px}
+.st-t{width:100%;border-collapse:collapse;font-size:13.5px}.st-t th{text-align:left;font-size:11.5px;color:var(--mut);font-weight:600;padding:0 0 8px;text-transform:uppercase;letter-spacing:.04em}
+.st-t th:not(:first-child),.st-t td:not(:first-child){text-align:right;white-space:nowrap;padding-left:10px}.st-t td{padding:9px 0;border-top:1px solid var(--line)}.st-t td:first-child{overflow-wrap:anywhere}
+.st-tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;margin-left:6px;vertical-align:1px}.st-tag.qr{background:var(--brand-soft);color:var(--brand-text)}.st-tag.of{background:var(--accent-soft);color:var(--accent-text)}.st-tag.so{background:var(--set-c);color:var(--set-c-ink)}
+.st-pk{background:linear-gradient(135deg,#16181d,#2a2f3a);color:#fff}.st-pk h3{color:#fff}.st-pk .s{color:rgba(255,255,255,.65)}
+.st-pk .g{display:grid;grid-template-columns:1fr 1fr;gap:10px}.st-pk .g div{background:rgba(255,255,255,.08);border-radius:14px;padding:12px}.st-pk small{font-size:12px;color:rgba(255,255,255,.7)}.st-pk b{display:block;font-size:24px;margin-top:4px}.st-pk em{font-style:normal;font-size:11.5px;color:#9fe0b8;white-space:nowrap}
+.st-note{font-size:12px;color:var(--mut);margin:4px 2px 0}
+.st-empty{color:var(--mut);font-size:13.5px;padding:6px 0}
+@media(max-width:899px){.st-k{grid-template-columns:1fr 1fr;gap:9px}.st-k .n{font-size:25px}.st-g{grid-template-columns:1fr}.st-bars{height:100px}.st-seg button{padding:7px 11px}}
 </style>
 </head>
 <body>
@@ -1263,8 +1286,8 @@ async function loadSide(){
   RESA.sort((a,b)=>(a.date_iso+(a.slot||'')).localeCompare(b.date_iso+(b.slot||'')));
   await loadBoost();
   MSGS=await q(sb.from('contact_messages').select('*').eq('client_slug',CL_SLUG).order('created_at',{ascending:false}).limit(300),'messages');
-  QR=await q(sb.from('qr_scans').select('code,at').eq('client_slug',STATS_SLUG).gte('at',new Date(Date.now()-30*864e5).toISOString()).limit(5000));
   render();
+  loadStats(7);
 }
 
 // ── enregistrement automatique ──
@@ -1478,7 +1501,7 @@ function dash(){
   const mhome=`<section class="mhome full">
     <div class="msec">Au quotidien</div><div class="mlist">${[['carte','carte','Ma carte','Ajouter · Modifier · Exporter · Partager','#1E5AA8'],['clients','users','Mes clients','Base clients · Envoyer un email','#0F766E'],['messages','chat','Messages',msgNew()?`${msgNew()} nouveau${msgNew()>1?'x':''} message${msgNew()>1?'s':''}`:'Les messages de votre site','#B45309'],['menus','spe','Mes menus','Menu du jour · Menus personnalisés','#B4561B'],['comm','mail','Communication','Réseaux sociaux · Table Boost · Emails','#7B3FB8']].map(mrow).join('')}</div>
     <div class="msec">Réglages</div><div class="mlist">${[['etab','etab','Mon établissement','Informations générales','#2E7D4F'],['site','acc','Mon site','Accueil · Menu · Couleurs','#C0392B']].map(mrow).join('')}</div>
-    <div class="msec">Autres</div><div class="mlist">${[['stats','vue','Statistiques','Scans des QR codes · visites du site','#0E8A8A'],['secu','sauv','Sécurité','Sauvegardes · Historique','#6B7080']].map(mrow).join('')}</div>
+    <div class="msec">Autres</div><div class="mlist">${[['stats','vue','Statistiques','Visites du site · QR table · offres','#0E8A8A'],['secu','sauv','Sécurité','Sauvegardes · Historique','#6B7080']].map(mrow).join('')}</div>
     <div class="msec">Thème</div><div class="mlist"><div class="mli"><span class="mic" style="color:#6E56CF">${I('lune')}</span><span class="mtx"><b>Apparence</b></span><label class="msel">${{clair:'Clair',sombre:'Sombre',systeme:'Système'}[am]}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"/></svg><select data-act="appSel" aria-label="Apparence">${[['systeme','Système'],['clair','Clair'],['sombre','Sombre']].map(([k,l])=>`<option value="${k}"${am===k?' selected':''}>${l}</option>`).join('')}</select></label></div></div>
   </section>`;
   return `${header()}${msgDash()}<div class="L">${resa}${carte}${menus}${comm}${sets}${visitsCard()}${mhome}</div>`;
@@ -1497,18 +1520,6 @@ function openLine(){
 const toHM=v=>{ if(v==null||v==='') return ''; const n=+v; let h=Math.floor(n)%24, m=Math.round((n-Math.floor(n))*60); if(m===60){h=(h+1)%24;m=0;} return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); };
 const fromHM=v=>{ const t=String(v||'').trim().toLowerCase().replace(/\s/g,''); if(!t) return null; let m=t.match(/^(\d{1,2})(?:[:h.](\d{0,2}))?$/)||t.match(/^(\d{2})(\d{2})$/); if(!m) return null; const h=+m[1], mi=+(m[2]||0); if(h>24||mi>59) return null; return h+mi/60; };
 const hh=v=>{ if(v==null||v==='') return '?'; const n=+v; const h=Math.floor(n)%24, m=Math.round((n-Math.floor(n))*60); return h+'h'+(m?String(m).padStart(2,'0'):''); };
-function qrByDay(){ const days=[]; for(let i=6;i>=0;i--){ const d=iso(Date.now()-i*864e5); days.push({d,n:QR.filter(x=>iso(x.at)===d).length}); } return days; }
-function visitsCard(){
-  const days=qrByDay(), max=Math.max(1,...days.map(x=>x.n)), tot7=days.reduce((a,x)=>a+x.n,0);
-  const by={}; QR.filter(x=>Date.now()-new Date(x.at)<7*864e5).forEach(x=>{ by[x.code]=(by[x.code]||0)+1; });
-  const top=Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,4);
-  const dn=['dim','lun','mar','mer','jeu','ven','sam'];
-  return `<section class="full a-vis"><div class="c vis"><div class="bh"><span class="ico">${I('stats')}</span>Statistiques<small>7 derniers jours</small></div>
-    <div><h3 style="margin-bottom:12px"><span class="ico">${I('vue')}</span>Scans QR</h3><div class="k num">${tot7}</div><small>7 derniers jours · le compteur de visites du site arrive bientôt</small></div>
-    <div><div class="spark">${days.map((x,i)=>`<i class="${i===6?'on':''}" style="height:${Math.max(6,Math.round(x.n/max*100))}%" title="${x.n}"></i>`).join('')}</div><div class="days">${days.map(x=>`<span>${dn[new Date(x.d+'T12:00').getDay()]}</span>`).join('')}</div></div>
-    <div class="srcs">${top.length?top.map(([c,n])=>`<div><b class="num">${n}</b>${esc(c)}</div>`).join(''):'<div><b>—</b>Pas encore de scan</div>'}</div></div></section>`;
-}
-
 // ── menu du jour ──
 function jour(){ return DATA.specials.find(s=>s.id==='jour'); }
 function jourItems(sp){ return Array.isArray(sp.items)?sp.items.filter(it=>it.n):[]; }
@@ -2065,7 +2076,79 @@ function pageComm(){
   if(ARG==='boost') return mtop('Communication','comm')+ph('Table Boost','Remplissez vos tables, boostez votre CA','')+subs+boost;
   return mtop('Tableau de bord','dash')+ph('Communication','Faites venir du monde quand vous en avez besoin','')+subs+`<div class="cgrid">${social}${email}</div>${boost}`;
 }
-function pageStats(){ return mtop('Tableau de bord','dash')+ph('Statistiques','Scans des QR codes (le compteur de visites du site arrive bientôt)','')+`<div class="L">${visitsCard()}</div>`; }
+
+// ── Statistiques du site (sql/stats-site.sql ; codes : notice « codes de suivi ») ──
+// STATS[période] = {cur, prev} : la période choisie et la même durée juste avant (pour les « +18 % »).
+const STATS={}; UI.stp=UI.stp||14;
+function stRange(p){ const now=new Date(), d0=new Date(now); d0.setHours(0,0,0,0);
+  const from=p==='mois'?new Date(now.getFullYear(),now.getMonth(),1):new Date(d0.getTime()-(p-1)*864e5);
+  return {from, to:now, pfrom:new Date(from.getTime()-(now-from)), pto:from}; }
+async function loadStats(p,force){ if(STATS[p]&&!force&&(STATS[p].cur||STATS[p].loading)) return; const r=stRange(p);
+  STATS[p]={loading:true};
+  const call=(f,t)=>sb.rpc('site_stats',{p_slug:CL_SLUG,p_from:f.toISOString(),p_to:t.toISOString()});
+  try{ const [a,b]=await Promise.all([call(r.from,r.to),call(r.pfrom,r.pto)]);
+    if(a.error) throw a.error; STATS[p]={cur:a.data||{},prev:(b&&b.data)||{},range:r};
+  }catch(e){ console.warn('stats',e); STATS[p]={err:String(e&&e.message||e)}; }
+  render(); }
+const stN=v=>Number(v||0).toLocaleString('fr-FR');
+const stPct=(a,b)=>b?Math.round(a/b*1000)/10:0;
+const stPctT=v=>String(v).replace('.',',')+' %';
+function stDelta(a,b){ if(!b) return a?'<span class="st-d mu">nouveau</span>':'<span class="st-d mu">—</span>'; const d=Math.round((a-b)/b*100); return `<span class="st-d${d<0?' dn':''}">${d>0?'+':d<0?'−':''}${Math.abs(d)} % vs période d'avant</span>`; }
+function stSrc(code){ const c=String(code||'DIRECT');
+  if(c==='QR:TABLE') return ['QR table','qr','QR'];
+  if(c.startsWith('QR:')) return ['QR '+c.slice(3).toLowerCase(),'qr','QR'];
+  if(c.startsWith('OFFRE:')){ const k=c.slice(6), o=BOOSTS.find(x=>x.code===k); return [(o?o.title:'Offre')+' · '+k,'of','Offre']; }
+  const M={INSTAGRAM:['Instagram','so','Réseau'],FACEBOOK:['Facebook','so','Réseau'],TIKTOK:['TikTok','so','Réseau'],GOOGLE:['Google'],MOTEUR:['Autres moteurs de recherche'],IA:['Assistants IA (ChatGPT…)'],DIRECT:['Accès direct (lien tapé, favori, appli)']};
+  if(M[c]) return M[c]; if(c.startsWith('WEB:')) return [c.slice(4),'so','Site']; return [c]; }
+function stQr(st){ return (st.sources||[]).filter(x=>x.src==='QR:TABLE').reduce((a,x)=>a+x.v,0); }
+function stDays(st,r){ const out=[], d=new Date(r.from); d.setHours(12,0,0,0); const V={}, R={};
+  (st.by_day||[]).forEach(x=>V[x.d]=x.v); (st.resa_day||[]).forEach(x=>R[x.d]=x.n);
+  while(d<=r.to){ const k=iso(d); out.push({d:k,v:V[k]||0,n:R[k]||0,w:d.getDay()}); d.setDate(d.getDate()+1); } return out; }
+function stPer(){ return `<div class="st-seg">${[[7,'7 j'],[14,'14 j'],[30,'30 j'],['mois','Ce mois']].map(([k,l])=>`<button type="button" class="${UI.stp===k?'on':''}" data-act="stPer" data-v="${k}">${l}</button>`).join('')}</div>`; }
+function pageStats(){
+  const p=UI.stp, S=STATS[p]; if(!S) setTimeout(()=>loadStats(p),0);
+  const head=mtop('Tableau de bord','dash')+ph('Statistiques','Le site, le QR table et les offres, au même endroit',stPer());
+  if(!S||S.loading) return head+`<div class="c"><div class="st-empty">Chargement des statistiques…</div></div>`;
+  if(S.err) return head+`<div class="c"><div class="st-empty">${/site_stats|function|schema/i.test(S.err)?'Le compteur n\'est pas encore installé : lancez <b>sql/stats-site.sql</b> dans Supabase.':'Statistiques illisibles : '+esc(S.err)}</div></div>`;
+  const c=S.cur, v=S.prev, r=S.range, cl=c.clicks||{}, pe=c.people||{}, pcl=v.clicks||{};
+  const visits=c.visits||0, qr=stQr(c);
+  const kpis=`<div class="st-k">
+    <div class="c"><small>Visites du site</small><div class="n num">${stN(visits)}</div>${stDelta(visits,v.visits||0)}</div>
+    <div class="c"><small>Clics « Réserver »</small><div class="n num">${stN(cl.reserver)}</div><span class="st-d mu">${visits?stPctT(stPct(pe.reserver||0,visits))+' des visiteurs':'—'}</span></div>
+    <div class="c"><small>Réservations en ligne</small><div class="n num">${stN(c.resa)}</div><span class="st-d">${stN(c.covers)} couverts</span></div>
+    <div class="c"><small>Scans du QR table</small><div class="n num">${stN(qr)}</div>${stDelta(qr,stQr(v))}</div></div>`;
+  const days=stDays(c,r), mx=Math.max(1,...days.map(x=>x.v),...days.map(x=>x.n)), dn=['D','L','M','M','J','V','S'];
+  const lbl=days.length>16?(x,i)=>i%Math.ceil(days.length/10)===0?String(+x.d.slice(8)):'' :(x)=>dn[x.w];
+  const chart=`<div class="c st-c"><h3>Visites et réservations</h3><p class="s">Chaque jour</p>
+    <div class="st-bars">${days.map(x=>`<div style="height:${Math.max(2,x.v/mx*100)}%" title="${x.d} · ${x.v} visite${x.v>1?'s':''} · ${x.n} réservation${x.n>1?'s':''}"><i style="height:${x.v?Math.min(100,x.n/x.v*100):0}%"></i></div>`).join('')}</div>
+    <div class="st-days">${days.map((x,i)=>`<span>${lbl(x,i)}</span>`).join('')}</div>
+    <div class="st-leg"><span><b style="background:var(--brand-soft)"></b>Visites</span><span><b style="background:var(--brand)"></b>Réservations</span></div></div>`;
+  const F=[['Visites du site',visits],['Ont regardé la carte',pe.carte||0],['Ont cliqué « Réserver »',pe.reserver||0],['Ont réservé',c.resa||0]];
+  const funnel=`<div class="c st-c"><h3>Le parcours des visiteurs</h3><p class="s">Sur 100 visiteurs, combien vont jusqu'à la réservation</p>
+    <div class="st-fun">${F.map(([t,n])=>{ const q=visits?Math.min(100,stPct(n,visits)):0; return `<div class="st-fr"><span>${t}</span><b class="num">${stN(n)}<em>${stPctT(q)}</em></b><div class="bar"><i style="width:${q}%"></i></div></div>`; }).join('')}</div></div>`;
+  const RS={}; (c.resa_src||[]).forEach(x=>RS[x.src]=x.n);
+  const keys=[...new Set([...(c.sources||[]).map(x=>x.src),...Object.keys(RS)])], VS={}; (c.sources||[]).forEach(x=>VS[x.src]=x.v);
+  keys.sort((a,b)=>(VS[b]||0)-(VS[a]||0)||(RS[b]||0)-(RS[a]||0));
+  const srcs=`<div class="c st-c"><h3>D'où viennent les visiteurs</h3><p class="s">QR table, offres Table Boost, réseaux, Google…</p>
+    ${keys.length?`<table class="st-t"><tr><th>Source</th><th>Visites</th><th>Résas</th></tr>${keys.map(k=>{ const [l,t,tl]=stSrc(k); return `<tr><td>${esc(l)}${t?`<span class="st-tag ${t}">${tl}</span>`:''}</td><td class="num">${stN(VS[k])}</td><td class="num"><b>${stN(RS[k])}</b></td></tr>`; }).join('')}</table>`:'<div class="st-empty">Pas encore de visite sur cette période.</div>'}</div>`;
+  const pk=(n,of)=>`<b class="num">${stN(n)}</b><em>${of?`sur ${stN(of)} · ${stPctT(Math.round(stPct(n,of)))}`:'&nbsp;'}</em>`;
+  const prank=`<div class="c st-c st-pk"><h3>« Ne cliquez pas ici ! »</h3><p class="s">Les curieux qui ont cliqué quand même, puis sont partis sur Instagram</p>
+    <div class="g"><div><small>Après un message</small>${pk(pe.prank_msg||0,cl.message_envoye||0)}</div><div><small>Club : écran « Plus tard »</small>${pk(pe.prank_club||0,pe.club_plus_tard||0)}</div></div></div>`;
+  const B=[['reserver','Réserver'],['carte','Voir la carte (visiteurs)'],['appeler','Appeler'],['message','Message (fenêtre ouverte)'],['message_envoye','Messages envoyés'],['club','Club (fenêtre ouverte)'],['club_inscrit','Inscriptions au club'],['itineraire','Itinéraire'],['instagram','Instagram'],['tiktok','TikTok'],['facebook','Facebook']];
+  const bt=B.filter(([k])=>k==='carte'?pe.carte:cl[k]).map(([k,l])=>{ const n=k==='carte'?pe.carte:cl[k]; return `<tr><td>${l}</td><td class="num"><b>${stN(n)}</b></td></tr>`; }).join('');
+  const btns=`<div class="c st-c"><h3>Les boutons du site</h3><p class="s">Nombre de clics sur la période</p>${bt?`<table class="st-t">${bt}</table>`:'<div class="st-empty">Pas encore de clic sur cette période.</div>'}</div>`;
+  return head+`<div class="st-w">${kpis}<div class="st-g">${chart}${funnel}</div><div class="st-g">${srcs}<div class="st-col">${prank}${btns}</div></div>
+    <p class="st-note">Aucun cookie, aucun outil Google : les visites sont comptées par Beltab, sans identifier personne. Une visite = un onglet ouvert sur le site.</p></div>`;
+}
+function visitsCard(){
+  const S=STATS[7], c=(S&&S.cur)||null, r=S&&S.range;
+  const days=c?stDays(c,r):[], max=Math.max(1,...days.map(x=>x.v)), dn=['dim','lun','mar','mer','jeu','ven','sam'];
+  const top=c?(c.sources||[]).slice(0,4):[];
+  return `<section class="full a-vis"><div class="c vis"><div class="bh"><span class="ico">${I('stats')}</span>Statistiques<small>7 derniers jours</small></div>
+    <div><h3 style="margin-bottom:12px"><span class="ico">${I('vue')}</span>Visites du site</h3><div class="k num">${c?stN(c.visits):'—'}</div><small>${c?`${stN(c.resa)} réservation${(c.resa||0)>1?'s':''} en ligne · ${stN(stQr(c))} scan${stQr(c)>1?'s':''} du QR table`:(S&&S.err?'Compteur pas encore installé':'Chargement…')}</small></div>
+    <div><div class="spark">${days.map((x,i)=>`<i class="${i===days.length-1?'on':''}" style="height:${Math.max(6,Math.round(x.v/max*100))}%" title="${x.v}"></i>`).join('')}</div><div class="days">${days.map(x=>`<span>${dn[x.w]}</span>`).join('')}</div></div>
+    <div class="srcs">${top.length?top.map(x=>`<div><b class="num">${stN(x.v)}</b>${esc(stSrc(x.src)[0])}</div>`).join(''):'<div><b>—</b>Pas encore de visite</div>'}</div></div></section>`;
+}
 
 // ── réglages ──
 const DAYS=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
@@ -2578,6 +2661,7 @@ document.addEventListener('click',async e=>{
   const a=el.dataset.act, d=el.dataset;
   if(/^tb[A-Z]/.test(a)){ e.preventDefault(); return tbAct(a,d); }
   if(/^msg[A-Z]/.test(a)){ e.preventDefault(); return msgAct(a,d); }
+  if(a==='stPer'){ e.preventDefault(); UI.stp=/^\d+$/.test(d.v)?+d.v:d.v; render(); loadStats(UI.stp); return; }
   if(el.tagName==='A'||(el.tagName==='BUTTON'&&el.closest('a'))) e.preventDefault();
   if(el.tagName==='SELECT'||el.type==='color'||el.type==='file') return;
   const sp=jour();

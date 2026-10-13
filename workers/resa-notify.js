@@ -4,6 +4,7 @@
 //  POST /notify {slug, ref}  appelé par resa.html juste après l'enregistrement
 //      → ajoute le client à la base, envoie la confirmation au client
 //        et l'alerte « nouvelle réservation » au restaurant.
+//  POST /t  statistiques du site (visites, clics) → table site_events
 //  Tâche planifiée (toutes les heures)
 //      → rappel ~24 h avant : SMS si quota disponible, sinon email.
 //
@@ -31,6 +32,11 @@ export default {
     }
     if ((req.method === 'GET' || req.method === 'POST') && url.pathname === '/unsub') return unsub(env, url);
     // ── Message d'un client depuis le site (bouton « Message ») ──
+    // Statistiques du site : un signal par visite / clic (envoyé par navigator.sendBeacon, sans cookie).
+    if (req.method === 'POST' && url.pathname === '/t') {
+      try { await track(env, req); } catch (e) {}
+      return new Response(null, { status: 204, headers: cors });
+    }
     if (req.method === 'POST' && url.pathname === '/message') {
       try { const r = await contactMessage(env, await req.json()); return json(r, r.ok ? 200 : 400, cors); }
       catch (e) { return json({ ok: false, error: String(e && e.message || e) }, 500, cors); }
@@ -179,6 +185,29 @@ async function notifyNew(env, slug, ref) {
 }
 
 // ── Messages des clients : enregistrés (contact_messages) puis envoyés au resto + à Will ──
+// ── Statistiques du site (sql/stats-site.sql) ──
+// Rien d'identifiant : un numéro d'onglet au hasard, la source, le bouton. Les robots sont ignorés.
+const KNOWN = new Map();
+async function knownSlug(env, slug) {
+  if (KNOWN.has(slug)) return KNOWN.get(slug);
+  let ok = !!(await settings(env, slug).catch(() => null));
+  if (!ok && slug.endsWith('-test')) ok = !!(await settings(env, slug.slice(0, -5)).catch(() => null)) || slug === 'drevici-test';
+  KNOWN.set(slug, ok); return ok;
+}
+async function track(env, req) {
+  const ua = req.headers.get('user-agent') || '';
+  if (!ua || /bot|crawl|spider|slurp|headless|lighthouse|facebookexternalhit|preview|monitor/i.test(ua)) return;
+  let b; try { b = JSON.parse(await req.text()); } catch (e) { return; }
+  if (!b || typeof b !== 'object') return;
+  const cut = (v, n) => String(v == null ? '' : v).slice(0, n);
+  const slug = cut(b.slug, 60), kind = b.k === 'view' ? 'view' : b.k === 'click' ? 'click' : '';
+  const sid = cut(b.sid, 40).replace(/[^a-z0-9]/gi, ''), name = cut(b.n, 40).replace(/[^a-z0-9_-]/gi, '');
+  const src = cut(b.src, 60).replace(/[^A-Za-z0-9:._-]/g, '');
+  if (!/^[a-z0-9-]{2,60}$/.test(slug) || !kind || sid.length < 6) return;
+  if (!(await knownSlug(env, slug))) return;
+  await sb(env, 'site_events', { method: 'POST', prefer: 'return=minimal',
+    body: { client_slug: slug, sid, kind, name: name || null, src: src || null, path: cut(b.p, 80) || null } });
+}
 async function contactMessage(env, b) {
   if (b && b.hp) return { ok: true };                       // champ piège rempli = robot : on ignore sans le dire
   const cut = (v, n) => String(v || '').trim().slice(0, n);
