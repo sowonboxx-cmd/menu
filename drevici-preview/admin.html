@@ -1342,7 +1342,9 @@ function todayBySvc(){
   const out=[]; if(midi.length) out.push({label:'Midi',items:midi}); if(soir.length||!midi.length) out.push({label:'Soir',items:soir});
   return out;
 }
-const tableNames=r=>{ const ids=r.table_ids||[]; if(!ids.length) return '<b class="warn">Sans table</b>'; return ids.map(id=>{const t=TABLES.find(x=>x.id===id);return t?esc(t.name):'?';}).join(', '); };
+// Tables encore existantes d'une résa (une table supprimée ou de l'ancien système ne compte plus).
+const liveTables=r=>(r.table_ids||[]).map(id=>TABLES.find(x=>String(x.id)===String(id))).filter(Boolean);
+const tableNames=r=>{ const ts=liveTables(r); if(!ts.length) return '<b class="warn">Non affectée</b>'; return ts.map(t=>esc(t.name||'Table')).join(', '); };
 
 // ══ Pages ══
 function dash(){
@@ -1703,10 +1705,10 @@ function pageResa(){
   ${card('Salle, espaces et tables','resa',salleSummary()).replace('id="b-resa"','id="b-salle"')}${card('Services','hor',svcSummary()).replace('id="b-hor"','id="b-svcs"')}</div></div>`;
 }
 // Une réservation = une ligne. Clic : fiche dans la colonne de droite (ordinateur) ou fiche qui monte du bas (mobile).
-const resaRow=(r,on)=>`<div class="rr${on?' on':''}" data-act="rsel" data-ref="${esc(r.ref)}"><span class="rr-t">${esc((r.slot||'').slice(0,5))}</span><span class="rr-n">${esc(r.from_name||'—')}</span><span class="rr-c">${+r.covers||0} pers.</span><span class="rr-e">${esc(r.espace||'')}</span>${(r.table_ids||[]).length?`<span class="rr-b">${tableNames(r)}</span>`:'<span class="rr-b warn">Sans table</span>'}${r.attended?pill('Venu','ok'):''}</div>`;
+const resaRow=(r,on)=>`<div class="rr${on?' on':''}" data-act="rsel" data-ref="${esc(r.ref)}"><span class="rr-t">${esc((r.slot||'').slice(0,5))}</span><span class="rr-n">${esc(r.from_name||'—')}</span><span class="rr-c">${+r.covers||0} pers.</span><span class="rr-e">${esc(r.espace||'')}</span>${liveTables(r).length?`<span class="rr-b">${tableNames(r)}</span>`:'<span class="rr-b warn">Non affectée</span>'}${r.attended?pill('Venu','ok'):''}</div>`;
 function resaDetail(r){
   const day=fmtDay(r.date_iso), D=day.charAt(0).toUpperCase()+day.slice(1), ph=String(r.phone||''), pd=ph.replace(/[^\d+]/g,'');
-  const cur=(r.table_ids||[]).map(String), multi=cur.length>1;
+  const cur=liveTables(r).map(t=>String(t.id)), multi=cur.length>1;
   const opts=SPACES.map(sp=>{ const ts=TABLES.filter(t=>String(t.space_id)===String(sp.id)); return ts.length?`<optgroup label="${esc(sp.name)}">${ts.map(t=>`<option value="${esc(t.id)}"${cur[0]===String(t.id)&&!multi?' selected':''}>${esc(t.name||'Table')} · ${+t.seats||0} pl.</option>`).join('')}</optgroup>`:''; }).join('')+TABLES.filter(t=>!SPACES.some(sp=>String(sp.id)===String(t.space_id))).map(t=>`<option value="${esc(t.id)}"${cur[0]===String(t.id)&&!multi?' selected':''}>${esc(t.name||'Table')} · ${+t.seats||0} pl.</option>`).join('');
   const tsel=`<select class="rd-sel" data-rtab="${esc(r.ref)}"><option value="">Non affectée</option>${multi?`<option value="__m" selected>${esc(tableNames(r).replace(/<[^>]*>/g,''))}</option>`:''}${opts}</select>`;
   const L=(k,v)=>`<div class="rd-l"><span>${k}</span>${v}</div>`, cr=r.created_at?new Date(r.created_at).toLocaleDateString('fr-FR'):'';
