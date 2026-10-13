@@ -1028,6 +1028,7 @@ input.in.hr{width:76px;text-align:center;padding:8px 10px;font-size:15px;font-we
 .lc-h small{color:var(--mut);font-size:12px;white-space:nowrap}.lc-h .lc-x,.lc-h .delc{margin-left:auto}
 .lc-row{display:flex;align-items:center;gap:10px;padding:8px 0}.lc-row+.lc-row{border-top:1px solid var(--line)}
 .lc-tn{flex:1;min-width:0;border:0;background:none;font:600 14px Inter,system-ui,sans-serif;color:var(--ink);padding:2px 0}.lc-tn:focus{outline:0;text-decoration:underline}
+.lc-sp{position:relative;flex:none;width:28px;height:26px;display:grid;place-items:center;border-radius:999px;color:var(--mut);font-size:15px;cursor:pointer}.lc-sp:hover{background:var(--soft);color:var(--ink)}.lc-sp select{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
 .lc-st{display:inline-flex;align-items:center;background:var(--soft);border-radius:999px;flex:none}.lc-st button{width:28px;height:26px;border:0;background:none;color:var(--mut);font-weight:700;font-size:15px;cursor:pointer}.lc-st em{font-style:normal;font-weight:700;min-width:44px;text-align:center;font-size:13px}
 .lc-x{border:0;background:none;color:#c9c4bb;font-size:13px;cursor:pointer;flex:none;padding:4px}.lc-x:hover{color:#d33}
 .lc-add{display:block;border:0;background:none;padding:10px 0 4px;font:700 13px Inter,system-ui,sans-serif;color:var(--brand-text);cursor:pointer}
@@ -2020,10 +2021,12 @@ async function emSend(test){
 function spacesEditor(){
   // Une carte par espace : nom modifiable, une ligne par table (nom, places −/+, retirer).
   const seatsOf=id=>TABLES.filter(t=>t.space_id===id).reduce((a,t)=>a+(+t.seats||0),0);
-  const sp=SPACES.map(x=>{ const tb=TABLES.filter(t=>t.space_id===x.id);
+  const num=t=>{ const m=String(t.name||'').match(/(\d+)\s*$/); return m?+m[1]:1e6; };
+  const spSel=t=>SPACES.length>1?`<label class="lc-sp" title="Changer d'espace">⇄<select data-tbsp="${t.id}" aria-label="Changer d'espace">${SPACES.map(o=>`<option value="${o.id}"${o.id===t.space_id?' selected':''}>${esc(o.name)}</option>`).join('')}</select></label>`:'';
+  const sp=SPACES.map(x=>{ const tb=TABLES.filter(t=>t.space_id===x.id).sort((a,b)=>num(a)-num(b));
     const del=`<button class="lc-x" data-act="spDelAsk" data-id="${x.id}" aria-label="Supprimer l'espace" title="Supprimer l'espace">✕</button>`;
     return `<div class="lcard"><div class="lc-h"><input class="lc-name" value="${esc(x.name)}" data-spn="${x.id}" aria-label="Nom de l'espace"><small>${tb.length} table${tb.length>1?'s':''} · ${seatsOf(x.id)} places</small>${del}</div>
-      ${tb.map((t,i)=>`<div class="lc-row"><input class="lc-tn" value="${esc(t.name||'')}" placeholder="Table ${i+1}" data-tbn="${t.id}" aria-label="Nom de la table"><span class="lc-st"><button data-act="tbSeat" data-id="${t.id}" data-v="${Math.max(1,(+t.seats||1)-1)}" aria-label="Une place de moins">−</button><em>${+t.seats||0} pl.</em><button data-act="tbSeat" data-id="${t.id}" data-v="${Math.min(30,(+t.seats||0)+1)}" aria-label="Une place de plus">+</button></span><button class="lc-x" data-act="tbDel" data-id="${t.id}" aria-label="Retirer la table">✕</button></div>`).join('')}
+      ${tb.map((t,i)=>`<div class="lc-row"><input class="lc-tn" value="${esc(t.name||'')}" placeholder="Table ${i+1}" data-tbn="${t.id}" aria-label="Nom de la table">${spSel(t)}<span class="lc-st"><button data-act="tbSeat" data-id="${t.id}" data-v="${Math.max(1,(+t.seats||1)-1)}" aria-label="Une place de moins">−</button><em>${+t.seats||0} pl.</em><button data-act="tbSeat" data-id="${t.id}" data-v="${Math.min(30,(+t.seats||0)+1)}" aria-label="Une place de plus">+</button></span><button class="lc-x" data-act="tbDel" data-id="${t.id}" aria-label="Retirer la table">✕</button></div>`).join('')}
       <button class="lc-add" data-act="tbAdd" data-id="${x.id}">+ Ajouter une table</button></div>`; }).join('');
   const add=UI.spNewOpen?`<div class="lcard lc-new"><input class="in" id="spNew" placeholder="Nom de l'espace (ex. Terrasse)"><button class="btn" data-act="spAdd">${I('plus')}Ajouter</button></div>`:`<button class="lcard lc-new" data-act="spNewOpen">+ Ajouter un espace</button>`;
   return `<div class="lgrid">${sp}${add}</div>`;
@@ -2213,6 +2216,7 @@ document.addEventListener('change',async e=>{
     if(ds.svn){ await spRun(sb.from('restaurant_services').update({name:t.value.trim()}).eq('id',ds.svn),'Enregistré'); return; }
     if(ds.svt){ const [id,f]=ds.svt.split('|'); const v=toHM(fromHM(t.value)); if(!v){ toast('Heure invalide'); return; } t.value=v; await spRun(sb.from('restaurant_services').update({[f]:v}).eq('id',id),'Enregistré'); return; }
     if(ds.spn){ await spRun(sb.from('restaurant_spaces').update({name:t.value.trim()}).eq('id',ds.spn),'Enregistré'); return; }
+    if(ds.tbsp){ const to=SPACES.find(o=>String(o.id)===t.value); await spRun(sb.from('restaurant_tables').update({space_id:to?to.id:t.value}).eq('id',ds.tbsp),'Table déplacée vers '+(to?to.name:'')); return; }
     if(ds.tbn){ await spRun(sb.from('restaurant_tables').update({name:t.value.trim()||null}).eq('id',ds.tbn),'Enregistré'); return; }
     if(ds.tbs){ await spRun(sb.from('restaurant_tables').update({seats:+t.value}).eq('id',ds.tbs),'Enregistré'); return; } }
   if(e.target.dataset&&e.target.dataset.emdish&&UI.em){ const d=allDishes()[+e.target.value]; UI.em.f.dish=d||null; if(d&&d.img&&!UI.em.f.image) UI.em.f.image=d.img; render(); emPreview(true); return; }
