@@ -193,14 +193,17 @@ async function contactMessage(env, b) {
   const recent = await sb(env, `contact_messages?client_slug=eq.${enc(slug)}&created_at=gte.${enc(since)}&${who}&select=id`).catch(() => []);
   if (recent && recent.length >= 3) return { ok: false, error: 'Trop de messages d’un coup, réessayez dans quelques minutes.' };
   await sb(env, 'contact_messages', { method: 'POST', body: { client_slug: slug, name, email: email || null, phone: phone || null, message, page: cut(b.page, 200) || null } });
+  // Case cochée (jamais pré-cochée) : la personne entre dans la base clients avec son accord, comme à la réservation.
+  if (email) await sb(env, 'rpc/resa_upsert_client', { method: 'POST', body: {
+    p_slug: slug, p_email: email, p_phone: normPhone(phone) || '', p_name: name, p_optin: b.optin === true } }).catch(() => {});
   const to = [...new Set([st.notify_email, env.ADMIN_EMAIL].filter(Boolean).join(',').split(/[,;\s]+/).filter(Boolean).map(x => x.toLowerCase()))].join(',');
-  if (to) await sendEmail(env, st, to, st.restaurant_name, `Nouveau message de ${name}`, mailMessage(st, { name, email, phone, message }), email || undefined).catch(() => {});
+  if (to) await sendEmail(env, st, to, st.restaurant_name, `Nouveau message de ${name}`, mailMessage(st, { name, email, phone, message, optin: b.optin === true }), email || undefined).catch(() => {});
   return { ok: true };
 }
 const mailMessage = (st, m) => page(st.restaurant_name,
   `<p><b>Nouveau message depuis le site</b></p>
    <div style="background:#f6f4f0;border-radius:12px;padding:14px 16px;margin:12px 0;white-space:pre-line;font-size:15px">${esc(m.message)}</div>
-   <table style="border-collapse:collapse;font-size:15px">${line('De', m.name)}${m.email ? line('Email', m.email) : ''}${m.phone ? line('Téléphone', m.phone) : ''}</table>
+   <table style="border-collapse:collapse;font-size:15px">${line('De', m.name)}${m.email ? line('Email', m.email) : ''}${m.phone ? line('Téléphone', m.phone) : ''}${line('Offres', m.optin ? 'accepte de recevoir les offres' : 'non')}</table>
    <p style="color:#6b7080;font-size:13.5px">${m.email ? 'Répondre à cet email écrit directement au client.' : 'Pas d’email laissé : rappelez le client.'} Tous les messages sont aussi dans /admin → Messages.</p>`);
 
 // ── Rappels (~24 h avant) ─────────────────────────────────────────
