@@ -17,7 +17,7 @@ values ('soyonne', 'Chez Soyonne', 'beltab.app@gmail.com', 'beltab.app@gmail.com
         false, 0, true)
 on conflict (client_slug) do nothing;
 
--- 3) Salle, tables et services (seulement si le restaurant n'en a encore aucun)
+-- 3) Espaces, tables et services (seulement si le restaurant n'en a encore aucun)
 do $$
 declare sp uuid;
 begin

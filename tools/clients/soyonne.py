@@ -182,8 +182,10 @@ RESA = {
     'address': '9 rue de Lancry, 75010 Paris',
     'phone': '09 60 51 60 42',
     'reply_to': 'yubestory@gmail.com',
+    # Espaces et tables, repris du document du restaurant. Plusieurs espaces possibles :
+    #   'spaces': [{'name': 'Salle', 'tables': [('T1', 2)]}, {'name': 'Terrasse', 'tables': [('E1', 4)]}]
     'spaces': [{'name': 'Salle'}],
-    # (nom, places)
+    # (nom, places) : tables du premier espace
     'tables': [('T1', 2), ('T2', 2), ('T3', 2), ('T4', 4), ('T5', 4), ('T6', 6)],
     # services : (nom, début, fin). Les jours d'ouverture viennent des horaires de la carte.
     'services': [('Midi', '11:30', '15:30'), ('Soir', '18:30', '22:30')],

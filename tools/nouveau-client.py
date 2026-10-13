@@ -57,6 +57,18 @@ def main():
     notify = NOTIFY_AGENCY if demo else ', '.join(x for x in [R.get('notify_email'), NOTIFY_AGENCY] if x)
     reply = NOTIFY_AGENCY if demo else R.get('reply_to', '')
     site = 'https://' + t['host']
+    # Plusieurs espaces possibles : chaque espace porte ses tables (« tables » de premier niveau = premier espace).
+    spaces = [dict(x) for x in R['spaces']]
+    if R.get('tables') and not spaces[0].get('tables'):
+        spaces[0]['tables'] = R['tables']
+    blocks = []
+    for i, sp_ in enumerate(spaces):
+        blk = f"    insert into restaurant_spaces (client_slug, name, sort_order) values ({q(rslug)}, {q(sp_['name'])}, {i}) returning id into sp;"
+        tb = sp_.get('tables') or []
+        if tb:
+            blk += "\n    insert into restaurant_tables (client_slug, space_id, name, seats) values\n      " + (',\n      ').join(f"({q(rslug)}, sp, {q(n)}, {int(c)})" for n, c in tb) + ";"
+        blocks.append(blk)
+    spaces_sql = "\n".join(blocks)
 
     out = [f"""-- ════════════════════════════════════════════════════════════════
 -- {R['restaurant_name']} — mise en place sur le socle commun Beltab
@@ -77,14 +89,12 @@ values ({q(rslug)}, {q(R['restaurant_name'])}, {q(reply)}, {q(notify)}, {q(R['ad
         false, 0, true)
 on conflict (client_slug) do nothing;
 
--- 3) Salle, tables et services (seulement si le restaurant n'en a encore aucun)
+-- 3) Espaces, tables et services (seulement si le restaurant n'en a encore aucun)
 do $$
 declare sp uuid;
 begin
   if not exists (select 1 from restaurant_spaces where client_slug = {q(rslug)}) then
-    insert into restaurant_spaces (client_slug, name, sort_order) values ({q(rslug)}, {q(R['spaces'][0]['name'])}, 0) returning id into sp;
-    insert into restaurant_tables (client_slug, space_id, name, seats) values
-      {(',' + chr(10) + '      ').join(f"({q(rslug)}, sp, {q(n)}, {s})" for n, s in R['tables'])};
+{spaces_sql}
   end if;
   if not exists (select 1 from restaurant_services where client_slug = {q(rslug)}) then
     insert into restaurant_services (client_slug, name, start_time, end_time, sort_order) values
