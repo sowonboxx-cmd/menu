@@ -1034,6 +1034,12 @@ input.in.hr{width:76px;text-align:center;padding:8px 10px;font-size:15px;font-we
 .lc-new{display:flex;align-items:center;justify-content:center;gap:8px;min-height:120px;background:none;border:2px dashed #ddd8cf;font:700 13px Inter,system-ui,sans-serif;color:var(--brand-text);cursor:pointer;flex-wrap:wrap}.lc-new .in{flex:1;min-width:140px}
 @media(max-width:1100px){.lgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:899px){.lgrid{grid-template-columns:1fr}.fpleg em{display:none}.fpB .fp-ed.svc .fp-side{position:static;width:auto;border:0;border-top:1px solid var(--line);border-radius:0}}
+.cc-box{background:var(--card);border-radius:22px;padding:22px 24px 20px;width:460px;max-width:100%}.cc-box h3{margin:0 0 14px;font-size:18px}
+.cc-ab{display:flex;align-items:center;gap:10px;margin-bottom:14px}.cc-ab>div{flex:1;background:var(--soft);border-radius:14px;padding:10px 12px}.cc-ab span{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mut)}.cc-ab b{display:block;font-size:13.5px;margin-top:3px}.cc-ab i{font-style:normal;color:var(--mut);font-weight:700}
+.cc-ab .cc-af{background:#fdecec}.cc-ab .cc-af b{color:#c62828}
+.cc-box p{margin:0 0 10px;font-size:13.5px;line-height:1.5;color:var(--ink)}.cc-box .cc-w{color:#c62828;font-weight:600}
+.cc-a{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}.cc-a .pbtn{background:var(--soft)}.cc-a .cc-ok{background:#c62828;color:#fff}
+@media(max-width:520px){.cc-ab{flex-direction:column;align-items:stretch}.cc-ab i{text-align:center;transform:rotate(90deg)}}
 .hph-ov{position:fixed;inset:0;z-index:9999;background:rgba(16,20,30,.55);display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto}
 .hph-box{position:relative;background:var(--card);border-radius:22px;padding:22px 26px 24px;text-align:center;max-width:100%}
 .hph-box h3{margin:0 0 4px;font-size:18px}.hph-box p{margin:0 0 18px;color:var(--mut);font-size:13px}
@@ -2015,13 +2021,30 @@ function spacesEditor(){
   // Une carte par espace : nom modifiable, une ligne par table (nom, places −/+, retirer).
   const seatsOf=id=>TABLES.filter(t=>t.space_id===id).reduce((a,t)=>a+(+t.seats||0),0);
   const sp=SPACES.map(x=>{ const tb=TABLES.filter(t=>t.space_id===x.id);
-    const del=UI.delc==='sp'+x.id?`<span class="delc">Supprimer l'espace et ses tables ?<button class="btn g" data-act="spDel" data-id="${x.id}">Oui</button><button class="btn red" data-act="delNo">Non</button></span>`:`<button class="lc-x" data-act="delAsk" data-k="sp${x.id}" aria-label="Supprimer l'espace" title="Supprimer l'espace">✕</button>`;
+    const del=`<button class="lc-x" data-act="spDelAsk" data-id="${x.id}" aria-label="Supprimer l'espace" title="Supprimer l'espace">✕</button>`;
     return `<div class="lcard"><div class="lc-h"><input class="lc-name" value="${esc(x.name)}" data-spn="${x.id}" aria-label="Nom de l'espace"><small>${tb.length} table${tb.length>1?'s':''} · ${seatsOf(x.id)} places</small>${del}</div>
       ${tb.map((t,i)=>`<div class="lc-row"><input class="lc-tn" value="${esc(t.name||'')}" placeholder="Table ${i+1}" data-tbn="${t.id}" aria-label="Nom de la table"><span class="lc-st"><button data-act="tbSeat" data-id="${t.id}" data-v="${Math.max(1,(+t.seats||1)-1)}" aria-label="Une place de moins">−</button><em>${+t.seats||0} pl.</em><button data-act="tbSeat" data-id="${t.id}" data-v="${Math.min(30,(+t.seats||0)+1)}" aria-label="Une place de plus">+</button></span><button class="lc-x" data-act="tbDel" data-id="${t.id}" aria-label="Retirer la table">✕</button></div>`).join('')}
       <button class="lc-add" data-act="tbAdd" data-id="${x.id}">+ Ajouter une table</button></div>`; }).join('');
   const add=UI.spNewOpen?`<div class="lcard lc-new"><input class="in" id="spNew" placeholder="Nom de l'espace (ex. Terrasse)"><button class="btn" data-act="spAdd">${I('plus')}Ajouter</button></div>`:`<button class="lcard lc-new" data-act="spNewOpen">+ Ajouter un espace</button>`;
   return `<div class="lgrid">${sp}${add}</div>`;
 }
+// Avant de retirer des places (chaise, table, espace) : on montre l'avant / après, car ça change tout de suite
+// ce qui est proposé aux clients pour réserver. Renvoie true si on confirme.
+function capaConfirm(o){ return new Promise(res=>{
+  const sp=SPACES.length, tb=TABLES.length, pl=TABLES.reduce((a,t)=>a+(+t.seats||0),0);
+  const f=(s,t,p)=>`${s} espace${s>1?'s':''} · ${t} table${t>1?'s':''} · ${p} place${p>1?'s':''}`;
+  const n=[sp+(o.sp||0),tb+(o.tb||0),pl+(o.pl||0)];
+  const ids=o.tables||[], t0=todayIso(), hit=RESA.filter(r=>r.date_iso>=t0&&(r.table_ids||[]).some(id=>ids.includes(id)));
+  const d=document.createElement('div'); d.className='hph-ov';
+  d.innerHTML=`<div class="cc-box" role="dialog" aria-modal="true"><h3>${o.title}</h3>
+    <div class="cc-ab"><div><span>Avant</span><b>${f(sp,tb,pl)}</b></div><i>→</i><div class="cc-af"><span>Après</span><b>${f(n[0],n[1],n[2])}</b></div></div>
+    <p>Ça change tout de suite les réservations : vos clients se verront proposer ${Math.abs(o.pl||0)} place${Math.abs(o.pl||0)>1?'s':''} de moins, et les statistiques de remplissage aussi.</p>
+    ${hit.length?`<p class="cc-w">${hit.length} réservation${hit.length>1?'s':''} à venir ${hit.length>1?'sont placées':'est placée'} sur ${ids.length>1?'ces tables':'cette table'} : ${hit.length>1?'elles perdront leur table':'elle perdra sa table'}.</p>`:''}
+    <div class="cc-a"><button type="button" class="pbtn" data-x="0">Annuler</button><button type="button" class="pbtn cc-ok" data-x="1">${o.ok}</button></div></div>`;
+  d.addEventListener('click',e=>{ const b=e.target.closest('[data-x]'); if(b){ d.remove(); res(b.dataset.x==='1'); } else if(e.target===d){ d.remove(); res(false); } });
+  document.body.appendChild(d); });
+}
+window.capaConfirm=capaConfirm;
 async function spRun(p,ok){ const {error}=await p; if(error){ toast('⚠ '+error.message); return false; } if(ok) toast(ok); await loadSide(); return true; }
 
 
@@ -2272,10 +2295,11 @@ document.addEventListener('click',async e=>{
     case 'emTest': emSend(true); break;
     case 'emTab': UI.emTab=d.k; render(); if(d.k==='prev') setTimeout(()=>emPreview(true),30); break;
     case 'spAdd': { const v=($('#spNew')||{}).value||''; if(!v.trim()) { toast('Donnez un nom à l\'espace'); break; } UI.spNewOpen=false; await spRun(sb.from('restaurant_spaces').insert({client_slug:RESA_SLUG,name:v.trim(),sort_order:SPACES.length?Math.max(...SPACES.map(x=>x.sort_order||0))+1:0}),'Espace ajouté'); break; }
+    case 'spDelAsk': { const x=SPACES.find(q=>String(q.id)===String(d.id)); if(!x) break; const tb=TABLES.filter(t=>t.space_id===x.id); if(!await capaConfirm({title:'Supprimer l\'espace « '+esc(x.name)+' » et ses tables&nbsp;?',sp:-1,tb:-tb.length,pl:-tb.reduce((a,t)=>a+(+t.seats||0),0),tables:tb.map(t=>t.id),ok:'Oui, supprimer l\'espace'})) break; await spRun(sb.from('restaurant_tables').delete().eq('space_id',x.id)); await spRun(sb.from('restaurant_spaces').delete().eq('id',x.id),'Espace supprimé'); break; }
     case 'spDel': UI.delc=null; await spRun(sb.from('restaurant_tables').delete().eq('space_id',d.id)); await spRun(sb.from('restaurant_spaces').delete().eq('id',d.id),'Espace supprimé'); break;
     case 'tbAdd': { const nums=TABLES.map(t=>+((String(t.name||'').match(/(\d+)\s*$/)||[])[1]||0)); await spRun(sb.from('restaurant_tables').insert({client_slug:RESA_SLUG,space_id:d.id,seats:2,name:'Table '+(Math.max(TABLES.length,...nums)+1)}),'Table ajoutée'); break; }
-    case 'tbDel': await spRun(sb.from('restaurant_tables').delete().eq('id',d.id)); break;
-    case 'tbSeat': await spRun(sb.from('restaurant_tables').update({seats:+d.v}).eq('id',d.id)); break;
+    case 'tbDel': { const t=TABLES.find(x=>String(x.id)===String(d.id)); if(!t) break; if(!await capaConfirm({title:'Supprimer « '+esc(t.name||'cette table')+' »&nbsp;?',tb:-1,pl:-(+t.seats||0),tables:[t.id],ok:'Oui, supprimer la table'})) break; await spRun(sb.from('restaurant_tables').delete().eq('id',d.id),'Table supprimée'); break; }
+    case 'tbSeat': { const t=TABLES.find(x=>String(x.id)===String(d.id)); if(t&&+d.v<(+t.seats||0)&&!await capaConfirm({title:'Retirer une place à « '+esc(t.name||'cette table')+' » ?',pl:+d.v-(+t.seats||0),ok:'Oui, retirer une place'})) break; await spRun(sb.from('restaurant_tables').update({seats:+d.v}).eq('id',d.id)); break; }
     case 'spNewOpen': UI.spNewOpen=true; render(); setTimeout(()=>{ const i=$('#spNew'); if(i) i.focus(); },30); break;
     case 'espV': UI.espv=d.v; render(); break;
     case 'stPer': UI.stp=d.k; render(); break;

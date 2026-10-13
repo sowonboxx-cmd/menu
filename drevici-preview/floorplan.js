@@ -260,7 +260,7 @@ async function sideAct(x){ const its=items(); const D=6;
   if(SEL&&SEL.k==='open'){ const o=L.opens.find(q=>q.id===SEL.id); if(x==='ol+') o.len+=12; if(x==='ol-') o.len=Math.max(30,o.len-12); if(x==='otype') o.type=o.type==='win'?'door':'win'; if(x==='del'){ L.opens=L.opens.filter(q=>q!==o); SEL=null; } saveLayout(); return draw(); }
   if(SEL&&SEL.k==='deco'){ const t=L.deco.find(q=>q.id===SEL.id); if(x==='dr+') t.r+=3; if(x==='dr-') t.r=Math.max(8,t.r-3); if(x==='del'){ L.deco=L.deco.filter(q=>q!==t); SEL=null; } saveLayout(); return draw(); }
   if(!SEL) return; const t=its.find(o=>String(o.id)===String(SEL.id)); if(!t) return; const p=L.pos[t.id], md=t.model&&MD(t.model);
-  if(x==='n+'||x==='n-'){ const n=Math.max(1,Math.min(25,t.seats+(x==='n+'?1:-1))); if(t.kind==='bar'){ p.w=Math.max(p.w||200,n*50); } return setSeats(t,n); }
+  if(x==='n+'||x==='n-'){ const n=Math.max(1,Math.min(25,t.seats+(x==='n+'?1:-1))); if(n<t.seats&&window.capaConfirm&&!await window.capaConfirm({title:'Retirer une place à « '+H(t.name||'cette table')+' » ?',pl:n-t.seats,ok:'Oui, retirer une place'})) return; if(t.kind==='bar'){ p.w=Math.max(p.w||200,n*50); } return setSeats(t,n); }
   if(md&&/^m[lwd][+-]$/.test(x)){ if(!LAST||String(LAST.tid)!==String(t.id)||LAST.mid!==md.id) LAST={tid:t.id,mid:md.id,orig:{w:md.w,h:md.h}}; const d=x.endsWith('+')?D:-D; if(x[1]==='l') md.w=Math.max(24,md.w+d); else if(x[1]==='w') md.h=Math.max(24,md.h+d); else md.w=md.h=Math.max(36,md.w+d); saveLayout(); return draw(); }
   if(x==='bl+'||x==='bl-'){ p.w=Math.max(80,(p.w||200)+(x==='bl+'?12:-12)); saveLayout(); return draw(); }
   if(x==='only'&&md&&LAST){ const nm={id:'m'+Date.now().toString(36),name:md.name+' (unique)',w:md.w,h:md.h,seats:md.seats,round:md.round}; L.models.push(nm); md.w=LAST.orig.w; md.h=LAST.orig.h; p.model=nm.id; LAST=null; saveLayout(); return draw(); }
@@ -270,7 +270,7 @@ async function sideAct(x){ const its=items(); const D=6;
   if(x==='split'){ const u=p.units||1, per=Math.max(1,Math.round(t.seats/u)), hz=t.w>=t.h, uw=md.w; p.units=1;
     for(let i=1;i<u;i++){ const row=await db(sb.from('restaurant_tables').insert({client_slug:RESA_SLUG,space_id:t.space_id,seats:per}).select().single()); if(row&&row.id) L.pos[row.id]={model:p.model,rot:p.rot,side:p.side,x:hz?t.x+(uw+12)*i:t.x,y:hz?t.y:t.y+(uw+12)*i}; }
     saveLayout(); await db(sb.from('restaurant_tables').update({seats:t.seats-per*(u-1)}).eq('id',t.id),'Tables séparées'); return reload(); }
-  if(x==='del'){ ASKDEL=t.id; return draw(); } if(x==='delno'){ ASKDEL=null; return draw(); }
+  if(x==='del'){ if(window.capaConfirm){ if(!await window.capaConfirm({title:'Supprimer « '+H(t.name||'cette table')+' » ?',tb:-1,pl:-t.seats,tables:[t.id],ok:'Oui, supprimer la table'})) return; x='delyes'; } else { ASKDEL=t.id; return draw(); } } if(x==='delno'){ ASKDEL=null; return draw(); }
   if(x==='delyes'){ ASKDEL=null; delete L.pos[t.id]; SEL=null; saveLayout(); await db(sb.from('restaurant_tables').delete().eq('id',t.id),'Table supprimée'); return reload(); } }
 async function onChange(e){ const host=document.getElementById('fpHost'); if(!host||!host.contains(e.target)) return; const el=e.target, f=el.dataset.ff;
   if(el.dataset.finto!==undefined){ INTO=+el.value; return; }
