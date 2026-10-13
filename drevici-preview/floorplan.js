@@ -248,9 +248,6 @@ function draw(){ const host=document.getElementById('fpHost'); if(!host||!L) ret
       s+=`<g data-fk="deco" data-id="${t.id}" style="cursor:${ed?'grab':'default'}">${g}</g>`; if(on) top+=R(b.x-8,b.y-8,b.w+16,b.h+16,10,`fill="none" stroke="${COL.sel}" stroke-width="2" stroke-dasharray="5 4" pointer-events="none"`); return; }
     const g=t.kind==='plant'?C(t.x,t.y,t.r,`fill="${COL.plant}"`):C(t.x,t.y,t.r,`fill="${COL.paras}"`)+C(t.x,t.y,5,`fill="${COL.wall}"`);
     s+=`<g data-fk="deco" data-id="${t.id}" style="cursor:${ed?'grab':'default'}">${g}</g>`; if(on){ top+=C(t.x,t.y,t.r+7,`fill="none" stroke="${COL.sel}" stroke-width="2" stroke-dasharray="5 4" pointer-events="none"`)+handle(t.x+t.r*.71+5,t.y+t.r*.71+5,'deco',t.id,'se'); } });
-  zones(its).forEach(z=>{ const c=ed?spCol(z.sp):COL.wall, lab=`${H(spName(z.sp))} · ${z.n} table${z.n>1?'s':''} · ${z.pl} place${z.pl>1?'s':''}`, w=lab.length*6.9+30, cx=z.x+z.w/2;
-    // Zone d'espace : fond teinté + pointillés (couleur de l'espace en Modifier, gris discret en Service)
-    s+=`<g pointer-events="none">${R(z.x,z.y,z.w,z.h,20,`fill="${ed?c:'#2f3437'}" fill-opacity="${ed?.1:.05}" stroke="${c}" stroke-opacity="${ed?.9:.3}" stroke-width="2" stroke-dasharray="7 5"`)}</g>`; });
   its.forEach(t=>{ const r=res[t.id], k=r?r.k:'l', on=isSel('item',t.id), cc=ed?COL.chair:ST[k]; let g='';
     if(t.kind==='chair') g=R(t.x,t.y,t.w,t.h,5,`fill="${ed?(on?COL.sel:COL.chair):ST[k]}"`);
     else if(t.kind==='stool') g=C(t.x+10,t.y+10,10,`fill="${ed?(on?COL.sel:COL.chair):ST[k]}"`);
@@ -508,7 +505,7 @@ function onUp(){ if(!drag) return; const moved=drag.moved, dt=drag.type, did=dra
   if(moved&&(dt==='room'||(dt==='h'&&D.tk==='room'))) pack(D.anchor);
   if(moved) saveLayout(); draw();
   if(moved&&dt==='multi'){ dropSync(D.list.map(([q])=>Object.keys(L.pos).find(i=>L.pos[i]===q)).filter(Boolean)); return; }
-  if(moved&&dt==='item'){ const t=items().find(x=>String(x.id)===String(did)); if(t&&isTab(t)){ const b=fbox(t), r=roomOf(b.x+b.w/2,b.y+b.h/2), min=r?r.y+HDR+6+ZL+ZP:null; if(r&&b.y<min){ L.pos[t.id].y+=Math.ceil(min-b.y); saveLayout(); draw(); } } dropSync(did); } }
+  if(moved&&dt==='item') dropSync(did); }
 // Synchro plan → liste : une table posée dans la zone (ou la pièce) d'un autre espace change d'espace.
 async function dropSync(ids){ ids=[].concat(ids); const its=items(), mv=[]; if(typeof sb==='undefined') return;
   ids.forEach(id=>{ const t=its.find(x=>String(x.id)===String(id)); if(!t||!isTab(t)) return; const to=dropTarget(t,its.filter(o=>!ids.map(String).includes(String(o.id)))); if(to!=null&&to!==t.space_id) mv.push([t,to]); });
@@ -519,7 +516,7 @@ async function dropSync(ids){ ids=[].concat(ids); const its=items(), mv=[]; if(t
 function dropTarget(t,others){
   const b=fbox(t), cx=b.x+b.w/2, cy=b.y+b.h/2, zs=zones(others,t.id), r=roomOf(cx,cy);
   const inZ=zs.find(z=>cx>=z.x&&cx<=z.x+z.w&&cy>=z.y&&cy<=z.y+z.h);
-  let to=inZ?inZ.sp:null;
+  let to=null;
   if(to==null&&r&&!zs.some(z=>z.sp===t.space_id&&z.room===r)){ const cnt={}; zs.filter(z=>z.room===r).forEach(z=>cnt[z.sp]=(cnt[z.sp]||0)+z.n); const best=Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0];
     to=best?(isNaN(+best[0])?best[0]:+best[0]):((spacesNow().find(s=>(s.name||'').toLowerCase()===(r.name||'').toLowerCase())||{}).id??null); }
   return to; }
@@ -538,7 +535,7 @@ function mount(){ const host=document.getElementById('fpHost'); if(!host) return
   if(!L){ const saved=typeof DATA!=='undefined'&&DATA&&DATA.floorPlan; L=saved&&saved.rooms?JSON.parse(JSON.stringify(saved)):null; if(!L){ if(!tablesNow().length&&!spacesNow().length) return; L=seed(); saveLayout(); }
     ['car','rect','lon','ron'].forEach(id=>{ let m=MD(id); if(!m){ const d=defaults().models.find(q=>q.id===id); L.models.push(m=Object.assign({},d)); } Object.assign(m,STD[id]); }); }
   Object.values(L.pos).forEach(p=>{ if(p&&p.kind==='bar'){ const vert=(p.rot||0)%2; delete p.kind; delete p.w; delete p.h; p.model='lon'; p.rot=vert?1:0; p.side='one'; } });   // le bar = une table comme les autres
-  pack(); breathe();
+  pack();
   if(!host.querySelector('.fp')){ host.innerHTML=`<div class="fp"><div class="fp-bar"><div class="fp-cnt"></div><div class="fp-tools"></div><div class="fp-hrs"></div><div class="fp-chips"></div><div class="fp-seg"><button data-fm="svc" class="on">Service</button><button data-fm="edit">Modifier</button></div></div><div class="fp-ed svc"><div class="fp-pal"></div><div class="fp-cv"><svg class="fp-svg"></svg></div><div class="fp-side"></div></div></div>`; }
   draw(); }
 let bound=false;
