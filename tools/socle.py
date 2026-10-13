@@ -103,9 +103,9 @@ def book(s):
     s = rep(s, "const DINNER      = [", "let DINNER      = [", 1)
     s = rep(s, "  const closed = CLOSED_DAYS;", "  const closed = beltabClosedDays();", 1)
     s = rep(s, "  noMsg.classList.add('hidden');\n", "  noMsg.classList.add('hidden');\n  DINNER = beltabSlots(S.date);\n", 1, 'slots du jour')
-    s = rep(s, "    if (d.restaurantLogo) {\n      if (logoImg)",
+    s = rep(s, "    if (d.restaurantLogo && d.headerMode !== 'name') {\n      if (logoImg)",
             "    BT_SCHEDULE = Array.isArray(d.schedule) ? d.schedule : null;\n    beltabColors(d.brandColors);\n"
-            "    renderCal();\n    if (d.restaurantLogo && d.showHeaderLogo !== false) {\n      if (logoImg)", 1, 'branding')
+            "    renderCal();\n    if (d.restaurantLogo && d.headerMode !== 'name' && d.showHeaderLogo !== false) {\n      if (logoImg)", 1, 'branding')
     s = rep(s, "async function loadHeaderBranding() {", r'''// ── Socle Beltab : horaires et couleurs du restaurant (lus dans sa carte) ──
 let BT_SCHEDULE = null;
 const BT_DAYS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
