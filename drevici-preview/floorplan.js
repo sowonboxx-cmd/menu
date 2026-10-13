@@ -249,8 +249,8 @@ function draw(){ const host=document.getElementById('fpHost'); if(!host||!L) ret
     const g=t.kind==='plant'?C(t.x,t.y,t.r,`fill="${COL.plant}"`):C(t.x,t.y,t.r,`fill="${COL.paras}"`)+C(t.x,t.y,5,`fill="${COL.wall}"`);
     s+=`<g data-fk="deco" data-id="${t.id}" style="cursor:${ed?'grab':'default'}">${g}</g>`; if(on){ top+=C(t.x,t.y,t.r+7,`fill="none" stroke="${COL.sel}" stroke-width="2" stroke-dasharray="5 4" pointer-events="none"`)+handle(t.x+t.r*.71+5,t.y+t.r*.71+5,'deco',t.id,'se'); } });
   zones(its).forEach(z=>{ const c=ed?spCol(z.sp):COL.wall, lab=`${H(spName(z.sp))} · ${z.n} table${z.n>1?'s':''} · ${z.pl} place${z.pl>1?'s':''}`, w=lab.length*6.9+30, cx=z.x+z.w/2;
-    const zs=window.FPZ||'tint'; if(zs==='none') return;
-    s+=`<g pointer-events="none">${zs==='dash'?R(z.x,z.y,z.w,z.h,18,`fill="${c}" fill-opacity="${ed?.06:.035}" stroke="${c}" stroke-opacity="${ed?1:.35}" stroke-width="2" stroke-dasharray="7 5"`):R(z.x,z.y,z.w,z.h,22,`fill="${ed?c:'#2f3437'}" fill-opacity="${ed?.1:.05}"`)}</g>`; });
+    // Zone d'espace : fond teinté + pointillés (couleur de l'espace en Modifier, gris discret en Service)
+    s+=`<g pointer-events="none">${R(z.x,z.y,z.w,z.h,20,`fill="${ed?c:'#2f3437'}" fill-opacity="${ed?.1:.05}" stroke="${c}" stroke-opacity="${ed?.9:.3}" stroke-width="2" stroke-dasharray="7 5"`)}</g>`; });
   its.forEach(t=>{ const r=res[t.id], k=r?r.k:'l', on=isSel('item',t.id), cc=ed?COL.chair:ST[k]; let g='';
     if(t.kind==='chair') g=R(t.x,t.y,t.w,t.h,5,`fill="${ed?(on?COL.sel:COL.chair):ST[k]}"`);
     else if(t.kind==='stool') g=C(t.x+10,t.y+10,10,`fill="${ed?(on?COL.sel:COL.chair):ST[k]}"`);
