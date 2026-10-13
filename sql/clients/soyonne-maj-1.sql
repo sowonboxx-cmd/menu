@@ -1,0 +1,4 @@
+-- Chez Soyonne · correction du 13/10 : présentation modifiable, ancien bloc « Nos incontournables » retiré.
+-- Ne touche qu'à ces 3 réglages (le reste de la carte, y compris tes modifs dans /admin, ne bouge pas).
+update menu_data set data = data || $p${"intro": {"active": true, "text": {"fr": "Le dopbap est un plat coréen composé d'un bol de riz accompagné de garnitures variées, comme de la viande, du poisson ou des légumes sautés. C'est un plat complet, savoureux et très populaire en Corée."}}, "infoBanner": {"active": false, "label": {"fr": ""}, "title": {"fr": ""}, "desc": {"fr": ""}, "showHome": false, "showFirst": false}, "pinnedShowHome": false, "pinnedShowFirst": false}$p$::jsonb where client_slug = 'soyonne';
+select data->'intro'->>'active' as presentation, data->>'pinnedShowHome' as ancien_bloc_favoris from menu_data where client_slug = 'soyonne';

@@ -139,7 +139,9 @@ DATA = {
     'brandColors': {'primary': '#C5106D', 'accent': '#2CB289', 'bg': '#FBF3E8', 'subtitle': '#FFFFFF', 'tabInactive': '#FFFFFF'},
     'heroActive': True,
     'hero': {'fr': 'Dopbap · planches · kimbap'},
-    'intro': {'active': False, 'text': {'fr': ''}},
+    # Présentation (« à propos ») : modifiable dans /admin → Mon site → Présentation.
+    'intro': {'active': True, 'text': {'fr': "Le dopbap est un plat coréen composé d'un bol de riz accompagné de garnitures variées, "
+                                             "comme de la viande, du poisson ou des légumes sautés. C'est un plat complet, savoureux et très populaire en Corée."}},
     'address': {'street': '9 rue de Lancry', 'zip': '75010', 'city': 'Paris', 'phone': '0960516042',
                 'mapsUrl': 'https://maps.app.goo.gl/3YWhD8KXyNHrYp6k7'},
     'social': {'instagram': 'chez_soyonne', 'facebook': '', 'tiktok': '', 'website': ''},
@@ -163,11 +165,9 @@ DATA = {
     ],
     'specials': [{'id': 'jour', 'active': False, 'label': {'fr': 'Menu du jour'}, 'title': {'fr': 'Menu du jour'},
                   'desc': {'fr': ''}, 'price': '', 'showHome': False, 'showFirst': False}],
-    'infoBanner': {'active': True, 'label': {'fr': 'Notre spécialité'}, 'title': {'fr': 'Le dopbap'},
-                   'desc': {'fr': "Un bol de riz accompagné de garnitures variées : viande, poisson ou légumes sautés. "
-                                  "Un plat complet, savoureux et très populaire en Corée."},
-                   'showHome': True, 'showFirst': True},
-    'pinnedShowHome': True, 'pinnedShowFirst': True, 'pinnedShowRail': True,
+    # Bandeau « infos » : pas modifiable dans /admin → éteint (règle : ne remplir que des champs que le resto peut changer).
+    'infoBanner': {'active': False, 'label': {'fr': ''}, 'title': {'fr': ''}, 'desc': {'fr': ''}, 'showHome': False, 'showFirst': False},
+    'pinnedShowHome': False, 'pinnedShowFirst': False, 'pinnedShowRail': True,
     'corpoTemplates': [], 'formules': [], 'icones': {'main': '', 'secondary': ''},
     'pdfStyle': {'bgColor': '#FFFDF8', 'titleColor': '#C5106D', 'accentColor': '#2CB289', 'showLogo': True,
                  'logoSize': 'grand', 'showFrame': True, 'paperSize': 'a5', 'showCurrency': True, 'instaFont': 'Fraunces'},
