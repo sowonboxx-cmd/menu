@@ -123,7 +123,7 @@ function items(){ const out=[];
     if(t.kind==='chair'){ t.w=t.rot?14:20; t.h=t.rot?20:14; }
     else if(t.kind==='stool'){ t.w=t.h=20; }
     else if(t.kind==='bar'){ const bw=p.w||200, bh=p.h||44; t.w=t.rot?bh:bw; t.h=t.rot?bw:bh; }
-    else if(md){ const sc=p.sc||1; if(md.round){ t.kind='round'; t.w=t.h=md.w*sc; } else { const Ln=md.w*(t.units||1)*sc, Hh=md.h*sc; t.w=t.rot?Hh:Ln; t.h=t.rot?Ln:Hh; } }
+    else if(md){ const sc=p.sc||1; if(md.round){ t.kind='round'; t.w=t.h=md.w*sc; } else { const Ln=md.w*(t.units||1)*sc*(p.fx||1), Hh=md.h*sc*(p.fy||1); t.w=t.rot?Hh:Ln; t.h=t.rot?Ln:Hh; } }
     else { t.w=p.w||80; t.h=p.h||56; }
     out.push(t); });
   // Synchro liste → plan : si l'espace d'une table a changé ailleurs (liste, autre appareil), on la pose dans son nouvel espace.
@@ -205,6 +205,7 @@ const roomOf=(x,y)=>L.rooms.slice().reverse().find(r=>x>=r.x&&x<=r.x+r.w&&y>=r.y
 function seg(o){ const r=L.rooms.find(x=>x.id===o.room); if(!r) return null; const Ln=(o.side==='t'||o.side==='b')?r.w:r.h; o.pos=Math.max(8,Math.min(Ln-o.len-8,o.pos));
   if(o.side==='t') return {x:r.x+o.pos,y:r.y,hz:1,r}; if(o.side==='b') return {x:r.x+o.pos,y:r.y+r.h,hz:1,r}; if(o.side==='l') return {x:r.x,y:r.y+o.pos,hz:0,r}; return {x:r.x+r.w,y:r.y+o.pos,hz:0,r}; }
 const isSel=(k,id)=>SEL&&((SEL.k===k&&String(SEL.id)===String(id))||(SEL.k==='multi'&&k==='item'&&MULTI.has(String(id))));
+const eHandle=(x,y,id,c,vert)=>`<g data-fk="h" data-t="item" data-id="${id}" data-c="${c}" style="cursor:${vert?'ns-resize':'ew-resize'}">${C(x,y,13,'fill="transparent"')}${vert?R(x-11,y-4.5,22,9,4.5,`fill="#fff" stroke="${COL.sel}" stroke-width="2.5"`):R(x-4.5,y-11,9,22,4.5,`fill="#fff" stroke="${COL.sel}" stroke-width="2.5"`)}</g>`;
 const handle=(x,y,k,id,c)=>`<g data-fk="h" data-t="${k}" data-id="${id}" data-c="${c}" style="cursor:nwse-resize">${C(x,y,12,'fill="transparent"')}${C(x,y,6.5,`fill="#fff" stroke="${COL.sel}" stroke-width="2.5"`)}</g>`;
 
 // ── réservations du jour, par table ──
@@ -257,12 +258,18 @@ function draw(){ const host=document.getElementById('fpHost'); if(!host||!L) ret
       else g+=R(t.x,t.y,t.w,t.h,8,`fill="${COL.table}"`)+seams(t);
       const cx=t.x+t.w/2, cy=t.y+t.h/2, vert=t.h>t.w*1.6;
       if(t.kind!=='bar'){ if(!ed&&r){ const lab=`${r.name} · ${r.cov}${r.k==='r'&&r.slot?' · '+r.slot:''}${r.n>1?' +'+(r.n-1):''}`, w=lab.length*6.6+16; g+=`<g ${vert?`transform="rotate(-90 ${cx} ${cy})"`:''}>${R(cx-w/2,cy-11,w,22,11,`fill="${ST[k]}"`)}${T(cx,cy+4,H(lab),'text-anchor="middle" font-size="11.5" font-weight="700" fill="#fff"')}</g>`; }
-        else { const tr=''; g+=T(cx,cy+6,String(t.seats),`text-anchor="middle" font-size="17" font-weight="800" fill="#fff"${tr}`); } } }
+        else { const tr=''; const nm=spName(t.space_id), room=roomOf(cx,cy), lab=(room&&nm.toLowerCase()===String(room.name||'').toLowerCase())?'':nm;   // le nom de la pièce est déjà en haut
+          if(lab&&t.h>=44){ const fs=Math.min(10.5,(t.w-10)/(lab.length*.6)); g+=T(cx,cy+2,String(t.seats),`text-anchor="middle" font-size="16" font-weight="800" fill="#fff"`); if(fs>=7) g+=T(cx,cy+15,H(lab),`text-anchor="middle" font-size="${fs.toFixed(1)}" font-weight="600" fill="#fff" opacity=".92"`); else g+=T(cx,cy+15,H(lab.slice(0,Math.max(3,Math.floor((t.w-10)/4.5)))+'.'),`text-anchor="middle" font-size="7.5" font-weight="600" fill="#fff" opacity=".92"`); }
+          else g+=T(cx,cy+6,String(t.seats),`text-anchor="middle" font-size="17" font-weight="800" fill="#fff"`); } } }
     const bb=bbox(t); if(!ed&&on) g=R(bb.x-20,bb.y-20,bb.w+40,bb.h+40,14,`fill="${ST[k]}" opacity=".14"`)+g;
     const vbar=t.kind==='bar'&&t.h>t.w, ox=t.kind==='bar'?32:14;
     s+=`<g data-fk="item" data-id="${t.id}" style="cursor:${ed?'grab':'pointer'}">${R(bb.x-ox,bb.y-ox,bb.w+ox*2,bb.h+ox*2,10,'fill="transparent"')}${g}</g>`;
     if(ed&&on){ const sx=t.kind==='bar'?38:22; top+=R(bb.x-sx,bb.y-sx,bb.w+sx*2,bb.h+sx*2,14,`fill="none" stroke="${COL.sel}" stroke-width="2" stroke-dasharray="5 4" pointer-events="none"`);
-      if(t.kind!=='chair'&&t.kind!=='stool'&&SEL.k!=='multi') top+=handle(bb.x+bb.w,bb.y+bb.h,'item',t.id,'se'); } });
+      if(t.kind!=='chair'&&t.kind!=='stool'&&SEL.k!=='multi'){ top+=handle(bb.x+bb.w,bb.y+bb.h,'item',t.id,'se');
+        // table rectangulaire : longueur et largeur réglables à la main (pas pour carrée / ronde)
+        const md=t.model&&MD(t.model); if(md&&!md.round&&!(md.w===md.h&&(t.units||1)===1&&!L.pos[t.id].fx&&!L.pos[t.id].fy)){ const sx=22;
+          if(t.rot){ top+=eHandle(bb.x+bb.w/2,bb.y+bb.h+sx,t.id,'L',1)+eHandle(bb.x+bb.w+sx,bb.y+bb.h/2,t.id,'D',0); }
+          else { top+=eHandle(bb.x+bb.w+sx,bb.y+bb.h/2,t.id,'L',0)+eHandle(bb.x+bb.w/2,bb.y+bb.h+sx,t.id,'D',1); } } } } });
   if(LASSO){ const x=Math.min(LASSO.x1,LASSO.x2), y=Math.min(LASSO.y1,LASSO.y2); top+=R(x,y,Math.abs(LASSO.x2-LASSO.x1),Math.abs(LASSO.y2-LASSO.y1),6,`fill="${COL.sel}" fill-opacity=".08" stroke="${COL.sel}" stroke-width="1.5" stroke-dasharray="5 4" pointer-events="none"`); }
   svg.setAttribute('viewBox',`${VB.x} ${VB.y} ${VB.w} ${VB.h}`); svg.innerHTML=s+top;
   // barre du haut
@@ -483,6 +490,9 @@ function onMove(e){ if(!drag) return; const svg=document.querySelector('#fpHost 
     else if(drag.tk==='open') o.len=Math.max(30,snap(O.len+((o.side==='t'||o.side==='b')?dx:dy)));
     else if(drag.tk==='deco') o.r=Math.max(8,Math.round(O.r+(dx+dy)/2));
     else if(o.kind==='bar'){ if(o.rot%2){ o.w=Math.max(80,snap(O.w+dy)); } else o.w=Math.max(80,snap(O.w+dx)); }
+    else if(o.model&&(drag.c==='L'||drag.c==='D')){ const md=MD(o.model), sc=O.sc||1, it=drag.it, alongX=(drag.c==='L')!==!!it.rot, d=alongX?dx:dy;
+      if(drag.c==='L'){ const base=md.w*(o.units||1)*sc; o.fx=Math.max(.6,Math.min(3,Math.round((base*(O.fx||1)+d)/base*20)/20)); }
+      else { const base=md.h*sc; o.fy=Math.max(.6,Math.min(2,Math.round((base*(O.fy||1)+d)/base*20)/20)); } }
     else if(o.model){ const s0=O.sc||1, f=Math.max((drag.iw+dx)/drag.iw,(drag.ih+dy)/drag.ih); o.sc=Math.max(0.6,Math.min(2,Math.round(s0*f*20)/20)); } }
   else if(drag.type==='room'){ o.x=snap(O.x+dx); drag.kids.forEach(([t,x])=>{ if(t) t.x=x+(o.x-O.x); }); }   // le haut des pièces ne bouge jamais
   else if(drag.type==='multi'){ const ddx=snap(dx), ddy=snap(dy); drag.list.forEach(([q,x,y])=>{ q.x=x+ddx; q.y=y+ddy; }); }
