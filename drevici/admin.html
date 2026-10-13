@@ -1012,6 +1012,10 @@ input.in.hr{width:76px;text-align:center;padding:8px 10px;font-size:15px;font-we
 .rd-a3{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr) minmax(0,1fr);gap:6px;margin-top:14px}.rd-a3>*{border:0;border-radius:999px;padding:9px 2px;font:600 12.5px Inter,system-ui,sans-serif;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--soft);color:var(--ink);text-align:center;text-decoration:none}.rd-a3 .rd-v{background:var(--ink);color:#fff}.rd-a3 .rd-v.ok{background:#1f8a4c}.rd-a3 .off{opacity:.4;cursor:default}
 .rd-del{display:block;margin:12px auto 0;border:0;background:none;color:#d33;font:700 13.5px Inter,system-ui,sans-serif;cursor:pointer}.rd-why{margin-top:14px;text-align:center}.rd-why small{color:var(--mut);font-size:12.5px}.rd-why .rd-a3{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:8px}.rd-why .rd-a3>*{background:#fdecec;color:#c62828}
 .rsh-v{position:fixed;inset:0;background:rgba(16,20,30,.45);z-index:9998}.rsh{position:fixed;left:0;right:0;bottom:0;z-index:9999;background:var(--card);border-radius:22px 22px 0 0;padding:10px 20px calc(22px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto}.rsh:before{content:'';display:block;width:40px;height:5px;border-radius:5px;background:#ddd;margin:0 auto 12px}.rsh-h{position:relative;padding:2px 0 10px}.rsh-h h3{margin:0;font-size:20px}.rsh-h small{display:block;color:var(--mut);font-size:12.5px;margin-top:3px}.rsh-h .rdet-x{top:0;right:0;background:var(--soft)}
+.jw .jg{background:var(--card);border-radius:20px;padding:14px 18px 6px;margin-top:14px}.jw .jg:first-child{margin-top:0}
+.jw .jl{display:flex;align-items:baseline;gap:8px;padding:0 0 11px;margin:0 0 2px;border-bottom:1px solid var(--brand-text,#1f3c88)}.jw .jl b{font-size:16px;color:var(--ink)}.jw .jl small{font-size:12.5px;color:var(--mut)}
+.jw .rr{position:relative;margin:0 -10px;padding:11px 10px;border-radius:10px}.jw .rr+.rr:before{content:'';position:absolute;left:10px;right:10px;top:0;height:1px;background:var(--line)}.jw .rr.on:before,.jw .rr.on+.rr:before{display:none}
+@media(max-width:899px){.jw .rr-e,.jw .rr-b{display:none}.jw .rr-n{flex:1}.jw .rr-c{order:3}}
 .hph-ov{position:fixed;inset:0;z-index:9999;background:rgba(16,20,30,.55);display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto}
 .hph-box{position:relative;background:var(--card);border-radius:22px;padding:22px 26px 24px;text-align:center;max-width:100%}
 .hph-box h3{margin:0 0 4px;font-size:18px}.hph-box p{margin:0 0 18px;color:var(--mut);font-size:13px}
@@ -1664,16 +1668,17 @@ function pageResa(){
   const days=[...new Set(list.map(r=>r.date_iso))].slice(0,7);
   const noTable=list.filter(r=>!(r.table_ids||[]).length);
   const sel=UI.rsel&&list.find(r=>r.ref===UI.rsel);
+  const tm=iso(Date.now()+864e5), dlab=d=>d===t?'Aujourd\u2019hui':d===tm?'Demain':(x=>x.charAt(0).toUpperCase()+x.slice(1))(fmtDay(d));
   const body=days.length?days.map(d=>{ const its=list.filter(r=>r.date_iso===d); const cov=its.reduce((a,r)=>a+(+r.covers||0),0);
-    return `<div class="svch">${esc(fmtDay(d))} · ${its.length} résa${its.length>1?'s':''} · ${cov} couverts</div>`+its.map(r=>resaRow(r,sel===r)).join(''); }).join(''):'<div class="empty">Aucune réservation dans les 14 prochains jours.</div>';
+    return `<div class="jg"><div class="jl"><b>${dlab(d)}</b><small>${its.length} résa${its.length>1?'s':''} · ${cov} couverts</small></div>${its.map(r=>resaRow(r,sel===r)).join('')}</div>`; }).join(''):`<div class="jg"><div class="empty">Aucune réservation dans les 14 prochains jours.</div></div>`;
   return mtop('Tableau de bord','dash')+ph('Réservations',`${list.filter(r=>r.date_iso===t).length} aujourd'hui · ${list.length} sur 14 jours`,`<a class="btn w" href="${RESA_ADMIN_URL}" target="_blank" rel="noopener">${I('stats')}Admin des réservations ↗</a>`)+
-  resaTabs()+`<div class="pgrid g-3-1"><div>${card('À venir','resa',body).replace('id="b-resa"','id="b-avenir"')}</div>
+  resaTabs()+`<div class="pgrid g-3-1"><div><div class="jw">${body}</div></div>
   <div>${sel?`<div class="rdet desk">${card('Réservation · '+esc(sel.ref||''),'resa',resaDetail(sel)).replace('id="b-resa"','id="b-rdet"')}<button type="button" class="rdet-x" data-act="rsClose" aria-label="Fermer">✕</button></div>`:''}${card('À traiter','alert',row(pill(String(noTable.length),noTable.length?'warn':''),'Réservation'+(noTable.length>1?'s':'')+' sans table')+row(pill(String(WAIT.length)),'Liste d\'attente'))}
   ${card('Fermetures','hor',BLOCKED.length?BLOCKED.slice(0,6).map(b=>row(esc(fmtDay(b.date_iso)),'Jour bloqué')).join(''):'<div class="empty">Aucun jour bloqué.</div>').replace('id="b-hor"','id="b-ferm"')}
   ${card('Salle, espaces et tables','resa',salleSummary()).replace('id="b-resa"','id="b-salle"')}${card('Services','hor',svcSummary()).replace('id="b-hor"','id="b-svcs"')}</div></div>`;
 }
 // Une réservation = une ligne. Clic : fiche dans la colonne de droite (ordinateur) ou fiche qui monte du bas (mobile).
-const resaRow=(r,on)=>`<div class="rr${on?' on':''}" data-act="rsel" data-ref="${esc(r.ref)}"><span class="rr-t">${esc((r.slot||'').slice(0,5))}</span><span class="rr-n">${esc(r.from_name||'—')}</span><span class="rr-c">${+r.covers||0} pers.</span><span class="rr-e">${esc(r.espace||'')}</span>${(r.table_ids||[]).length?`<span class="rr-b">${tableNames(r)}</span>`:'<span class="rr-b warn">Sans table</span>'}${r.attended?pill('Venu','ok'):pill('À venir')}</div>`;
+const resaRow=(r,on)=>`<div class="rr${on?' on':''}" data-act="rsel" data-ref="${esc(r.ref)}"><span class="rr-t">${esc((r.slot||'').slice(0,5))}</span><span class="rr-n">${esc(r.from_name||'—')}</span><span class="rr-c">${+r.covers||0} pers.</span><span class="rr-e">${esc(r.espace||'')}</span>${(r.table_ids||[]).length?`<span class="rr-b">${tableNames(r)}</span>`:'<span class="rr-b warn">Sans table</span>'}${r.attended?pill('Venu','ok'):''}</div>`;
 function resaDetail(r){
   const day=fmtDay(r.date_iso), D=day.charAt(0).toUpperCase()+day.slice(1), ph=String(r.phone||''), pd=ph.replace(/[^\d+]/g,'');
   const cur=(r.table_ids||[]).map(String), multi=cur.length>1;
