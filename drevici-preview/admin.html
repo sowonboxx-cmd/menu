@@ -987,7 +987,7 @@ input.in.hr{width:76px;text-align:center;padding:8px 10px;font-size:15px;font-we
 .hdro i{width:18px;height:18px;border-radius:50%;background:#e4e7ee;position:relative}.hdro.on i{background:#22a05a}.hdro.on i:after{content:"";position:absolute;inset:5px;border-radius:50%;background:#fff}
 .hdrp{grid-column:1/-1;height:64px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;overflow:hidden;color:#fff}
 .hdrp img{max-height:38px;max-width:80%;object-fit:contain}.hdrp b{font-size:17px;letter-spacing:.04em;text-transform:uppercase;font-weight:700;line-height:1}.hdrp small{font-size:7.5px;letter-spacing:.2em;text-transform:uppercase;opacity:.55}
-.hdrph-b{margin:0}.upl-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.hdrpk>.upl-r{margin-top:2px}
+.hdrph-b{margin:0}.hdrfont{margin:0 0 10px}.hdrfont .fd,.hdrfont .in{background:#fff}.upl-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.hdrpk>.upl-r{margin-top:2px}
 .favp>small{flex:0 1 auto!important;width:auto!important;margin:0!important}.favp>.ib{flex:none}
 .lgsub{background:var(--soft);border-radius:16px;padding:14px;margin-bottom:10px}.lgsub:first-child{margin-top:6px}.lgsub:last-child{margin-bottom:0}
 .lgst{font:700 11px Inter,system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:0 0 10px}
@@ -1704,7 +1704,7 @@ function pageEtab(){
   `<div class="pgrid g-1-1"><div>${card('Informations','etab',`<div class="frm">${fin('Nom',DATA.restaurantName||'','root.restaurantName','w')}${fin('Rue',a.street||'','addr.street','w')}${fin('Code postal',a.zip||'','addr.zip')}${fin('Ville',a.city||'','addr.city')}${fin('Téléphone',a.phone||'','addr.phone')}${fin('Lien Google Maps',a.mapsUrl||'','addr.mapsUrl')}</div>`)}
    ${card('Horaires','hor',sched+'')}</div>
    <div>${card('Logo','logo',logoField())}
-   ${card('Réseaux sociaux','res',`<div class="frm">${fin('Instagram',s.instagram||'','soc.instagram')}${fin('TikTok',s.tiktok||'','soc.tiktok')}${fin('Facebook',s.facebook||'','soc.facebook')}${fin('Site internet',s.website||'','soc.website')}</div>`)}</div></div>`;
+   ${card('Réseaux sociaux','res',`<div class="frm">${fin('Instagram',s.instagram||'','soc.instagram')}${fin('TikTok',s.tiktok||'','soc.tiktok')}${fin('Facebook',s.facebook||'','soc.facebook')}${fin('LinkedIn',s.linkedin||'','soc.linkedin')}</div>`)}</div></div>`;
 }
 function setFav(u){ let l=document.head.querySelector('link[rel="icon"]'); if(!u){ if(l) l.remove(); return; } if(!l){ l=document.createElement('link'); l.rel='icon'; document.head.appendChild(l); } if(l.getAttribute('href')!==u) l.href=u; }
 function logoField(){ const u=DATA.restaurantLogo||'';
@@ -1734,7 +1734,7 @@ function hdrPick(u){
   const name=DATA.restaurantName||'Mon restaurant', mode=DATA.headerMode==='name'?'name':'logo', bc=(DATA.brandColors||{}).primary||'#10285e';
   const sub=(DATA.heroActive!==false&&DATA.hero&&(DATA.hero.fr||''))||'';
   const prev=m=>`<div class="hdrp" style="background:${esc(bc)}">${m==='logo'?`<img src="${esc(u)}" alt="">`:`<b style="font-family:'${esc(DATA.restoFont||'Playfair Display')}',serif">${esc(name)}</b>`}${sub?`<small>${esc(sub)}</small>`:''}</div>`;
-  return `<div class="lgsub hdrpk"><div class="lgst">Aperçu de votre logo sur le site</div><div class="hdrpk-o">${[['logo','Le logo'],['name','Le nom écrit']].map(([k,l])=>`<button type="button" class="hdro${mode===k?' on':''}" data-act="hdrMode" data-v="${k}"><i></i><span>${l}</span>${prev(k)}</button>`).join('')}</div><div class="upl-r"><button type="button" class="pbtn hdrph-b" data-act="hdrPhones"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg>Voir un aperçu sur votre téléphone</button>${tipI('Ouvre votre site sur deux téléphones, avec le logo et avec le nom écrit : touchez celui que vous préférez. Un logo rond ou très détaillé devient illisible en petit : dans ce cas, choisissez le nom écrit.')}</div></div>`;
+  return `<div class="lgsub hdrpk"><div class="lgst">Aperçu de votre logo sur le site</div><div class="hdrpk-o">${[['logo','Le logo'],['name','Le nom écrit']].map(([k,l])=>`<button type="button" class="hdro${mode===k?' on':''}" data-act="hdrMode" data-v="${k}"><i></i><span>${l}</span>${prev(k)}</button>`).join('')}</div>${mode==='name'?`<div class="hdrfont">${fontSel('Police du nom écrit',DATA.restoFont,'root.restoFont','Playfair Display')}</div>`:''}<div class="upl-r"><button type="button" class="pbtn hdrph-b" data-act="hdrPhones"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg>Voir un aperçu sur votre téléphone</button>${tipI('Ouvre votre site sur deux téléphones, avec le logo et avec le nom écrit : touchez celui que vous préférez. Un logo rond ou très détaillé devient illisible en petit : dans ce cas, choisissez le nom écrit.')}</div></div>`;
 }
 // « Voir sur téléphone » : le vrai site, en direct, dans deux iPhones côte à côte (logo / nom écrit). Toucher = choisir.
 function openHdrPhones(){
