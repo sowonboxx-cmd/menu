@@ -5351,6 +5351,12 @@ function toggleSchedPopup(e,suffix){
   p.style.left=(left/z)+'px';
   p.style.top=(top/z)+'px';
   p.style.transform='none';
+  // Le zoom de la page (1.1 sur ordinateur) n'est pas compté pareil par tous les navigateurs :
+  // on mesure où la fiche s'est vraiment posée et on corrige, pour qu'elle soit pile centrée sous le badge.
+  const r0=p.getBoundingClientRect(), L=parseFloat(p.style.left), T=parseFloat(p.style.top);
+  const want=rect.left+rect.width/2, got=r0.left+r0.width/2;
+  if(L>0&&Math.abs(got-want)>1){ const k=r0.left/L||1; p.style.left=(L+(Math.max(12,Math.min(want-r0.width/2,vw-r0.width-12))-r0.left)/k)+'px'; }
+  if(T>0&&Math.abs(r0.top-top)>1){ const k=r0.top/T||1; p.style.top=(T+(top-r0.top)/k)+'px'; }
   p.classList.add('visible');
 }
 // Close schedule popup on outside click.
