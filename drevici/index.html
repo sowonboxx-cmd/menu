@@ -763,7 +763,17 @@ body.home-cover-showing{overflow:hidden}
 @media(max-width:640px){ .home-cover-name{font-size:24px} }
 .home-cover-logo{max-height:90px;max-width:75%;object-fit:contain;display:inline-block}
 @media(max-width:640px){ .home-cover-logo{max-height:64px;max-width:80%} }
-.home-cover-sched{display:flex;justify-content:center;margin-top:10px}
+.home-cover-sched{display:flex;justify-content:center;align-items:stretch;gap:8px;margin-top:10px}
+.ct-btn{display:inline-flex;align-items:center;justify-content:center;min-width:36px;padding:0 10px;border:1px solid rgba(255,255,255,.3);border-radius:6px;background:rgba(0,0,0,.55);color:#fff;cursor:pointer;text-decoration:none;-webkit-tap-highlight-color:transparent;transition:opacity .15s}.ct-btn:hover{opacity:.75}.ct-btn:active{opacity:.6}
+.msg-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px}
+.msg-box{background:#fff;border-radius:18px;width:min(420px,100%);max-height:calc(100dvh - 32px);overflow:auto;padding:22px;font-family:Jost,sans-serif;color:#1a1a1a;position:relative;text-align:left}
+.msg-x{position:absolute;top:14px;right:14px;border:0;background:#f1eee8;width:32px;height:32px;border-radius:50%;font-size:15px;cursor:pointer;color:#1a1a1a}
+.msg-k{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--navy);font-weight:700}.msg-box h3{margin:6px 0 4px;font-size:22px;font-weight:600}.msg-box>p{margin:0 0 16px;color:#666;font-size:14px}
+.msg-box label{display:block;font-size:12px;color:#666;margin-bottom:10px}.msg-box input,.msg-box textarea{display:block;width:100%;margin-top:4px;border:1.5px solid #e3ded5;border-radius:10px;padding:11px 12px;font:15px Jost,sans-serif;color:#1a1a1a;background:#fff;box-sizing:border-box}.msg-box textarea{min-height:100px;resize:vertical}
+.msg-box input:focus,.msg-box textarea:focus{outline:0;border-color:var(--navy)}.msg-hp{position:absolute!important;left:-9999px!important;opacity:0}
+.msg-send{width:100%;border:0;background:var(--navy);color:#fff;border-radius:12px;height:48px;font:600 15px Jost,sans-serif;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;margin-top:4px}.msg-send:disabled{opacity:.6}
+.msg-box .msg-opt{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.4;color:#444;margin:4px 0 14px;cursor:pointer}.msg-box .msg-opt input{display:inline-block;width:18px;height:18px;flex:none;margin:1px 0 0;padding:0}
+.msg-err{color:#b31217;font-size:13px;margin:8px 0 0;min-height:1em}.msg-note{margin:10px 0 0;font-size:11.5px;color:#999;text-align:center}.msg-ok{text-align:center;padding:6px 4px 4px}.msg-masc{display:block;height:180px!important;width:auto!important;max-width:none;aspect-ratio:398/520;object-fit:contain;margin:0 auto 6px;mix-blend-mode:multiply}.msg-prank{display:block;margin-top:20px;background:var(--navy);color:#fff;border-radius:999px;padding:14px;font:600 15px Jost,sans-serif;text-decoration:none}.msg-ok b{display:block;font-size:20px;margin:10px 0 6px}
 .home-cover-sched .sched-pin-frame{background:rgba(0,0,0,.55);border-color:rgba(255,255,255,.3)}
 .home-cover-sched .resto-badge-inline span{color:#fff!important;font-size:14px!important}
 .home-cover-fade-group{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;transition:opacity .22s ease}
@@ -2529,6 +2539,7 @@ function syncHashToCurrentTab(){
 // entry so the back/forward buttons step through tabs naturally.
 function goToTab(tabId){
   currentTabId=tabId;
+  try{ if(typeof BT!=='undefined'&&tabId&&tabId!=='__home') BT.send('click','carte',true); }catch(e){}
   sessionStorage.setItem('lastTabId',tabId);
   const newHash='#'+encodeURIComponent(tabId);
   if(location.hash!==newHash){
@@ -3393,26 +3404,41 @@ document.addEventListener('click',e=>{
 // jamais réutilisées pour un autre restaurant. Chaque resto aura son propre jeu (validé par Will). Sans jeu : messages neutres, sans icône.
 const CTA_SETS={
   drevici:[
-    {i:'oyster',t:'On vous attend<br>ce soir',s:'Réservez en ligne en 30 secondes.'},
-    {i:'anchor',t:'Tout est prêt',s:'Votre table vous attend, il ne manque plus que vous.',hr:1},
-    {i:'lancette',t:'Une envie<br>d’huîtres&nbsp;?',s:'Tout droit de Surzur. On les ouvre pour vous ce soir.'},
+    {i:'oyster',t:'On vous attend<br>{w}',s:'Réservez en ligne en 30 secondes.'},
+    {i:'anchor',t:'Tout est prêt',s:'Votre table vous attend {w}, il ne manque plus que vous.',hr:1},
+    {i:'lancette',t:'Une envie<br>d’huîtres&nbsp;?',s:'Tout droit de Surzur. On les ouvre pour vous {w}.'},
     {i:'seashell',t:'Venez comme<br>vous êtes',s:'L’équipe vous accueille avec le sourire. Réservez en 30 secondes.'},
-    {i:'phare',t:'Ce soir,<br>cap sur Drevici',s:'Réservez votre table en ligne, on s’occupe du reste.',waves:1},
-    {i:'oyster',t:'Votre table<br>est prête',s:'On vous attend ce soir. Réservation en ligne en 30 secondes.',deco:1}
+    {i:'phare',t:'{W},<br>cap sur Drevici',s:'Réservez votre table en ligne, on s’occupe du reste.',waves:1},
+    {i:'oyster',t:'Votre table<br>est prête',s:'On vous attend {w}. Réservation en ligne en 30 secondes.',deco:1}
   ],
   neutre:[
-    {t:'On vous attend<br>ce soir',s:'Réservez en ligne en 30 secondes.'},
-    {t:'Tout est prêt',s:'Votre table vous attend, il ne manque plus que vous.',hr:1},
+    {t:'On vous attend<br>{w}',s:'Réservez en ligne en 30 secondes.'},
+    {t:'Tout est prêt',s:'Votre table vous attend {w}, il ne manque plus que vous.',hr:1},
     {t:'Venez comme<br>vous êtes',s:'L’équipe vous accueille avec le sourire. Réservez en 30 secondes.'},
-    {t:'Votre table<br>est prête',s:'On vous attend ce soir. Réservation en ligne en 30 secondes.'}
+    {t:'Votre table<br>est prête',s:'On vous attend {w}. Réservation en ligne en 30 secondes.'}
   ]
 };
-let CTA_PICK=null;
-function ctaTileHtml(){
+// Le prochain service ouvert, d'après les horaires : « ce midi », « ce soir », « demain soir », « jeudi soir »…
+function ctaWhen(){
+  const sc=DATA.schedule||[], now=new Date(), h=now.getHours()+now.getMinutes()/60;
+  if(sc.length<7) return h<14?'ce midi':'ce soir';
+  const DN=['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+  const plages=i=>{ const d=sc[i]; if(!d||d.active===false) return [];
+    const one=(o,c)=>{ o=+o; c=(c==null||c==='')?o+6:+c; return [o,c<=o?c+24:c]; };
+    let p=(d.services||[]).filter(x=>x&&x.open!=null&&x.open!=='').map(x=>one(x.open,x.close));
+    if(!p.length&&d.open!=null&&d.open!=='') p=[one(d.open,d.close)]; return p; };
+  for(let k=0;k<8;k++){ const i=(now.getDay()+6+k)%7, p=plages(i).filter(([o,c])=>k>0||c>h).sort((a,b)=>a[0]-b[0]);
+    if(p.length){ const m=p[0][0]<16?'midi':'soir'; return k===0?'ce '+m:k===1?'demain '+(m==='midi'?'midi':'soir'):DN[i]+' '+m; } }
+  return 'ce soir';
+}
+// Un message au hasard, et un autre dès qu'on change d'onglet (jamais deux fois le même de suite).
+let CTA_PICK=null, CTA_TAB=null;
+function ctaTileHtml(tabId){
   const theme=DATA.ctaTheme||(CLIENT_SLUG==='drevici'?'drevici':'neutre');
   const set=CTA_SETS[theme]||CTA_SETS.neutre;
-  if(CTA_PICK===null||CTA_PICK>=set.length) CTA_PICK=Math.floor(Math.random()*set.length);
-  const m=set[CTA_PICK], ic=n=>`<span class="cta-i" style="-webkit-mask-image:url(media/cta/${n}.svg);mask-image:url(media/cta/${n}.svg)"></span>`;
+  if(CTA_PICK===null||CTA_PICK>=set.length||(tabId!==undefined&&tabId!==CTA_TAB)){ let n=Math.floor(Math.random()*set.length); if(set.length>1&&n===CTA_PICK) n=(n+1+Math.floor(Math.random()*(set.length-1)))%set.length; CTA_PICK=n; CTA_TAB=tabId; }
+  const w=ctaWhen(), fill=x=>x.replace(/\{w\}/g,w).replace(/\{W\}/g,w.charAt(0).toUpperCase()+w.slice(1));
+  const m0=set[CTA_PICK], m=Object.assign({},m0,{t:fill(m0.t),s:fill(m0.s)}), ic=n=>`<span class="cta-i" style="-webkit-mask-image:url(media/cta/${n}.svg);mask-image:url(media/cta/${n}.svg)"></span>`;
   const deco=m.deco?['oyster:top:14px;left:12px;transform:rotate(-14deg)','seashell:top:20px;right:18px;width:50px;height:50px','lancette:bottom:22px;left:18px;width:54px;height:54px','anchor:bottom:18px;right:14px;transform:rotate(12deg)'].map(x=>{const [n,st]=x.split(/:(.*)/s);return `<span class="cta-d" style="${st};-webkit-mask-image:url(media/cta/${n}.svg);mask-image:url(media/cta/${n}.svg)"></span>`;}).join(''):'';
   return `<div class="cta-tile">${deco}${m.i?ic(m.i):''}<b>${m.t}</b>${m.hr?'<hr>':''}<small>${m.s}</small><a href="book">Réserver</a>${m.waves?`<span class="cta-w" style="-webkit-mask-image:url(media/cta/waves.svg);mask-image:url(media/cta/waves.svg)"></span>`:''}</div>`;
 }
@@ -3480,7 +3506,9 @@ function renderCategoryRail(tab){
   // la place du plat dans la categorie, sans qu'on puisse y toucher.
   const pinOrder=(DATA.pinnedDishes||[]).filter(p=>p.tabId===tab.id).map(p=>p.pid);
   const pinned=pinOrder.map(pid=>shots.find(sh=>sh.dish._pid===pid)).filter(Boolean);
-  const items=pinned.length?pinned:shots.slice(0,6);
+  // Règle (13/10) : pas d'incontournable choisi dans la catégorie → pas de bandeau (plus de repli sur les 6 premières photos).
+  if(!pinned.length) return '';
+  const items=pinned;
   const head=pinned.length
     ? `<div class="rail-hdr"><span class="rail-star">★</span><span class="rail-title">Nos incontournables</span></div>`
     : '';
@@ -3988,7 +4016,7 @@ function renderHomeCover(){
         : `<div class="home-cover-name">${escapeHtmlLocal(getRestaurantName())}</div>`}
     </div>
     <div class="home-cover-fade-group" id="homeCoverFadeGroup">
-      <div class="home-cover-sched">${renderScheduleInline('Cover')}</div>
+      <div class="home-cover-sched">${ctBtn('call')}${renderScheduleInline('Cover')}${ctBtn('msg')}</div>
       <div class="home-cover-content">
         <div class="home-cover-headline" style="font-family:'${escAttr(hc.headlineFont||'Jost')}',sans-serif">${headlineHtml}</div>
         <div class="home-cover-ctas">
@@ -4010,6 +4038,79 @@ function renderHomeCover(){
 const CLUB_ON = true;
 const CLUB_SLUG = 'drevici-paris';            // même copie de test que la résa de la préview
 const CLUB_API = 'https://resa.beltab.app';
+// ── Statistiques du site (compteur Beltab, sans cookie) : voir la notice « codes de suivi » ──
+// Une visite par onglet + les clics sur les boutons suivis. La source vient de l'adresse
+// (?src=TABLE → QR:TABLE, ?o=K7Q2 → OFFRE:K7Q2) ou du site d'où l'on arrive (INSTAGRAM, GOOGLE…).
+const BT=(()=>{ const API=CLUB_API+'/t', q=new URLSearchParams(location.search);
+  const off=window.top!==window||q.get('admin')==='1'||q.has('hdr')||/localhost|127\.0\.0\.1|file:/.test(location.href);
+  let sid=''; try{ sid=sessionStorage.getItem('bt_sid')||''; if(!sid){ sid=Math.random().toString(36).slice(2,10)+Date.now().toString(36); sessionStorage.setItem('bt_sid',sid); } }catch(e){ sid=Math.random().toString(36).slice(2,12); }
+  const from=()=>{ const o=q.get('o'), c=q.get('src');
+    if(o&&/^[A-Za-z0-9]{2,12}$/.test(o)) return 'OFFRE:'+o.toUpperCase();
+    if(c&&/^[A-Za-z0-9-]{2,40}$/.test(c)) return 'QR:'+c.toUpperCase();
+    let h=''; try{ h=new URL(document.referrer).hostname.replace(/^www\./,''); }catch(e){}
+    if(!h||h===location.hostname) return '';
+    if(/instagram/.test(h)) return 'INSTAGRAM'; if(/facebook|^fb\.|messenger/.test(h)) return 'FACEBOOK'; if(/tiktok/.test(h)) return 'TIKTOK';
+    if(/google\./.test(h)) return 'GOOGLE'; if(/bing|qwant|duckduckgo|ecosia|yahoo|brave/.test(h)) return 'MOTEUR';
+    if(/chatgpt|openai|perplexity|claude|gemini|copilot|mistral/.test(h)) return 'IA';
+    if(/beltab\.app$/.test(h)) return ''; return 'WEB:'+h.slice(0,40); };
+  let src=from();
+  try{ if(src){ sessionStorage.setItem('bt_src',src); if(/^(OFFRE|QR):/.test(src)) localStorage.setItem('bt_last',JSON.stringify({src,t:Date.now()})); } else src=sessionStorage.getItem('bt_src')||'DIRECT'; }catch(e){ src=src||'DIRECT'; }
+  const once=new Set();
+  function send(k,n,uniq){ if(off) return; if(uniq){ const key=k+':'+n; if(once.has(key)) return; once.add(key); }
+    const b=JSON.stringify({slug:CLUB_SLUG,sid,k,n:n||'',src,p:location.pathname.slice(0,80)});
+    try{ if(navigator.sendBeacon&&navigator.sendBeacon(API,new Blob([b],{type:'text/plain'}))) return; }catch(e){}
+    try{ fetch(API,{method:'POST',body:b,keepalive:true,mode:'no-cors'}); }catch(e){} }
+  // Une seule visite comptée par onglet, même si la page est rechargée.
+  try{ if(!sessionStorage.getItem('bt_v_accueil')){ sessionStorage.setItem('bt_v_accueil','1'); send('view','accueil'); } }catch(e){ send('view','accueil'); }
+  // Clics : data-ev="nom" sur un élément, sinon reconnu d'après le lien.
+  document.addEventListener('click',e=>{ const a=e.target.closest&&e.target.closest('[data-ev],a[href]'); if(!a) return;
+    let n=a.getAttribute('data-ev');
+    if(!n){ const h=a.getAttribute('href')||'';
+      if(/(^|\/)book(\?|#|$)/.test(h)) n='reserver'; else if(/^tel:/.test(h)) n='appeler';
+      else if(/instagram\.com/.test(h)) n='instagram'; else if(/tiktok\.com/.test(h)) n='tiktok'; else if(/facebook\.com/.test(h)) n='facebook';
+      else if(/maps\.|goo\.gl\/maps|maps\.app|waze/.test(h)) n='itineraire'; }
+    if(n) send('click',n); },true);
+  return {send};
+})();
+// ── Appeler / Message (autour du badge des horaires, page d'accueil) ──
+function ctBtn(k){
+  const ph=String(((DATA.address||{}).phone)||'').replace(/[^\d+]/g,'');
+  if(k==='call') return ph?`<a class="ct-btn" href="tel:${ph}" aria-label="Appeler le restaurant" title="Appeler"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg></a>`:'';
+  return `<button type="button" class="ct-btn" data-ev="message" onclick="openMsgSheet()" aria-label="Envoyer un message" title="Message"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>`;
+}
+function openMsgSheet(){
+  if(document.querySelector('.msg-ov')) return;
+  const rn=escapeHtmlLocal(DATA.restaurantName||'');
+  const o=document.createElement('div'); o.className='msg-ov';
+  o.innerHTML=`<div class="msg-box" role="dialog" aria-modal="true" aria-label="Envoyer un message"><button type="button" class="msg-x" aria-label="Fermer">✕</button>
+    <div class="msg-k">${rn}</div><h3>Envoyer un message</h3><p>Une question, un groupe, une allergie ? On vous répond vite.</p>
+    <form novalidate><label>Prénom et nom<input name="name" autocomplete="name" required maxlength="80"></label>
+    <label>Email<input name="email" type="email" autocomplete="email" maxlength="120"></label>
+    <label>Téléphone<input name="phone" type="tel" autocomplete="tel" maxlength="30"></label>
+    <label>Votre message<textarea name="message" required maxlength="2000"></textarea></label>
+    <label class="msg-opt"><input type="checkbox" name="optin"><span>J'accepte de recevoir les offres et actualités du restaurant par email et SMS. Désinscription possible à tout moment.</span></label>
+    <input class="msg-hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <button class="msg-send" type="submit">Envoyer</button><div class="msg-err"></div>
+    <p class="msg-note">Pour réserver une table, utilisez plutôt « Réserver ».</p></form></div>`;
+  const close=()=>{ o.remove(); document.removeEventListener('keydown',esc); };
+  const esc=e=>{ if(e.key==='Escape') close(); };
+  o.addEventListener('click',e=>{ if(e.target===o||e.target.closest('.msg-x')) close(); });
+  document.addEventListener('keydown',esc);
+  const f=o.querySelector('form'), err=o.querySelector('.msg-err'), btn=o.querySelector('.msg-send');
+  f.addEventListener('submit',async e=>{ e.preventDefault(); const v=k=>(f.elements[k].value||'').trim();
+    if(!v('name')||!v('message')){ err.textContent='Indiquez votre nom et votre message.'; return; }
+    if(!v('email')&&!v('phone')){ err.textContent='Laissez un email ou un téléphone pour qu’on puisse vous répondre.'; return; }
+    err.textContent=''; btn.disabled=true; btn.textContent='Envoi…';
+    try{ const r=await fetch(CLUB_API+'/message',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({slug:CLUB_SLUG,name:v('name'),email:v('email'),phone:v('phone'),message:v('message'),hp:v('website'),optin:!!f.elements.optin.checked,page:location.pathname})});
+      const d=await r.json().catch(()=>({}));
+      if(!r.ok||!d.ok) throw new Error(d.error||'Envoi impossible');
+      BT.send('click','message_envoye');
+      const ig=((DATA&&DATA.social&&DATA.social.instagram)||'').replace(/^@/,'').replace(/^https?:\/\/(www\.)?instagram\.com\//,'').replace(/\/$/,'');
+      o.querySelector('.msg-box').innerHTML=`<button type="button" class="msg-x" aria-label="Fermer">✕</button><div class="msg-ok">${CLUB_ON?'<img class="msg-masc" src="club/gentleman-vin.webp" alt="">':''}<b>Message envoyé</b><span style="color:#666;font-size:14.5px">Merci ${escapeHtmlLocal(v('name').split(' ')[0])}, on vous répond très vite.</span>
+        ${ig?`<a class="msg-prank" data-ev="prank_msg" href="https://instagram.com/${escapeHtmlLocal(ig)}" onclick="return clubPrank(this.href)">Ne cliquez pas ici !</a>`:''}</div>`;
+    }catch(x){ err.textContent=(x&&x.message&&x.message!=='Failed to fetch')?x.message:'Connexion impossible, réessayez.'; btn.disabled=false; btn.textContent='Envoyer'; } });
+  document.body.appendChild(o); setTimeout(()=>{ const i=f.elements.name; if(i&&matchMedia('(min-width:641px)').matches) i.focus(); },50);
+}
 const clubMe = () => { try{ return JSON.parse(localStorage.getItem('club_'+CLUB_SLUG)||'null'); }catch(e){ return null; } };
 const clubEsc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function clubShell(inner){
@@ -4021,6 +4122,7 @@ function clubShell(inner){
 }
 function openClubSheet(){
   const me=clubMe(); if(me&&me.code) return clubWelcome(me,true,'show');
+  BT.send('click','club');
   const nx=clubNext||'';
   clubShell(`<div class="club-deck" aria-hidden="true">
       <div class="club-slot pf"><div class="bc-wrap">${clubCardHTML({first:'Votre prénom',code:'CLUB-····',no:nx||'···'})}</div></div>
@@ -4116,6 +4218,7 @@ async function clubSubmit(e){
     if(!d.ok){ err.textContent=d.error||'Une erreur est survenue, réessayez.'; go.disabled=false; go.textContent='Je rejoins le club'; return; }
     const me={at:Date.now(),code:d.code,no:d.no,first:d.first||v('first'),last:v('last'),email:v('email'),phone:v('phone')};
     try{ localStorage.setItem('club_'+CLUB_SLUG,JSON.stringify(me)); }catch(_){}
+    if(!d.already) BT.send('click','club_inscrit');
     clubWelcome(me,!!d.already); clubLinkRefresh();
   }catch(x){ err.textContent='Connexion impossible, réessayez.'; go.disabled=false; go.textContent='Je rejoins le club'; }
 }
@@ -4237,6 +4340,7 @@ function clubPileStart(){
     p.querySelectorAll('.club-pol').forEach(c=>{ const k=c.classList.contains('f')?'l':c.classList.contains('r')?'f':'r'; c.classList.remove('f','r','l'); c.classList.add(k); }); },3000);
 }
 function clubLater(){
+  BT.send('click','club_plus_tard');
   const me=clubMe()||{}, end=new Date((me.at||Date.now())+30*864e5), left=Math.max(0,Math.ceil((end-Date.now())/864e5));
   const ig=((DATA&&DATA.social&&DATA.social.instagram)||'drevicioysterbar').replace(/^@/,'').replace(/^https?:\/\/(www\.)?instagram\.com\//,'').replace(/\/$/,'');
   clubShell(`<div class="club-wel">
@@ -4245,7 +4349,7 @@ function clubLater(){
     <div class="club-ig"><b>En attendant, suivez-nous sur Instagram</b><span style="margin-bottom:6px;white-space:nowrap;font-size:min(12px,3.05vw);letter-spacing:-.01em">Jeux, cadeaux, soirées, nouveautés en avant-première.</span>
       <a class="club-pile" href="https://instagram.com/${clubEsc(ig)}" target="_blank" rel="noopener" aria-label="Voir nos photos sur Instagram">${CLUB_PHOTOS.map(([src,t],i)=>`<div class="club-pol ${['f','r','l'][i]}"><img src="${src}" alt=""><i>${t}</i></div>`).join('')}</a>
       <a class="club-cta club-a club-iga" href="https://instagram.com/${clubEsc(ig)}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>Suivre @${clubEsc(ig)}</a></div>
-    <a class="club-cta club-a club-prank" style="margin-top:12px" href="https://instagram.com/${clubEsc(ig)}" onclick="return clubPrank(this.href)">Ne cliquez pas ici !</a>
+    <a class="club-cta club-a club-prank" data-ev="prank_club" style="margin-top:12px" href="https://instagram.com/${clubEsc(ig)}" onclick="return clubPrank(this.href)">Ne cliquez pas ici !</a>
     <button type="button" class="club-later" onclick="closeClubSheet()">Fermer</button></div>`);
   clubFonts(); if(!document.getElementById('clubCaveat')){ const l=document.createElement('link'); l.id='clubCaveat'; l.rel='stylesheet'; l.href='https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap'; document.head.appendChild(l); } clubPileStart();
 }
@@ -5191,7 +5295,7 @@ function renderTabContent(tab,lbOffset){
       // avec un encart « réserver ». 1 plat seul : il passe en bandeau photo sur deux tiers.
       const rest=gridItems.length%3;
       if(rest===1) gridItems[gridItems.length-1]=gridItems[gridItems.length-1].replace('<div class="gc"','<div class="gc gc-o1"');
-      if(rest) gridItems.push(ctaTileHtml());
+      if(rest) gridItems.push(ctaTileHtml(tab.id));
       html+=`<div class="dish-grid">${gridItems.join('')}</div>`;
     }
     if(bevsCardsHtml) html+=bevsCardsHtml;
@@ -5336,6 +5440,12 @@ function toggleSchedPopup(e,suffix){
   p.style.left=(left/z)+'px';
   p.style.top=(top/z)+'px';
   p.style.transform='none';
+  // Le zoom de la page (1.1 sur ordinateur) n'est pas compté pareil par tous les navigateurs :
+  // on mesure où la fiche s'est vraiment posée et on corrige, pour qu'elle soit pile centrée sous le badge.
+  const r0=p.getBoundingClientRect(), L=parseFloat(p.style.left), T=parseFloat(p.style.top);
+  const want=rect.left+rect.width/2, got=r0.left+r0.width/2;
+  if(L>0&&Math.abs(got-want)>1){ const k=r0.left/L||1; p.style.left=(L+(Math.max(12,Math.min(want-r0.width/2,vw-r0.width-12))-r0.left)/k)+'px'; }
+  if(T>0&&Math.abs(r0.top-top)>1){ const k=r0.top/T||1; p.style.top=(T+(top-r0.top)/k)+'px'; }
   p.classList.add('visible');
 }
 // Close schedule popup on outside click.
