@@ -1096,7 +1096,7 @@ input.in.hr{width:76px;text-align:center;padding:8px 10px;font-size:15px;font-we
 .tb-ban{display:flex;align-items:center;gap:12px;background:#fff4dc;border-radius:16px;padding:12px 16px;margin-top:16px;font-size:14px}.tb-ban b{flex:1}.tb-ban .tb-btn{padding:9px 14px;font-size:13.5px}
 /* parcours */
 .tb-wz{background:#fff;border-radius:24px;box-shadow:0 0 0 1px var(--line);padding:24px;max-width:860px;margin:10px auto 0}.tb-wz h2{margin:0;font-size:22px}.tb-s{margin:4px 0 16px;color:var(--mut);font-size:14px}
-.tb-sn{display:flex;gap:8px;margin-bottom:20px}.tb-sn div{flex:1;display:flex;align-items:center;gap:8px;font:700 13px Inter,sans-serif;color:#a3a7ad;border-top:4px solid #ece8e1;padding-top:10px}.tb-sn i{flex:none;font-style:normal;display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#ece8e1;color:var(--mut);font-size:12px}.tb-sn .on,.tb-sn .dn{color:#10285e;border-color:#10285e}.tb-sn .on i{background:#10285e;color:#fff}.tb-sn .dn i{background:#e3e9f6;color:#10285e}
+.tb-sn{display:flex;gap:8px;margin-bottom:20px}.tb-sn div{flex:1;display:flex;align-items:center;gap:8px;font:700 13px Inter,sans-serif;color:#a3a7ad;border-top:4px solid #ece8e1;padding-top:10px}.tb-sn .tb-n{flex:none;display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#ece8e1;color:var(--mut);font-size:12px;font-weight:800;line-height:1}.tb-sn .tb-n::before,.tb-sn .tb-n::after{content:none}.tb-sn .on,.tb-sn .dn{color:#10285e;border-color:#10285e}.tb-sn .on .tb-n{background:#10285e;color:#fff}.tb-sn .dn .tb-n{background:#e3e9f6;color:#10285e}
 .tb-write{border:2px dashed #10285e;border-radius:16px;padding:12px 16px;background:#f5f8fd;margin-bottom:6px}.tb-write label{display:block;color:#10285e;font:700 15px Inter,sans-serif;margin-bottom:6px}.tb-write input{width:100%;border:0;background:#fff;border-radius:10px;padding:11px 12px;font:500 15px Inter,sans-serif}.tb-write.on{border-style:solid}
 .tb-sec{font:700 11.5px Inter,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);margin:16px 0 8px}
 .tb-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}.tb-opt{border:2px solid #ece8e1;background:#fff;border-radius:14px;padding:13px 14px;font:600 14.5px Inter,sans-serif;text-align:left;cursor:pointer;color:var(--ink)}.tb-opt.on,.tb-dish.on{border-color:#10285e;background:#f3f6fc}
@@ -1884,7 +1884,7 @@ function pageResaBoost(){
 function tbNew(){ const S=tbStat(UI.tbd||todayIso(),UI.tbs); const dl=new Date(UI.tbd+'T12:00:00'); const [h,m]=(S.sv.start||'19:00').split(':'); dl.setHours(Math.max(0,+h-1),+m||0,0,0);
   const pad=n=>String(n).padStart(2,'0'), loc=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
   UI.tbw={step:1,date:UI.tbd,sv:S.sv.label,kind:'',title:'',detail:'',emoji:'',dish:'',min:2,deadline:loc(dl),maxT:S.tv||'',photo:'',code:'',id:null,caption:''}; render(); window.scrollTo(0,0); }
-function tbStepper(k){ return `<div class="tb-sn">${['Offre','Pour qui','Photo','Publier'].map((t,i)=>`<div class="${i+1===k?'on':i+1<k?'dn':''}"><i>${i+1<k?'✓':i+1}</i><span>${t}</span></div>`).join('')}</div>`; }
+function tbStepper(k){ return `<div class="tb-sn">${['Offre','Pour qui','Photo','Publier'].map((t,i)=>`<div class="${i+1===k?'on':i+1<k?'dn':''}"><b class="tb-n">${i+1<k?'✓':i+1}</b><span>${t}</span></div>`).join('')}</div>`; }
 function tbWizard(){ const W=UI.tbw, S=tbStat(W.date,W.sv), dd=tbDishes();
   const head=`<div class="tb-wz">${tbStepper(W.step)}`, foot=(back,next,act)=>`<div class="tb-nav">${back}<button type="button" class="tb-btn" data-act="${act}">${next}</button></div></div>`;
   const cancel=`<button type="button" class="tb-btn w" data-act="tbClose">${W.step===1?'Annuler':'Fermer'}</button>`, back=`<button type="button" class="tb-btn w" data-act="tbBack">Retour</button>`;
@@ -1926,20 +1926,23 @@ function tbCaption(W){ const A=DATA.address||{}, d=new Date(W.date+'T12:00:00'),
 async function tbDraw(){ const W=UI.tbw, cv=document.getElementById('tbCanvas'); if(!W||!cv) return; const x=cv.getContext('2d'), w=1080, h=1920;
   const brand=(DATA.brandColors&&(DATA.brandColors.banner||DATA.brandColors.primary))||'#10285e';
   x.fillStyle=brand; x.fillRect(0,0,w,h);
-  if(W.photo){ try{ const im=await new Promise((ok,ko)=>{ const i=new Image(); i.crossOrigin='anonymous'; i.onload=()=>ok(i); i.onerror=ko; i.src=W.photo; });
+  if(W.photo){ try{ const im=await new Promise((ok,ko)=>{ const i=new Image(); i.crossOrigin='anonymous'; i.onload=()=>ok(i); i.onerror=ko; i.src=W.photo+(W.photo.includes('?')?'&':'?')+'cv=1'; });
     const r=Math.max(w/im.width,h/im.height), iw=im.width*r, ih=im.height*r; x.drawImage(im,(w-iw)/2,(h-ih)/2,iw,ih); }catch(e){ console.warn('photo',e); } }
   const g=x.createLinearGradient(0,h*0.35,0,h); g.addColorStop(0,'rgba(10,20,45,0)'); g.addColorStop(0.55,'rgba(10,20,45,.72)'); g.addColorStop(1,'rgba(10,20,45,.92)'); x.fillStyle=g; x.fillRect(0,0,w,h);
   const tg=x.createLinearGradient(0,0,0,300); tg.addColorStop(0,'rgba(10,20,45,.55)'); tg.addColorStop(1,'rgba(10,20,45,0)'); x.fillStyle=tg; x.fillRect(0,0,w,300);
   x.fillStyle='#fff'; x.textBaseline='alphabetic'; x.font='800 40px Inter, system-ui, sans-serif'; x.letterSpacing='8px'; x.fillText((DATA.restaurantName||'').toUpperCase(),80,150); x.letterSpacing='0px';
   const wrap=(t,max)=>{ const ws=t.split(/\s+/), out=[]; let l=''; ws.forEach(s=>{ const tt=l?l+' '+s:s; if(x.measureText(tt).width>max&&l){ out.push(l); l=s; } else l=tt; }); if(l) out.push(l); return out; };
-  x.font='900 104px Inter, system-ui, sans-serif'; const lines=wrap(W.title.toUpperCase(),w-160);
-  let y=h-560-(lines.length-1)*108; lines.forEach(l=>{ x.fillText(l,80,y); y+=108; });
   const d=new Date(W.date+'T12:00:00'), dl=new Date(W.deadline);
-  x.font='500 46px Inter, system-ui, sans-serif'; x.fillStyle='rgba(255,255,255,.92)'; const sub=tbCap(d.toLocaleDateString('fr-FR',{weekday:'long'}))+' '+W.sv.toLowerCase()+(W.detail?', '+W.detail.charAt(0).toLowerCase()+W.detail.slice(1):''); wrap(sub,w-160).slice(0,2).forEach((l,i)=>x.fillText(l,80,y+10+i*58)); y+=10+Math.min(2,wrap(sub,w-160).length)*58+30;
-  const val=tbCap(d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'}))+' · Réservez avant '+tbHM(dl.getHours()+':'+String(dl.getMinutes()).padStart(2,'0'));
-  x.font='700 38px Inter, system-ui, sans-serif'; const vw=x.measureText(val).width+56; x.fillStyle='rgba(255,255,255,.18)'; x.beginPath(); x.roundRect(80,y,vw,78,20); x.fill(); x.fillStyle='#fff'; x.fillText(val,108,y+52);
   // emplacement du sticker lien (en pointillés, à recouvrir dans Instagram)
-  const sy=h-250; x.setLineDash([16,12]); x.strokeStyle='rgba(255,255,255,.8)'; x.lineWidth=4; x.beginPath(); x.roundRect(240,sy,600,110,28); x.stroke(); x.setLineDash([]); x.font='700 38px Inter, system-ui, sans-serif'; x.textAlign='center'; x.fillText('Votre lien ici',540,sy+68); x.textAlign='left';
+  const sy=h-260; x.setLineDash([16,12]); x.strokeStyle='rgba(255,255,255,.8)'; x.lineWidth=4; x.beginPath(); x.roundRect(240,sy,600,110,28); x.stroke(); x.setLineDash([]); x.fillStyle='#fff'; x.font='700 38px Inter, system-ui, sans-serif'; x.textAlign='center'; x.fillText('Votre lien ici',540,sy+68); x.textAlign='left';
+  // date limite imprimée
+  const val=tbCap(d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'}))+' · Réservez avant '+tbHM(dl.getHours()+':'+String(dl.getMinutes()).padStart(2,'0'));
+  x.font='700 38px Inter, system-ui, sans-serif'; const vw=x.measureText(val).width+56, vy=sy-70-78; x.fillStyle='rgba(255,255,255,.18)'; x.beginPath(); x.roundRect(80,vy,vw,78,20); x.fill(); x.fillStyle='#fff'; x.fillText(val,108,vy+52);
+  // sous-titre (2 lignes max) puis titre (au-dessus)
+  x.font='500 46px Inter, system-ui, sans-serif'; const sub=tbCap(d.toLocaleDateString('fr-FR',{weekday:'long'}))+' '+W.sv.toLowerCase()+(W.detail?', '+W.detail.charAt(0).toLowerCase()+W.detail.slice(1):''), sl=wrap(sub,w-160).slice(0,2);
+  let y=vy-40-(sl.length-1)*58; x.fillStyle='rgba(255,255,255,.92)'; sl.forEach((l,k)=>x.fillText(l,80,y+k*58));
+  x.font='900 104px Inter, system-ui, sans-serif'; const lines=wrap(W.title.toUpperCase(),w-160).slice(0,5); x.fillStyle='#fff';
+  let ty=y-70-(lines.length-1)*108; lines.forEach((l,k)=>x.fillText(l,80,ty+k*108));
 }
 async function tbSave(){ const W=UI.tbw; if(!W.title.trim()){ toast('Écrivez ou choisissez une offre'); return; }
   const sv=tbSvcOf(W.sv), row={client_slug:RESA_SLUG,title:W.title.trim(),detail:W.detail.trim()||null,emoji:W.emoji||null,kind:W.kind||'perso',date_iso:W.date,service:sv.label,slot_from:sv.start,slot_to:sv.end,min_covers:Math.max(1,+W.min||1),max_tables:+W.maxT||null,deadline:new Date(W.deadline).toISOString(),photo:W.photo||null};
@@ -1962,7 +1965,7 @@ async function tbAct(a,d){ const W=UI.tbw;
     case 'tbNew': return tbNew();
     case 'tbClose': UI.tbw=null; return render();
     case 'tbBack': W.step=Math.max(1,W.step-1); return render();
-    case 'tbPick': if(d.k==='plat'){ const x=tbDishes().find(o=>o.id===d.id); if(!x) return; Object.assign(W,{kind:'plat',dish:x.id,title:x.nm+' : −15 %',detail:x.desc.slice(0,80),emoji:'',photo:x.img,min:1}); }
+    case 'tbPick': if(d.k==='plat'){ const x=tbDishes().find(o=>o.id===d.id); if(!x) return; Object.assign(W,{kind:'plat',dish:x.id,title:x.nm+' à '+Math.round(x.price*0.85)+' € au lieu de '+x.price+' €',detail:x.desc.slice(0,80),emoji:'',photo:x.img,min:1}); }
       else Object.assign(W,{kind:'rapide',dish:'',title:d.t,detail:d.dt,emoji:d.e||'',min:+d.mn||1}); return render();
     case 'tbNext': if(W.step===1&&!W.title.trim()){ toast('Écrivez ou choisissez une offre'); return; } if(W.step===2&&new Date(W.deadline)<new Date()){ toast('La date limite est déjà passée'); return; } W.step++; return render();
     case 'tbPhoto': W.photo=d.v; return render();
@@ -1972,7 +1975,7 @@ async function tbAct(a,d){ const W=UI.tbw;
       if(!UI.tbw.caption) UI.tbw.caption=tbCaption(UI.tbw); render(); window.scrollTo(0,0); return; }
     case 'tbCopy': { const v=d.cap?(document.querySelector('.tb-cap')||{}).value||W.caption:d.v; try{ await navigator.clipboard.writeText(v); toast(d.cap?'Légende copiée':'Lien copié'); }catch(e){ toast('Copie impossible : sélectionnez le texte'); } return; }
     case 'tbDl': { const cv=document.getElementById('tbCanvas'); if(!cv) return; cv.toBlob(async b=>{ const name='table-boost-'+W.code+'.png'; const f=new File([b],name,{type:'image/png'});
-        if(navigator.canShare&&navigator.canShare({files:[f]})){ try{ await navigator.share({files:[f]}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
+        if(isMob()&&navigator.canShare&&navigator.canShare({files:[f]})){ try{ await navigator.share({files:[f]}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
         const u=URL.createObjectURL(b), l=document.createElement('a'); l.href=u; l.download=name; document.body.appendChild(l); l.click(); l.remove(); setTimeout(()=>URL.revokeObjectURL(u),4000); },'image/png'); return; }
     case 'tbPub': { await sb.from('boost_offers').update({status:'published',published_at:new Date().toISOString(),caption:W.caption}).eq('id',W.id); UI.tbw=null; await loadBoost(); toast('Offre publiée : les réservations seront comptées ici'); return render(); }
   } }
