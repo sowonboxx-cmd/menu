@@ -3393,26 +3393,41 @@ document.addEventListener('click',e=>{
 // jamais réutilisées pour un autre restaurant. Chaque resto aura son propre jeu (validé par Will). Sans jeu : messages neutres, sans icône.
 const CTA_SETS={
   drevici:[
-    {i:'oyster',t:'On vous attend<br>ce soir',s:'Réservez en ligne en 30 secondes.'},
-    {i:'anchor',t:'Tout est prêt',s:'Votre table vous attend, il ne manque plus que vous.',hr:1},
-    {i:'lancette',t:'Une envie<br>d’huîtres&nbsp;?',s:'Tout droit de Surzur. On les ouvre pour vous ce soir.'},
+    {i:'oyster',t:'On vous attend<br>{w}',s:'Réservez en ligne en 30 secondes.'},
+    {i:'anchor',t:'Tout est prêt',s:'Votre table vous attend {w}, il ne manque plus que vous.',hr:1},
+    {i:'lancette',t:'Une envie<br>d’huîtres&nbsp;?',s:'Tout droit de Surzur. On les ouvre pour vous {w}.'},
     {i:'seashell',t:'Venez comme<br>vous êtes',s:'L’équipe vous accueille avec le sourire. Réservez en 30 secondes.'},
-    {i:'phare',t:'Ce soir,<br>cap sur Drevici',s:'Réservez votre table en ligne, on s’occupe du reste.',waves:1},
-    {i:'oyster',t:'Votre table<br>est prête',s:'On vous attend ce soir. Réservation en ligne en 30 secondes.',deco:1}
+    {i:'phare',t:'{W},<br>cap sur Drevici',s:'Réservez votre table en ligne, on s’occupe du reste.',waves:1},
+    {i:'oyster',t:'Votre table<br>est prête',s:'On vous attend {w}. Réservation en ligne en 30 secondes.',deco:1}
   ],
   neutre:[
-    {t:'On vous attend<br>ce soir',s:'Réservez en ligne en 30 secondes.'},
-    {t:'Tout est prêt',s:'Votre table vous attend, il ne manque plus que vous.',hr:1},
+    {t:'On vous attend<br>{w}',s:'Réservez en ligne en 30 secondes.'},
+    {t:'Tout est prêt',s:'Votre table vous attend {w}, il ne manque plus que vous.',hr:1},
     {t:'Venez comme<br>vous êtes',s:'L’équipe vous accueille avec le sourire. Réservez en 30 secondes.'},
-    {t:'Votre table<br>est prête',s:'On vous attend ce soir. Réservation en ligne en 30 secondes.'}
+    {t:'Votre table<br>est prête',s:'On vous attend {w}. Réservation en ligne en 30 secondes.'}
   ]
 };
-let CTA_PICK=null;
-function ctaTileHtml(){
+// Le prochain service ouvert, d'après les horaires : « ce midi », « ce soir », « demain soir », « jeudi soir »…
+function ctaWhen(){
+  const sc=DATA.schedule||[], now=new Date(), h=now.getHours()+now.getMinutes()/60;
+  if(sc.length<7) return h<14?'ce midi':'ce soir';
+  const DN=['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+  const plages=i=>{ const d=sc[i]; if(!d||d.active===false) return [];
+    const one=(o,c)=>{ o=+o; c=(c==null||c==='')?o+6:+c; return [o,c<=o?c+24:c]; };
+    let p=(d.services||[]).filter(x=>x&&x.open!=null&&x.open!=='').map(x=>one(x.open,x.close));
+    if(!p.length&&d.open!=null&&d.open!=='') p=[one(d.open,d.close)]; return p; };
+  for(let k=0;k<8;k++){ const i=(now.getDay()+6+k)%7, p=plages(i).filter(([o,c])=>k>0||c>h).sort((a,b)=>a[0]-b[0]);
+    if(p.length){ const m=p[0][0]<16?'midi':'soir'; return k===0?'ce '+m:k===1?'demain '+(m==='midi'?'midi':'soir'):DN[i]+' '+m; } }
+  return 'ce soir';
+}
+// Un message au hasard, et un autre dès qu'on change d'onglet (jamais deux fois le même de suite).
+let CTA_PICK=null, CTA_TAB=null;
+function ctaTileHtml(tabId){
   const theme=DATA.ctaTheme||(CLIENT_SLUG==='drevici'?'drevici':'neutre');
   const set=CTA_SETS[theme]||CTA_SETS.neutre;
-  if(CTA_PICK===null||CTA_PICK>=set.length) CTA_PICK=Math.floor(Math.random()*set.length);
-  const m=set[CTA_PICK], ic=n=>`<span class="cta-i" style="-webkit-mask-image:url(media/cta/${n}.svg);mask-image:url(media/cta/${n}.svg)"></span>`;
+  if(CTA_PICK===null||CTA_PICK>=set.length||(tabId!==undefined&&tabId!==CTA_TAB)){ let n=Math.floor(Math.random()*set.length); if(set.length>1&&n===CTA_PICK) n=(n+1+Math.floor(Math.random()*(set.length-1)))%set.length; CTA_PICK=n; CTA_TAB=tabId; }
+  const w=ctaWhen(), fill=x=>x.replace(/\{w\}/g,w).replace(/\{W\}/g,w.charAt(0).toUpperCase()+w.slice(1));
+  const m0=set[CTA_PICK], m=Object.assign({},m0,{t:fill(m0.t),s:fill(m0.s)}), ic=n=>`<span class="cta-i" style="-webkit-mask-image:url(media/cta/${n}.svg);mask-image:url(media/cta/${n}.svg)"></span>`;
   const deco=m.deco?['oyster:top:14px;left:12px;transform:rotate(-14deg)','seashell:top:20px;right:18px;width:50px;height:50px','lancette:bottom:22px;left:18px;width:54px;height:54px','anchor:bottom:18px;right:14px;transform:rotate(12deg)'].map(x=>{const [n,st]=x.split(/:(.*)/s);return `<span class="cta-d" style="${st};-webkit-mask-image:url(media/cta/${n}.svg);mask-image:url(media/cta/${n}.svg)"></span>`;}).join(''):'';
   return `<div class="cta-tile">${deco}${m.i?ic(m.i):''}<b>${m.t}</b>${m.hr?'<hr>':''}<small>${m.s}</small><a href="book">Réserver</a>${m.waves?`<span class="cta-w" style="-webkit-mask-image:url(media/cta/waves.svg);mask-image:url(media/cta/waves.svg)"></span>`:''}</div>`;
 }
@@ -5191,7 +5206,7 @@ function renderTabContent(tab,lbOffset){
       // avec un encart « réserver ». 1 plat seul : il passe en bandeau photo sur deux tiers.
       const rest=gridItems.length%3;
       if(rest===1) gridItems[gridItems.length-1]=gridItems[gridItems.length-1].replace('<div class="gc"','<div class="gc gc-o1"');
-      if(rest) gridItems.push(ctaTileHtml());
+      if(rest) gridItems.push(ctaTileHtml(tab.id));
       html+=`<div class="dish-grid">${gridItems.join('')}</div>`;
     }
     if(bevsCardsHtml) html+=bevsCardsHtml;
