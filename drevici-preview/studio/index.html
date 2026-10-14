@@ -26,7 +26,7 @@ button{cursor:pointer;background:none}
 .hd img{width:48px;height:48px;border-radius:50%}
 .hd b{display:block;font-family:"Playfair Display",serif;font-size:23px;line-height:1.05}
 .hd span{font-size:13px;color:var(--mut)}
-.pill-btn{margin-left:auto;font-size:12.5px;font-weight:700;background:#fff;border-radius:999px;padding:9px 14px;white-space:nowrap}
+.navgo{margin-left:auto;display:flex;gap:6px}.pill-btn{font-size:12.5px;font-weight:700;background:#fff;border-radius:999px;padding:9px 14px;white-space:nowrap}
 .back{width:40px;height:40px;border-radius:50%;background:#fff;display:grid;place-items:center;flex:none;font-size:20px}
 .sub-hd{display:flex;align-items:center;gap:12px;margin:6px 0 16px}
 .sub-hd h1{margin:0;font-family:"Playfair Display",serif;font-size:26px;line-height:1.05}
@@ -352,8 +352,8 @@ a.x.resa{color:#fff;text-decoration:none}a.x.resa h3,a.x.resa .more{color:#fff}
 
   <!-- ═══════ ACCUEIL ═══════ -->
   <main id="v-home">
-    <div class="hd"><img src="../charte/files/logos/DreviciOyster-BZH_LogoRond_FondBleu.svg" alt=""><div><b>La Cabine</b><span id="today"></span></div>
-      <button class="pill-btn" type="button" id="authBtn">Se connecter</button></div>
+    <div class="hd"><img src="../charte/files/logos/DreviciOyster-BZH_LogoRond_FondBleu.svg" alt=""><div><b>Studio</b><span id="today"></span></div>
+      <span class="navgo"><a class="pill-btn" href="https://drevici.beltab.app/" target="_blank" rel="noopener">Site ↗</a><a class="pill-btn" href="https://drevici.beltab.app/admin">Admin</a></span></div>
     <div id="banners"></div>
     <div class="bento">
       <section class="x cal span2 d-cal">
@@ -518,10 +518,9 @@ const tableMissing=err=>err&&(err.code==='42P01'||/does not exist|schema cache/i
 
 /* ═══════════ Connexion ═══════════ */
 function renderAuth(){
-  const b=document.getElementById('authBtn');
-  b.textContent=SESSION?'Déconnexion':'Se connecter';
+  // Pas de bouton de connexion : le Studio partage le compte de l'admin (même site, même session).
 }
-document.getElementById('authBtn').onclick=async()=>{
+const openLogin=async()=>{
   if(SESSION){await sb.auth.signOut();location.reload();return;}
   openSheet(`<div class="login"><h2 style="margin:0 0 12px;font-family:'Playfair Display',serif;font-size:22px">Connexion</h2>
     <form id="loginF" class="fields"><div class="f"><label>Email</label><input type="email" id="lE" autocomplete="username" required></div>
@@ -1170,7 +1169,7 @@ document.addEventListener('submit',e=>{if(e.target.matches('[data-add]')){e.prev
 /* ═══════════ Bandeaux d'état ═══════════ */
 function renderBanners(){
   let h='';
-  if(!SESSION) h=`<div class="banner">🔒 <span><b>Connectez-vous</b> pour voir les réservations du jour et enregistrer Events et tâches.</span><button class="cbtn" type="button" onclick="document.getElementById('authBtn').click()">Se connecter</button></div>`;
+  if(!SESSION) h=`<div class="banner">🔒 <span><b>Connectez-vous à l’admin</b> (même compte) pour voir les réservations du jour et enregistrer Events et tâches.</span><button class="cbtn" type="button" onclick="location.href='https://drevici.beltab.app/admin'">Ouvrir l’admin</button></div>`;
   else if(!DB_EVENTS||!DB_TASKS) h=`<div class="banner">🛠 <span><b>Base à créer :</b> collez <code>sql/cabine.sql</code> dans Supabase → SQL Editor → Run. En attendant, les Events affichés viennent de l'ancien calendrier et rien n'est enregistré.</span></div>`;
   document.getElementById('banners').innerHTML=h;
   document.getElementById('evBanner').innerHTML=(SESSION&&DB_EVENTS&&!EVENTS.length)?`<div class="banner">📥 <span><b>Calendrier vide.</b> Importer l'ancien calendrier et les 4 Events récurrents (Girls' Night, ateliers, soirée DJ) ?</span><button class="cbtn" type="button" id="importOld">Importer</button></div>`:(h&&SESSION?h:'');
