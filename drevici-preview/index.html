@@ -1911,9 +1911,8 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 .apx-pop{position:absolute;inset:0;background:#f8f5ef;color:#3d3d3d;display:flex;flex-direction:column;overflow:hidden}
 .apx-x{position:absolute;right:14px;top:calc(14px + env(safe-area-inset-top));z-index:4;width:40px;height:40px;border-radius:50%;border:0;background:#10285e;color:#fff;font-size:17px;line-height:1;display:grid;place-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .apx-im{position:relative;flex:1;min-height:30vh;margin-bottom:-34px;overflow:hidden;background:#e9e4da}
-.apx-im img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .9s ease;transform:scale(1.001)}
-.apx-im img.on{opacity:1;animation:apxZoom 6s ease-out forwards}
-@keyframes apxZoom{to{transform:scale(1.06)}}
+.apx-im img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.2s ease;will-change:transform,object-position;backface-visibility:hidden}
+.apx-im img.on{opacity:1}
 .apx-im::after{content:'';position:absolute;left:0;right:0;bottom:0;height:130px;background:linear-gradient(180deg,rgba(248,245,239,0),rgba(248,245,239,.8) 62%,#f8f5ef);pointer-events:none}
 .apx-dots{display:none}
 .apx-tx{position:relative;z-index:1;flex:none;padding:0 26px}
@@ -1933,7 +1932,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
  .apx-n{display:none}.apx h2{font-size:34px}.apx p{font-size:15.5px}.apx-ft{padding:30px 0 0}
  .apx-dots{display:flex;justify-content:center;gap:8px;position:absolute;left:0;right:0;bottom:22px;z-index:2}
  .apx-dots i{width:18px;height:3px;background:rgba(255,255,255,.55);cursor:pointer}.apx-dots i.on{background:#fff}}
-@media(prefers-reduced-motion:reduce){.apx,.apx-im img.on{animation:none}}
+@media(prefers-reduced-motion:reduce){.apx{animation:none}}
 .club-link{display:inline-block;margin:16px auto 0;background:none;border:0;padding:6px 4px;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .club-link-t{display:inline-flex;align-items:center;gap:6px;color:#fff;font-family:'Jost',sans-serif;font-weight:600;font-size:16.5px;letter-spacing:.06em;padding-bottom:7px;border-bottom:2px solid rgba(240,217,168,.9);white-space:nowrap}
 .club-link-t .tx{background:linear-gradient(100deg,#fff 40%,#f0d9a8 50%,#fff 60%) 0 0/250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:clubShine 4s ease-in-out infinite}
@@ -4386,8 +4385,19 @@ function openAbout(){
       <div class="apx-ft"><button type="button" class="m">${e(ml.trim())}</button><button type="button" class="r">${e(rl.trim())}</button></div></div></div>`;
   document.body.appendChild(o); document.documentElement.style.overflow='hidden';
   let k=0, tm=null; const imgs=o.querySelectorAll('.apx-im img'), dots=o.querySelectorAll('.apx-dots i'), num=o.querySelector('.apx-n b');
-  const go=i=>{ k=(i+n)%n; imgs.forEach((im,j)=>im.classList.toggle('on',j===k)); dots.forEach((d,j)=>d.classList.toggle('on',j===k)); if(num) num.textContent=k+1; };
-  const play=()=>{ clearInterval(tm); if(n>1) tm=setInterval(()=>go(k+1),4000); };
+  // Mouvement de chaque image (façon Ken Burns), choisi selon sa forme : une image bien plus large que le cadre
+  // glisse doucement de gauche à droite (ou l'inverse) ; sinon, léger zoom avant ou arrière. Le mouvement dure plus
+  // longtemps que l'affichage : l'image bouge encore pendant le fondu, rien ne « saute ».
+  const still=matchMedia('(prefers-reduced-motion:reduce)').matches, DUR=7000;
+  const move=im=>{ if(still) return; const box=im.parentNode.getBoundingClientRect(), w=im.naturalWidth||16, h=im.naturalHeight||9;
+    const crop=(w/h)/(box.width/box.height||1), rnd=Math.random()<.5;
+    let a,b; if(crop>1.2){ const L=rnd?'0%':'100%', R=rnd?'100%':'0%'; a=['scale(1.02)',L+' 50%']; b=['scale(1.05)',R+' 50%']; }
+    else { const y=Math.random()<.5?'40%':'60%'; a=rnd?['scale(1)','50% 50%']:['scale(1.09)','50% '+y]; b=rnd?['scale(1.09)','50% '+y]:['scale(1)','50% 50%']; }
+    im.style.transition='opacity 1.2s ease'; im.style.transform=a[0]; im.style.objectPosition=a[1]; void im.offsetWidth;
+    im.style.transition=`opacity 1.2s ease, transform ${DUR}ms linear, object-position ${DUR}ms linear`; im.style.transform=b[0]; im.style.objectPosition=b[1]; };
+  const go=i=>{ k=(i+n)%n; imgs.forEach((im,j)=>{ const on=j===k; if(on&&!im.classList.contains('on')) move(im); im.classList.toggle('on',on); }); dots.forEach((d,j)=>d.classList.toggle('on',j===k)); if(num) num.textContent=k+1; };
+  const play=()=>{ clearInterval(tm); if(n>1) tm=setInterval(()=>go(k+1),5000); };
+  const first=imgs[0]; if(first){ const f=()=>move(first); first.complete?f():first.addEventListener('load',f,{once:true}); }
   const close=(then)=>{ clearInterval(tm); document.removeEventListener('keydown',esc); o.classList.add('out'); setTimeout(()=>{ o.remove(); document.documentElement.style.overflow=''; if(then) then(); },230); };
   const esc=ev=>{ if(ev.key==='Escape') close(); if(ev.key==='ArrowRight'){ go(k+1); play(); } if(ev.key==='ArrowLeft'){ go(k-1); play(); } };
   document.addEventListener('keydown',esc);
