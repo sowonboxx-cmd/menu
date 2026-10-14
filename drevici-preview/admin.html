@@ -1357,6 +1357,7 @@ async function loadSide(){
   ]);
   RESA.sort((a,b)=>(a.date_iso+(a.slot||'')).localeCompare(b.date_iso+(b.slot||'')));
   await loadBoost();
+  rcCounts();
   MSGS=await q(sb.from('contact_messages').select('*').eq('client_slug',CL_SLUG).order('created_at',{ascending:false}).limit(300),'messages');
   render();
   loadStats(7);
@@ -1856,6 +1857,13 @@ const RC_P='<svg class="rc-i" viewBox="0 0 24 24" fill="none" stroke="currentCol
 const RC_L='<svg class="rc-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
 const rcPP=n=>`<span class="rc-pp">${RC_P}${n} pers.</span>`;
 let RC={key:'',rows:[],blk:[],busy:false};
+// Nombre de résas de la semaine et du mois en cours, chargé à l'arrivée pour afficher les compteurs des onglets.
+let RCN={wk:'',mo:''};
+async function rcCounts(){ const n=new Date(); n.setHours(12,0,0,0); const w0=new Date(n); w0.setDate(w0.getDate()-((w0.getDay()+6)%7)); const w1=new Date(w0); w1.setDate(w1.getDate()+6);
+  const m0=new Date(n.getFullYear(),n.getMonth(),1,12), m1=new Date(n.getFullYear(),n.getMonth()+1,0,12), a=iso(Math.min(w0,m0)), b=iso(Math.max(w1,m1));
+  try{ const {data,error}=await sb.from('restaurant_reservations').select('date_iso,status').eq('client_slug',RESA_SLUG).gte('date_iso',a).lte('date_iso',b).limit(5000); if(error) return;
+    const rs=(data||[]).filter(r=>(r.status||'confirmed')==='confirmed'), c=(x,y)=>rs.filter(r=>r.date_iso>=x&&r.date_iso<=y).length;
+    RCN={wk:c(iso(w0),iso(w1)),mo:c(iso(m0),iso(m1))}; render(); }catch(e){} }
 function dayClosed(d){ const sc=DATA&&DATA.schedule; if(!Array.isArray(sc)||sc.length<7) return false;
   const day=sc[(new Date(d+'T12:00:00').getDay()+6)%7]; if(!day) return false; if(day.active===false) return true;
   return !((day.services||[]).some(p=>p&&p.open!=null&&p.open!=='')||day.open!=null); }
@@ -1913,7 +1921,7 @@ function pageResa(){
   const body=days.length?days.map(d=>{ const its=list.filter(r=>r.date_iso===d); const cov=its.reduce((a,r)=>a+(+r.covers||0),0);
     return `<div class="jg"><div class="jl"><b>${dlab(d)}</b><small>${its.length} résa${its.length>1?'s':''} · ${cov} couverts</small></div>${its.map(r=>resaRow(r,sel===r)).join('')}</div>`; }).join(''):`<div class="jg"><div class="empty">Aucune réservation dans les 14 prochains jours.</div></div>`;
   return mtop('Tableau de bord','dash')+ph('Réservations',`${list.filter(r=>r.date_iso===t).length} aujourd'hui · ${list.length} sur 14 jours`,'')+
-  resaTabs()+`<div class="pgrid g-3-1"><div>${(()=>{ const v=UI.rview||'av', rg=rcRange(), ok=RC.key===rg[0]+'_'+rg[1]; const n=k=>k==='av'?list.length:(v===k&&ok?RC.rows.length:'');
+  resaTabs()+`<div class="pgrid g-3-1"><div>${(()=>{ const v=UI.rview||'av', rg=rcRange(), ok=RC.key===rg[0]+'_'+rg[1]; const n=k=>k==='av'?list.length:(v===k&&ok?RC.rows.length:RCN[k]);
     return `<nav class="st">${[['av','À venir'],['wk','Semaine'],['mo','Mois']].map(([k,l])=>`<a href="#/resa" data-act="rcView" data-v="${k}" class="${v===k?'on':''}">${l}${n(k)!==''?`<em>${n(k)}</em>`:''}</a>`).join('')}</nav>`; })()}<div class="jw">${(UI.rview||'av')==='av'?body:rcView()}</div></div>
   <div>${sel?`<div class="rdet desk">${card('Réservation · '+esc(sel.ref||''),'resa',resaDetail(sel)).replace('id="b-resa"','id="b-rdet"')}<button type="button" class="rdet-x" data-act="rsClose" aria-label="Fermer">✕</button></div>`:''}${card('À traiter','alert',row(pill(String(noTable.length),noTable.length?'warn':''),'Réservation'+(noTable.length>1?'s':'')+' sans table')+row(pill(String(WAIT.length)),'Liste d\'attente'))}
   ${card('Salle, espaces et tables','resa',salleSummary()).replace('id="b-resa"','id="b-salle"')}</div></div>`;
