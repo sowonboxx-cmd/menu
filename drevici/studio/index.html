@@ -760,13 +760,15 @@ function delTask(id){
     if(error){toast('Erreur : '+error.message);TASKS.splice(Math.min(i,TASKS.length),0,t);renderTasks();}},5000);
   toastUndo('Tâche supprimée',()=>{clearTimeout(h);TASKS.splice(Math.min(i,TASKS.length),0,t);renderTasks();toast('Tâche restaurée ✓');});
 }
+// Tâches faites : toujours en bas de la liste (l'ordre des autres ne bouge pas).
+const doneLast=(a,b)=>(a.done?1:0)-(b.done?1:0);
 const taskRow=t=>`<div class="row ${t.done?'done':''}"><button class="chk ${t.done?'done':''}" type="button" data-td="${esc(t.id)}" aria-label="Fait"></button><span class="t" data-open="${esc(t.id)}">${esc(t.title)}</span><span class="tg">${esc(t.tag||'')}${t.due&&t.due>TISO?' · '+fmtD(t.due):''}</span></div>`;
 function renderTasks(){
-  const today=TASKS.filter(t=>isToday(t)&&(!t.done||t.updated_at?.slice(0,10)===TISO||!DB_TASKS));
+  const today=TASKS.filter(t=>isToday(t)&&(!t.done||t.updated_at?.slice(0,10)===TISO||!DB_TASKS)).sort(doneLast);
   document.getElementById('homeTodo').innerHTML=today.slice(0,6).map(taskRow).join('')||'<p class="empty">Rien pour aujourd’hui.</p>';
   document.getElementById('todoMore').textContent=today.filter(t=>!t.done).length+' restante'+(today.filter(t=>!t.done).length>1?'s':'')+' · Voir tout →';
   document.getElementById('tdChips').innerHTML=['Aujourd’hui','À venir','Fait','Toutes'].map(c=>`<button class="chip ${c===tdF?'on':''}" type="button" data-tf="${c}">${c}</button>`).join('');
-  const l=TASKS.filter(t=>tdF==='Toutes'||(tdF==='Fait'?t.done:tdF==='À venir'?(!t.done&&t.due>TISO):(!t.done&&isToday(t))));
+  const l=TASKS.filter(t=>tdF==='Toutes'||(tdF==='Fait'?t.done:tdF==='À venir'?(!t.done&&t.due>TISO):(!t.done&&isToday(t)))).sort(doneLast);
   document.getElementById('tdList').innerHTML=l.map(taskRow).join('')||'<p class="empty">Rien ici.</p>';
   const desk=matchMedia('(min-width:900px)').matches;
   if(desk&&!TASKS.find(t=>t.id===tdSel)&&l.length) tdSel=l[0].id;
