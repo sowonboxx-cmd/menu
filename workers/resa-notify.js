@@ -132,7 +132,13 @@ export default {
         if (body.test) list = [{ id: 0, email: who.email, name: '' }];
         else {
           const all = await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&marketing_optin=eq.true&select=id,email,name,visits,last_seen,club_member&limit=5000`) || [];
-          list = all.filter(c => inSegment(c, body.segment));
+          // Garde-fou : l'admin envoie la liste exacte des destinataires qu'il a affichée (ids).
+          // Sans liste, seul « Tous » est accepté ; un segment inconnu n'envoie RIEN (avant : il envoyait à tout le monde).
+          if (Array.isArray(body.ids)) { const ids = new Set(body.ids.map(String)); list = all.filter(c => ids.has(String(c.id))); }
+          else if (!body.segment || body.segment === 'all') list = all;
+          else if (KNOWN_SEGS.has(body.segment)) list = all.filter(c => inSegment(c, body.segment));
+          else return json({ ok: false, error: 'Segment non reconnu : envoi annulé, personne n’a reçu l’email.' }, 400, cors);
+          if (body.expect != null && list.length !== +body.expect) return json({ ok: false, error: `Le nombre de destinataires ne correspond pas (${list.length} au lieu de ${body.expect}) : envoi annulé.` }, 409, cors);
         }
         if (!list.length) return json({ ok: false, error: 'Aucun destinataire' }, 400, cors);
         const base = new URL(req.url).origin;
@@ -405,6 +411,7 @@ async function adminOf(env, req, slug) {
   const rows = await sb(env, `restaurant_admins?select=client_slug&user_id=eq.${enc(user.id)}&client_slug=eq.${enc(slug)}`).catch(() => []);
   return rows && rows.length ? { id: user.id, email: user.email } : null;
 }
+const KNOWN_SEGS = new Set(['fideles', 'relance', 'nouveaux', 'club']);
 function inSegment(c, seg) {
   const days = c.last_seen ? (Date.now() - Date.parse(c.last_seen)) / 864e5 : 999;
   if (seg === 'fideles') return (c.visits || 0) >= 3;

@@ -1060,6 +1060,7 @@ input.in.hr{width:76px;text-align:center;padding:8px 10px;font-size:15px;font-we
 .clclub{display:block;margin-top:3px;font-size:12px;color:#8a6a2a}.clclub b{color:#c0392b}.clubbox{background:#fff;border-radius:20px;box-shadow:0 0 0 1px var(--line);padding:16px 18px;margin:0 0 14px}.clubh{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}.clubh small{color:var(--mut)}.clubin{display:flex;gap:8px}.clubin .in{flex:1;text-transform:uppercase}.clubres{margin-top:10px;padding:10px 12px;border-radius:12px;background:#f5f1e6;font-size:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}.clubres .btn{margin-left:auto}.clubres.ok{background:#e7f6ec;color:#1e7a43}.clubres.bad{background:#fdecea;color:#c0392b}
 .cltier{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}.cltier .in{width:auto;padding:5px 8px;font-size:12.5px;border-radius:9px;min-height:0}
 
+.emrl{margin-top:10px;background:#f6f4f0;border-radius:14px;padding:12px 14px;max-height:260px;overflow:auto;font-size:13px;display:grid;gap:4px}.emrl b{margin-bottom:4px}.emrl i{font-style:normal;color:var(--mut)}
 /* ── Table Boost ── */
 .tb-card,.tb-intro{background:#fff;border-radius:22px;padding:20px 22px;margin-top:16px;min-width:0}
 .tb-intro h2{margin:0;font-size:22px;font-weight:800;letter-spacing:-.01em}.tb-intro p{margin:6px 0 16px;color:var(--mut);font-size:14.5px;line-height:1.45}
@@ -2463,7 +2464,9 @@ function pageEmails(){
   const opt=(CLIENTS||[]).filter(c=>c.marketing_optin);
   const n=opt.filter(c=>inSeg(c,e.seg)).length;
   const who=`<div class="emwho">${SEGS.map(([k,l,s])=>`<button class="emseg${e.seg===k?' on':''}" data-act="emSeg" data-k="${k}"><b>${l}</b><small>${opt.filter(c=>inSeg(c,k)).length} · ${s}</small></button>`).join('')}</div>`;
-  const conf=UI.emConfirm?`<div class="emconf"><span>Envoyer à <b>${n} client${n>1?'s':''}</b> ?</span><button class="btn g" data-act="emGo">Oui, envoyer</button><button class="btn red" data-act="emNo">Non</button></div>`:'';
+  const rl=opt.filter(c=>inSeg(c,e.seg));
+  const conf=UI.emConfirm?`<div class="emconf"><span>Envoyer à <b>${n} client${n>1?'s':''}</b> (${esc((SEGS.find(x=>x[0]===e.seg)||[])[1]||'')}) ?</span><button class="btn g" data-act="emGo">Oui, envoyer</button><button class="btn red" data-act="emNo">Non</button></div>
+    <div class="emrl"><b>Ils vont recevoir l’email :</b>${rl.slice(0,200).map(c=>`<span>${esc(c.name||'')}${c.name?' · ':''}<i>${esc(c.email)}</i></span>`).join('')}${rl.length>200?`<span>… et ${rl.length-200} autres</span>`:''}</div>`:'';
   const left=`<section class="list pc plain"><div class="pb"><div class="emh">Suggestions</div>${sug}${dsel}${fields}${img}</div></section>
     <section class="list pc plain"><div class="pb"><div class="emh">À qui ?</div><p class="emnote">Seulement les clients qui ont accepté de recevoir vos offres.</p>${who}
     <div class="emact">${btn('M\'envoyer un test','mail','w','data-act="emTest"')}${btn(UI.emSending?'Envoi…':`Envoyer à ${n} client${n>1?'s':''}`,'mega','',`data-act="emSend" ${n&&!UI.emSending?'':'disabled'}`)}</div>${conf}</div></section>`;
@@ -2479,7 +2482,9 @@ function clExport(){
 }
 async function emSend(test){
   UI.emSending=!test; UI.emConfirm=false; render();
-  try{ const j=await napi('/campaign/send',{tpl:UI.em.tpl,f:emFull(),segment:UI.em.seg,test:!!test}); toast(test?'Test envoyé sur votre adresse':'Email envoyé à '+j.sent+' client'+(j.sent>1?'s':'')); }
+  // On envoie la liste exacte affichée (et son nombre) : le serveur n'envoie qu'à ces personnes-là.
+  const rcp=(CLIENTS||[]).filter(c=>c.marketing_optin&&inSeg(c,UI.em.seg));
+  try{ const j=await napi('/campaign/send',{tpl:UI.em.tpl,f:emFull(),segment:UI.em.seg,ids:test?undefined:rcp.map(c=>c.id),expect:test?undefined:rcp.length,test:!!test}); toast(test?'Test envoyé sur votre adresse':'Email envoyé à '+j.sent+' client'+(j.sent>1?'s':'')); }
   catch(e){ toast('⚠ '+e.message); }
   UI.emSending=false; render();
 }
