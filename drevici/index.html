@@ -1982,7 +1982,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 .club-ts .club-ts-lk{margin-top:9px}
 .club-ts-ed{display:inline-grid;place-items:center;width:30px;height:30px;border:0;border-radius:50%;background:#eef1f8;color:#10285e;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent}.club-ts-ed:active{transform:scale(.92)}
 .club-dl{background:#fdf1e4;border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.5;color:#7a3b12;margin-bottom:14px}
-.club-ig{background:#fff;border-radius:16px;padding:14px}.club-ig b{display:block;font-size:15px;color:#10285e}.club-ig span{display:block;font-size:13px;color:#6b7080;margin:4px 0 12px;line-height:1.4}
+.club-ig{background:#fff;border-radius:16px;padding:14px}.club-igl{display:block;text-align:center;font:600 13.5px Inter,system-ui,sans-serif;color:#c26a2b;text-decoration:none;margin:2px 0 18px}.club-ig b{display:block;font-size:15px;color:#10285e}.club-ig span{display:block;font-size:13px;color:#6b7080;margin:4px 0 12px;line-height:1.4}
 .club-iga{display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(90deg,#f58529,#dd2a7b 50%,#8134af)}
 
 /* Cartes du club (Navy = membre, Gold = VIP, Noir = staff) — maquettes validées : cabine/beltab-cartes-v3.html (M1, H1, C2 avec Gentleman S1) */
@@ -4313,8 +4313,8 @@ function clubWelcome(me,already,reveal){
   const q=new URLSearchParams({club:me.code,t:String(me.at||Date.now()),prenom:me.first||'',nom:me.last||'',email:me.email||'',tel:me.phone||''});
   clubShell(`<div class="club-wel">
       <canvas id="clubConf"></canvas>
-      <div class="club-wt">${reveal==='show'?`Bonjour${me.first?' '+clubEsc(me.first):''} !`:reveal?`Vous revoilà${me.first?', '+clubEsc(me.first):''} !`:already?'Vous êtes déjà membre ✓':`Bienvenue ${clubEsc(me.first)} !`}</div>
-      <div class="club-ws">${already?'Voici votre carte.':'Vous avez rejoint le club'+(me.no?` · membre n° ${me.no}`:'')}</div>
+      <div class="club-wt">${reveal==='show'?`${new Date().getHours()>=18||new Date().getHours()<5?'Bonsoir':'Bonjour'}${me.first?' '+clubEsc(me.first):''} !`:reveal?`Vous revoilà${me.first?', '+clubEsc(me.first):''} !`:already?'Vous êtes déjà membre ✓':`Bienvenue ${clubEsc(me.first)} !`}</div>
+      ${already?'':`<div class="club-ws">Vous avez rejoint le club${me.no?` · membre n° ${me.no}`:''}</div>`}
       <div id="clubTierB">${clubTierBadge(me)}</div><div class="club-stage"><div class="bc-wrap${reveal==='show'?' bc-show':reveal?' bc-reveal':''}">${clubCardHTML(me)}</div></div>
       <div class="club-wc">${me.used?'Votre coupe vous a déjà été offerte.<br><small>Merci, et à très vite au bar !</small>':`Votre coupe vous attend avec votre repas<br><b>jusqu'au ${clubLimit(me)}</b>.<small class="club-wc2">Champagne, ou un verre de vin, une bière, un soft.<br><b class="club-give">Donnez ce code en arrivant</b> : <span class="club-codepill">${clubEsc(me.code)}</span></small>`}</div>
       <div id="clubTs">${clubTsHTML(me)}</div>
@@ -4416,9 +4416,11 @@ function clubLinkRefresh(){ const me=clubMe(), l=document.querySelector('.club-l
 const CLUB_PHOTOS=[['club/photos/drevici-1.webp','En mer'],['club/photos/drevici-2.webp',"L'équipe"],['club/photos/drevici-3.webp','À table !']];
 let clubPileT=null;
 function clubPileStart(){
-  clearInterval(clubPileT); if(matchMedia('(prefers-reduced-motion:reduce)').matches) return;
-  clubPileT=setInterval(()=>{ const p=document.querySelector('#clubSheet.open .club-pile'); if(!p){ clearInterval(clubPileT); return; }
-    p.querySelectorAll('.club-pol').forEach(c=>{ const k=c.classList.contains('f')?'l':c.classList.contains('r')?'f':'r'; c.classList.remove('f','r','l'); c.classList.add(k); }); },3000);
+  clearInterval(clubPileT); clearTimeout(clubPileT); if(matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+  const step=()=>{ const p=document.querySelector('#clubSheet.open .club-pile'); if(!p){ clearInterval(clubPileT); return; }
+    p.querySelectorAll('.club-pol').forEach(c=>{ const k=c.classList.contains('f')?'l':c.classList.contains('r')?'f':'r'; c.classList.remove('f','r','l'); c.classList.add(k); }); };
+  // Premier passage après 1 s (les gens restent peu de temps sur l'écran), puis toutes les 2,5 s.
+  clubPileT=setTimeout(()=>{ step(); clubPileT=setInterval(step,2500); },1000);
 }
 function clubLater(){
   BT.send('click','club_plus_tard');
@@ -4427,10 +4429,10 @@ function clubLater(){
   clubShell(`<div class="club-wel">
     <div class="club-wt" style="font-size:24px;margin-bottom:12px">Pas de souci !</div>
     <div class="club-cnt"><div class="club-cnt-n"><div>${left}<small>JOUR${left>1?'S':''}</small></div></div><div class="club-cnt-t">Vous avez jusqu'au <b>${end.toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}</b><br>pour profiter de votre coupe. Venez vite !</div></div>
-    <div class="club-ig"><b>En attendant, suivez-nous sur Instagram</b><span style="margin-bottom:6px;white-space:nowrap;font-size:min(12px,3.05vw);letter-spacing:-.01em">Jeux, cadeaux, soirées, nouveautés en avant-première.</span>
+    <div class="club-ig"><b>En attendant…</b><span style="margin-bottom:6px;white-space:nowrap;font-size:min(12px,3.05vw);letter-spacing:-.01em">Jeux, cadeaux, soirées, nouveautés en avant-première.</span>
+      <a class="club-igl" href="https://instagram.com/${clubEsc(ig)}" target="_blank" rel="noopener">Suivez-nous sur Instagram ›</a>
       <a class="club-pile" href="https://instagram.com/${clubEsc(ig)}" target="_blank" rel="noopener" aria-label="Voir nos photos sur Instagram">${CLUB_PHOTOS.map(([src,t],i)=>`<div class="club-pol ${['f','r','l'][i]}"><img src="${src}" alt=""><i>${t}</i></div>`).join('')}</a>
-      <a class="club-cta club-a club-iga" href="https://instagram.com/${clubEsc(ig)}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>Suivre @${clubEsc(ig)}</a></div>
-    <a class="club-cta club-a club-prank" data-ev="prank_club" style="margin-top:12px" href="https://instagram.com/${clubEsc(ig)}" onclick="return clubPrank(this.href)">Ne cliquez pas ici !</a>
+      <a class="club-cta club-a club-prank" data-ev="prank_club" style="margin-top:6px;width:100%" href="https://instagram.com/${clubEsc(ig)}" onclick="return clubPrank(this.href)">Ne cliquez pas ici !</a></div>
     <button type="button" class="club-later" onclick="closeClubSheet()">Fermer</button></div>`);
   clubFonts(); if(!document.getElementById('clubCaveat')){ const l=document.createElement('link'); l.id='clubCaveat'; l.rel='stylesheet'; l.href='https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap'; document.head.appendChild(l); } clubPileStart();
 }
