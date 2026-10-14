@@ -56,7 +56,7 @@ P = {
    ("const SLUG=QS.get('slug')||'drevici-test';", "const SLUG=QS.get('slug')||'drevici';"),
    ("const SITE_URL='https://drevici-preview.beltab.app/';", "const SITE_URL='https://drevici.beltab.app/';"),
    ("const CL_SLUG=SLUG;", "const CL_SLUG='drevici-paris';"),
-   (" · <span class=\"pill-test\">Copie de test</span>", ""),
+   ("<span class=\"pill-test\">Copie de test</span>", ""),
  ],
 }
 for f, pairs in P.items():
