@@ -11,14 +11,16 @@
 insert into menu_data_history (client_slug, data)
 select client_slug, data from menu_data where client_slug = 'drevici';
 
--- 1) La carte : copie de celle de Paris, avec l'adresse et le téléphone de Surzur
+-- 1) La carte : copie de celle de Paris, avec l'adresse, le téléphone et les horaires de Surzur
+--    (lundi → vendredi 9h–12h et 14h–17h, fermé le week-end, comme sur Google)
 insert into menu_data (client_slug, data)
 select 'drevici-surzur',
-       jsonb_set(jsonb_set(data,
+       jsonb_set(jsonb_set(jsonb_set(data,
          '{address}', coalesce(data->'address','{}'::jsonb) || jsonb_build_object(
             'street','Pentes','zip','56450','city','Surzur','phone','0602634929',
             'mapsUrl','https://maps.app.goo.gl/CYCVbQsA2EW2hoSa9')),
-         '{restaurantName}', to_jsonb(coalesce(data->>'restaurantName','DREVICI OYSTER')))
+         '{restaurantName}', to_jsonb(coalesce(data->>'restaurantName','DREVICI OYSTER'))),
+         '{schedule}', '[{"day":"Lundi","services":[{"label":"Matin","open":9,"close":12},{"label":"Après-midi","open":14,"close":17}]},{"day":"Mardi","services":[{"label":"Matin","open":9,"close":12},{"label":"Après-midi","open":14,"close":17}]},{"day":"Mercredi","services":[{"label":"Matin","open":9,"close":12},{"label":"Après-midi","open":14,"close":17}]},{"day":"Jeudi","services":[{"label":"Matin","open":9,"close":12},{"label":"Après-midi","open":14,"close":17}]},{"day":"Vendredi","services":[{"label":"Matin","open":9,"close":12},{"label":"Après-midi","open":14,"close":17}]},{"day":"Samedi","services":[]},{"day":"Dimanche","services":[]}]'::jsonb)
 from menu_data
 where client_slug = 'drevici'
   and not exists (select 1 from menu_data where client_slug = 'drevici-surzur');
@@ -42,9 +44,9 @@ begin
   end if;
 end $$;
 
--- 3) Salle, tables et services : copie de Paris (à adapter ensuite dans /admin de Surzur)
+-- 3) Salle et tables : copie de Paris (à adapter ensuite dans /admin de Surzur). Services : matin et après-midi.
 do $$
-declare sp record; nid uuid; cols text;
+declare sp record; nid uuid;
 begin
   if not exists (select 1 from restaurant_spaces where client_slug = 'drevici-surzur') then
     for sp in select * from restaurant_spaces where client_slug = 'drevici-paris' order by sort_order loop
@@ -56,12 +58,9 @@ begin
     end loop;
   end if;
   if not exists (select 1 from restaurant_services where client_slug = 'drevici-surzur') then
-    select string_agg(quote_ident(column_name), ',') into cols
-    from information_schema.columns
-    where table_schema = 'public' and table_name = 'restaurant_services'
-      and column_name not in ('id', 'client_slug', 'created_at');
-    execute format('insert into restaurant_services (client_slug,%s) select %L,%s from restaurant_services where client_slug = %L',
-                   cols, 'drevici-surzur', cols, 'drevici-paris');
+    insert into restaurant_services (client_slug, name, start_time, end_time, sort_order) values
+      ('drevici-surzur', 'Matin', '09:00', '12:00', 0),
+      ('drevici-surzur', 'Après-midi', '14:00', '17:00', 1);
   end if;
 end $$;
 
