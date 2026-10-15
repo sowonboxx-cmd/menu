@@ -2427,10 +2427,14 @@ function pageSite(){
       <div class="frm">${fIn('Bouton 1 · texte',hc.cta1Label||'','hc.cta1Label','Voir le menu')}${fIn('Bouton 1 · lien',hc.cta1Url||'','hc.cta1Url','#menu')}${fIn('Bouton 2 · texte',hc.cta2Label||'','hc.cta2Label','Réserver')}${fIn('Bouton 2 · lien',hc.cta2Url||'','hc.cta2Url','Lien de réservation')}</div>
       ${fld('Couleur de la barre du téléphone',`<div class="swrow"><label class="swin"><i style="background:${esc(hc.statusBarColor||'#000000')}"></i><input type="color" value="${esc((hc.statusBarColor||'#000000').slice(0,7))}" data-bind="hc.statusBarColor"></label><b>${esc(hc.statusBarColor||'#000000')}</b></div>`)}
     </div>`);
+  if(!DATA.about) DATA.about={};
+  const ab=DATA.about;
   const pres=card('Présentation','pres',
-    opt('Afficher la présentation',!!DATA.intro.active,'introFlag','','Le texte d\'introduction en tête du menu')+
-    
-    fTa('Texte de présentation'+(LG()==='fr'?'':' ('+LG().toUpperCase()+')'),(DATA.intro.text||{})[LG()]||'','intro.text',LG()==='fr'?'Quelques mots sur votre maison':((DATA.intro.text||{}).fr||''),'w cap')+
+    opt('Bouton sur l\'accueil',ab.active!==false,'aboutFlag','','Un bouton sur l\'écran d\'accueil ouvre la présentation en plein écran')+
+    fIn('Nom du bouton',ab.label||'','about.label','Notre histoire')+
+    fIn('Petit titre doré',ab.kicker||'','about.kicker','Notre histoire')+
+    fIn('Titre',ab.title||'','about.title','Pure. Naturelle. Authentique.')+
+    fTa('Texte',ab.text||'','about.text','Laissé vide : le texte actuel de la présentation s\'affiche.','w cap')+
     fontSel('Police du site (nom et titres)',DATA.restoFont,'root.restoFont','Cormorant Garamond'));
   const menu=card('Menu','plats',
     `<div class="op"><div><b>Affichage du menu</b><small>Sur mobile. Sur ordinateur, toujours la grille.</small></div><div class="seg">${[['list','Liste'],['grid','Grille']].map(([k,l])=>`<button type="button" data-act="viewSet" data-v="${k}" class="${(DATA.defaultView||'list')===k?'on':''}">${l}</button>`).join('')}</div></div>`+
@@ -2751,6 +2755,7 @@ function setByBind(path,val){
     if(f==='sz'){ const z=it.sizes[+p[5]]; z[p[6]]=val; if(p[6]==='format'&&BEV_AUTO[val]!=null){ z.cl=BEV_AUTO[val]; z.unit='cl'; UI.needRender=true; } return; }
     return; }
   if(p[0]==='hc'){ const hc=DATA.homeCover; if(p[1]==='kb'){ hc.slideshow[+p[2]].kenBurns=val; return; } if(p[1]==='dim'){ hc.dim=parseInt(val)||0; const b=document.querySelector('.dimv'); if(b) b.textContent=hc.dim+' %'; return; } if(p[1]==='mobilePos'){ hc.mobilePos=parseInt(val)||0; const im=document.querySelector('.phone img'); if(im) im.style.objectPosition=val+'% center'; const b=document.querySelector('.mpos .fd b'); if(b) b.textContent=val+' %'; return; } hc[p[1]]=val; if(p[1]==='headlineFont'||p[1]==='statusBarColor') UI.needRender=true; return; }
+  if(p[0]==='about'){ if(!DATA.about) DATA.about={}; DATA.about[p[1]]=val; return; }
   if(p[0]==='intro'){ if(!DATA.intro.text||typeof DATA.intro.text!=='object') DATA.intro.text={fr:DATA.intro.text||''}; DATA.intro.text[LG()]=val; return; }
   if(p[0]==='pdf'){ pS()[p[1]]=val; return; }
   if(p[0]==='root'){ DATA[p[1]]=val; if(p[1]==='restoFont') UI.needRender=true; return; }
@@ -2971,6 +2976,7 @@ document.addEventListener('click',async e=>{
     case 'soon': toast(d.v); break;
     case 'hcFlag': DATA.homeCover[d.k]=DATA.homeCover[d.k]===false; touch(true); break;
     case 'hcType': DATA.homeCover.mediaType=d.v; touch(true); break;
+    case 'aboutFlag': if(!DATA.about) DATA.about={}; DATA.about.active=DATA.about.active===false; touch(true); break;
     case 'introFlag': DATA.intro.active=!DATA.intro.active; touch(true); break;
     case 'viewSet': DATA.defaultView=d.v; touch(true); break;
     case 'tipShow': tipShow(d.t,el); break;
