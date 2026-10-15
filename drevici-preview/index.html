@@ -1910,6 +1910,18 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 .rp-btn:active{opacity:.7}.rp-acts .rp-btn:only-child{grid-column:1/-1}
 @media(min-width:641px){#schedPopupCover:not(.resto-popup-centered){left:50%!important;transform:translateX(-50%)!important;width:400px;max-width:calc(100vw - 40px);min-width:0;padding:20px 24px}#schedPopupCover .rp-btn{padding:9px 0;font-size:15px}}
 @media(max-width:640px){#schedPopupCover.resto-popup-centered{top:max(112px,calc(50% - 300px))!important;transform:translate(-50%,0)!important}}
+.cpm{position:fixed;inset:0;z-index:99990;background:rgba(4,8,20,.55);display:flex;align-items:center;justify-content:center;padding:150px 24px 24px;animation:cpmIn .35s ease}
+.cpm.out{animation:cpmOut .22s ease forwards}@keyframes cpmIn{from{opacity:0}}@keyframes cpmOut{to{opacity:0}}
+.cpm-c{position:relative;width:min(342px,100%);background:#f8f5ef;color:#10285e;border-radius:18px;padding:120px 20px 18px;text-align:center;font-family:Jost,sans-serif;animation:cpmUp .45s cubic-bezier(.2,.7,.2,1)}
+@keyframes cpmUp{from{transform:translateY(24px);opacity:0}}
+.cpm-g{position:absolute;left:50%;top:-110px;transform:translateX(-50%);width:170px;height:auto;pointer-events:none}
+.cpm-x{position:absolute;right:10px;top:8px;border:0;background:none;color:#8a8172;font-size:17px;cursor:pointer;padding:4px}
+.cpm-k{font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:#b08a3a}
+.cpm h3{font-family:'Playfair Display',serif;font-weight:700;font-size:28px;line-height:1.1;margin:6px 0;color:#10285e}
+.cpm p{margin:0 0 14px;color:#5d6478;font-size:13.5px;line-height:1.45}
+.cpm-b{display:block;width:100%;border:0;background:#10285e;color:#fff;border-radius:10px;padding:13px;font:700 12.5px Jost,sans-serif;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+.cpm-l{margin-top:10px;font-size:12px;color:#8a8172}.cpm-f{border:0;background:none;padding:0;color:#10285e;text-decoration:underline;font:inherit;cursor:pointer}
+@media(min-width:900px){.cpm-c{width:380px}.cpm-g{width:190px;top:-125px}.cpm-c{padding-top:135px}}
 .ct-btn.apx-btn{border-color:rgba(240,217,168,.95);font-family:'Jost',sans-serif;font-size:14px;font-weight:500;padding:0 12px;white-space:nowrap}
 .apx{position:fixed;inset:0;z-index:100000;font-family:'Open Sans',sans-serif;-webkit-font-smoothing:antialiased;animation:apxIn .4s cubic-bezier(.2,.7,.2,1)}
 .apx.out{animation:apxOut .25s ease forwards}
@@ -4074,6 +4086,7 @@ function renderHomeCover(){
     </div>
   </div>`;
   document.body.classList.add('home-cover-showing');
+  setTimeout(clubPromo,1500);
   const themeMeta=document.getElementById('themeColorMeta');
   if(themeMeta) themeMeta.setAttribute('content', hc.statusBarColor || (DATA.brandColors&&DATA.brandColors.accent) || '#000000');
   startHomeCoverSlideshow();
@@ -4164,6 +4177,34 @@ function clubShell(inner){
   el.innerHTML=`<div class="club-dim" onclick="closeClubSheet()"></div><div class="club-sheet" role="dialog" aria-label="Le club"><div class="club-grab"></div>${inner}</div>`;
   requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('open')));
   return el;
+}
+// ── Pop-up du club, temporaire (lancement du site) : une seule fois par visiteur, jamais pour un membre,
+// jamais quand on arrive par un lien précis (#menu, ?club, QR de table…). Disparaît seul après CLUB_PROMO_END.
+const CLUB_PROMO_END='2026-10-24';
+function clubPromo(){
+  try{
+    if(typeof CLUB_ON==='undefined'||!CLUB_ON) return;
+    if(new Date()>new Date(CLUB_PROMO_END+'T23:59:59')) return;
+    if((clubMe()||{}).code) return;
+    if(location.hash&&location.hash!=='#') return;
+    if(/[?&](club|src|table)(=|&|$)/.test(location.search)) return;
+    if(!document.body.classList.contains('home-cover-showing')) return;
+    if(document.querySelector('#clubSheet.open,.apx,.cpm')) return;
+    if(localStorage.getItem('club_promo_seen')) return;
+    localStorage.setItem('club_promo_seen','1');
+  }catch(e){ return; }
+  const o=document.createElement('div'); o.className='cpm';
+  o.innerHTML=`<div class="cpm-c" role="dialog" aria-modal="true" aria-label="Club Drevici"><button type="button" class="cpm-x" aria-label="Fermer">✕</button>
+    <img class="cpm-g" src="club/gentleman-membre.webp" alt="">
+    <div class="cpm-k">Club Drevici</div><h3>Votre coupe offerte</h3><p>Rejoignez le club : une coupe de champagne offerte avec votre repas.</p>
+    <button type="button" class="cpm-b">Rejoindre le club</button><div class="cpm-l">Déjà membre ? <button type="button" class="cpm-f">Retrouver ma carte</button></div></div>`;
+  document.body.appendChild(o);
+  const close=then=>{ o.classList.add('out'); setTimeout(()=>{ o.remove(); if(then) then(); },220); };
+  o.addEventListener('click',e=>{ if(e.target===o) close(); });
+  o.querySelector('.cpm-x').onclick=()=>close();
+  o.querySelector('.cpm-b').onclick=()=>{ try{BT.send('click','club_promo_join');}catch(_){ } close(()=>openClubSheet()); };
+  o.querySelector('.cpm-f').onclick=()=>close(()=>clubFindSheet());
+  try{BT.send('view','club_promo');}catch(_){}
 }
 function openClubSheet(){
   const me=clubMe(); if(me&&me.code) return clubWelcome(me,true,'show');
