@@ -1910,6 +1910,18 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 .rp-btn:active{opacity:.7}.rp-acts .rp-btn:only-child{grid-column:1/-1}
 @media(min-width:641px){#schedPopupCover:not(.resto-popup-centered){left:50%!important;transform:translateX(-50%)!important;width:400px;max-width:calc(100vw - 40px);min-width:0;padding:20px 24px}#schedPopupCover .rp-btn{padding:9px 0;font-size:15px}}
 @media(max-width:640px){#schedPopupCover.resto-popup-centered{top:max(112px,calc(50% - 300px))!important;transform:translate(-50%,0)!important}}
+.cpm{position:fixed;inset:0;z-index:99990;background:rgba(4,8,20,.55);display:flex;align-items:center;justify-content:center;padding:150px 24px 24px;animation:cpmIn .35s ease}
+.cpm.out{animation:cpmOut .22s ease forwards}@keyframes cpmIn{from{opacity:0}}@keyframes cpmOut{to{opacity:0}}
+.cpm-c{position:relative;width:min(342px,100%);background:#f8f5ef;color:#10285e;border-radius:18px;padding:120px 20px 18px;text-align:center;font-family:Jost,sans-serif;animation:cpmUp .45s cubic-bezier(.2,.7,.2,1)}
+@keyframes cpmUp{from{transform:translateY(24px);opacity:0}}
+.cpm-g{position:absolute;left:50%;top:-110px;transform:translateX(-50%);width:170px;height:auto;pointer-events:none}
+.cpm-x{position:absolute;right:10px;top:8px;border:0;background:none;color:#8a8172;font-size:17px;cursor:pointer;padding:4px}
+.cpm-k{font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:#b08a3a}
+.cpm h3{font-family:'Playfair Display',serif;font-weight:700;font-size:28px;line-height:1.1;margin:6px 0;color:#10285e}
+.cpm p{margin:0 0 14px;color:#5d6478;font-size:13.5px;line-height:1.45}
+.cpm-b{display:block;width:100%;border:0;background:#10285e;color:#fff;border-radius:10px;padding:13px;font:700 12.5px Jost,sans-serif;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+.cpm-l{margin-top:10px;font-size:12px;color:#8a8172}.cpm-f{border:0;background:none;padding:0;color:#10285e;text-decoration:underline;font:inherit;cursor:pointer}
+@media(min-width:900px){.cpm-c{width:380px}.cpm-g{width:190px;top:-125px}.cpm-c{padding-top:135px}}
 .ct-btn.apx-btn{border-color:rgba(240,217,168,.95);font-family:'Jost',sans-serif;font-size:14px;font-weight:500;padding:0 12px;white-space:nowrap}
 .apx{position:fixed;inset:0;z-index:100000;font-family:'Open Sans',sans-serif;-webkit-font-smoothing:antialiased;animation:apxIn .4s cubic-bezier(.2,.7,.2,1)}
 .apx.out{animation:apxOut .25s ease forwards}
@@ -1958,7 +1970,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 .club-grab{width:42px;height:5px;border-radius:9px;background:#d4cec3;margin:0 auto 12px}
 .club-sh{display:flex;gap:14px;align-items:center;margin-bottom:14px}.club-sh img{width:72px;height:72px;border-radius:18px;object-fit:cover;object-position:center 35%;background:#fff}
 .club-sh small{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#b8945a;font-weight:700}.club-sh b{display:block;font-family:'Playfair Display',serif;font-size:20px;color:#10285e;line-height:1.15;margin-top:3px}
-.club-f{display:block;background:#fff;border-radius:13px;padding:6px 13px;margin:0 0 7px;box-shadow:inset 0 0 0 1px #e2dbcd}.club-f small{display:block;font-size:11.5px;font-weight:700;color:#10285e;letter-spacing:.02em}.club-f input::placeholder{color:#a3a7b0}.club-f input{border:0;outline:0;width:100%;font-size:16px;padding:2px 0;background:none;color:#16181d}
+.club-f{display:block;background:#fff;border-radius:13px;padding:6px 13px;margin:0 0 7px}.club-f small{display:block;font-size:11.5px;font-weight:700;color:#10285e;letter-spacing:.02em}.club-f input::placeholder{color:#a3a7b0}.club-f input{border:0;outline:0;width:100%;font-size:16px;padding:2px 0;background:none;color:#16181d}
 .club-ck{display:flex;gap:8px;font-size:12px;color:#444;margin:6px 2px 10px;line-height:1.35;align-items:flex-start}.club-ck input{margin-top:1px}
 .club-cta{width:100%;border:0;background:#10285e;color:#fff;border-radius:999px;padding:15px;font-weight:600;font-size:15.5px;cursor:pointer}.club-cta:disabled{opacity:.35;cursor:default}
 .club-note{font-size:10.5px;color:#8a8f99;text-align:center;margin:10px 0 0;line-height:1.4}
@@ -4074,6 +4086,7 @@ function renderHomeCover(){
     </div>
   </div>`;
   document.body.classList.add('home-cover-showing');
+  setTimeout(clubPromo,1500);
   const themeMeta=document.getElementById('themeColorMeta');
   if(themeMeta) themeMeta.setAttribute('content', hc.statusBarColor || (DATA.brandColors&&DATA.brandColors.accent) || '#000000');
   startHomeCoverSlideshow();
@@ -4165,6 +4178,34 @@ function clubShell(inner){
   requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('open')));
   return el;
 }
+// ── Pop-up du club, temporaire (lancement du site) : une seule fois par visiteur, jamais pour un membre,
+// jamais quand on arrive par un lien précis (#menu, ?club, QR de table…). Disparaît seul après CLUB_PROMO_END.
+const CLUB_PROMO_END='2026-10-24';
+function clubPromo(){
+  try{
+    if(typeof CLUB_ON==='undefined'||!CLUB_ON) return;
+    if(new Date()>new Date(CLUB_PROMO_END+'T23:59:59')) return;
+    if((clubMe()||{}).code) return;
+    if(location.hash&&location.hash!=='#') return;
+    if(/[?&](club|src|table)(=|&|$)/.test(location.search)) return;
+    if(!document.body.classList.contains('home-cover-showing')) return;
+    if(document.querySelector('#clubSheet.open,.apx,.cpm')) return;
+    if(localStorage.getItem('club_promo_seen')) return;
+    localStorage.setItem('club_promo_seen','1');
+  }catch(e){ return; }
+  const o=document.createElement('div'); o.className='cpm';
+  o.innerHTML=`<div class="cpm-c" role="dialog" aria-modal="true" aria-label="Club Drevici"><button type="button" class="cpm-x" aria-label="Fermer">✕</button>
+    <img class="cpm-g" src="club/gentleman-membre.webp" alt="">
+    <div class="cpm-k">Club Drevici</div><h3>Votre coupe offerte</h3><p>Rejoignez le club : une coupe de champagne offerte avec votre repas.</p>
+    <button type="button" class="cpm-b">Rejoindre le club</button><div class="cpm-l">Déjà membre ? <button type="button" class="cpm-f">Retrouver ma carte</button></div></div>`;
+  document.body.appendChild(o);
+  const close=then=>{ o.classList.add('out'); setTimeout(()=>{ o.remove(); if(then) then(); },220); };
+  o.addEventListener('click',e=>{ if(e.target===o) close(); });
+  o.querySelector('.cpm-x').onclick=()=>close();
+  o.querySelector('.cpm-b').onclick=()=>{ try{BT.send('click','club_promo_join');}catch(_){ } close(()=>openClubSheet()); };
+  o.querySelector('.cpm-f').onclick=()=>close(()=>clubFindSheet());
+  try{BT.send('view','club_promo');}catch(_){}
+}
 function openClubSheet(){
   const me=clubMe(); if(me&&me.code) return clubWelcome(me,true,'show');
   BT.send('click','club');
@@ -4174,7 +4215,7 @@ function openClubSheet(){
       <div class="club-slot pr"><div class="bc-wrap">${clubCardHTML({first:'Claire',code:'CLUB-K8RT',no:7,tier:'vip'})}</div></div>
       <div class="club-slot pl"><div class="bc-wrap">${clubCardHTML({first:'Louis',code:'CLUB-2M9P',no:1,tier:'staff',joined:new Date().toISOString()})}</div></div></div>
     <div class="club-capt" id="clubCapt">${nx?`Vous serez le membre <b>n° ${String(nx).padStart(3,'0')}</b>`:'&nbsp;'}</div>
-    <div class="club-head"><small>Le Club Drevici</small><b>Une coupe offerte<br>à votre première visite</b></div>
+    <div class="club-head"><small>Le Club Drevici</small><b>Une coupe offerte<br>avec votre repas</b></div>
     <form id="clubForm" onsubmit="clubSubmit(event)" novalidate>
       <div class="club-2"><label class="club-f"><small>Prénom</small><input name="first" autocomplete="given-name" placeholder="Votre prénom" required oninput="clubLiveName(this.value)"></label>
       <label class="club-f"><small>Nom</small><input name="last" autocomplete="family-name" placeholder="Votre nom"></label></div>
@@ -4186,7 +4227,7 @@ function openClubSheet(){
       <button type="submit" class="club-cta" id="clubGo" disabled>Je rejoins le club</button>
     </form>
     <button type="button" class="club-found" onclick="clubFindSheet()">Déjà membre ? <u>Retrouver ma carte</u></button>
-    <p class="club-note">Coupe (ou vin, bière, soft) offerte pour un repas réservé, valable 30 jours. 18 ans et +. L'abus d'alcool est dangereux pour la santé.</p>`);
+    <p class="club-note">Coupe (ou vin, bière, soft) offerte avec votre repas, valable 30 jours. 18 ans et +. L'abus d'alcool est dangereux pour la santé.</p>`);
   clubFonts(); requestAnimationFrame(clubFit); if(document.fonts) document.fonts.ready.then(clubFit); clubDeckStart(); clubLoadNext();
 }
 // Formulaire : 3 cartes qui tournent (Navy = la sienne, Gold, Staff), prénom tapé affiché en direct, n° du prochain membre.
@@ -4212,7 +4253,7 @@ function clubInfo(){
     <ul><li><b>Ce que vous recevez</b> : nos soirées, avant-premières et offres réservées au club, par email et SMS. C'est le principe du club.</li>
     <li><b>Désinscription en 1 clic</b> : lien en bas de chaque email, ou répondez STOP par SMS.</li>
     <li><b>Liste des premiers membres</b> : votre prénom et l'initiale de votre nom peuvent y apparaître (retrait sur simple demande).</li>
-    <li><b>La coupe</b> : champagne, ou un verre de vin, une bière ou un soft (jusqu'à 10 €), pour un repas réservé. Une par membre, valable 30 jours après l'inscription. Réservé aux plus de 18 ans.</li></ul>
+    <li><b>La coupe</b> : champagne, ou un verre de vin, une bière ou un soft (jusqu'à 10 €), offert avec votre repas. Une par membre, valable 30 jours après l'inscription. Réservé aux plus de 18 ans.</li></ul>
     <p>L'abus d'alcool est dangereux pour la santé, à consommer avec modération.</p><button type="button" class="club-cta" data-x="1">J'ai compris</button></div>`;
   document.body.appendChild(d);
 }
