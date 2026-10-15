@@ -930,6 +930,13 @@ input.in.hr{width:76px;text-align:center;padding:8px 10px;font-size:15px;font-we
 .clbig{height:170px;border-radius:14px;position:relative;overflow:hidden;margin:14px 0;box-shadow:0 12px 24px -12px rgba(0,0,0,.45)}.clbig i{position:absolute;left:16px;top:14px;font-family:'Playfair Display',Georgia,serif;font-style:normal;font-weight:800;font-size:15px;letter-spacing:.09em;line-height:1.35}.clbig em{position:absolute;left:16px;bottom:34px;font-family:ui-monospace,Menlo,monospace;font-style:normal;font-weight:600;font-size:17px;letter-spacing:.12em}.clbig b{position:absolute;left:16px;bottom:14px;font-family:ui-monospace,Menlo,monospace;font-size:13px;letter-spacing:.14em}.clbig u{position:absolute;right:16px;bottom:14px;text-decoration:none;font-family:ui-monospace,Menlo,monospace;font-weight:600;font-size:15px}.clbig img{position:absolute;right:34px;bottom:4px;height:92%}
 .clcp{display:flex;align-items:center;gap:12px;border-radius:16px;padding:12px 14px;background:#fff8ec;box-shadow:inset 0 0 0 1px #f3dfb8;color:#16181d}.clcp div{flex:1}.clcp b{display:block;font-size:14px}.clcp small{display:block;font-size:12px;color:#6b5a3a;margin-top:2px}.clcp.ok{background:#e7f6ec;box-shadow:none;color:#1e7a43;font-weight:700;font-size:14px}.clcp.exp{background:var(--line);box-shadow:none}.clcp.exp small{color:var(--mut)}
 .clst{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.clst div{background:var(--bg);border-radius:12px;padding:9px 10px}.clst b{display:block;font-size:16px}.clst small{font-size:11px;color:var(--mut)}
+.cldd{position:relative;display:inline-flex}.cldd-c{font-style:normal;opacity:.55;font-size:11px}
+.cldd-p{position:absolute;left:0;top:calc(100% + 8px);z-index:40;width:280px;max-height:60vh;overflow:auto;background:var(--card);border-radius:18px;padding:6px;box-shadow:0 18px 40px -12px rgba(16,40,94,.35)}
+.cldd-i{display:flex;justify-content:space-between;align-items:center;width:100%;border:0;background:none;color:var(--ink);font:600 14px Inter,sans-serif;padding:11px 12px;border-radius:12px;cursor:pointer;text-align:left}.cldd-i:hover,.cldd-i.on{background:var(--soft)}.cldd-i em{font-style:normal;opacity:.55;font-weight:600}.cldd-i.red{color:#a5402d}
+@media(max-width:899px){.cldd-p{width:min(280px,calc(100vw - 40px))}}
+.clban{margin:14px 0 2px;padding:12px 14px;border-radius:14px;background:var(--soft);font:600 14px Inter,sans-serif}.clban small{display:block;font-weight:500;opacity:.75;margin-top:2px}.clban.red{background:#f6e9e4;color:#a5402d}
+.clarch{display:flex;justify-content:flex-end;margin-top:16px}.redt{color:#a5402d!important}
+.clconf{margin-top:16px;padding:14px;border-radius:14px;background:var(--soft);font:600 14px Inter,sans-serif}.clconf small{display:block;font-weight:500;opacity:.75;margin-top:2px}.clconf div{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}.redb{background:#a5402d!important;color:#fff!important}
 .clkv{display:grid;grid-template-columns:96px 1fr;gap:8px 12px;font-size:13px;margin-top:14px;align-items:center}.clkv>span{color:var(--mut)}.clkv>b{font-weight:500;overflow-wrap:anywhere}
 .clseg{display:flex;background:var(--bg);border-radius:999px;padding:3px}.clseg button{flex:1;border:0;background:none;padding:7px 0;border-radius:999px;font:inherit;font-size:12.5px;font-weight:700;color:var(--mut);cursor:pointer}.clseg button.on{background:var(--card);color:#10285e;box-shadow:0 1px 3px rgba(0,0,0,.12)}
 @media(max-width:899px){.clgrid{grid-template-columns:1fr}.cltools{flex-direction:column}.clsort{align-self:flex-end}}.clq{width:100%;background:var(--card)!important;border-radius:14px;padding:13px 16px;font-size:15px}
@@ -2504,7 +2511,7 @@ function loadClients(force){
   napi('/clients').then(j=>{CLIENTS=j.clients||[];CL_STATE='ok';CL_ERR='';}).catch(e=>{CL_STATE='err';CL_ERR=e.message;}).finally(()=>render());
 }
 const clDays=c=>c.last_seen?(Date.now()-Date.parse(c.last_seen))/864e5:999;
-async function setTier(id,tier,card){ const c=(CLIENTS||[]).find(x=>x.id===id); try{ const j=await napi('/club/tier',{id,tier,card}); if(c){ c.club_tier=tier; c.club_card=tier==='staff'?(card||'noir'):null; } toast((tier==='vip'?'Passé en VIP · carte Gold':tier==='staff'?'Passé en staff':'Membre · carte Navy')+(j.mailed?' · nouvelle carte envoyée par email':'')); }catch(e){ toast('⚠ '+e.message); } render(); }
+async function setTier(id,tier,card){ const c=(CLIENTS||[]).find(x=>x.id===id); try{ const j=await napi('/club/tier',{id:(c&&c.club_id)||id,tier,card}); if(c){ c.club_tier=tier; c.club_card=tier==='staff'?(card||'noir'):null; } toast((tier==='vip'?'Passé en VIP · carte Gold':tier==='staff'?'Passé en staff':'Membre · carte Navy')+(j.mailed?' · nouvelle carte envoyée par email':'')); }catch(e){ toast('⚠ '+e.message); } render(); }
 // T-shirt en aplat (même silhouette partout dans l'admin)
 const TS_ICO='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8.2 3 3 5.4 1.2 10l3.3 1.6L6 10.4V21h12V10.4l1.5 1.2 3.3-1.6L21 5.4 15.8 3c-.6 1.6-2 2.6-3.8 2.6S8.8 4.6 8.2 3Z"/></svg>';
 // Bas de la carte, à droite : pastille T-shirt (jusqu'au tirage) puis bouton « Offrir ». N'ajoute aucune hauteur.
@@ -2515,27 +2522,32 @@ function clAct(c,due){
   const go=due?`<button class="btn clgo2${coupeLeft(c.club_joined_at)<=3?' hot':''}" data-act="clGive" data-id="${c.id}">🥂 Offrir · ${coupeLeft(c.club_joined_at)} j</button>`:'';
   return ts||go?`<div class="clact">${ts}${go}</div>`:'';
 }
-const SEGS=[['all','Tous','tous vos clients'],['coupe','Coupe à offrir','coupe pas encore offerte'],['urgent','Coupe : 3 j ou moins','à relancer par SMS'],['fideles','Fidèles','3 visites et +'],['relance','À relancer','pas venus depuis 60 j'],['nouveaux','Nouveaux','1 visite'],['club','Membres du club','inscrits au club'],['vip','VIP','carte Gold'],['staff','Staff','équipe'],['tshirt','Tirage T-shirt','100 premiers, taille donnée, pas encore gagné'],['tshirtwon','T-shirt gagné','déjà gagné : exclus des prochains tirages']];
+// Pastilles : Tous, Staff, Fidèles. Le reste dans « Autres filtres » (A à Z), Archivés et Désinscrits en dernier.
+const SEG_PILLS=['all','staff','fideles'], SEG_END=['unsub','archives'];
+const SEGS=[['all','Tous','tous vos clients'],['coupe','Coupe à offrir','coupe pas encore offerte'],['urgent','Coupe : 3 j ou moins','à relancer par SMS'],['fideles','Fidèles','3 visites et +'],['relance','À relancer','pas venus depuis 60 j'],['nouveaux','Nouveaux','1 visite'],['club','Membres du club','inscrits au club'],['vip','VIP','carte Gold'],['staff','Staff','équipe'],['tshirt','Tirage T-shirt','100 premiers, taille donnée, pas encore gagné'],['tshirtwon','T-shirt gagné','déjà gagné : exclus des prochains tirages'],['optin','Acceptent les offres','emails et SMS acceptés'],['unsub','Désinscrits · ne pas contacter','ont refusé les offres'],['archives','Archivés','retirés de la liste']];
 const coupeDue=c=>!!(c.club_member&&c.club_code&&!c.coupe_used_at&&coupeLeft(c.club_joined_at)>=0);
-const inSeg=(c,s)=>s==='urgent'?(coupeDue(c)&&coupeLeft(c.club_joined_at)<=3):s==='coupe'?coupeDue(c):s==='fideles'?(c.visits||0)>=3:s==='relance'?clDays(c)>60:s==='nouveaux'?(c.visits||0)<=1:s==='club'?!!c.club_member:s==='vip'?c.club_tier==='vip':s==='staff'?c.club_tier==='staff':s==='tshirt'?!!(c.tshirt_size&&!c.tshirt_won_at&&c.club_no&&c.club_no<=100):s==='tshirtwon'?!!c.tshirt_won_at:true;
+const inSeg=(c,s)=>s==='archives'?!!c.archived_at:c.archived_at?false:s==='unsub'?(!c.marketing_optin&&!!c.unsub_at):s==='optin'?!!c.marketing_optin:s==='urgent'?(coupeDue(c)&&coupeLeft(c.club_joined_at)<=3):s==='coupe'?coupeDue(c):s==='fideles'?(c.visits||0)>=3:s==='relance'?clDays(c)>60:s==='nouveaux'?(c.visits||0)<=1:s==='club'?!!c.club_member:s==='vip'?c.club_tier==='vip':s==='staff'?c.club_tier==='staff':s==='tshirt'?!!(c.tshirt_size&&!c.tshirt_won_at&&c.club_no&&c.club_no<=100):s==='tshirtwon'?!!c.tshirt_won_at:true;
 const fdate=d=>d?new Date(d).toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'}):'—';
 function pageClients(){
   loadClients();
   const all=CLIENTS||[], seg=UI.clseg||'all', opt=UI.clopt, sort=UI.clsort||'recent';
   const q=(UI.clq||'').toLowerCase().trim(), qc=q.toUpperCase().replace(/^CLUB-?/,'').replace(/[^A-Z0-9]/g,'');
   const hit=c=>!q||[c.name,c.email,c.phone].join(' ').toLowerCase().includes(q)||(qc.length>=3&&String(c.club_code||'').replace(/^CLUB-/,'').includes(qc));
-  const list=all.filter(c=>inSeg(c,seg)&&(!opt||c.marketing_optin)&&hit(c));
+  const list=all.filter(c=>inSeg(c,seg)&&hit(c));
   const noOf=c=>c.club_member&&c.club_no?c.club_no:1e9, jn=c=>c.club_joined_at?Date.parse(c.club_joined_at):(c.first_seen?Date.parse(c.first_seen):0);
   const SORTS={recent:(x,y)=>(Date.parse(y.last_seen||0)||0)-(Date.parse(x.last_seen||0)||0),no_asc:(x,y)=>noOf(x)-noOf(y),no_desc:(x,y)=>(noOf(y)===1e9?-1:noOf(y))-(noOf(x)===1e9?-1:noOf(x)),old:(x,y)=>jn(x)-jn(y),new:(x,y)=>jn(y)-jn(x),az:(x,y)=>String(x.name||x.email).localeCompare(String(y.name||y.email),'fr')};
   list.sort(SORTS[sort]||SORTS.recent);
-  const nUrg=all.filter(c=>coupeDue(c)&&coupeLeft(c.club_joined_at)<=3).length, nOpt=all.filter(c=>c.marketing_optin).length, nClub=all.filter(c=>c.club_member).length, nDue=all.filter(coupeDue).length;
-  const chips=`<div class="clchips">${SEGS.map(([k,l])=>`<button class="clchip${seg===k?' on':''}" data-act="clSeg" data-k="${k}">${l} <em>${all.filter(c=>inSeg(c,k)).length}</em></button>`).join('')}<button class="clchip${opt?' on':''}" data-act="clOpt">Acceptent les offres <em>${nOpt}</em></button></div>`;
+  const live=all.filter(c=>!c.archived_at), nUrg=live.filter(c=>coupeDue(c)&&coupeLeft(c.club_joined_at)<=3).length, nClub=live.filter(c=>c.club_member).length, nDue=live.filter(coupeDue).length;
+  const nOf=k=>all.filter(c=>inSeg(c,k)).length, lab=k=>(SEGS.find(s=>s[0]===k)||[])[1]||k;
+  const others=SEGS.map(s=>s[0]).filter(k=>!SEG_PILLS.includes(k)&&!SEG_END.includes(k)).sort((a,b)=>lab(a).localeCompare(lab(b),'fr')).concat(SEG_END);
+  const inOther=others.includes(seg);
+  const chips=`<div class="clchips">${SEG_PILLS.map(k=>`<button class="clchip${seg===k?' on':''}" data-act="clSeg" data-k="${k}">${lab(k)} <em>${nOf(k)}</em></button>`).join('')}<span class="cldd"><button class="clchip${inOther?' on':''}" data-act="clDd">${inOther?`${esc(lab(seg))} <em>${nOf(seg)}</em>`:'Autres filtres'} <i class="cldd-c">▾</i></button>${UI.cldd?`<div class="cldd-p">${others.map(k=>`<button class="cldd-i${SEG_END.includes(k)?' red':''}${seg===k?' on':''}" data-act="clSeg" data-k="${k}">${esc(lab(k))}<em>${nOf(k)}</em></button>`).join('')}</div>`:''}</span></div>`;
   const sortSel=`<label class="clsort"><span>Trier</span><select class="in" data-clsort="1">${[['recent','Activité récente'],['no_asc','N° de membre ↑'],['no_desc','N° de membre ↓'],['old','Inscription la plus ancienne'],['new','Inscription la plus récente'],['az','Nom de A à Z']].map(([v,l])=>`<option value="${v}" ${sort===v?'selected':''}>${l}</option>`).join('')}</select></label>`;
   const cards=list.map(c=>{ const t=clTier(c), due=coupeDue(c);
     return `<div class="clcard" data-act="clOpen" data-id="${c.id}">${clMini(c)}${c.club_member&&c.club_no?`<div class="clno ${t}"><small>N°</small>${String(c.club_no).padStart(3,'0')}</div>`:''}<div class="clcm"><b>${esc(c.name||'Sans nom')}</b><small>${esc(c.email||'')}</small>${c.phone?`<small>${esc(clPhone(c.phone))}</small>`:''}${c.club_code?`<small class="clcode">${esc(c.club_code)}</small>`:''}</div>${clAct(c,due)}</div>`; }).join('');
   const body=CL_STATE==='err'?`<div class="empty">Impossible de charger les clients : ${esc(CL_ERR)}</div>`:CL_STATE!=='ok'?'<div class="empty">Chargement…</div>':list.length?`<div class="clgrid">${cards}</div>`:'<div class="empty">Aucun client pour ce filtre. Chaque réservation en ligne et chaque inscription au club ajoutent le client ici.</div>';
   const pop=UI.clopen?clModal(all.find(c=>c.id===UI.clopen)):'';
-  return mtop('Accueil','dash')+ph('Clients',`${all.length} client${all.length>1?'s':''} · ${nClub} membre${nClub>1?'s':''} du club · ${nDue} coupe${nDue>1?'s':''} à offrir`,`<a class="btn" href="#/emails">${I('mail')}Envoyer un email</a>${btn('Exporter','share','w','data-act="clExport"')}`)+
+  return mtop('Accueil','dash')+ph('Clients',`${live.length} client${live.length>1?'s':''} · ${nClub} membre${nClub>1?'s':''} du club · ${nDue} coupe${nDue>1?'s':''} à offrir`,`<a class="btn" href="#/emails">${I('mail')}Envoyer un email</a>${btn('Exporter','share','w','data-act="clExport"')}`)+
    (nUrg?`<div class="clurg">⏳ <span><b>${nUrg} membre${nUrg>1?'s':''}</b> ${nUrg>1?'ont':'a'} encore une coupe à prendre et il reste 3 jours ou moins. Les relances email partent toutes seules à J-15 et J-7 ; à vous de voir pour un SMS.</span><button class="btn" data-act="clSeg" data-k="urgent">Voir</button></div>`:'')+`<div class="clbar"><input class="in clq" type="search" placeholder="Rechercher un nom, un email, un téléphone ou un code (ex. C8R7)" value="${esc(UI.clq||'')}" data-cl="q"></div><div class="cltools">${chips}${sortSel}</div>${body}${pop}`;
 }
 const clTier=c=>c.club_tier==='vip'?'gold':c.club_tier==='staff'?'staff':'navy';
@@ -2550,11 +2562,15 @@ function clModal(c){ if(!c) return '';
   const seg=(act,cur,opts)=>`<div class="clseg">${opts.map(([v,l])=>`<button class="${cur===v?'on':''}" data-act="${act}" data-id="${c.id}" data-v="${v}">${l}</button>`).join('')}</div>`;
   return `<div class="imod clmod" data-act="clClose"><div class="imod-c clmod-c" role="dialog" aria-modal="true"><button type="button" class="imod-x" data-act="clClose" data-x="1" aria-label="Fermer">✕</button>
    <div class="clmh"><span class="clav">${ini}</span><div><b>${esc(c.name||'Sans nom')}${no?` <span class="clnoc ${clTier(c)}">${no}</span>`:''}</b><small>${c.club_member?'Membre du club depuis le '+fdate(c.club_joined_at):'Client · pas membre du club'}</small></div></div>
+   ${c.archived_at?`<div class="clban">Archivé le ${fdate(c.archived_at)}<small>N'apparaît plus dans la liste ni dans les envois. Visible seulement dans « Archivés ».</small></div>`:''}
+   ${!c.marketing_optin&&c.unsub_at?`<div class="clban red">Désinscrit le ${fdate(c.unsub_at)} · ne pas contacter<small>Plus aucun email ni SMS d'offres. Gardé dans la base.</small></div>`:''}
+   ${c.from_club?`<div class="clban">Membre du club commun<small>Pas encore venu ici : sa fiche client est dans l'autre établissement.</small></div>`:''}
    ${c.club_member?`<div class="clbig ${k}"><i>${k==='staff'?'DREVICI<br>OYSTER':'DREVICI OYSTER'}</i><img src="club/gentleman.webp" alt=""><em>${esc(String(c.name||'').split(' ')[0].toUpperCase())}</em><b>${esc(String(c.club_code||'').replace(/^CLUB-/,'CLUB · '))}</b><u>${no}</u></div>`:''}
    ${coupe}
    <div class="clst"><div><b>${c.visits||0}</b><small>visite${(c.visits||0)>1?'s':''}</small></div><div><b>${fdate(c.last_seen).replace(/ \d{4}$/,'')}</b><small>dernière activité</small></div><div><b>${fdate(c.first_seen).replace(/ \d{4}$/,'')}</b><small>premier contact</small></div></div>
    <div class="clkv">${c.club_member?`<span>Niveau</span>${seg('clTier',c.club_tier||'membre',[['membre','Membre'],['vip','VIP'],['staff','Staff']])}${c.club_tier==='staff'?`<span>Carte</span>${seg('clCard',c.club_card||'noir',[['noir','Noire'],['gold','Gold'],['navy','Navy']])}`:''}`:''}
     <span>Email</span><b>${esc(c.email||'—')}</b><span>Téléphone</span><b>${c.phone?esc(clPhone(c.phone)):'—'}</b>${c.club_code?`<span>Code</span><b class="clcode">${esc(c.club_code)}</b>`:''}${c.club_member?`<span>T-shirt</span><div class="cltsw">${c.tshirt_size?`<b>Taille ${esc(c.tshirt_size)}</b>`:'<small>Taille pas encore donnée</small>'}${c.tshirt_won_at?`<b style="color:#1e7a43">✓ Gagné le ${fdate(c.tshirt_won_at)}</b><button class="btn w" data-act="clTsWon" data-id="${c.id}" data-v="0">Annuler</button>`:`<button class="btn w" data-act="clTsWon" data-id="${c.id}" data-v="1">T-shirt gagné</button>`}</div>`:''}<span>Arrivé via</span><b>${esc(c.source&&c.source!=='SITE'?c.source:'Site')}</b><span>Offres</span><b style="color:${c.marketing_optin?'#1e7a43':'var(--mut)'}">${c.marketing_optin?'✓ Accepte emails et SMS':'N\'accepte pas les offres'}</b></div>
+   ${c.from_club?'':c.archived_at?`<div class="clarch"><button class="btn w" data-act="clArchGo" data-id="${c.id}" data-v="0">Restaurer</button></div>`:UI.clarch===c.id?`<div class="clconf"><b>Archiver ${esc(c.name||c.email||'ce client')} ?</b><small>Il disparaît de la liste et ne reçoit plus rien. Vous pourrez le restaurer depuis « Archivés ».</small><div><button class="btn w" data-act="clArchNo">Annuler</button><button class="btn redb" data-act="clArchGo" data-id="${c.id}" data-v="1">Archiver</button></div></div>`:`<div class="clarch"><button class="btn w redt" data-act="clArch" data-id="${c.id}">Archiver le client</button></div>`}
   </div></div>`;
 }
 const coupeLeft=d=>d?Math.ceil(30-(Date.now()-Date.parse(d))/864e5):30;
@@ -2595,7 +2611,7 @@ function pageEmails(){
   const dsel=t.dish?fld('Le plat',`<select class="in" data-emdish="1"><option value="">Choisir un plat de votre carte</option>${dishes.map((d,i)=>`<option value="${i}" ${f.dish&&f.dish.name===d.name?'selected':''}>${esc(d.name)}${d.price?' · '+esc(d.price):''}</option>`).join('')}</select>`):'';
   const fields=t.f.map(([k,l,ta])=>fld(l,ta?`<textarea class="in" rows="${k==='items'?6:3}" data-em="${k}">${esc(f[k]||'')}</textarea>`:`<input class="in" value="${esc(f[k]||'')}" data-em="${k}">`)).join('');
   const img=t.img?`<div class="emimg">${f.image?`<img src="${esc(f.image)}" alt="">`:`<span>${I('acc')}</span>`}<div><b>Photo</b><small>${f.image?'Elle apparaît en haut de l\'email':'Facultatif, mais ça change tout'}</small></div><label class="btn w">${f.image?'Changer':'Ajouter'}<input type="file" accept="image/*" hidden data-emimg="1"></label>${f.image?'<button class="lk red" data-act="emImgDel">Retirer</button>':''}</div>`:'';
-  const opt=(CLIENTS||[]).filter(c=>c.marketing_optin);
+  const opt=(CLIENTS||[]).filter(c=>c.marketing_optin&&!c.from_club&&!c.archived_at);
   const n=opt.filter(c=>inSeg(c,e.seg)).length;
   const who=`<div class="emwho">${SEGS.map(([k,l,s])=>`<button class="emseg${e.seg===k?' on':''}" data-act="emSeg" data-k="${k}"><b>${l}</b><small>${opt.filter(c=>inSeg(c,k)).length} · ${s}</small></button>`).join('')}</div>`;
   const rl=opt.filter(c=>inSeg(c,e.seg));
@@ -2610,14 +2626,14 @@ function pageEmails(){
     `<div class="pgrid g-1-1 emgrid2 tab-${UI.emTab||'edit'}"><div>${left}</div><div class="emprevw"><div class="emh">Aperçu</div><iframe id="emPrev" title="Aperçu de l'email"></iframe></div></div>`;
 }
 function clExport(){
-  const rows=[['Nom','Email','Téléphone','Visites','Première visite','Dernière visite','Accepte les offres','N° membre','Taille T-shirt','T-shirt gagné']].concat((CLIENTS||[]).map(c=>[c.name||'',c.email,c.phone?'+'+c.phone:'',c.visits||1,fdate(c.first_seen),fdate(c.last_seen),c.marketing_optin?'oui':'non',c.club_no||'',c.tshirt_size||'',c.tshirt_won_at?fdate(c.tshirt_won_at):'']));
+  const rows=[['Nom','Email','Téléphone','Visites','Première visite','Dernière visite','Accepte les offres','N° membre','Taille T-shirt','T-shirt gagné','Statut']].concat((CLIENTS||[]).map(c=>[c.name||'',c.email,c.phone?'+'+c.phone:'',c.visits||1,fdate(c.first_seen),fdate(c.last_seen),c.marketing_optin?'oui':'non',c.club_no||'',c.tshirt_size||'',c.tshirt_won_at?fdate(c.tshirt_won_at):'',c.archived_at?'archivé le '+fdate(c.archived_at):c.unsub_at&&!c.marketing_optin?'désinscrit le '+fdate(c.unsub_at)+' · ne pas contacter':'']));
   const csv='﻿'+rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';')).join('\n');
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download='clients-'+CL_SLUG+'.csv'; a.click();
 }
 async function emSend(test){
   UI.emSending=!test; UI.emConfirm=false; render();
   // On envoie la liste exacte affichée (et son nombre) : le serveur n'envoie qu'à ces personnes-là.
-  const rcp=(CLIENTS||[]).filter(c=>c.marketing_optin&&inSeg(c,UI.em.seg));
+  const rcp=(CLIENTS||[]).filter(c=>c.marketing_optin&&!c.from_club&&inSeg(c,UI.em.seg));
   try{ const j=await napi('/campaign/send',{tpl:UI.em.tpl,f:emFull(),segment:UI.em.seg,ids:test?undefined:rcp.map(c=>c.id),expect:test?undefined:rcp.length,test:!!test}); toast(test?'Test envoyé sur votre adresse':'Email envoyé à '+j.sent+' client'+(j.sent>1?'s':'')); }
   catch(e){ toast('⚠ '+e.message); }
   UI.emSending=false; render();
@@ -2900,7 +2916,11 @@ document.addEventListener('click',async e=>{
     case 'rsVenu': { const r=RESA.find(x=>x.ref===d.ref); if(r) await resaUpd(d.ref,{attended:!r.attended},r.attended?'Marqué non venu':'Marqué venu'); break; }
     case 'rsDelAsk': UI.rdel=d.ref||null; render(); resaSheet(); break;
     case 'rsDel': await resaUpd(d.ref,{status:d.v},d.v==='cancelled'?'Réservation annulée':d.v==='noshow'?'Marqué no-show':'Réservation supprimée'); break;
-    case 'clSeg': UI.clseg=d.k; render(); break;
+    case 'clSeg': UI.clseg=d.k; UI.cldd=false; render(); break;
+    case 'clDd': UI.cldd=!UI.cldd; render(); break;
+    case 'clArch': UI.clarch=+d.id; render(); break;
+    case 'clArchNo': UI.clarch=null; render(); break;
+    case 'clArchGo': { const id=+d.id, on=d.v==='1', c=(CLIENTS||[]).find(x=>x.id===id); try{ const j=await napi('/client/archive',{id,on}); if(c) c.archived_at=j.archived_at; toast(on?'Client archivé':'Client restauré'); UI.clarch=null; if(on) UI.clopen=null; }catch(e){ toast('⚠ '+e.message); } render(); break; }
     case 'clCheck': { const code=(UI.clcode||'').trim(); if(!code){ toast('Tapez le code de la carte'); break; } try{ const j=await napi('/club/redeem',{code,check:true}); UI.clres={client:j.client}; }catch(e){ UI.clres={err:e.message}; } render(); break; }
     case 'clRedeem': { try{ const j=await napi('/club/redeem',{code:UI.clcode}); UI.clres={done:1,client:j.client}; UI.clcode=''; loadClients(true); }catch(e){ UI.clres={err:e.message}; } render(); break; }
     case 'clOpt': UI.clopt=!UI.clopt; render(); break;
@@ -2908,7 +2928,7 @@ document.addEventListener('click',async e=>{
     case 'clClose': if(el.classList.contains('clmod')&&e.target!==el) break; UI.clopen=null; render(); break;
     case 'clGive': { const c=(CLIENTS||[]).find(x=>x.id===+d.id); if(!c||!c.club_code) break; if(!confirm(`Offrir la coupe à ${c.name||c.email} ?`)) break;
       try{ const j=await napi('/club/redeem',{code:c.club_code}); c.coupe_used_at=j.client&&j.client.coupe_used_at||new Date().toISOString(); toast('🥂 Coupe offerte à '+(c.name||c.email)); }catch(x){ toast('⚠ '+x.message); if(/déjà/i.test(x.message)) loadClients(true); } render(); break; }
-    case 'clTsWon': { const c=(CLIENTS||[]).find(x=>x.id===+d.id); try{ const j=await napi('/club/tshirt-won',{id:+d.id,won:d.v==='1'}); if(c) c.tshirt_won_at=j.tshirt_won_at; toast(d.v==='1'?'👕 T-shirt marqué comme gagné':'T-shirt gagné annulé'); }catch(e){ toast('⚠ '+e.message); } render(); break; }
+    case 'clTsWon': { const c=(CLIENTS||[]).find(x=>x.id===+d.id); try{ const j=await napi('/club/tshirt-won',{id:(c&&c.club_id)||+d.id,won:d.v==='1'}); if(c) c.tshirt_won_at=j.tshirt_won_at; toast(d.v==='1'?'👕 T-shirt marqué comme gagné':'T-shirt gagné annulé'); }catch(e){ toast('⚠ '+e.message); } render(); break; }
     case 'clTier': { const v=d.v; await setTier(+d.id,v,v==='staff'?'noir':null); break; }
     case 'clCard': await setTier(+d.id,'staff',d.v); break;
     case 'clExport': clExport(); break;
