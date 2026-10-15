@@ -4,7 +4,7 @@ Référence des prix pour tous les devis et factures. **À relire avant chaque p
 
 - Tous les prix sont **HT**.
 - Un prix est toujours un **pack** : il comprend tout le contenu listé, rien de plus, aucun frais caché.
-- Dernière mise à jour : 12 octobre 2026 (personnalisation sur mesure sur devis ; plan de salle visuel réservé à Master) ; 11 octobre 2026 (offres annexes chiffrées : Aperçu du menu, Avis Google, Google Business ; SMS et emails de la formule Master ; Master à 399 € / mois depuis le 10 octobre).
+- Dernière mise à jour : 15 octobre 2026 (pack « Votre carte partout » : Google 249 €, Google + Instagram 349 €, option anglais + 100 €, mise à jour 149 €, illimitée en Master) ; 12 octobre 2026 (personnalisation sur mesure sur devis ; plan de salle visuel réservé à Master) ; 11 octobre 2026 (offres annexes chiffrées : Aperçu du menu, Avis Google, Google Business ; SMS et emails de la formule Master ; Master à 399 € / mois depuis le 10 octobre).
 - Positionnement : environ 15 à 20 % sous l'équivalent Zenchef (Reserve + site = 158 €, Manage + site + marketing = 227 €, Grow + options = 375 € par mois).
 
 ---
@@ -100,7 +100,10 @@ Offres à part, liées à aucune formule : elles se prennent seules ou en compl�
 
 | Offre | Prix | Contenu |
 |---|---|---|
-| **Google Business** | 249 € (ponctuel) | Menu PDF généré + menu intégré dans la fiche Google, avec les descriptions des plats. **À proposer à chaque nouveau client, quelle que soit sa formule** : la première mise en place est faite par nous (ensuite le client peut régénérer son PDF lui-même). Les photos ne sont pas incluses : elles se facturent à part, selon la grille Photos (section 2). |
+| **Votre carte partout · Google** | 249 € (ponctuel) | Menu PDF généré + menu intégré dans la fiche Google Business, avec les descriptions des plats. **À proposer à chaque nouveau client, quelle que soit sa formule.** Fait une fois par nous. Photos facultatives (affichées en petit sur Google) : non incluses, elles se facturent à part selon la grille Photos (section 2). |
+| **Votre carte partout · Google + Instagram** | 349 € (ponctuel) | Tout le pack Google, plus la carte en **post Instagram à épingler** et en **story à mettre « À la une »** : la carte reste visible en permanence en haut du profil. Même export, fait une fois par nous. |
+| **Option anglais** | + 100 € (ponctuel) | Tout le pack aussi en anglais : fiche Google, post et story, et la carte du site. Par défaut, le restaurant fournit sa carte en anglais ; sinon, cette option. |
+| **Mise à jour du pack** | 149 € (à chaque fois) | Refaire le pack quand la carte change (mêmes supports, mêmes langues). **Formule Master : mises à jour illimitées, incluses.** Une direction artistique propre au restaurant reste sur devis (Personnalisation sur mesure). |
 | **Aperçu du menu** | 49 € / mois · mise en service 149 € | Le client scanne un QR code et voit le menu en grand, en HD, avec les meilleurs plats en photo. Fait entrer les passants qui ne lisent pas les menus papier ou qui ne connaissent pas la cuisine. |
 | **Avis Google** | 39 € / mois · mise en service 99 € | QR code posé près de la caisse : le client le scanne, joue à un petit jeu et laisse un avis Google. Collecte du numéro de téléphone encore à décider. |
 | **Personnalisation sur mesure** | Sur devis | Tout ce qui va au-delà des réglages standard (couleurs, polices, logo), créé à la main par Tensai pour que tout soit vraiment à l'image du restaurant. Détail ci-dessous. |
