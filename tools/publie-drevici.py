@@ -69,3 +69,7 @@ for f in FILES:
     bad = [m for m in ("'drevici-test'", "drevici-preview.beltab.app") if m in t]
     if bad: sys.exit(f'⚠ {f} contient encore {bad}')
 print('OK : préview copiée dans drevici/ avec les réglages du vrai restaurant.')
+
+# Surzur suit toujours Paris : même version du site, avec ses propres réglages.
+import subprocess
+subprocess.run([sys.executable, os.path.join(ROOT, 'tools', 'publie-surzur.py')], check=True)
