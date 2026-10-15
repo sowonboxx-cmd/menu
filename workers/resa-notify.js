@@ -72,22 +72,47 @@ export default {
       catch (e) { return json({ ok: false, error: String(e && e.message || e) }, 500, cors); }
     }
     // ── Espace restaurateur (/gestion) : session Supabase + admin du resto ──
-    if (['/clients', '/campaign/preview', '/campaign/send', '/club/redeem', '/club/tier', '/club/tshirt-won'].includes(url.pathname)) {
+    if (['/clients', '/campaign/preview', '/campaign/send', '/club/redeem', '/club/tier', '/club/tshirt-won', '/client/archive'].includes(url.pathname)) {
       try {
         const body = req.method === 'POST' ? await req.json() : {};
         const slug = String(body.slug || url.searchParams.get('slug') || '');
         const who = await adminOf(env, req, slug);
         if (!who) return json({ ok: false, error: 'Accès refusé' }, 403, cors);
+        // Club commun à plusieurs établissements (ex. Surzur partage le club de Paris) : resa_settings.club_slug.
+        const cslug = await clubSlugOf(env, slug);
+        const inClub = cslug === slug ? `client_slug=eq.${enc(slug)}` : `client_slug=in.(${enc(slug)},${enc(cslug)})`;
         if (url.pathname === '/clients') {
           // select=* : les nouvelles colonnes (ex. taille de T-shirt) arrivent sans redéployer.
-          const rows = await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&select=*&order=last_seen.desc&limit=5000`);
-          return json({ ok: true, clients: rows || [] }, 200, cors);
+          const rows = await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&select=*&order=last_seen.desc&limit=5000`) || [];
+          if (cslug !== slug) {
+            // Les infos du club (carte, n°, staff, coupe, T-shirt) viennent de la fiche du club commun.
+            const club = await sb(env, `resa_clients?client_slug=eq.${enc(cslug)}&club_member=eq.true&select=*&limit=5000`) || [];
+            const byMail = new Map(club.filter(c => c.email).map(c => [String(c.email).toLowerCase(), c]));
+            const seen = new Set();
+            for (const r of rows) {
+              const c = r.email && byMail.get(String(r.email).toLowerCase());
+              if (!c) continue;
+              seen.add(c.id);
+              for (const k of CLUB_KEYS) r[k] = c[k];
+              r.club_id = c.id;
+            }
+            // Membres du club jamais venus ici : visibles quand même (staff, cadeaux…), sans visites.
+            for (const c of club) if (!seen.has(c.id)) rows.push({ ...c, id: -c.id, club_id: c.id, from_club: true, visits: 0 });
+          }
+          return json({ ok: true, clients: rows, club_slug: cslug }, 200, cors);
+        }
+        if (url.pathname === '/client/archive') {
+          const id = parseInt(body.id, 10);
+          if (!id || id < 0) return json({ ok: false, error: 'Valeur invalide' }, 400, cors);
+          const at = body.on ? new Date().toISOString() : null;
+          await sb(env, `resa_clients?id=eq.${id}&client_slug=eq.${enc(slug)}`, { method: 'PATCH', body: { archived_at: at } });
+          return json({ ok: true, archived_at: at }, 200, cors);
         }
         if (url.pathname === '/club/tier') {
           const id = parseInt(body.id, 10), tier = String(body.tier || 'membre'), card = body.card ? String(body.card) : null;
           if (!id || !['membre', 'vip', 'staff'].includes(tier) || (card && !['navy', 'gold', 'noir'].includes(card))) return json({ ok: false, error: 'Valeur invalide' }, 400, cors);
-          const before = (await sb(env, `resa_clients?id=eq.${id}&client_slug=eq.${enc(slug)}&select=email,name,club_member,club_code,club_no,club_joined_at,club_tier`) || [])[0];
-          await sb(env, `resa_clients?id=eq.${id}&client_slug=eq.${enc(slug)}`, { method: 'PATCH', body: { club_tier: tier, club_card: tier === 'staff' ? card : null } });
+          const before = (await sb(env, `resa_clients?id=eq.${id}&${inClub}&select=email,name,club_member,club_code,club_no,club_joined_at,club_tier`) || [])[0];
+          await sb(env, `resa_clients?id=eq.${id}&${inClub}`, { method: 'PATCH', body: { club_tier: tier, club_card: tier === 'staff' ? card : null } });
           // Passage en VIP (carte Gold) ou en Staff : le membre reçoit sa nouvelle carte par email.
           let mailed = false;
           if (before && before.club_member && before.email && (tier === 'vip' || tier === 'staff') && (before.club_tier || 'membre') !== tier) {
@@ -107,13 +132,13 @@ export default {
           const id = parseInt(body.id, 10);
           if (!id) return json({ ok: false, error: 'Valeur invalide' }, 400, cors);
           const at = body.won ? new Date().toISOString() : null;
-          await sb(env, `resa_clients?id=eq.${id}&client_slug=eq.${enc(slug)}`, { method: 'PATCH', body: { tshirt_won_at: at } });
+          await sb(env, `resa_clients?id=eq.${id}&${inClub}`, { method: 'PATCH', body: { tshirt_won_at: at } });
           return json({ ok: true, tshirt_won_at: at }, 200, cors);
         }
         if (url.pathname === '/club/redeem') {
           const code = String(body.code || '').toUpperCase().replace(/[^A-Z0-9-]/g, '');
           const full = code.startsWith('CLUB-') ? code : 'CLUB-' + code;
-          const rows = await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&club_code=eq.${enc(full)}&select=id,name,email,club_no,coupe_used_at,club_joined_at`);
+          const rows = await sb(env, `resa_clients?client_slug=eq.${enc(cslug)}&club_code=eq.${enc(full)}&select=id,name,email,club_no,coupe_used_at,club_joined_at`);
           const c = rows && rows[0];
           if (!c) return json({ ok: false, error: 'Code inconnu' }, 404, cors);
           if (c.coupe_used_at) return json({ ok: false, used: true, client: c, error: 'Coupe déjà offerte' }, 409, cors);
@@ -131,7 +156,7 @@ export default {
         let list;
         if (body.test) list = [{ id: 0, email: who.email, name: '' }];
         else {
-          const all = await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&marketing_optin=eq.true&select=id,email,name,visits,last_seen,club_member&limit=5000`) || [];
+          const all = (await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&marketing_optin=eq.true&select=*&limit=5000`) || []).filter(c => !c.archived_at);
           // Garde-fou : l'admin envoie la liste exacte des destinataires qu'il a affichée (ids).
           // Sans liste, seul « Tous » est accepté ; un segment inconnu n'envoie RIEN (avant : il envoyait à tout le monde).
           if (Array.isArray(body.ids)) { const ids = new Set(body.ids.map(String)); list = all.filter(c => ids.has(String(c.id))); }
@@ -351,6 +376,12 @@ function page(title, inner) {
 }
 
 // ── Utilitaires ───────────────────────────────────────────────────
+const CLUB_KEYS = ['club_member', 'club_no', 'club_code', 'club_joined_at', 'club_tier', 'club_card', 'club_show', 'coupe_used_at', 'tshirt_size', 'tshirt_won_at'];
+async function clubSlugOf(env, slug) {
+  const r = await sb(env, `resa_settings?client_slug=eq.${enc(slug)}&select=*`).catch(() => null);
+  const c = r && r[0] && r[0].club_slug;
+  return c && /^[a-z0-9-]{2,60}$/.test(c) ? c : slug;
+}
 async function settings(env, slug) {
   const r = await sb(env, `resa_settings?client_slug=eq.${enc(slug)}&active=eq.true&select=*`);
   return r && r[0];
@@ -432,7 +463,9 @@ async function unsub(env, url) {
   const s = url.searchParams.get('s') || '', c = url.searchParams.get('c') || '', t = url.searchParams.get('t') || '';
   const page = m => new Response(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body style="font-family:-apple-system,Inter,Arial,sans-serif;background:#f5f3ef;display:grid;place-items:center;min-height:90vh;margin:0"><div style="background:#fff;border-radius:18px;padding:28px 26px;max-width:380px;text-align:center"><p style="font-size:16px;line-height:1.5;margin:0">${m}</p></div>`, { headers: { 'content-type': 'text/html; charset=utf-8' } });
   if (!/^\d+$/.test(c) || t !== await sign(env, s + ':' + c)) return page('Lien invalide.');
-  await sb(env, `resa_clients?id=eq.${c}&client_slug=eq.${enc(s)}`, { method: 'PATCH', body: { marketing_optin: false } });
+  // unsub_at : date de désinscription (liste « ne pas contacter »). Repli si la colonne n'existe pas encore.
+  await sb(env, `resa_clients?id=eq.${c}&client_slug=eq.${enc(s)}`, { method: 'PATCH', body: { marketing_optin: false, unsub_at: new Date().toISOString() } })
+    .catch(() => sb(env, `resa_clients?id=eq.${c}&client_slug=eq.${enc(s)}`, { method: 'PATCH', body: { marketing_optin: false } }));
   return page('C’est noté : vous ne recevrez plus nos offres par email.');
 }
 const nl = s => esc(s).replace(/\n/g, '<br>');
