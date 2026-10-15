@@ -1,10 +1,10 @@
--- Surzur : les nouvelles réservations arrivent par email chez Floriane + copie Beltab.
+-- Surzur : les nouvelles réservations arrivent par email chez Floriane et Benji + copie Beltab.
 -- Pour ajouter quelqu'un plus tard : rajouter son adresse dans la liste, séparée par une virgule.
 -- (Pas d'accès admin pour Floriane pour l'instant : profil utilisateur à créer plus tard.)
 
 -- 1. Emails de réception des réservations de Surzur
 update resa_settings
-set notify_email = 'floriane@oceanprosarl.com, beltab.app@gmail.com'
+set notify_email = 'floriane@oceanprosarl.com, benji@oceanprosarl.com, beltab.app@gmail.com'
 where client_slug = 'drevici-surzur';
 
 -- 2. Beltab garde l'accès admin de Surzur (ne fait rien si c'est déjà le cas)
