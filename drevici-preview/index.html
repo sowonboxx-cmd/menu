@@ -4100,7 +4100,7 @@ const CLUB_API = 'https://resa.beltab.app';
 // Une visite par onglet + les clics sur les boutons suivis. La source vient de l'adresse
 // (?src=TABLE → QR:TABLE, ?o=K7Q2 → OFFRE:K7Q2) ou du site d'où l'on arrive (INSTAGRAM, GOOGLE…).
 const BT=(()=>{ const API=CLUB_API+'/t', q=new URLSearchParams(location.search);
-  const off=window.top!==window||q.get('admin')==='1'||q.has('hdr')||/localhost|127\.0\.0\.1|file:/.test(location.href);
+  const off=window.top!==window||q.get('admin')==='1'||q.has('hdr')||/localhost|127\.0\.0\.1|file:/.test(location.href)||(()=>{try{return localStorage.getItem('bt_nostats')==='1'}catch(e){return false}})();
   let sid=''; try{ sid=sessionStorage.getItem('bt_sid')||''; if(!sid){ sid=Math.random().toString(36).slice(2,10)+Date.now().toString(36); sessionStorage.setItem('bt_sid',sid); } }catch(e){ sid=Math.random().toString(36).slice(2,12); }
   const from=()=>{ const o=q.get('o'), c=q.get('src');
     if(o&&/^[A-Za-z0-9]{2,12}$/.test(o)) return 'OFFRE:'+o.toUpperCase();
@@ -4146,7 +4146,7 @@ function openMsgSheet(){
     <label>Email<input name="email" type="email" autocomplete="email" maxlength="120"></label>
     <label>Téléphone<input name="phone" type="tel" autocomplete="tel" maxlength="30"></label>
     <label>Votre message<textarea name="message" required maxlength="2000"></textarea></label>
-    <label class="msg-opt"><input type="checkbox" name="optin"><span>J'accepte de recevoir les offres et actualités du restaurant par email et SMS. Désinscription possible à tout moment.</span></label>
+    <label class="msg-opt"><input type="checkbox" name="optin"><span>J'accepte de recevoir les offres et actualités du restaurant par email et SMS. Désinscription possible à tout moment. <a href="confidentialite.html#confidentialite" target="_blank" rel="noopener">Vos données</a></span></label>
     <input class="msg-hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
     <button class="msg-send" type="submit">Envoyer</button><div class="msg-err"></div>
     <p class="msg-note">Pour réserver une table, utilisez plutôt « Réserver ».</p></form></div>`;
@@ -4253,7 +4253,8 @@ function clubInfo(){
     <ul><li><b>Ce que vous recevez</b> : nos soirées, avant-premières et offres réservées au club, par email et SMS. C'est le principe du club.</li>
     <li><b>Désinscription en 1 clic</b> : lien en bas de chaque email, ou répondez STOP par SMS.</li>
     <li><b>Liste des premiers membres</b> : votre prénom et l'initiale de votre nom peuvent y apparaître (retrait sur simple demande).</li>
-    <li><b>La coupe</b> : champagne, ou un verre de vin, une bière ou un soft (jusqu'à 10 €), offert avec votre repas. Une par membre, valable 30 jours après l'inscription. Réservé aux plus de 18 ans.</li></ul>
+    <li><b>La coupe</b> : champagne, ou un verre de vin, une bière ou un soft (jusqu'à 10 €), offert avec votre repas. Une par membre, valable 30 jours après l'inscription. Réservé aux plus de 18 ans.</li>
+    <li><b>Vos données</b> : jamais vendues, effacées sur simple demande. <a href="confidentialite.html#confidentialite" target="_blank" rel="noopener">Tout savoir</a></li></ul>
     <p>L'abus d'alcool est dangereux pour la santé, à consommer avec modération.</p><button type="button" class="club-cta" data-x="1">J'ai compris</button></div>`;
   document.body.appendChild(d);
 }

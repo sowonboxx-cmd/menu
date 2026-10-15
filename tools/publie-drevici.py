@@ -6,7 +6,7 @@ Ne touche pas aux fichiers propres au site en ligne (reservations.html = ancien 
 import shutil, os, re, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC, DST = os.path.join(ROOT, 'drevici-preview'), os.path.join(ROOT, 'drevici')
-FILES = ['index.html', 'book.html', 'resa.html', 'admin.html', 'gestion.html', 'floorplan.js']
+FILES = ['index.html', 'book.html', 'resa.html', 'admin.html', 'gestion.html', 'floorplan.js', 'confidentialite.html']
 DIRS = ['club', 'seo', 'media', 'charte', 'studio']  # studio/ : seule la page d'accueil (index.html) vient du labo ; calendar et tracker restent ceux du site en ligne
 
 def sub(text, old, new, path):

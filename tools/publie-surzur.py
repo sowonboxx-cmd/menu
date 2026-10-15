@@ -10,7 +10,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC, DST = os.path.join(ROOT, 'drevici'), os.path.join(ROOT, 'drevici-surzur')
 HOST = 'https://drevici-surzur.beltab.app/'
 SLUG = 'drevici-surzur'
-FILES = ['index.html', 'book.html', 'resa.html', 'admin.html', 'gestion.html', 'floorplan.js']
+FILES = ['index.html', 'book.html', 'resa.html', 'admin.html', 'gestion.html', 'floorplan.js', 'confidentialite.html']
 DIRS = ['club', 'seo', 'media']
 
 def sub(t, old, new, f, count=1):
