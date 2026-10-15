@@ -374,7 +374,18 @@ const EMAILJS_TEMPLATE_CLIENT = 'template_x60pqoj'; // Template confirmation cli
 // switching was removed). Adjust these two lines for whichever venue
 // this exact deployment is for.
 const LOCATION_NAME = 'Paris';
-const CLOSED_DAYS   = [0,1]; // Sunday, Monday
+let CLOSED_DAYS     = [0,1]; // secours ; remplacé par les horaires du site (onglet Horaires de l'admin)
+// Jours fermés = jours sans aucun service dans les horaires du site (même règle que l'admin).
+function closedDaysFromSchedule(sc) {
+  if (!Array.isArray(sc) || sc.length < 7) return null;
+  const out = [];
+  sc.slice(0, 7).forEach((day, i) => {
+    const open = day && day.active !== false &&
+      ((day.services || []).some(p => p && p.open != null && p.open !== '') || day.open != null);
+    if (!open) out.push((i + 1) % 7); // Lundi = index 0 → getDay() 1 … Dimanche → 0
+  });
+  return out;
+}
 
 // CONFIG NOTE: same Supabase project/keys for every client — see
 // supabase-setup.sql. Only CLIENT_SLUG changes per deployment; it's
@@ -459,6 +470,8 @@ async function loadHeaderBranding() {
     if (error) throw error;
     const d = row && row.data;
     if (!d) return;
+    const cd = closedDaysFromSchedule(d.schedule);
+    if (cd) { CLOSED_DAYS = cd; renderCal(); }
     const logoImg = document.getElementById('headerLogoImg');
     const logoText = document.getElementById('headerLogoText');
     if (d.restaurantLogo && d.headerMode !== 'name') {
@@ -483,7 +496,19 @@ const supabaseClient = (SUPABASE_URL !== 'COLLE_ICI_SUPABASE_URL' && window.supa
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
 
-const DINNER      = ['17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30','22:00','22:30'];
+const DINNER_DEFAULT = ['17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30','22:00','22:30'];
+let DINNER = DINNER_DEFAULT.slice(); // remplacé par les services du restaurant (Réservations → Services)
+function slotsFromServices(svcs) {
+  const out = new Set();
+  const m = s => { const [h, mi] = String(s || '').slice(0, 5).split(':').map(Number); return h * 60 + (mi || 0); };
+  (svcs || []).forEach(s => {
+    let a = m(s.start_time), b = m(s.end_time);
+    if (isNaN(a) || isNaN(b)) return;
+    if (b <= a) b += 24 * 60; // service qui finit après minuit
+    for (let x = a; x < b && x < 24 * 60; x += 30) out.add(String(Math.floor(x / 60)).padStart(2, '0') + ':' + String(x % 60).padStart(2, '0'));
+  });
+  return [...out].sort();
+}
 const FULL_SLOTS  = [];
 
 let activeTab = 'date'; // 'date' | 'couverts' | 'horaire'
@@ -673,6 +698,8 @@ async function loadServices() {
       .order('sort_order', { ascending: true });
     if (error) throw error;
     SERVICES = data || [];
+    const sl = slotsFromServices(SERVICES);
+    if (sl.length) { DINNER = sl; renderSlots(); }
   } catch (e) {
     console.warn('Services load failed:', e.message);
   }

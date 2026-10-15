@@ -34,6 +34,7 @@ P = {
    ("const CLIENT_SLUG = 'drevici-paris';", f"const CLIENT_SLUG = '{SLUG}';", 1),
    ("const WRITE_SLUG = 'drevici-paris';", f"const WRITE_SLUG = '{SLUG}';", 1),
    ("const MENU_CLIENT_SLUG = 'drevici';", f"const MENU_CLIENT_SLUG = '{SLUG}';", 1),
+   ("const LOCATION_NAME = 'Paris';", "const LOCATION_NAME = 'Surzur';", 1),
  ],
  'admin.html': [
    ("const SLUG=QS.get('slug')||'drevici';", f"const SLUG=QS.get('slug')||'{SLUG}';", 1),
