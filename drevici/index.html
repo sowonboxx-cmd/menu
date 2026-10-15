@@ -1944,7 +1944,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 .club-link-t{display:inline-flex;align-items:center;gap:6px;color:#fff;font-family:'Jost',sans-serif;font-weight:600;font-size:16.5px;letter-spacing:.06em;padding-bottom:7px;border-bottom:2px solid rgba(240,217,168,.9);white-space:nowrap}
 .club-link-t .tx{background:linear-gradient(100deg,#fff 40%,#f0d9a8 50%,#fff 60%) 0 0/250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:clubShine 4s ease-in-out infinite}
 @keyframes clubShine{0%{background-position:100% 0}55%,100%{background-position:-60% 0}}
-.club-link-t em{font-size:15px}
+.club-link-t em{font-size:15px}.club-ic{flex:none;margin-right:3px}
 @media(max-width:380px){.club-link-t{font-size:15px}.club-link-t em{font-size:13.5px}}
 .club-link-t em{font-style:normal;font-weight:500;letter-spacing:0;color:#f0d9a8}
 .club-link-t i{font-style:normal;color:#f0d9a8;font-size:16px;line-height:1;margin-left:2px;display:inline-block;animation:clubNudge 1.8s ease-in-out infinite}
@@ -4069,7 +4069,7 @@ function renderHomeCover(){
             : `<button type="button" class="home-cover-cta home-cover-cta-menu" onclick="dismissHomeCover()">${escapeHtmlLocal(hc.cta1Label||'Voir le menu')}</button>`}
           <a class="home-cover-cta home-cover-cta-reserve" href="${escAttr(cta2Url)}">${escapeHtmlLocal(hc.cta2Label||'Réserver')}</a>
         </div>
-        ${CLUB_ON?`<button type="button" class="club-link" onclick="openClubSheet()"><span class="club-link-t">${(clubMe()||{}).code?'<span class="tx">✓ MEMBRE DU CLUB</span> <em>· voir ma carte</em>':'<span class="tx">🥂 REJOINDRE LE CLUB</span> <em>· coupe offerte</em>'}<i>›</i></span></button>${(clubMe()||{}).code?'':`<button type="button" class="club-already" onclick="clubFindSheet()">Déjà membre ? <u>Retrouver ma carte</u></button>`}`:''}
+        ${CLUB_ON?`<button type="button" class="club-link" onclick="openClubSheet()"><span class="club-link-t">${(clubMe()||{}).code?CLUB_IC+'<span class="tx">MEMBRE DU CLUB</span> <em>· voir ma carte</em>':CLUB_IC+'<span class="tx">REJOINDRE LE CLUB</span> <em>· coupe offerte</em>'}<i>›</i></span></button>${(clubMe()||{}).code?'':`<button type="button" class="club-already" onclick="clubFindSheet()">Déjà membre ? <u>Retrouver ma carte</u></button>`}`:''}
       </div>
     </div>
   </div>`;
@@ -4080,6 +4080,7 @@ function renderHomeCover(){
 }
 // ── Club (préview) : lien sous les boutons de l'accueil + feuille d'inscription ──
 const CLUB_ON = true;
+const CLUB_IC='<svg class="club-ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><rect x="3" y="5" width="18" height="14"/><path d="M3 9h18"/><path d="M12 11.8l.9 1.9 2 .2-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.2z" stroke-width="1.2"/></svg>';
 const CLUB_SLUG = 'drevici-paris';            // même copie de test que la résa de la préview
 const CLUB_API = 'https://resa.beltab.app';
 // ── Statistiques du site (compteur Beltab, sans cookie) : voir la notice « codes de suivi » ──
@@ -4420,7 +4421,7 @@ function openAbout(){
   im.addEventListener('touchend',ev=>{ if(x0==null) return; const dx=ev.changedTouches[0].clientX-x0; x0=null; if(Math.abs(dx)>40){ go(k+(dx<0?1:-1)); play(); } });
   play();
 }
-function clubLinkRefresh(){ const me=clubMe(), l=document.querySelector('.club-link-t'); if(me&&me.code){ const x=document.querySelector('.club-already'); if(x) x.remove(); } if(l&&me&&me.code) l.innerHTML='<span class="tx">✓ MEMBRE DU CLUB</span> <em>· voir ma carte</em><i>›</i>'; }
+function clubLinkRefresh(){ const me=clubMe(), l=document.querySelector('.club-link-t'); if(me&&me.code){ const x=document.querySelector('.club-already'); if(x) x.remove(); } if(l&&me&&me.code) l.innerHTML=CLUB_IC+'<span class="tx">MEMBRE DU CLUB</span> <em>· voir ma carte</em><i>›</i>'; }
 // Tas de polaroïds (écran « Plus tard ») : tourne de droite à gauche toutes les 3 s, clic → Instagram.
 const CLUB_PHOTOS=[['club/photos/drevici-1.webp','En mer'],['club/photos/drevici-2.webp',"L'équipe"],['club/photos/drevici-3.webp','À table !']];
 let clubPileT=null;
