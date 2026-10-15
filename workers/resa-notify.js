@@ -72,7 +72,7 @@ export default {
       catch (e) { return json({ ok: false, error: String(e && e.message || e) }, 500, cors); }
     }
     // ── Espace restaurateur (/gestion) : session Supabase + admin du resto ──
-    if (['/clients', '/campaign/preview', '/campaign/send', '/club/redeem', '/club/tier', '/club/tshirt-won', '/client/archive'].includes(url.pathname)) {
+    if (['/clients', '/campaign/preview', '/campaign/send', '/club/redeem', '/club/tier', '/club/tshirt-won', '/client/archive', '/client/name'].includes(url.pathname)) {
       try {
         const body = req.method === 'POST' ? await req.json() : {};
         const slug = String(body.slug || url.searchParams.get('slug') || '');
@@ -100,6 +100,15 @@ export default {
             for (const c of club) if (!seen.has(c.id)) rows.push({ ...c, id: -c.id, club_id: c.id, from_club: true, visits: 0 });
           }
           return json({ ok: true, clients: rows, club_slug: cslug }, 200, cors);
+        }
+        // Un admin ne peut changer que SON nom (fiche dont l'email = son email de connexion), ici et dans le club commun.
+        if (url.pathname === '/client/name') {
+          const name = String(body.name || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+          const me = String(who.email || '').toLowerCase();
+          if (!name || !me) return json({ ok: false, error: 'Nom vide' }, 400, cors);
+          const upd = await sb(env, `resa_clients?${inClub}&email=eq.${enc(me)}`, { method: 'PATCH', body: { name }, prefer: 'return=representation' });
+          if (!upd || !upd.length) return json({ ok: false, error: 'Aucune fiche à votre email de connexion' }, 404, cors);
+          return json({ ok: true, name, n: upd.length }, 200, cors);
         }
         if (url.pathname === '/client/archive') {
           const id = parseInt(body.id, 10);

@@ -934,6 +934,7 @@ input.in.hr{width:76px;text-align:center;padding:8px 10px;font-size:15px;font-we
 .cldd-p{position:absolute;left:0;top:calc(100% + 8px);z-index:40;width:280px;max-height:60vh;overflow:auto;background:var(--card);border-radius:18px;padding:6px;box-shadow:0 18px 40px -12px rgba(16,40,94,.35)}
 .cldd-i{display:flex;justify-content:space-between;align-items:center;width:100%;border:0;background:none;color:var(--ink);font:600 14px Inter,sans-serif;padding:11px 12px;border-radius:12px;cursor:pointer;text-align:left}.cldd-i:hover,.cldd-i.on{background:var(--soft)}.cldd-i em{font-style:normal;opacity:.55;font-weight:600}.cldd-i.red{color:#a5402d}
 @media(max-width:899px){.cldd-p{width:min(280px,calc(100vw - 40px))}}
+.clnm{font-size:16px;padding:6px 10px;max-width:200px}.clmh b .lk{padding:0 4px;opacity:.6}
 .clban{margin:14px 0 2px;padding:12px 14px;border-radius:14px;background:var(--soft);font:600 14px Inter,sans-serif}.clban small{display:block;font-weight:500;opacity:.75;margin-top:2px}.clban.red{background:#f6e9e4;color:#a5402d}
 .clarch{display:flex;justify-content:flex-end;margin-top:16px}.redt{color:#a5402d!important}
 .clconf{margin-top:16px;padding:14px;border-radius:14px;background:var(--soft);font:600 14px Inter,sans-serif}.clconf small{display:block;font-weight:500;opacity:.75;margin-top:2px}.clconf div{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}.redb{background:#a5402d!important;color:#fff!important}
@@ -2555,13 +2556,15 @@ const clCardKind=c=>c.club_tier==='staff'?({noir:'staff',gold:'gold',navy:'navy'
 const clPhone=p=>{ const d=String(p||'').replace(/\D/g,''); return /^33\d{9}$/.test(d)?('0'+d.slice(2)).replace(/(\d{2})(?=\d)/g,'$1 '):'+'+d; };
 function clMini(c){ if(!c.club_member) return '<div class="clmini none">Pas de carte</div>';
   return `<div class="clmini ${clCardKind(c)}"><i>DREVICI OYSTER</i><img src="club/gentleman.webp" alt=""><b>${esc(String(c.club_code||'').replace(/^CLUB-/,'CLUB · '))}</b></div>`; }
+// Un admin peut renommer seulement sa propre fiche (même email que son compte).
+const isMe=c=>!!(c&&c.email&&SESSION&&SESSION.user&&String(SESSION.user.email||'').toLowerCase()===String(c.email).toLowerCase());
 function clModal(c){ if(!c) return '';
   const k=clCardKind(c), due=coupeDue(c), left=coupeLeft(c.club_joined_at), no=c.club_no?String(c.club_no).padStart(3,'0'):'';
   const ini=esc(((c.name||c.email||'?').trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2)).toUpperCase());
   const coupe=!c.club_member?'':c.coupe_used_at?`<div class="clcp ok">✓ Coupe offerte le ${fdate(c.coupe_used_at)}</div>`:due?`<div class="clcp"><div><b>🥂 Coupe à offrir · encore ${left} jour${left>1?'s':''}</b><small>Champagne, ou un verre de vin, une bière, un soft (jusqu'à 10 €).</small></div><button class="btn clgo" data-act="clGive" data-id="${c.id}">Offrir la coupe</button></div>`:`<div class="clcp exp"><div><b>Coupe expirée depuis ${-left} j</b><small>Vous pouvez quand même l'offrir (geste commercial).</small></div><button class="btn w clgo" data-act="clGive" data-id="${c.id}">Offrir quand même</button></div>`;
   const seg=(act,cur,opts)=>`<div class="clseg">${opts.map(([v,l])=>`<button class="${cur===v?'on':''}" data-act="${act}" data-id="${c.id}" data-v="${v}">${l}</button>`).join('')}</div>`;
   return `<div class="imod clmod" data-act="clClose"><div class="imod-c clmod-c" role="dialog" aria-modal="true"><button type="button" class="imod-x" data-act="clClose" data-x="1" aria-label="Fermer">✕</button>
-   <div class="clmh"><span class="clav">${ini}</span><div><b>${esc(c.name||'Sans nom')}${no?` <span class="clnoc ${clTier(c)}">${no}</span>`:''}</b><small>${c.club_member?'Membre du club depuis le '+fdate(c.club_joined_at):'Client · pas membre du club'}</small></div></div>
+   <div class="clmh"><span class="clav">${ini}</span><div><b>${isMe(c)&&UI.clname===c.id?`<input class="in clnm" value="${esc(c.name||'')}" data-clname="1" maxlength="80"><button class="btn" data-act="clNameGo" data-id="${c.id}">OK</button>`:esc(c.name||'Sans nom')+(isMe(c)?` <button class="lk" data-act="clName" data-id="${c.id}" title="Modifier mon nom">${I('edit')}</button>`:'')}${no?` <span class="clnoc ${clTier(c)}">${no}</span>`:''}</b><small>${c.club_member?'Membre du club depuis le '+fdate(c.club_joined_at):'Client · pas membre du club'}</small></div></div>
    ${c.archived_at?`<div class="clban">Archivé le ${fdate(c.archived_at)}<small>N'apparaît plus dans la liste ni dans les envois. Visible seulement dans « Archivés ».</small></div>`:''}
    ${!c.marketing_optin&&c.unsub_at?`<div class="clban red">Désinscrit le ${fdate(c.unsub_at)} · ne pas contacter<small>Plus aucun email ni SMS d'offres. Gardé dans la base.</small></div>`:''}
    ${c.from_club?`<div class="clban">Membre du club commun<small>Pas encore venu ici : sa fiche client est dans l'autre établissement.</small></div>`:''}
@@ -2918,6 +2921,8 @@ document.addEventListener('click',async e=>{
     case 'rsDel': await resaUpd(d.ref,{status:d.v},d.v==='cancelled'?'Réservation annulée':d.v==='noshow'?'Marqué no-show':'Réservation supprimée'); break;
     case 'clSeg': UI.clseg=d.k; UI.cldd=false; render(); break;
     case 'clDd': UI.cldd=!UI.cldd; render(); break;
+    case 'clName': UI.clname=+d.id; render(); setTimeout(()=>{ const i=document.querySelector('.clnm'); if(i){ i.focus(); i.select(); } },30); break;
+    case 'clNameGo': { const i=document.querySelector('.clnm'), v=(i&&i.value||'').trim(); if(!v){ toast('Nom vide'); break; } try{ const j=await napi('/client/name',{name:v}); (CLIENTS||[]).filter(isMe).forEach(x=>x.name=j.name); UI.clname=null; toast('Nom modifié'); }catch(e){ toast('⚠ '+e.message); } render(); break; }
     case 'clArch': UI.clarch=+d.id; render(); break;
     case 'clArchNo': UI.clarch=null; render(); break;
     case 'clArchGo': { const id=+d.id, on=d.v==='1', c=(CLIENTS||[]).find(x=>x.id===id); try{ const j=await napi('/client/archive',{id,on}); if(c) c.archived_at=j.archived_at; toast(on?'Client archivé':'Client restauré'); UI.clarch=null; if(on) UI.clopen=null; }catch(e){ toast('⚠ '+e.message); } render(); break; }
