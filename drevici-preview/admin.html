@@ -1480,7 +1480,9 @@ const NAV=[['dash','stats','Tableau de bord'],['resa','resa','Réservations'],['
 const NAVS=[['app','lune','Apparence'],['secu','sauv','Sécurité']];
 // Sous-rubriques : chaque lien ouvre la page et descend jusqu'au bloc
 const NAV_ETAB=[['etab/etab','etab','Informations'],['etab/logo','logo','Logo'],['etab/hor','hor','Horaires'],['etab/res','res','Réseaux sociaux']];
-const NAV_SITE=[['site/acc','acc','Accueil'],['site/plats','plats','Menu'],['site/pres','pres','Présentation'],['site/coul','coul','Couleurs']];
+// Page d'entrée commune Paris / Surzur : réglée seulement depuis l'admin de Paris (et sa copie de test).
+const ENTREE_ON=/^drevici(-test)?$/.test(SLUG);
+const NAV_SITE=[...(ENTREE_ON?[['site/ecran','ecran','Page d\'entrée']]:[]),['site/acc','acc','Accueil'],['site/plats','plats','Menu'],['site/pres','pres','Présentation'],['site/coul','coul','Couleurs']];
 const PARENT={export:'carte',xprint:'carte',xgbiz:'carte',xinsta:'carte',xcol:'carte',mdj:'menus',formule:'menus',tuner:'menus'};
 const nv=([k,ic,l])=>{ const [pg,sub]=k.split('/'); const on=sub?(PG===pg&&(ARG===sub||(!ARG&&(pg==='etab'?'etab':'acc')===sub))):(PG===k||PARENT[PG]===k); const nb=k==='messages'?msgNew():0; return `<a class="nv${on?' on':''}" href="#/${k}">${I(ic)}${l}${nb?`<span class="nv-bd">${nb}</span>`:''}</a>`; };
 const side=()=>`<nav class="side"><a class="who" href="#/dash" title="Tableau de bord">${logoBox()}<b>${esc(DATA.restaurantName||'Mon restaurant')}</b></a>
@@ -1565,7 +1567,7 @@ function dash(){
     <a class="li" href="#/comm/email"><span class="dot">${I('mail')}</span><div><b>Campagne email</b><small class="cm">Écrivez à vos clients pour les informer et les fidéliser.</small></div><span class="chev">›</span></a></div></section>`;
   const sets=`<section class="full a-sets"><div class="sec mobile-sec">Réglages</div><div class="sets">
     ${setBlock('s-a','Mon établissement',[['etab','Informations','etab/etab'],['logo','Logo','etab/logo'],['hor','Horaires','etab/hor'],['res','Réseaux sociaux','etab/res']])}
-    ${setBlock('s-b','Mon site',[['acc','Accueil','site/acc'],['plats','Menu','site/plats'],['pres','Présentation','site/pres'],['coul','Couleurs','site/coul']])}
+    ${setBlock('s-b','Mon site',[...(ENTREE_ON?[['ecran','Page d\'entrée','site/ecran']]:[]),['acc','Accueil','site/acc'],['plats','Menu','site/plats'],['pres','Présentation','site/pres'],['coul','Couleurs','site/coul']])}
     <div class="set s-d"><h4>Apparence</h4><div class="app-card">${appSeg()}</div></div>
     ${setBlock('s-c','Sécurité',[['sauv','Sauvegardes','secu'],['hist','Historique','secu'],['compte','Mon compte','compte']])}</div></section>`;
   // Téléphone : accès rapides en liste (une ligne par rubrique), le détail s'ouvre au clic
@@ -2403,6 +2405,39 @@ function openFontPick(k,def){
 const siteUp=(url,slot,label,kind='image')=>`<div class="slot${url?' has':''}">${url?(kind==='video'?`<video src="${esc(url)}" muted playsinline loop autoplay></video>`:`<img src="${esc(url)}" alt="">`):`<span class="ph">${I(kind==='video'?'ecran':'acc')}<small>${label}</small></span>`}
   <div class="slot-a"><label class="btn w">${I('share')}${url?'Changer':'Ajouter'}<input type="file" accept="${kind==='video'?'video/mp4,video/webm,video/quicktime':'image/*'}" hidden data-act="siteUp" data-slot="${slot}"></label>${url?`<button type="button" class="lk red" data-act="siteDel" data-slot="${slot}">Retirer</button>`:''}</div></div>`;
 function loadSiteFonts(){ const fs=[DATA.restoFont,(DATA.homeCover||{}).headlineFont].filter(Boolean); fs.forEach(f=>{ const id='gf-'+f.replace(/\W/g,''); if(document.getElementById(id)) return; const l=document.createElement('link'); l.id=id; l.rel='stylesheet'; l.href='https://fonts.googleapis.com/css2?family='+encodeURIComponent(f).replace(/%20/g,'+')+'&display=swap'; document.head.appendChild(l); }); }
+const ENT_DEF={bgType:'image',image:'media/accueil-fond.jpg',video:'',dim:55,btn:18,border:true,logoOn:true,logo:'media/accueil-logo.png',logoOpacity:80,
+  kicker:'Maison ostréicole',name:'DREVICI OYSTER',tagline:'Producteurs-ostréiculteurs · De la mer à votre assiette',taglineMobile:'De la mer à votre assiette',
+  b1:{label:'Paris',sub:'8 rue Biot, 75017 Paris',url:'https://drevici.beltab.app/'},b2:{label:'Surzur',sub:'Pentes, 56450 Surzur',url:'https://drevici-surzur.beltab.app/'}};
+function entree(){ const e=DATA.entree||(DATA.entree={}); for(const k in ENT_DEF){ if(e[k]===undefined) e[k]=typeof ENT_DEF[k]==='object'?{...ENT_DEF[k]}:ENT_DEF[k]; } return e; }
+const entSrc=u=>u&&!/^(https?:|data:|blob:)/.test(u)?SITE_URL+u:u;
+const entUp=(url,slot,label,kind='image')=>`<div class="slot${url?' has':''}">${url?(kind==='video'?`<video src="${esc(entSrc(url))}" muted playsinline loop autoplay></video>`:`<img src="${esc(entSrc(url))}" alt="">`):`<span class="ph">${I(kind==='video'?'ecran':'acc')}<small>${label}</small></span>`}
+  <div class="slot-a"><label class="btn w">${I('share')}${url?'Changer':'Ajouter'}<input type="file" accept="${kind==='video'?'video/mp4,video/webm,video/quicktime':'image/*'}" hidden data-act="entUp" data-slot="${slot}"></label>${url&&slot==='video'?`<button type="button" class="lk red" data-act="entDel" data-slot="${slot}">Retirer</button>`:''}</div></div>`;
+const entRange=(label,key,val,min,max)=>`<label class="fd" style="margin-top:12px"><span>${label} · <b class="entv-${key}">${val} %</b></span><input type="range" min="${min}" max="${max}" step="5" value="${val}" data-bind="ent.${key}"></label>`;
+function entreeCard(){
+  const e=entree(), bt=e.bgType==='video'?'video':'image';
+  return card('Page d\'entrée','ecran',
+    `<p class="note" style="margin-top:0">La page qui mène à Paris et à Surzur. <a class="lk" href="${SITE_URL}accueil" target="_blank" rel="noopener">Voir la page ↗</a></p>
+    <div class="grp"><div class="grp-t">Fond</div><div class="seg big">${[['image','Photo'],['video','Vidéo']].map(([k,l])=>`<button type="button" data-act="entType" data-v="${k}" class="${bt===k?'on':''}">${l}</button>`).join('')}</div>
+      <div style="margin-top:12px"><div class="slots one">${bt==='video'?entUp(e.video,'video','Vidéo (MP4, 60 Mo max)','video'):entUp(e.image,'image','Photo plein écran')}</div></div>
+      ${entRange('Voile sombre sur le fond','dim',e.dim,0,85)}
+      ${entRange('Fond des boutons','btn',e.btn,0,70)}
+      ${opt('Contour des boutons',e.border!==false,'entFlag','data-k="border"')}
+    </div>
+    <div class="grp"><div class="grp-t">Logo</div>
+      ${opt('Afficher le logo',e.logoOn!==false,'entFlag','data-k="logoOn"')}
+      ${e.logoOn!==false?`<div class="slots one sm">${entUp(e.logo,'logo','Logo')}</div>${entRange('Opacité du logo','logoOpacity',e.logoOpacity,20,100)}`:''}
+    </div>
+    <div class="grp"><div class="grp-t">Textes</div>
+      ${fIn('Petit titre doré',e.kicker,'ent.kicker','Maison ostréicole')}
+      ${fIn('Nom',e.name,'ent.name','DREVICI OYSTER')}
+      ${fIn('Sous-titre sur ordinateur',e.tagline,'ent.tagline','Producteurs-ostréiculteurs · De la mer à votre assiette')}
+      ${fIn('Sous-titre sur téléphone',e.taglineMobile,'ent.taglineMobile','De la mer à votre assiette')}
+    </div>
+    <div class="grp"><div class="grp-t">Boutons</div>
+      <div class="frm">${fIn('Bouton 1 · nom',e.b1.label,'ent.b1.label','Paris')}${fIn('Bouton 1 · adresse',e.b1.sub,'ent.b1.sub','8 rue Biot, 75017 Paris')}${fIn('Bouton 1 · lien',e.b1.url,'ent.b1.url','https://drevici.beltab.app/')}
+      ${fIn('Bouton 2 · nom',e.b2.label,'ent.b2.label','Surzur')}${fIn('Bouton 2 · adresse',e.b2.sub,'ent.b2.sub','Pentes, 56450 Surzur')}${fIn('Bouton 2 · lien',e.b2.url,'ent.b2.url','https://drevici-surzur.beltab.app/')}</div>
+    </div>`);
+}
 function pageSite(){
   const hc=DATA.homeCover||(DATA.homeCover={active:true,mediaType:'photo',image:'',mobilePos:50,mobileImage:'',video:'',slideshow:[],logo:'',headline:'',cta1Label:'Voir le menu',cta1Url:'',cta2Label:'Réserver',cta2Url:''});
   if(!Array.isArray(hc.slideshow)) hc.slideshow=[];
@@ -2417,6 +2452,7 @@ function pageSite(){
     ?`<div class="slots one">${siteUp(hc.video,'video','Vidéo (MP4, 60 Mo max)','video')}</div><p class="note">Coupée du son, en boucle. Une vidéo courte (10 à 20 s) se charge plus vite.</p>${dimField(30)}`
     :`<div class="slots">${hc.slideshow.slice(0,3).map((sl,i)=>`<div>${siteUp(sl.image,'s'+i,'Photo '+(i+1))}<label class="fd kb"><span>Mouvement</span><select class="in" data-bind="hc.kb.${i}">${KB.map(([k,l])=>`<option value="${k}"${(sl.kenBurns||'zoom-in')===k?' selected':''}>${l}</option>`).join('')}</select></label></div>`).join('')}</div>`;
   function dimField(def){ const v=hc.dim!=null&&hc.dim!==''?+hc.dim:def; return `<label class="fd" style="margin-top:12px"><span>Voile sombre sur le visuel · <b class="dimv">${v} %</b></span><input type="range" min="0" max="70" step="5" value="${v}" data-bind="hc.dim"></label><p class="note">Assombrit légèrement la vidéo pour que le logo et les textes blancs restent lisibles, même sur des images claires.</p>`; }
+  const entree=ENTREE_ON?entreeCard():'';
   const accueil=card('Accueil','acc',
     opt('Afficher l\'écran d\'accueil',hc.active!==false,'hcFlag','data-k="active"','Le grand visuel à l\'ouverture du site')+
     `<div class="grp"><div class="grp-t">Visuel</div><div class="seg big">${[['photo','Photo'],['video','Vidéo'],['slideshow','Diaporama']].map(([k,l])=>`<button type="button" data-act="hcType" data-v="${k}" class="${mt===k?'on':''}">${l}</button>`).join('')}</div><div style="margin-top:12px">${media}</div></div>
@@ -2443,7 +2479,7 @@ function pageSite(){
     opt('Afficher le symbole €',DATA.showCurrency!==false,'rootFlag','data-k="showCurrency"')+
     row('Catégories',`${DATA.tabs.length} catégories`,'','<a class="lk" href="#/carte">Gérer →</a>'));
   return mtop('Tableau de bord','dash')+ph('Mon site','Ce que vos clients voient en ouvrant votre site',`<a class="btn w" href="${SITE_URL}" target="_blank" rel="noopener">${I('share')}Voir le site ↗</a>`)+
-  `<div class="pgrid g-1-1"><div>${accueil}</div><div>${menu}${pres}
+  `<div class="pgrid g-1-1"><div>${entree}${accueil}</div><div>${menu}${pres}
    ${card('Couleurs du site','coul',[['primary','Principale'],['accent','Accent'],['bg','Fond']].map(([k,l])=>`<div class="op"><b>${l}</b><label class="swin"><i style="background:${esc(bc[k]||'#ffffff')}"></i><input type="color" value="${esc((bc[k]||'#ffffff').slice(0,7))}" data-act="brandSet" data-k="${k}"></label></div>`).join('')+'<div class="tip ok sm">'+I('vue')+'<span>Le panneau admin reprend vos couleurs en vérifiant automatiquement qu\'elles restent lisibles.</span></div>')}</div></div>`;
 }
 function pageApp(){ const m=applyAppearance(); return mtop('Tableau de bord','dash')+ph('Apparence','Le thème du panneau admin (votre site ne change pas)','')+`<div class="pgrid g-1">${card('Thème','lune',`<div class="themes">${[['clair','Clair','#f5f3ef','#fff'],['sombre','Sombre','#16181d','#262a33'],['systeme','Système','linear-gradient(90deg,#f5f3ef 50%,#16181d 50%)','transparent']].map(([k,l,bg,cd])=>`<div class="th ${m===k?'on':''}" data-act="appearance" data-v="${k}" role="button"><div class="prev" style="background:${bg}"><i style="background:${cd}"></i><i style="background:${cd}"></i></div><b>${l}</b></div>`).join('')}</div>`)}</div>`; }
@@ -2754,6 +2790,7 @@ function setByBind(path,val){
     if(f==='caption'){ it.caption=val; return; }
     if(f==='sz'){ const z=it.sizes[+p[5]]; z[p[6]]=val; if(p[6]==='format'&&BEV_AUTO[val]!=null){ z.cl=BEV_AUTO[val]; z.unit='cl'; UI.needRender=true; } return; }
     return; }
+  if(p[0]==='ent'){ const e=entree(); if(p[1]==='b1'||p[1]==='b2'){ e[p[1]][p[2]]=val; return; } if(['dim','btn','logoOpacity'].includes(p[1])){ e[p[1]]=parseInt(val)||0; const b=document.querySelector('.entv-'+p[1]); if(b) b.textContent=e[p[1]]+' %'; return; } e[p[1]]=val; return; }
   if(p[0]==='hc'){ const hc=DATA.homeCover; if(p[1]==='kb'){ hc.slideshow[+p[2]].kenBurns=val; return; } if(p[1]==='dim'){ hc.dim=parseInt(val)||0; const b=document.querySelector('.dimv'); if(b) b.textContent=hc.dim+' %'; return; } if(p[1]==='mobilePos'){ hc.mobilePos=parseInt(val)||0; const im=document.querySelector('.phone img'); if(im) im.style.objectPosition=val+'% center'; const b=document.querySelector('.mpos .fd b'); if(b) b.textContent=val+' %'; return; } hc[p[1]]=val; if(p[1]==='headlineFont'||p[1]==='statusBarColor') UI.needRender=true; return; }
   if(p[0]==='about'){ if(!DATA.about) DATA.about={}; DATA.about[p[1]]=val; return; }
   if(p[0]==='intro'){ if(!DATA.intro.text||typeof DATA.intro.text!=='object') DATA.intro.text={fr:DATA.intro.text||''}; DATA.intro.text[LG()]=val; return; }
@@ -2807,6 +2844,7 @@ document.addEventListener('change',async e=>{
   if(a==='tunerFont'){ tunerTarget().obj.instaFont=el.value||undefined; touch(true); }
   if(a==='igFont'){ pS().instaFont=el.value; touch(true); }
   if(a==='pdfLogo'&&el.files&&el.files[0]){ const url=await uploadImage(el.files[0],'logo-impression'); if(url){ pS().logoData=url; touch(true); } }
+  if(a==='entUp'&&el.files&&el.files[0]){ const sl=el.dataset.slot, e=entree(); const url=sl==='video'?await uploadVideo(el.files[0]):await uploadImage(el.files[0],sl==='logo'?'logo-entree':'entree'); if(url){ e[sl]=url; touch(true); } }
   if(a==='siteUp'&&el.files&&el.files[0]){ const sl=el.dataset.slot, hc=DATA.homeCover; const url=sl==='video'?await uploadVideo(el.files[0]):await uploadImage(el.files[0],sl==='logo'?'logo-accueil':'accueil'); if(url){ if(/^s\d$/.test(sl)) hc.slideshow[+sl[1]].image=url; else hc[sl]=url; touch(true); } }
   if(a==='itemImg'&&el.files&&el.files[0]){ const x=itemAt(el.dataset.p); const sl=el.dataset.slot; const url=await uploadImage(el.files[0],sl==='main'?(isBevCard(x.c)?'boisson':'plat'):'galerie'); if(url){ if(sl==='main') x.it.img=url; else { const g=x.it.gallery||[]; g[+sl.slice(1)]=url; x.it.gallery=g; } touch(true); } }
   if(a==='appSel'){ setAppearance(el.value); return; }
@@ -2974,6 +3012,9 @@ document.addEventListener('click',async e=>{
     case 'dayToggle': { const day=DATA.schedule[+d.i]; const on=day.active!==false&&(day.services||[]).some(x=>x.open!=null); if(on){ day.active=false; } else { day.active=true; if(!day.services||!day.services.length) day.services=[{label:'',open:12,close:14}]; day.services.forEach(s=>{ if(s.open==null){ s.open=19; s.close=22; } }); day.open=day.services[0].open; day.close=day.services[0].close; } touch(true); break; }
     case 'logoDel': DATA.restaurantLogo=''; touch(true); break;
     case 'soon': toast(d.v); break;
+    case 'entFlag': { const e=entree(); e[d.k]=e[d.k]===false; touch(true); break; }
+    case 'entType': entree().bgType=d.v; touch(true); break;
+    case 'entDel': { const e=entree(); e[d.slot]=''; if(d.slot==='video') e.bgType='image'; touch(true); break; }
     case 'hcFlag': DATA.homeCover[d.k]=DATA.homeCover[d.k]===false; touch(true); break;
     case 'hcType': DATA.homeCover.mediaType=d.v; touch(true); break;
     case 'aboutFlag': if(!DATA.about) DATA.about={}; DATA.about.active=DATA.about.active===false; touch(true); break;
