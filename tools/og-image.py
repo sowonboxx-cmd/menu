@@ -13,9 +13,9 @@ spec.json (chemins relatifs à la racine du dépôt) :
     "focus": "50% 62%",          # cadrage de l'image (object-position)
     "crop": [x, y, w, h],        # facultatif : zoom sur une zone de l'image
     "logo": "drevici/charte/files/logos/DreviciOyster-Surzur_LogoRond_SansFond.png",
-    "kicker": "Producteurs ostréiculteurs · Rivière de Pénerf",
+    "kicker": "Producteurs ostréiculteurs · Rivière de Penerf",
     "title": "Drevici Oyster Surzur",
-    "line": "Dégustation au chantier · Pentes, 56450 Surzur · Réservation en ligne",
+    "line": "Dégustation au chantier · Pentès, 56450 Surzur · Réservation en ligne",
     "color": "#14244f"           # couleur du dégradé (couleur principale du restaurant)
   }
 """

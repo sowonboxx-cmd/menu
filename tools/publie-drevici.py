@@ -6,7 +6,7 @@ Ne touche pas aux fichiers propres au site en ligne (reservations.html = ancien 
 import shutil, os, re, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC, DST = os.path.join(ROOT, 'drevici-preview'), os.path.join(ROOT, 'drevici')
-FILES = ['index.html', 'book.html', 'resa.html', 'admin.html', 'gestion.html', 'floorplan.js', 'confidentialite.html']
+FILES = ['index.html', 'book.html', 'resa.html', 'admin.html', 'gestion.html', 'floorplan.js', 'confidentialite.html', 'accueil.html']  # accueil.html : page d'entrée commune Paris / Surzur (Paris seulement)
 DIRS = ['club', 'seo', 'media', 'charte', 'studio']  # studio/ : seule la page d'accueil (index.html) vient du labo ; calendar et tracker restent ceux du site en ligne
 
 def sub(text, old, new, path):
@@ -44,6 +44,9 @@ for d in DIRS:
     if os.path.isdir(os.path.join(SRC, d)): shutil.copytree(os.path.join(SRC, d), os.path.join(DST, d), dirs_exist_ok=True)
 
 P = {
+ 'accueil.html': [
+   ("https://drevici-preview.beltab.app", "https://drevici.beltab.app"),
+ ],
  'index.html': [
    ("const CLIENT_SLUG_RACINE = 'drevici-preview';", "const CLIENT_SLUG_RACINE = 'drevici';"),
    ("const CLUB_ON = /preview|localhost|127\\.0\\.0\\.1|file:/.test(location.href);", "const CLUB_ON = true;"),
