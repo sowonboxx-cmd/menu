@@ -4356,6 +4356,8 @@ async function clubSyncCard(){
     const nx={...me,tier:d.tier,card:d.card,no:d.no||me.no,joined:d.joined||me.joined,used:d.used,tshirt:d.tshirt||null};
     if(nx.tshirt!==(me.tshirt||null)){ const ts=document.getElementById('clubTs'); if(ts) ts.innerHTML=clubTsHTML(nx); }
     try{ localStorage.setItem('club_'+CLUB_SLUG,JSON.stringify(nx)); }catch(_){}
+    // Coupe offerte entre-temps : plus de rappel de coupe ni de « Plus tard » (compte à rebours), juste « Fermer ».
+    if(nx.used&&!me.used){ const wc=document.querySelector('#clubSheet .club-wc'); if(wc) wc.remove(); const lb=document.getElementById('clubLaterBtn'); if(lb){ lb.textContent='Fermer'; lb.onclick=closeClubSheet; } }
     const w=document.querySelector('#clubSheet .bc-wrap');
     if(w&&(nx.tier!==me.tier||nx.card!==me.card||nx.no!==me.no||nx.joined!==me.joined)){ w.innerHTML=clubCardHTML(nx); const b=document.getElementById('clubTierB'); if(b) b.innerHTML=clubTierBadge(nx); clubFit(); }
   }catch(_){}
@@ -4371,7 +4373,7 @@ function clubWelcome(me,already,reveal){
       ${me.used?'':`<div class="club-wc">Votre coupe vous attend avec votre repas<br><b>jusqu'au ${clubLimit(me)}</b>.<small class="club-wc2">Champagne, ou un verre de vin, une bière, un soft.<br><b class="club-give">Donnez ce code en arrivant</b> : <span class="club-codepill">${clubEsc(me.code)}</span></small></div>`}
       <div id="clubTs">${clubTsHTML(me)}</div>
       <a class="club-cta club-a" href="book?${q}">Réserver ma table</a>
-      <button type="button" class="club-later" onclick="clubLater()">Plus tard</button>
+      ${me.used?'<button type="button" class="club-later" id="clubLaterBtn" onclick="closeClubSheet()">Fermer</button>':'<button type="button" class="club-later" id="clubLaterBtn" onclick="clubLater()">Plus tard</button>'}
     </div>`);
   clubFonts(); requestAnimationFrame(clubFit); if(document.fonts) document.fonts.ready.then(clubFit); clubSyncCard();
   if(!already||(reveal&&reveal!=='show')) clubConfetti();
@@ -4480,7 +4482,7 @@ function clubLater(){
   const ig=((DATA&&DATA.social&&DATA.social.instagram)||'drevicioysterbar').replace(/^@/,'').replace(/^https?:\/\/(www\.)?instagram\.com\//,'').replace(/\/$/,'');
   clubShell(`<div class="club-wel">
     <div class="club-wt" style="font-size:24px;margin-bottom:12px">Pas de souci !</div>
-    <div class="club-cnt"><div class="club-cnt-n"><div>${left}<small>JOUR${left>1?'S':''}</small></div></div><div class="club-cnt-t">Vous avez jusqu'au <b>${end.toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}</b><br>pour profiter de votre coupe. Venez vite !</div></div>
+    ${me.used?'':`<div class="club-cnt"><div class="club-cnt-n"><div>${left}<small>JOUR${left>1?'S':''}</small></div></div><div class="club-cnt-t">Vous avez jusqu'au <b>${end.toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}</b><br>pour profiter de votre coupe. Venez vite !</div></div>`}
     <div class="club-ig"><b>En attendant…</b><span style="margin-bottom:6px;white-space:nowrap;font-size:min(12px,3.05vw);letter-spacing:-.01em">Jeux, cadeaux, soirées, nouveautés en avant-première.</span>
       <a class="club-igl" href="https://instagram.com/${clubEsc(ig)}" target="_blank" rel="noopener">Suivez-nous sur Instagram ›</a>
       <a class="club-pile" href="https://instagram.com/${clubEsc(ig)}" target="_blank" rel="noopener" aria-label="Voir nos photos sur Instagram">${CLUB_PHOTOS.map(([src,t],i)=>`<div class="club-pol ${['f','r','l'][i]}"><img src="${src}" alt=""><i>${t}</i></div>`).join('')}</a>
