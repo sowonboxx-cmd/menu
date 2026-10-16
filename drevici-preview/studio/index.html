@@ -260,8 +260,15 @@ button{cursor:pointer;background:none}
 .dpi{cursor:pointer;caret-color:transparent;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23253968' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='5' width='17' height='15.5' rx='3'/%3E%3Cpath d='M3.5 10h17M8 3v4M16 3v4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-size:18px;padding-right:40px!important}
 .dpi::placeholder{color:var(--mut)}
 .dpi.act{box-shadow:inset 0 0 0 2px var(--gold)}
-input[type=time]{cursor:pointer}
-input[type=time]::-webkit-calendar-picker-indicator{opacity:.55}
+.tpi{cursor:pointer;caret-color:transparent;font-variant-numeric:tabular-nums;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23253968' stroke-width='1.7' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='8.5'/%3E%3Cpath d='M12 7.5V12l3 2'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-size:18px;padding-right:40px!important}
+.tpi::placeholder{color:var(--mut)}
+.tpi.act{box-shadow:inset 0 0 0 2px var(--gold)}
+.tp-h{text-align:center;font-family:"Playfair Display",serif;font-size:30px;font-weight:700;margin:2px 0 6px;font-variant-numeric:tabular-nums}
+.tp-l{font-size:10.5px;font-weight:800;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;margin:8px 2px 5px}
+.tp-g{display:grid;grid-template-columns:repeat(6,1fr);gap:3px}.tp-g.m{grid-template-columns:repeat(4,1fr)}
+.tp-g button{height:38px;border-radius:12px;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.tp-g button:hover{background:var(--cream)}
+.tp-g .on,.tp-g .on:hover{background:var(--ink);color:#fff}
 .dp-bg{position:fixed;inset:0;z-index:69}
 .dp{position:fixed;z-index:70;width:320px;background:#fff;border-radius:22px;padding:14px;box-shadow:0 18px 50px rgba(13,37,92,.18),0 2px 8px rgba(13,37,92,.06);animation:dpIn .14s ease}
 @keyframes dpIn{from{opacity:0;transform:translateY(-4px)}}
@@ -1217,10 +1224,18 @@ function enhanceDate(inp){
   Object.defineProperty(inp,'value',{configurable:true,get(){return inp.dataset.iso||'';},set(x){x=/^\d{4}-\d{2}-\d{2}$/.test(x||'')?x:'';inp.dataset.iso=x;NV.set.call(inp,x?dpLabel(x):'');}});
   inp.value=v;
 }
+// Heure : même sélecteur que la date (le champ garde une valeur HH:MM).
+function enhanceTime(inp){
+  if(inp._tp)return; const v=inp.value; inp._tp=true;
+  inp.type='text'; inp.readOnly=true; inp.inputMode='none'; inp.classList.add('tpi'); inp.setAttribute('autocomplete','off');
+  if(!inp.placeholder) inp.placeholder='Choisir une heure';
+  Object.defineProperty(inp,'value',{configurable:true,get(){return NV.get.call(inp);},set(x){const m=/^(\d{1,2}):(\d{2})/.exec(x||'');NV.set.call(inp,m?m[1].padStart(2,'0')+':'+m[2]:'');}});
+  inp.value=v;
+}
 function enhanceFields(root){
   if(!root||!root.querySelectorAll)return;
   root.querySelectorAll('input[type=date]').forEach(enhanceDate);
-  root.querySelectorAll('input[type=time]:not([data-tp])').forEach(i=>{i.dataset.tp=1;i.addEventListener('click',()=>{try{i.showPicker();}catch(e){}});});
+  root.querySelectorAll('input[type=time]').forEach(enhanceTime);
 }
 enhanceFields(document);
 new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1)enhanceFields(n.parentNode||n);}))).observe(document.body,{childList:true,subtree:true});
@@ -1231,7 +1246,7 @@ document.body.append(dpBg,dp);
 let dpInp=null, dpM=null;
 const dpMin=i=>i&&i.dataset.dpMin?(document.getElementById(i.dataset.dpMin)||{}).value||'':'';
 function openDP(inp){
-  dpInp=inp; const d=dOf(inp.value||dpMin(inp)||TISO); dpM=new Date(d.getFullYear(),d.getMonth(),1,12);
+  if(typeof closeTP==='function')closeTP(); dpInp=inp; const d=dOf(inp.value||dpMin(inp)||TISO); dpM=new Date(d.getFullYear(),d.getMonth(),1,12);
   inp.classList.add('act'); renderDP(); dp.hidden=false; dpBg.hidden=false; placeDP();
 }
 function closeDP(){ if(dpInp)dpInp.classList.remove('act'); dp.hidden=true; dpBg.hidden=true; dpInp=null; }
@@ -1268,6 +1283,48 @@ document.addEventListener('keydown',e=>{
 addEventListener('resize',()=>{if(!dp.hidden)placeDP();});
 
 addEventListener('scroll',()=>{if(!dp.hidden)placeDP();},true);
+
+/* Sélecteur d'heure, même design que le calendrier */
+const tp=document.createElement('div'); tp.className='dp'; tp.hidden=true; tp.setAttribute('role','dialog');
+document.body.append(tp);
+let tpInp=null, tpH=19, tpMn=0;
+const p2=n=>String(n).padStart(2,'0');
+function openTP(inp){
+  closeDP(); tpInp=inp; const m=/^(\d{1,2}):(\d{2})/.exec(inp.value||''); tpH=m?+m[1]:19; tpMn=m?+m[2]:0;
+  inp.classList.add('act'); renderTP(); tp.hidden=false; dpBg.hidden=false; placeTP();
+}
+function closeTP(){ if(tpInp)tpInp.classList.remove('act'); tp.hidden=true; if(dp.hidden)dpBg.hidden=true; tpInp=null; }
+function placeTP(){
+  if(!tpInp)return;
+  if(matchMedia('(max-width:600px)').matches){tp.classList.add('sh');tp.style.left=tp.style.top='';return;}
+  tp.classList.remove('sh');
+  const r=tpInp.getBoundingClientRect(), w=tp.offsetWidth, h=tp.offsetHeight;
+  let top=r.bottom+8; if(top+h>innerHeight-8&&r.top-h-8>8) top=r.top-h-8;
+  tp.style.left=Math.min(Math.max(8,r.left),innerWidth-w-8)+'px'; tp.style.top=Math.max(8,top)+'px';
+}
+function renderTP(){
+  const mins=[0,15,30,45]; if(!mins.includes(tpMn)) mins.push(tpMn), mins.sort((a,b)=>a-b);
+  tp.innerHTML=`<div class="grab"></div><div class="tp-h">${p2(tpH)}:${p2(tpMn)}</div>
+    <div class="tp-l">Heure</div><div class="tp-g">${Array.from({length:24},(_,h)=>`<button type="button" class="${h===tpH?'on':''}" data-tph="${h}">${p2(h)}</button>`).join('')}</div>
+    <div class="tp-l">Minutes</div><div class="tp-g m">${mins.map(m=>`<button type="button" class="${m===tpMn?'on':''}" data-tpm="${m}">${p2(m)}</button>`).join('')}</div>
+    <div class="dp-f"><button type="button" data-tpx>Effacer</button><button type="button" class="g" data-tpok>Valider</button></div>`;
+}
+function pickTP(v){const i=tpInp;if(!i)return;i.value=v;closeTP();i.dispatchEvent(new Event('input',{bubbles:true}));i.dispatchEvent(new Event('change',{bubbles:true}));}
+tp.addEventListener('click',e=>{
+  const g=s=>e.target.closest(s);
+  if(g('[data-tph]')){tpH=+g('[data-tph]').dataset.tph;renderTP();return;}
+  if(g('[data-tpm]')){tpMn=+g('[data-tpm]').dataset.tpm;renderTP();return;}
+  if(g('[data-tpok]')){pickTP(p2(tpH)+':'+p2(tpMn));return;}
+  if(g('[data-tpx]')){pickTP('');return;}
+});
+dpBg.addEventListener('click',closeTP);
+document.addEventListener('click',e=>{const i=e.target.closest&&e.target.closest('input.tpi');if(i)openTP(i);});
+document.addEventListener('keydown',e=>{
+  if(!tp.hidden&&e.key==='Escape'){closeTP();return;}
+  if(e.target.classList&&e.target.classList.contains('tpi')&&(e.key==='Enter'||e.key===' '||e.key==='ArrowDown')){e.preventDefault();openTP(e.target);}
+});
+addEventListener('resize',()=>{if(!tp.hidden)placeTP();});
+addEventListener('scroll',()=>{if(!tp.hidden)placeTP();},true);
 
 async function boot(){
   if(sb){const {data}=await sb.auth.getSession();SESSION=data.session||null;}
