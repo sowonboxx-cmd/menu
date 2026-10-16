@@ -1142,6 +1142,13 @@ if (new URLSearchParams(window.location.search).get('admin') === '1') {
     p.querySelector('button').onclick=()=>p.remove(); document.body.appendChild(p); };
   (document.querySelector('main')||document.body).prepend(b);
   if(typeof onFormInput==='function') try{ onFormInput(); }catch(e){}
+  // Coupe déjà offerte (lu sur la carte du club) : le bandeau ne parle plus de coupe, la note non plus.
+  const cs=q.get('cs');
+  if(cs&&/^[a-z0-9-]{2,60}$/.test(cs)) fetch('https://resa.beltab.app/club/card?'+new URLSearchParams({slug:cs,code})).then(r=>r.json()).then(d=>{
+    if(!d||!d.ok||!d.used) return;
+    b.innerHTML='Membre du club · <u>'+code+'</u>'; b.onclick=null; b.style.cursor='default';
+    if(n&&n.value==='Membre du club '+code+' (coupe offerte)') n.value='Membre du club '+code;
+  }).catch(()=>{});
 })();
 </script>
 </body>
