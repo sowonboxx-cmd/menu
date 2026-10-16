@@ -45,8 +45,8 @@ def page(s):
 .band{{position:absolute;left:0;right:0;bottom:0;height:{s.get('band', 250)}px;
   background:linear-gradient(180deg,rgba({r},{g},{b},0) 0%,rgba({r},{g},{b},.72) 38%,rgba({r},{g},{b},.94) 100%)}}
 .row{{position:absolute;left:44px;right:44px;bottom:30px;display:flex;align-items:center;gap:26px}}
-.logo{{width:134px;height:134px;flex:none;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center}}
-.logo img{{width:126px;height:126px}}
+.logo{{width:156px;height:156px;flex:none;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center}}
+.logo img{{width:146px;height:146px}}
 .k{{font-weight:600;font-size:17px;letter-spacing:.16em;text-transform:uppercase;color:#e9c77b}}
 .t{{font-family:'Playfair Display',serif;font-weight:700;font-size:{s.get('titleSize', 50)}px;line-height:1.02;letter-spacing:.035em;text-transform:uppercase;color:#fff;margin:6px 0 8px}}
 .l{{font-weight:500;font-size:19px;color:rgba(255,255,255,.92)}}
