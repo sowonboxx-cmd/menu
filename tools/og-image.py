@@ -47,7 +47,7 @@ def page(s):
 .row{{position:absolute;left:44px;right:44px;bottom:30px;display:flex;align-items:center;gap:26px}}
 .logo{{width:156px;height:156px;flex:none;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center}}
 .logo img{{width:146px;height:146px}}
-.k{{font-weight:600;font-size:17px;letter-spacing:.16em;text-transform:uppercase;color:#e9c77b}}
+.k{{font-weight:600;font-size:17px;letter-spacing:.16em;text-transform:uppercase;color:{s.get('kickerColor', '#e9c77b')}}}
 .t{{font-family:'Playfair Display',serif;font-weight:700;font-size:{s.get('titleSize', 50)}px;line-height:1.02;letter-spacing:.035em;text-transform:uppercase;color:#fff;margin:6px 0 8px}}
 .l{{font-weight:500;font-size:19px;color:rgba(255,255,255,.92)}}
 </style></head><body><div class="c"><img src="{img}"><div class="band"></div>
