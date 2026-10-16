@@ -241,6 +241,8 @@ button{cursor:pointer;background:none}
 .qrbox{display:flex;gap:14px;align-items:center}
 .qrimg{width:110px;height:110px;border-radius:14px;background:var(--cream);padding:9px;flex:none}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;border-radius:999px;padding:10px 16px;font-size:13.5px;font-weight:700;z-index:60}
+.whosel{appearance:none;-webkit-appearance:none;border:0;cursor:pointer;padding-right:28px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2310285e' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;font-family:inherit;color:inherit}
+#tdChips{flex-wrap:wrap;overflow:visible}
 </style>
 </head>
 <body>
@@ -737,7 +739,11 @@ document.getElementById('nDel').onclick=async()=>{
 };
 
 /* ═══════════ Tâches ═══════════ */
-let tdF='Aujourd’hui', tdSel=null;
+let tdF='Aujourd’hui', tdSel=null, tdWho='';
+// Tâches assignées à une personne de l'équipe (champ « tag » de la base). Les anciennes tâches « Moi » = Will.
+const ASSIGNEES=['Will','Benji'];
+const asg=t=>ASSIGNEES.includes(t.tag)?t.tag:'Will';
+const meName=()=>{const e=(SESSION&&SESSION.user&&SESSION.user.email||'').toLowerCase();return /benji/.test(e)?'Benji':'Will';};
 const isToday=t=>!t.due||t.due<=TISO;
 async function loadTasks(){
   if(!sb||!SESSION){DB_TASKS=false;TASKS=demoTasks();return;}
@@ -747,7 +753,7 @@ async function loadTasks(){
 }
 function demoTasks(){return [{id:'t1',title:'Confirmer les réservations du soir',tag:'Résas',due:TISO,done:false,description:''},{id:'t2',title:'Poster le teaser Girls’ Night',tag:'Calendrier',due:TISO,done:true,description:'Texte prêt dans la fiche Event.'},{id:'t3',title:'Imprimer les cartes « hors carte »',tag:'QR',due:TISO,done:false,description:''}];}
 async function saveTask(t,patch){Object.assign(t,patch);if(DB_TASKS){const {error}=await sb.from('cabine_tasks').update({...patch,updated_at:new Date().toISOString()}).eq('id',t.id);if(error)toast('Erreur : '+error.message);}renderTasks();}
-async function addTask(title){const row={client_slug:MENU_SLUG,title,tag:'Moi',due:TISO,done:false,description:''};
+async function addTask(title){const row={client_slug:MENU_SLUG,title,tag:tdWho||meName(),due:TISO,done:false,description:''};
   if(DB_TASKS){const {data,error}=await sb.from('cabine_tasks').insert(row).select().single();if(error)return toast('Erreur : '+error.message);TASKS.unshift(data);}else{TASKS.unshift({...row,id:'l'+Date.now()});toast('Ajoutée (non enregistrée : base à créer)');}
   renderTasks();}
 // Suppression en deux temps : la tâche disparaît, un toast « Annuler »
@@ -761,13 +767,13 @@ function delTask(id){
 }
 // Tâches faites : toujours en bas de la liste (l'ordre des autres ne bouge pas).
 const doneLast=(a,b)=>(a.done?1:0)-(b.done?1:0);
-const taskRow=t=>`<div class="row ${t.done?'done':''}"><button class="chk ${t.done?'done':''}" type="button" data-td="${esc(t.id)}" aria-label="Fait"></button><span class="t" data-open="${esc(t.id)}">${esc(t.title)}</span><span class="tg">${esc(t.tag||'')}${t.due&&t.due>TISO?' · '+fmtD(t.due):''}</span></div>`;
+const taskRow=t=>`<div class="row ${t.done?'done':''}"><button class="chk ${t.done?'done':''}" type="button" data-td="${esc(t.id)}" aria-label="Fait"></button><span class="t" data-open="${esc(t.id)}">${esc(t.title)}</span><span class="tg">${esc(asg(t))}${t.due&&t.due>TISO?' · '+fmtD(t.due):''}</span></div>`;
 function renderTasks(){
   const today=TASKS.filter(t=>isToday(t)&&(!t.done||t.updated_at?.slice(0,10)===TISO||!DB_TASKS)).sort(doneLast);
   document.getElementById('homeTodo').innerHTML=today.slice(0,6).map(taskRow).join('')||'<p class="empty">Rien pour aujourd’hui.</p>';
   document.getElementById('todoMore').textContent=today.filter(t=>!t.done).length+' restante'+(today.filter(t=>!t.done).length>1?'s':'')+' · Voir tout →';
-  document.getElementById('tdChips').innerHTML=['Aujourd’hui','À venir','Fait','Toutes'].map(c=>`<button class="chip ${c===tdF?'on':''}" type="button" data-tf="${c}">${c}</button>`).join('');
-  const l=TASKS.filter(t=>tdF==='Toutes'||(tdF==='Fait'?t.done:tdF==='À venir'?(!t.done&&t.due>TISO):(!t.done&&isToday(t)))).sort(doneLast);
+  document.getElementById('tdChips').innerHTML=['Aujourd’hui','À venir','Fait','Toutes'].map(c=>`<button class="chip ${c===tdF?'on':''}" type="button" data-tf="${c}">${c}</button>`).join('')+`<select class="chip whosel" id="tdWho" aria-label="Tâches de"><option value="">Tout le monde</option>${ASSIGNEES.map(a=>`<option ${a===tdWho?'selected':''}>${a}</option>`).join('')}</select>`;
+  const l=TASKS.filter(t=>(!tdWho||asg(t)===tdWho)&&(tdF==='Toutes'||(tdF==='Fait'?t.done:tdF==='À venir'?(!t.done&&t.due>TISO):(!t.done&&isToday(t))))).sort(doneLast);
   document.getElementById('tdList').innerHTML=l.map(taskRow).join('')||'<p class="empty">Rien ici.</p>';
   const desk=matchMedia('(min-width:900px)').matches;
   if(desk&&!TASKS.find(t=>t.id===tdSel)&&l.length) tdSel=l[0].id;
@@ -778,7 +784,7 @@ function renderTasks(){
 function taskForm(t){const due=t.due||TISO;return `<div class="fields">
   <input class="t-title" value="${esc(t.title)}" data-tf-f="title" data-id="${esc(t.id)}" aria-label="Titre">
   <div class="two"><div class="f"><label>Échéance</label><input type="date" value="${due}" data-tf-f="due" data-id="${esc(t.id)}"></div>
-  <div class="f"><label>Lié à</label><select data-tf-f="tag" data-id="${esc(t.id)}">${['Moi','Résas','Hors carte','Calendrier','Events','QR','Noël','Site'].map(o=>`<option ${o===t.tag?'selected':''}>${o}</option>`).join('')}</select></div></div>
+  <div class="f"><label>Assigné à</label><select data-tf-f="tag" data-id="${esc(t.id)}">${ASSIGNEES.map(o=>`<option ${o===asg(t)?'selected':''}>${o}</option>`).join('')}</select></div></div>
   <div class="f"><label>Description</label><textarea data-tf-f="description" data-id="${esc(t.id)}" placeholder="Ajouter des détails…">${esc(t.description||'')}</textarea></div>
   <div class="actions"><button class="cbtn dg" type="button" data-tdel="${esc(t.id)}">Supprimer</button><button class="cbtn" type="button" data-tdone="${esc(t.id)}">${t.done?'Rouvrir':'Marquer comme fait'}</button></div></div>`;}
 // Enregistrement automatique : 500 ms après la frappe, et tout de suite
@@ -791,7 +797,7 @@ function flushTask(){clearTimeout(tTimer);if(!tPending)return;const {t,patch}=tP
 document.addEventListener('input',e=>{const f=e.target.dataset&&e.target.dataset.tfF;if(!f)return;const t=TASKS.find(x=>String(x.id)===e.target.dataset.id);if(!t)return;
   if(tPending&&tPending.t!==t)flushTask();
   t[f]=e.target.value;tPending={t,patch:{...(tPending?tPending.patch:{}),[f]:t[f]}};clearTimeout(tTimer);tTimer=setTimeout(flushTask,500);});
-document.addEventListener('change',e=>{if(e.target.dataset&&e.target.dataset.tfF)flushTask();});
+document.addEventListener('change',e=>{if(e.target.dataset&&e.target.dataset.tfF)flushTask(); if(e.target.id==='tdWho'){tdWho=e.target.value;tdSel=null;renderTasks();}});
 addEventListener('pagehide',flushTask);
 const sheet=document.getElementById('sheet');
 function openSheet(h){document.getElementById('sheetPn').innerHTML='<div class="grab"></div>'+h;sheet.hidden=false;}
