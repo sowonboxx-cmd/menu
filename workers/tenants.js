@@ -41,10 +41,10 @@ export const TENANTS = {
       schemaType: ['Restaurant'],
       cuisine: ['Coréenne'],
       priceRange: '12 € – 30 €',
-      image: '/clients/soyonne/og.jpg',
+      image: '/clients/soyonne/og-carte.jpg',
       imageWidth: '1200',
       imageHeight: '630',
-      imageAlt: 'Soyoun devant Chez Soyonne avec une planche coréenne, illustration'
+      imageAlt: 'Planche coréenne de Chez Soyonne : jeon, porc, poulet et aubergines'
     }
   }
 };
