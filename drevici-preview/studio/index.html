@@ -263,12 +263,16 @@ button{cursor:pointer;background:none}
 .tpi{cursor:pointer;caret-color:transparent;font-variant-numeric:tabular-nums;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23253968' stroke-width='1.7' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='8.5'/%3E%3Cpath d='M12 7.5V12l3 2'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-size:18px;padding-right:40px!important}
 .tpi::placeholder{color:var(--mut)}
 .tpi.act{box-shadow:inset 0 0 0 2px var(--gold)}
-.tp-h{text-align:center;font-family:"Playfair Display",serif;font-size:30px;font-weight:700;margin:2px 0 6px;font-variant-numeric:tabular-nums}
-.tp-l{font-size:10.5px;font-weight:800;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;margin:8px 2px 5px}
-.tp-g{display:grid;grid-template-columns:repeat(6,1fr);gap:3px}.tp-g.m{grid-template-columns:repeat(4,1fr)}
-.tp-g button{height:38px;border-radius:12px;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
-.tp-g button:hover{background:var(--cream)}
-.tp-g .on,.tp-g .on:hover{background:var(--ink);color:#fff}
+.dp.tp:not(.sh){width:240px}
+.tw{position:relative;display:flex;justify-content:center;gap:6px;height:200px}
+.tw::before{content:'';position:absolute;left:0;right:0;top:80px;height:40px;border-radius:12px;background:var(--cream);pointer-events:none}
+.tw::after{content:':';position:absolute;left:50%;top:80px;line-height:40px;transform:translateX(-50%);font-size:20px;font-weight:700;pointer-events:none}
+.tw .col{position:relative;width:76px;height:200px;overflow-y:auto;scroll-snap-type:y mandatory;scrollbar-width:none;-webkit-mask:linear-gradient(transparent,#000 30%,#000 70%,transparent);mask:linear-gradient(transparent,#000 30%,#000 70%,transparent)}
+.tw .col::-webkit-scrollbar{display:none}
+.tw .col div{height:80px}
+.tw .col button{display:block;width:100%;height:40px;scroll-snap-align:center;font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--mut)}
+.tw .col button.on{color:var(--ink);font-weight:800}
+.dp.tp.sh{width:auto}.dp.tp.sh .tw{height:200px}
 .dp-bg{position:fixed;inset:0;z-index:69}
 .dp{position:fixed;z-index:70;width:320px;background:#fff;border-radius:22px;padding:14px;box-shadow:0 18px 50px rgba(13,37,92,.18),0 2px 8px rgba(13,37,92,.06);animation:dpIn .14s ease}
 @keyframes dpIn{from{opacity:0;transform:translateY(-4px)}}
@@ -1285,7 +1289,7 @@ addEventListener('resize',()=>{if(!dp.hidden)placeDP();});
 addEventListener('scroll',()=>{if(!dp.hidden)placeDP();},true);
 
 /* Sélecteur d'heure, même design que le calendrier */
-const tp=document.createElement('div'); tp.className='dp'; tp.hidden=true; tp.setAttribute('role','dialog');
+const tp=document.createElement('div'); tp.className='dp tp'; tp.hidden=true; tp.setAttribute('role','dialog');
 document.body.append(tp);
 let tpInp=null, tpH=19, tpMn=0;
 const p2=n=>String(n).padStart(2,'0');
@@ -1302,20 +1306,26 @@ function placeTP(){
   let top=r.bottom+8; if(top+h>innerHeight-8&&r.top-h-8>8) top=r.top-h-8;
   tp.style.left=Math.min(Math.max(8,r.left),innerWidth-w-8)+'px'; tp.style.top=Math.max(8,top)+'px';
 }
+const TP_M=[0,15,30,45];
 function renderTP(){
-  const mins=[0,15,30,45]; if(!mins.includes(tpMn)) mins.push(tpMn), mins.sort((a,b)=>a-b);
-  tp.innerHTML=`<div class="grab"></div><div class="tp-h">${p2(tpH)}:${p2(tpMn)}</div>
-    <div class="tp-l">Heure</div><div class="tp-g">${Array.from({length:24},(_,h)=>`<button type="button" class="${h===tpH?'on':''}" data-tph="${h}">${p2(h)}</button>`).join('')}</div>
-    <div class="tp-l">Minutes</div><div class="tp-g m">${mins.map(m=>`<button type="button" class="${m===tpMn?'on':''}" data-tpm="${m}">${p2(m)}</button>`).join('')}</div>
-    <div class="dp-f"><button type="button" data-tpx>Effacer</button><button type="button" class="g" data-tpok>Valider</button></div>`;
+  const mins=TP_M.includes(tpMn)?TP_M:[...TP_M,tpMn].sort((a,b)=>a-b);
+  const col=(k,arr,cur)=>`<div class="col" data-tc="${k}"><div></div>${arr.map(v=>`<button type="button" class="${v===cur?'on':''}" data-v="${v}">${p2(v)}</button>`).join('')}<div></div></div>`;
+  tp.innerHTML=`<div class="grab"></div><div class="tw">${col('h',Array.from({length:24},(_,h)=>h),tpH)}${col('m',mins,tpMn)}</div>`;
+  tp.querySelectorAll('.col').forEach(c=>{
+    const on=c.querySelector('.on'); if(on) c.scrollTop=on.offsetTop-80;
+    let t; c.addEventListener('scroll',()=>{clearTimeout(t);t=setTimeout(()=>{
+      const bs=[...c.querySelectorAll('button')], k=Math.max(0,Math.min(bs.length-1,Math.round(c.scrollTop/40)));
+      bs.forEach((x,n)=>x.classList.toggle('on',n===k));
+      if(c.dataset.tc==='h') tpH=+bs[k].dataset.v; else tpMn=+bs[k].dataset.v;
+      setTP();
+    },90);},{passive:true});
+  });
 }
+function setTP(){const i=tpInp;if(!i)return;i.value=p2(tpH)+':'+p2(tpMn);i.dispatchEvent(new Event('input',{bubbles:true}));i.dispatchEvent(new Event('change',{bubbles:true}));}
 function pickTP(v){const i=tpInp;if(!i)return;i.value=v;closeTP();i.dispatchEvent(new Event('input',{bubbles:true}));i.dispatchEvent(new Event('change',{bubbles:true}));}
 tp.addEventListener('click',e=>{
-  const g=s=>e.target.closest(s);
-  if(g('[data-tph]')){tpH=+g('[data-tph]').dataset.tph;renderTP();return;}
-  if(g('[data-tpm]')){tpMn=+g('[data-tpm]').dataset.tpm;renderTP();return;}
-  if(g('[data-tpok]')){pickTP(p2(tpH)+':'+p2(tpMn));return;}
-  if(g('[data-tpx]')){pickTP('');return;}
+  const x=e.target.closest('.col button'); if(!x)return;
+  x.parentNode.scrollTo({top:x.offsetTop-80,behavior:'smooth'});
 });
 dpBg.addEventListener('click',closeTP);
 document.addEventListener('click',e=>{const i=e.target.closest&&e.target.closest('input.tpi');if(i)openTP(i);});
