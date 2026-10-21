@@ -1,0 +1,115 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Ouvre ton huître · maquette</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Playfair+Display:ital,wght@0,700;0,800;1,700&family=Jost:wght@400;500;600&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@600&display=swap">
+<style>
+*{box-sizing:border-box;margin:0}
+body{background:#e9e4dc;font-family:Inter,sans-serif;padding:36px 40px;width:2240px;color:#16181d}
+h1{font-size:30px;margin-bottom:4px}.sub{color:#666;font-size:15px;margin-bottom:26px;max-width:1500px;line-height:1.5}
+.row{display:flex;gap:34px}
+.ph{width:390px;flex:none}.ph figcaption{font-size:14px;color:#444;margin-top:10px;line-height:1.45}.ph figcaption b{color:#111}
+.dev{width:390px;height:844px;border-radius:52px;background:#111;padding:12px;box-shadow:0 30px 60px -30px rgba(0,0,0,.6)}
+.scr{position:relative;width:100%;height:100%;border-radius:42px;overflow:hidden;background:#f4e6d2}
+.isl{position:absolute;left:50%;top:10px;width:110px;height:30px;margin-left:-55px;background:#000;border-radius:20px;z-index:20}
+.sb{height:46px}
+/* DA du poster */
+.frame{position:absolute;inset:14px;border:3px solid #9b2320;border-radius:6px;pointer-events:none}
+.ttl{font-family:Anton,sans-serif;font-size:58px;line-height:.95;color:#1b2a4a;text-align:center;letter-spacing:.01em;text-shadow:3px 3px 0 #9b2320}
+.orn{display:flex;align-items:center;gap:10px;justify-content:center;color:#9b2320;margin:6px 0}
+.orn i{height:2px;width:70px;background:#1b2a4a;display:block}
+.cart{position:relative;display:block;margin:0 auto;text-align:center;color:#f6efe3;font-family:Anton,sans-serif;letter-spacing:.04em}
+.cart svg{position:absolute;inset:0;width:100%;height:100%}
+.cart span{position:relative}
+.tx{font-family:Jost,sans-serif;color:#1b2a4a;text-align:center}
+.fld{background:#fffaf2;border:2px solid #1b2a4a22;border-radius:14px;padding:9px 14px;margin:0 34px 9px;text-align:left}
+.fld small{display:block;font:600 12px Inter;color:#1b2a4a}.fld div{font:500 17px Inter;color:#9a958c;margin-top:2px}
+.chk{display:flex;gap:10px;align-items:flex-start;margin:6px 36px 0;font:13px/1.4 Inter;color:#444;text-align:left}.chk i{flex:none;width:20px;height:20px;border:2px solid #888;border-radius:5px;margin-top:1px}
+.lots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 32px}.lot{background:#fffaf2;border-radius:14px;padding:10px 6px;text-align:center;font:600 12.5px/1.25 Inter;color:#1b2a4a}.lot b{display:block;font:24px Anton;color:#9b2320;margin-bottom:2px}
+.legal{position:absolute;left:30px;right:30px;bottom:26px;text-align:center;font:11px/1.4 Inter;color:#7a7368}.legal u{color:#1b2a4a}
+.btn{display:block;margin:0 34px;border-radius:999px;background:#1b2a4a;color:#fff;text-align:center;font:700 17px Inter;padding:16px}
+.btn.l{background:none;color:#1b2a4a;box-shadow:inset 0 0 0 2px #1b2a4a}
+.code{font:600 30px 'IBM Plex Mono';letter-spacing:.18em;color:#1b2a4a;background:#fffaf2;border:2px dashed #9b2320;border-radius:14px;padding:12px;margin:0 40px;text-align:center}
+.hand{position:absolute;font-size:34px}
+.bubble{position:absolute;background:#1b2a4a;color:#fff;font:600 13px Inter;border-radius:999px;padding:7px 12px;white-space:nowrap}
+</style></head><body>
+<h1>« Ouvre ton huître » · maquette mobile</h1>
+<p class="sub">Le jeu derrière les posters FREE OYSTER. Même DA que le poster : crème, bleu, rouge, titre condensé à ombre rouge, cartouche à coins creusés, Gentleman Oyster. Dix secondes de jeu, une partie par jour et par personne. Chances proposées : <b>1 huître offerte sur 10 parties</b>, <b>1 plateau de 6 huîtres sur 50</b>, <b>1 T-shirt sur 100</b>. Tout joueur est inscrit au club ; les offres par email / SMS restent une case à part.</p>
+
+<div class="row" id="row"></div>
+
+<script>
+const CART=(w,h,txt,fs,bg='#1b2a4a')=>`<div class="cart" style="width:${w}px;height:${h}px;line-height:${h}px;font-size:${fs}px"><svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${[[0,'#9b2320'],[5,'#f6efe3'],[8,bg]].map(([d,c])=>{const R=h*.17,p=R+d,k=Math.sqrt(p*p-d*d);return `<path fill="${c}" d="M${k},${d} H${w-k} A${p},${p} 0 0 0 ${w-d},${k} V${h-k} A${p},${p} 0 0 0 ${w-k},${h-d} H${k} A${p},${p} 0 0 0 ${d},${h-k} V${k} A${p},${p} 0 0 0 ${k},${d} Z"/>`}).join('')}</svg><span>${txt}</span></div>`;
+// Contour d'huître : goutte allongée, bord ondulé, charnière en bas à gauche
+function oy(cx,cy,sx,sy,k,seed){const pts=[];for(let i=0;i<=72;i++){const t=i/72*2*Math.PI;
+  const taper=1-.38*Math.pow(Math.max(0,Math.cos(t-3.9)),2);
+  const rr=(1+.055*Math.sin(9*t+seed)+.03*Math.sin(17*t+seed*2)+.02*Math.sin(29*t))*taper*k;
+  pts.push([cx+Math.cos(t)*sx*rr+(1-k)*-22, cy+Math.sin(t)*sy*rr+(1-k)*20]);}
+  return 'M'+pts.map(p=>p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' L')+' Z';}
+const SHELL=(w,rot=0,id='a')=>`<svg width="${w}" viewBox="0 0 200 160" style="transform:rotate(${rot}deg);overflow:visible">
+<defs><radialGradient id="g${id}" cx="60%" cy="35%" r="80%"><stop offset="0" stop-color="#e2d7c3"/><stop offset=".5" stop-color="#ab9a7f"/><stop offset="1" stop-color="#5f5141"/></radialGradient></defs>
+<path d="${oy(104,78,88,62,1,1)}" fill="url(#g${id})" stroke="#3f372c" stroke-width="2.5" stroke-linejoin="round"/>
+${[.84,.68,.52,.36].map((k,i)=>`<path d="${oy(104,78,88,62,k,i+2)}" fill="none" stroke="#3f372c" stroke-opacity="${.5-i*.07}" stroke-width="1.8"/>`).join('')}
+<path d="${oy(104,78,88,62,.2,7)}" fill="#6f604d" opacity=".6"/></svg>`;
+const OPEN=(w,pearl,id='o')=>`<svg width="${w}" viewBox="0 0 220 200" style="overflow:visible">
+<defs><radialGradient id="n${id}" cx="55%" cy="45%" r="65%"><stop offset="0" stop-color="#fbf6ee"/><stop offset=".45" stop-color="#ece4ee"/><stop offset=".75" stop-color="#cddbe0"/><stop offset="1" stop-color="#8e9aa3"/></radialGradient>
+<radialGradient id="p${id}" cx="35%" cy="30%" r="70%"><stop offset="0" stop-color="#fff"/><stop offset=".6" stop-color="#f3ece6"/><stop offset="1" stop-color="#cdbfae"/></radialGradient>
+<radialGradient id="h${id}"><stop offset="0" stop-color="#fff7d6" stop-opacity=".95"/><stop offset="1" stop-color="#fff7d6" stop-opacity="0"/></radialGradient>
+<radialGradient id="f${id}" cx="50%" cy="40%" r="60%"><stop offset="0" stop-color="#e9dcc2"/><stop offset=".7" stop-color="#cbb894"/><stop offset="1" stop-color="#8a7a5c"/></radialGradient></defs>
+<g transform="translate(14 -34) rotate(-18 110 60)"><path d="${oy(110,60,84,42,1,3)}" fill="#8a7a63" stroke="#3f372c" stroke-width="2.5"/>${[.8,.6,.4].map((k,i)=>`<path d="${oy(110,60,84,42,k,i+4)}" fill="none" stroke="#3f372c" stroke-opacity=".35" stroke-width="1.6"/>`).join('')}</g>
+<path d="${oy(112,126,98,66,1,5)}" fill="#6f604d" stroke="#3f372c" stroke-width="2.5"/>
+<path d="${oy(112,126,98,66,.86,6)}" fill="url(#n${id})"/>
+<path d="${oy(116,122,66,40,1,8)}" fill="url(#f${id})" stroke="#8a7a5c" stroke-width="1.5"/>
+<path d="${oy(116,122,66,40,.82,9)}" fill="none" stroke="#6d5d43" stroke-width="2" stroke-opacity=".7"/>
+${pearl?`<circle cx="118" cy="122" r="42" fill="url(#h${id})"/><circle cx="118" cy="122" r="17" fill="url(#p${id})" stroke="#bfae98" stroke-width="1"/><circle cx="112" cy="116" r="5" fill="#fff"/>
+${[0,1,2,3,4,5].map(i=>{const a=(i*60+15)*Math.PI/180;return `<path d="M${118+Math.cos(a)*30} ${122+Math.sin(a)*30} L${118+Math.cos(a)*45} ${122+Math.sin(a)*45}" stroke="#f0d38a" stroke-width="3" stroke-linecap="round"/>`}).join('')}`:''}
+</svg>`;
+const M='../../drevici-preview/club/gentleman.webp', MP='../../drevici-preview/club/gentleman-membre.webp';
+const head=(t,s)=>`<div class="sb"></div><div class="orn"><i></i>⚓<i></i></div><div class="ttl" style="font-size:${s||58}px">${t}</div><div class="orn" style="margin:8px 0 14px"><i style="width:120px;background:#9b2320"></i></div>`;
+const screens=[
+['<b>1 · Le scan</b> : la mascotte, les lots, un seul bouton. Le règlement est en lien en bas, dès le départ.',
+`${head('FREE<br>OYSTER')}<img src="${M}" style="display:block;height:250px;margin:-4px auto 8px">
+<div class="tx" style="font:600 19px Jost;margin-bottom:14px">Ouvre une huître.<br>Trouve la perle. Gagne.</div>
+<div class="lots"><div class="lot"><b>1</b>huître offerte</div><div class="lot"><b>6</b>huîtres<br>(un plateau)</div><div class="lot"><b>T</b>T-shirt Drevici</div></div>
+<div style="margin-top:18px">${CART(300,64,'JOUER · 10 SECONDES',27)}</div>
+<div class="legal">Jeu gratuit, sans obligation d'achat · 1 partie par jour · <u>Règlement</u></div>`],
+['<b>2 · L\'inscription</b> : prénom, email, téléphone. Le joueur rejoint le club. La case des offres est séparée et jamais cochée d\'avance.',
+`${head('AVANT DE<br>JOUER',46)}
+<div class="fld"><small>Prénom</small><div>Votre prénom</div></div>
+<div class="fld"><small>Email</small><div>vous@exemple.fr</div></div>
+<div class="fld"><small>Téléphone</small><div>06 12 34 56 78</div></div>
+<div class="tx" style="font:500 14px Jost;margin:4px 36px 0;text-align:left;color:#1b2a4a">✓ Vous rejoignez le Club Drevici : coupe offerte à votre premier repas.</div>
+<div class="chk"><i></i>J'accepte de recevoir les offres de Drevici par email et SMS.</div>
+<div style="margin-top:16px">${CART(300,62,'JE JOUE',30)}</div>
+<div class="legal">Vos données restent chez Drevici · <u>Vos données</u> · <u>Règlement</u></div>`],
+['<b>3 · Le choix</b> : trois huîtres fermées qui respirent doucement. On en touche une.',
+`${head('CHOISIS<br>TON HUÎTRE',50)}
+<div style="position:relative;height:430px">
+<div style="position:absolute;left:28px;top:30px">${SHELL(150,-12,'a')}</div>
+<div style="position:absolute;left:200px;top:10px">${SHELL(150,10,'b')}</div>
+<div style="position:absolute;left:112px;top:200px;filter:drop-shadow(0 0 14px rgba(240,211,138,.9))">${SHELL(170,-4,'c')}</div>
+<div class="bubble" style="left:150px;top:380px">Celle-ci ?</div></div>
+<div class="tx" style="font:500 16px Jost">Une seule perle se cache dans l'une d'elles.</div>`],
+['<b>4 · L\'ouverture</b> : on glisse le doigt sur la lame du couteau, comme au comptoir. La coquille s\'entrouvre (léger bruit, vibration).',
+`${head('OUVRE-LA !',50)}
+<div style="position:relative;height:440px">
+<div style="position:absolute;left:60px;top:70px">${SHELL(270,-6,'d')}</div>
+<svg width="300" height="60" viewBox="0 0 300 60" style="position:absolute;left:30px;top:250px;transform:rotate(-14deg)"><rect x="0" y="22" width="110" height="18" rx="9" fill="#5a3b22"/><path d="M110 24 L240 28 L292 31 L240 35 L110 38 Z" fill="#cfd6db" stroke="#7a8288" stroke-width="2"/></svg>
+<div class="hand" style="left:250px;top:300px">👆</div>
+<div style="position:absolute;left:70px;right:70px;top:380px;height:6px;border-radius:6px;background:#1b2a4a22"><div style="width:62%;height:100%;border-radius:6px;background:#9b2320"></div></div></div>
+<div class="tx" style="font:500 16px Jost">Glisse le couteau jusqu'au bout →</div>`],
+['<b>5 · Gagné</b> : la perle brille, confettis. Code à montrer au comptoir, valable 7 jours ; le serveur le valide dans l\'admin.',
+`${head('GAGNÉ !',56)}
+<div style="display:flex;justify-content:center;margin:-6px 0 0">${OPEN(260,true,'w')}</div>
+<div class="tx" style="font:700 26px 'Playfair Display';margin:2px 0 4px">Une huître offerte</div>
+<div class="tx" style="font:500 15px Jost;margin-bottom:12px">Montrez ce code au comptoir · valable 7 jours</div>
+<div class="code">PERLE-7K2R</div>
+<div style="margin-top:14px"><span class="btn">Réserver une table</span></div>
+<div class="legal">8 rue Biot, Paris 17e · dès 17 h</div>`],
+['<b>6 · Perdu</b> : pas de perle, mais on repart avec quelque chose : la carte du club (coupe offerte) et Instagram. Prochaine chance demain.',
+`${head('PAS DE PERLE…',46)}
+<div style="display:flex;justify-content:center">${OPEN(220,false,'l')}</div>
+<div class="tx" style="font:700 24px 'Playfair Display';margin:4px 0 4px">…mais une coupe vous attend</div>
+<div class="tx" style="font:500 15px Jost;margin:0 30px 14px">Vous êtes membre du Club Drevici : une coupe offerte à votre premier repas.</div>
+<span class="btn">Voir ma carte du club</span>
+<div style="height:10px"></div><span class="btn l">Suivre @drevicioysterbar</span>
+<div class="legal">Nouvelle chance demain · 1 partie par jour</div>`]];
+document.getElementById('row').innerHTML=screens.map(([cap,html])=>`<figure class="ph"><div class="dev"><div class="scr"><div class="isl"></div><div class="frame"></div>${html}</div></div><figcaption>${cap}</figcaption></figure>`).join('');
+</script></body></html>
