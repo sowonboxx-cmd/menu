@@ -73,8 +73,9 @@ export default {
     }
     // ── Jeu Free Oyster (sql/jeu-free-oyster.sql) : partie, état du joueur, prénom du parrain ──
     if (req.method === 'POST' && url.pathname === '/jeu/play') {
+      // Le joueur ne voit jamais l'erreur technique (elle reste dans les journaux du Worker).
       try { const r = await jeuPlay(env, await req.json()); return json(r, 200, cors); }
-      catch (e) { return json({ ok: false, error: String(e && e.message || e) }, 500, cors); }
+      catch (e) { console.error('jeu/play', e); return json({ ok: false, error: 'Le jeu est momentanément indisponible, réessayez dans un instant.' }, 500, cors); }
     }
     if (req.method === 'GET' && url.pathname === '/jeu/me') {
       try { return json(await jeuMe(env, String(url.searchParams.get('slug') || ''), String(url.searchParams.get('t') || '')), 200, cors); }

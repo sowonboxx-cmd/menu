@@ -141,3 +141,5 @@ create policy jeu_config_admin_upd on public.jeu_config for update to authentica
   with check (exists (select 1 from public.restaurant_admins a where a.user_id = auth.uid() and a.client_slug = jeu_config.client_slug));
 grant select on public.jeu_config, public.jeu_players, public.jeu_plays to authenticated;
 grant update on public.jeu_config to authenticated;
+grant select, insert, update, delete on public.jeu_config, public.jeu_players, public.jeu_plays to service_role;
+grant usage, select on sequence public.jeu_players_id_seq, public.jeu_plays_id_seq to service_role;
