@@ -6,8 +6,8 @@ Ne touche pas aux fichiers propres au site en ligne (reservations.html = ancien 
 import shutil, os, re, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC, DST = os.path.join(ROOT, 'drevici-preview'), os.path.join(ROOT, 'drevici')
-FILES = ['index.html', 'book.html', 'resa.html', 'admin.html', 'gestion.html', 'floorplan.js', 'confidentialite.html', 'accueil.html']  # accueil.html : page d'entrée commune Paris / Surzur (Paris seulement)
-DIRS = ['club', 'seo', 'media', 'charte', 'studio']  # studio/ : seule la page d'accueil (index.html) vient du labo ; calendar et tracker restent ceux du site en ligne
+FILES = ['index.html', 'book.html', 'resa.html', 'admin.html', 'gestion.html', 'floorplan.js', 'confidentialite.html', 'accueil.html', 'free-oyster.html', 'free-oyster-reglement.html']  # accueil.html : page d'entrée commune Paris / Surzur (Paris seulement)
+DIRS = ['club', 'seo', 'media', 'charte', 'studio', 'jeu']  # studio/ : seule la page d'accueil (index.html) vient du labo ; calendar et tracker restent ceux du site en ligne
 
 def sub(text, old, new, path):
     if old not in text: sys.exit(f'⚠ {path} : motif introuvable → {old[:70]}')
@@ -51,6 +51,9 @@ P = {
    ("const CLIENT_SLUG_RACINE = 'drevici-preview';", "const CLIENT_SLUG_RACINE = 'drevici';"),
    ("const CLUB_ON = /preview|localhost|127\\.0\\.0\\.1|file:/.test(location.href);", "const CLUB_ON = true;"),
    ("const CLUB_SLUG = 'drevici-test';", "const CLUB_SLUG = 'drevici-paris';"),
+ ],
+ 'free-oyster.html': [
+   ("const JEU_SLUG = 'drevici-test';", "const JEU_SLUG = 'drevici-paris';"),
  ],
  'book.html': [
    ("const WRITE_SLUG = 'drevici-test';", "const WRITE_SLUG = 'drevici-paris';"),
