@@ -224,7 +224,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   <div class="big" id="wPrize">Une huître offerte</div>
   <div class="tx" style="font:500 14px Inter;margin:2px 0 10px">Montrez ce code au comptoir</div>
   <div class="tick"><div class="c" id="wCode">PERLE-····</div><small>Valable jusqu'au <b id="wUntil">—</b></small></div>
-  <div style="width:100%;margin-top:14px"><a class="btn" href="book" id="wBook">Réserver une table</a></div>
+  <div style="width:100%;margin-top:14px"><a class="btn" href="book" id="wBook">Réserver une table</a><a class="btn l" href="https://www.instagram.com/drevicioysterbar/" target="_blank" rel="noopener">Suivre @drevicioysterbar</a></div>
   <div class="sp"></div>
   <div class="ft"></div>
 </section>
@@ -443,6 +443,13 @@ function clubButtons() {
   $$('#s-lose [data-share]').forEach(b => b.classList.toggle('l', !!m));
 }
 
+// ═══ Clics comptés (avec la source du QR) : Instagram, Réserver ═══
+document.addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a) return;
+  if (/instagram\.com/.test(a.href)) track('click', 'jeu_insta');
+  else if (/\/book/.test(a.href)) track('click', 'jeu_resa');
+}, true);
+
 // ═══ Parrainage : partager son lien ═══
 const shareUrl = () => location.origin + location.pathname + '?ami=' + encodeURIComponent((ME && ME.ref_code) || '');
 $$('[data-share]').forEach(b => b.addEventListener('click', async () => {
@@ -476,7 +483,7 @@ function doneScreen(kind) {
   if (l && l.result !== 'perdu' && !l.redeemed && Date.parse(l.expires_at) > Date.now()) {
     X.textContent = `Votre lot : ${l.prize.toLowerCase()}. Montrez ce code au comptoir.`;
     C.innerHTML = `<div class="tick" style="margin-bottom:14px"><div class="c">${esc(l.code)}</div><small>Valable jusqu'au <b>${until(l.expires_at)}</b></small></div>`;
-    B.innerHTML = `<a class="btn" href="book?jeu=${encodeURIComponent(l.code)}">Réserver une table</a>`;
+    B.innerHTML = `<a class="btn" href="book?jeu=${encodeURIComponent(l.code)}">Réserver une table</a><a class="btn l" href="https://www.instagram.com/drevicioysterbar/" target="_blank" rel="noopener">Suivre @drevicioysterbar</a>`;
   } else {
     // Parrainage seulement pour ceux qui n'ont rien gagné (un gagnant a déjà son lot).
     const refer = ME && !ME.bonus_used && !(l && l.result !== 'perdu');
