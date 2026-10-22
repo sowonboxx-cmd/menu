@@ -157,7 +157,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   <div class="hd"></div>
   <img class="masc" src="club/gentleman.webp" alt="Le Gentleman Oyster de Drevici">
   <div class="tx acc">Ouvre l'huître.<br>Trouve la perle.<br>Gagne l'un de ces lots :</div>
-  <div class="lots"><div class="lot"><b>1</b>huître<br>offerte</div><div class="lot"><b>6</b>huîtres<br>(un plateau)</div><div class="lot"><b>1</b>T-shirt<br>Drevici</div></div>
+  <div class="lots" id="lots"><div class="lot"><b>1</b>huître<br>offerte</div><div class="lot"><b>6</b>huîtres<br>(un plateau)</div><div class="lot"><b>1</b>T-shirt<br>Drevici</div></div>
   <div id="inviteBox"></div>
   <button class="cart" data-go="form"></button>
   <div class="sp"></div>
@@ -222,8 +222,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   <div class="oyw" id="wImg"><img class="res-img" src="jeu/huitre-perle.webp" alt="Huître ouverte avec une perle">
     <div class="fx" aria-hidden="true"><div class="halo"></div><div class="st"></div><div class="st"></div><div class="st"></div><div class="st"></div><div class="st"></div><div class="pe"></div></div></div>
   <div class="big" id="wPrize">Une huître offerte</div>
-  <div class="tx" style="font:500 14px Inter;margin:2px 0 10px">Montrez ce code au comptoir</div>
-  <div class="tick"><div class="c" id="wCode">PERLE-····</div><small>Valable jusqu'au <b id="wUntil">—</b></small></div>
+  <div class="tx" style="font:500 14px Inter;margin:2px 0 10px" id="wShow">Montrez ce code au comptoir</div>
+  <div class="tick"><div class="c" id="wCode">PERLE-····</div><small id="wValid">Valable jusqu'au <b id="wUntil">—</b></small></div>
   <div style="width:100%;margin-top:14px"><a class="btn" href="book" id="wBook">Réserver une table</a><a class="btn l" href="https://www.instagram.com/drevicioysterbar/" target="_blank" rel="noopener">Suivre @drevicioysterbar</a></div>
   <div class="sp"></div>
   <div class="ft"></div>
@@ -271,6 +271,8 @@ const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAl
 const store = { get() { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (_) { return null; } }, set(v) { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (_) {} } };
 // Mode test (préview seulement) : ?test=gagne | plateau | tshirt | perdu | hasard
 // Rien n'est envoyé au serveur ni gardé sur le téléphone : on rejoue à l'infini.
+// À table : QR de la petite carte (…CARTE-TABLE…) → lots du repas, code valable pour ce repas.
+const TABLE = /CARTE-TABLE/.test(SRC) || /[?&]table=1/.test(location.search);
 const TEST = /preview|localhost|127\.0\.0\.1/.test(location.host) ? (QS.get('test') || '').toLowerCase() : '';
 let ME = TEST ? null : (store.get() || null);   // {t, ref_code, first, bonus_used, plays_left, club}
 let RES = null;                  // résultat de la partie en cours
@@ -414,6 +416,12 @@ function armKnife() {
 
 // ═══ Résultat ═══
 const until = d => new Date(d).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+const hhmm = d => new Date(d).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace(':', ' h ');
+const validHTML = (d, mode) => mode === 'table' ? `Valable <b>pour ce repas</b>, jusqu'à ${hhmm(d)}` : `Valable jusqu'au <b>${until(d)}</b>`;
+if (TABLE) {
+  $('#lots').innerHTML = '<div class="lot"><b>1</b>huître<br>bonus</div><div class="lot"><b>3</b>huîtres<br>offertes</div><div class="lot"><b>1</b>T-shirt<br>Drevici</div>';
+  document.querySelector('#s-home .acc').innerHTML = 'Ouvre l\'huître.<br>Trouve la perle.<br>Gagne pendant ton repas :';
+}
 function result() {
   const d = RES; RES = null; if (armKnife.reset) armKnife.reset();
   bonusNotes();
@@ -423,7 +431,8 @@ function result() {
     im.src = plat ? 'jeu/plateau.webp' : tee ? 'jeu/tshirt.webp' : 'jeu/huitre-perle.webp';
     im.alt = plat ? 'Plateau de 6 huîtres' : tee ? 'T-shirt Drevici' : 'Huître ouverte avec une perle';
     $('#wPrize').textContent = d.prize;
-    $('#wUntil').textContent = until(d.expires_at);
+    $('#wValid').innerHTML = validHTML(d.expires_at, d.mode); $('#wShow').textContent = d.mode === 'table' ? 'Montrez ce code au serveur' : 'Montrez ce code au comptoir';
+    $('#wBook').style.display = d.mode === 'table' ? 'none' : '';
     $('#wCode').textContent = d.code;
     $('#wBook').href = 'book?jeu=' + encodeURIComponent(d.code);
     show('win'); fitHome('#s-win'); im.decode && im.decode().then(() => fitHome('#s-win')).catch(() => {});
@@ -481,8 +490,8 @@ function doneScreen(kind) {
   T.textContent = 'Vous avez déjà joué';
   const l = ME && ME.last;
   if (l && l.result !== 'perdu' && !l.redeemed && Date.parse(l.expires_at) > Date.now()) {
-    X.textContent = `Votre lot : ${l.prize.toLowerCase()}. Montrez ce code au comptoir.`;
-    C.innerHTML = `<div class="tick" style="margin-bottom:14px"><div class="c">${esc(l.code)}</div><small>Valable jusqu'au <b>${until(l.expires_at)}</b></small></div>`;
+    X.textContent = `Votre lot : ${l.prize.toLowerCase()}. Montrez ce code ${l.mode === 'table' ? 'au serveur' : 'au comptoir'}.`;
+    C.innerHTML = `<div class="tick" style="margin-bottom:14px"><div class="c">${esc(l.code)}</div><small>${validHTML(l.expires_at, l.mode)}</small></div>`;
     B.innerHTML = `<a class="btn" href="book?jeu=${encodeURIComponent(l.code)}">Réserver une table</a><a class="btn l" href="https://www.instagram.com/drevicioysterbar/" target="_blank" rel="noopener">Suivre @drevicioysterbar</a>`;
   } else {
     // Parrainage seulement pour ceux qui n'ont rien gagné (un gagnant a déjà son lot).
@@ -496,11 +505,11 @@ function doneScreen(kind) {
 
 // ═══ Au chargement : joueur déjà connu sur ce téléphone ? ═══
 function testPlay(body) {
-  const lots = { huitre: 'Une huître offerte', plateau: 'Un plateau de 6 huîtres', tshirt: 'Un T-shirt Drevici' };
-  let res = { gagne: 'huitre', huitre: 'huitre', plateau: 'plateau', tshirt: 'tshirt', perdu: 'perdu' }[TEST];
-  if (!res) { const r = Math.random(); res = r < .01 ? 'tshirt' : r < .03 ? 'plateau' : r < .13 ? 'huitre' : 'perdu'; }
+  const lots = { huitre: 'Une huître offerte', plateau: 'Un plateau de 6 huîtres', tshirt: 'Un T-shirt Drevici', bonus: 'Une huître bonus', trio: '3 huîtres offertes' };
+  let res = (TABLE ? { gagne: 'bonus', bonus: 'bonus', trio: 'trio', plateau: 'trio', tshirt: 'tshirt', perdu: 'perdu' } : { gagne: 'huitre', huitre: 'huitre', plateau: 'plateau', tshirt: 'tshirt', perdu: 'perdu' })[TEST];
+  if (!res) { const r = Math.random(); res = TABLE ? (r < .0067 ? 'tshirt' : r < .073 ? 'trio' : r < .41 ? 'bonus' : 'perdu') : (r < .01 ? 'tshirt' : r < .03 ? 'plateau' : r < .13 ? 'huitre' : 'perdu'); }
   ME = { t: '', ref_code: 'TEST00', first: body.first || 'Test', bonus_used: false, plays_left: 0, club: body.optin === true };
-  RES = { ok: true, result: res, prize: lots[res] || '', code: res === 'perdu' ? null : 'PERLE-TEST', expires_at: new Date(Date.now() + 7 * 864e5).toISOString(), plays_left: 0 };
+  RES = { ok: true, result: res, prize: lots[res] || '', mode: TABLE ? 'table' : 'rue', code: res === 'perdu' ? null : 'PERLE-TEST', expires_at: new Date(Date.now() + (TABLE ? 4 * 36e5 : 7 * 864e5)).toISOString(), plays_left: 0 };
   return RES;
 }
 if (TEST) {

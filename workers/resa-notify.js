@@ -163,11 +163,11 @@ export default {
         if (url.pathname === '/jeu/redeem') {
           const code = String(body.code || '').toUpperCase().replace(/[^A-Z0-9-]/g, '');
           const full = code.startsWith('PERLE-') ? code : 'PERLE-' + code;
-          const rows = await sb(env, `jeu_plays?client_slug=eq.${enc(cslug)}&code=eq.${enc(full)}&select=id,code,result,expires_at,redeemed_at,created_at,player:jeu_players(first_name,last_name,email)`);
+          const rows = await sb(env, `jeu_plays?client_slug=eq.${enc(cslug)}&code=eq.${enc(full)}&select=*,player:jeu_players(first_name,last_name,email)`);
           const p = rows && rows[0];
           if (!p) return json({ ok: false, error: 'Code inconnu' }, 404, cors);
           const who = p.player || {}, name = [who.first_name, who.last_name].filter(Boolean).join(' ') || who.email || '';
-          const out = { code: p.code, prize: p.result, prize_label: JEU_LOTS[p.result], name, expires_at: p.expires_at, redeemed_at: p.redeemed_at, expired: p.expires_at && Date.parse(p.expires_at) < Date.now() };
+          const out = { code: p.code, prize: p.result, mode: p.mode || 'rue', prize_label: JEU_LOTS[p.result] + (p.mode === 'table' ? ' · à table, pour ce repas' : ''), name, expires_at: p.expires_at, redeemed_at: p.redeemed_at, expired: p.expires_at && Date.parse(p.expires_at) < Date.now() };
           if (p.redeemed_at) return json({ ok: false, used: true, play: out, error: 'Lot déjà remis' }, 409, cors);
           if (body.check) return json({ ok: true, play: out }, 200, cors);
           const now = new Date().toISOString();
@@ -717,7 +717,7 @@ const mailClub = (st, first, code, no, site, unsub) => page(st.restaurant_name,
 // ════════════════ Jeu Free Oyster ════════════════
 // Une partie par personne (email OU téléphone), + 1 partie une seule fois quand un ami joue avec son lien.
 // Tout joueur rejoint le club (carte + coupe) ; les offres email/SMS restent une case à part, jamais pré-cochée.
-const JEU_LOTS = { huitre: 'Une huître offerte', plateau: 'Un plateau de 6 huîtres', tshirt: 'Un T-shirt Drevici', perdu: '' };
+const JEU_LOTS = { huitre: 'Une huître offerte', plateau: 'Un plateau de 6 huîtres', tshirt: 'Un T-shirt Drevici', bonus: 'Une huître bonus', trio: '3 huîtres offertes', perdu: '' };
 const rnd = (n, chars = CODE_CHARS) => Array.from(crypto.getRandomValues(new Uint8Array(n)), b => chars[b % chars.length]).join('');
 const jeuSlugOk = s => /^[a-z0-9-]{2,60}$/.test(s);
 async function jeuPlay(env, b) {
@@ -772,7 +772,7 @@ async function jeuPlay(env, b) {
     sendEmail(env, st, st.notify_email, st.restaurant_name, `Free Oyster · ${JEU_LOTS[r.result]} gagné(e) par ${pl.first_name}`,
       page(st.restaurant_name, `<p><b>${esc(pl.first_name)} ${esc(pl.last_name || '')}</b> vient de gagner : <b>${esc(JEU_LOTS[r.result])}</b>.</p><p>Code : <b style="font-family:'Courier New',monospace;letter-spacing:1px">${esc(r.code)}</b>, valable jusqu'au ${new Date(r.expires_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', timeZone: 'Europe/Paris' })}. À valider dans l'espace restaurateur → Clients.</p>`)).catch(() => {});
   }
-  return { ...base, ok: true, result: r.result, prize: JEU_LOTS[r.result], code: r.code, expires_at: r.expires_at, plays_left: r.plays_left, bonus_used: r.bonus_used };
+  return { ...base, ok: true, result: r.result, prize: JEU_LOTS[r.result], code: r.code, expires_at: r.expires_at, mode: r.mode || 'rue', plays_left: r.plays_left, bonus_used: r.bonus_used };
 }
 // Joueur qui a coché « Je rejoins le club » → membre du club (même règle que l'inscription au club du site).
 async function jeuClub(env, st, slug, pl, src) {
@@ -809,10 +809,10 @@ async function jeuMe(env, slug, t) {
   if (!jeuSlugOk(slug) || !/^[a-z0-9]{10,40}$/.test(t)) return { ok: false };
   const pl = (await sb(env, `jeu_players?client_slug=eq.${enc(slug)}&token=eq.${enc(t)}&select=id,first_name,ref_code,plays_allowed,plays_used,ref_bonus_at,optin`) || [])[0];
   if (!pl) return { ok: false };
-  const last = (await sb(env, `jeu_plays?player_id=eq.${pl.id}&select=result,code,expires_at,redeemed_at&order=id.desc&limit=1`) || [])[0] || null;
+  const last = (await sb(env, `jeu_plays?player_id=eq.${pl.id}&select=*&order=id.desc&limit=1`) || [])[0] || null;
   const friends = (await sb(env, `jeu_players?referred_by=eq.${pl.id}&select=id`) || []).length;
   return { ok: true, first: pl.first_name, ref_code: pl.ref_code, plays_left: pl.plays_allowed - pl.plays_used, bonus_used: !!pl.ref_bonus_at, friends, club: !!pl.optin,
-    last: last && { result: last.result, prize: JEU_LOTS[last.result], code: last.code, expires_at: last.expires_at, redeemed: !!last.redeemed_at } };
+    last: last && { result: last.result, prize: JEU_LOTS[last.result], code: last.code, expires_at: last.expires_at, mode: last.mode || 'rue', redeemed: !!last.redeemed_at } };
 }
 async function jeuAmi(env, slug, c) {
   c = c.toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -823,7 +823,7 @@ async function jeuAmi(env, slug, c) {
 // Chiffres du jeu pour l'espace restaurateur (joueurs, parties, lots, parrainages, par poster).
 async function jeuStats(env, slug) {
   const players = await sb(env, `jeu_players?client_slug=eq.${enc(slug)}&select=id,optin,src,referred_by,created_at&limit=20000`) || [];
-  const plays = await sb(env, `jeu_plays?client_slug=eq.${enc(slug)}&select=result,redeemed_at,src,n&limit=50000`) || [];
+  const plays = await sb(env, `jeu_plays?client_slug=eq.${enc(slug)}&select=*&limit=50000`) || [];
   const by = (arr, k) => arr.reduce((m, x) => (m[x[k] || '—'] = (m[x[k] || '—'] || 0) + 1, m), {});
   const won = plays.filter(p => p.result !== 'perdu');
   return { ok: true, players: players.length, optin: players.filter(p => p.optin).length, referred: players.filter(p => p.referred_by).length,
