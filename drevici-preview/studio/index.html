@@ -265,7 +265,7 @@ button{cursor:pointer;background:none}
 .fun{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:12px}.fun div{background:var(--paper);border-radius:14px;padding:9px 10px}.fun small{display:block;font-size:11.5px;color:var(--mut);font-weight:600}.fun b{display:block;font-size:22px;font-weight:900;color:var(--navy);margin-top:2px}.fun i{font-style:normal;font-size:11px;color:var(--green);font-weight:700}
 @media(max-width:700px){.fun{grid-template-columns:repeat(3,1fr)}}
 .qt{width:100%;border-collapse:collapse;font-size:13px}.qt th{text-align:right;font-size:10.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;font-weight:700;padding:0 6px 6px}.qt th:nth-child(-n+2){text-align:left}.qt td{padding:8px 6px;border-top:1px solid #f0ebe0;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}.qt td:nth-child(-n+2){text-align:left;font-weight:400}.qt tr{cursor:pointer}.qt tr:hover td{background:var(--paper)}
-.qt .qmini{width:34px;height:34px;border-radius:8px;background:#fff;border:1px solid #eee;padding:2px}.qt .qmini svg{width:100%;height:100%;display:block}.qt code{font:700 12px ui-monospace,Menlo,monospace}.qt small{display:block;color:var(--mut);font-size:11.5px}
+.qt .qmini{width:34px;height:34px;border-radius:8px;background:#fff;border:1px solid #eee;padding:2px}.qt .qmini svg{width:100%;height:100%;display:block}.qt code{font:700 12px ui-monospace,Menlo,monospace}.qt small{display:block;color:var(--mut);font-size:11.5px}.qt .qn,.qrl .qn{font-size:15px;font-weight:800;color:var(--ink)}
 @media(max-width:700px){.qt .hm{display:none}}
 .qrimg{width:110px;height:110px;border-radius:14px;background:var(--cream);padding:9px;flex:none}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;border-radius:999px;padding:10px 16px;font-size:13.5px;font-weight:700;z-index:60}
@@ -514,7 +514,7 @@ a.x.resa{color:#fff;text-decoration:none}a.x.resa h3,a.x.resa .more{color:#fff}
         <div class="f"><label>Le lien imprimé (se construit tout seul)</label><div class="qlink" id="qPath"></div></div>
         <div class="f"><label>Nom affiché</label><input id="qLabel" placeholder="Affiche A0 · 8 rue Biot"></div>
         <div class="f"><label>Note (taille, emplacement)</label><input id="qNote" placeholder="Affiche A0, vitrine de droite"></div>
-        <div class="two"><div class="f"><label>Catégorie</label><select id="qCat"><option>Hors carte</option><option>Plat en test</option><option>Plateaux Noël</option><option>Réseaux</option><option>Affiches rue</option><option>Avis Google</option><option>Events</option><option>Autre</option></select></div>
+        <div class="two"><div class="f"><label>Catégorie</label><select id="qCat"><option>Hors carte</option><option>Plat en test</option><option>Plateau fruits de mer</option><option>Plateaux Noël</option><option>Réseaux</option><option>Affiches rue</option><option>Avis Google</option><option>Events</option><option>Autre</option></select></div>
           <div class="f"><label>Porteur</label><input id="qOwner" placeholder="Élodie" list="owners"><datalist id="owners"></datalist></div></div>
         <input id="qCode" type="hidden">
         <div class="f"><label>Destination (modifiable plus tard, sans réimprimer)</label><input id="qDest" placeholder="/free-oyster" list="dests"><datalist id="dests"><option value="/free-oyster">Jeu Free Oyster</option><option value="/book">Réservation</option><option value="/">Accueil du site</option><option value="/?carte=1">Carte du club</option></datalist></div>
@@ -868,11 +868,16 @@ const QSTYLES=[['losange','Losanges','feuille'],['rond','Perles','rond'],['liqui
 let JEU={players:[],plays:[],ev:[]}, QF2='Tous', JCFG=null;
 const qrLink=q=>q&&q.path?QR_SITE+'/qr/'+q.path:GO+String(q&&q.code||'CODE').toLowerCase();
 const campOf=q=>q.campaign||q.category||'Autre';
+const capF=t=>t?String(t).charAt(0).toUpperCase()+String(t).slice(1):'';
+const qName=q=>q.owner&&q.support==='Serveur'?q.owner:q.support==='Carte table'&&/plat|plateau/i.test(campOf(q))?'Maison':q.place?capF(String(q.place).replace(/-/g,' ')):(q.owner||q.label||q.code);
+const qSub=q=>[q.support,q.num>1?'n° '+q.num:'',q.is_test?'test':'',q.active===false?'désactivé':''].filter(Boolean).join(' · ');
+// Campagnes toujours affichées dans Scans QR, même sans QR encore créé
+const CAMP_DEF=[['Plateau de fruits de mer','Plateau fruits de mer']];
 const qslug=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 function qrArt(q,size=600,fixed){const st=QSTYLES.find(x=>x[0]===(q&&q.style))||QSTYLES[0];if(!window.qrDrevici)return qrSvg(qrLink(q));const v=qrDrevici(qrLink(q),size,{style:st[0],eye:st[2]});return fixed?v:v.replace(`width="${size}" height="${size}"`,'width="100%" height="100%" style="display:block"');}
 let QRS=[], SCANS=[], CONVS=[], DB_QR=true, QF='Tous';
-const CAT_IC={'Hors carte':'🦪','Plat en test':'🍽️','Plateaux Noël':'🎄','Réseaux':'📱','Affiches rue':'📍','Avis Google':'⭐','Events':'✨','Autre':'🔗'};
-const CAT_COL={'Hors carte':'#253968','Plat en test':'#9f2e1f','Plateaux Noël':'#d09d39','Affiches rue':'#3b4663','Avis Google':'#34a853','Réseaux':'#8a97bd','Events':'#cd3232','Autre':'#a9a291'};
+const CAT_IC={'Hors carte':'🦪','Plat en test':'🍽️','Plateau fruits de mer':'🦞','Plateaux Noël':'🎄','Réseaux':'📱','Affiches rue':'📍','Avis Google':'⭐','Events':'✨','Autre':'🔗'};
+const CAT_COL={'Hors carte':'#253968','Plat en test':'#9f2e1f','Plateau fruits de mer':'#2e6f8e','Plateaux Noël':'#d09d39','Affiches rue':'#3b4663','Avis Google':'#34a853','Réseaux':'#8a97bd','Events':'#cd3232','Autre':'#a9a291'};
 const PCOL=['#cd3232','#4a68b5','#5b6788','#9f2e1f','#d09d39','#2e8b57','#7a5aa6','#3b4663'];
 const pcol=n=>PCOL[[...String(n||'?')].reduce((a,c)=>a+c.charCodeAt(0),0)%PCOL.length];
 const daysAgo=n=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-n);return d;};
@@ -919,8 +924,12 @@ function demoQR(){
   SCANS.sort((a,b)=>b.at.localeCompare(a.at));CONVS.sort((a,b)=>b.created_at.localeCompare(a.created_at));
 }
 const in7=x=>new Date(x)>=daysAgo(6);
+// Commandes « Plat en test » → conversions du QR qui les a amenées (validée = conversion, en attente = à valider)
+const ptConvs=()=>(typeof PT!=='undefined'&&PT.ok?PT.orders:[]).filter(o=>o.src&&o.status!=='cancelled').map(o=>{const d=PT.dishes.find(x=>x.id===o.plat_id)||{};
+  return {id:'pt'+o.id,pt:o.id,code:o.src,kind:'plat',label:'Plat en test · '+(d.name||'')+' · n° '+o.code,amount:d.price_test,status:o.status==='confirmed'?'validated':'pending',created_at:o.created_at};});
+const allConvs=()=>CONVS.concat(ptConvs());
 function statsFor(codes){
-  const set=new Set(codes),sc=SCANS.filter(x=>set.has(x.code)&&in7(x.at)),cv=CONVS.filter(x=>set.has(x.code)&&in7(x.created_at));
+  const set=new Set(codes),sc=SCANS.filter(x=>set.has(x.code)&&in7(x.at)),cv=allConvs().filter(x=>set.has(x.code)&&in7(x.created_at));
   const val=cv.filter(x=>x.status==='validated');
   return {scans:sc.length,conv:val.length,pending:cv.filter(x=>x.status==='pending').length,ca:val.reduce((a,x)=>a+(+x.amount||0),0),sc,cv};
 }
@@ -977,16 +986,17 @@ function renderQR(){
   const l=QRS.filter(q=>(QF==='Tous'||campOf(q)===QF)&&(QF2==='Tous'||q.support===QF2)),st=statsFor(l.map(q=>q.code));
   // blocs par campagne (codes de la nomenclature /qr/…)
   const cs=[...new Set(l.filter(q=>q.path).map(campOf))];
+  const empty=QF==='Tous'?CAMP_DEF.filter(([c])=>!cs.includes(c)):[];
   document.getElementById('qrCamps').innerHTML=cs.map(c=>{const qs=l.filter(q=>q.path&&campOf(q)===c),f=funnel(qs.map(q=>q.code)),test=qs.every(q=>q.is_test),jeu=f.players||/free oyster/i.test(c);
     const first=qs.map(q=>q.created_at).filter(Boolean).sort()[0];
     return `<div class="card camp"><div class="ch"><b>${esc(c)}</b><span class="ctag ${test?'t':''}">${test?'Test':jeu?'Jeu · en cours':'En cours'}</span><small>${first?'depuis le '+new Date(first).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' · ':''}${qs.length} QR · 30 jours</small></div>
       ${jeu?funnelHTML(f):''}
       ${(()=>{const tb=qs.filter(q=>/carte-table/.test(q.path||'')),ru=qs.filter(q=>!/carte-table/.test(q.path||''));if(!jeu||!tb.length||!ru.length)return '';const a=funnel(ru.map(q=>q.code)),b=funnel(tb.map(q=>q.code));
         return `<div class="fun" style="grid-template-columns:1fr 1fr"><div><small>Dans la rue (affiches)</small><b class="num">${a.players} joueurs</b><i>${a.club} au club · ${a.won} lots</i></div><div><small>À table (carte)</small><b class="num">${b.players} joueurs</b><i>${b.club} au club · ${b.won} lots</i></div></div>`;})()}
-      <table class="qt"><tr><th></th><th>QR · lien</th><th>Scans</th>${jeu?'<th>Joueurs</th><th class="hm">Club</th><th class="hm">Amis</th><th class="hm">Insta</th><th>Lots</th>':'<th>Conversions</th>'}</tr>
-      ${qs.map(q=>{const g=funnel([q.code]),s7=statsFor([q.code]);return `<tr data-href="#qr/${encodeURIComponent(q.code)}"><td style="width:44px"><div class="qmini">${qrArt(q,120)}</div></td><td><code>/qr/${esc(q.path)}</code><small>${esc(q.label||'')}${q.active===false?' · désactivé':''}</small></td><td>${g.scans}</td>${jeu?`<td>${g.players}</td><td class="hm">${g.club}</td><td class="hm">${g.friends}</td><td class="hm">${g.insta}</td><td>${g.won} / ${g.redeemed}</td>`:`<td>${s7.conv}</td>`}</tr>`;}).join('')}</table></div>`;}).join('');
+      <table class="qt"><tr><th></th><th>QR</th><th>Scans</th>${jeu?'<th>Joueurs</th><th class="hm">Club</th><th class="hm">Amis</th><th class="hm">Insta</th><th>Lots</th>':'<th>Conversions</th>'}</tr>
+      ${qs.map(q=>{const g=funnel([q.code]),s7=statsFor([q.code]);return `<tr data-href="#qr/${encodeURIComponent(q.code)}"><td style="width:44px"><div class="qmini">${qrArt(q,120)}</div></td><td><b class="qn">${esc(qName(q))}</b><small>${esc(qSub(q))}</small></td><td>${g.scans}</td>${jeu?`<td>${g.players}</td><td class="hm">${g.club}</td><td class="hm">${g.friends}</td><td class="hm">${g.insta}</td><td>${g.won} / ${g.redeemed}</td>`:`<td>${s7.conv}</td>`}</tr>`;}).join('')}</table></div>`;}).join('')+empty.map(([c,cat])=>`<div class="card camp"><div class="ch"><b>${esc(c)}</b><span class="ctag t">À lancer</span><small>0 QR</small></div><p class="empty" style="margin:0 0 10px">Pas encore de QR. Un par serveur, comme pour le plat en test.</p><a class="cbtn" href="#qr-new/${encodeURIComponent(cat)}">+ Créer un QR</a></div>`).join('');
   document.getElementById('qrK').innerHTML=`<div class="kpi n"><span>Scans · 7 j</span><b class="num">${st.scans.toLocaleString('fr-FR')}</b></div><div class="kpi"><span>Conversions</span><b class="num">${st.conv}</b></div><div class="kpi"><span>Taux</span><b class="num">${st.scans?(st.conv/st.scans*100).toFixed(1).replace('.',','):'0'} %</b></div>`;
-  document.getElementById('qrList').innerHTML=l.map(q=>({q,s:statsFor([q.code])})).sort((a,b)=>b.s.scans-a.s.scans).map(({q,s})=>`<a class="qrl" href="#qr/${encodeURIComponent(q.code)}"><span class="ic">${q.path?'<span style="display:block;width:30px;height:30px">'+qrArt(q,90)+'</span>':(CAT_IC[q.category]||'🔗')}</span><div><code>${esc(q.path?'/qr/'+q.path:q.code)}</code><small>${esc(q.label||'')}</small></div><div class="r"><b class="num">${s.scans}</b>${s.conv} conv.</div></a>`).join('')||'<p class="empty">Aucun code.</p>';
+  document.getElementById('qrList').innerHTML=l.map(q=>({q,s:statsFor([q.code])})).sort((a,b)=>b.s.scans-a.s.scans).map(({q,s})=>`<a class="qrl" href="#qr/${encodeURIComponent(q.code)}"><span class="ic">${q.path?'<span style="display:block;width:30px;height:30px">'+qrArt(q,90)+'</span>':(CAT_IC[q.category]||'🔗')}</span><div><b class="qn">${esc(q.path?qName(q):q.label||q.code)}</b><small>${esc(q.path?campOf(q)+' · '+q.support:q.code)}</small></div><div class="r"><b class="num">${s.scans}</b>${s.conv} conv.</div></a>`).join('')||'<p class="empty">Aucun code.</p>';
   const b=dayBars(st.sc);document.getElementById('qrChart').innerHTML=b.html;document.getElementById('qrLab').innerHTML=b.lab;
 }
 document.addEventListener('click',e=>{const t=e.target.closest('[data-qf2]');if(t){QF2=t.dataset.qf2;renderQR();return;}
@@ -1002,12 +1012,12 @@ function downloadQR(code,fmt){
 }
 const device=ua=>/iphone|ipad/i.test(ua||'')?'iPhone':/android/i.test(ua||'')?'Android':'Ordinateur';
 const ago=t=>{const m=Math.round((Date.now()-new Date(t))/60000);return m<1?'à l’instant':m<60?'il y a '+m+' min':m<1440?'il y a '+Math.round(m/60)+' h':new Date(t).toLocaleDateString('fr-FR',{day:'numeric',month:'short'});};
-function convRow(c){return `<div class="pend"><span class="av" style="background:${c.kind==='resa'?'var(--red)':c.status==='pending'?'var(--gold)':'var(--green)'}">${c.kind==='resa'?'R':'€'}</span><div><b>${esc(c.label||c.kind)}</b>${c.amount?' · '+eur(+c.amount):''}<small>${esc(c.code)} · ${ago(c.created_at)} · ${c.status==='pending'?'à valider':c.status==='validated'?'validée':'refusée'}</small></div>
-  ${c.status==='pending'?`<div class="acts"><button class="ok" type="button" data-cval="${esc(c.id)}">Valider</button><button type="button" data-cref="${esc(c.id)}">Refuser</button></div>`:''}</div>`;}
+function convRow(c){return `<div class="pend"><span class="av" style="background:${c.kind==='resa'?'var(--red)':c.status==='pending'?'var(--gold)':'var(--green)'}">${c.kind==='resa'?'R':c.kind==='plat'?'P':'€'}</span><div><b>${esc(c.label||c.kind)}</b>${c.amount?' · '+eur(+c.amount):''}<small>${esc(c.code)} · ${ago(c.created_at)} · ${c.status==='pending'?'à valider':c.status==='validated'?'validée':'refusée'}</small></div>
+  ${c.pt&&c.status==='pending'?`<div class="acts"><a class="ok" href="#plat">Valider →</a></div>`:c.status==='pending'?`<div class="acts"><button class="ok" type="button" data-cval="${esc(c.id)}">Valider</button><button type="button" data-cref="${esc(c.id)}">Refuser</button></div>`:''}</div>`;}
 function renderQRD(code){
   const q=QRS.find(x=>x.code===code); if(!q){location.hash='#qr';return;}
   const st=statsFor([code]),all=SCANS.filter(x=>x.code===code),link=qrLink(q),b=dayBars(st.sc),fq=funnel([code]),jeu=fq.players||/free oyster/i.test(q.campaign||'');
-  const convs=CONVS.filter(x=>x.code===code).slice(0,30);
+  const convs=allConvs().filter(x=>x.code===code).sort((a,b)=>b.created_at.localeCompare(a.created_at)).slice(0,30);
   document.getElementById('v-qrd').innerHTML=`<div class="sub-hd"><a class="back" href="#qr" aria-label="Retour">‹</a><div><h1 style="font-family:ui-monospace,Menlo,monospace;font-size:19px">${esc(code)}${DB_QR?'':' <span class="demo">Exemple</span>'}</h1><p>${esc(q.category)} · ${esc(q.label||'')}</p></div><a class="cbtn gh" style="margin-left:auto" href="#qr-edit/${encodeURIComponent(code)}">Modifier</a></div>
   <div class="kpis"><div class="kpi n"><span>Scans · 7 j</span><b class="num">${st.scans}</b></div><div class="kpi"><span>Conversions</span><b class="num">${st.conv}</b></div><div class="kpi"><span>Taux</span><b class="num">${st.scans?(st.conv/st.scans*100).toFixed(1).replace('.',','):'0'} %</b></div><div class="kpi g"><span>${pctOf(q.commission)?'Commission · 7 j':'Scans · 30 j'}</span><b class="num">${pctOf(q.commission)?eur(st.ca*pctOf(q.commission)):all.length}</b></div></div>
   <div class="cols"><div>
@@ -1061,7 +1071,7 @@ let codeTouched=false, qStyle='losange';
 // Nomenclature : /qr/<campagne>/<support>-<lieu>-<numéro> · code = la même chose en majuscules
 function qParts(){const g=id=>document.getElementById(id).value.trim();
   const camp=g('qCamp')||'campagne',sup=g('qSup'),place=g('qPlace')||'lieu',num=Math.max(1,parseInt(g('qNum'))||1);
-  const CSL={'plat-en-test':'plat-test'};   // lien court pour les cartes serveurs
+  const CSL={'plat-en-test':'plat-test','plateau-de-fruits-de-mer':'plateau'};   // lien court pour les cartes serveurs
   const path=(CSL[qslug(camp)]||qslug(camp))+'/'+qslug(sup)+'-'+qslug(place)+'-'+num;
   return {camp,sup,place,num,path,code:path.toUpperCase().replace(/\//g,'-')};}
 function fillQR(q,cat){
@@ -1074,12 +1084,13 @@ function fillQR(q,cat){
   v('qCamp',q?(q.campaign||''):'Free Oyster');v('qSup',q?(q.support||'Autre'):'Affiche');v('qPlace',q?(q.place||''):'');v('qNum',q?(q.num||1):1);v('qNote',q?q.note:'');
   v('qLabel',q?q.label:'');v('qCat',c);v('qOwner',q?q.owner:'');v('qCode',q?q.code:'');v('qDest',q?q.destination:'/free-oyster');v('qGoal',q?q.goal:'Partie jouée');v('qCom',q?q.commission:'');
   // Nouveau serveur pour le plat en test : tout est prérempli, il ne reste que son prénom
+  if(!q&&c==='Plateau fruits de mer'){v('qCamp','Plateau de fruits de mer');v('qSup','Serveur');v('qGoal','Plateau commandé');}
   if(!q&&c==='Plat en test'){v('qCamp','Plat en test');v('qSup','Serveur');v('qDest','/plat-test');v('qGoal','Plat en test commandé');v('qCom','2 € par plat');}
   qStyle=q&&q.style||'losange';
   ['qCamp','qSup','qPlace','qNum'].forEach(id=>document.getElementById(id).disabled=!!q&&!!q.path&&DB_QR);   // un QR imprimé garde son lien
   document.getElementById('qActive').classList.toggle('on',q?q.active!==false:true);
   document.getElementById('owners').innerHTML=[...new Set(QRS.map(x=>x.owner).filter(Boolean))].map(o=>`<option value="${esc(o)}">`).join('');
-  document.getElementById('camps').innerHTML=[...new Set(QRS.map(x=>x.campaign).filter(Boolean))].map(o=>`<option value="${esc(o)}">`).join('');
+  document.getElementById('camps').innerHTML=[...new Set(QRS.map(x=>x.campaign).filter(Boolean).concat(['Free Oyster','Plat en test','Plateau de fruits de mer']))].map(o=>`<option value="${esc(o)}">`).join('');
   prevQR();
 }
 function prevQR(){
@@ -1093,7 +1104,7 @@ function prevQR(){
   document.getElementById('qStyles').innerHTML=QSTYLES.map(([k,n])=>`<button type="button" class="${k===qStyle?'on':''}" data-qs="${k}">${n}</button>`).join('');
 }
 document.getElementById('qStyles').addEventListener('click',e=>{const b=e.target.closest('[data-qs]');if(!b)return;qStyle=b.dataset.qs;prevQR();});
-document.getElementById('qPlace').addEventListener('input',()=>{if(document.getElementById('qSup').value!=='Serveur'||qEdit)return;const n=document.getElementById('qPlace').value.trim();document.getElementById('qOwner').value=n?n[0].toUpperCase()+n.slice(1):'';if(document.getElementById('qCamp').value==='Plat en test')document.getElementById('qLabel').value=n?'Carte plat en test · '+n[0].toUpperCase()+n.slice(1):'';});
+document.getElementById('qPlace').addEventListener('input',()=>{if(document.getElementById('qSup').value!=='Serveur'||qEdit)return;const n=document.getElementById('qPlace').value.trim();document.getElementById('qOwner').value=n?n[0].toUpperCase()+n.slice(1):'';const cp=document.getElementById('qCamp').value;if(cp==='Plat en test'||cp==='Plateau de fruits de mer')document.getElementById('qLabel').value=n?(cp==='Plat en test'?'Carte plat en test · ':'Plateau de fruits de mer · ')+n[0].toUpperCase()+n.slice(1):'';});
 ['qCamp','qSup','qPlace','qNum','qLabel','qOwner','qDest'].forEach(id=>{document.getElementById(id).addEventListener('input',prevQR);document.getElementById(id).addEventListener('change',prevQR);});
 document.getElementById('qActive').onclick=e=>e.currentTarget.classList.toggle('on');
 document.getElementById('qSave').onclick=async()=>{
