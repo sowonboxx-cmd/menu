@@ -115,6 +115,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .fx .st:nth-child(4){margin:-28px 0 0 -40px;width:22px;height:22px;animation-delay:.9s}
 .fx .st:nth-child(5){margin:34px 0 0 38px;width:30px;height:30px;animation-delay:.7s}
 .fx .st:nth-child(6){margin:-6px 0 0 6px;width:50px;height:50px;animation-delay:.2s}
+#wImg.nopearl .pe{display:none}
 /* Plateau gagné : on montre le plateau de 6 huîtres, avec les étincelles autour (sans la perle) */
 #s-win{--k:1}#s-win .res-img{height:calc(240px*(.45 + .55*var(--k)))}
 #s-win .oyw.plat .res-img{height:auto;width:calc(min(310px,82vw)*(.5 + .5*var(--k)))}
@@ -426,10 +427,12 @@ function result() {
   const d = RES; RES = null; if (armKnife.reset) armKnife.reset();
   bonusNotes();
   if (d && d.result !== 'perdu') {
-    const plat = d.result === 'plateau', tee = d.result === 'tshirt', im = $('#wImg img');
-    $('#wImg').classList.toggle('plat', plat || tee); $('#wImg').classList.toggle('tee', tee);
-    im.src = plat ? 'jeu/plateau.webp' : tee ? 'jeu/tshirt.webp' : 'jeu/huitre-perle.webp';
-    im.alt = plat ? 'Plateau de 6 huîtres' : tee ? 'T-shirt Drevici' : 'Huître ouverte avec une perle';
+    const plat = d.result === 'plateau', tee = d.result === 'tshirt', trio = d.result === 'trio', bonus = d.result === 'bonus', im = $('#wImg img');
+    $('#wImg').classList.toggle('plat', plat || tee || trio); $('#wImg').classList.toggle('tee', tee || trio);
+    // huître bonus (à table) : une huître ouverte, sans perle ; 3 huîtres : trois huîtres ouvertes
+    im.src = plat ? 'jeu/plateau.webp' : tee ? 'jeu/tshirt.webp' : trio ? 'jeu/trio.webp' : bonus ? 'jeu/huitre-ouverte.webp' : 'jeu/huitre-perle.webp';
+    im.alt = plat ? 'Plateau de 6 huîtres' : tee ? 'T-shirt Drevici' : trio ? 'Trois huîtres ouvertes' : bonus ? 'Une huître ouverte' : 'Huître ouverte avec une perle';
+    $('#wImg').classList.toggle('nopearl', bonus);
     $('#wPrize').textContent = d.prize;
     $('#wValid').innerHTML = validHTML(d.expires_at, d.mode); $('#wShow').textContent = d.mode === 'table' ? 'Montrez ce code au serveur' : 'Montrez ce code au comptoir';
     $('#wBook').style.display = d.mode === 'table' ? 'none' : '';
