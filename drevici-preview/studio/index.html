@@ -520,7 +520,7 @@ const longD=s=>dOf(s).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',m
 const hfr=t=>{if(!t)return '';const [h,m]=t.split(':');return parseInt(h,10)+' h'+(m&&m!=='00'?' '+m:'');};
 document.getElementById('today').textContent=TODAY.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
 
-let SESSION=null, DB_EVENTS=true, DB_TASKS=true, EVENTS=[], TASKS=[];
+let SESSION=null, DB_EVENTS=true, DB_TASKS=true, EVENTS=[], TASKS=[], BAD_EV=new Set(), RENDER_ERR=[];
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.hidden=false;clearTimeout(t._h);t._h=setTimeout(()=>t.hidden=true,1800);}
 // Toast avec bouton « Annuler » (suppression de tâche).
 function toastUndo(m,onUndo,ms){const t=document.getElementById('toast');t.innerHTML=esc(m)+' <button type="button" style="color:var(--gold);font-weight:800;margin-left:10px">Annuler</button>';t.hidden=false;clearTimeout(t._h);
@@ -578,14 +578,14 @@ function nthWeekday(y,m,wd,n){if(n>0){const d=new Date(y,m,1,12);while(d.getDay(
   const d=new Date(y,m+1,0,12);while(d.getDay()!==wd)d.setDate(d.getDate()-1);return d;}
 function expand(from,to){ // occurrences entre deux dates ISO
   const out=[];
-  EVENTS.forEach(e=>{
+  EVENTS.forEach(e=>{ try {
     const r=e.recurrence;
     if(!r){ if(e.date_start<=to&&(e.date_end||e.date_start)>=from) out.push(occ(e,e.date_start)); return; }
     const end=e.date_end&&e.date_end<to?e.date_end:to;
     if(r.freq==='weekly'){const d=dOf(e.date_start);while(iso(d)<=end){if(iso(d)>=from)out.push(occ(e,iso(d)));d.setDate(d.getDate()+7);}}
     if(r.freq==='monthly'){const s=dOf(e.date_start);let y=s.getFullYear(),m=s.getMonth();
       for(let i=0;i<36;i++){const d=nthWeekday(y,m,r.weekday,r.n);if(d){const di=iso(d);if(di>end)break;if(di>=from&&di>=e.date_start)out.push(occ(e,di));}m++;if(m>11){m=0;y++;}}}
-  });
+  } catch(err) { BAD_EV.add(e.title||e.id); console.warn('Event illisible', e, err); } });
   return out.sort((a,b)=>a.date.localeCompare(b.date)||(a.e.time_start||'').localeCompare(b.e.time_start||''));
 }
 function occ(e,date){const o=(e.occ||{})[date]||{};return {id:e.id+'@'+date,e,date,
@@ -1188,12 +1188,19 @@ function renderBanners(){
   let h='';
   if(!SESSION) h=`<div class="banner">🔒 <span><b>Connectez-vous à l’admin</b> (même compte) pour voir les réservations du jour et enregistrer Events et tâches.</span><button class="cbtn" type="button" onclick="location.href='https://drevici.beltab.app/admin'">Ouvrir l’admin</button></div>`;
   else if(!DB_EVENTS||!DB_TASKS) h=`<div class="banner">🛠 <span><b>Base à créer :</b> collez <code>sql/cabine.sql</code> dans Supabase → SQL Editor → Run. En attendant, les Events affichés viennent de l'ancien calendrier et rien n'est enregistré.</span></div>`;
+  if(RENDER_ERR.length||BAD_EV.size) h+=`<div class="banner">⚠️ <span><b>Un élément n'a pas pu s'afficher.</b> ${BAD_EV.size?'Event à vérifier : '+[...BAD_EV].map(esc).join(', ')+'. ':''}${RENDER_ERR.map(esc).join(' · ')}</span></div>`;
   document.getElementById('banners').innerHTML=h;
   document.getElementById('evBanner').innerHTML=(SESSION&&DB_EVENTS&&!EVENTS.length)?`<div class="banner">📥 <span><b>Calendrier vide.</b> Importer l'ancien calendrier et les 4 Events récurrents (Girls' Night, ateliers, soirée DJ) ?</span><button class="cbtn" type="button" id="importOld">Importer</button></div>`:(h&&SESSION?h:'');
 }
 
 /* ═══════════ Routage ═══════════ */
-function renderAll(){renderShopAll();renderHomeCal();renderTasks();renderBanners();if(!document.getElementById('v-events').hidden)renderEvents();}
+function renderAll(){
+  RENDER_ERR=[];
+  const safe=(name,fn)=>{try{fn();}catch(err){RENDER_ERR.push(name+' : '+(err&&err.message||err));console.error(name,err);}};
+  safe('T-shirts',renderShopAll);safe('Calendrier',renderHomeCal);safe('Tâches',renderTasks);
+  if(!document.getElementById('v-events').hidden)safe('Events',renderEvents);
+  renderBanners();
+}
 function route(){
   const raw=(location.hash||'#home').slice(1), i=raw.indexOf('/'), view=i<0?raw:raw.slice(0,i), arg=i<0?'':decodeURIComponent(raw.slice(i+1));
   document.querySelectorAll('main').forEach(m=>m.hidden=true); closeSheet();
@@ -1339,8 +1346,11 @@ addEventListener('scroll',()=>{if(!tp.hidden)placeTP();},true);
 async function boot(){
   if(sb){const {data}=await sb.auth.getSession();SESSION=data.session||null;}
   renderAuth();
-  await Promise.all([loadEvents(),loadTasks(),loadResa(),loadQR(),loadShop()]);
-  renderQRHome(); renderQR(); renderAll(); route();
+  const res=await Promise.allSettled([loadEvents(),loadTasks(),loadResa(),loadQR(),loadShop()]);
+  res.forEach((r,i)=>{if(r.status==='rejected'){RENDER_ERR.push(['Events','Tâches','Réservations','QR','T-shirts'][i]+' (chargement) : '+(r.reason&&r.reason.message||r.reason));console.error(r.reason);}});
+  const errs=RENDER_ERR.slice();
+  try{renderQRHome();renderQR();}catch(err){errs.push('QR : '+err.message);console.error(err);}
+  renderAll(); RENDER_ERR=errs.concat(RENDER_ERR); renderBanners(); route();
 }
 boot();
 </script>
