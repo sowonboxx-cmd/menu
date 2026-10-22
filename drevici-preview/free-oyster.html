@@ -204,7 +204,10 @@ let SRC = (QS.get('src') || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0
 try { if (SRC) localStorage.setItem('beltab_src', JSON.stringify({ code: SRC, t: Date.now() })); else { const o = JSON.parse(localStorage.getItem('beltab_src') || 'null'); if (o && o.code && Date.now() - o.t < 7 * 864e5) SRC = o.code; } } catch (_) {}
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
 const store = { get() { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (_) { return null; } }, set(v) { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (_) {} } };
-let ME = store.get() || null;   // {t, ref_code, first, bonus_used, plays_left}
+// Mode test (préview seulement) : ?test=gagne | plateau | tshirt | perdu | hasard
+// Rien n'est envoyé au serveur ni gardé sur le téléphone : on rejoue à l'infini.
+const TEST = /preview|localhost|127\.0\.0\.1/.test(location.host) ? (QS.get('test') || '').toLowerCase() : '';
+let ME = TEST ? null : (store.get() || null);   // {t, ref_code, first, bonus_used, plays_left, club}
 let RES = null;                  // résultat de la partie en cours
 
 // ═══ Décor (poster) ═══
@@ -240,7 +243,7 @@ $$('[data-go]').forEach(b => b.addEventListener('click', () => {
 
 // Statistiques du site (même système que le site : visites et clics, sans cookie)
 const SID = Math.random().toString(36).slice(2, 12);
-const track = (k, n) => { try { navigator.sendBeacon(API + '/t', JSON.stringify({ slug: JEU_SLUG, sid: SID, k, n, src: SRC, p: '/free-oyster' })); } catch (_) {} };
+const track = (k, n) => { if (TEST) return; try { navigator.sendBeacon(API + '/t', JSON.stringify({ slug: JEU_SLUG, sid: SID, k, n, src: SRC, p: '/free-oyster' })); } catch (_) {} };
 track('view');
 
 // ═══ Invitation d'un ami ═══
@@ -268,6 +271,7 @@ $('#f').addEventListener('submit', async e => {
   } catch (x) { go.disabled = false; err.textContent = 'Connexion impossible, réessayez.'; }
 });
 async function play(body) {
+  if (TEST) return testPlay(body);
   const r = await fetch(API + '/jeu/play', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ slug: JEU_SLUG, src: SRC, ...body }) });
   const d = await r.json();
   if (d.t) { ME = { t: d.t, ref_code: d.ref_code, first: d.first, bonus_used: !!d.bonus_used, plays_left: d.ok ? d.plays_left : 0, club: !!(d.club && d.club.code) }; store.set(ME); }
@@ -395,8 +399,21 @@ function doneScreen(kind) {
 }
 
 // ═══ Au chargement : joueur déjà connu sur ce téléphone ? ═══
+function testPlay(body) {
+  const lots = { huitre: 'Une huître offerte', plateau: 'Un plateau de 6 huîtres', tshirt: 'Un T-shirt Drevici' };
+  let res = { gagne: 'huitre', huitre: 'huitre', plateau: 'plateau', tshirt: 'tshirt', perdu: 'perdu' }[TEST];
+  if (!res) { const r = Math.random(); res = r < .01 ? 'tshirt' : r < .03 ? 'plateau' : r < .13 ? 'huitre' : 'perdu'; }
+  ME = { t: '', ref_code: 'TEST00', first: body.first || 'Test', bonus_used: false, plays_left: 0, club: body.optin === true };
+  RES = { ok: true, result: res, prize: lots[res] || '', code: res === 'perdu' ? null : 'PERLE-TEST', expires_at: new Date(Date.now() + 7 * 864e5).toISOString(), plays_left: 0 };
+  return RES;
+}
+if (TEST) {
+  // bandeau discret + formulaire déjà rempli, pour aller vite
+  document.body.insertAdjacentHTML('beforeend', '<div style="position:fixed;right:10px;top:calc(env(safe-area-inset-top) + 6px);background:#1a2540;color:#fff;font:600 10.5px Inter;border-radius:999px;padding:4px 9px;z-index:9;opacity:.8;white-space:nowrap">Mode test · rien n\'est enregistré</div>');
+  const f = $('#f'); f.elements.first.value = 'Test'; f.elements.last.value = 'Drevici'; f.elements.email.value = 'test@drevici.fr'; f.elements.phone.value = '06 00 00 00 00';
+}
 (async () => {
-  if (!ME || !ME.t) return;
+  if (TEST || !ME || !ME.t) return;
   const d = await refreshMe(); if (!d) return;
   doneScreen('done');
 })();
