@@ -2580,11 +2580,16 @@ function clModal(c){ if(!c) return '';
 const coupeLeft=d=>d?Math.ceil(30-(Date.now()-Date.parse(d))/864e5):30;
 const coupeState=d=>{ const n=coupeLeft(d); return n>=0?`<b>coupe à offrir</b> (ou verre au choix jusqu'à 10 €, encore ${n} j)`:`coupe expirée depuis ${-n} j`; };
 function clubBox(){ const r=UI.clres, nb=(CLIENTS||[]).filter(c=>c.club_member).length, used=(CLIENTS||[]).filter(c=>c.coupe_used_at).length;
+  if(r&&r.jeu){ const p=r.jeu, d=p.expires_at?Math.ceil((Date.parse(p.expires_at)-Date.now())/864e5):0;
+    const jres=r.done?`<div class="clubres ok">✓ Lot remis à <b>${esc(p.name)}</b> : ${esc(p.prize_label)}</div>`
+      :`<div class="clubres">🦪 <b>${esc(p.name)}</b> · ${esc(p.prize_label)} · ${d>=0?'valable encore '+d+' j':'<b>expiré depuis '+(-d)+' j</b> (vous pouvez le remettre quand même)'}<small style="flex-basis:100%;color:#6b7080">Jeu Free Oyster · code ${esc(p.code)}</small> <button class="btn" data-act="jeuRedeem">Remettre le lot</button></div>`;
+    return clubBoxShell(nb,used,jres); }
   const res=!r?'':r.err?`<div class="clubres bad">${esc(r.err)}${r.client?` · ${esc(r.client.name||r.client.email)}${r.client.coupe_used_at?' · le '+fdate(r.client.coupe_used_at):''}`:''}</div>`
     :r.done?`<div class="clubres ok">✓ Coupe offerte à <b>${esc(r.client.name||r.client.email)}</b> (membre n° ${r.client.club_no||'?'})</div>`
     :`<div class="clubres">🥂 <b>${esc(r.client.name||r.client.email)}</b> · membre n° ${r.client.club_no||'?'} · ${coupeLeft(r.client.club_joined_at)>=0?'coupe valable encore '+coupeLeft(r.client.club_joined_at)+' j':'<b>coupe expirée depuis '+(-coupeLeft(r.client.club_joined_at))+' j</b> (vous pouvez l\'offrir quand même)'}<small style="flex-basis:100%;color:#6b7080">Champagne, ou tout autre verre de la carte jusqu'à 10 € (vin, bière, soft).</small> <button class="btn" data-act="clRedeem">Valider la coupe</button></div>`;
-  return `<section class="clubbox"><div class="clubh"><b>🥂 Valider une coupe du club</b><small>${nb} membre${nb>1?'s':''} · ${used} coupe${used>1?'s':''} offerte${used>1?'s':''}</small></div>
-    <div class="clubin"><input class="in" placeholder="Code de la carte, ex. CLUB-4F7K" value="${esc(UI.clcode||'')}" data-cl="code" autocapitalize="characters"><button class="btn w" data-act="clCheck">Vérifier</button></div>${res}</section>`; }
+  return clubBoxShell(nb,used,res); }
+const clubBoxShell=(nb,used,res)=>`<section class="clubbox"><div class="clubh"><b>🥂 Valider une coupe du club ou un lot Free Oyster</b><small>${nb} membre${nb>1?'s':''} · ${used} coupe${used>1?'s':''} offerte${used>1?'s':''}</small></div>
+    <div class="clubin"><input class="in" placeholder="Code : CLUB-4F7K ou PERLE-7K2R" value="${esc(UI.clcode||'')}" data-cl="code" autocapitalize="characters"><button class="btn w" data-act="clCheck">Vérifier</button></div>${res}</section>`;
 // Bibliothèque d'emails : un titre, une phrase, l'aperçu tout de suite
 const EMT={
   evt:{n:'Événement',d:'Soirée, DJ set, dégustation',ic:'mega',c:'#1E5AA8',img:1,f:[['kicker','Date et heure'],['title','Titre'],['text','Phrase',1],['info1','Quand (facultatif)'],['info2','Prix (facultatif)']],
@@ -2927,7 +2932,11 @@ document.addEventListener('click',async e=>{
     case 'clArch': UI.clarch=+d.id; render(); break;
     case 'clArchNo': UI.clarch=null; render(); break;
     case 'clArchGo': { const id=+d.id, on=d.v==='1', c=(CLIENTS||[]).find(x=>x.id===id); try{ const j=await napi('/client/archive',{id,on}); if(c) c.archived_at=j.archived_at; toast(on?'Client archivé':'Client restauré'); UI.clarch=null; if(on) UI.clopen=null; }catch(e){ toast('⚠ '+e.message); } render(); break; }
-    case 'clCheck': { const code=(UI.clcode||'').trim(); if(!code){ toast('Tapez le code de la carte'); break; } try{ const j=await napi('/club/redeem',{code,check:true}); UI.clres={client:j.client}; }catch(e){ UI.clres={err:e.message}; } render(); break; }
+    case 'clCheck': { const code=(UI.clcode||'').trim(); if(!code){ toast('Tapez le code de la carte'); break; }
+      // Codes du jeu Free Oyster (PERLE-XXXX) : même champ, lot du jeu au lieu de la coupe.
+      if(/^perle/i.test(code)){ try{ const j=await napi('/jeu/redeem',{code,check:true}); UI.clres={jeu:j.play}; }catch(e){ UI.clres={err:e.message}; } render(); break; }
+      try{ const j=await napi('/club/redeem',{code,check:true}); UI.clres={client:j.client}; }catch(e){ UI.clres={err:e.message}; } render(); break; }
+    case 'jeuRedeem': { try{ const j=await napi('/jeu/redeem',{code:UI.clcode}); UI.clres={jeu:j.play,done:1}; UI.clcode=''; }catch(e){ UI.clres={err:e.message}; } render(); break; }
     case 'clRedeem': { try{ const j=await napi('/club/redeem',{code:UI.clcode}); UI.clres={done:1,client:j.client}; UI.clcode=''; loadClients(true); }catch(e){ UI.clres={err:e.message}; } render(); break; }
     case 'clOpt': UI.clopt=!UI.clopt; render(); break;
     case 'clOpen': UI.clopen=+d.id; render(); break;

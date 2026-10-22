@@ -1,0 +1,529 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Free Oyster · Drevici Oyster</title>
+<meta name="description" content="Ouvre une huître, trouve la perle, gagne : une huître offerte, un plateau de 6 huîtres ou un T-shirt Drevici. Jeu gratuit, sans obligation d'achat.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#f4e6d1">
+<link rel="icon" href="seo/logo-pics-bar.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Playfair+Display:ital,wght@0,800;1,800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@600&display=swap">
+<link rel="preload" as="image" href="jeu/huitre-fermee.webp">
+<link rel="prefetch" href="jeu/plateau.webp">
+<style>
+:root{--cream:#f4e6d1;--navy:#1a2540;--brand:#0d255c;--red:#8a1b1b;--anchor:#9F2E1F;--mut:#6d675d}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--cream);font-family:Inter,system-ui,sans-serif;color:var(--navy);-webkit-font-smoothing:antialiased;overscroll-behavior:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.app{position:relative;min-height:100%;min-height:100dvh;max-width:440px;margin:0 auto;display:flex;flex-direction:column}
+.scr{display:none;flex:1;flex-direction:column;align-items:center;padding:calc(env(safe-area-inset-top) + 22px) 24px calc(env(safe-area-inset-bottom) + 18px);min-height:100dvh;animation:fade .35s ease}
+.scr.on{display:flex}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.orn{display:flex;align-items:center;gap:6px;justify-content:center}
+.ttl{font-family:Anton,Impact,sans-serif;font-size:clamp(38px,11.5vw,46px);line-height:1.05;color:var(--navy);text-align:center;white-space:nowrap;margin-top:2px}
+.tw{display:inline-flex;flex-direction:column;align-items:stretch;max-width:100%}
+/* filet sous le titre : exactement la largeur du mot (du premier au dernier caractère) */
+.under{display:flex;align-items:center;gap:4px;margin-top:6px}.under i{flex:1;height:2px;background:#8a1b1b}.under svg{flex:none;width:20px;height:9px}
+.sp{flex:1;min-height:14px}
+.brand{text-align:center;margin-top:12px}
+.brand b{display:block;font:800 25px/1.1 'Playfair Display',Georgia,serif;color:var(--brand)}
+.brand i{display:block;font:italic 800 15.5px/1.5 'Playfair Display',Georgia,serif;color:var(--brand)}.brand i em{color:var(--red)}
+.tx{text-align:center;font:500 15px/1.45 Inter}
+.big{font:800 27px/1.12 'Playfair Display',Georgia,serif;text-align:center}
+.legal{text-align:center;font:11.5px/1.6 Inter;color:var(--mut)}.legal a{color:var(--navy);font-weight:600}
+.lots{display:flex;gap:8px;width:100%}
+.lot{flex:1;text-align:center;font:600 12px/1.25 Inter;padding:11px 4px 10px;background:#fff;border-radius:14px}
+.lot b{display:block;font:30px/1 Anton,Impact,sans-serif;color:var(--red);margin-bottom:3px}
+.cart{position:relative;display:block;margin:0 auto;text-align:center;color:var(--cream);font-family:Anton,Impact,sans-serif;letter-spacing:.04em;width:290px;height:60px;line-height:60px;font-size:25px}
+.cart svg{position:absolute;inset:0;width:100%;height:100%}.cart span{position:relative}
+.cart:active{transform:scale(.97)}.cart[disabled]{opacity:.6}
+.fld{display:block;width:100%;background:#fff;border-radius:12px;padding:8px 14px 9px;margin-bottom:8px}
+.fld small{display:block;font:600 11.5px Inter;letter-spacing:.02em}
+.fld input{display:block;width:100%;border:0;outline:0;background:none;font:500 16px Inter;color:#16181d;padding:2px 0 0}
+.fld input::placeholder{color:#b3ab9f}
+.fld:focus-within{box-shadow:0 0 0 2px var(--navy)}
+.two{display:flex;gap:8px;width:100%}.two .fld{flex:1;min-width:0}
+.chk{display:flex;gap:10px;align-items:flex-start;width:100%;font:13px/1.4 Inter;color:#4a4740;text-align:left;margin-top:4px;cursor:pointer}
+.chk input{flex:none;width:20px;height:20px;margin:1px 0 0;accent-color:var(--navy)}
+.cv2{display:block;width:100%;background:#fff;border-radius:14px;padding:13px 14px 0;margin-top:6px;cursor:pointer;text-align:left}
+.cv2 .row{display:flex;gap:10px;align-items:flex-start}
+.cv2 input{flex:none;width:22px;height:22px;margin:0;accent-color:var(--navy)}
+.cv2 .t{font:700 15px/1.25 Inter;color:var(--navy)}
+.cv2 ul{list-style:none;padding:0;margin:6px 0 0}.cv2 li{font:500 13px/1.5 Inter;color:#3d3a34;display:flex;align-items:center;gap:7px;white-space:nowrap}
+/* étoiles dorées à la place des tirets */
+.cv2 .star{flex:none;width:13px;height:13px;fill:#b8892f}
+.cv2 .row{perspective:380px}
+.cv2 .mw{position:relative;flex:none;margin-left:auto;margin-top:2px;width:72px;display:block;transform-origin:50% 60%}
+.cv2 .mc{position:relative;display:block;border-radius:6px;overflow:hidden;box-shadow:0 4px 10px rgba(26,37,64,.25)}
+.cv2 .mini{display:block;width:100%;border-radius:6px}
+/* Carte du club : une seule fois, 1 s après l'arrivée sur le formulaire, elle pivote à peine puis un reflet passe */
+.cv2 .mc::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.25) 42%,rgba(255,255,255,.85) 50%,rgba(255,255,255,.25) 58%,transparent 70%);transform:translateX(-140%)}
+#s-form.on .cv2 .mw{animation:cardTilt 1.5s 1s ease-in-out both}
+#s-form.on .cv2 .mc::after{animation:cardShine 1s 1.5s ease-in-out both}
+@keyframes cardTilt{0%,100%{transform:none}35%{transform:rotateY(-16deg) rotateX(7deg) translateY(-2px)}70%{transform:rotateY(9deg) rotateX(-3deg)}}
+@keyframes cardShine{0%{transform:translateX(-140%)}100%{transform:translateX(140%)}}
+@media (prefers-reduced-motion:reduce){#s-form.on .cv2 .mw,#s-form.on .cv2 .mc::after{animation:none}}
+.cv2 .ok{font:12px/1.4 Inter;color:var(--mut);margin-top:12px;padding:9px 0 11px;border-top:1px solid #efe6d8;text-align:center}
+.nochk{font:12px/1.45 Inter;color:var(--mut);margin:8px 2px 0;text-align:center}
+.evin{font:10.5px/1.4 Inter;color:#9a9286;text-align:center;margin-top:3px}
+@media (max-width:370px){.cv2 .mw{width:54px}.cv2 li{font-size:12.5px}.cv2 .t{font-size:14px}}
+.err{color:#b3261e;font:600 13.5px/1.4 Inter;text-align:center;min-height:19px;margin-top:8px}
+.btn{display:block;width:100%;border-radius:999px;background:var(--navy);color:#fff;text-align:center;font:700 16px Inter;padding:15px;text-decoration:none}
+.btn.l{background:none;color:var(--navy);box-shadow:inset 0 0 0 2px var(--navy)}
+.btn+.btn{margin-top:9px}
+.code{font:600 28px 'IBM Plex Mono',monospace;letter-spacing:.16em;background:#fff;border-radius:12px;padding:11px 18px;text-align:center;user-select:all}
+.tick{background:#fff;border-radius:14px;padding:10px 18px 9px;text-align:center}
+.tick .c{font:600 28px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:var(--navy);user-select:all}
+.tick small{display:block;font:500 12.5px Inter;color:var(--mut);margin-top:3px;border-top:1px dashed #d9cdb8;padding-top:6px}.tick small b{color:var(--red)}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.invite{font:600 13px Inter;background:#fff;border-radius:999px;padding:7px 14px;margin:10px 0 0}
+/* choix */
+.pick{position:relative;width:100%;max-width:340px;height:370px}
+.pick button{position:absolute;transition:transform .2s}
+.pick img{display:block;height:100%;width:auto;pointer-events:none;user-select:none;-webkit-user-drag:none}
+.pick button:active{transform:scale(.95)}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
+.br{animation:breathe 2.6s ease-in-out infinite}.br2{animation:breathe 2.9s .5s ease-in-out infinite}.br3{animation:breathe 2.4s 1s ease-in-out infinite}
+.glow{filter:drop-shadow(0 0 18px rgba(240,205,120,.95))}
+/* ouverture */
+.stage{position:relative;width:100%;max-width:340px;height:300px;display:flex;justify-content:center}
+.stage .oy{height:270px;position:relative;transform-origin:50% 88%}
+.stage .oy img{height:100%;display:block;user-select:none;-webkit-user-drag:none}
+.stage .wv{position:absolute;top:40px;opacity:0;transition:opacity .2s}
+.stage .wv.l{left:6px;transform:scaleX(-1)}.stage .wv.r{right:6px}
+.stage.open .oy{animation:pop .5s ease forwards}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.12) rotate(-2deg);filter:brightness(1.4)}100%{transform:scale(1);filter:none}}
+.track{position:relative;width:100%;max-width:330px;height:64px;border-radius:999px;background:#fff;margin-top:12px;touch-action:none;user-select:none}
+.track .fill{position:absolute;left:0;top:0;bottom:0;border-radius:999px;background:rgba(138,27,27,.14);width:64px}
+.track .hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:600 14px Inter;color:var(--mut);padding-left:56px;pointer-events:none}
+.track .knob{position:absolute;left:4px;top:4px;width:56px;height:56px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;cursor:grab;box-shadow:0 4px 10px rgba(26,37,64,.25)}
+.track .knob img{height:44px;transform:rotate(90deg);pointer-events:none}
+.flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .25s}
+.flash.on{opacity:.85}
+.res-img{height:240px;display:block;margin:6px auto 10px}
+.res-img.s{height:200px}
+/* Gagné : la perle scintille (étincelles qui s'allument tour à tour, lueur dorée) */
+.oyw{position:relative;margin:6px auto 10px}.oyw .res-img{margin:0}
+.fx{position:absolute;left:44%;top:51%;width:0;height:0}
+.fx>*{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none}
+.fx .halo{width:110px;height:110px;border-radius:50%;background:radial-gradient(circle,rgba(255,226,140,.6) 0,rgba(240,190,80,0) 68%);animation:pulse 2.2s ease-in-out infinite}
+.fx .pe{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff 0 14%,#fbf7f0 32%,#e6ddd2 66%,#bfb2a2 100%);box-shadow:0 0 0 1px rgba(120,100,80,.25),0 0 10px 3px rgba(255,255,255,.9);z-index:2}
+.fx .pe::after{content:'';position:absolute;left:6px;top:5px;width:8px;height:6px;border-radius:50%;background:#fff;transform:rotate(-30deg)}
+.fx .st{width:38px;height:38px;background:#fff;z-index:3;clip-path:polygon(50% 0,57% 43%,100% 50%,57% 57%,50% 100%,43% 57%,0 50%,43% 43%);filter:drop-shadow(0 0 2px #c9922c) drop-shadow(0 0 8px #e8b54a);animation:tw 1.4s ease-in-out infinite;opacity:0}
+.fx .st:nth-child(2){margin:-40px 0 0 36px}
+.fx .st:nth-child(3){margin:30px 0 0 -38px;width:28px;height:28px;animation-delay:.45s}
+.fx .st:nth-child(4){margin:-28px 0 0 -40px;width:22px;height:22px;animation-delay:.9s}
+.fx .st:nth-child(5){margin:34px 0 0 38px;width:30px;height:30px;animation-delay:.7s}
+.fx .st:nth-child(6){margin:-6px 0 0 6px;width:50px;height:50px;animation-delay:.2s}
+#wImg.nopearl .pe{display:none}
+/* Plateau gagné : on montre le plateau de 6 huîtres, avec les étincelles autour (sans la perle) */
+#s-win{--k:1}#s-win .res-img{height:calc(240px*(.45 + .55*var(--k)))}
+#s-win .oyw.plat .res-img{height:auto;width:calc(min(310px,82vw)*(.5 + .5*var(--k)))}
+#s-win .oyw.plat.tee .res-img{width:calc(min(250px,66vw)*(.5 + .5*var(--k)))}
+#s-win .sp{min-height:calc(14px*var(--k))}#s-win.scr{padding-top:calc(env(safe-area-inset-top) + 8px + 14px*var(--k))}
+.oyw.plat .fx{left:50%;top:50%}.oyw.plat .pe,.oyw.plat .halo{display:none}
+.oyw.plat .st:nth-child(2){margin:-120px 0 0 110px}.oyw.plat .st:nth-child(3){margin:95px 0 0 -125px}
+.oyw.plat .st:nth-child(4){margin:-105px 0 0 -120px}.oyw.plat .st:nth-child(5){margin:105px 0 0 120px}.oyw.plat .st:nth-child(6){margin:-20px 0 0 140px;width:40px;height:40px}
+@keyframes pulse{0%,100%{transform:translate(-50%,-50%) scale(.75);opacity:.55}50%{transform:translate(-50%,-50%) scale(1.15);opacity:1}}
+@keyframes tw{0%,100%{opacity:0;transform:translate(-50%,-50%) scale(.2) rotate(0)}45%{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(45deg)}70%{opacity:.2}}
+@media (prefers-reduced-motion:reduce){.fx .halo,.fx .st{animation:none}.fx .st{opacity:0}}
+.small{font:500 13.5px/1.45 Inter;color:var(--mut);text-align:center}
+.share-note{font:500 13px/1.45 Inter;color:var(--mut);text-align:center;margin-top:8px}
+/* ordinateur : le jeu dans le cadre du poster */
+/* Accueil : tient toujours sur l'écran. --k = 1 en taille normale ; le script le baisse sur les petits écrans
+   (lots surtout, Gentleman un peu, espacements), seulement si besoin. */
+#s-home{--k:1}
+#s-home .masc{height:calc(200px*(.5 + .5*var(--k)));margin:calc(12px*var(--k)) 0 calc(6px*var(--k))}
+#s-home .acc{font:600 calc(19px*(.84 + .16*var(--k)))/1.3 Inter;margin-bottom:calc(12px*var(--k))}
+#s-home .lot{padding:calc(11px*var(--k)) 4px calc(10px*var(--k));font-size:calc(12px*(.85 + .15*var(--k)))}
+#s-home .lot b{font-size:calc(30px*(.55 + .45*var(--k)));margin-bottom:calc(3px*var(--k))}
+#s-home .cart{margin-top:calc(16px*var(--k))}
+#s-home .sp{min-height:calc(14px*var(--k))}
+#s-home .brand{margin-top:calc(12px*var(--k))}
+#s-home.scr{padding-top:calc(env(safe-area-inset-top) + 8px + 14px*var(--k));padding-bottom:calc(env(safe-area-inset-bottom) + 8px + 10px*var(--k))}
+#s-home .ttl{font-size:calc(46px*(.86 + .14*var(--k)))}
+.frame{display:none}
+@media (min-width:700px){
+  body{background:#e9dcc6;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:28px 0}
+  .app{width:430px;min-height:0;height:860px;background:var(--cream);border:6px solid var(--navy);border-radius:26px;overflow:hidden}
+  .scr{min-height:0;height:100%;padding:34px 38px 30px;overflow:auto}
+  /* cadre rouge du poster retiré (22/10) : seule la bordure bleue reste, comme sur téléphone */
+}
+</style></head><body>
+<div class="app" id="app">
+<svg class="frame" id="frame" aria-hidden="true"></svg>
+
+<!-- 1 · Le scan -->
+<section class="scr on" id="s-home">
+  <div class="hd"></div>
+  <img class="masc" src="club/gentleman.webp" alt="Le Gentleman Oyster de Drevici">
+  <div class="tx acc">Ouvre l'huître.<br>Trouve la perle.<br>Gagne l'un de ces lots :</div>
+  <div class="lots" id="lots"><div class="lot"><b>1</b>huître<br>offerte</div><div class="lot"><b>6</b>huîtres<br>(un plateau)</div><div class="lot"><b>1</b>T-shirt<br>Drevici</div></div>
+  <div id="inviteBox"></div>
+  <button class="cart" data-go="form"></button>
+  <div class="sp"></div>
+  <div class="legal">Jeu gratuit, sans obligation d'achat · 1 partie par personne<br><a href="free-oyster-reglement">Règlement</a></div>
+  <div class="ft"></div>
+</section>
+
+<!-- 2 · L'inscription -->
+<section class="scr" id="s-form">
+  <div class="hd"></div>
+  <form id="f" novalidate style="width:100%;margin-top:30px">
+    <div class="two"><label class="fld"><small>Prénom</small><input name="first" autocomplete="given-name" placeholder="Claire" required></label><label class="fld"><small>Nom</small><input name="last" autocomplete="family-name" placeholder="Martin" required></label></div>
+    <label class="fld"><small>Email</small><input name="email" type="email" inputmode="email" autocomplete="email" placeholder="vous@exemple.fr" required></label>
+    <label class="fld"><small>Téléphone</small><input name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="06 12 34 56 78" required></label>
+    <input class="hp" name="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <label class="cv2"><div class="row"><input type="checkbox" name="optin"><div style="min-width:0"><div class="t">Je rejoins le Club Drevici</div>
+      <ul><li><svg class="star" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0 L9.4 6.6 L16 8 L9.4 9.4 L8 16 L6.6 9.4 L0 8 L6.6 6.6Z"/></svg>Carte de membre</li><li><svg class="star" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0 L9.4 6.6 L16 8 L9.4 9.4 L8 16 L6.6 9.4 L0 8 L6.6 6.6Z"/></svg>Coupe de champagne offerte</li></ul></div><span class="mw"><span class="mc"><img class="mini" src="club/email/carte-navy.jpg" alt="Carte du Club Drevici"></span></span></div>
+      <div class="ok">J'accepte de recevoir les offres de Drevici.</div></label>
+    <div class="nochk">Sans cette case : seulement votre lot si vous gagnez.</div>
+    <div class="evin">L'abus d'alcool est dangereux pour la santé.</div>
+    <div class="err" id="ferr"></div>
+    <button class="cart" type="submit" id="fgo" style="margin-top:6px"></button>
+  </form>
+  <div class="sp"></div>
+  <div class="legal">Vos données restent chez Drevici.<br><a href="confidentialite">Vos données</a> · <a href="free-oyster-reglement">Règlement</a></div>
+  <div class="ft"></div>
+</section>
+
+<!-- 3 · Le choix -->
+<section class="scr" id="s-pick">
+  <div class="hd"></div>
+  <div class="sp"></div>
+  <div class="pick">
+    <button style="left:8%;top:0;height:170px;transform:rotate(-16deg)" data-pick aria-label="Huître 1"><img class="br" src="jeu/huitre-fermee.webp" alt=""></button>
+    <button style="right:8%;top:6px;height:170px;transform:rotate(14deg)" data-pick aria-label="Huître 2"><img class="br2" src="jeu/huitre-fermee.webp" alt=""></button>
+    <button style="left:50%;top:150px;height:210px;margin-left:-62px;transform:rotate(-3deg)" class="glow" data-pick aria-label="Huître 3"><img class="br3" src="jeu/huitre-fermee.webp" alt=""></button>
+  </div>
+  <div class="tx" style="font:500 16px Inter">Une perle se cache dans l'une d'elles.</div>
+  <div class="sp"></div>
+  <div class="ft"></div>
+</section>
+
+<!-- 4 · L'ouverture -->
+<section class="scr" id="s-open">
+  <div class="hd"></div>
+  <div class="sp"></div>
+  <div class="stage" id="stage">
+    <svg class="wv l" width="54" height="70" viewBox="0 0 54 70"><path d="M8 52 Q18 36 12 14 M24 58 Q36 40 30 14 M40 62 Q54 42 48 18" fill="none" stroke="#1a2540" stroke-width="2.4" stroke-linecap="round" opacity=".55"/></svg>
+    <div class="oy" id="oy"><img id="oyImg" src="jeu/huitre-fermee.webp" alt="Huître fermée"></div>
+    <svg class="wv r" width="54" height="70" viewBox="0 0 54 70"><path d="M8 52 Q18 36 12 14 M24 58 Q36 40 30 14 M40 62 Q54 42 48 18" fill="none" stroke="#1a2540" stroke-width="2.4" stroke-linecap="round" opacity=".55"/></svg>
+  </div>
+  <div class="track" id="track"><div class="fill" id="fill"></div><div class="hint" id="hint">Glisse le couteau →</div><div class="knob" id="knob"><img src="jeu/couteau.webp" alt=""></div></div>
+  <div class="small" style="margin-top:10px">Avec le pouce, jusqu'au bout.</div>
+  <div class="sp"></div>
+  <div class="ft"></div>
+</section>
+
+<!-- 5 · Gagné -->
+<section class="scr" id="s-win">
+  <div class="hd"></div>
+  <div class="sp"></div>
+  <div class="oyw" id="wImg"><img class="res-img" src="jeu/huitre-perle.webp" alt="Huître ouverte avec une perle">
+    <div class="fx" aria-hidden="true"><div class="halo"></div><div class="st"></div><div class="st"></div><div class="st"></div><div class="st"></div><div class="st"></div><div class="pe"></div></div></div>
+  <div class="big" id="wPrize">Une huître offerte</div>
+  <div class="tx" style="font:500 14px Inter;margin:2px 0 10px" id="wShow">Montrez ce code au comptoir</div>
+  <div class="tick"><div class="c" id="wCode">PERLE-····</div><small id="wValid">Valable jusqu'au <b id="wUntil">—</b></small></div>
+  <div style="width:100%;margin-top:14px"><a class="btn" href="book" id="wBook">Réserver une table</a><a class="btn l" href="https://www.instagram.com/drevicioysterbar/" target="_blank" rel="noopener">Suivre @drevicioysterbar</a></div>
+  <div class="sp"></div>
+  <div class="ft"></div>
+</section>
+
+<!-- 6 · Perdu -->
+<section class="scr" id="s-lose">
+  <div class="hd"></div>
+  <div class="sp"></div>
+  <img class="res-img s" src="jeu/huitre-ouverte.webp" alt="Huître ouverte, sans perle">
+  <div class="big" id="lBig">Mais une coupe<br>vous attend</div>
+  <div class="tx" style="font:500 14px/1.45 Inter;margin:6px 4px 14px" id="lText">Vous restez une perle : membre du Club Drevici, une coupe vous est offerte à votre premier repas.</div>
+  <div style="width:100%"><a class="btn" href="./?carte=1" data-card>Voir ma carte du club</a><button class="btn l" data-share>Faire jouer un ami</button><a class="btn l" href="https://www.instagram.com/drevicioysterbar/" target="_blank" rel="noopener">Suivre @drevicioysterbar</a></div>
+  <div class="share-note" data-bonusnote></div>
+  <div class="sp"></div>
+  <div class="ft"></div>
+</section>
+
+<!-- Déjà joué / partie bonus / jeu terminé -->
+<section class="scr" id="s-done">
+  <div class="hd"></div>
+  <div class="sp"></div>
+  <img src="club/gentleman-like.webp" alt="" style="height:190px;margin-bottom:10px">
+  <div class="big" id="dTitle">Vous avez déjà joué</div>
+  <div class="tx" style="margin:8px 6px 14px" id="dText"></div>
+  <div id="dCode"></div>
+  <div style="width:100%" id="dBtns"></div>
+  <div class="share-note" data-bonusnote></div>
+  <div class="sp"></div>
+  <div class="ft"></div>
+</section>
+<div class="flash" id="flash"></div>
+</div>
+
+<script>
+// ═══ Réglages ═══
+const JEU_SLUG = 'drevici-paris';                 // copie de test (préview) ; publie-drevici.py met 'drevici-paris'
+const API = 'https://resa.beltab.app';
+const KEY = 'jeu_' + JEU_SLUG;
+const QS = new URLSearchParams(location.search);
+const AMI = (QS.get('ami') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+let SRC = (QS.get('src') || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 40);
+try { if (SRC) localStorage.setItem('beltab_src', JSON.stringify({ code: SRC, t: Date.now() })); else { const o = JSON.parse(localStorage.getItem('beltab_src') || 'null'); if (o && o.code && Date.now() - o.t < 7 * 864e5) SRC = o.code; } } catch (_) {}
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const store = { get() { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (_) { return null; } }, set(v) { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (_) {} } };
+// Mode test (préview seulement) : ?test=gagne | plateau | tshirt | perdu | hasard
+// Rien n'est envoyé au serveur ni gardé sur le téléphone : on rejoue à l'infini.
+// À table : QR de la petite carte (…CARTE-TABLE…) → lots du repas, code valable pour ce repas.
+const TABLE = /CARTE-TABLE/.test(SRC) || /[?&]table=1/.test(location.search);
+const TEST = /preview|localhost|127\.0\.0\.1/.test(location.host) ? (QS.get('test') || '').toLowerCase() : '';
+let ME = TEST ? null : (store.get() || null);   // {t, ref_code, first, bonus_used, plays_left, club}
+let RES = null;                  // résultat de la partie en cours
+
+// ═══ Décor (poster) ═══
+const ANCHOR = `<svg viewBox="0 0 340 362" width="30" height="32" aria-hidden="true"><g transform="translate(0,362) scale(.1,-.1)" fill="#9F2E1F"><path d="M1585 3280 c-59 -23 -143 -94 -167 -141 -50 -100 -53 -114 -52 -204 0 -81 3 -96 33 -155 43 -85 72 -115 154 -156 l67 -34 0 -106 0 -106 -189 4 c-163 3 -192 5 -208 21 -23 20 -72 23 -95 5 -53 -44 -66 -139 -25 -199 33 -49 62 -56 119 -30 42 19 65 21 222 21 l176 0 0 -654 0 -655 -22 -15 c-29 -20 -107 -21 -202 -1 -180 37 -350 164 -451 335 -47 81 -98 204 -88 214 4 3 22 6 40 6 35 0 73 15 73 28 0 4 -18 30 -41 57 -70 86 -87 108 -145 185 -64 86 -94 120 -105 120 -22 0 -119 -450 -105 -485 9 -24 31 -18 77 20 28 24 45 33 52 26 6 -6 18 -41 28 -78 52 -201 128 -340 259 -473 114 -116 190 -163 380 -236 168 -64 207 -84 246 -126 32 -34 84 -122 84 -142 0 -6 4 -17 9 -25 8 -12 12 -12 25 -2 9 8 16 22 16 33 0 30 38 96 78 135 36 34 123 83 150 83 21 0 224 82 262 105 19 12 55 34 80 48 64 36 191 160 245 240 54 81 105 188 130 272 10 33 25 84 34 112 l16 53 35 -24 c48 -33 76 -40 84 -21 11 31 -38 346 -66 423 -31 83 -43 76 -183 -113 -33 -44 -79 -104 -103 -134 -40 -50 -42 -54 -25 -67 10 -7 39 -14 66 -14 26 0 47 -2 47 -5 0 -23 -51 -145 -88 -209 -88 -153 -253 -286 -410 -330 -88 -24 -241 -34 -253 -15 -10 15 -11 993 -2 1207 l5 122 169 0 c130 0 178 -4 208 -16 54 -21 99 -15 123 17 43 58 40 140 -8 190 -33 35 -70 37 -133 9 -37 -17 -65 -20 -207 -20 l-164 0 1 101 1 100 37 22 c20 12 49 29 64 37 37 18 92 87 117 146 30 69 37 176 16 249 -34 119 -134 224 -241 252 -73 19 -190 16 -250 -7z m238 -188 c102 -69 104 -238 4 -312 -33 -25 -51 -30 -94 -30 -30 0 -66 6 -81 14 -62 32 -112 113 -112 178 1 72 66 160 128 174 15 3 32 7 37 9 25 6 83 -10 118 -33z"/></g></svg>`;
+const SPEAR = (w, flip) => `<svg width="${w}" height="12" viewBox="0 0 ${w} 12" aria-hidden="true" style="${flip ? 'transform:scaleX(-1)' : ''}"><path d="M0 5.6 H${w - 46} C${w - 34} 5.6 ${w - 26} 2.2 ${w - 16} 2.2 C${w - 10} 2.2 ${w - 6} 3.8 ${w - 3} 4.2 A1.8 1.8 0 0 1 ${w - 3} 7.8 C${w - 6} 8.2 ${w - 10} 9.8 ${w - 16} 9.8 C${w - 26} 9.8 ${w - 34} 6.4 ${w - 46} 6.4 H0 Z" fill="#1a2540"/></svg>`;
+const UNDER = `<div class="under" aria-hidden="true"><i></i><svg viewBox="0 0 20 9"><path d="M0 4.5 Q10 0 20 4.5 Q10 9 0 4.5Z" fill="#1a2540"/></svg><i></i></div>`;
+const CART = txt => `<svg viewBox="0 0 290 60" preserveAspectRatio="none" aria-hidden="true">${[[0, '#8a1b1b'], [4, '#f4e6d1'], [7, '#0d255c']].map(([d, c]) => { const w = 290, h = 60, R = h * .2, p = R + d, k = Math.sqrt(p * p - d * d); return `<path fill="${c}" d="M${k},${d} H${w - k} A${p},${p} 0 0 0 ${w - d},${k} V${h - k} A${p},${p} 0 0 0 ${w - k},${h - d} H${k} A${p},${p} 0 0 0 ${d},${h - k} V${k} A${p},${p} 0 0 0 ${k},${d} Z"/>`; }).join('')}</svg><span>${txt}</span>`;
+const TITLES = { home: 'FREE OYSTER', form: 'AVANT DE JOUER', pick: 'CHOISIS-EN UNE', open: 'OUVRE-LA !', win: 'GAGNÉ !', lose: 'PAS DE PERLE…', done: 'FREE OYSTER' };
+for (const s of $$('.scr')) {
+  const k = s.id.slice(2);
+  s.querySelector('.hd').outerHTML = `<div class="orn">${SPEAR(104)}${ANCHOR}${SPEAR(104, 1)}</div><div class="tw"><h1 class="ttl" data-ttl>${TITLES[k]}</h1>${UNDER}</div>`;
+  s.querySelector('.ft').outerHTML = `<div class="brand"><b>DREVICI OYSTER</b><i>8 Rue Biot, 75017 <em>Paris</em></i></div>`;
+}
+$('#s-home .cart').innerHTML = CART('JOUER · 10 SECONDES');
+$('#fgo').innerHTML = CART('JE JOUE');
+// Cadre du poster (ordinateur uniquement)
+(function frame() {
+  const W = 406, H = 836, t = 4, s = 6, R = 20, h = t / 2, L = h, T = h, Rr = W - h, B = H - h;
+  $('#frame').setAttribute('width', W); $('#frame').setAttribute('height', H); $('#frame').setAttribute('viewBox', `0 0 ${W} ${H}`);
+  $('#frame').innerHTML = `<path fill="none" stroke="#8a1b1b" stroke-width="${t}" d="M${L} ${T + 2 * s + R} H${L + s} V${T + s + R} A${R} ${R} 0 0 0 ${L + s + R} ${T + s} H${L + 2 * s + R} V${T} H${Rr - 2 * s - R} V${T + s} H${Rr - s - R} A${R} ${R} 0 0 0 ${Rr - s} ${T + s + R} V${T + 2 * s + R} H${Rr} V${B - 2 * s - R} H${Rr - s} V${B - s - R} A${R} ${R} 0 0 0 ${Rr - s - R} ${B - s} H${Rr - 2 * s - R} V${B} H${L + 2 * s + R} V${B - s} H${L + s + R} A${R} ${R} 0 0 0 ${L + s} ${B - s - R} V${B - 2 * s - R} H${L} Z"/>`;
+})();
+
+// ═══ Accueil : ajuste la taille pour que tout tienne sans défiler ═══
+function fitHome(id) {
+  const s = $(id || '#s-home'); if (!s.classList.contains('on')) return;
+  const desk = matchMedia('(min-width:700px)').matches;
+  let k = 1; s.style.setProperty('--k', k);
+  const avail = () => desk ? s.clientHeight : innerHeight;
+  while (s.scrollHeight > avail() + 1 && k > .05) { k = Math.round((k - .05) * 100) / 100; s.style.setProperty('--k', k); }
+}
+fitHome();
+if (document.fonts) document.fonts.ready.then(() => fitHome());
+let fitT; addEventListener('resize', () => { clearTimeout(fitT); fitT = setTimeout(() => { fitHome(); fitHome('#s-win'); }, 120); });
+
+// ═══ Navigation ═══
+function show(k) {
+  $$('.scr').forEach(s => s.classList.toggle('on', s.id === 's-' + k));
+  document.querySelector('.scr.on').scrollTop = 0; window.scrollTo(0, 0);
+  if (k === 'open') armKnife();
+  if (k === 'home') fitHome();
+}
+$$('[data-go]').forEach(b => b.addEventListener('click', () => {
+  if (ME && ME.t && ME.plays_left > 0) return show('pick');   // partie bonus : pas besoin de ressaisir
+  show(b.dataset.go);
+}));
+
+// Statistiques du site (même système que le site : visites et clics, sans cookie)
+const SID = Math.random().toString(36).slice(2, 12);
+const track = (k, n) => { if (TEST) return; try { navigator.sendBeacon(API + '/t', JSON.stringify({ slug: JEU_SLUG, sid: SID, k, n, src: SRC, p: '/free-oyster' })); } catch (_) {} };
+track('view');
+
+// ═══ Invitation d'un ami ═══
+if (AMI) fetch(`${API}/jeu/ami?slug=${JEU_SLUG}&c=${AMI}`).then(r => r.json()).then(d => {
+  if (d.ok && d.first) $('#inviteBox').innerHTML = `<div class="invite">${esc(d.first)} vous invite à jouer 🦪</div>`;
+}).catch(() => {});
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+// ═══ Formulaire → la partie est tirée côté serveur ═══
+$('#f').addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = e.target, v = n => (f.elements[n].value || '').trim(), err = $('#ferr'), go = $('#fgo');
+  err.textContent = '';
+  if (!v('first')) return err.textContent = 'Votre prénom, s\'il vous plaît.';
+  if (!v('last')) return err.textContent = 'Votre nom, s\'il vous plaît.';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v('email'))) return err.textContent = 'Cet email ne semble pas valide.';
+  if (v('phone').replace(/\D/g, '').length < 9) return err.textContent = 'Ce numéro de téléphone ne semble pas valide.';
+  go.disabled = true;
+  try {
+    const d = await play({ first: v('first'), last: v('last'), email: v('email'), phone: v('phone'), optin: f.elements.optin.checked, hp: v('hp'), ami: AMI });
+    go.disabled = false;
+    if (!d) return;
+    track('click', 'jeu_inscrit');
+    show('pick');
+  } catch (x) { go.disabled = false; err.textContent = 'Connexion impossible, réessayez.'; }
+});
+async function play(body) {
+  if (TEST) return testPlay(body);
+  const r = await fetch(API + '/jeu/play', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ slug: JEU_SLUG, src: SRC, ...body }) });
+  const d = await r.json();
+  if (d.t) { ME = { t: d.t, ref_code: d.ref_code, first: d.first, bonus_used: !!d.bonus_used, plays_left: d.ok ? d.plays_left : 0, club: !!(d.club && d.club.code) }; store.set(ME); }
+  if (d.club && d.club.code) { try { const k = 'club_' + JEU_SLUG, old = JSON.parse(localStorage.getItem(k) || 'null'); if (!old || old.code !== d.club.code) localStorage.setItem(k, JSON.stringify({ at: Date.now(), code: d.club.code, no: d.club.no, first: d.club.first || d.first })); } catch (_) {} }
+  if (!d.ok) {
+    if (d.reset) { ME = null; store.set(null); show('form'); return null; }
+    if (d.closed) { doneScreen('closed'); return null; }
+    if (d.done) { await refreshMe(); doneScreen('done'); return null; }
+    $('#ferr').textContent = d.error || 'Une erreur est survenue, réessayez.'; return null;
+  }
+  RES = d; return d;
+}
+
+// ═══ Choix d'une huître ═══
+$$('[data-pick]').forEach(b => b.addEventListener('click', async () => {
+  if (!RES) {
+    // partie bonus (joueur reconnu) : la partie est tirée maintenant
+    try { const d = await play({ t: ME && ME.t }); if (!d) return; } catch (_) { return; }
+  }
+  show('open');
+}));
+
+// ═══ Ouverture : glisser le couteau, l'huître tremble de plus en plus ═══
+let armed = false;
+function armKnife() {
+  const tr = $('#track'), kn = $('#knob'), fill = $('#fill'), oy = $('#oy'), st = $('#stage'), hint = $('#hint');
+  st.classList.remove('open'); $('#oyImg').src = 'jeu/huitre-fermee.webp';
+  kn.style.transform = ''; fill.style.width = '64px'; hint.style.opacity = 1; $$('.wv').forEach(w => w.style.opacity = 0);
+  if (armed) return; armed = true;
+  let drag = false, x0 = 0, p = 0, lastBuzz = 0, raf = 0, done = false;
+  const max = () => tr.clientWidth - kn.offsetWidth - 8;
+  const shake = () => {
+    if (!drag && p < 1) { oy.style.transform = ''; return; }
+    const a = 1 + p * 7, t = performance.now() / 1000;
+    oy.style.transform = `translate(${Math.sin(t * 52) * a}px,${Math.cos(t * 47) * a * .35}px) rotate(${Math.sin(t * 38) * a * .45}deg)`;
+    raf = requestAnimationFrame(shake);
+  };
+  const set = v => {
+    p = Math.max(0, Math.min(1, v)); const x = p * max();
+    kn.style.transform = `translateX(${x}px)`; fill.style.width = (x + 64) + 'px'; hint.style.opacity = Math.max(0, 1 - p * 3);
+    $$('.wv').forEach(w => w.style.opacity = Math.min(.9, p * 1.4));
+    const now = performance.now();
+    if (navigator.vibrate && now - lastBuzz > 120 - p * 80) { navigator.vibrate(8 + Math.round(p * 22)); lastBuzz = now; }
+  };
+  kn.addEventListener('pointerdown', e => { if (done) return; drag = true; x0 = e.clientX - p * max(); kn.setPointerCapture(e.pointerId); cancelAnimationFrame(raf); shake(); });
+  kn.addEventListener('pointermove', e => { if (!drag) return; set((e.clientX - x0) / max()); if (p >= .985) finish(); });
+  const up = () => { if (!drag || done) return; drag = false; if (p < .985) { const back = () => { if (drag) return; set(p - .06); if (p > 0) requestAnimationFrame(back); else { $$('.wv').forEach(w => w.style.opacity = 0); } }; back(); } };
+  kn.addEventListener('pointerup', up); kn.addEventListener('pointercancel', up);
+  function finish() {
+    done = true; drag = false; cancelAnimationFrame(raf); oy.style.transform = '';
+    if (navigator.vibrate) navigator.vibrate([30, 40, 60]);
+    $('#flash').classList.add('on'); setTimeout(() => $('#flash').classList.remove('on'), 260);
+    const win = RES && RES.result !== 'perdu';
+    $('#oyImg').src = win ? 'jeu/huitre-perle.webp' : 'jeu/huitre-ouverte.webp';
+    st.classList.add('open'); $$('.wv').forEach(w => w.style.opacity = 0);
+    track('click', win ? 'jeu_gagne_' + RES.result : 'jeu_perdu');
+    setTimeout(() => { result(); done = false; p = 0; armed = true; }, 1300);
+  }
+  // re-armement pour une partie bonus
+  armKnife.reset = () => { done = false; p = 0; };
+}
+
+// ═══ Résultat ═══
+const until = d => new Date(d).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+const hhmm = d => new Date(d).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace(':', ' h ');
+const validHTML = (d, mode) => mode === 'table' ? `Valable <b>pour ce repas</b>, jusqu'à ${hhmm(d)}` : `Valable jusqu'au <b>${until(d)}</b>`;
+if (TABLE) {
+  $('#lots').innerHTML = '<div class="lot"><b>1</b>huître<br>bonus</div><div class="lot"><b>3</b>huîtres<br>offertes</div><div class="lot"><b>1</b>T-shirt<br>Drevici</div>';
+  document.querySelector('#s-home .acc').innerHTML = 'Ouvre l\'huître.<br>Trouve la perle.<br>Gagne pendant ton repas :';
+}
+function result() {
+  const d = RES; RES = null; if (armKnife.reset) armKnife.reset();
+  bonusNotes();
+  if (d && d.result !== 'perdu') {
+    const plat = d.result === 'plateau', tee = d.result === 'tshirt', trio = d.result === 'trio', bonus = d.result === 'bonus', im = $('#wImg img');
+    $('#wImg').classList.toggle('plat', plat || tee || trio); $('#wImg').classList.toggle('tee', tee || trio);
+    // huître bonus (à table) : une huître ouverte, sans perle ; 3 huîtres : trois huîtres ouvertes
+    im.src = plat ? 'jeu/plateau.webp' : tee ? 'jeu/tshirt.webp' : trio ? 'jeu/trio.webp' : bonus ? 'jeu/huitre-ouverte.webp' : 'jeu/huitre-perle.webp';
+    im.alt = plat ? 'Plateau de 6 huîtres' : tee ? 'T-shirt Drevici' : trio ? 'Trois huîtres ouvertes' : bonus ? 'Une huître ouverte' : 'Huître ouverte avec une perle';
+    $('#wImg').classList.toggle('nopearl', bonus);
+    $('#wPrize').textContent = d.prize;
+    $('#wValid').innerHTML = validHTML(d.expires_at, d.mode); $('#wShow').textContent = d.mode === 'table' ? 'Montrez ce code au serveur' : 'Montrez ce code au comptoir';
+    $('#wBook').style.display = d.mode === 'table' ? 'none' : '';
+    $('#wCode').textContent = d.code;
+    $('#wBook').href = 'book?jeu=' + encodeURIComponent(d.code);
+    show('win'); fitHome('#s-win'); im.decode && im.decode().then(() => fitHome('#s-win')).catch(() => {});
+  } else {
+    const m = ME && ME.club;
+    $('#lBig').innerHTML = m ? 'Mais une coupe<br>vous attend' : 'Vous restez<br>une perle';
+    $('#lText').textContent = m ? 'Vous restez une perle : membre du Club Drevici, une coupe vous est offerte à votre premier repas.' : 'Pas de perle cette fois. Faites jouer un ami avec votre lien : vous rejouez une fois.';
+    show('lose');
+  }
+  clubButtons();
+}
+// « Voir ma carte du club » seulement pour les membres ; les autres n'ont que « Faire jouer un ami » et Instagram.
+function clubButtons() {
+  const m = ME && ME.club;
+  $$('[data-card]').forEach(a => { a.style.display = m ? '' : 'none'; });
+  // sans le bouton du club, « Faire jouer un ami » devient le bouton principal
+  $$('#s-lose [data-share]').forEach(b => b.classList.toggle('l', !!m));
+}
+
+// ═══ Clics comptés (avec la source du QR) : Instagram, Réserver ═══
+document.addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a) return;
+  if (/instagram\.com/.test(a.href)) track('click', 'jeu_insta');
+  else if (/\/book/.test(a.href)) track('click', 'jeu_resa');
+}, true);
+
+// ═══ Parrainage : partager son lien ═══
+const shareUrl = () => location.origin + location.pathname + '?ami=' + encodeURIComponent((ME && ME.ref_code) || '');
+$$('[data-share]').forEach(b => b.addEventListener('click', async () => {
+  const url = shareUrl(), text = 'Free Oyster chez Drevici 🦪 Ouvre une huître, trouve la perle et gagne une huître, un plateau ou un T-shirt. 10 secondes, c\'est gratuit :';
+  track('click', 'jeu_partage');
+  if (navigator.share) { try { await navigator.share({ title: 'Free Oyster · Drevici Oyster', text, url }); return; } catch (_) { return; } }
+  location.href = 'https://wa.me/?text=' + encodeURIComponent(text + ' ' + url);
+}));
+function bonusNotes() {
+  const t = !ME ? '' : ME.plays_left > 0 ? '' : ME.bonus_used ? 'Merci pour vos invitations !' : 'Un ami joue avec votre lien ? Vous rejouez une fois.';
+  $$('[data-bonusnote]').forEach(n => n.textContent = t);
+}
+
+// ═══ Déjà joué / partie bonus / jeu terminé ═══
+async function refreshMe() {
+  if (!ME || !ME.t) return null;
+  try { const d = await (await fetch(`${API}/jeu/me?slug=${JEU_SLUG}&t=${ME.t}`)).json(); if (!d.ok) return null; Object.assign(ME, { first: d.first, ref_code: d.ref_code, plays_left: d.plays_left, bonus_used: d.bonus_used, last: d.last, friends: d.friends, club: !!d.club }); store.set(ME); return d; } catch (_) { return null; }
+}
+function doneScreen(kind) {
+  bonusNotes();
+  const T = $('#dTitle'), X = $('#dText'), C = $('#dCode'), B = $('#dBtns');
+  C.innerHTML = ''; B.innerHTML = '';
+  if (kind === 'closed') { T.textContent = 'Le jeu est terminé'; X.textContent = 'Merci d\'avoir joué ! Suivez-nous pour le prochain.'; B.innerHTML = `<a class="btn" href="https://www.instagram.com/drevicioysterbar/" target="_blank" rel="noopener">Suivre @drevicioysterbar</a>`; return show('done'); }
+  if (ME && ME.plays_left > 0) {
+    T.innerHTML = `${esc(ME.first || '')}, vous rejouez !`; X.textContent = 'Un ami a joué avec votre lien : voici votre partie bonus. Une seule fois.';
+    B.innerHTML = `<button class="cart" id="bonusGo">${CART('REJOUER')}</button>`;
+    $('#bonusGo').onclick = () => show('pick'); return show('done');
+  }
+  T.textContent = 'Vous avez déjà joué';
+  const l = ME && ME.last;
+  if (l && l.result !== 'perdu' && !l.redeemed && Date.parse(l.expires_at) > Date.now()) {
+    X.textContent = `Votre lot : ${l.prize.toLowerCase()}. Montrez ce code ${l.mode === 'table' ? 'au serveur' : 'au comptoir'}.`;
+    C.innerHTML = `<div class="tick" style="margin-bottom:14px"><div class="c">${esc(l.code)}</div><small>${validHTML(l.expires_at, l.mode)}</small></div>`;
+    B.innerHTML = `<a class="btn" href="book?jeu=${encodeURIComponent(l.code)}">Réserver une table</a><a class="btn l" href="https://www.instagram.com/drevicioysterbar/" target="_blank" rel="noopener">Suivre @drevicioysterbar</a>`;
+  } else {
+    // Parrainage seulement pour ceux qui n'ont rien gagné (un gagnant a déjà son lot).
+    const refer = ME && !ME.bonus_used && !(l && l.result !== 'perdu');
+    X.textContent = refer ? 'Une partie par personne. Faites jouer un ami avec votre lien : vous rejouerez une fois.' : (ME && ME.club ? 'Une partie par personne. Votre carte du club vous attend : une coupe offerte à votre premier repas.' : 'Une partie par personne. Merci d\'avoir joué !');
+    B.innerHTML = `${refer ? '<button class="btn" data-share2>Faire jouer un ami</button>' : ''}${ME && ME.club ? `<a class="btn${refer ? ' l' : ''}" href="./?carte=1">Voir ma carte du club</a>` : ''}<a class="btn l" href="https://www.instagram.com/drevicioysterbar/" target="_blank" rel="noopener">Suivre @drevicioysterbar</a>`;
+  }
+  $$('[data-share2]').forEach(b => b.onclick = () => document.querySelector('[data-share]').click());
+  show('done');
+}
+
+// ═══ Au chargement : joueur déjà connu sur ce téléphone ? ═══
+function testPlay(body) {
+  const lots = { huitre: 'Une huître offerte', plateau: 'Un plateau de 6 huîtres', tshirt: 'Un T-shirt Drevici', bonus: 'Une huître bonus', trio: '3 huîtres offertes' };
+  let res = (TABLE ? { gagne: 'bonus', bonus: 'bonus', trio: 'trio', plateau: 'trio', tshirt: 'tshirt', perdu: 'perdu' } : { gagne: 'huitre', huitre: 'huitre', plateau: 'plateau', tshirt: 'tshirt', perdu: 'perdu' })[TEST];
+  if (!res) { const r = Math.random(); res = TABLE ? (r < .0067 ? 'tshirt' : r < .073 ? 'trio' : r < .41 ? 'bonus' : 'perdu') : (r < .01 ? 'tshirt' : r < .03 ? 'plateau' : r < .13 ? 'huitre' : 'perdu'); }
+  ME = { t: '', ref_code: 'TEST00', first: body.first || 'Test', bonus_used: false, plays_left: 0, club: body.optin === true };
+  RES = { ok: true, result: res, prize: lots[res] || '', mode: TABLE ? 'table' : 'rue', code: res === 'perdu' ? null : 'PERLE-TEST', expires_at: new Date(Date.now() + (TABLE ? 4 * 36e5 : 7 * 864e5)).toISOString(), plays_left: 0 };
+  return RES;
+}
+if (TEST) {
+  // bandeau discret + formulaire déjà rempli, pour aller vite
+  document.body.insertAdjacentHTML('beforeend', '<div style="position:fixed;right:10px;top:calc(env(safe-area-inset-top) + 6px);background:#1a2540;color:#fff;font:600 10.5px Inter;border-radius:999px;padding:4px 9px;z-index:9;opacity:.8;white-space:nowrap">Mode test · rien n\'est enregistré</div>');
+  const f = $('#f'); f.elements.first.value = 'Test'; f.elements.last.value = 'Drevici'; f.elements.email.value = 'test@drevici.fr'; f.elements.phone.value = '06 00 00 00 00';
+}
+(async () => {
+  if (TEST || !ME || !ME.t) return;
+  const d = await refreshMe(); if (!d) return;
+  doneScreen('done');
+})();
+</script>
+</body></html>

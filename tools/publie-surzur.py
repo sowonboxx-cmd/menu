@@ -24,6 +24,7 @@ for f in FILES: shutil.copy2(os.path.join(SRC, f), os.path.join(DST, f))
 for d in DIRS: shutil.copytree(os.path.join(SRC, d), os.path.join(DST, d), dirs_exist_ok=True)
 os.makedirs(os.path.join(DST, 'studio'), exist_ok=True)
 shutil.copy2(os.path.join(SRC, 'studio', 'index.html'), os.path.join(DST, 'studio', 'index.html'))
+for x in ('qr-drevici.js', 'huitre-qr.svg'): shutil.copy2(os.path.join(SRC, 'studio', x), os.path.join(DST, 'studio', x))
 
 P = {
  'index.html': [
@@ -47,6 +48,7 @@ P = {
    ("const RESA_SLUG='drevici-paris';", f"const RESA_SLUG='{SLUG}';", 1),
    ("ADDRESS='8 rue Biot, 75017 Paris'", "ADDRESS='Pentes, 56450 Surzur'", 1),
    ("https://drevici.beltab.app/", HOST, 0),
+   ("const QR_SITE='https://drevici.beltab.app';", "const QR_SITE='" + HOST.rstrip('/') + "';", 1),
  ],
 }
 for f, pairs in P.items():
@@ -55,7 +57,8 @@ for f, pairs in P.items():
     open(p, 'w', encoding='utf-8').write(t)
 
 # Garde-fou : aucun réglage de Paris ne doit rester (sauf le club, commun, et des commentaires).
-ALLOWED = {('index.html', "const CLUB_SLUG = 'drevici-paris';")}
+ALLOWED = {('index.html', "const CLUB_SLUG = 'drevici-paris';"),
+           ('studio/index.html', "const JEU_SLUG='drevici-paris';")}   # le jeu Free Oyster est celui de Paris (club commun)
 bad = []
 for f in FILES + ['studio/index.html']:
     for i, line in enumerate(open(os.path.join(DST, f), encoding='utf-8'), 1):
