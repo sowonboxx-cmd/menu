@@ -1495,7 +1495,9 @@ async function loadPlat(){
   PT={dishes:d.data||[],orders:o.data||[],reviews:r.data||[],ok:true};
 }
 const ptCur=()=>PT.dishes.find(x=>x.status==='en_test')||null;
-const ptWaiter=src=>{const q=QRS.find(x=>x.code===src);return q&&q.owner||(src?String(src).replace(/^PLAT-TEST-SERVEUR-/,'').replace(/-\d+$/,'').toLowerCase().replace(/^./,c=>c.toUpperCase()):'Sans carte');};
+// Carte « maison » (sans prénom) : pas de commission
+const ptPaid=src=>{const q=QRS.find(x=>x.code===src);return !!(q&&q.owner&&q.support==='Serveur');};
+const ptWaiter=src=>{const q=QRS.find(x=>x.code===src);if(q&&!q.owner)return 'Maison';return q&&q.owner||(src?String(src).replace(/^PLAT-TEST-SERVEUR-/,'').replace(/-\d+$/,'').toLowerCase().replace(/^./,c=>c.toUpperCase()):'Sans carte');};
 const ptAvg=rs=>rs.length?rs.reduce((a,x)=>a+x.rating,0)/rs.length:0;
 const ptStars=n=>'★'.repeat(n)+'<span style="color:var(--cream2)">'+'★'.repeat(5-n)+'</span>';
 const ptAgo=t=>{const m=Math.round((Date.now()-new Date(t))/6e4);return m<1?'à l\'instant':m<60?'il y a '+m+' min':m<1440?'il y a '+Math.round(m/60)+' h':new Date(t).toLocaleDateString('fr-FR',{day:'numeric',month:'short'});};
@@ -1518,7 +1520,7 @@ function renderPlat(){
   const conf=PT.orders.filter(o=>o.status==='confirmed');
   const dishOf=id=>PT.dishes.find(d=>d.id===id)||{};
   // Commissions : commandes confirmées, par serveur, au tarif du plat
-  const by={};conf.filter(o=>new Date(o.created_at)>=week).forEach(o=>{const w=ptWaiter(o.src);(by[w]=by[w]||{n:0,eur:0}).n++;by[w].eur+=+(dishOf(o.plat_id).commission||0);});
+  const by={};conf.filter(o=>new Date(o.created_at)>=week&&ptPaid(o.src)).forEach(o=>{const w=ptWaiter(o.src);(by[w]=by[w]||{n:0,eur:0}).n++;by[w].eur+=+(dishOf(o.plat_id).commission||0);});
   const team=Object.entries(by).sort((a,b)=>b[1].n-a[1].n);
   const orderedIds=new Set(conf.map(o=>o.id));
   const dishCard=c?`<div class="pt-dish"><div class="ph" style="background-image:${c.photo?`url('${esc(c.photo)}')`:'url(../jeu/huitre-ouverte.webp)'}"></div><div><span class="pt-st en_test">En test</span><h3 style="margin-top:6px">${esc(c.name)}</h3><p>${esc(c.descr||'')}</p><p><b style="color:var(--ink)">${c.price_test!=null?eur(+c.price_test):'—'}</b>${c.price_normal!=null?` · <s>${eur(+c.price_normal)}</s> à la carte`:''}${c.commission!=null?` · ${eur(+c.commission)} pour le serveur`:''}</p></div></div>
