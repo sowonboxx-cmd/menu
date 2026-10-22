@@ -8,9 +8,9 @@
 --   · code valable pour ce repas seulement (4 heures)
 -- La partie est « à table » quand le QR scanné contient CARTE-TABLE (ex. FREE-OYSTER-CARTE-TABLE-1).
 
-alter table public.jeu_config add column if not exists t_bonus      numeric not null default 0.3333;
-alter table public.jeu_config add column if not exists t_trio       numeric not null default 0.0667;
-alter table public.jeu_config add column if not exists t_tshirt     numeric not null default 0.0067;
+alter table public.jeu_config add column if not exists t_bonus      numeric not null default 0.333333;
+alter table public.jeu_config add column if not exists t_trio       numeric not null default 0.066667;
+alter table public.jeu_config add column if not exists t_tshirt     numeric not null default 0.006667;
 alter table public.jeu_config add column if not exists t_tshirt_7j  int     not null default 1;
 alter table public.jeu_config add column if not exists t_valid_h    int     not null default 4;
 alter table public.jeu_plays  add column if not exists mode text not null default 'rue';   -- rue | table

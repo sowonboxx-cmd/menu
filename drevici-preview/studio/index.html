@@ -51,6 +51,13 @@ button{cursor:pointer;background:none}
 .cal small{color:#c9d2ea}
 .cal .more{color:var(--gold)}
 .top{display:flex;align-items:flex-start;gap:10px}
+.gbtn{display:inline-flex;align-items:center;gap:6px;margin-right:8px}
+.gd{background:#fff;border-radius:var(--r);padding:18px;margin-bottom:14px}.gd h2{font:700 21px/1.15 "Playfair Display",serif;margin:0 0 4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}.gd>p{margin:0 0 12px;font-size:13.5px;color:var(--mut);line-height:1.5}
+.gd .tg{font:800 10.5px Inter;letter-spacing:.06em;text-transform:uppercase;background:var(--gold-soft);color:#8a6416;border-radius:999px;padding:4px 9px}.gd .tg.t{background:#eceaf2;color:var(--mut)}
+.lotg{width:100%;border-collapse:collapse;font-size:14px;margin-bottom:10px}.lotg td{padding:9px 6px;border-top:1px solid #f0ebe0;vertical-align:middle}.lotg td:first-child{font-weight:700}.lotg td.r{text-align:right;white-space:nowrap;color:var(--mut)}
+.lotg input{width:64px;background:var(--paper);border-radius:10px;padding:7px 9px;font-weight:800;color:var(--navy);text-align:center}
+.gl{margin:6px 0 0;padding-left:18px;font-size:13.5px;line-height:1.6}.gl b{color:var(--navy)}
+.glinks{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.glinks a{background:var(--paper);border-radius:999px;padding:7px 12px;font-size:12.5px;font-weight:700}
 .plus{width:38px;height:38px;border-radius:50%;background:var(--gold);color:var(--ink);font-size:24px;font-weight:700;line-height:1;display:grid;place-items:center;flex:none}
 .week{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:12px}
 .week div{background:rgba(255,255,255,.1);border-radius:10px;text-align:center;padding:6px 0 7px;font-size:10px;font-weight:700}
@@ -472,7 +479,7 @@ a.x.resa{color:#fff;text-decoration:none}a.x.resa h3,a.x.resa .more{color:#fff}
 
   <!-- ═══════ SCANS QR ═══════ -->
   <main id="v-qr" hidden>
-    <div class="sub-hd"><a class="back" href="#home" aria-label="Retour">‹</a><div><h1>Scans QR <span class="demo" data-demo>Exemple</span></h1><p>Classés par campagne · touchez un code pour son détail · + pour en créer un</p></div><a class="plus" style="margin-left:auto" href="#qr-new" aria-label="Créer un code">+</a></div>
+    <div class="sub-hd"><a class="back" href="#home" aria-label="Retour">‹</a><div><h1>Scans QR <span class="demo" data-demo>Exemple</span></h1><p>Par campagne · touchez un code pour le détail</p></div><a class="pill-btn gbtn" style="margin-left:auto" href="#qr-guide">📖 Guide</a><a class="plus" href="#qr-new" aria-label="Créer un code">+</a></div>
     <div class="chips" id="qrChips"></div>
     <div class="chips" id="qrChips2"></div>
     <div id="qrCamps"></div>
@@ -480,6 +487,7 @@ a.x.resa{color:#fff;text-decoration:none}a.x.resa h3,a.x.resa .more{color:#fff}
       <div><div class="card"><h2>Scans par jour</h2><div class="chart" id="qrChart"></div><div class="clab" id="qrLab"></div></div></div></div>
   </main>
   <main id="v-qrd" hidden></main>
+  <main id="v-qrg" hidden></main>
 
   <!-- ═══════ CRÉER / MODIFIER UN CODE ═══════ -->
   <main id="v-qr-edit" hidden>
@@ -844,7 +852,7 @@ const GO='https://go.beltab.app/';
 const QR_SITE='https://drevici-preview.beltab.app';   // publie-drevici.py met https://drevici.beltab.app
 const JEU_SLUG='drevici-test';                         // parties du jeu Free Oyster (préview : copie de test)
 const QSTYLES=[['losange','Losanges','feuille'],['rond','Perles','rond'],['liquide','Liquide','feuille'],['barres','Barres','rond'],['etoile','Étoiles','feuille'],['goutte','Gouttes','feuille'],['croix','Croix','carre'],['pixel','Pixels','carre']];
-let JEU={players:[],plays:[],ev:[]}, QF2='Tous';
+let JEU={players:[],plays:[],ev:[]}, QF2='Tous', JCFG=null;
 const qrLink=q=>q&&q.path?QR_SITE+'/qr/'+q.path:GO+String(q&&q.code||'CODE').toLowerCase();
 const campOf=q=>q.campaign||q.category||'Autre';
 const qslug=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
@@ -870,6 +878,7 @@ async function loadQR(){
       sb.from('jeu_plays').select('src,result,redeemed_at,n').eq('client_slug',JEU_SLUG).limit(50000),
       sb.from('site_events').select('kind,name,src').eq('client_slug',JEU_SLUG).not('src','is',null).gte('at',since).limit(50000)]);
     JEU={players:pl.data||[],plays:py.data||[],ev:ev.data||[]};}catch(e){JEU={players:[],plays:[],ev:[]};}
+  try{const c=await sb.from('jeu_config').select('*').eq('client_slug',JEU_SLUG).maybeSingle();JCFG=c.data||null;}catch(e){JCFG=null;}
 }
 // Parcours d'un ou plusieurs codes : scans → joueurs → club → amis → Instagram / Réserver → lots
 function funnel(codes){
@@ -916,6 +925,33 @@ function renderQRHome(){
   document.getElementById('hcK').textContent=hc.conv;document.getElementById('hcSub').innerHTML=hc.pending?`<b style="color:var(--red)">${hc.pending} à valider</b>`:'ventes validées';
   const no=statsFor(QRS.filter(q=>q.category==='Plateaux Noël').map(q=>q.code));
   document.getElementById('noK').textContent=no.conv;document.getElementById('noSub').textContent=no.pending?no.pending+' à valider':'via les QR';
+}
+/* ═══ Guide des campagnes : ce qu'on gagne, comment, à quelle fréquence (modifiable) ═══ */
+const JDEF={p_huitre:.10,p_plateau:.02,p_tshirt:.01,valid_days:7,t_bonus:1/3,t_trio:1/15,t_tshirt:1/150,t_tshirt_7j:1,t_valid_h:4};
+const oneIn=p=>p>0?Math.round(1/p):0;
+function renderGuide(){
+  const c=Object.assign({},JDEF,JCFG||{}), edit=!!(JCFG&&SESSION);
+  const inp=(k,v)=>edit?`1 sur <input type="number" min="1" inputmode="numeric" data-jc="${k}" value="${oneIn(v)}">`:`1 sur <b>${oneIn(v)}</b>`;
+  const raw=(k,v,unit)=>edit?`<input type="number" min="1" inputmode="numeric" data-jr="${k}" value="${v}"> ${unit}`:`<b>${v}</b> ${unit}`;
+  const site=QR_SITE, t=(q,x)=>`<a href="${site}/free-oyster?test=${q}${x||''}" target="_blank" rel="noopener">${({gagne:'Huître',huitre:'Huître',plateau:'Plateau',tshirt:'T-shirt',perdu:'Perdu',bonus:'Huître bonus',trio:'3 huîtres'})[q]}</a>`;
+  document.getElementById('v-qrg').innerHTML=`<div class="sub-hd"><a class="back" href="#qr" aria-label="Retour">‹</a><div><h1>Guide des campagnes</h1><p>Ce que chaque QR fait gagner, comment, et à quelle fréquence${edit?' · les chances se modifient ici':''}</p></div></div>
+  ${!JCFG?'<div class="banner">ℹ️ <span>Chiffres par défaut affichés : ils deviennent modifiables une fois le jeu installé (sql/jeu-free-oyster-table.sql) et la session admin ouverte.</span></div>':''}
+  <div class="gd"><h2>Free Oyster · dans la rue <span class="tg">Jeu · en cours</span></h2><p>Les affiches A0 (DON'T SCAN !). QR : <b>/qr/free-oyster/affiche-&lt;rue&gt;-&lt;n&gt;</b> → le jeu « Ouvre l'huître ».</p>
+    <table class="lotg"><tr><td>🦪 Une huître offerte</td><td class="r">${inp('p_huitre',c.p_huitre)} parties</td></tr><tr><td>🍽 Un plateau de 6 huîtres</td><td class="r">${inp('p_plateau',c.p_plateau)} parties</td></tr><tr><td>👕 Un T-shirt Drevici</td><td class="r">${inp('p_tshirt',c.p_tshirt)} parties</td></tr><tr><td>⏳ Code valable</td><td class="r">${raw('valid_days',c.valid_days,'jours')}</td></tr></table>
+    <ul class="gl"><li><b>1 partie par personne</b> (même email ou même téléphone), toutes affiches et cartes confondues.</li><li><b>Parrainage</b> : si un ami joue avec son lien, le joueur rejoue <b>une fois</b>, seulement s'il n'a rien gagné.</li><li><b>Club</b> : seulement si la case est cochée (carte + coupe offerte + offres). Sans la case, il joue pour le lot uniquement.</li><li><b>Au comptoir</b> : le code PERLE-XXXX se valide dans l'admin → Clients → « Valider une coupe ou un lot ».</li></ul>
+    <div class="glinks"><span style="align-self:center;font-size:12px;color:var(--mut)">Tester :</span>${t('gagne')}${t('plateau')}${t('tshirt')}${t('perdu')}<a href="${site}/free-oyster-reglement" target="_blank" rel="noopener">Règlement</a></div></div>
+  <div class="gd"><h2>Free Oyster · à table <span class="tg">Jeu · en cours</span></h2><p>La petite carte posée avec le menu. QR : <b>/qr/free-oyster/carte-table-&lt;n&gt;</b>. Les lots se mangent pendant le repas : on montre le code au serveur.</p>
+    <table class="lotg"><tr><td>🦪 Une huître bonus</td><td class="r">${inp('t_bonus',c.t_bonus)} parties</td></tr><tr><td>🦪🦪🦪 3 huîtres offertes</td><td class="r">${inp('t_trio',c.t_trio)} parties</td></tr><tr><td>👕 Un T-shirt Drevici</td><td class="r">${inp('t_tshirt',c.t_tshirt)} parties, au plus ${raw('t_tshirt_7j',c.t_tshirt_7j,'par semaine')}</td></tr><tr><td>⏳ Code valable</td><td class="r">${raw('t_valid_h',c.t_valid_h,'heures (ce repas)')}</td></tr></table>
+    <ul class="gl"><li>Même règle : <b>1 partie par personne</b>. Quelqu'un qui a joué dans la rue ne rejoue pas à table.</li><li>Un groupe de 6 : chacun peut jouer, en moyenne <b>${Math.round(6*c.t_bonus)}</b> huîtres bonus.</li><li>Pas d'alcool en lot (loi Évin) : uniquement des huîtres et le T-shirt.</li></ul>
+    <div class="glinks"><span style="align-self:center;font-size:12px;color:var(--mut)">Tester :</span>${t('bonus','&table=1')}${t('trio','&table=1')}${t('tshirt','&table=1')}${t('perdu','&table=1')}</div></div>
+  ${edit?'<div class="actions" style="margin-bottom:14px"><button class="cbtn" type="button" id="jcSave">Enregistrer les chances</button></div>':''}
+  <div class="gd"><h2>Plat en test <span class="tg t">À venir</span></h2><p>Carte de table avec le Gentleman et une cloche. QR : <b>/qr/plat-test/carte-table-&lt;n&gt;</b> → la page du plat du moment (changé depuis le Studio, la carte ne se réimprime jamais). Rien à gagner : un prix test plus bas, puis un avis (prénom, email et club facultatifs).</p></div>
+  <div class="gd"><h2>Codes de test <span class="tg t">Test</span></h2><p>Menu (carte de table), Club (chevalet caisse), Halloween (flyer) et la carte d'un serveur : des exemples pour voir le Studio rempli. Ils ne mènent à aucun lot.</p></div>`;
+  const b=document.getElementById('jcSave'); if(b) b.onclick=async()=>{
+    const up={};document.querySelectorAll('[data-jc]').forEach(i=>{const n=parseInt(i.value);if(n>0)up[i.dataset.jc]=Math.round(1/n*1e6)/1e6;});
+    document.querySelectorAll('[data-jr]').forEach(i=>{const n=parseInt(i.value);if(n>0)up[i.dataset.jr]=n;});
+    const {data,error}=await sb.from('jeu_config').update({...up,updated_at:new Date().toISOString()}).eq('client_slug',JEU_SLUG).select().maybeSingle();
+    if(error)return toast('Erreur : '+error.message); JCFG=data||Object.assign(JCFG,up); toast('Chances enregistrées ✓'); renderGuide();};
 }
 function renderQR(){
   const camps=['Tous',...new Set(QRS.map(campOf))];
@@ -1292,6 +1328,7 @@ function route(){
   } else if(view==='event-new'){fillForm(null);document.getElementById('v-event-new').hidden=false;}
   else if(view==='event-edit'){const e=EVENTS.find(x=>String(x.id)===arg);fillForm(e||null);document.getElementById('v-event-new').hidden=false;}
   else if(view==='qr'&&arg){renderQRD(arg);document.getElementById('v-qrd').hidden=false;}
+  else if(view==='qr-guide'){renderGuide();document.getElementById('v-qrg').hidden=false;}
   else if(view==='qr-new'){fillQR(null,arg||null);document.getElementById('v-qr-edit').hidden=false;}
   else if(view==='qr-edit'){fillQR(QRS.find(x=>x.code===arg)||null);document.getElementById('v-qr-edit').hidden=false;}
   else if(view==='horscarte'){renderTeam('Hors carte','teamHC','Ventes hors carte','Cartes hors menu des serveurs · une commande validée déclenche la commission');document.getElementById('v-horscarte').hidden=false;}
