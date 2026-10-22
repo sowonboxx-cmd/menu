@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Playfair+Display:ital,wght@0,800;1,800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@600&display=swap">
 <link rel="preload" as="image" href="jeu/huitre-fermee.webp">
+<link rel="prefetch" href="jeu/plateau.webp">
 <style>
 :root{--cream:#f4e6d1;--navy:#1a2540;--brand:#0d255c;--red:#8a1b1b;--anchor:#9F2E1F;--mut:#6d675d}
 *{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
@@ -111,6 +112,13 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .fx .st:nth-child(4){margin:-28px 0 0 -40px;width:22px;height:22px;animation-delay:.9s}
 .fx .st:nth-child(5){margin:34px 0 0 38px;width:30px;height:30px;animation-delay:.7s}
 .fx .st:nth-child(6){margin:-6px 0 0 6px;width:50px;height:50px;animation-delay:.2s}
+/* Plateau gagné : on montre le plateau de 6 huîtres, avec les étincelles autour (sans la perle) */
+#s-win{--k:1}#s-win .res-img{height:calc(240px*(.45 + .55*var(--k)))}
+.oyw.plat .res-img{height:auto;width:calc(min(310px,82vw)*(.5 + .5*var(--k)))}
+#s-win .sp{min-height:calc(14px*var(--k))}#s-win.scr{padding-top:calc(env(safe-area-inset-top) + 8px + 14px*var(--k))}
+.oyw.plat .fx{left:50%;top:50%}.oyw.plat .pe,.oyw.plat .halo{display:none}
+.oyw.plat .st:nth-child(2){margin:-120px 0 0 110px}.oyw.plat .st:nth-child(3){margin:95px 0 0 -125px}
+.oyw.plat .st:nth-child(4){margin:-105px 0 0 -120px}.oyw.plat .st:nth-child(5){margin:105px 0 0 120px}.oyw.plat .st:nth-child(6){margin:-20px 0 0 140px;width:40px;height:40px}
 @keyframes pulse{0%,100%{transform:translate(-50%,-50%) scale(.75);opacity:.55}50%{transform:translate(-50%,-50%) scale(1.15);opacity:1}}
 @keyframes tw{0%,100%{opacity:0;transform:translate(-50%,-50%) scale(.2) rotate(0)}45%{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(45deg)}70%{opacity:.2}}
 @media (prefers-reduced-motion:reduce){.fx .halo,.fx .st{animation:none}.fx .st{opacity:0}}
@@ -207,7 +215,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 <section class="scr" id="s-win">
   <div class="hd"></div>
   <div class="sp"></div>
-  <div class="oyw"><img class="res-img" src="jeu/huitre-perle.webp" alt="Huître ouverte avec une perle">
+  <div class="oyw" id="wImg"><img class="res-img" src="jeu/huitre-perle.webp" alt="Huître ouverte avec une perle">
     <div class="fx" aria-hidden="true"><div class="halo"></div><div class="st"></div><div class="st"></div><div class="st"></div><div class="st"></div><div class="st"></div><div class="pe"></div></div></div>
   <div class="big" id="wPrize">Une huître offerte</div>
   <div class="tx" style="font:500 14px Inter;margin:4px 0 10px" id="wUntil">Montrez ce code au comptoir</div>
@@ -284,16 +292,16 @@ $('#fgo').innerHTML = CART('JE JOUE');
 })();
 
 // ═══ Accueil : ajuste la taille pour que tout tienne sans défiler ═══
-function fitHome() {
-  const s = $('#s-home'); if (!s.classList.contains('on')) return;
+function fitHome(id) {
+  const s = $(id || '#s-home'); if (!s.classList.contains('on')) return;
   const desk = matchMedia('(min-width:700px)').matches;
   let k = 1; s.style.setProperty('--k', k);
   const avail = () => desk ? s.clientHeight : innerHeight;
   while (s.scrollHeight > avail() + 1 && k > .25) { k = Math.round((k - .05) * 100) / 100; s.style.setProperty('--k', k); }
 }
 fitHome();
-if (document.fonts) document.fonts.ready.then(fitHome);
-let fitT; addEventListener('resize', () => { clearTimeout(fitT); fitT = setTimeout(fitHome, 120); });
+if (document.fonts) document.fonts.ready.then(() => fitHome());
+let fitT; addEventListener('resize', () => { clearTimeout(fitT); fitT = setTimeout(() => { fitHome(); fitHome('#s-win'); }, 120); });
 
 // ═══ Navigation ═══
 function show(k) {
@@ -406,11 +414,15 @@ function result() {
   const d = RES; RES = null; if (armKnife.reset) armKnife.reset();
   bonusNotes();
   if (d && d.result !== 'perdu') {
+    const plat = d.result === 'plateau', im = $('#wImg img');
+    $('#wImg').classList.toggle('plat', plat);
+    im.src = plat ? 'jeu/plateau.webp' : 'jeu/huitre-perle.webp';
+    im.alt = plat ? 'Plateau de 6 huîtres' : 'Huître ouverte avec une perle';
     $('#wPrize').textContent = d.prize;
     $('#wUntil').textContent = `Montrez ce code au comptoir · valable jusqu'au ${until(d.expires_at)}`;
     $('#wCode').textContent = d.code;
     $('#wBook').href = 'book?jeu=' + encodeURIComponent(d.code);
-    show('win');
+    show('win'); fitHome('#s-win'); im.decode && im.decode().then(() => fitHome('#s-win')).catch(() => {});
   } else {
     const m = ME && ME.club;
     $('#lBig').innerHTML = m ? 'Mais une coupe<br>vous attend' : 'Vous restez<br>une perle';
