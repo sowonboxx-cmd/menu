@@ -875,7 +875,7 @@ async function platOrder(env, b) {
 }
 async function platReview(env, b) {
   const slug = String(b.slug || ''), t = String(b.t || '');
-  if (!jeuSlugOk(slug) || !/^[a-z0-9]{12,40}$/.test(t) || b.hp) return { ok: false, error: 'Commande introuvable' };
+  if (!jeuSlugOk(slug) || !/^[a-z0-9]{12,40}$/.test(t)) return { ok: false, error: 'Commande introuvable' };
   const o = (await sb(env, `plat_orders?client_slug=eq.${enc(slug)}&token=eq.${enc(t)}&select=id,plat_id`) || [])[0];
   if (!o) return { ok: false, error: 'Commande introuvable' };
   const rating = Math.max(1, Math.min(5, parseInt(b.rating, 10) || 0));

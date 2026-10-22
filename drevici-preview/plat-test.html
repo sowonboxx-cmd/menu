@@ -103,7 +103,6 @@ button{background:none;border:0;cursor:pointer}
     <label class="fld"><small>Un mot pour le chef (facultatif)</small><textarea id="rCom" maxlength="600" placeholder="Le beurre noisette, incroyable…"></textarea></label>
     <div class="two"><label class="fld"><small>Prénom</small><input id="rFirst" autocomplete="given-name" placeholder="Claire"></label><label class="fld"><small>Email</small><input id="rMail" type="email" inputmode="email" autocomplete="email" placeholder="vous@exemple.fr"></label></div>
     <label class="cv2"><input type="checkbox" id="rOpt"><span><b>Je rejoins le Club Drevici</b>Les prochains plats en test et nos offres par email. Désinscription en un clic.</span></label>
-    <input class="hp" id="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
     <p class="err" id="rErr"></p>
     <div class="sp"></div>
     <button class="btn" id="bSend" disabled>Envoyer mon avis</button>
@@ -182,7 +181,7 @@ $('bOrder').onclick = async () => {
   const b = $('bOrder'); b.disabled = true;
   if (TEST) { ME = { t: 'test', code: '427', name: DISH.name }; orderedView(ME); b.disabled = false; return show('sOrdered'); }
   try {
-    const d = await (await fetch(API + '/plat/order', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ slug: SLUG, src: SRC, hp: $('hp').value }) })).json();
+    const d = await (await fetch(API + '/plat/order', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ slug: SLUG, src: SRC }) })).json();
     if (!d.ok) throw new Error(d.error || 'Réessayez dans un instant.');
     ME = { t: d.token, code: d.code, name: DISH.name, at: Date.now() }; store.set(ME);
     track('click', 'plat_commande'); orderedView(ME); show('sOrdered');
@@ -194,7 +193,7 @@ $('bOrder').onclick = async () => {
 $('bSend').onclick = async () => {
   const b = $('bSend'); $('rErr').textContent = ''; b.disabled = true;
   if ($('rOpt').checked && !$('rMail').value.trim()) { b.disabled = false; return $('rErr').textContent = 'Ajoutez votre email pour rejoindre le club'; }
-  const first = $('rFirst').value.trim(), body = { slug: SLUG, t: ME && ME.t, rating: RATE, tags: [...PICK], comment: $('rCom').value, first, email: $('rMail').value.trim(), optin: $('rOpt').checked, hp: $('hp').value };
+  const first = $('rFirst').value.trim(), body = { slug: SLUG, t: ME && ME.t, rating: RATE, tags: [...PICK], comment: $('rCom').value, first, email: $('rMail').value.trim(), optin: $('rOpt').checked };
   if (TEST) { $('tTitle').textContent = first ? 'Merci ' + first + ' !' : 'Merci !'; return show('sThanks'); }
   try {
     const d = await (await fetch(API + '/plat/review', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })).json();
