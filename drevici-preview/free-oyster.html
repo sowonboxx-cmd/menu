@@ -210,8 +210,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   <div class="big" id="wPrize">Une huître offerte</div>
   <div class="tx" style="font:500 14px Inter;margin:4px 0 10px" id="wUntil">Montrez ce code au comptoir</div>
   <div class="code" id="wCode">PERLE-····</div>
-  <div style="width:100%;margin-top:14px"><a class="btn" href="book" id="wBook">Réserver une table</a><button class="btn l" data-share>Faire jouer un ami</button></div>
-  <div class="share-note" data-bonusnote></div>
+  <div style="width:100%;margin-top:14px"><a class="btn" href="book" id="wBook">Réserver une table</a></div>
   <div class="sp"></div>
   <div class="ft"></div>
 </section>
@@ -454,10 +453,12 @@ function doneScreen(kind) {
   if (l && l.result !== 'perdu' && !l.redeemed && Date.parse(l.expires_at) > Date.now()) {
     X.textContent = `Votre lot : ${l.prize.toLowerCase()}. Montrez ce code au comptoir, valable jusqu'au ${until(l.expires_at)}.`;
     C.innerHTML = `<div class="code" style="margin-bottom:14px">${esc(l.code)}</div>`;
-    B.innerHTML = `<a class="btn" href="book?jeu=${encodeURIComponent(l.code)}">Réserver une table</a><button class="btn l" data-share2>Faire jouer un ami</button>`;
+    B.innerHTML = `<a class="btn" href="book?jeu=${encodeURIComponent(l.code)}">Réserver une table</a>`;
   } else {
-    X.textContent = ME && !ME.bonus_used ? 'Une partie par personne. Faites jouer un ami avec votre lien : vous rejouerez une fois.' : (ME && ME.club ? 'Une partie par personne. Votre carte du club vous attend : une coupe offerte à votre premier repas.' : 'Une partie par personne. Rejoignez le Club Drevici : une coupe vous est offerte à votre premier repas.');
-    B.innerHTML = `${ME && !ME.bonus_used ? '<button class="btn" data-share2>Faire jouer un ami</button>' : ''}<a class="btn${ME && !ME.bonus_used ? ' l' : ''}" href="./?carte=1">${ME && ME.club ? 'Voir ma carte du club' : 'Rejoindre le club'}</a>`;
+    // Parrainage seulement pour ceux qui n'ont rien gagné (un gagnant a déjà son lot).
+    const refer = ME && !ME.bonus_used && !(l && l.result !== 'perdu');
+    X.textContent = refer ? 'Une partie par personne. Faites jouer un ami avec votre lien : vous rejouerez une fois.' : (ME && ME.club ? 'Une partie par personne. Votre carte du club vous attend : une coupe offerte à votre premier repas.' : 'Une partie par personne. Rejoignez le Club Drevici : une coupe vous est offerte à votre premier repas.');
+    B.innerHTML = `${refer ? '<button class="btn" data-share2>Faire jouer un ami</button>' : ''}<a class="btn${refer ? ' l' : ''}" href="./?carte=1">${ME && ME.club ? 'Voir ma carte du club' : 'Rejoindre le club'}</a>`;
   }
   $$('[data-share2]').forEach(b => b.onclick = () => document.querySelector('[data-share]').click());
   show('done');

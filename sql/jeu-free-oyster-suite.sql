@@ -48,10 +48,12 @@ begin
   insert into public.jeu_plays (client_slug, player_id, n, result, code, expires_at, src)
     values (pl.client_slug, pl.id, pl.plays_used + 1, res, c, exp, coalesce(p_src, pl.src));
 
-  -- Parrainage : 1re partie d'un filleul → le parrain gagne UNE partie de plus, une seule fois dans tout le jeu.
+  -- Parrainage : 1re partie d'un filleul → le parrain gagne UNE partie de plus, une seule fois dans tout le jeu,
+  -- et seulement s'il n'a encore rien gagné (un gagnant a déjà son lot).
   if pl.plays_used = 0 and pl.referred_by is not null then
     update public.jeu_players set plays_allowed = plays_allowed + 1, ref_bonus_at = now()
-      where id = pl.referred_by and ref_bonus_at is null;
+      where id = pl.referred_by and ref_bonus_at is null
+        and not exists (select 1 from public.jeu_plays w where w.player_id = pl.referred_by and w.result <> 'perdu');
   end if;
 
   return jsonb_build_object('ok', true, 'result', res, 'code', c, 'expires_at', exp,
