@@ -260,9 +260,9 @@ button{cursor:pointer;background:none}
 .qrbig{background:#fff;border-radius:16px;padding:10px;max-width:320px;margin:0 auto}.qrbig svg{display:block;width:100%;height:auto}
 .qstyles{display:flex;flex-wrap:wrap;gap:6px}.qstyles button{background:var(--paper);border-radius:999px;padding:7px 11px;font-size:12.5px;font-weight:700;color:var(--mut);cursor:pointer}.qstyles button.on{background:var(--ink);color:#fff}
 .qlink{background:var(--gold-soft);border-radius:12px;padding:10px 12px;font:700 12.5px ui-monospace,Menlo,monospace;color:#6b4d0f;word-break:break-all}
-.camp{margin-bottom:14px;padding-top:0;overflow:hidden}
-/* Titre de campagne : bandeau bleu pour bien séparer les campagnes */
-.camp .ch{margin:0 -16px 14px!important;padding:13px 16px;background:var(--navy)}.camp .ch b{color:#fff}.camp .ch small{color:#c9d2ea!important}.camp .ctag{background:var(--gold);color:#fff}.camp .ctag.t{background:rgba(255,255,255,.18);color:#fff}.camp .ch{display:flex;align-items:center;gap:10px;margin-bottom:10px}.camp .ch b{font:700 21px/1.1 "Playfair Display",serif}.camp .ch small{margin-left:auto;font-size:12px;color:var(--mut)}
+.camp{margin-bottom:14px;padding-top:4px}
+/* Titre de campagne : rouge, souligné sur toute la largeur */
+.camp .ch{padding:14px 0 10px;border-bottom:3px solid #9f2e1f}.camp .ch b{color:#9f2e1f;font-size:25px!important}.camp .ch{display:flex;align-items:center;gap:10px;margin-bottom:10px}.camp .ch b{font:700 21px/1.1 "Playfair Display",serif}.camp .ch small{margin-left:auto;font-size:12px;color:var(--mut)}
 .ctag{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;background:var(--gold-soft);color:#8a6416;border-radius:999px;padding:4px 9px}.ctag.t{background:#eceaf2;color:var(--mut)}
 .fun{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:12px}.fun div{background:var(--paper);border-radius:14px;padding:9px 10px}.fun small{display:block;font-size:11.5px;color:var(--mut);font-weight:600}.fun b{display:block;font-size:22px;font-weight:900;color:var(--navy);margin-top:2px}.fun i{font-style:normal;font-size:11px;color:var(--green);font-weight:700}
 @media(max-width:700px){.fun{grid-template-columns:repeat(3,1fr)}}
@@ -928,13 +928,16 @@ function demoQR(){
 const in7=x=>new Date(x)>=daysAgo(6);
 // Commandes « Plat en test » → conversions du QR qui les a amenées (validée = conversion, en attente = à valider)
 const ptConvs=()=>(typeof PT!=='undefined'&&PT.ok?PT.orders:[]).filter(o=>o.src&&o.status!=='cancelled').map(o=>{const d=PT.dishes.find(x=>x.id===o.plat_id)||{};
-  return {id:'pt'+o.id,pt:o.id,code:o.src,kind:'plat',label:'Plat en test · '+(d.name||'')+' · n° '+o.code,amount:d.price_test,status:o.status==='confirmed'?'validated':'pending',created_at:o.created_at};});
+  return {id:'pt'+o.id,pt:o.id,com:+(d.commission||0),code:o.src,kind:'plat',label:'Plat en test · '+(d.name||'')+' · n° '+o.code,amount:d.price_test,status:o.status==='confirmed'?'validated':'pending',created_at:o.created_at};});
 const allConvs=()=>CONVS.concat(ptConvs());
 function statsFor(codes){
   const set=new Set(codes),sc=SCANS.filter(x=>set.has(x.code)&&in7(x.at)),cv=allConvs().filter(x=>set.has(x.code)&&in7(x.created_at));
   const val=cv.filter(x=>x.status==='validated');
   return {scans:sc.length,conv:val.length,pending:cv.filter(x=>x.status==='pending').length,ca:val.reduce((a,x)=>a+(+x.amount||0),0),sc,cv};
 }
+// Commission gagnée par un QR sur 7 jours : plat en test = montant par plat validé (cartes à prénom), sinon % du montant des ventes validées
+function comOf(q){const s=statsFor([q.code]);return s.cv.filter(c=>c.status==='validated').reduce((a,c)=>a+(c.pt?(ptPaid(q.code)?c.com:0):(+c.amount||0)*pctOf(q.commission)),0);}
+const hasCom=q=>!!(q.owner&&(q.support==='Serveur'||pctOf(q.commission)||/€/.test(q.commission||'')));
 function pctOf(com){const m=/([\d,.]+)\s*%/.exec(com||'');return m?parseFloat(m[1].replace(',','.'))/100:0;}
 const eur=n=>(Math.round(n*100)/100).toLocaleString('fr-FR',{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2})+' €';
 function dayBars(sc){const v=[...Array(7)].map((_,i)=>{const d0=daysAgo(6-i),d1=daysAgo(5-i);return sc.filter(x=>{const t=new Date(x.at);return t>=d0&&t<d1;}).length;});
@@ -995,8 +998,8 @@ function renderQR(){
       ${jeu?funnelHTML(f):''}
       ${(()=>{const tb=qs.filter(q=>/carte-table/.test(q.path||'')),ru=qs.filter(q=>!/carte-table/.test(q.path||''));if(!jeu||!tb.length||!ru.length)return '';const a=funnel(ru.map(q=>q.code)),b=funnel(tb.map(q=>q.code));
         return `<div class="fun" style="grid-template-columns:1fr 1fr"><div><small>Dans la rue (affiches)</small><b class="num">${a.players} joueurs</b><i>${a.club} au club · ${a.won} lots</i></div><div><small>À table (carte)</small><b class="num">${b.players} joueurs</b><i>${b.club} au club · ${b.won} lots</i></div></div>`;})()}
-      <table class="qt"><tr><th></th><th>QR</th><th>Scans</th>${jeu?'<th>Joueurs</th><th class="hm">Club</th><th class="hm">Amis</th><th class="hm">Insta</th><th>Lots</th>':'<th>Conversions</th>'}</tr>
-      ${qs.map(q=>{const g=funnel([q.code]),s7=statsFor([q.code]);return `<tr data-href="#qr/${encodeURIComponent(q.code)}"><td style="width:44px"><div class="qmini">${qrArt(q,120)}</div></td><td><b class="qn">${esc(qName(q))}</b><small>${esc(qSub(q))}</small></td><td>${g.scans}</td>${jeu?`<td>${g.players}</td><td class="hm">${g.club}</td><td class="hm">${g.friends}</td><td class="hm">${g.insta}</td><td>${g.won} / ${g.redeemed}</td>`:`<td>${s7.conv}</td>`}</tr>`;}).join('')}</table></div>`;}).join('')+empty.map(([c,cat])=>`<div class="card camp"><div class="ch"><b>${esc(c)}</b><span class="ctag t">À lancer</span><small>0 QR</small></div><p class="empty" style="margin:0 0 10px">Pas encore de QR. Un par serveur, comme pour le plat en test.</p><a class="cbtn" href="#qr-new/${encodeURIComponent(cat)}">+ Créer un QR</a></div>`).join('');
+      <table class="qt"><tr><th></th><th>QR</th><th>Scans</th>${jeu?'<th>Joueurs</th><th class="hm">Club</th><th class="hm">Amis</th><th class="hm">Insta</th><th>Lots</th>':'<th>Conversions</th><th>Commission</th>'}</tr>
+      ${qs.map(q=>{const g=funnel([q.code]),s7=statsFor([q.code]);return `<tr data-href="#qr/${encodeURIComponent(q.code)}"><td style="width:44px"><div class="qmini">${qrArt(q,120)}</div></td><td><b class="qn">${esc(qName(q))}</b><small>${esc(qSub(q))}</small></td><td>${g.scans}</td>${jeu?`<td>${g.players}</td><td class="hm">${g.club}</td><td class="hm">${g.friends}</td><td class="hm">${g.insta}</td><td>${g.won} / ${g.redeemed}</td>`:`<td>${s7.conv}</td><td>${hasCom(q)?eur(comOf(q)):'—'}</td>`}</tr>`;}).join('')}</table></div>`;}).join('')+empty.map(([c,cat])=>`<div class="card camp"><div class="ch"><b>${esc(c)}</b><span class="ctag t">À lancer</span><small>0 QR</small></div><p class="empty" style="margin:0 0 10px">Pas encore de QR. Un par serveur, comme pour le plat en test.</p><a class="cbtn" href="#qr-new/${encodeURIComponent(cat)}">+ Créer un QR</a></div>`).join('');
   document.getElementById('qrK').innerHTML=`<div class="kpi n"><span>Scans · 7 j</span><b class="num">${st.scans.toLocaleString('fr-FR')}</b></div><div class="kpi"><span>Conversions</span><b class="num">${st.conv}</b></div><div class="kpi"><span>Taux</span><b class="num">${st.scans?(st.conv/st.scans*100).toFixed(1).replace('.',','):'0'} %</b></div>`;
   document.getElementById('qrList').innerHTML=l.map(q=>({q,s:statsFor([q.code])})).sort((a,b)=>b.s.scans-a.s.scans).map(({q,s})=>`<a class="qrl" href="#qr/${encodeURIComponent(q.code)}"><span class="ic">${q.path?'<span style="display:block;width:30px;height:30px">'+qrArt(q,90)+'</span>':(CAT_IC[q.category]||'🔗')}</span><div><b class="qn">${esc(q.path?qName(q):q.label||q.code)}</b><small>${esc(q.path?campOf(q)+' · '+q.support:q.code)}</small></div><div class="r"><b class="num">${s.scans}</b>${s.conv} conv.</div></a>`).join('')||'<p class="empty">Aucun code.</p>';
   const b=dayBars(st.sc);document.getElementById('qrChart').innerHTML=b.html;document.getElementById('qrLab').innerHTML=b.lab;
