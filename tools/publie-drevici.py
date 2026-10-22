@@ -6,7 +6,7 @@ Ne touche pas aux fichiers propres au site en ligne (reservations.html = ancien 
 import shutil, os, re, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC, DST = os.path.join(ROOT, 'drevici-preview'), os.path.join(ROOT, 'drevici')
-FILES = ['index.html', 'book.html', 'resa.html', 'admin.html', 'gestion.html', 'floorplan.js', 'confidentialite.html', 'accueil.html', 'free-oyster.html', 'free-oyster-reglement.html']  # accueil.html : page d'entrée commune Paris / Surzur (Paris seulement)
+FILES = ['index.html', 'book.html', 'resa.html', 'admin.html', 'gestion.html', 'floorplan.js', 'confidentialite.html', 'accueil.html', 'free-oyster.html', 'free-oyster-reglement.html', 'plat-test.html']  # accueil.html : page d'entrée commune Paris / Surzur (Paris seulement)
 DIRS = ['club', 'seo', 'media', 'charte', 'studio', 'jeu']  # studio/ : seule la page d'accueil (index.html) vient du labo ; calendar et tracker restent ceux du site en ligne
 
 def sub(text, old, new, path):
@@ -58,6 +58,9 @@ P = {
  ],
  'free-oyster.html': [
    ("const JEU_SLUG = 'drevici-test';", "const JEU_SLUG = 'drevici-paris';"),
+ ],
+ 'plat-test.html': [
+   ("const SLUG = 'drevici-test';", "const SLUG = 'drevici-paris';"),
  ],
  'book.html': [
    ("const WRITE_SLUG = 'drevici-test';", "const WRITE_SLUG = 'drevici-paris';"),

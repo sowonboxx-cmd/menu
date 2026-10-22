@@ -82,12 +82,21 @@ export default {
       try { return json(await jeuMe(env, String(url.searchParams.get('slug') || ''), String(url.searchParams.get('t') || '')), 200, cors); }
       catch (e) { return json({ ok: false, error: String(e && e.message || e) }, 500, cors); }
     }
+    // ── Plat en test (sql/plat-test.sql) : plat du moment, commande, avis ──
+    if (req.method === 'GET' && url.pathname === '/plat/now') {
+      try { return json(await platNow(env, String(url.searchParams.get('slug') || ''), String(url.searchParams.get('t') || '')), 200, cors); }
+      catch (e) { console.error('plat/now', e); return json({ ok: false }, 200, cors); }
+    }
+    if (req.method === 'POST' && (url.pathname === '/plat/order' || url.pathname === '/plat/review')) {
+      try { const b = await req.json(); return json(url.pathname === '/plat/order' ? await platOrder(env, b) : await platReview(env, b), 200, cors); }
+      catch (e) { console.error(url.pathname, e); return json({ ok: false, error: 'Réessayez dans un instant.' }, 500, cors); }
+    }
     if (req.method === 'GET' && url.pathname === '/jeu/ami') {
       try { return json(await jeuAmi(env, String(url.searchParams.get('slug') || ''), String(url.searchParams.get('c') || '')), 200, cors); }
       catch (e) { return json({ ok: false }, 200, cors); }
     }
     // ── Espace restaurateur (/gestion) : session Supabase + admin du resto ──
-    if (['/clients', '/campaign/preview', '/campaign/send', '/club/redeem', '/club/tier', '/club/tshirt-won', '/client/archive', '/client/name', '/jeu/redeem', '/jeu/stats'].includes(url.pathname)) {
+    if (['/clients', '/campaign/preview', '/campaign/send', '/club/redeem', '/club/tier', '/club/tshirt-won', '/client/archive', '/client/name', '/jeu/redeem', '/jeu/stats', '/plat/admin', '/plat/save', '/plat/order-status'].includes(url.pathname)) {
       try {
         const body = req.method === 'POST' ? await req.json() : {};
         const slug = String(body.slug || url.searchParams.get('slug') || '');
@@ -176,6 +185,14 @@ export default {
           return json({ ok: true, play: { ...out, redeemed_at: now } }, 200, cors);
         }
         if (url.pathname === '/jeu/stats') return json(await jeuStats(env, cslug), 200, cors);
+        if (url.pathname === '/plat/admin') return json(await platAdmin(env, slug), 200, cors);
+        if (url.pathname === '/plat/save') return json(await platSave(env, slug, body.dish || {}), 200, cors);
+        if (url.pathname === '/plat/order-status') {
+          const id = parseInt(body.id, 10), st = String(body.status || '');
+          if (!id || !['pending', 'confirmed', 'cancelled'].includes(st)) return json({ ok: false, error: 'Valeur invalide' }, 400, cors);
+          await sb(env, `plat_orders?id=eq.${id}&client_slug=eq.${enc(slug)}`, { method: 'PATCH', body: { status: st, confirmed_at: st === 'confirmed' ? new Date().toISOString() : null } });
+          return json({ ok: true }, 200, cors);
+        }
         if (url.pathname === '/club/redeem') {
           const code = String(body.code || '').toUpperCase().replace(/[^A-Z0-9-]/g, '');
           const full = code.startsWith('CLUB-') ? code : 'CLUB-' + code;
@@ -829,4 +846,67 @@ async function jeuStats(env, slug) {
   return { ok: true, players: players.length, optin: players.filter(p => p.optin).length, referred: players.filter(p => p.referred_by).length,
     plays: plays.length, bonus_plays: plays.filter(p => p.n > 1).length, results: by(plays, 'result'), redeemed: won.filter(p => p.redeemed_at).length, won: won.length,
     by_src: by(players, 'src') };
+}
+
+
+// ════════════════ Plat en test ════════════════
+// La carte de table (un QR par serveur) mène au plat du moment. « Je le commande » crée une commande à confirmer
+// (au nom du serveur de la carte). Le téléphone garde un jeton : en rouvrant la page, le client peut noter, une fois.
+const platPublic = d => d && { id: d.id, name: d.name, descr: d.descr, photo: d.photo, price_test: d.price_test, price_normal: d.price_normal, share: d.share_text };
+async function platNow(env, slug, t) {
+  if (!jeuSlugOk(slug)) return { ok: false };
+  const d = (await sb(env, `plat_test?client_slug=eq.${enc(slug)}&status=eq.en_test&order=updated_at.desc&limit=1&select=*`) || [])[0];
+  let order = null;
+  if (/^[a-z0-9]{12,40}$/.test(t)) {
+    const o = (await sb(env, `plat_orders?client_slug=eq.${enc(slug)}&token=eq.${enc(t)}&select=id,plat_id,code,status,created_at`) || [])[0];
+    if (o) { const r = (await sb(env, `plat_reviews?order_id=eq.${o.id}&select=id`) || [])[0]; order = { code: o.code, status: o.status, at: o.created_at, plat_id: o.plat_id, reviewed: !!r }; }
+  }
+  return { ok: true, dish: platPublic(d), order };
+}
+async function platOrder(env, b) {
+  const slug = String(b.slug || '');
+  if (!jeuSlugOk(slug) || b.hp) return { ok: false };
+  const d = (await sb(env, `plat_test?client_slug=eq.${enc(slug)}&status=eq.en_test&order=updated_at.desc&limit=1&select=id`) || [])[0];
+  if (!d) return { ok: false, error: 'Pas de plat en test en ce moment.' };
+  const src = String(b.src || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 60) || null;
+  const token = rnd(24, 'abcdefghijkmnpqrstuvwxyz23456789'), code = String(100 + Math.floor(Math.random() * 900));
+  await sb(env, 'plat_orders', { method: 'POST', body: { client_slug: slug, plat_id: d.id, src, token, code } });
+  return { ok: true, token, code };
+}
+async function platReview(env, b) {
+  const slug = String(b.slug || ''), t = String(b.t || '');
+  if (!jeuSlugOk(slug) || !/^[a-z0-9]{12,40}$/.test(t) || b.hp) return { ok: false, error: 'Commande introuvable' };
+  const o = (await sb(env, `plat_orders?client_slug=eq.${enc(slug)}&token=eq.${enc(t)}&select=id,plat_id`) || [])[0];
+  if (!o) return { ok: false, error: 'Commande introuvable' };
+  const rating = Math.max(1, Math.min(5, parseInt(b.rating, 10) || 0));
+  if (!rating) return { ok: false, error: 'Choisissez une note' };
+  const email = String(b.email || '').trim().toLowerCase().slice(0, 120), first = cap(b.first);
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return { ok: false, error: 'Email invalide' };
+  const tags = (Array.isArray(b.tags) ? b.tags : []).map(x => String(x).slice(0, 30)).slice(0, 4);
+  try {
+    await sb(env, 'plat_reviews', { method: 'POST', body: { client_slug: slug, plat_id: o.plat_id, order_id: o.id, rating, tags, comment: String(b.comment || '').trim().slice(0, 600) || null, first_name: first || null, email: email || null, optin: !!(email && b.optin === true) } });
+  } catch (e) { if (/duplicate|23505/.test(String(e))) return { ok: false, already: true, error: 'Vous avez déjà donné votre avis, merci !' }; throw e; }
+  // Accord pour les offres (case jamais pré-cochée) : la personne entre dans la base clients
+  if (email && b.optin === true) await sb(env, 'rpc/resa_upsert_client', { method: 'POST', body: { p_slug: slug, p_email: email, p_phone: '', p_name: first || '', p_optin: true } }).catch(() => {});
+  return { ok: true };
+}
+async function platAdmin(env, slug) {
+  const since = new Date(Date.now() - 90 * 864e5).toISOString();
+  const [dishes, orders, reviews] = await Promise.all([
+    sb(env, `plat_test?client_slug=eq.${enc(slug)}&select=*&order=created_at.desc`),
+    sb(env, `plat_orders?client_slug=eq.${enc(slug)}&created_at=gte.${enc(since)}&select=id,plat_id,src,code,status,created_at,confirmed_at&order=created_at.desc&limit=2000`),
+    sb(env, `plat_reviews?client_slug=eq.${enc(slug)}&created_at=gte.${enc(since)}&select=*&order=created_at.desc&limit=2000`)]);
+  return { ok: true, dishes: dishes || [], orders: orders || [], reviews: reviews || [] };
+}
+async function platSave(env, slug, d) {
+  const cut = (v, n) => v == null ? null : String(v).trim().slice(0, n) || null;
+  const num = v => v === '' || v == null || isNaN(+v) ? null : +v;
+  const st = ['brouillon', 'en_test', 'pause', 'carte', 'arrete'].includes(d.status) ? d.status : 'brouillon';
+  const row = { client_slug: slug, name: cut(d.name, 120) || 'Plat en test', descr: cut(d.descr, 600), photo: cut(d.photo, 400), price_test: num(d.price_test), price_normal: num(d.price_normal),
+    share_text: cut(d.share_text, 60), commission: num(d.commission), status: st, updated_at: new Date().toISOString() };
+  // Un seul plat « en test » à la fois : les autres passent en pause
+  if (st === 'en_test') await sb(env, `plat_test?client_slug=eq.${enc(slug)}&status=eq.en_test${d.id ? `&id=neq.${parseInt(d.id, 10)}` : ''}`, { method: 'PATCH', body: { status: 'pause' } });
+  const r = d.id ? await sb(env, `plat_test?id=eq.${parseInt(d.id, 10)}&client_slug=eq.${enc(slug)}`, { method: 'PATCH', body: row, prefer: 'return=representation' })
+                 : await sb(env, 'plat_test', { method: 'POST', body: row, prefer: 'return=representation' });
+  return { ok: true, dish: (r || [])[0] };
 }
