@@ -506,12 +506,12 @@ a.x.resa{color:#fff;text-decoration:none}a.x.resa h3,a.x.resa .more{color:#fff}
       <div><div class="card"><h2>Le code</h2><div class="fields">
         <div class="two"><div class="f"><label>Campagne</label><input id="qCamp" placeholder="Free Oyster" list="camps"><datalist id="camps"></datalist></div>
           <div class="f"><label>Support</label><select id="qSup"><option>Affiche</option><option>Flyer</option><option>Carte table</option><option>Chevalet</option><option>Menu</option><option>Addition</option><option>Sticker</option><option>Serveur</option><option>Story</option><option>Autre</option></select></div></div>
-        <div class="two"><div class="f"><label>Lieu (rue, ou nom de famille)</label><input id="qPlace" placeholder="biot"></div>
+        <div class="two"><div class="f"><label>Lieu (rue) ou prénom du serveur</label><input id="qPlace" placeholder="biot"></div>
           <div class="f"><label>Numéro</label><input id="qNum" type="number" min="1" value="1" inputmode="numeric"></div></div>
         <div class="f"><label>Le lien imprimé (se construit tout seul)</label><div class="qlink" id="qPath"></div></div>
         <div class="f"><label>Nom affiché</label><input id="qLabel" placeholder="Affiche A0 · 8 rue Biot"></div>
         <div class="f"><label>Note (taille, emplacement)</label><input id="qNote" placeholder="Affiche A0, vitrine de droite"></div>
-        <div class="two"><div class="f"><label>Catégorie</label><select id="qCat"><option>Hors carte</option><option>Plateaux Noël</option><option>Réseaux</option><option>Affiches rue</option><option>Avis Google</option><option>Events</option><option>Autre</option></select></div>
+        <div class="two"><div class="f"><label>Catégorie</label><select id="qCat"><option>Hors carte</option><option>Plat en test</option><option>Plateaux Noël</option><option>Réseaux</option><option>Affiches rue</option><option>Avis Google</option><option>Events</option><option>Autre</option></select></div>
           <div class="f"><label>Porteur</label><input id="qOwner" placeholder="Élodie" list="owners"><datalist id="owners"></datalist></div></div>
         <input id="qCode" type="hidden">
         <div class="f"><label>Destination (modifiable plus tard, sans réimprimer)</label><input id="qDest" placeholder="/free-oyster" list="dests"><datalist id="dests"><option value="/free-oyster">Jeu Free Oyster</option><option value="/book">Réservation</option><option value="/">Accueil du site</option><option value="/?carte=1">Carte du club</option></datalist></div>
@@ -868,8 +868,8 @@ const campOf=q=>q.campaign||q.category||'Autre';
 const qslug=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 function qrArt(q,size=600,fixed){const st=QSTYLES.find(x=>x[0]===(q&&q.style))||QSTYLES[0];if(!window.qrDrevici)return qrSvg(qrLink(q));const v=qrDrevici(qrLink(q),size,{style:st[0],eye:st[2]});return fixed?v:v.replace(`width="${size}" height="${size}"`,'width="100%" height="100%" style="display:block"');}
 let QRS=[], SCANS=[], CONVS=[], DB_QR=true, QF='Tous';
-const CAT_IC={'Hors carte':'🦪','Plateaux Noël':'🎄','Réseaux':'📱','Affiches rue':'📍','Avis Google':'⭐','Events':'✨','Autre':'🔗'};
-const CAT_COL={'Hors carte':'#253968','Plateaux Noël':'#d09d39','Affiches rue':'#3b4663','Avis Google':'#34a853','Réseaux':'#8a97bd','Events':'#cd3232','Autre':'#a9a291'};
+const CAT_IC={'Hors carte':'🦪','Plat en test':'🍽️','Plateaux Noël':'🎄','Réseaux':'📱','Affiches rue':'📍','Avis Google':'⭐','Events':'✨','Autre':'🔗'};
+const CAT_COL={'Hors carte':'#253968','Plat en test':'#9f2e1f','Plateaux Noël':'#d09d39','Affiches rue':'#3b4663','Avis Google':'#34a853','Réseaux':'#8a97bd','Events':'#cd3232','Autre':'#a9a291'};
 const PCOL=['#cd3232','#4a68b5','#5b6788','#9f2e1f','#d09d39','#2e8b57','#7a5aa6','#3b4663'];
 const pcol=n=>PCOL[[...String(n||'?')].reduce((a,c)=>a+c.charCodeAt(0),0)%PCOL.length];
 const daysAgo=n=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-n);return d;};
@@ -1058,7 +1058,8 @@ let codeTouched=false, qStyle='losange';
 // Nomenclature : /qr/<campagne>/<support>-<lieu>-<numéro> · code = la même chose en majuscules
 function qParts(){const g=id=>document.getElementById(id).value.trim();
   const camp=g('qCamp')||'campagne',sup=g('qSup'),place=g('qPlace')||'lieu',num=Math.max(1,parseInt(g('qNum'))||1);
-  const path=qslug(camp)+'/'+qslug(sup)+'-'+qslug(place)+'-'+num;
+  const CSL={'plat-en-test':'plat-test'};   // lien court pour les cartes serveurs
+  const path=(CSL[qslug(camp)]||qslug(camp))+'/'+qslug(sup)+'-'+qslug(place)+'-'+num;
   return {camp,sup,place,num,path,code:path.toUpperCase().replace(/\//g,'-')};}
 function fillQR(q,cat){
   qEdit=q?q.code:null;codeTouched=!!q;
@@ -1069,6 +1070,8 @@ function fillQR(q,cat){
   const v=(id,x)=>document.getElementById(id).value=x==null?'':x;
   v('qCamp',q?(q.campaign||''):'Free Oyster');v('qSup',q?(q.support||'Autre'):'Affiche');v('qPlace',q?(q.place||''):'');v('qNum',q?(q.num||1):1);v('qNote',q?q.note:'');
   v('qLabel',q?q.label:'');v('qCat',c);v('qOwner',q?q.owner:'');v('qCode',q?q.code:'');v('qDest',q?q.destination:'/free-oyster');v('qGoal',q?q.goal:'Partie jouée');v('qCom',q?q.commission:'');
+  // Nouveau serveur pour le plat en test : tout est prérempli, il ne reste que son prénom
+  if(!q&&c==='Plat en test'){v('qCamp','Plat en test');v('qSup','Serveur');v('qDest','/plat-test');v('qGoal','Plat en test commandé');v('qCom','2 € par plat');}
   qStyle=q&&q.style||'losange';
   ['qCamp','qSup','qPlace','qNum'].forEach(id=>document.getElementById(id).disabled=!!q&&!!q.path&&DB_QR);   // un QR imprimé garde son lien
   document.getElementById('qActive').classList.toggle('on',q?q.active!==false:true);
@@ -1087,6 +1090,7 @@ function prevQR(){
   document.getElementById('qStyles').innerHTML=QSTYLES.map(([k,n])=>`<button type="button" class="${k===qStyle?'on':''}" data-qs="${k}">${n}</button>`).join('');
 }
 document.getElementById('qStyles').addEventListener('click',e=>{const b=e.target.closest('[data-qs]');if(!b)return;qStyle=b.dataset.qs;prevQR();});
+document.getElementById('qPlace').addEventListener('input',()=>{if(document.getElementById('qSup').value!=='Serveur'||qEdit)return;const n=document.getElementById('qPlace').value.trim();document.getElementById('qOwner').value=n?n[0].toUpperCase()+n.slice(1):'';if(document.getElementById('qCamp').value==='Plat en test')document.getElementById('qLabel').value=n?'Carte plat en test · '+n[0].toUpperCase()+n.slice(1):'';});
 ['qCamp','qSup','qPlace','qNum','qLabel','qOwner','qDest'].forEach(id=>{document.getElementById(id).addEventListener('input',prevQR);document.getElementById(id).addEventListener('change',prevQR);});
 document.getElementById('qActive').onclick=e=>e.currentTarget.classList.toggle('on');
 document.getElementById('qSave').onclick=async()=>{
@@ -1095,7 +1099,7 @@ document.getElementById('qSave').onclick=async()=>{
   const row={client_slug:MENU_SLUG,label:g('qLabel')||(P.sup+' · '+P.place+(P.num>1?' '+P.num:'')),category:g('qCat'),owner:g('qOwner'),destination:g('qDest')||'/',goal:g('qGoal'),commission:g('qCom'),
     note:g('qNote'),style:qStyle,active:document.getElementById('qActive').classList.contains('on')};
   if(!old||!old.path) Object.assign(row,{code:P.code,campaign:P.camp,support:P.sup,place:qslug(P.place),num:P.num,path:P.path});
-  if(!g('qPlace')&&!(old&&old.path))return toast('Indiquez le lieu (rue ou nom de famille)');
+  if(!g('qPlace')&&!(old&&old.path))return toast('Indiquez le lieu ou le prénom');
   if(!/^(https?:\/\/|\/)/.test(row.destination))return toast('Destination : une page du site (/book) ou une adresse https://');
   if(!qEdit&&QRS.some(x=>x.code===row.code))return toast('Ce QR existe déjà : changez le numéro');
   if(DB_QR){
@@ -1525,7 +1529,7 @@ function renderPlat(){
     <div class="card"><h2>Le plat du moment</h2>${dishCard}</div>
     <div class="card"><h2>À confirmer</h2>${pend.map(o=>`<div class="pt-row"><span class="pt-code">${esc(o.code)}</span><div><b>${esc(ptWaiter(o.src))}</b><small>${esc(dishOf(o.plat_id).name||'')} · ${ptAgo(o.created_at)}</small></div><button class="cbtn" data-ptok="${o.id}">Confirmer</button><button class="cbtn lt" data-ptno="${o.id}">Annuler</button></div>`).join('')||'<p class="empty">Rien à confirmer. Quand un client touche « Je le commande », son code à 3 chiffres arrive ici.</p>'}</div>
     <div class="card"><h2>Commissions · 7 jours</h2>${team.map(([w,x],i)=>`<div class="lr"><span class="rk">${i+1}</span><span class="av" style="background:${pcol(w)}">${esc(w[0])}</span><div><b>${esc(w)}</b><small>${x.n} plat${x.n>1?'s':''} confirmé${x.n>1?'s':''}</small></div><div class="r"><b class="num">${eur(x.eur)}</b><small>commission</small></div></div>`).join('')||'<p class="empty">Pas encore de commande confirmée cette semaine.</p>'}
-      <p style="margin:10px 0 0;font-size:12.5px;color:var(--mut)">Une carte par serveur : créez son QR dans Scans QR, campagne « Plat en test », support « Serveur », lieu = son prénom, destination /plat-test.</p></div>
+      <a class="cbtn lt" style="margin-top:10px;width:100%" href="#qr-new/Plat%20en%20test">+ Ajouter un serveur (nouvelle carte QR)</a></div>
   </div><div>
     <div class="card"><h2>Avis${c?' · '+esc(c.name):''}</h2>${cRev.map(r=>`<div class="pt-rv"><span class="st">${ptStars(r.rating)}</span>${orderedIds.has(r.order_id)?'<span class="pt-ok">commandé ✓</span>':''}${(r.tags||[]).length?'<div>'+r.tags.map(t=>`<span class="pt-tag">${esc(t)}</span>`).join('')+'</div>':''}${r.comment?`<p>« ${esc(r.comment)} »</p>`:''}<small>${esc(r.first_name||'Anonyme')}${r.email?' · '+esc(r.email):''}${r.optin?' · club':''} · ${ptAgo(r.created_at)}</small></div>`).join('')||'<p class="empty">Les avis arrivent quand le client rouvre la page après dégustation.</p>'}</div>
     <div class="card"><h2>Tous les plats</h2>${PT.dishes.map(d=>{const rs=PT.reviews.filter(r=>r.plat_id===d.id),n=live.filter(o=>o.plat_id===d.id).length;return `<div class="pt-row"><div><b>${esc(d.name)}</b><small>${n} commandé${n>1?'s':''} · ${rs.length?ptAvg(rs).toFixed(1).replace('.',',')+' ★ · '+rs.length+' avis':'pas d\'avis'}</small></div><span class="pt-st ${d.status}">${PT_ST[d.status]||d.status}</span><button class="cbtn lt" data-ptedit="${d.id}">›</button></div>`;}).join('')||'<p class="empty">Aucun plat.</p>'}</div>

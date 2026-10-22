@@ -882,7 +882,7 @@ async function platReview(env, b) {
   if (!rating) return { ok: false, error: 'Choisissez une note' };
   const email = String(b.email || '').trim().toLowerCase().slice(0, 120), first = cap(b.first);
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return { ok: false, error: 'Email invalide' };
-  const tags = (Array.isArray(b.tags) ? b.tags : []).map(x => String(x).slice(0, 30)).slice(0, 4);
+  const tags = (Array.isArray(b.tags) ? b.tags : []).map(x => String(x).slice(0, 30)).slice(0, 6);
   try {
     await sb(env, 'plat_reviews', { method: 'POST', body: { client_slug: slug, plat_id: o.plat_id, order_id: o.id, rating, tags, comment: String(b.comment || '').trim().slice(0, 600) || null, first_name: first || null, email: email || null, optin: !!(email && b.optin === true) } });
   } catch (e) { if (/duplicate|23505/.test(String(e))) return { ok: false, already: true, error: 'Vous avez déjà donné votre avis, merci !' }; throw e; }
