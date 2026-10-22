@@ -427,13 +427,18 @@ function result() {
   } else {
     const m = ME && ME.club;
     $('#lBig').innerHTML = m ? 'Mais une coupe<br>vous attend' : 'Vous restez<br>une perle';
-    $('#lText').textContent = m ? 'Vous restez une perle : membre du Club Drevici, une coupe vous est offerte à votre premier repas.' : 'Rejoignez le Club Drevici : une coupe vous est offerte à votre premier repas.';
+    $('#lText').textContent = m ? 'Vous restez une perle : membre du Club Drevici, une coupe vous est offerte à votre premier repas.' : 'Pas de perle cette fois. Faites jouer un ami avec votre lien : vous rejouez une fois.';
     show('lose');
   }
   clubButtons();
 }
-// « Voir ma carte du club » pour les membres, « Rejoindre le club » pour les autres (même lien : la fenêtre du club du site).
-function clubButtons() { $$('[data-card]').forEach(a => a.textContent = ME && ME.club ? 'Voir ma carte du club' : 'Rejoindre le club'); }
+// « Voir ma carte du club » seulement pour les membres ; les autres n'ont que « Faire jouer un ami » et Instagram.
+function clubButtons() {
+  const m = ME && ME.club;
+  $$('[data-card]').forEach(a => { a.style.display = m ? '' : 'none'; });
+  // sans le bouton du club, « Faire jouer un ami » devient le bouton principal
+  $$('#s-lose [data-share]').forEach(b => b.classList.toggle('l', !!m));
+}
 
 // ═══ Parrainage : partager son lien ═══
 const shareUrl = () => location.origin + location.pathname + '?ami=' + encodeURIComponent((ME && ME.ref_code) || '');
@@ -472,8 +477,8 @@ function doneScreen(kind) {
   } else {
     // Parrainage seulement pour ceux qui n'ont rien gagné (un gagnant a déjà son lot).
     const refer = ME && !ME.bonus_used && !(l && l.result !== 'perdu');
-    X.textContent = refer ? 'Une partie par personne. Faites jouer un ami avec votre lien : vous rejouerez une fois.' : (ME && ME.club ? 'Une partie par personne. Votre carte du club vous attend : une coupe offerte à votre premier repas.' : 'Une partie par personne. Rejoignez le Club Drevici : une coupe vous est offerte à votre premier repas.');
-    B.innerHTML = `${refer ? '<button class="btn" data-share2>Faire jouer un ami</button>' : ''}<a class="btn${refer ? ' l' : ''}" href="./?carte=1">${ME && ME.club ? 'Voir ma carte du club' : 'Rejoindre le club'}</a>`;
+    X.textContent = refer ? 'Une partie par personne. Faites jouer un ami avec votre lien : vous rejouerez une fois.' : (ME && ME.club ? 'Une partie par personne. Votre carte du club vous attend : une coupe offerte à votre premier repas.' : 'Une partie par personne. Merci d\'avoir joué !');
+    B.innerHTML = `${refer ? '<button class="btn" data-share2>Faire jouer un ami</button>' : ''}${ME && ME.club ? `<a class="btn${refer ? ' l' : ''}" href="./?carte=1">Voir ma carte du club</a>` : ''}<a class="btn l" href="https://www.instagram.com/drevicioysterbar/" target="_blank" rel="noopener">Suivre @drevicioysterbar</a>`;
   }
   $$('[data-share2]').forEach(b => b.onclick = () => document.querySelector('[data-share]').click());
   show('done');
