@@ -55,6 +55,8 @@ async function route(request, url, env, ctx, isPreview) {
   const path = url.pathname;
   if (request.method !== 'GET' && request.method !== 'HEAD') return env.ASSETS.fetch(request);
 
+  // QR codes du Studio : /qr/<campagne>/<support>-<lieu>-<numéro> → scan compté, puis destination avec ?src=<CODE>.
+  if (path.startsWith('/qr/')) return qrRedirect(request, url, env);
   if (path === '/robots.txt') return text(robotsTxt(url, env, isPreview));
   if (path === '/sitemap.xml') {
     const row = await loadRow(env, ctx);
@@ -391,4 +393,25 @@ function llmsTxt(data, base) {
     });
   });
   return lines.join('\n') + '\n';
+}
+
+
+// ── QR codes (sql/qr-campagnes.sql) ──
+async function qrRedirect(request, url, env) {
+  const raw = decodeURIComponent(url.pathname.slice(4)).replace(/\/+$/, '');
+  const code = raw.toUpperCase().replace(/\//g, '-').replace(/[^A-Z0-9-]/g, '');
+  let dest = null;
+  if (code && env.SUPABASE_URL && env.SUPABASE_KEY) {
+    try {
+      const k = env.SUPABASE_KEY, h = { 'content-type': 'application/json', apikey: k };
+      if (!k.startsWith('sb_')) h.authorization = 'Bearer ' + k;
+      const r = await fetch(env.SUPABASE_URL + '/rest/v1/rpc/qr_hit', { method: 'POST', headers: h,
+        body: JSON.stringify({ p_code: code, p_ua: request.headers.get('user-agent') || '' }) });
+      if (r.ok) dest = await r.json();
+    } catch (e) { /* on redirige quand même */ }
+  }
+  let target;
+  try { target = new URL(dest || '/', url.origin); } catch (e) { target = new URL('/', url.origin); }
+  if (dest) target.searchParams.set('src', code);
+  return new Response(null, { status: 302, headers: { location: target.toString(), 'cache-control': 'no-store' } });
 }

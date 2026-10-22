@@ -239,6 +239,16 @@ button{cursor:pointer;background:none}
 .clab{display:flex;gap:6px;margin-top:5px}.clab span{flex:1;text-align:center;font-size:10.5px;color:var(--mut);font-weight:700}
 .goal{height:10px;border-radius:9px;background:var(--cream);overflow:hidden;margin:8px 0 4px}.goal i{display:block;height:100%;background:var(--gold)}
 .qrbox{display:flex;gap:14px;align-items:center}
+.qrbig{background:#fff;border-radius:16px;padding:10px;max-width:320px;margin:0 auto}.qrbig svg{display:block;width:100%;height:auto}
+.qstyles{display:flex;flex-wrap:wrap;gap:6px}.qstyles button{background:var(--paper);border-radius:999px;padding:7px 11px;font-size:12.5px;font-weight:700;color:var(--mut);cursor:pointer}.qstyles button.on{background:var(--ink);color:#fff}
+.qlink{background:var(--gold-soft);border-radius:12px;padding:10px 12px;font:700 12.5px ui-monospace,Menlo,monospace;color:#6b4d0f;word-break:break-all}
+.camp{margin-bottom:14px}.camp .ch{display:flex;align-items:center;gap:10px;margin-bottom:10px}.camp .ch b{font:700 21px/1.1 "Playfair Display",serif}.camp .ch small{margin-left:auto;font-size:12px;color:var(--mut)}
+.ctag{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;background:var(--gold-soft);color:#8a6416;border-radius:999px;padding:4px 9px}.ctag.t{background:#eceaf2;color:var(--mut)}
+.fun{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:12px}.fun div{background:var(--paper);border-radius:14px;padding:9px 10px}.fun small{display:block;font-size:11.5px;color:var(--mut);font-weight:600}.fun b{display:block;font-size:22px;font-weight:900;color:var(--navy);margin-top:2px}.fun i{font-style:normal;font-size:11px;color:var(--green);font-weight:700}
+@media(max-width:700px){.fun{grid-template-columns:repeat(3,1fr)}}
+.qt{width:100%;border-collapse:collapse;font-size:13px}.qt th{text-align:right;font-size:10.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;font-weight:700;padding:0 6px 6px}.qt th:nth-child(-n+2){text-align:left}.qt td{padding:8px 6px;border-top:1px solid #f0ebe0;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}.qt td:nth-child(-n+2){text-align:left;font-weight:400}.qt tr{cursor:pointer}.qt tr:hover td{background:var(--paper)}
+.qt .qmini{width:34px;height:34px;border-radius:8px;background:#fff;border:1px solid #eee;padding:2px}.qt .qmini svg{width:100%;height:100%;display:block}.qt code{font:700 12px ui-monospace,Menlo,monospace}.qt small{display:block;color:var(--mut);font-size:11.5px}
+@media(max-width:700px){.qt .hm{display:none}}
 .qrimg{width:110px;height:110px;border-radius:14px;background:var(--cream);padding:9px;flex:none}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;border-radius:999px;padding:10px 16px;font-size:13.5px;font-weight:700;z-index:60}
 .whosel{appearance:none;-webkit-appearance:none;border:0;cursor:pointer;padding-right:28px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2310285e' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;font-family:inherit;color:inherit}
@@ -462,10 +472,11 @@ a.x.resa{color:#fff;text-decoration:none}a.x.resa h3,a.x.resa .more{color:#fff}
 
   <!-- ═══════ SCANS QR ═══════ -->
   <main id="v-qr" hidden>
-    <div class="sub-hd"><a class="back" href="#home" aria-label="Retour">‹</a><div><h1>Scans QR <span class="demo" data-demo>Exemple</span></h1><p>Touchez un code pour son détail · + pour en créer un</p></div><a class="plus" style="margin-left:auto" href="#qr-new" aria-label="Créer un code">+</a></div>
+    <div class="sub-hd"><a class="back" href="#home" aria-label="Retour">‹</a><div><h1>Scans QR <span class="demo" data-demo>Exemple</span></h1><p>Classés par campagne · touchez un code pour son détail · + pour en créer un</p></div><a class="plus" style="margin-left:auto" href="#qr-new" aria-label="Créer un code">+</a></div>
     <div class="chips" id="qrChips"></div>
-    <div class="kpis" id="qrK"></div>
-    <div class="cols"><div><div class="card"><h2>Codes · 7 jours</h2><div id="qrList"></div></div></div>
+    <div class="chips" id="qrChips2"></div>
+    <div id="qrCamps"></div>
+    <div class="cols"><div><div class="card"><h2>Tous les codes · 7 jours</h2><div class="kpis" id="qrK" style="margin-bottom:10px"></div><div id="qrList"></div></div></div>
       <div><div class="card"><h2>Scans par jour</h2><div class="chart" id="qrChart"></div><div class="clab" id="qrLab"></div></div></div></div>
   </main>
   <main id="v-qrd" hidden></main>
@@ -475,17 +486,25 @@ a.x.resa{color:#fff;text-decoration:none}a.x.resa h3,a.x.resa .more{color:#fff}
     <div class="sub-hd"><a class="back" href="#qr" aria-label="Retour">‹</a><div><h1 id="qTitle">Nouveau code</h1><p>Le QR imprimé ne change jamais : seule sa destination se modifie</p></div></div>
     <div class="cols">
       <div><div class="card"><h2>Le code</h2><div class="fields">
-        <div class="f"><label>Nom affiché</label><input id="qLabel" placeholder="Menu hors carte · Élodie"></div>
+        <div class="two"><div class="f"><label>Campagne</label><input id="qCamp" placeholder="Free Oyster" list="camps"><datalist id="camps"></datalist></div>
+          <div class="f"><label>Support</label><select id="qSup"><option>Affiche</option><option>Flyer</option><option>Carte table</option><option>Chevalet</option><option>Menu</option><option>Addition</option><option>Sticker</option><option>Serveur</option><option>Story</option><option>Autre</option></select></div></div>
+        <div class="two"><div class="f"><label>Lieu (rue, ou nom de famille)</label><input id="qPlace" placeholder="biot"></div>
+          <div class="f"><label>Numéro</label><input id="qNum" type="number" min="1" value="1" inputmode="numeric"></div></div>
+        <div class="f"><label>Le lien imprimé (se construit tout seul)</label><div class="qlink" id="qPath"></div></div>
+        <div class="f"><label>Nom affiché</label><input id="qLabel" placeholder="Affiche A0 · 8 rue Biot"></div>
+        <div class="f"><label>Note (taille, emplacement)</label><input id="qNote" placeholder="Affiche A0, vitrine de droite"></div>
         <div class="two"><div class="f"><label>Catégorie</label><select id="qCat"><option>Hors carte</option><option>Plateaux Noël</option><option>Réseaux</option><option>Affiches rue</option><option>Avis Google</option><option>Events</option><option>Autre</option></select></div>
           <div class="f"><label>Porteur</label><input id="qOwner" placeholder="Élodie" list="owners"><datalist id="owners"></datalist></div></div>
-        <div class="f"><label>Code (dans le lien du QR)</label><input id="qCode" placeholder="ELODIE-HORSCARTE" style="font-family:ui-monospace,Menlo,monospace;text-transform:uppercase"></div>
-        <div class="f"><label>Destination</label><input id="qDest" placeholder="https://drevici.beltab.app/resa"></div>
+        <input id="qCode" type="hidden">
+        <div class="f"><label>Destination (modifiable plus tard, sans réimprimer)</label><input id="qDest" placeholder="/free-oyster" list="dests"><datalist id="dests"><option value="/free-oyster">Jeu Free Oyster</option><option value="/book">Réservation</option><option value="/">Accueil du site</option><option value="/?carte=1">Carte du club</option></datalist></div>
         <div class="two"><div class="f"><label>Ce qui compte comme conversion</label><input id="qGoal" placeholder="Réservation"></div>
           <div class="f"><label>Commission</label><input id="qCom" placeholder="10 % du plat"></div></div>
         <div class="sw">Actif <button type="button" class="tg-sw on" id="qActive" aria-label="Actif"></button></div>
       </div></div></div>
-      <div><div class="card"><h2>Aperçu</h2><div class="qrbox"><div class="qrimg" id="qPrev"></div><div style="font-size:13px;color:var(--mut);line-height:1.5">Le QR mène à<br><b id="qLink" style="color:var(--ink);word-break:break-all"></b><br>puis redirige vers la destination, en comptant le scan.</div></div></div>
-        <div class="actions"><a class="cbtn gh" href="#qr">Annuler</a><button class="cbtn" type="button" id="qSave">Enregistrer</button></div>
+      <div><div class="card"><h2>Aperçu</h2><div class="qrbig" id="qPrev"></div>
+          <div class="f" style="margin-top:12px"><label>Style</label><div class="qstyles" id="qStyles"></div></div>
+          <div style="font-size:12.5px;color:var(--mut);line-height:1.5;margin-top:8px">Le QR mène à <b id="qLink" style="color:var(--ink);word-break:break-all"></b>, compte le scan, puis renvoie vers la destination.</div></div>
+        <div class="actions"><a class="cbtn gh" href="#qr">Annuler</a><button class="cbtn" type="button" id="qSave">Créer le QR</button></div>
         <button class="cbtn dg danger" type="button" id="qDel" hidden style="width:100%;padding:12px">Supprimer ce code</button></div>
     </div>
   </main>
@@ -499,6 +518,7 @@ a.x.resa{color:#fff;text-decoration:none}a.x.resa h3,a.x.resa .more{color:#fff}
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="qr-drevici.js"></script>
 <script>
 /* ═══════════ Réglages ═══════════ */
 const MENU_SLUG='drevici';            // Events et tâches
@@ -821,6 +841,14 @@ sheet.addEventListener('pointerdown',e=>{const a=document.activeElement;sheetKb=
 
 /* ═══════════ QR codes, scans, conversions ═══════════ */
 const GO='https://go.beltab.app/';
+const QR_SITE='https://drevici-preview.beltab.app';   // publie-drevici.py met https://drevici.beltab.app
+const JEU_SLUG='drevici-test';                         // parties du jeu Free Oyster (préview : copie de test)
+const QSTYLES=[['losange','Losanges','feuille'],['rond','Perles','rond'],['liquide','Liquide','feuille'],['barres','Barres','rond'],['etoile','Étoiles','feuille'],['goutte','Gouttes','feuille'],['croix','Croix','carre'],['pixel','Pixels','carre']];
+let JEU={players:[],plays:[],ev:[]}, QF2='Tous';
+const qrLink=q=>q&&q.path?QR_SITE+'/qr/'+q.path:GO+String(q&&q.code||'CODE').toLowerCase();
+const campOf=q=>q.campaign||q.category||'Autre';
+const qslug=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+function qrArt(q,size=600,fixed){const st=QSTYLES.find(x=>x[0]===(q&&q.style))||QSTYLES[0];if(!window.qrDrevici)return qrSvg(qrLink(q));const v=qrDrevici(qrLink(q),size,{style:st[0],eye:st[2]});return fixed?v:v.replace(`width="${size}" height="${size}"`,'width="100%" height="100%" style="display:block"');}
 let QRS=[], SCANS=[], CONVS=[], DB_QR=true, QF='Tous';
 const CAT_IC={'Hors carte':'🦪','Plateaux Noël':'🎄','Réseaux':'📱','Affiches rue':'📍','Avis Google':'⭐','Events':'✨','Autre':'🔗'};
 const CAT_COL={'Hors carte':'#253968','Plateaux Noël':'#d09d39','Affiches rue':'#3b4663','Avis Google':'#34a853','Réseaux':'#8a97bd','Events':'#cd3232','Autre':'#a9a291'};
@@ -835,14 +863,32 @@ async function loadQR(){
     sb.from('qr_scans').select('code,at,ua').eq('client_slug',MENU_SLUG).gte('at',since).order('at',{ascending:false}).limit(5000),
     sb.from('qr_conversions').select('*').eq('client_slug',MENU_SLUG).order('created_at',{ascending:false}).limit(2000)]);
   if(q.error){DB_QR=false;demoQR();return;}
-  DB_QR=true;QRS=q.data||[];SCANS=sc.data||[];CONVS=cv.data||[];
+  DB_QR=true;QRS=(q.data||[]).sort((a,b)=>(a.is_test?1:0)-(b.is_test?1:0));SCANS=sc.data||[];CONVS=cv.data||[];
+  // Parcours du jeu Free Oyster, rangé par QR (le code arrive dans ?src=)
+  try{const [pl,py,ev]=await Promise.all([
+      sb.from('jeu_players').select('src,optin,referred_by,created_at').eq('client_slug',JEU_SLUG).limit(20000),
+      sb.from('jeu_plays').select('src,result,redeemed_at,n').eq('client_slug',JEU_SLUG).limit(50000),
+      sb.from('site_events').select('kind,name,src').eq('client_slug',JEU_SLUG).not('src','is',null).gte('at',since).limit(50000)]);
+    JEU={players:pl.data||[],plays:py.data||[],ev:ev.data||[]};}catch(e){JEU={players:[],plays:[],ev:[]};}
 }
+// Parcours d'un ou plusieurs codes : scans → joueurs → club → amis → Instagram / Réserver → lots
+function funnel(codes){
+  const set=new Set(codes),P=JEU.players.filter(x=>set.has(x.src)),Y=JEU.plays.filter(x=>set.has(x.src)),E=JEU.ev.filter(x=>set.has(x.src));
+  const refIds=new Set(P.map((x,i)=>i));
+  const won=Y.filter(x=>x.result!=='perdu');
+  return {scans:SCANS.filter(x=>set.has(x.code)).length,views:E.filter(x=>x.kind==='view').length,players:P.length,club:P.filter(x=>x.optin).length,
+    friends:JEU.players.filter(x=>x.referred_by&&set.has(x.src)).length,insta:E.filter(x=>x.name==='jeu_insta').length,resa:E.filter(x=>x.name==='jeu_resa').length,
+    won:won.length,redeemed:won.filter(x=>x.redeemed_at).length,byPrize:r=>won.filter(x=>x.result===r)};
+}
+const pc=(a,b)=>b?Math.round(a/b*100)+' %':'—';
+function funnelHTML(f){return `<div class="fun"><div><small>Scans</small><b class="num">${f.scans}</b></div><div><small>Joueurs</small><b class="num">${f.players}</b><i>${pc(f.players,f.scans)} des scans</i></div><div><small>Inscrits au club</small><b class="num">${f.club}</b><i>${pc(f.club,f.players)} des joueurs</i></div><div><small>Amis parrainés</small><b class="num">${f.friends}</b></div><div><small>Clics Instagram</small><b class="num">${f.insta}</b></div><div><small>Lots gagnés / remis</small><b class="num">${f.won} / ${f.redeemed}</b></div></div>`;}
 function demoQR(){
   QRS=[['ELODIE-HORSCARTE','Menu hors carte · Élodie','Hors carte','Élodie','Commande hors carte','10 % du plat'],['VINCE-HORSCARTE','Menu hors carte · Vince','Hors carte','Vince','Commande hors carte','10 % du plat'],
     ['BENJI-HORSCARTE','Menu hors carte · Benji','Hors carte','Benji','Commande hors carte','10 % du plat'],['ETIENNE-HORSCARTE','Menu hors carte · Étienne','Hors carte','Étienne','Commande hors carte','10 % du plat'],
     ['WILL-NOEL-INSTA','Plateaux de Noël · Instagram','Plateaux Noël','Will','Précommande','10 % du plateau'],['RESA-INSTAGRAM','Instagram · lien en bio','Réseaux','Will','Réservation',''],['RESA-TIKTOK','TikTok · lien en bio','Réseaux','Will','Réservation',''],
     ['AVIS-CAISSE','Chevalet près de la caisse','Avis Google','Restaurant','Avis Google',''],['AFFICHE-RESERVEZ','Affiche « Venez réserver »','Affiches rue','Will','Réservation',''],['EVENT-HALLOWEEN','Affiche Halloween','Events','Will','Réservation','']]
     .map(([code,label,category,owner,goal,commission],i)=>({id:'d'+i,code,label,category,owner,goal,commission,destination:'https://drevici.beltab.app/',active:true}));
+  QRS.unshift({id:'dfo',code:'FREE-OYSTER-AFFICHE-BIOT-1',label:'Affiche A0 · 8 rue Biot',category:'Affiches rue',owner:'Will',goal:'Partie jouée',campaign:'Free Oyster',support:'Affiche',place:'biot',num:1,path:'free-oyster/affiche-biot-1',style:'losange',destination:'/free-oyster',active:true});
   const rnd=((x)=>()=>(x=(x*16807)%2147483647)/2147483647)(7);
   SCANS=[];CONVS=[];
   QRS.forEach((q,i)=>{const n=20+Math.round(rnd()*110);for(let k=0;k<n;k++){const d=daysAgo(Math.floor(rnd()*7));d.setHours(11+Math.floor(rnd()*11),Math.floor(rnd()*60));SCANS.push({code:q.code,at:d.toISOString(),ua:rnd()>.4?'iPhone':'Android'});}
@@ -863,7 +909,7 @@ function renderQRHome(){
   document.querySelectorAll('[data-demo]').forEach(e=>e.hidden=DB_QR);
   const all=statsFor(QRS.map(q=>q.code));
   document.getElementById('qrHomeSub').innerHTML=`7 jours · <b class="num" style="color:var(--navy)">${all.scans.toLocaleString('fr-FR')}</b> scans · ${all.conv} conversions`;
-  const cats=[...new Set(QRS.map(q=>q.category))],vals=cats.map(c=>statsFor(QRS.filter(q=>q.category===c).map(q=>q.code)).scans),mx=Math.max(1,...vals);
+  const cats=[...new Set(QRS.map(campOf))],vals=cats.map(c=>statsFor(QRS.filter(q=>campOf(q)===c).map(q=>q.code)).scans),mx=Math.max(1,...vals);
   document.getElementById('qrSrcs').innerHTML=cats.map((c,i)=>`<div class="src"><span>${esc(c)}</span><div class="b"><i style="width:${vals[i]/mx*100}%;background:${CAT_COL[c]||'#253968'}"></i></div><b class="num">${vals[i]}</b></div>`).join('')||'<p class="empty">Aucun code pour l’instant.</p>';
   const hc=statsFor(QRS.filter(q=>q.category==='Hors carte').map(q=>q.code));
   document.getElementById('hcK').textContent=hc.conv;document.getElementById('hcSub').innerHTML=hc.pending?`<b style="color:var(--red)">${hc.pending} à valider</b>`:'ventes validées';
@@ -871,17 +917,32 @@ function renderQRHome(){
   document.getElementById('noK').textContent=no.conv;document.getElementById('noSub').textContent=no.pending?no.pending+' à valider':'via les QR';
 }
 function renderQR(){
-  const cats=['Tous',...new Set(QRS.map(q=>q.category))];
-  document.getElementById('qrChips').innerHTML=cats.map(c=>`<button class="chip ${c===QF?'on':''}" type="button" data-qf="${esc(c)}">${c}</button>`).join('');
-  const l=QRS.filter(q=>QF==='Tous'||q.category===QF),st=statsFor(l.map(q=>q.code));
-  document.getElementById('qrK').innerHTML=`<div class="kpi n"><span>Scans · 7 j</span><b class="num">${st.scans.toLocaleString('fr-FR')}</b></div><div class="kpi"><span>Conversions</span><b class="num">${st.conv}</b></div><div class="kpi"><span>Taux</span><b class="num">${st.scans?(st.conv/st.scans*100).toFixed(1).replace('.',','):'0'} %</b></div><div class="kpi g"><span>Codes</span><b class="num">${l.length}</b></div>`;
-  document.getElementById('qrList').innerHTML=l.map(q=>({q,s:statsFor([q.code])})).sort((a,b)=>b.s.scans-a.s.scans).map(({q,s})=>`<a class="qrl" href="#qr/${encodeURIComponent(q.code)}"><span class="ic">${CAT_IC[q.category]||'🔗'}</span><div><code>${esc(q.code)}</code>${q.active?'':' <span class="demo">Pause</span>'}<small>${esc(q.label||'')}${q.owner&&!(q.label||'').includes(q.owner)?' · '+esc(q.owner):''}</small></div><div class="r"><b class="num">${s.scans}</b>${s.conv} conv. ›</div></a>`).join('')||'<p class="empty">Aucun code. Touchez + pour en créer un.</p>';
+  const camps=['Tous',...new Set(QRS.map(campOf))];
+  if(!camps.includes(QF))QF='Tous';
+  document.getElementById('qrChips').innerHTML='<small style="align-self:center;font-weight:800;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin-right:2px">Campagne</small>'+camps.map(c=>`<button class="chip ${c===QF?'on':''}" type="button" data-qf="${esc(c)}">${esc(c)}</button>`).join('');
+  const sups=['Tous',...new Set(QRS.filter(q=>QF==='Tous'||campOf(q)===QF).map(q=>q.support).filter(Boolean))];
+  if(!sups.includes(QF2))QF2='Tous';
+  document.getElementById('qrChips2').innerHTML=sups.length>2?'<small style="align-self:center;font-weight:800;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin-right:2px">Support</small>'+sups.map(c=>`<button class="chip ${c===QF2?'on':''}" type="button" data-qf2="${esc(c)}">${esc(c)}</button>`).join(''):'';
+  const l=QRS.filter(q=>(QF==='Tous'||campOf(q)===QF)&&(QF2==='Tous'||q.support===QF2)),st=statsFor(l.map(q=>q.code));
+  // blocs par campagne (codes de la nomenclature /qr/…)
+  const cs=[...new Set(l.filter(q=>q.path).map(campOf))];
+  document.getElementById('qrCamps').innerHTML=cs.map(c=>{const qs=l.filter(q=>q.path&&campOf(q)===c),f=funnel(qs.map(q=>q.code)),test=qs.every(q=>q.is_test),jeu=f.players||/free oyster/i.test(c);
+    const first=qs.map(q=>q.created_at).filter(Boolean).sort()[0];
+    return `<div class="card camp"><div class="ch"><b>${esc(c)}</b><span class="ctag ${test?'t':''}">${test?'Test':jeu?'Jeu · en cours':'En cours'}</span><small>${first?'depuis le '+new Date(first).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' · ':''}${qs.length} QR · 30 jours</small></div>
+      ${jeu?funnelHTML(f):''}
+      <table class="qt"><tr><th></th><th>QR · lien</th><th>Scans</th>${jeu?'<th>Joueurs</th><th class="hm">Club</th><th class="hm">Amis</th><th class="hm">Insta</th><th>Lots</th>':'<th>Conversions</th>'}</tr>
+      ${qs.map(q=>{const g=funnel([q.code]),s7=statsFor([q.code]);return `<tr data-href="#qr/${encodeURIComponent(q.code)}"><td style="width:44px"><div class="qmini">${qrArt(q,120)}</div></td><td><code>/qr/${esc(q.path)}</code><small>${esc(q.label||'')}${q.active===false?' · désactivé':''}</small></td><td>${g.scans}</td>${jeu?`<td>${g.players}</td><td class="hm">${g.club}</td><td class="hm">${g.friends}</td><td class="hm">${g.insta}</td><td>${g.won} / ${g.redeemed}</td>`:`<td>${s7.conv}</td>`}</tr>`;}).join('')}</table></div>`;}).join('');
+  document.getElementById('qrK').innerHTML=`<div class="kpi n"><span>Scans · 7 j</span><b class="num">${st.scans.toLocaleString('fr-FR')}</b></div><div class="kpi"><span>Conversions</span><b class="num">${st.conv}</b></div><div class="kpi"><span>Taux</span><b class="num">${st.scans?(st.conv/st.scans*100).toFixed(1).replace('.',','):'0'} %</b></div>`;
+  document.getElementById('qrList').innerHTML=l.map(q=>({q,s:statsFor([q.code])})).sort((a,b)=>b.s.scans-a.s.scans).map(({q,s})=>`<a class="qrl" href="#qr/${encodeURIComponent(q.code)}"><span class="ic">${q.path?'<span style="display:block;width:30px;height:30px">'+qrArt(q,90)+'</span>':(CAT_IC[q.category]||'🔗')}</span><div><code>${esc(q.path?'/qr/'+q.path:q.code)}</code><small>${esc(q.label||'')}</small></div><div class="r"><b class="num">${s.scans}</b>${s.conv} conv.</div></a>`).join('')||'<p class="empty">Aucun code.</p>';
   const b=dayBars(st.sc);document.getElementById('qrChart').innerHTML=b.html;document.getElementById('qrLab').innerHTML=b.lab;
 }
+document.addEventListener('click',e=>{const t=e.target.closest('[data-qf2]');if(t){QF2=t.dataset.qf2;renderQR();return;}
+  const r=e.target.closest('tr[data-href]');if(r)location.hash=r.dataset.href;});
 function qrSvg(text,cell=4){ if(!window.qrcode) return ''; const q=qrcode(0,'M');q.addData(text);q.make();return q.createSvgTag({cellSize:cell,margin:2,scalable:true}).replace('<svg ','<svg width="100%" height="100%" ').replace(/fill="black"/g,'fill="#0d255c"'); }
 function downloadQR(code,fmt){
-  const svg=qrSvg(GO+code.toLowerCase(),10);
-  if(fmt==='svg'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'}));a.download=code+'.svg';a.click();return;}
+  const q0=QRS.find(x=>x.code===code);
+  const svg=q0&&q0.path?qrArt(q0,1200,true):qrSvg(GO+code.toLowerCase(),10);
+  if(fmt==='svg'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'}));a.download=(q0&&q0.path?'QR-'+q0.path.replace(/\//g,'_'):code)+'.svg';a.click();return;}
   const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=c.height=1200;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,1200,1200);x.drawImage(img,0,0,1200,1200);
     c.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=code+'.png';a.click();});};
   img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg.replace('width="100%" height="100%"','width="1200" height="1200"'));
@@ -892,12 +953,12 @@ function convRow(c){return `<div class="pend"><span class="av" style="background
   ${c.status==='pending'?`<div class="acts"><button class="ok" type="button" data-cval="${esc(c.id)}">Valider</button><button type="button" data-cref="${esc(c.id)}">Refuser</button></div>`:''}</div>`;}
 function renderQRD(code){
   const q=QRS.find(x=>x.code===code); if(!q){location.hash='#qr';return;}
-  const st=statsFor([code]),all=SCANS.filter(x=>x.code===code),link=GO+code.toLowerCase(),b=dayBars(st.sc);
+  const st=statsFor([code]),all=SCANS.filter(x=>x.code===code),link=qrLink(q),b=dayBars(st.sc),fq=funnel([code]),jeu=fq.players||/free oyster/i.test(q.campaign||'');
   const convs=CONVS.filter(x=>x.code===code).slice(0,30);
   document.getElementById('v-qrd').innerHTML=`<div class="sub-hd"><a class="back" href="#qr" aria-label="Retour">‹</a><div><h1 style="font-family:ui-monospace,Menlo,monospace;font-size:19px">${esc(code)}${DB_QR?'':' <span class="demo">Exemple</span>'}</h1><p>${esc(q.category)} · ${esc(q.label||'')}</p></div><a class="cbtn gh" style="margin-left:auto" href="#qr-edit/${encodeURIComponent(code)}">Modifier</a></div>
   <div class="kpis"><div class="kpi n"><span>Scans · 7 j</span><b class="num">${st.scans}</b></div><div class="kpi"><span>Conversions</span><b class="num">${st.conv}</b></div><div class="kpi"><span>Taux</span><b class="num">${st.scans?(st.conv/st.scans*100).toFixed(1).replace('.',','):'0'} %</b></div><div class="kpi g"><span>${pctOf(q.commission)?'Commission · 7 j':'Scans · 30 j'}</span><b class="num">${pctOf(q.commission)?eur(st.ca*pctOf(q.commission)):all.length}</b></div></div>
   <div class="cols"><div>
-    <div class="card"><h2>Le code</h2><div class="qrbox"><div class="qrimg">${qrSvg(link)}</div><div class="info" style="flex:1">
+    ${jeu?`<div class="card"><h2>Le parcours <small style="font-weight:600;color:var(--mut);font-size:12px">30 jours</small></h2>${funnelHTML(fq)}<div class="fun" style="grid-template-columns:repeat(4,1fr)"><div><small>Ont ouvert le jeu</small><b class="num">${fq.views}</b></div><div><small>Clics Réserver</small><b class="num">${fq.resa}</b></div><div><small>Huîtres · plateaux · T-shirts</small><b class="num">${fq.byPrize('huitre').length} · ${fq.byPrize('plateau').length} · ${fq.byPrize('tshirt').length}</b></div><div><small>Lots remis</small><b class="num">${fq.redeemed}</b></div></div></div>`:''}<div class="card"><h2>Le code</h2><div class="qrbox"><div class="qrimg" style="${q.path?'width:150px;height:150px;padding:6px;background:#fff':''}">${q.path?qrArt(q,300):qrSvg(link)}</div><div class="info" style="flex:1">
       <div class="r"><span class="ic">🎯</span><div><b>${esc(q.goal||'—')}</b><span>Ce qui compte comme conversion</span></div></div>
       <div class="r"><span class="ic">👤</span><div><b>${esc(q.owner||'—')}</b><span>Porteur${q.commission?' · commission : '+esc(q.commission):''}</span></div></div>
       <div class="r"><span class="ic">➡️</span><div><b style="word-break:break-all;font-size:12.5px">${esc(q.destination)}</b><span>Destination (modifiable sans réimprimer)</span></div></div></div></div>
@@ -943,40 +1004,58 @@ const slug=t=>t.normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[
 const CAT_SUFFIX={'Hors carte':'HORSCARTE','Plateaux Noël':'NOEL','Réseaux':'RESA','Affiches rue':'AFFICHE','Avis Google':'AVIS','Events':'EVENT','Autre':'QR'};
 const CAT_DEST={'Hors carte':'https://drevici.beltab.app/','Plateaux Noël':'https://drevici.beltab.app/','Réseaux':'https://drevici.beltab.app/resa','Affiches rue':'https://drevici.beltab.app/resa','Avis Google':'https://maps.app.goo.gl/gfcvWMf6WfKAcEh96','Events':'https://drevici.beltab.app/resa','Autre':'https://drevici.beltab.app/'};
 const CAT_GOAL={'Hors carte':'Commande hors carte','Plateaux Noël':'Précommande','Réseaux':'Réservation','Affiches rue':'Réservation','Avis Google':'Avis Google','Events':'Réservation','Autre':''};
-let codeTouched=false;
+let codeTouched=false, qStyle='losange';
+// Nomenclature : /qr/<campagne>/<support>-<lieu>-<numéro> · code = la même chose en majuscules
+function qParts(){const g=id=>document.getElementById(id).value.trim();
+  const camp=g('qCamp')||'campagne',sup=g('qSup'),place=g('qPlace')||'lieu',num=Math.max(1,parseInt(g('qNum'))||1);
+  const path=qslug(camp)+'/'+qslug(sup)+'-'+qslug(place)+'-'+num;
+  return {camp,sup,place,num,path,code:path.toUpperCase().replace(/\//g,'-')};}
 function fillQR(q,cat){
   qEdit=q?q.code:null;codeTouched=!!q;
-  document.getElementById('qTitle').textContent=q?'Modifier le code':'Nouveau code';
+  document.getElementById('qTitle').textContent=q?'Modifier le QR':'Nouveau QR';
+  document.getElementById('qSave').textContent=q?'Enregistrer':'Créer le QR';
   document.getElementById('qDel').hidden=!q;
-  const c=q?q.category:(cat||'Hors carte');
+  const c=q?q.category:(cat||'Affiches rue');
   const v=(id,x)=>document.getElementById(id).value=x==null?'':x;
-  v('qLabel',q?q.label:'');v('qCat',c);v('qOwner',q?q.owner:'');v('qCode',q?q.code:'');v('qDest',q?q.destination:CAT_DEST[c]);v('qGoal',q?q.goal:CAT_GOAL[c]);v('qCom',q?q.commission:(c==='Hors carte'?'10 % du plat':c==='Plateaux Noël'?'10 % du plateau':''));
-  document.getElementById('qCode').disabled=!!q&&DB_QR;
+  v('qCamp',q?(q.campaign||''):'Free Oyster');v('qSup',q?(q.support||'Autre'):'Affiche');v('qPlace',q?(q.place||''):'');v('qNum',q?(q.num||1):1);v('qNote',q?q.note:'');
+  v('qLabel',q?q.label:'');v('qCat',c);v('qOwner',q?q.owner:'');v('qCode',q?q.code:'');v('qDest',q?q.destination:'/free-oyster');v('qGoal',q?q.goal:'Partie jouée');v('qCom',q?q.commission:'');
+  qStyle=q&&q.style||'losange';
+  ['qCamp','qSup','qPlace','qNum'].forEach(id=>document.getElementById(id).disabled=!!q&&!!q.path&&DB_QR);   // un QR imprimé garde son lien
   document.getElementById('qActive').classList.toggle('on',q?q.active!==false:true);
   document.getElementById('owners').innerHTML=[...new Set(QRS.map(x=>x.owner).filter(Boolean))].map(o=>`<option value="${esc(o)}">`).join('');
+  document.getElementById('camps').innerHTML=[...new Set(QRS.map(x=>x.campaign).filter(Boolean))].map(o=>`<option value="${esc(o)}">`).join('');
   prevQR();
 }
 function prevQR(){
-  const g=id=>document.getElementById(id).value.trim();
-  if(!codeTouched&&!qEdit){const own=g('qOwner'),c=g('qCat');document.getElementById('qCode').value=slug((own?own+'-':'')+CAT_SUFFIX[c]);}
-  const code=slug(g('qCode'))||'CODE';document.getElementById('qLink').textContent=GO+code.toLowerCase();document.getElementById('qPrev').innerHTML=qrSvg(GO+code.toLowerCase());
+  const P=qParts(),q=qEdit?QRS.find(x=>x.code===qEdit):null;
+  const path=q&&q.path?q.path:P.path, code=q?q.code:P.code;
+  if(!qEdit)document.getElementById('qCode').value=code;
+  const fake={code,path,style:qStyle};
+  document.getElementById('qPath').textContent=QR_SITE.replace(/^https:\/\//,'')+'/qr/'+path;
+  document.getElementById('qLink').textContent=qrLink(fake).replace(/^https:\/\//,'');
+  document.getElementById('qPrev').innerHTML=qrArt(fake,600);
+  document.getElementById('qStyles').innerHTML=QSTYLES.map(([k,n])=>`<button type="button" class="${k===qStyle?'on':''}" data-qs="${k}">${n}</button>`).join('');
 }
-['qLabel','qOwner','qDest'].forEach(id=>document.getElementById(id).addEventListener('input',prevQR));
-document.getElementById('qCat').addEventListener('change',()=>{const c=document.getElementById('qCat').value;if(!qEdit){document.getElementById('qDest').value=CAT_DEST[c];document.getElementById('qGoal').value=CAT_GOAL[c];}prevQR();});
-document.getElementById('qCode').addEventListener('input',()=>{codeTouched=true;prevQR();});
+document.getElementById('qStyles').addEventListener('click',e=>{const b=e.target.closest('[data-qs]');if(!b)return;qStyle=b.dataset.qs;prevQR();});
+['qCamp','qSup','qPlace','qNum','qLabel','qOwner','qDest'].forEach(id=>{document.getElementById(id).addEventListener('input',prevQR);document.getElementById(id).addEventListener('change',prevQR);});
 document.getElementById('qActive').onclick=e=>e.currentTarget.classList.toggle('on');
 document.getElementById('qSave').onclick=async()=>{
-  const g=id=>document.getElementById(id).value.trim();
-  const row={client_slug:MENU_SLUG,code:slug(g('qCode')),label:g('qLabel'),category:g('qCat'),owner:g('qOwner'),destination:g('qDest'),goal:g('qGoal'),commission:g('qCom'),active:document.getElementById('qActive').classList.contains('on')};
-  if(!row.code)return toast('Donnez un code');
-  if(!/^https?:\/\//.test(row.destination))return toast('La destination doit commencer par https://');
-  if(!qEdit&&QRS.some(x=>x.code===row.code))return toast('Ce code existe déjà');
+  const g=id=>document.getElementById(id).value.trim(), P=qParts();
+  const old=qEdit?QRS.find(x=>x.code===qEdit):null;
+  const row={client_slug:MENU_SLUG,label:g('qLabel')||(P.sup+' · '+P.place+(P.num>1?' '+P.num:'')),category:g('qCat'),owner:g('qOwner'),destination:g('qDest')||'/',goal:g('qGoal'),commission:g('qCom'),
+    note:g('qNote'),style:qStyle,active:document.getElementById('qActive').classList.contains('on')};
+  if(!old||!old.path) Object.assign(row,{code:P.code,campaign:P.camp,support:P.sup,place:qslug(P.place),num:P.num,path:P.path});
+  if(!g('qPlace')&&!(old&&old.path))return toast('Indiquez le lieu (rue ou nom de famille)');
+  if(!/^(https?:\/\/|\/)/.test(row.destination))return toast('Destination : une page du site (/book) ou une adresse https://');
+  if(!qEdit&&QRS.some(x=>x.code===row.code))return toast('Ce QR existe déjà : changez le numéro');
   if(DB_QR){
     const r=qEdit?await sb.from('cabine_qr').update({...row,code:undefined,updated_at:new Date().toISOString()}).eq('code',qEdit).select().single():await sb.from('cabine_qr').insert(row).select().single();
-    if(r.error)return toast('Erreur : '+r.error.message);
+    if(r.error)return toast(/column/.test(r.error.message)?'Base à mettre à jour : lancez sql/qr-campagnes.sql':'Erreur : '+r.error.message);
     if(qEdit)Object.assign(QRS.find(x=>x.code===qEdit),r.data);else QRS.push(r.data);
   } else { if(qEdit)Object.assign(QRS.find(x=>x.code===qEdit),row);else QRS.push({...row,id:'l'+Date.now()});toast('Exemple : non enregistré'); }
-  toast(qEdit?'Code modifié ✓':'Code créé ✓');location.hash='#qr/'+encodeURIComponent(qEdit||row.code);renderQRAll();
+  const code=qEdit||row.code;
+  if(!qEdit){toast('QR créé ✓ · téléchargement');downloadQR(code,'svg');}else toast('QR modifié ✓');
+  location.hash='#qr/'+encodeURIComponent(code);renderQRAll();
 };
 document.getElementById('qDel').onclick=async()=>{
   if(!qEdit||!confirm('Supprimer ce code ? Les QR déjà imprimés mèneront au site.'))return;

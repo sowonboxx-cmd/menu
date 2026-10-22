@@ -52,6 +52,10 @@ P = {
    ("const CLUB_ON = /preview|localhost|127\\.0\\.0\\.1|file:/.test(location.href);", "const CLUB_ON = true;"),
    ("const CLUB_SLUG = 'drevici-test';", "const CLUB_SLUG = 'drevici-paris';"),
  ],
+ 'studio/index.html': [
+   ("const QR_SITE='https://drevici-preview.beltab.app';", "const QR_SITE='https://drevici.beltab.app';"),
+   ("const JEU_SLUG='drevici-test';", "const JEU_SLUG='drevici-paris';"),
+ ],
  'free-oyster.html': [
    ("const JEU_SLUG = 'drevici-test';", "const JEU_SLUG = 'drevici-paris';"),
  ],
