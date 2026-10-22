@@ -42,6 +42,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .two{display:flex;gap:8px;width:100%}.two .fld{flex:1;min-width:0}
 .chk{display:flex;gap:10px;align-items:flex-start;width:100%;font:13px/1.4 Inter;color:#4a4740;text-align:left;margin-top:4px;cursor:pointer}
 .chk input{flex:none;width:20px;height:20px;margin:1px 0 0;accent-color:var(--navy)}
+.chk.club{background:#fff;border-radius:12px;padding:12px 14px;margin-top:6px;font-size:13.5px;color:#3d3a34}.chk.club b{display:block;color:var(--navy);font-weight:700;margin-bottom:3px}
+.nochk{font:12px/1.45 Inter;color:var(--mut);margin:7px 2px 0;text-align:left}
 .err{color:#b3261e;font:600 13.5px/1.4 Inter;text-align:center;min-height:19px;margin-top:8px}
 .btn{display:block;width:100%;border-radius:999px;background:var(--navy);color:#fff;text-align:center;font:700 16px Inter;padding:15px;text-decoration:none}
 .btn.l{background:none;color:var(--navy);box-shadow:inset 0 0 0 2px var(--navy)}
@@ -109,8 +111,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
     <label class="fld"><small>Email</small><input name="email" type="email" inputmode="email" autocomplete="email" placeholder="vous@exemple.fr" required></label>
     <label class="fld"><small>Téléphone</small><input name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="06 12 34 56 78" required></label>
     <input class="hp" name="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
-    <div class="tx" style="font:500 13.5px/1.45 Inter;text-align:left;margin:2px 0 4px">✓ Vous rejoignez le Club Drevici : une coupe offerte à votre premier repas.</div>
-    <label class="chk"><input type="checkbox" name="optin"><span>J'accepte de recevoir les offres de Drevici par email et SMS.</span></label>
+    <label class="chk club"><input type="checkbox" name="optin"><span><b>Je rejoins le Club Drevici : je reçois ma carte de membre et une coupe offerte à mon premier repas.</b> J'accepte de recevoir les offres et soirées de Drevici par email et SMS.</span></label>
+    <div class="nochk">Sans cette case, vous jouez quand même, mais sans carte ni coupe : seulement votre lot si vous gagnez.</div>
     <div class="err" id="ferr"></div>
     <button class="cart" type="submit" id="fgo" style="margin-top:6px"></button>
   </form>
@@ -167,8 +169,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   <div class="hd"></div>
   <div class="sp"></div>
   <img class="res-img s" src="jeu/huitre-ouverte.webp" alt="Huître ouverte, sans perle">
-  <div class="big">Mais une coupe<br>vous attend</div>
-  <div class="tx" style="font:500 14px/1.45 Inter;margin:6px 4px 14px">Vous restez une perle : membre du Club Drevici, une coupe vous est offerte à votre premier repas.</div>
+  <div class="big" id="lBig">Mais une coupe<br>vous attend</div>
+  <div class="tx" style="font:500 14px/1.45 Inter;margin:6px 4px 14px" id="lText">Vous restez une perle : membre du Club Drevici, une coupe vous est offerte à votre premier repas.</div>
   <div style="width:100%"><a class="btn" href="./?carte=1" data-card>Voir ma carte du club</a><button class="btn l" data-share>Faire jouer un ami</button><a class="btn l" href="https://www.instagram.com/drevicioysterbar/" target="_blank" rel="noopener">Suivre @drevicioysterbar</a></div>
   <div class="share-note" data-bonusnote></div>
   <div class="sp"></div>
@@ -268,7 +270,7 @@ $('#f').addEventListener('submit', async e => {
 async function play(body) {
   const r = await fetch(API + '/jeu/play', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ slug: JEU_SLUG, src: SRC, ...body }) });
   const d = await r.json();
-  if (d.t) { ME = { t: d.t, ref_code: d.ref_code, first: d.first, bonus_used: !!d.bonus_used, plays_left: d.ok ? d.plays_left : 0 }; store.set(ME); }
+  if (d.t) { ME = { t: d.t, ref_code: d.ref_code, first: d.first, bonus_used: !!d.bonus_used, plays_left: d.ok ? d.plays_left : 0, club: !!(d.club && d.club.code) }; store.set(ME); }
   if (d.club && d.club.code) { try { const k = 'club_' + JEU_SLUG, old = JSON.parse(localStorage.getItem(k) || 'null'); if (!old || old.code !== d.club.code) localStorage.setItem(k, JSON.stringify({ at: Date.now(), code: d.club.code, no: d.club.no, first: d.club.first || d.first })); } catch (_) {} }
   if (!d.ok) {
     if (d.reset) { ME = null; store.set(null); show('form'); return null; }
@@ -339,8 +341,16 @@ function result() {
     $('#wCode').textContent = d.code;
     $('#wBook').href = 'book?jeu=' + encodeURIComponent(d.code);
     show('win');
-  } else show('lose');
+  } else {
+    const m = ME && ME.club;
+    $('#lBig').innerHTML = m ? 'Mais une coupe<br>vous attend' : 'Vous restez<br>une perle';
+    $('#lText').textContent = m ? 'Vous restez une perle : membre du Club Drevici, une coupe vous est offerte à votre premier repas.' : 'Rejoignez le Club Drevici : une coupe vous est offerte à votre premier repas.';
+    show('lose');
+  }
+  clubButtons();
 }
+// « Voir ma carte du club » pour les membres, « Rejoindre le club » pour les autres (même lien : la fenêtre du club du site).
+function clubButtons() { $$('[data-card]').forEach(a => a.textContent = ME && ME.club ? 'Voir ma carte du club' : 'Rejoindre le club'); }
 
 // ═══ Parrainage : partager son lien ═══
 const shareUrl = () => location.origin + location.pathname + '?ami=' + encodeURIComponent((ME && ME.ref_code) || '');
@@ -358,7 +368,7 @@ function bonusNotes() {
 // ═══ Déjà joué / partie bonus / jeu terminé ═══
 async function refreshMe() {
   if (!ME || !ME.t) return null;
-  try { const d = await (await fetch(`${API}/jeu/me?slug=${JEU_SLUG}&t=${ME.t}`)).json(); if (!d.ok) return null; Object.assign(ME, { first: d.first, ref_code: d.ref_code, plays_left: d.plays_left, bonus_used: d.bonus_used, last: d.last, friends: d.friends }); store.set(ME); return d; } catch (_) { return null; }
+  try { const d = await (await fetch(`${API}/jeu/me?slug=${JEU_SLUG}&t=${ME.t}`)).json(); if (!d.ok) return null; Object.assign(ME, { first: d.first, ref_code: d.ref_code, plays_left: d.plays_left, bonus_used: d.bonus_used, last: d.last, friends: d.friends, club: !!d.club }); store.set(ME); return d; } catch (_) { return null; }
 }
 function doneScreen(kind) {
   bonusNotes();
@@ -377,8 +387,8 @@ function doneScreen(kind) {
     C.innerHTML = `<div class="code" style="margin-bottom:14px">${esc(l.code)}</div>`;
     B.innerHTML = `<a class="btn" href="book?jeu=${encodeURIComponent(l.code)}">Réserver une table</a><button class="btn l" data-share2>Faire jouer un ami</button>`;
   } else {
-    X.textContent = ME && !ME.bonus_used ? 'Une partie par personne. Faites jouer un ami avec votre lien : vous rejouerez une fois.' : 'Une partie par personne. Votre carte du club vous attend : une coupe offerte à votre premier repas.';
-    B.innerHTML = `${ME && !ME.bonus_used ? '<button class="btn" data-share2>Faire jouer un ami</button>' : ''}<a class="btn${ME && !ME.bonus_used ? ' l' : ''}" href="./?carte=1">Voir ma carte du club</a>`;
+    X.textContent = ME && !ME.bonus_used ? 'Une partie par personne. Faites jouer un ami avec votre lien : vous rejouerez une fois.' : (ME && ME.club ? 'Une partie par personne. Votre carte du club vous attend : une coupe offerte à votre premier repas.' : 'Une partie par personne. Rejoignez le Club Drevici : une coupe vous est offerte à votre premier repas.');
+    B.innerHTML = `${ME && !ME.bonus_used ? '<button class="btn" data-share2>Faire jouer un ami</button>' : ''}<a class="btn${ME && !ME.bonus_used ? ' l' : ''}" href="./?carte=1">${ME && ME.club ? 'Voir ma carte du club' : 'Rejoindre le club'}</a>`;
   }
   $$('[data-share2]').forEach(b => b.onclick = () => document.querySelector('[data-share]').click());
   show('done');

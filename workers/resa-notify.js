@@ -744,7 +744,7 @@ async function jeuPlay(env, b) {
     if (ex.length) {
       // déjà inscrit : même personne. S'il a encore une partie (bonus), il la joue ; sinon « déjà joué ».
       pl = ex.find(x => x.email === email && x.phone === phone) || ex[0];
-      if (b.optin === true && !pl.optin) await sb(env, `jeu_players?id=eq.${pl.id}`, { method: 'PATCH', body: { optin: true } }).catch(() => {});
+      if (b.optin === true && !pl.optin) { await sb(env, `jeu_players?id=eq.${pl.id}`, { method: 'PATCH', body: { optin: true } }).catch(() => {}); pl.optin = true; }
     } else {
       let parrain = null;
       const ami = String(b.ami || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
@@ -760,9 +760,10 @@ async function jeuPlay(env, b) {
     }
   }
   const r = await sb(env, 'rpc/jeu_play', { method: 'POST', body: { p_player: pl.id, p_src: src } });
-  // Carte du club : créée à la 1re partie (ou retrouvée), jamais une 2e coupe.
+  // Carte du club : seulement si la case « Je rejoins le club » est cochée (elle vaut accord pour les offres).
+  // Sans la case : on joue pour le lot, sans carte ni coupe, et les coordonnées ne servent qu'au jeu.
   let club = null;
-  try { club = await jeuClub(env, st, slug, pl, src); } catch (e) { console.warn('jeu club', e); }
+  if (pl.optin) { try { club = await jeuClub(env, st, slug, pl, src); } catch (e) { console.warn('jeu club', e); } }
   const base = { t: pl.token, ref_code: pl.ref_code, first: pl.first_name, club };
   if (!r || !r.ok) return { ...base, ok: false, done: !!(r && r.done), closed: !!(r && r.closed), bonus_used: !!(r && r.bonus_used),
     error: r && r.closed ? 'Le jeu est terminé.' : r && r.done ? 'Vous avez déjà joué.' : 'Réessayez dans un instant' };
@@ -773,7 +774,7 @@ async function jeuPlay(env, b) {
   }
   return { ...base, ok: true, result: r.result, prize: JEU_LOTS[r.result], code: r.code, expires_at: r.expires_at, plays_left: r.plays_left, bonus_used: r.bonus_used };
 }
-// Joueur → membre du club (même règle que l'inscription au club, sans exiger l'accord pour les offres).
+// Joueur qui a coché « Je rejoins le club » → membre du club (même règle que l'inscription au club du site).
 async function jeuClub(env, st, slug, pl, src) {
   const ex = await sb(env, `resa_clients?client_slug=eq.${enc(slug)}&or=${enc(`(email.eq."${pl.email}",phone.eq."${pl.phone}")`)}&select=id,email,club_member,club_code,club_no,marketing_optin&order=club_member.desc.nullslast`) || [];
   const mem = ex.find(c => c.club_member && c.club_code);
@@ -786,7 +787,7 @@ async function jeuClub(env, st, slug, pl, src) {
   const own = ex.find(x => x.email === pl.email);
   const row = { club_member: true, club_joined_at: new Date().toISOString(), club_no: no, club_show: true, phone: pl.phone,
     name: [pl.first_name, pl.last_name].filter(Boolean).join(' '), source: 'JEU' + (src ? '-' + src : '') };
-  if (pl.optin) row.marketing_optin = true; else if (!own) row.marketing_optin = false;
+  row.marketing_optin = true;
   let code = '';
   for (let i = 0; i < 5 && !code; i++) {
     const c = clubCode();
@@ -806,11 +807,11 @@ async function jeuClub(env, st, slug, pl, src) {
 }
 async function jeuMe(env, slug, t) {
   if (!jeuSlugOk(slug) || !/^[a-z0-9]{10,40}$/.test(t)) return { ok: false };
-  const pl = (await sb(env, `jeu_players?client_slug=eq.${enc(slug)}&token=eq.${enc(t)}&select=id,first_name,ref_code,plays_allowed,plays_used,ref_bonus_at`) || [])[0];
+  const pl = (await sb(env, `jeu_players?client_slug=eq.${enc(slug)}&token=eq.${enc(t)}&select=id,first_name,ref_code,plays_allowed,plays_used,ref_bonus_at,optin`) || [])[0];
   if (!pl) return { ok: false };
   const last = (await sb(env, `jeu_plays?player_id=eq.${pl.id}&select=result,code,expires_at,redeemed_at&order=id.desc&limit=1`) || [])[0] || null;
   const friends = (await sb(env, `jeu_players?referred_by=eq.${pl.id}&select=id`) || []).length;
-  return { ok: true, first: pl.first_name, ref_code: pl.ref_code, plays_left: pl.plays_allowed - pl.plays_used, bonus_used: !!pl.ref_bonus_at, friends,
+  return { ok: true, first: pl.first_name, ref_code: pl.ref_code, plays_left: pl.plays_allowed - pl.plays_used, bonus_used: !!pl.ref_bonus_at, friends, club: !!pl.optin,
     last: last && { result: last.result, prize: JEU_LOTS[last.result], code: last.code, expires_at: last.expires_at, redeemed: !!last.redeemed_at } };
 }
 async function jeuAmi(env, slug, c) {
