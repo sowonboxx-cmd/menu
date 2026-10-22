@@ -3,13 +3,14 @@
 <style>
 /* Une diapositive Instagram 3:4 = 1080 × 1440 */
 *{box-sizing:border-box;margin:0}
-html,body{width:1080px;height:1440px;overflow:hidden;background:#f4e6d1}
-.s{position:relative;width:1080px;height:1440px;overflow:hidden;font-family:Inter,sans-serif}
+html,body{width:1080px;height:var(--h,1440px);overflow:hidden;background:#f4e6d1}
+.s{position:relative;width:1080px;height:var(--h,1440px);overflow:hidden;font-family:Inter,sans-serif}
 .img{background-size:cover;background-position:center}
 .ab{position:absolute}.fit{white-space:nowrap}
 </style></head><body><div id="s" class="s"></div>
 <script>
-const Q=new URLSearchParams(location.search), D=Q.get('d')||'A', N=+(Q.get('s')||1);
+const Q=new URLSearchParams(location.search), D=Q.get('d')||'A', N=+(Q.get('s')||1), H=+(Q.get('h')||1440);
+document.documentElement.style.setProperty('--h',H+'px');
 const NAVY='#253968',INK='#0d255c',GOLD='#d09d39',RED='#9f2e1f',CREAM='#f4e6d1';
 // Texte du carrousel : une idée par image, court
 const S=[
@@ -51,9 +52,10 @@ function plein(th){
   <div class="ab" style="right:80px;top:74px;font:600 22px Inter;letter-spacing:.12em;color:#fff;text-shadow:0 1px 12px rgba(0,0,0,.4)">${num}</div>`;
   if(th==='band'){ // carte postale : photo en haut, bandeau crème en bas
     el.style.background=CREAM;
-    el.innerHTML=`<div class="ab img" style="left:0;right:0;top:0;height:${cover?930:960}px;${bg(s.img,s.pos)}"></div>${top}
-    <div class="ab" style="left:0;right:0;top:${cover?930:960}px;height:8px;background:${RED}"></div>
-    <div class="ab" style="left:80px;right:80px;top:${cover?990:1010}px;text-align:center">
+    const ih=H-(cover?510:480);
+    el.innerHTML=`<div class="ab img" style="left:0;right:0;top:0;height:${ih}px;${bg(s.img,s.pos)}"></div>
+    <div class="ab" style="left:0;right:0;top:${ih}px;height:8px;background:${RED}"></div>
+    <div class="ab" style="left:80px;right:80px;top:${ih+(cover?60:50)}px;text-align:center">
       <div style="display:flex;align-items:center;justify-content:center;gap:16px;font:700 25px Inter;letter-spacing:.28em;text-transform:uppercase;color:${RED}">${rule(RED,46)}<span style="padding-left:.28em">${s.k}</span>${rule(RED,46)}</div>
       <div class="fit" data-max="${cover?124:96}" style="font:800 96px/1.04 'Playfair Display',serif;color:${INK};margin-top:14px">${s.t}</div>
       <div style="font:500 38px/1.38 Inter;color:#2d2a25;margin:16px auto 0;max-width:880px">${s.x}</div></div>`;
