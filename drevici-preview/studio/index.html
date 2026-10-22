@@ -956,7 +956,7 @@ function renderGuide(){
     <div class="glinks"><span style="align-self:center;font-size:12px;color:var(--mut)">Tester :</span>${t('bonus','&table=1')}${t('trio','&table=1')}${t('tshirt','&table=1')}${t('perdu','&table=1')}</div></div>
   ${edit?'<div class="actions" style="margin-bottom:14px"><button class="cbtn" type="button" id="jcSave">Enregistrer les chances</button></div>':''}
   <div class="gd"><h2>Plat en test <span class="tg t">Préview</span></h2><p>Une carte de table par serveur (le Gentleman chef et sa cloche). QR : <b>/qr/plat-test/serveur-&lt;prénom&gt;-1</b> → la page du plat du moment, changé depuis <a href="#plat">Plat en test</a> : la carte ne se réimprime jamais. Rien à gagner : un prix test plus bas, puis un avis.</p>
-    <ul class="gl"><li>« Je le commande » → un code à 3 chiffres, montré au serveur → <b>il confirme</b> dans Plat en test. La commission ne compte que les commandes confirmées.</li><li>En rouvrant la page après dégustation : étoiles, quelques mots, un commentaire. Prénom, email et club facultatifs. Un seul avis par commande, badge « commandé ✓ » quand la commande est confirmée.</li><li>Aperçus : <a href="../plat-test?test=plat" target="_blank">plat</a> · <a href="../plat-test?test=commande" target="_blank">commande</a> · <a href="../plat-test?test=avis" target="_blank">avis</a> · <a href="../plat-test?test=merci" target="_blank">merci</a> · <a href="../plat-test?test=vide" target="_blank">aucun plat</a></li></ul></div>
+    <ul class="gl"><li>Le client touche « Je le commande » : c'est son clic qui fait foi. La commande arrive dans Plat en test, <b>l'administrateur la valide</b> après vérification en caisse (ou la refuse). La commission ne compte que les commandes validées, et seulement sur les cartes à prénom.</li><li>En rouvrant la page après dégustation : étoiles, quelques mots, un commentaire. Prénom, email et club facultatifs. Un seul avis par commande, badge « commandé ✓ » quand la commande est confirmée.</li><li>Aperçus : <a href="../plat-test?test=plat" target="_blank">plat</a> · <a href="../plat-test?test=commande" target="_blank">commande</a> · <a href="../plat-test?test=avis" target="_blank">avis</a> · <a href="../plat-test?test=merci" target="_blank">merci</a> · <a href="../plat-test?test=vide" target="_blank">aucun plat</a></li></ul></div>
   <div class="gd"><h2>Codes de test <span class="tg t">Test</span></h2><p>Menu (carte de table), Club (chevalet caisse), Halloween (flyer) et la carte d'un serveur : des exemples pour voir le Studio rempli. Ils ne mènent à aucun lot.</p></div>`;
   const b=document.getElementById('jcSave'); if(b) b.onclick=async()=>{
     const up={};document.querySelectorAll('[data-jc]').forEach(i=>{const n=parseInt(i.value);if(n>0)up[i.dataset.jc]=Math.round(1/n*1e6)/1e6;});
@@ -1508,11 +1508,11 @@ function renderPlatHome(){
   const os=c?PT.orders.filter(o=>o.plat_id===c.id&&o.status!=='cancelled'):[],rs=c?PT.reviews.filter(r=>r.plat_id===c.id):[],pend=PT.orders.filter(o=>o.status==='pending').length;
   document.getElementById('ptSub').textContent=c?c.name:'Aucun plat en test';
   k.textContent=os.length+' commandé'+(os.length>1?'s':'');
-  document.getElementById('ptSub2').innerHTML=(rs.length?`${ptAvg(rs).toFixed(1).replace('.',',')} ★ · ${rs.length} avis`:'pas encore d\'avis')+(pend?` · <b style="color:var(--red)">${pend} à confirmer</b>`:'');
+  document.getElementById('ptSub2').innerHTML=(rs.length?`${ptAvg(rs).toFixed(1).replace('.',',')} ★ · ${rs.length} avis`:'pas encore d\'avis')+(pend?` · <b style="color:var(--red)">${pend} à valider</b>`:'');
 }
 function renderPlat(){
   const box=document.getElementById('platBox');
-  const hd=`<div class="sub-hd"><a class="back" href="#home" aria-label="Retour">‹</a><div><h1>Plat en test</h1><p>Cartes serveurs · le client commande, le serveur confirme, le client note</p></div><button class="plus" style="margin-left:auto" data-ptnew aria-label="Nouveau plat">+</button></div>`;
+  const hd=`<div class="sub-hd"><a class="back" href="#home" aria-label="Retour">‹</a><div><h1>Plat en test</h1><p>Le client commande depuis la carte, vous validez ici après vérification en caisse, le client note</p></div><button class="plus" style="margin-left:auto" data-ptnew aria-label="Nouveau plat">+</button></div>`;
   if(!PT.ok){box.innerHTML=hd+`<div class="card"><p class="empty">${PT.err?'Les tables du plat en test ne sont pas encore créées : passez sql/plat-test.sql dans Supabase.':'Connectez-vous pour voir le plat en test.'}</p></div>`;return bindPlat();}
   const c=ptCur(),week=daysAgo(7);
   const live=PT.orders.filter(o=>o.status!=='cancelled'),pend=PT.orders.filter(o=>o.status==='pending');
@@ -1526,11 +1526,11 @@ function renderPlat(){
   const dishCard=c?`<div class="pt-dish"><div class="ph" style="background-image:${c.photo?`url('${esc(c.photo)}')`:'url(../jeu/huitre-ouverte.webp)'}"></div><div><span class="pt-st en_test">En test</span><h3 style="margin-top:6px">${esc(c.name)}</h3><p>${esc(c.descr||'')}</p><p><b style="color:var(--ink)">${c.price_test!=null?eur(+c.price_test):'—'}</b>${c.price_normal!=null?` · <s>${eur(+c.price_normal)}</s> à la carte`:''}${c.commission!=null?` · ${eur(+c.commission)} pour le serveur`:''}</p></div></div>
       <div class="actions" style="display:flex;gap:8px;margin-top:12px"><button class="cbtn" data-ptedit="${c.id}">Modifier</button><a class="cbtn lt" href="../plat-test?test=plat" target="_blank" rel="noopener">Voir la page ↗</a></div>`
     :`<p class="empty">Aucun plat en test. Touchez + pour en lancer un : la carte des serveurs montrera « Pas de plat en test ce soir » en attendant.</p>`;
-  box.innerHTML=hd+`<div class="kpis"><div class="kpi n"><span>Commandés · ce plat</span><b class="num">${cOrders.length}</b></div><div class="kpi r"><span>À confirmer</span><b class="num">${pend.length}</b></div><div class="kpi"><span>Note moyenne</span><b class="num">${cRev.length?ptAvg(cRev).toFixed(1).replace('.',','):'—'}</b></div><div class="kpi g"><span>Avis</span><b class="num">${cRev.length}</b></div></div>
+  box.innerHTML=hd+`<div class="kpis"><div class="kpi n"><span>Commandés · ce plat</span><b class="num">${cOrders.length}</b></div><div class="kpi r"><span>À valider</span><b class="num">${pend.length}</b></div><div class="kpi"><span>Note moyenne</span><b class="num">${cRev.length?ptAvg(cRev).toFixed(1).replace('.',','):'—'}</b></div><div class="kpi g"><span>Avis</span><b class="num">${cRev.length}</b></div></div>
   <div class="cols"><div>
     <div class="card"><h2>Le plat du moment</h2>${dishCard}</div>
-    <div class="card"><h2>À confirmer</h2>${pend.map(o=>`<div class="pt-row"><span class="pt-code">${esc(o.code)}</span><div><b>${esc(ptWaiter(o.src))}</b><small>${esc(dishOf(o.plat_id).name||'')} · ${ptAgo(o.created_at)}</small></div><button class="cbtn" data-ptok="${o.id}">Confirmer</button><button class="cbtn lt" data-ptno="${o.id}">Annuler</button></div>`).join('')||'<p class="empty">Rien à confirmer. Quand un client touche « Je le commande », son code à 3 chiffres arrive ici.</p>'}</div>
-    <div class="card"><h2>Commissions · 7 jours</h2>${team.map(([w,x],i)=>`<div class="lr"><span class="rk">${i+1}</span><span class="av" style="background:${pcol(w)}">${esc(w[0])}</span><div><b>${esc(w)}</b><small>${x.n} plat${x.n>1?'s':''} confirmé${x.n>1?'s':''}</small></div><div class="r"><b class="num">${eur(x.eur)}</b><small>commission</small></div></div>`).join('')||'<p class="empty">Pas encore de commande confirmée cette semaine.</p>'}
+    <div class="card"><h2>À valider${pend.length>1?` <button class="cbtn" style="float:right" data-ptall>Tout valider</button>`:''}</h2>${pend.map(o=>`<div class="pt-row"><span class="pt-code">${esc(o.code)}</span><div><b>${esc(ptWaiter(o.src))}</b><small>${new Date(o.created_at).toLocaleString('fr-FR',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · ${ptAgo(o.created_at)}</small></div><button class="cbtn" data-ptok="${o.id}">Valider</button><button class="cbtn lt" data-ptno="${o.id}">Refuser</button></div>`).join('')||'<p class="empty">Rien à valider. Chaque fois qu\'un client touche « Je le commande », la commande arrive ici : vérifiez-la en caisse, puis validez.</p>'}</div>
+    <div class="card"><h2>Commissions · 7 jours</h2>${team.map(([w,x],i)=>`<div class="lr"><span class="rk">${i+1}</span><span class="av" style="background:${pcol(w)}">${esc(w[0])}</span><div><b>${esc(w)}</b><small>${x.n} plat${x.n>1?'s':''} validé${x.n>1?'s':''}</small></div><div class="r"><b class="num">${eur(x.eur)}</b><small>commission</small></div></div>`).join('')||'<p class="empty">Pas encore de commande validée cette semaine.</p>'}
       <a class="cbtn lt" style="margin-top:10px;width:100%" href="#qr-new/Plat%20en%20test">+ Ajouter un serveur (nouvelle carte QR)</a></div>
   </div><div>
     <div class="card"><h2>Avis${c?' · '+esc(c.name):''}</h2>${cRev.map(r=>`<div class="pt-rv"><span class="st">${ptStars(r.rating)}</span>${orderedIds.has(r.order_id)?'<span class="pt-ok">commandé ✓</span>':''}${(r.tags||[]).length?'<div>'+r.tags.map(t=>`<span class="pt-tag">${esc(t)}</span>`).join('')+'</div>':''}${r.comment?`<p>« ${esc(r.comment)} »</p>`:''}<small>${esc(r.first_name||'Anonyme')}${r.email?' · '+esc(r.email):''}${r.optin?' · club':''} · ${ptAgo(r.created_at)}</small></div>`).join('')||'<p class="empty">Les avis arrivent quand le client rouvre la page après dégustation.</p>'}</div>
@@ -1542,11 +1542,17 @@ function bindPlat(){
   const box=document.getElementById('platBox');
   box.querySelectorAll('[data-ptnew]').forEach(b=>b.onclick=()=>ptSheet(null));
   box.querySelectorAll('[data-ptedit]').forEach(b=>b.onclick=()=>ptSheet(PT.dishes.find(d=>String(d.id)===b.dataset.ptedit)));
+  box.querySelectorAll('[data-ptall]').forEach(b=>b.onclick=async()=>{
+    const ids=PT.orders.filter(o=>o.status==='pending').map(o=>o.id);if(!ids.length)return;
+    const {error}=await sb.from('plat_orders').update({status:'confirmed',confirmed_at:new Date().toISOString()}).in('id',ids);
+    if(error)return toast('Erreur : '+error.message);
+    PT.orders.forEach(o=>{if(ids.includes(o.id))o.status='confirmed';});toast(ids.length+' commandes validées ✓');renderPlat();renderPlatHome();
+  });
   box.querySelectorAll('[data-ptok],[data-ptno]').forEach(b=>b.onclick=async()=>{
     const id=+(b.dataset.ptok||b.dataset.ptno),st=b.dataset.ptok?'confirmed':'cancelled',o=PT.orders.find(x=>x.id===id);
     const {error}=await sb.from('plat_orders').update({status:st,confirmed_at:st==='confirmed'?new Date().toISOString():null}).eq('id',id);
     if(error)return toast('Erreur : '+error.message);
-    if(o){o.status=st;}toast(st==='confirmed'?'Commande confirmée ✓':'Commande annulée');renderPlat();renderPlatHome();
+    if(o){o.status=st;}toast(st==='confirmed'?'Commande validée ✓':'Commande refusée');renderPlat();renderPlatHome();
   });
 }
 async function ptResize(file){
