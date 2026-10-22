@@ -7,6 +7,7 @@ function qrDrevici(text, size, opt = {}) {
   const qr = qrcode(0, 'H'); qr.addData(text); qr.make();
   const n = qr.getModuleCount(), q = 2, N = n + 2 * q, u = size / N, col = opt.color || '#000';
   const style = opt.style || 'losange', eyeSt = opt.eye || 'feuille';
+  const oyS = opt.oyStroke == null ? 0 : opt.oyStroke, pad = opt.oyPad == null ? .12 : opt.oyPad;   // huître : épaisseur du trait (unités du dessin) et marge dans le carré
   const logoMods = Math.round(n * 0.26) | 1, l0 = (n - logoMods) / 2;
   const inEye = (r, c) => (r < 7 && c < 7) || (r < 7 && c >= n - 7) || (r >= n - 7 && c < 7);
   const inLogo = (r, c) => r >= l0 - .5 && r < l0 + logoMods + .5 && c >= l0 - .5 && c < l0 + logoMods + .5;
@@ -48,7 +49,7 @@ function qrDrevici(text, size, opt = {}) {
   };
   const L = logoMods * u, lx = (l0 + q) * u, ly = lx;
   const logo = `<rect x="${lx}" y="${ly}" width="${L}" height="${L}" rx="${L * .2}" fill="${col}"/>
-    <g transform="translate(${lx + L * .12} ${ly + L * .12}) scale(${L * .76 / 314}) translate(0 308) scale(.1 -.1)"><path fill="#fff" d="${OY_PATH}"/></g>`;
+    <g transform="translate(${lx + L * pad} ${ly + L * pad}) scale(${L * (1 - 2 * pad) / 314}) translate(0 308) scale(.1 -.1)"><path fill="#fff" stroke="#fff" stroke-width="${oyS}" stroke-linejoin="round" d="${OY_PATH}"/></g>`;
   const drops = DROPS.splice(0).join('');
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}"><rect width="${size}" height="${size}" fill="#fff"/><path fill="${col}" d="${d}"/><g fill="${col}">${drops}</g>${eye(0, 0, 2)}${eye(0, n - 7, 3)}${eye(n - 7, 0, 1)}${logo}</svg>`;
 }
