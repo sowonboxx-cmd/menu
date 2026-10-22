@@ -114,7 +114,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .fx .st:nth-child(6){margin:-6px 0 0 6px;width:50px;height:50px;animation-delay:.2s}
 /* Plateau gagné : on montre le plateau de 6 huîtres, avec les étincelles autour (sans la perle) */
 #s-win{--k:1}#s-win .res-img{height:calc(240px*(.45 + .55*var(--k)))}
-.oyw.plat .res-img{height:auto;width:calc(min(310px,82vw)*(.5 + .5*var(--k)))}
+#s-win .oyw.plat .res-img{height:auto;width:calc(min(310px,82vw)*(.5 + .5*var(--k)))}
+#s-win .oyw.plat.tee .res-img{width:calc(min(250px,66vw)*(.5 + .5*var(--k)))}
 #s-win .sp{min-height:calc(14px*var(--k))}#s-win.scr{padding-top:calc(env(safe-area-inset-top) + 8px + 14px*var(--k))}
 .oyw.plat .fx{left:50%;top:50%}.oyw.plat .pe,.oyw.plat .halo{display:none}
 .oyw.plat .st:nth-child(2){margin:-120px 0 0 110px}.oyw.plat .st:nth-child(3){margin:95px 0 0 -125px}
@@ -297,7 +298,7 @@ function fitHome(id) {
   const desk = matchMedia('(min-width:700px)').matches;
   let k = 1; s.style.setProperty('--k', k);
   const avail = () => desk ? s.clientHeight : innerHeight;
-  while (s.scrollHeight > avail() + 1 && k > .25) { k = Math.round((k - .05) * 100) / 100; s.style.setProperty('--k', k); }
+  while (s.scrollHeight > avail() + 1 && k > .05) { k = Math.round((k - .05) * 100) / 100; s.style.setProperty('--k', k); }
 }
 fitHome();
 if (document.fonts) document.fonts.ready.then(() => fitHome());
@@ -414,10 +415,10 @@ function result() {
   const d = RES; RES = null; if (armKnife.reset) armKnife.reset();
   bonusNotes();
   if (d && d.result !== 'perdu') {
-    const plat = d.result === 'plateau', im = $('#wImg img');
-    $('#wImg').classList.toggle('plat', plat);
-    im.src = plat ? 'jeu/plateau.webp' : 'jeu/huitre-perle.webp';
-    im.alt = plat ? 'Plateau de 6 huîtres' : 'Huître ouverte avec une perle';
+    const plat = d.result === 'plateau', tee = d.result === 'tshirt', im = $('#wImg img');
+    $('#wImg').classList.toggle('plat', plat || tee); $('#wImg').classList.toggle('tee', tee);
+    im.src = plat ? 'jeu/plateau.webp' : tee ? 'jeu/tshirt.webp' : 'jeu/huitre-perle.webp';
+    im.alt = plat ? 'Plateau de 6 huîtres' : tee ? 'T-shirt Drevici' : 'Huître ouverte avec une perle';
     $('#wPrize').textContent = d.prize;
     $('#wUntil').textContent = `Montrez ce code au comptoir · valable jusqu'au ${until(d.expires_at)}`;
     $('#wCode').textContent = d.code;
