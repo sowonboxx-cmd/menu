@@ -7,7 +7,7 @@ function qrDrevici(text, size, opt = {}) {
   const qr = qrcode(0, 'H'); qr.addData(text); qr.make();
   const n = qr.getModuleCount(), q = 2, N = n + 2 * q, u = size / N, col = opt.color || '#000';
   const style = opt.style || 'losange', eyeSt = opt.eye || 'feuille';
-  const oyS = opt.oyStroke == null ? 0 : opt.oyStroke, pad = opt.oyPad == null ? .12 : opt.oyPad;   // huître : épaisseur du trait (unités du dessin) et marge dans le carré
+  const oyS = opt.oyStroke == null ? 30 : opt.oyStroke, pad = opt.oyPad == null ? .1 : opt.oyPad;   // huître : épaisseur du trait (unités du dessin) et marge dans le carré
   const logoMods = Math.round(n * 0.26) | 1, l0 = (n - logoMods) / 2;
   const inEye = (r, c) => (r < 7 && c < 7) || (r < 7 && c >= n - 7) || (r >= n - 7 && c < 7);
   const inLogo = (r, c) => r >= l0 - .5 && r < l0 + logoMods + .5 && c >= l0 - .5 && c < l0 + logoMods + .5;
