@@ -28,7 +28,7 @@ button{background:none;border:0;cursor:pointer}
 .dd{font:500 14.5px/1.5 Inter;color:#3d3a34;text-align:center;margin:6px 4px 0}
 .chips{display:flex;gap:6px;justify-content:center;margin-top:12px;flex-wrap:wrap}.chips span{background:#fff;border-radius:999px;padding:7px 12px;font:600 13px Inter;color:var(--navy)}
 .price{display:flex;align-items:baseline;gap:10px;justify-content:center;margin-top:12px}.price b{font:900 30px Inter;color:var(--navy)}.price s{font:600 15px Inter;color:var(--mut)}
-.sp{flex:1;min-height:16px}
+.sp{flex:1;min-height:16px}.top{flex:1;min-height:10px}
 .btn{display:block;width:100%;border-radius:999px;background:var(--navy);color:#fff;text-align:center;font:700 16px Inter;padding:16px;margin-top:12px;text-decoration:none}
 .btn.l{background:none;color:var(--navy);box-shadow:inset 0 0 0 2px var(--navy);margin-top:8px}
 .btn:active{transform:scale(.98)}.btn[disabled]{opacity:.45}
@@ -45,6 +45,7 @@ button{background:none;border:0;cursor:pointer}
 .stars button{width:50px;height:46px;display:grid;place-items:center;font-size:38px;line-height:1;color:#d9cfbf;transition:transform .12s}
 .stars button.on{color:var(--gold)}.stars button:active{transform:scale(.85)}
 .tags{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%;margin:8px 0 12px}
+.lure{width:100%;font:600 12.5px/1.45 Inter;color:var(--red);text-align:center;margin:2px 0 8px}
 .tags button{background:#fff;border-radius:999px;padding:8px 4px;font:600 13px Inter;color:var(--navy);white-space:nowrap}
 .tags button.on{background:var(--navy);color:#fff}
 .fld{display:block;width:100%;background:#fff;border-radius:12px;padding:8px 13px 9px;margin-bottom:8px}
@@ -82,6 +83,7 @@ button{background:none;border:0;cursor:pointer}
 
   <!-- 2. Commande envoyée -->
   <section class="scr" id="sOrdered">
+    <div class="top"></div>
     <div class="dn" style="margin-top:0">C'est noté !</div>
     <div class="dd" style="margin-bottom:14px">Montrez ce code à votre serveur, il confirme votre commande.</div>
     <div class="tk"><small>Code commande</small><div class="code" id="oCode">—</div><p id="oDish"></p></div>
@@ -92,10 +94,12 @@ button{background:none;border:0;cursor:pointer}
 
   <!-- 3. Avis : le titre ne change jamais -->
   <section class="scr" id="sReview">
+    <div class="top"></div>
     <div class="dn" style="margin-top:0">Alors, c'était comment ?</div>
     <p class="mini" id="rCode"></p>
     <div class="stars" id="stars"></div>
     <div class="tags" id="tags"></div>
+    <p class="lure">S'il entre à la carte, on tire au sort parmi ceux qui l'ont voté : le plat leur est offert. Laissez votre email pour en être.</p>
     <label class="fld"><small>Un mot pour le chef (facultatif)</small><textarea id="rCom" maxlength="600" placeholder="Le beurre noisette, incroyable…"></textarea></label>
     <div class="two"><label class="fld"><small>Prénom</small><input id="rFirst" autocomplete="given-name" placeholder="Claire"></label><label class="fld"><small>Email</small><input id="rMail" type="email" inputmode="email" autocomplete="email" placeholder="vous@exemple.fr"></label></div>
     <label class="cv2"><input type="checkbox" id="rOpt"><span><b>Je rejoins le Club Drevici</b>Les prochains plats en test et nos offres par email. Désinscription en un clic.</span></label>
@@ -103,11 +107,12 @@ button{background:none;border:0;cursor:pointer}
     <p class="err" id="rErr"></p>
     <div class="sp"></div>
     <button class="btn" id="bSend" disabled>Envoyer mon avis</button>
-    <p class="small">Prénom et email facultatifs : seulement pour vous répondre.</p>
+    <p class="small">Prénom et email facultatifs : pour vous répondre et pour le tirage.</p>
   </section>
 
   <!-- 4. Merci -->
   <section class="scr" id="sThanks">
+    <div class="top"></div>
     <img class="masc" src="jeu/mascotte-coeur.webp" alt="">
     <div class="dn" id="tTitle">Merci !</div>
     <div class="dd">Votre avis part directement au chef. Si le plat entre à la carte, vous y serez pour quelque chose.</div>
@@ -118,6 +123,7 @@ button{background:none;border:0;cursor:pointer}
 
   <!-- 5. Rien en test -->
   <section class="scr" id="sNone">
+    <div class="top"></div>
     <img class="masc" src="jeu/mascotte-coeur.webp" alt="">
     <div class="dn">Pas de plat en test ce soir</div>
     <div class="dd">Le chef prépare le prochain. Demandez à votre serveur, ou revenez bientôt.</div>
@@ -162,13 +168,13 @@ function orderedView(o) {
 }
 
 // ── Étoiles et mots ──
-// 6 mots, toujours les mêmes, sur 2 lignes
-const TAGS = ['À la carte !', 'Parfait', 'Copieux', 'À retravailler', 'Trop cher', 'Trop salé'];
+// 3 choix, un seul possible : à la carte / à retravailler / je passe
+const TAGS = ['À la carte !', 'À retravailler', 'Je passe'];
 let RATE = 0; const PICK = new Set();
 $('stars').innerHTML = [1, 2, 3, 4, 5].map(n => `<button type="button" data-n="${n}" aria-label="${n} sur 5">★</button>`).join('');
 $('stars').onclick = e => { const b = e.target.closest('button'); if (!b) return; RATE = +b.dataset.n; paint(); };
 $('tags').innerHTML = TAGS.map(t => `<button type="button">${esc(t)}</button>`).join('');
-$('tags').onclick = e => { const b = e.target.closest('button'); if (!b) return; const t = b.textContent; PICK.has(t) ? PICK.delete(t) : PICK.add(t); b.classList.toggle('on'); };
+$('tags').onclick = e => { const b = e.target.closest('button'); if (!b) return; const t = b.textContent, on = !PICK.has(t); PICK.clear(); if (on) PICK.add(t); document.querySelectorAll('#tags button').forEach(x => x.classList.toggle('on', PICK.has(x.textContent))); };
 function paint() { document.querySelectorAll('#stars button').forEach(b => b.classList.toggle('on', +b.dataset.n <= RATE)); $('bSend').disabled = !RATE; }
 
 // ── Commander ──
