@@ -280,7 +280,15 @@ button{cursor:pointer;background:none}
 .fun{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:12px}.fun div{background:var(--paper);border-radius:14px;padding:9px 10px}.fun small{display:block;font-size:11.5px;color:var(--mut);font-weight:600}.fun b{display:block;font-size:22px;font-weight:900;color:var(--navy);margin-top:2px}.fun i{font-style:normal;font-size:11px;color:var(--green);font-weight:700}
 @media(max-width:700px){.fun{grid-template-columns:repeat(3,1fr)}}
 .qt{width:100%;border-collapse:collapse;font-size:13px}.qt th{text-align:right;font-size:10.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;font-weight:700;padding:0 6px 6px}.qt th:nth-child(-n+2){text-align:left}.qt td{padding:8px 6px;border-top:1px solid #f0ebe0;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}.qt td:nth-child(-n+2){text-align:left;font-weight:400}.qt tr{cursor:pointer}.qt tr:hover td{background:var(--paper)}
-.qt .qmini{width:34px;height:34px;border-radius:8px;background:#fff;border:1px solid #eee;padding:2px}.qt .qmini svg{width:100%;height:100%;display:block}.qt code{font:700 12px ui-monospace,Menlo,monospace}.qt small{display:block;color:var(--mut);font-size:11.5px}.qt .qn,.qrl .qn{font-size:15px;font-weight:800;color:var(--ink)}
+.qt .qmini{width:34px;height:34px;border-radius:8px;background:#fff;border:1px solid #eee;padding:2px}.qt .qmini svg{width:100%;height:100%;display:block}.qt code{font:700 12px ui-monospace,Menlo,monospace}.qt small{display:block;color:var(--mut);font-size:11.5px}
+.jl h2{display:flex;align-items:center;gap:8px}.jtodo{margin-left:auto;color:#9f2e1f;font-size:12px}
+.jsrch{display:block;width:100%;border:0;outline:0;background:var(--paper);border-radius:12px;padding:12px 14px;font:500 15px Inter,sans-serif;color:var(--ink);margin-bottom:10px}
+.jtabs{display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap}.jtabs button{padding:7px 12px;border-radius:999px;background:var(--paper);font-weight:700;font-size:12.5px}.jtabs button.on{background:var(--ink);color:#fff}
+.jp{display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid #f0ebe0}.jp:first-child{border-top:0}
+.jp .who{flex:1;min-width:0}.jp .who b{display:block;font-size:15px}.jp .who small{display:block;font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jcode{font:700 12.5px ui-monospace,Menlo,monospace;background:var(--paper);border-radius:8px;padding:5px 8px;white-space:nowrap}
+.jst{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border-radius:999px;padding:4px 9px;white-space:nowrap}.jst.l{background:#f0ebe0;color:var(--mut)}.jst.w{background:#fbeccd;color:#8a6416}.jst.ok{background:#e3f1e7;color:#2e8b57}.jst.x{background:#f7dcd8;color:#9f2e1f}
+@media(max-width:700px){.jp{flex-wrap:wrap}.jp .who{flex-basis:62%}}.qt .qn,.qrl .qn{font-size:15px;font-weight:800;color:var(--ink)}
 @media(max-width:700px){.qt .hm{display:none}}
 .qrimg{width:110px;height:110px;border-radius:14px;background:var(--cream);padding:9px;flex:none}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;border-radius:999px;padding:10px 16px;font-size:13.5px;font-weight:700;z-index:60}
@@ -907,8 +915,8 @@ async function loadQR(){
   DB_QR=true;QRS=(q.data||[]).sort((a,b)=>(a.is_test?1:0)-(b.is_test?1:0));SCANS=sc.data||[];CONVS=cv.data||[];
   // Parcours du jeu Free Oyster, rangé par QR (le code arrive dans ?src=)
   try{const [pl,py,ev]=await Promise.all([
-      sb.from('jeu_players').select('src,optin,referred_by,created_at').eq('client_slug',JEU_SLUG).limit(20000),
-      sb.from('jeu_plays').select('src,result,redeemed_at,n').eq('client_slug',JEU_SLUG).limit(50000),
+      sb.from('jeu_players').select('id,src,optin,referred_by,created_at,first_name,last_name,email,phone').eq('client_slug',JEU_SLUG).limit(20000),
+      sb.from('jeu_plays').select('id,player_id,src,result,code,expires_at,redeemed_at,n,mode,created_at').eq('client_slug',JEU_SLUG).limit(50000),
       sb.from('site_events').select('kind,name,src').eq('client_slug',JEU_SLUG).not('src','is',null).gte('at',since).limit(50000)]);
     JEU={players:pl.data||[],plays:py.data||[],ev:ev.data||[]};}catch(e){JEU={players:[],plays:[],ev:[]};}
   try{const c=await sb.from('jeu_config').select('*').eq('client_slug',JEU_SLUG).maybeSingle();JCFG=c.data||null;}catch(e){JCFG=null;}
@@ -1014,7 +1022,7 @@ function renderQR(){
       ${(()=>{const tb=qs.filter(q=>/carte-table/.test(q.path||'')),ru=qs.filter(q=>!/carte-table/.test(q.path||''));if(!jeu||!tb.length||!ru.length)return '';const a=funnel(ru.map(q=>q.code)),b=funnel(tb.map(q=>q.code));
         return `<div class="fun" style="grid-template-columns:1fr 1fr"><div><small>Dans la rue (affiches)</small><b class="num">${a.players} joueurs</b><i>${a.club} au club · ${a.won} lots</i></div><div><small>À table (carte)</small><b class="num">${b.players} joueurs</b><i>${b.club} au club · ${b.won} lots</i></div></div>`;})()}
       <table class="qt"><tr><th></th><th>QR</th><th>Scans</th>${jeu?'<th>Joueurs</th><th class="hm">Club</th><th class="hm">Amis</th><th class="hm">Insta</th><th>Lots</th>':'<th><span class="lg">Conversions</span><span class="sh">Conv.</span></th><th><span class="lg">Commission</span><span class="sh">Comm.</span></th>'}</tr>
-      ${qs.map(q=>{const g=funnel([q.code]),s7=statsFor([q.code]);return `<tr data-href="#qr/${encodeURIComponent(q.code)}"><td style="width:44px"><div class="qmini">${qrArt(q,120)}</div></td><td><b class="qn">${esc(qName(q))}</b><small>${esc(qSub(q))}</small></td><td>${g.scans}</td>${jeu?`<td>${g.players}</td><td class="hm">${g.club}</td><td class="hm">${g.friends}</td><td class="hm">${g.insta}</td><td>${g.won} / ${g.redeemed}</td>`:`<td>${s7.conv}</td><td>${hasCom(q)?eur(comOf(q)):'—'}</td>`}</tr>`;}).join('')}</table></div>`;}).join('')+empty.map(([c,cat])=>`<div class="card camp"><div class="ch"><b>${esc(c)}</b><span class="ctag t">À lancer</span><small>0 QR</small></div><p class="empty" style="margin:0 0 10px">Pas encore de QR. Un par serveur, comme pour le plat en test.</p><a class="cbtn" href="#qr-new/${encodeURIComponent(cat)}">+ Créer un QR</a></div>`).join('');
+      ${qs.map(q=>{const g=funnel([q.code]),s7=statsFor([q.code]);return `<tr data-href="#qr/${encodeURIComponent(q.code)}"><td style="width:44px"><div class="qmini">${qrArt(q,120)}</div></td><td><b class="qn">${esc(qName(q))}</b><small>${esc(qSub(q))}</small></td><td>${g.scans}</td>${jeu?`<td>${g.players}</td><td class="hm">${g.club}</td><td class="hm">${g.friends}</td><td class="hm">${g.insta}</td><td>${g.won} / ${g.redeemed}</td>`:`<td>${s7.conv}</td><td>${hasCom(q)?eur(comOf(q)):'—'}</td>`}</tr>`;}).join('')}</table></div>${jeu?jlCard('c-'+qslug(c),qs.map(q=>q.code),'Lots à remettre · '+c,true):''}`;}).join('')+empty.map(([c,cat])=>`<div class="card camp"><div class="ch"><b>${esc(c)}</b><span class="ctag t">À lancer</span><small>0 QR</small></div><p class="empty" style="margin:0 0 10px">Pas encore de QR. Un par serveur, comme pour le plat en test.</p><a class="cbtn" href="#qr-new/${encodeURIComponent(cat)}">+ Créer un QR</a></div>`).join('');
   document.getElementById('qrK').innerHTML=`<div class="kpi n"><span>Scans · 7 j</span><b class="num">${st.scans.toLocaleString('fr-FR')}</b></div><div class="kpi"><span>Conversions</span><b class="num">${st.conv}</b></div><div class="kpi"><span>Taux</span><b class="num">${st.scans?(st.conv/st.scans*100).toFixed(1).replace('.',','):'0'} %</b></div>`;
   document.getElementById('qrList').innerHTML=l.map(q=>({q,s:statsFor([q.code])})).sort((a,b)=>b.s.scans-a.s.scans).map(({q,s})=>`<a class="qrl" href="#qr/${encodeURIComponent(q.code)}"><span class="ic">${q.path?'<span style="display:block;width:30px;height:30px">'+qrArt(q,90)+'</span>':'<b style="color:var(--ink)">'+esc((q.owner||q.category||'?')[0])+'</b>'}</span><div><b class="qn">${esc(q.path?qName(q):q.label||q.code)}</b><small>${esc(q.path?campOf(q)+' · '+q.support:q.code)}</small></div><div class="r"><b class="num">${s.scans}</b>${s.conv} conv.</div></a>`).join('')||'<p class="empty">Aucun code.</p>';
   const b=dayBars(st.sc);document.getElementById('qrChart').innerHTML=b.html;document.getElementById('qrLab').innerHTML=b.lab;
@@ -1034,6 +1042,53 @@ const device=ua=>/iphone|ipad/i.test(ua||'')?'iPhone':/android/i.test(ua||'')?'A
 const ago=t=>{const m=Math.round((Date.now()-new Date(t))/60000);return m<1?'à l’instant':m<60?'il y a '+m+' min':m<1440?'il y a '+Math.round(m/60)+' h':new Date(t).toLocaleDateString('fr-FR',{day:'numeric',month:'short'});};
 function convRow(c){return `<div class="pend"><span class="av" style="background:${c.kind==='resa'?'var(--red)':c.status==='pending'?'var(--gold)':'var(--green)'}">${c.kind==='resa'?'R':c.kind==='plat'?'P':'€'}</span><div><b>${esc(c.label||c.kind)}</b>${c.amount?' · '+eur(+c.amount):''}<small>${esc(c.code)} · ${ago(c.created_at)} · ${c.status==='pending'?'à valider':c.status==='validated'?'validée':'refusée'}</small></div>
   ${c.pt&&c.status==='pending'?`<div class="acts"><a class="ok" href="#plat">Valider →</a></div>`:c.status==='pending'?`<div class="acts"><button class="ok" type="button" data-cval="${esc(c.id)}">Valider</button><button type="button" data-cref="${esc(c.id)}">Refuser</button></div>`:''}</div>`;}
+/* ═══ Joueurs du jeu : qui a joué, son lot, son code, et « Remettre » ═══ */
+const JLOT={huitre:'Huître',plateau:'Plateau de 6',tshirt:'T-shirt',bonus:'Huître bonus',trio:'3 huîtres'};
+const JL={};   // état de chaque liste : recherche et onglet
+const jPlayer=id=>JEU.players.find(x=>x.id===id)||{};
+const jTel=t=>{const d=String(t||'').replace(/\D/g,'');return d.length===10?d.replace(/(\d\d)(?=\d)/g,'$1 '):t||'';};
+const jName=p=>[p.first_name,p.last_name].filter(Boolean).join(' ')||p.email||'Joueur';
+function jState(y){ if(y.result==='perdu')return {k:'l',t:'Perdu'};
+  const lot=JLOT[y.result]||y.result;
+  if(y.redeemed_at)return {k:'ok',t:lot+' remis le '+new Date(y.redeemed_at).toLocaleDateString('fr-FR',{day:'numeric',month:'numeric'})};
+  if(y.expires_at&&new Date(y.expires_at)<new Date())return {k:'x',t:lot+' · expiré',todo:1};
+  return {k:'w',t:lot+(y.mode==='table'?' · ce repas':''),todo:1};}
+function jRows(id){
+  const st=JL[id],set=new Set(st.codes),qq=(st.q||'').trim().toLowerCase();
+  let ys=JEU.plays.filter(y=>set.has(y.src)).map(y=>({y,p:jPlayer(y.player_id),s:jState(y)})).sort((a,b)=>String(b.y.created_at).localeCompare(String(a.y.created_at)));
+  if(qq)ys=ys.filter(r=>[jName(r.p),r.p.email,r.p.phone,r.y.code].some(v=>String(v||'').toLowerCase().replace(/\s/g,'').includes(qq.replace(/\s/g,''))));
+  if(st.tab==='win')ys=ys.filter(r=>r.y.result!=='perdu');
+  if(st.tab==='todo')ys=ys.filter(r=>r.s.todo);
+  if(st.tab==='done')ys=ys.filter(r=>r.y.redeemed_at);
+  const q0=c=>QRS.find(x=>x.code===c);
+  return ys.slice(0,200).map(({y,p,s})=>`<div class="jp"><div class="who"><b>${esc(jName(p))}</b><small>${st.camp?esc((q0(y.src)?qName(q0(y.src)):y.src)+' · '):''}${esc([p.email,jTel(p.phone)].filter(Boolean).join(' · '))} · ${ago(y.created_at)}</small></div>${y.code?`<span class="jcode">${esc(y.code)}</span>`:''}<span class="jst ${s.k}">${esc(s.t)}</span>${s.todo?`<button class="cbtn" type="button" data-jred="${esc(y.code)}" data-jl="${esc(id)}">Remettre</button>`:''}</div>`).join('')
+    ||`<p class="empty">${qq?'Personne ne correspond.':st.tab==='todo'?'Aucun lot à remettre.':'Pas encore de joueur.'}</p>`;}
+function jlCard(id,codes,title,camp){
+  const old=JL[id]||{}; JL[id]={codes,camp,q:old.q||'',tab:old.tab||(camp?'todo':'all')};
+  const todo=JEU.plays.filter(y=>codes.includes(y.src)&&jState(y).todo).length;
+  const tabs=camp?[['todo','À remettre'],['done','Remis'],['all','Tous les joueurs']]:[['all','Tous'],['win','Gagnants'],['todo','À remettre']];
+  return `<div class="card jl" data-jlid="${esc(id)}"><h2>${esc(title)}${todo?`<b class="jtodo">${todo} à remettre</b>`:''}</h2>
+    <input class="jsrch" type="search" placeholder="Rechercher un nom, un email, un téléphone ou un code" value="${esc(JL[id].q)}" data-jq="${esc(id)}">
+    <div class="jtabs">${tabs.map(([k,t])=>`<button type="button" class="${JL[id].tab===k?'on':''}" data-jt="${k}" data-jl="${esc(id)}">${t}</button>`).join('')}</div>
+    <div class="jlist" id="jl-${esc(id)}">${jRows(id)}</div></div>`;}
+document.addEventListener('input',e=>{const t=e.target.closest&&e.target.closest('[data-jq]');if(!t)return;JL[t.dataset.jq].q=t.value;const b=document.getElementById('jl-'+t.dataset.jq);if(b)b.innerHTML=jRows(t.dataset.jq);});
+document.addEventListener('click',async e=>{
+  const t=e.target.closest&&e.target.closest('[data-jt]');
+  if(t){const id=t.dataset.jl;JL[id].tab=t.dataset.jt;t.parentElement.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===t));document.getElementById('jl-'+id).innerHTML=jRows(id);return;}
+  const r=e.target.closest&&e.target.closest('[data-jred]');if(!r)return;
+  r.disabled=true;const code=r.dataset.jred;
+  try{const res=await fetch('https://resa.beltab.app/jeu/redeem',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+(SESSION&&SESSION.access_token||'')},body:JSON.stringify({slug:JEU_SLUG,code})});
+    const j=await res.json().catch(()=>({}));
+    if(!res.ok&&!j.used)throw new Error(j.error||('Erreur '+res.status));
+    const y=JEU.plays.find(x=>x.code===code);if(y)y.redeemed_at=(j.play&&j.play.redeemed_at)||new Date().toISOString();
+    toast(j.used?'Ce lot était déjà remis':'Lot remis · '+code);
+    if(location.hash.startsWith('#qr/'))renderQRD(decodeURIComponent(location.hash.slice(4)));else renderQR();
+  }catch(err){r.disabled=false;toast('Erreur : '+err.message);}
+});
+// Derniers scans : le joueur qui a joué juste après ce scan (même QR, dans les 30 minutes)
+function jScansWho(code,list){const used=new Set();
+  return list.map(x=>{const t=new Date(x.at).getTime();const p=JEU.players.filter(pl=>pl.src===code&&!used.has(pl.id)).find(pl=>{const d=new Date(pl.created_at).getTime()-t;return d>=-60000&&d<=1800000;});
+    if(p)used.add(p.id);return {...x,who:p?jName(p):''};});}
 function renderQRD(code){
   const q=QRS.find(x=>x.code===code); if(!q){location.hash='#qr';return;}
   const st=statsFor([code]),all=SCANS.filter(x=>x.code===code),link=qrLink(q),b=dayBars(st.sc),fq=funnel([code]),jeu=fq.players||/free oyster/i.test(q.campaign||'');
@@ -1050,7 +1105,8 @@ function renderQRD(code){
     <div class="card"><h2>Ventes et réservations ${q.category==='Hors carte'||q.category==='Plateaux Noël'||q.kind!=='resa'?`<button class="cbtn" type="button" data-addconv="${esc(code)}">+ Vente</button>`:''}</h2>${convs.map(convRow).join('')||'<p class="empty">Aucune pour l’instant. Les réservations faites via ce code arrivent toutes seules.</p>'}</div>
   </div><div>
     <div class="card"><h2>Scans par jour</h2><div class="chart">${b.html}</div><div class="clab">${b.lab}</div></div>
-    <div class="card"><h2>Derniers scans</h2>${all.slice(0,8).map(x=>`<div class="row" style="padding:7px 4px">${ago(x.at)} · ${device(x.ua)}</div>`).join('')||'<p class="empty">Pas encore de scan.</p>'}</div>
+    ${jeu?jlCard('qrd',[code],'Joueurs venus par ce QR'):''}
+    <div class="card"><h2>Derniers scans</h2>${jScansWho(code,all.slice(0,8)).map(x=>`<div class="row" style="padding:7px 4px">${ago(x.at)} · ${device(x.ua)}${x.who?` · <b>${esc(x.who)} a joué</b>`:jeu?' · <span style="color:var(--mut)">sans partie</span>':''}</div>`).join('')||'<p class="empty">Pas encore de scan.</p>'}</div>
   </div></div>`;
 }
 function renderTeam(cat,boxId,title,sub){

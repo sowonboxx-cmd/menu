@@ -175,12 +175,12 @@ export default {
           const rows = await sb(env, `jeu_plays?client_slug=eq.${enc(cslug)}&code=eq.${enc(full)}&select=*,player:jeu_players(first_name,last_name,email)`);
           const p = rows && rows[0];
           if (!p) return json({ ok: false, error: 'Code inconnu' }, 404, cors);
-          const who = p.player || {}, name = [who.first_name, who.last_name].filter(Boolean).join(' ') || who.email || '';
+          const pl = p.player || {}, name = [pl.first_name, pl.last_name].filter(Boolean).join(' ') || pl.email || '';
           const out = { code: p.code, prize: p.result, mode: p.mode || 'rue', prize_label: JEU_LOTS[p.result] + (p.mode === 'table' ? ' · à table, pour ce repas' : ''), name, expires_at: p.expires_at, redeemed_at: p.redeemed_at, expired: p.expires_at && Date.parse(p.expires_at) < Date.now() };
           if (p.redeemed_at) return json({ ok: false, used: true, play: out, error: 'Lot déjà remis' }, 409, cors);
           if (body.check) return json({ ok: true, play: out }, 200, cors);
           const now = new Date().toISOString();
-          const done = await sb(env, `jeu_plays?id=eq.${p.id}&redeemed_at=is.null`, { method: 'PATCH', body: { redeemed_at: now, redeemed_by: who.email ? String(who.email) : null }, prefer: 'return=representation' });
+          const done = await sb(env, `jeu_plays?id=eq.${p.id}&redeemed_at=is.null`, { method: 'PATCH', body: { redeemed_at: now, redeemed_by: who && who.email ? String(who.email) : null }, prefer: 'return=representation' });
           if (!done || !done.length) return json({ ok: false, error: 'Lot déjà remis' }, 409, cors);
           return json({ ok: true, play: { ...out, redeemed_at: now } }, 200, cors);
         }
