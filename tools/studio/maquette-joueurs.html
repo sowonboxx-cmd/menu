@@ -1,0 +1,42 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@500;600;700;800&family=IBM+Plex+Mono:wght@600&display=swap">
+<style>
+:root{--bg:#f6f1e7;--ink:#0d255c;--navy:#253968;--red:#9f2e1f;--mut:#6b7385;--paper:#fbfaf6;--gold:#d09d39;--green:#2e8b57}
+*{box-sizing:border-box;margin:0}body{background:#ddd6cb;font-family:Inter,sans-serif;color:var(--ink);padding:30px;width:1660px}
+h1.t{font-size:24px}.sub{color:#555;font-size:14px;margin:4px 0 22px;max-width:1500px;line-height:1.5}
+.row{display:flex;gap:30px;align-items:flex-start}.lab{font:700 14px Inter;color:#333;margin-top:10px}
+.desk{width:1160px;background:var(--bg);border-radius:18px;padding:24px 26px}
+.mob{width:390px;background:var(--bg);border-radius:34px;padding:20px 14px;flex:none}
+.hd{display:flex;align-items:center;gap:12px;margin-bottom:16px}.back{width:40px;height:40px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:20px;flex:none}
+.hd h1{font:700 28px/1 'Playfair Display',serif}.hd p{font-size:13px;color:var(--mut);margin-top:4px}
+.card{background:#fff;border-radius:20px;padding:16px 18px;margin-bottom:12px}.card h2{font:800 12px Inter;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card h2 b{margin-left:auto;font-size:12px;color:var(--red)}
+.srch{background:var(--paper);border-radius:12px;padding:12px 14px;font:500 15px Inter;color:#a59d90;margin-bottom:10px}
+.tabs{display:flex;gap:6px;margin-bottom:10px}.tabs i{font-style:normal;padding:7px 12px;border-radius:999px;background:var(--paper);font:700 12.5px Inter}.tabs i.on{background:var(--ink);color:#fff}
+.p{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid #f0ebe0}.p:first-of-type{border-top:0}
+.p .who{flex:1;min-width:0}.p .who b{display:block;font-size:15px}.p .who small{display:block;font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.code{font:600 13px 'IBM Plex Mono',monospace;background:var(--paper);border-radius:8px;padding:5px 8px;white-space:nowrap}
+.st{font:800 11px Inter;letter-spacing:.04em;text-transform:uppercase;border-radius:999px;padding:4px 9px;white-space:nowrap}.st.l{background:#f0ebe0;color:var(--mut)}.st.w{background:#fbeccd;color:#8a6416}.st.ok{background:#e3f1e7;color:var(--green)}.st.x{background:#f7dcd8;color:var(--red)}
+.btn{background:var(--ink);color:#fff;border-radius:10px;padding:8px 12px;font:700 12.5px Inter;white-space:nowrap}
+.kp{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}.kp div{background:#fff;border-radius:16px;padding:12px}.kp small{display:block;font-size:11.5px;color:var(--mut);font-weight:600}.kp b{display:block;font-size:24px;font-weight:800;margin-top:2px}
+.cols{display:grid;grid-template-columns:1.25fr 1fr;gap:12px}
+.mob .p{flex-wrap:wrap}.mob .p .who{flex-basis:60%}
+.note{font-size:12px;color:var(--mut);margin-top:8px}
+</style></head><body>
+<h1 class="t">Free Oyster · voir qui a joué, retrouver un gagnant, remettre le lot</h1>
+<p class="sub">1) Sur la fiche d'un QR (ici l'affiche Biot) : la liste des joueurs venus par ce QR, avec leur résultat et leur code. 2) Dans Scans QR, un bloc « Lots à remettre » pour toute la campagne, avec une recherche par nom, email, téléphone ou code. Le bouton « Remettre » fait la même chose que dans l'admin.</p>
+<div class="row"><div><div class="desk" id="d1"></div><p class="lab">1 · Fiche du QR « Biot » (ordinateur)</p></div><div><div class="mob" id="m1"></div><p class="lab">Téléphone</p></div></div>
+<div class="row" style="margin-top:30px"><div><div class="desk" id="d2"></div><p class="lab">2 · Scans QR → Free Oyster : lots à remettre et recherche (ordinateur)</p></div><div><div class="mob" id="m2"></div><p class="lab">Téléphone</p></div></div>
+<script>
+const P=[['Camille Martin','camille.m@gmail.com · 06 12 34 56 78','il y a 17 min','w','Huître','PERLE-7KQ2'],['Thomas Leroy','t.leroy@outlook.fr · 06 98 76 54 32','il y a 1 h','l','Perdu',''],['Inès Benali','ines.b@gmail.com · 07 45 12 89 30','hier, 19:42','ok','Plateau remis le 22/10','PERLE-M3XA'],['Lucas Petit','lucas.p@icloud.com · 06 33 21 77 10','hier, 18:05','l','Perdu',''],['Sarah Cohen','sarah.cohen@gmail.com · 06 70 44 12 98','14 oct.','x','Huître · expirée','PERLE-Q8TD']];
+const row=(p,m)=>`<div class="p"><div class="who"><b>${p[0]}</b><small>${p[1]} · ${p[2]}</small></div>${p[5]?`<span class="code">${p[5]}</span>`:''}<span class="st ${p[3]}">${p[4]}</span>${p[3]==='w'||p[3]==='x'?'<span class="btn">Remettre</span>':''}</div>`;
+const HD1=`<div class="hd"><span class="back">‹</span><div><h1>Biot</h1><p>Free Oyster · Affiche · 8 rue Biot</p></div></div>`;
+const K=`<div class="kp"><div><small>Scans · 7 j</small><b>25</b></div><div><small>Joueurs</small><b>9</b></div><div><small>Lots gagnés</small><b>2</b></div><div><small>À remettre</small><b style="color:var(--red)">1</b></div></div>`;
+const PL=m=>`<div class="card"><h2>Joueurs venus par ce QR <b>1 lot à remettre</b></h2><div class="srch">Rechercher un nom, un email, un téléphone ou un code…</div><div class="tabs"><i class="on">Tous</i><i>Gagnants</i><i>À remettre</i></div>${P.map(p=>row(p,m)).join('')}<p class="note">Un scan seul est anonyme : on voit la personne dès qu'elle a joué (prénom, nom, email, téléphone).</p></div>`;
+document.getElementById('d1').innerHTML=HD1+K+`<div class="cols"><div>${PL()}</div><div><div class="card"><h2>Derniers scans</h2>${['il y a 17 min · iPhone · <b>Camille Martin a joué</b>','il y a 1 h · Android · <b>Thomas Leroy a joué</b>','il y a 2 h · iPhone · scan sans partie','hier · iPhone · <b>Inès Benali a joué</b>'].map(x=>`<div class="p" style="font-size:13.5px;font-weight:500">${x}</div>`).join('')}</div></div></div>`;
+document.getElementById('m1').innerHTML=HD1+`<div class="kp" style="grid-template-columns:1fr 1fr"><div><small>Joueurs</small><b>9</b></div><div><small>À remettre</small><b style="color:var(--red)">1</b></div></div>`+PL(1);
+const W=[['Camille Martin','Affiche Biot · il y a 17 min','w','Huître','PERLE-7KQ2'],['Hugo Moreau','Carte de table · hier','w','3 huîtres · ce repas','PERLE-2WFH'],['Léa Fontaine','Affiche Lévis · 20 oct.','w','Plateau · encore 3 j','PERLE-9RNE'],['Sarah Cohen','Affiche Biot · 14 oct.','x','Huître · expirée','PERLE-Q8TD'],['Inès Benali','Affiche Biot · remis le 22/10','ok','Plateau remis','PERLE-M3XA']];
+const WL=`<div class="card"><h2>Lots à remettre · Free Oyster <b>4 à remettre</b></h2><div class="srch">Rechercher un joueur : nom, email, téléphone ou code…</div><div class="tabs"><i class="on">À remettre</i><i>Remis</i><i>Tous les joueurs</i></div>${W.map(w=>`<div class="p"><div class="who"><b>${w[0]}</b><small>${w[1]}</small></div><span class="code">${w[4]}</span><span class="st ${w[2]}">${w[3]}</span>${w[2]!=='ok'?'<span class="btn">Remettre</span>':''}</div>`).join('')}</div>`;
+document.getElementById('d2').innerHTML=`<div class="hd"><span class="back">‹</span><div><h1>Scans QR</h1><p>Free Oyster</p></div></div>`+WL;
+document.getElementById('m2').innerHTML=`<div class="hd"><span class="back">‹</span><div><h1>Scans QR</h1></div></div>`+WL;
+</script></body></html>
