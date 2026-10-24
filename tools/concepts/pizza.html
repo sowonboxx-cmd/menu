@@ -1,0 +1,128 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Forno Nero · concept</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+:root{--bg:#121110;--bg2:#1a1816;--ink:#f3ece2;--mut:#8f877c;--acc:#e2482b;--line:#2b2825}
+*{box-sizing:border-box;margin:0}html,body{height:100%}
+body{background:radial-gradient(ellipse at 50% 55%,#1f1c19 0%,var(--bg) 62%);color:var(--ink);font-family:Inter,sans-serif;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.nav{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;padding:26px 44px;font-size:13px;z-index:5}
+.logo{font:600 15px Inter;letter-spacing:.32em}.logo i{display:inline-block;width:9px;height:9px;background:var(--acc);margin-right:12px;vertical-align:1px}
+.links{margin:0 auto;display:flex;gap:30px;color:var(--mut)}.links b{color:var(--ink);font-weight:600}
+.cart{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:999px;padding:9px 16px}.cart em{font-style:normal;background:var(--acc);color:#fff;border-radius:999px;font-size:11px;font-weight:700;padding:2px 7px}
+/* scène */
+.stage{position:absolute;inset:0}
+.plate{position:absolute;left:50%;top:52%;width:560px;height:560px;margin:-280px 0 0 -280px;border-radius:50%;background:radial-gradient(circle at 50% 45%,#2a2724 0%,#1b1917 62%,#151312 100%);box-shadow:0 40px 80px rgba(0,0,0,.6),inset 0 0 0 1px #2f2b27,inset 0 0 0 28px #1d1b19}
+.pz{position:absolute;inset:44px;transition:transform .9s cubic-bezier(.6,.05,.25,1),opacity .45s}
+.pz svg{width:100%;height:100%;display:block;filter:drop-shadow(0 18px 24px rgba(0,0,0,.55))}
+.pz.out{opacity:0;transform:rotate(-80deg) scale(.92)}.pz.in{opacity:0;transform:rotate(80deg) scale(.92)}
+.info{position:absolute;left:44px;top:50%;transform:translateY(-46%);width:330px}
+.num{font:500 12px 'IBM Plex Mono',monospace;color:var(--mut);letter-spacing:.08em}.num b{color:var(--ink);font-weight:500}
+.kick{font:600 11px Inter;letter-spacing:.24em;text-transform:uppercase;color:var(--acc);margin-top:30px}
+.name{font:500 58px/1 'Cormorant Garamond',serif;margin-top:10px}
+.it{font:italic 500 19px 'Cormorant Garamond',serif;color:var(--mut);margin-top:8px}
+.desc{font-size:14px;line-height:1.65;color:#bdb4a8;margin-top:18px}
+.buy{display:flex;align-items:center;gap:18px;margin-top:26px}.price{font:500 30px 'Cormorant Garamond',serif}
+.add{background:var(--acc);color:#fff;border-radius:999px;padding:13px 22px;font-weight:600;font-size:14px;box-shadow:0 10px 30px rgba(226,72,43,.35)}
+.meta{display:flex;gap:18px;margin-top:22px;font:500 11px 'IBM Plex Mono',monospace;color:var(--mut);letter-spacing:.06em;text-transform:uppercase}
+.list{position:absolute;right:44px;top:50%;transform:translateY(-50%);width:230px}
+.li{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:14px;color:var(--mut);font-size:13px;transition:background .3s,color .3s}
+.li .th{width:40px;height:40px;flex:none;border-radius:50%;overflow:hidden;background:#1d1b19;box-shadow:inset 0 0 0 1px #2f2b27}.li .th svg{width:100%;height:100%}
+.li b{display:block;color:inherit;font-weight:600}.li small{font:500 11px 'IBM Plex Mono',monospace}
+.li.on{background:#1f1c1a;color:var(--ink);box-shadow:inset 0 0 0 1px #34302b}
+.hint{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);font:500 11px 'IBM Plex Mono',monospace;color:var(--mut);letter-spacing:.12em;text-transform:uppercase}
+/* étiquettes d'ingrédients */
+.lbl{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .5s}.lbl.on{opacity:1}
+.lbl svg{position:absolute;inset:0;width:100%;height:100%}
+.tag{position:absolute;font:500 11px 'IBM Plex Mono',monospace;color:var(--mut);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}.tag b{display:block;color:var(--ink);font:600 14px Inter;text-transform:none;letter-spacing:0;margin-top:2px}
+/* panier */
+.drawer{position:absolute;right:0;top:0;bottom:0;width:380px;background:#171513;border-left:1px solid var(--line);padding:30px 28px;transform:translateX(100%);transition:transform .5s;z-index:6}.drawer.on{transform:none}
+.drawer h3{font:500 30px 'Cormorant Garamond',serif}.dl{display:flex;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line);font-size:14px}.dl .th{width:46px;height:46px;border-radius:50%;overflow:hidden}.dl .th svg{width:100%;height:100%}.dl span{margin-left:auto}
+.slots{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap}.slots i{font-style:normal;border:1px solid var(--line);border-radius:999px;padding:8px 13px;font-size:12px}.slots i.on{background:var(--ink);color:var(--bg)}
+.tot{display:flex;justify-content:space-between;margin-top:22px;font-size:14px;color:var(--mut)}.tot b{color:var(--ink);font:500 24px 'Cormorant Garamond',serif}
+.pay{display:block;width:100%;margin-top:22px;background:var(--acc);color:#fff;border-radius:999px;padding:15px;font-weight:600}
+/* mobile */
+@media(max-width:700px){
+ .nav{padding:18px 18px}.links{display:none}.cart{margin-left:auto;padding:7px 12px}
+ .plate{width:360px;height:360px;margin:0;left:50%;top:92px;transform:translateX(-50%)}.pz{inset:28px}
+ .info{left:22px;right:22px;width:auto;top:480px;transform:none;text-align:center}.kick{margin-top:12px}.name{font-size:42px}.desc{font-size:13.5px;margin-top:10px}.meta,.buy .price{display:none}.it{font-size:17px}
+ .buy{position:fixed;left:18px;right:18px;bottom:22px;margin:0}.add{flex:1;padding:16px;font-size:15px}
+ .list{left:0;right:0;top:auto;bottom:96px;width:auto;transform:none;display:flex;gap:8px;overflow:hidden;padding:0 18px}
+ .li{flex-direction:column;gap:6px;padding:6px;min-width:76px;text-align:center;font-size:11px}.li small{display:none}.li .th{width:54px;height:54px}
+ .hint{display:none}.num{position:absolute;top:438px;left:0;right:0;text-align:center}
+ .drawer{width:100%;top:auto;height:70%;border-left:0;border-top:1px solid var(--line);border-radius:26px 26px 0 0;transform:translateY(100%)}
+}
+</style></head><body>
+<div class="nav"><span class="logo"><i></i>FORNO NERO</span><span class="links"><b>Carte</b><span>Réserver</span><span>La maison</span></span><span class="cart">Panier <em id="cnt">0</em></span></div>
+<div class="stage">
+  <div class="plate"><div class="pz" id="pz"></div></div>
+  <div class="lbl" id="lbl"></div>
+  <div class="info"><div class="num" id="num"></div><div class="kick" id="kick"></div><div class="name" id="name"></div><div class="it" id="it"></div><div class="desc" id="desc"></div>
+    <div class="buy"><span class="price" id="price"></span><button class="add" id="add">Ajouter au panier</button></div>
+    <div class="meta"><span id="meta1"></span><span id="meta2"></span></div></div>
+  <div class="list" id="list"></div>
+  <div class="hint">Faites défiler pour changer de pizza</div>
+</div>
+<div class="drawer" id="drawer"><h3>Votre commande</h3><div id="dlines"></div>
+  <p style="margin-top:22px;font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.08em;color:var(--mut);text-transform:uppercase">À emporter · heure de retrait</p>
+  <div class="slots"><i class="on">Dès que possible · 20 min</i><i>19:30</i><i>19:45</i><i>20:00</i></div>
+  <div class="tot"><span>Total</span><b id="tot"></b></div><button class="pay">Commander</button></div>
+<script>
+// ── Pizzas dessinées (fictives) : pâte, sauce, fromage, garnitures placées au hasard, toujours pareil ──
+function rnd(seed){let s=seed;return()=>(s=(s*16807)%2147483647)/2147483647;}
+function pizza(t,seed){const r=rnd(seed),C=300,el=[];
+  const pts=(n,rmax,rmin=0)=>Array.from({length:n},()=>{const a=r()*6.283,d=Math.sqrt(r())*(rmax-rmin)+rmin;return [C+Math.cos(a)*d,C+Math.sin(a)*d,r()];});
+  el.push(`<defs><radialGradient id="cr${seed}" cx=".5" cy=".5" r=".5"><stop offset=".78" stop-color="#d9a35f"/><stop offset=".9" stop-color="#b8743a"/><stop offset=".97" stop-color="#8a4d22"/><stop offset="1" stop-color="#6b3a19"/></radialGradient>
+   <radialGradient id="sa${seed}"><stop offset=".6" stop-color="${t.base==='bianca'?'#efe2c4':'#c2361f'}"/><stop offset="1" stop-color="${t.base==='bianca'?'#dcc89d':'#9e2716'}"/></radialGradient></defs>`);
+  el.push(`<circle cx="300" cy="300" r="290" fill="url(#cr${seed})"/>`);
+  // bulles de pâte cuites
+  pts(22,286,262).forEach(([x,y,k])=>el.push(`<ellipse cx="${x}" cy="${y}" rx="${8+k*10}" ry="${6+k*6}" fill="#6b3a19" opacity="${.25+k*.35}"/>`));
+  el.push(`<circle cx="300" cy="300" r="250" fill="url(#sa${seed})"/>`);
+  // fromage fondu
+  pts(t.cheese||46,236).forEach(([x,y,k])=>el.push(`<path d="M${x-30-k*14} ${y} q${10} ${-22-k*10} ${34+k*14} ${-12} q${26} ${4} ${22} ${24} q${-8} ${22} ${-34} ${16} q${-22} ${-4} ${-22} ${-28}z" fill="${t.cheeseCol||'#f1d48a'}" opacity="${.55+k*.35}"/>`));
+  (t.top||[]).forEach(tp=>pts(tp.n,tp.r||225,tp.rmin||0).forEach(([x,y,k])=>el.push(tp.f(x,y,k,r))));
+  return `<svg viewBox="0 0 600 600">${el.join('')}</svg>`;}
+const PEP=(x,y,k)=>`<circle cx="${x}" cy="${y}" r="${24+k*6}" fill="#a3261a"/><circle cx="${x}" cy="${y}" r="${20+k*6}" fill="#c43a25"/><circle cx="${x-6}" cy="${y-5}" r="3" fill="#8a1f14"/><circle cx="${x+7}" cy="${y+4}" r="2.5" fill="#8a1f14"/><circle cx="${x+2}" cy="${y-9}" r="2" fill="#e8705a"/>`;
+const MOZZ=(x,y,k)=>`<ellipse cx="${x}" cy="${y}" rx="${26+k*12}" ry="${22+k*10}" fill="#fbf6ea"/><ellipse cx="${x-6}" cy="${y-5}" rx="${10+k*4}" ry="${7}" fill="#fff" opacity=".8"/>`;
+const BASIL=(x,y,k)=>`<path d="M${x} ${y} q16 -22 38 -6 q-14 24 -38 6z" fill="#2f7a2a" transform="rotate(${k*360} ${x} ${y})"/><path d="M${x} ${y} l30 -8" stroke="#5aa14d" stroke-width="1.5" transform="rotate(${k*360} ${x} ${y})"/>`;
+const OLIVE=(x,y)=>`<circle cx="${x}" cy="${y}" r="9" fill="#1d1a17"/><circle cx="${x}" cy="${y}" r="3.5" fill="#c43a25"/>`;
+const MUSH=(x,y,k)=>`<g transform="rotate(${k*360} ${x} ${y})"><path d="M${x-22} ${y} a22 18 0 0 1 44 0z" fill="#c9a77c"/><rect x="${x-6}" y="${y}" width="12" height="16" rx="4" fill="#e3cfae"/><path d="M${x-18} ${y-2} a18 13 0 0 1 36 0" fill="none" stroke="#8e6c47" stroke-width="2"/></g>`;
+const CHILI=(x,y,k)=>`<g transform="rotate(${k*360} ${x} ${y})"><circle cx="${x}" cy="${y}" r="9" fill="none" stroke="#2e7d32" stroke-width="5"/><circle cx="${x}" cy="${y}" r="2.5" fill="#f4d35e"/></g>`;
+const TRUF=(x,y,k)=>`<path d="M${x-18} ${y} q8 -14 22 -10 q14 6 10 18 q-10 10 -24 6 q-12 -4 -8 -14z" fill="#3a2b20" transform="rotate(${k*360} ${x} ${y})"/><path d="M${x-12} ${y} q10 -6 18 2" stroke="#6b5440" stroke-width="1.4" fill="none" transform="rotate(${k*360} ${x} ${y})"/>`;
+const GORG=(x,y,k)=>`<path d="M${x} ${y} l18 6 l-6 16 l-16 -4z" fill="#f4f1e6"/><circle cx="${x+5}" cy="${y+8}" r="2.4" fill="#5b8b8f"/><circle cx="${x+10}" cy="${y+12}" r="1.8" fill="#5b8b8f"/>`;
+const ARUG=(x,y,k)=>`<path d="M${x} ${y} q10 -18 30 -14 q-6 8 -2 14 q-14 2 -28 0z" fill="#4f8a35" transform="rotate(${k*360} ${x} ${y})"/>`;
+const HAM=(x,y,k)=>`<path d="M${x-26} ${y} q14 -26 40 -14 q16 12 2 26 q-20 12 -38 0z" fill="#e59a8f" opacity=".95" transform="rotate(${k*360} ${x} ${y})"/>`;
+const P=[
+ {n:'Margherita',it:'tomate, mozzarella, basilic',k:'La classique',d:'San Marzano, fior di latte de Campanie, basilic frais et un filet d\'huile d\'olive à la sortie du four.',p:11,m:['Cuite 90 s','Végétarienne'],t:{top:[{n:9,f:MOZZ,r:200},{n:9,f:BASIL,r:210}]},lab:[['Sauce','San Marzano',.62,.18],['Fromage','Fior di latte',.78,.5],['Herbe','Basilic frais',.3,.78]]},
+ {n:'Diavola',it:'salame piccante, piment',k:'La piquante',d:'Salame piccante de Calabre, mozzarella, piments verts et un trait de miel au piment.',p:14,m:['Cuite 90 s','Piquant'],t:{top:[{n:18,f:PEP,r:215},{n:12,f:CHILI,r:220}]},lab:[['Charcuterie','Salame piccante',.66,.22],['Piment','Jalapeño vert',.8,.62],['Finition','Miel pimenté',.28,.7]]},
+ {n:'Funghi',it:'champignons, ail, persil',k:'La forestière',d:'Champignons de Paris rôtis, crème d\'ail, mozzarella fumée et persil plat.',p:13,m:['Cuite 90 s','Végétarienne'],t:{base:'bianca',cheeseCol:'#f6e7b8',top:[{n:16,f:MUSH,r:215},{n:8,f:BASIL,r:210}]},lab:[['Base','Crème d\'ail',.64,.2],['Garniture','Champignons rôtis',.8,.55],['Fromage','Scamorza fumée',.3,.76]]},
+ {n:'Quattro formaggi',it:'quatre fromages',k:'La fondante',d:'Mozzarella, gorgonzola, parmesan 24 mois et taleggio, sur base blanche.',p:15,m:['Cuite 90 s','Végétarienne'],t:{base:'bianca',cheese:70,cheeseCol:'#f3cf73',top:[{n:16,f:GORG,r:215},{n:6,f:MOZZ,r:190}]},lab:[['Bleu','Gorgonzola dolce',.66,.2],['Affiné','Parmesan 24 mois',.8,.56],['Fondant','Taleggio',.28,.74]]},
+ {n:'Prosciutto',it:'jambon cru, roquette',k:'La généreuse',d:'Prosciutto di Parma posé après cuisson, roquette, copeaux de parmesan et tomates confites.',p:16,m:['Cuite 90 s','Jambon 18 mois'],t:{top:[{n:9,f:HAM,r:200},{n:16,f:ARUG,r:215}]},lab:[['Charcuterie','Prosciutto di Parma',.66,.2],['Verdure','Roquette',.8,.6],['Fromage','Parmesan',.3,.74]]},
+ {n:'Tartufo',it:'truffe noire, crème',k:'La signature',d:'Crème de truffe, mozzarella, truffe noire râpée à table et huile de truffe.',p:19,m:['Cuite 90 s','Signature'],t:{base:'bianca',cheeseCol:'#f7eccb',top:[{n:22,f:TRUF,r:220},{n:10,f:OLIVE,r:200}]},lab:[['Base','Crème de truffe',.66,.2],['Râpée à table','Truffe noire',.8,.58],['Finition','Huile de truffe',.28,.74]]}];
+const SV=P.map((x,i)=>pizza(x.t,i*97+13));
+let I=0,CART=[];
+const $=id=>document.getElementById(id);
+$('list').innerHTML=P.map((x,i)=>`<button class="li" data-i="${i}"><span class="th">${SV[i]}</span><span><b>${x.n}</b><small>${x.p} €</small></span></button>`).join('');
+function show(i,dir){I=(i+P.length)%P.length;const x=P[I],pz=$('pz');
+  pz.classList.add('out');setTimeout(()=>{pz.innerHTML=SV[I];pz.classList.remove('out');pz.classList.add('in');requestAnimationFrame(()=>requestAnimationFrame(()=>pz.classList.remove('in')));},dir===0?0:380);
+  $('num').innerHTML=`<b>${String(I+1).padStart(2,'0')}</b> / ${String(P.length).padStart(2,'0')}`;$('kick').textContent=x.k;$('name').textContent=x.n;$('it').textContent=x.it;$('desc').textContent=x.d;$('price').textContent=x.p+' €';$('add').textContent=matchMedia('(max-width:700px)').matches?`Ajouter · ${x.p} €`:'Ajouter au panier';$('meta1').textContent=x.m[0];$('meta2').textContent=x.m[1];
+  document.querySelectorAll('.li').forEach(b=>b.classList.toggle('on',+b.dataset.i===I));labels(false);}
+function labels(on){const x=P[I],L=$('lbl'),pl=document.querySelector('.plate').getBoundingClientRect();
+  if(!on){L.classList.remove('on');return;}
+  const lines=x.lab.map(([a,b,fx,fy],j)=>{const px=pl.left+pl.width*fx,py=pl.top+pl.height*fy,right=fx>.5,tx=right?pl.right+40:pl.left-40,ty=py;
+    return {svg:`<path d="M${px} ${py} L${tx} ${ty}" stroke="#6f675d" stroke-width="1" fill="none"/><circle cx="${px}" cy="${py}" r="4" fill="#f3ece2"/>`,tag:`<div class="tag" style="top:${ty-18}px;${right?`left:${tx+10}px`:`right:${innerWidth-tx+10}px;text-align:right`}">${a}<b>${b}</b></div>`};});
+  L.innerHTML=`<svg>${lines.map(l=>l.svg).join('')}</svg>`+lines.map(l=>l.tag).join('');L.classList.add('on');}
+document.querySelector('.plate').addEventListener('mouseenter',()=>labels(true));document.querySelector('.plate').addEventListener('mouseleave',()=>labels(false));
+let lock=0;addEventListener('wheel',e=>{if(lock)return;lock=1;setTimeout(()=>lock=0,900);show(I+(e.deltaY>0?1:-1),1);});
+let sx=null;addEventListener('touchstart',e=>sx=e.touches[0].clientX);addEventListener('touchend',e=>{if(sx==null)return;const d=e.changedTouches[0].clientX-sx;if(Math.abs(d)>40)show(I+(d<0?1:-1),1);sx=null;});
+$('list').onclick=e=>{const b=e.target.closest('.li');if(b)show(+b.dataset.i,1);};
+function renderCart(){$('cnt').textContent=CART.length;$('dlines').innerHTML=CART.map(i=>`<div class="dl"><span class="th">${SV[i]}</span>${P[i].n}<span>${P[i].p} €</span></div>`).join('');$('tot').textContent=CART.reduce((a,i)=>a+P[i].p,0)+' €';}
+$('add').onclick=()=>{CART.push(I);renderCart();$('drawer').classList.add('on');};
+$('drawer').onclick=e=>{if(e.target.id==='drawer')$('drawer').classList.remove('on');};
+// États pour les captures : ?i=2&labels=1&cart=1
+const Q=new URLSearchParams(location.search);show(+(Q.get('i')||0),0);
+if(Q.get('cart')){CART=[0,1];renderCart();$('drawer').classList.add('on');}
+if(Q.get('labels'))setTimeout(()=>labels(true),50);
+if(Q.get('spin')){setTimeout(()=>{$('pz').style.transition='none';$('pz').style.transform='rotate(-38deg) scale(.96)';$('pz').style.opacity='.55';},50);}
+</script></body></html>
