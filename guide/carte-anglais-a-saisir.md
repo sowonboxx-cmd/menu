@@ -1,83 +1,100 @@
-# Carte anglaise — à saisir dans /admin
+# Carte anglaise Drevici — à saisir dans /admin (et sur Google Business)
 
-Le site retombe sur le français tout seul quand le champ anglais est vide.
-Donc **une ligne « — »  veut dire : laisser vide**, surtout pas recopier le français.
+**Base : la carte papier anglaise du restaurant** (photo du 25/10). Là où elle existe, on reprend ses mots,
+pour que la carte papier, Google Business et le site disent la même chose. Là où elle ne couvre pas le plat
+(plateaux, hampe, rillettes rares, boissons), c'est une proposition de Claude.
 
-Saisie : /admin → Ma carte → le plat → sélecteur de langue en haut (EN).
+- Un « — » veut dire : **laisser le champ vide**. Le site affiche alors le français, c'est voulu.
+- Saisie : /admin → Ma carte → le plat → sélecteur de langue (EN).
+- Le site reste en français tant que **tout** n'est pas traduit ; la bascule se fera ensuite automatiquement
+  selon la langue du téléphone.
 
+## ⚠️ À vérifier avant Google Business
 
-## Huîtres
+- **Planche de charcuterie bretonne : 15 € sur la carte papier, 20 € sur le site.** Tous les autres prix concordent.
+- La carte papier dit « homemade mayonnaise » pour les bulots et gambas, mais le français dit **« mayonnalgue »**
+  (mayonnaise aux algues). Proposé ci-dessous : *homemade seaweed mayonnaise* — plus fidèle, et c'est un argument.
 
-| Plat (FR) | Nom anglais | Description anglaise |
+## Petites fautes d'anglais sur la carte papier (corrigées ici)
+
+| Carte papier | Correct | Pourquoi |
 |---|---|---|
-| Huîtres natures n°4 | *déjà en place :* Natural oysters n°4 | Served with bread, butter, lemon and/or shallot vinegar |
-| Huîtres natures n°3 | Oysters n°3, plain | Served with bread, butter, lemon and/or shallot vinegar |
-| Huîtres natures n°2 | Oysters n°2, plain | Served with bread, butter, lemon and/or shallot vinegar |
-| Huîtres gratinées | *déjà en place :* Gratin oysters | Oven-baked with herb butter and a crisp breadcrumb crust, served hot |
+| Nor Caviar | **Nori caviar** | faute de frappe |
+| Breton style scallops | **Breton-style scallops** | trait d'union |
+| Nature (tartare d'algues) | **Plain** | « nature » n'est pas de l'anglais dans ce sens |
+| Prepared cold | prepared cold | majuscule en milieu de phrase |
 
-## Terre & mer
+Le reste est du bon anglais : *half a dozen / a dozen*, *King prawns*, *croutons and grated cheese*, *Ordering & service at the bar*.
 
-| Plat (FR) | Nom anglais | Description anglaise |
-|---|---|---|
-| Planche de charcuterie bretonne | *déjà en place :* Charcuterie board | Ham saucisson, Breton andouille, smoked pork filet mignon |
-| Gambas de Madagascar | *déjà en place :* 6 Madagascar prawns | 6 prawns with our house seaweed mayonnaise |
-| Bulots | Whelks | 200g of whelks with our house seaweed mayonnaise |
-| Soupe de Poisson | Fish soup | Rich and full of flavour, served with cheese and bread |
-| Hampe de bœuf | Beef flank steak | With shallot sauce and fries |
+## Huîtres — *Our oysters*
 
-## Plateaux
+| Plat (FR) | Nom anglais | Description anglaise | Source |
+|---|---|---|---|
+| Huîtres natures n°4 | Raw oysters S · n°4 | Served with bread, butter, lemon and/or shallot vinegar | carte papier |
+| Huîtres natures n°3 | Raw oysters M · n°3 | Served with bread, butter, lemon and/or shallot vinegar | carte papier |
+| Huîtres natures n°2 | Raw oysters L · n°2 | Served with bread, butter, lemon and/or shallot vinegar | carte papier |
+| Huîtres gratinées | Hot golden gratin oysters | Oven-baked with herb butter and a crisp breadcrumb crust, served hot | nom : carte papier |
 
-| Plat (FR) | Nom anglais | Description anglaise |
-|---|---|---|
-| Capitaine | — *(identique, laisser vide)* | 12 oysters n°3, 200g of whelks, 6 Madagascar prawns |
-| Duo champagne | Champagne for two | 12 oysters n°3, 2 glasses of champagne |
-| Drevici | — *(identique, laisser vide)* | 12 oysters n°3, Breton charcuterie, prawns, whelks, seafood spread |
-| Solo champagne | Champagne for one | 6 oysters n°3, a glass of champagne |
-| Mousaillon | — *(identique, laisser vide)* | 6 oysters n°3, 4 Madagascar prawns |
-| Matelot | — *(identique, laisser vide)* | 3 oysters n°3, 50g of whelks, 3 Madagascar prawns |
+Prix : *half a dozen* / *a dozen* pour les natures, *the 3* / *the 6* pour les gratinées (comme sur la carte papier).
 
-## Tartinades
+## Terre & mer — *Seafood*
 
-| Plat (FR) | Nom anglais | Description anglaise |
-|---|---|---|
-| Truite de Bretagne | Breton trout spread | Made with trout farmed, filleted and smoked in Brittany |
-| Saint-Jacques à la bretonne | Breton-style scallop spread | A delicate scallop rillettes, cooked the Breton way |
-| Homard Bleu | Blue lobster spread | The tender, refined flesh of blue lobster (30%) in a recipe for true food lovers |
-| Maquereau au Poivre de Sichuan | Mackerel with Sichuan pepper | Deeply aromatic — a recipe that takes you travelling over an aperitif |
-| Sardines au Piment d'Espelette | Sardines with Espelette pepper | Rich in sardine fillets (62%), ring-net caught in Brittany |
-| Ormeaux de l'île de Groix | Abalone from the Île de Groix | A subtle, one-of-a-kind recipe built on the incomparable flavour of abalone |
-| Dorade Combava & Gingembre | Sea bream, kaffir lime & ginger | Rich in sea bream (35%) from Breton fishing boats |
-| Soleil | — *(identique, laisser vide)* | Seaweed tartare (four seaweeds), grilled peppers and paprika |
-| Nature | — *(identique, laisser vide)* | Excellent with cheese, or straight from the shell on an oyster |
-| Pomme et Miel | Apple & honey | Perfect with warm goat's cheese toasts, or with sheep's tomme |
-| Caviar de nori | Nori caviar | Nori is Brittany's black gold: a seaweed of incomparable delicacy, hard to harvest and to dry |
+| Plat (FR) | Nom anglais | Description anglaise | Source |
+|---|---|---|---|
+| Planche de charcuterie bretonne | Breton charcuterie platter | Ham saucisson, Breton andouille, smoked pork filet mignon | nom : carte papier |
+| Gambas de Madagascar | 6 King prawns from Madagascar | Served with homemade seaweed mayonnaise | carte papier (+ algues) |
+| Bulots | Whelks 200g | Served with homemade seaweed mayonnaise | carte papier (+ algues) |
+| Soupe de Poisson | Fish soup | Served with homemade croutons and grated cheese | carte papier |
+| Hampe de bœuf | Beef flank steak | With shallot sauce and fries | proposition |
 
-## Boissons
+## Plateaux — *Seafood platters*
 
-| Plat (FR) | Nom anglais | Description anglaise |
-|---|---|---|
-| Sauvignon | — *(identique, laisser vide)* | — *(pas de description)* |
-| Chardonnay | — *(identique, laisser vide)* | — *(pas de description)* |
-| Viognier | — *(identique, laisser vide)* | — *(pas de description)* |
-| Chablis | — *(identique, laisser vide)* | — *(pas de description)* |
-| Côte du Rhône | — *(identique, laisser vide)* | — *(pas de description)* |
-| Pinot Noir | — *(identique, laisser vide)* | — *(pas de description)* |
-| Rosé | — *(identique, laisser vide)* | — *(pas de description)* |
-| Liqueur de Citron ou de Menthe | Lemon or mint liqueur | — *(pas de description)* |
-| Gin, Rhum, Esprit Malt | Gin, rum, malt spirit | — *(pas de description)* |
-| Pastis | — *(identique, laisser vide)* | — *(pas de description)* |
-| Champagne la Maison Fricot | — *(identique, laisser vide)* | — *(pas de description)* |
-| Pétillant Saumur | Saumur sparkling wine | — *(pas de description)* |
-| La Blonde 5,5° | Blonde ale 5.5% | — *(pas de description)* |
-| La IPA 6° | IPA 6% | — *(pas de description)* |
-| Spritz | — *(identique, laisser vide)* | — *(pas de description)* |
-| Breizh Cola / Cola Zero | — *(identique, laisser vide)* | — *(pas de description)* |
-| Jus de Pomme breton | Breton apple juice | — *(pas de description)* |
-| Ginger Beer | — *(identique, laisser vide)* | — *(pas de description)* |
-| Tonic | — *(identique, laisser vide)* | — *(pas de description)* |
+| Plat (FR) | Nom anglais | Description anglaise | Source |
+|---|---|---|---|
+| Capitaine | — | 12 M oysters (n°3), 200g whelks, 6 King prawns from Madagascar | proposition |
+| Duo champagne | Champagne for two | 12 M oysters (n°3), 2 glasses of champagne | proposition |
+| Drevici | — | 12 M oysters (n°3), Breton charcuterie, King prawns, whelks, rillettes | proposition |
+| Solo champagne | Champagne for one | 6 M oysters (n°3), 1 glass of champagne | proposition |
+| Mousaillon | — | 6 M oysters (n°3), 4 King prawns from Madagascar | proposition |
+| Matelot | — | 3 M oysters (n°3), 50g whelks, 3 King prawns from Madagascar | proposition |
 
-## Cocktails
+Capitaine, Drevici, Mousaillon, Matelot : noms propres, à laisser vides.
 
-| Plat (FR) | Nom anglais | Description anglaise |
-|---|---|---|
-| Espresso Martini | — | — *(pas de description)* |
+## Tartinades — *Canapés, served with bread*
+
+| Plat (FR) | Nom anglais | Description anglaise | Source |
+|---|---|---|---|
+| Truite de Bretagne | Breton trout rillettes | Made with trout farmed, filleted and smoked in Brittany | nom : carte papier |
+| Saint-Jacques à la bretonne | Breton-style scallop rillettes | Fine scallop rillettes, cooked the Breton way | nom : carte papier, corrigé |
+| Homard Bleu | Blue lobster rillettes | The tender, delicate flesh of blue lobster (30%) | proposition |
+| Maquereau au Poivre de Sichuan | Mackerel rillettes with Sichuan pepper | Deeply aromatic, made for the aperitif | nom : carte papier + précision |
+| Sardines au Piment d'Espelette | Sardine rillettes with Espelette pepper | Rich in sardine fillets (62%), ring-net caught in Brittany | proposition |
+| Ormeaux de l'île de Groix | Abalone rillettes from the Île de Groix | A subtle, one-of-a-kind recipe | proposition |
+| Dorade Combava & Gingembre | Sea bream rillettes, kaffir lime & ginger | Rich in sea bream (35%) from Breton fishing boats | proposition |
+| Soleil | Seaweed tartare, roasted peppers & paprika | Four seaweeds, roasted peppers and paprika | carte papier |
+| Nature | Plain seaweed tartare | Excellent with cheese, or straight on an oyster | carte papier, corrigé |
+| Pomme et Miel | Seaweed tartare, apple & honey | Lovely on warm goat's cheese toast | carte papier |
+| Caviar de nori | Nori caviar | Nori, Brittany's black gold: a delicate seaweed, hard to harvest and dry | carte papier, corrigé |
+
+## Boissons — *Drinks*
+
+Vins, champagne, pastis, spritz, tonic, Breizh Cola : **laisser vide** (identique en anglais).
+À traduire seulement :
+
+| Boisson (FR) | Nom anglais |
+|---|---|
+| Liqueur de Citron ou de Menthe | Lemon or mint liqueur |
+| Gin, Rhum, Esprit Malt | Gin, rum, malt spirit |
+| Pétillant Saumur | Saumur sparkling wine |
+| La Blonde 5,5° | Blonde ale 5.5% |
+| La IPA 6° | IPA 6% |
+| Jus de Pomme breton | Breton apple juice |
+| Ginger Beer | Ginger beer |
+| Côte du Rhône | Côtes du Rhône |
+
+## Les 5 noms anglais déjà en base
+
+Ils sont corrects mais **ne collent pas à la carte papier**. À remplacer dans /admin pour être cohérent :
+Natural oysters n°4 → *Raw oysters S · n°4* · Gratin oysters → *Hot golden gratin oysters* ·
+Charcuterie board → *Breton charcuterie platter* · 6 Madagascar prawns → *6 King prawns from Madagascar* ·
+Seaweed tartare (Begood Alg) → *Seaweed tartare, roasted peppers & paprika*.
