@@ -22,7 +22,7 @@
 //   campaigns     Emails et SMS aux clients                                    Master
 //   socialPublish Publication sur les réseaux                                  Master
 //   studio        Studio (mode agence, offre La Cabine)                        option
-//   club          Club de fidélité                                             option
+//   club          Club de fidélité : mode agence seulement, fait sur mesure (modèle Drevici)
 export const OFFERS = {
   starter: { formules: false, print: false, tables: false, floorplan: false, stats: false, tableBoost: false, campaigns: false, socialPublish: false, studio: false, club: false },
   pro:     { formules: true,  print: true,  tables: true,  floorplan: false, stats: false, tableBoost: false, campaigns: false, socialPublish: false, studio: false, club: false },
