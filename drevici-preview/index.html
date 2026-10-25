@@ -930,6 +930,20 @@ body.sched-modal .sched-scrim{opacity:1;visibility:visible;pointer-events:auto}
   body.is-admin .admin-quick, body.admin-entry-visible .admin-quick{gap:30px}
 }
 
+/* Bouton Réserver sur téléphone (25/10, choix de Will : maquette C « pastille dorée à droite »).
+   Plus de bande crème en bas : la pastille flotte en bas à droite, sous le pouce, cerclée de blanc
+   pour rester lisible sur n'importe quelle photo, et les plats restent visibles derrière.
+   En mode administrateur, rien ne change : la barre de raccourcis garde son fond. */
+.rp-ico{display:none}
+@media(max-width:640px){
+  body:not(.is-admin):not(.admin-entry-visible) .sticky-reserve{background:none;left:auto;right:16px;bottom:calc(20px + env(safe-area-inset-bottom)/2);pointer-events:none}
+  body:not(.is-admin):not(.admin-entry-visible) .sticky-reserve .container{padding:0;max-width:none;margin:0}
+  body:not(.is-admin):not(.admin-entry-visible) .reserve-float{padding:0;gap:0}
+  body:not(.is-admin):not(.admin-entry-visible) .reserve-pill{pointer-events:auto;gap:9px;height:46px;padding:0 20px 0 8px;font-size:12.5px;font-weight:600;letter-spacing:.16em;box-shadow:0 0 0 3px #fff,0 10px 24px rgba(16,40,94,.32)}
+  body:not(.is-admin):not(.admin-entry-visible) .rp-ico{display:grid;place-items:center;width:30px;height:30px;border-radius:99px;background:var(--gold)}
+  .rp-ico svg{width:15px;height:15px;fill:var(--navy)}
+}
+
 /* ── ADMIN ── */
 .admin-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9000;display:none}
 .admin-overlay.open{display:block}
@@ -2335,7 +2349,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="12" rx="3.6"/><circle cx="8" cy="8" r="2.9"/><circle cx="11.5" cy="4.5" r="0.75" fill="currentColor" stroke="none"/></svg>
           </button>
         </div>
-        <a class="reserve-pill" id="reserveMain" href="book">Réserver une table</a>
+        <a class="reserve-pill" id="reserveMain" href="book" aria-label="Réserver une table"><i class="rp-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M7 2h2v2h6V2h2v2h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h3zM4 10v10h16V10zM7 12h3v3H7z"/></svg></i><span class="rp-txt">Réserver</span></a>
         <div class="admin-quick">
           <button class="mode-link" id="modeLinkEdit" title="Mode modification" aria-label="Mode modification" onclick="setEditMode(!editMode)">
             <svg id="modeLinkEditIcon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 2.6H3.7A1.7 1.7 0 0 0 2 4.3v8A1.7 1.7 0 0 0 3.7 14h8a1.7 1.7 0 0 0 1.7-1.7V7.6"/><path d="M12.1 2.1a1.55 1.55 0 0 1 2.2 2.2l-5.9 5.9-2.9.7.7-2.9 5.9-5.9z"/></svg>
@@ -5893,7 +5907,7 @@ function setLang(l){
   const cur=document.getElementById('langCur'); if(cur) cur.textContent=l.toUpperCase();
   document.querySelectorAll('.lang-opt').forEach(o=>o.classList.toggle('active',o.dataset.lang===l));
   const dd=document.getElementById('langDD'); if(dd) dd.classList.remove('open');
-  const rm=document.getElementById('reserveMain'); if(rm) rm.textContent=reserveMap[l]||reserveMap.fr;
+  const rm=document.querySelector('#reserveMain .rp-txt')||document.getElementById('reserveMain'); if(rm) rm.textContent=reserveMap[l]||reserveMap.fr;
   renderAll();
 }
 
