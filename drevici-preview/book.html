@@ -586,7 +586,7 @@ function autoAdvance(from) {
   // auto-advance stops there once (to offer the choice), but picking it
   // is not required for anything downstream — Horaire/Récap gating only
   // ever checks date/couverts/slot.
-  const order = ['date','couverts','espace','horaire','recap'];
+  const order = ['date','couverts','espace','horaire','recap'].filter(k => SPACE_STEP || k !== 'espace');
   const filled = { date: !!S.date, couverts: !!S.covers, espace: !!S.space, horaire: !!S.slot, recap: false };
   const idx = order.indexOf(from);
   for (let i = idx + 1; i < order.length; i++) {
@@ -648,6 +648,9 @@ function confirmCustomCover() {
    this is just the fallback shown until/unless a restaurant has
    customized their own list. Never gates the flow: skipping is fine. */
 const SPACES_DEFAULT = ['Intérieur','Extérieur','Terrasse','Bar'];
+// Formule Starter : pas de choix d'espace (la préférence de placement est réservée à Pro et Master,
+// interrupteur « tables » de workers/tenants.js). Le labo, sans BELTAB, garde l'étape.
+const SPACE_STEP = !(window.BELTAB && window.BELTAB.features && window.BELTAB.features.tables === false);
 let SPACES = SPACES_DEFAULT.slice();
 let SPACE_ROWS = []; // {id, name} — needed to look up a space's tables for capacity checks
 let TABLES = [];
@@ -1094,6 +1097,7 @@ updateSegLabels();
 // (nothing blocked yet), this just narrows it down a moment later if the
 // admin has locked any days.
 loadBlockedDates().then(() => renderCal());
+if (!SPACE_STEP) { const sg = document.getElementById('segEspace'); if (sg) sg.style.display = 'none'; }
 loadSpaces();
 loadTables();
 loadServices();

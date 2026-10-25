@@ -10,12 +10,23 @@
 // Ajouter un restaurant : python3 tools/nouveau-client.py (écrit l'entrée + le SQL).
 // ════════════════════════════════════════════════════════════════
 
-// Fonctions incluses par formule (voir guide/tarif.md). Chaque formule comprend la précédente.
-// Une fonction absente vaut « oui » : seules les valeurs false coupent quelque chose.
+// Fonctions incluses par formule (voir guide/tarif.md et le comparateur du guide).
+// Chaque formule comprend la précédente. Une fonction absente vaut « oui » : seules les valeurs
+// false coupent quelque chose. Mode d'emploi pour Will : HQ → Outils → « Qui a accès à quoi ».
+//   formules      Mes menus : menu du jour, menus spéciaux, formules          Pro
+//   print         Impression du menu en PDF                                    Pro
+//   tables        Salle et tables (admin) + choix de l'espace à la réservation Pro
+//   floorplan     Plan de salle visuel                                         Master
+//   stats         Statistiques (réservations et site)                          Master
+//   tableBoost    Table Boost                                                   Master
+//   campaigns     Emails et SMS aux clients                                    Master
+//   socialPublish Publication sur les réseaux                                  Master
+//   studio        Studio (mode agence, offre La Cabine)                        option
+//   club          Club de fidélité                                             option
 export const OFFERS = {
-  starter: { formules: false, campaigns: false, tableBoost: false, floorplan: false, socialPublish: false, club: false },
-  pro:     { formules: true,  campaigns: false, tableBoost: false, floorplan: false, socialPublish: false, club: false },
-  master:  { formules: true,  campaigns: true,  tableBoost: true,  floorplan: true,  socialPublish: true,  club: false }
+  starter: { formules: false, print: false, tables: false, floorplan: false, stats: false, tableBoost: false, campaigns: false, socialPublish: false, studio: false, club: false },
+  pro:     { formules: true,  print: true,  tables: true,  floorplan: false, stats: false, tableBoost: false, campaigns: false, socialPublish: false, studio: false, club: false },
+  master:  { formules: true,  print: true,  tables: true,  floorplan: true,  stats: true,  tableBoost: true,  campaigns: true,  socialPublish: true,  studio: false, club: false }
 };
 
 export const TENANTS = {
@@ -63,11 +74,14 @@ export function tenantByKey(key) {
 }
 
 // Configuration publique donnée à la page (jamais de secret ici).
-export function publicConfig(t) {
-  const features = Object.assign({}, OFFERS[t.offer] || {}, t.features || {});
+// trial : formule d'essai (démo seulement, choisie avec ?formule=…) ; les réglages propres au
+// restaurant (features) ne s'appliquent pas pendant un essai, pour voir la formule telle quelle.
+export function publicConfig(t, trial) {
+  const offer = trial || t.offer;
+  const features = Object.assign({}, OFFERS[offer] || {}, trial ? {} : (t.features || {}));
   return {
     key: t.key, slug: t.slug, resaSlug: t.resaSlug || t.slug, name: t.name,
     phone: t.phone || '', email: t.email || '', groupMax: t.groupMax || 10,
-    offer: t.offer, demo: !!t.demo, preview: false, features, hashtags: t.hashtags || ''
+    offer, realOffer: t.offer, trial: !!trial, demo: !!t.demo, preview: false, features, hashtags: t.hashtags || ''
   };
 }

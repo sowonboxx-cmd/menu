@@ -157,10 +157,7 @@ def admin(s):
     s = rep(s, "const SITE_URL='https://drevici-preview.beltab.app/';", "const SITE_URL=location.origin+'/';", 1)
     s = rep(s, "const RESA_ADMIN_URL='https://drevici.beltab.app/reservations';", "const RESA_ADMIN_URL='/reservations';", 1)
     s = rep(s, "const CL_SLUG=SLUG;", "const CL_SLUG=BT.preview?SLUG:RESA_SLUG;", 1)
-    # Interrupteurs par formule : une rubrique dont la fonction est coupée (false) disparaît du menu.
-    s = rep(s, "['menus','spe','Mes menus'],['stats','vue','Statistiques']];",
-            "['menus','spe','Mes menus'],['stats','vue','Statistiques']]"
-            ".filter(n=>{const f={emails:'campaigns',menus:'formules'}[n[0]];return !f||BT.features[f]!==false;});", 1, 'NAV')
+    # Interrupteurs par formule : gérés directement dans le labo (can(), lockOf()), rien à remplacer ici.
     # Un compte n'entre que dans SON restaurant : sinon message clair + déconnexion
     # (les règles de la base bloquent déjà ses données ; ceci évite un écran trompeur).
     s = rep(s, "async function boot(){\n  const r=await loadAll();",

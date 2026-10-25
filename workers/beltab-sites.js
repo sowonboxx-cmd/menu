@@ -8,7 +8,7 @@
 // Mode démo : invisible sur Google (noindex + robots.txt fermé).
 // ════════════════════════════════════════════════════════════════
 import seo from './menu-seo.js';
-import { tenantFor, tenantByKey, publicConfig } from './tenants.js';
+import { tenantFor, tenantByKey, publicConfig, OFFERS } from './tenants.js';
 
 export default {
   async fetch(request, env, ctx) {
@@ -27,12 +27,24 @@ export default {
 
     const type = res.headers.get('content-type') || '';
     if (!type.includes('text/html')) return res;
-    const cfg = JSON.stringify(publicConfig(t)).replace(/</g, '\\u003c');
+    // Démo seulement : « voir comme » une autre formule (?formule=starter|pro|master, ?formule=reel
+    // pour revenir). Le choix est gardé une journée dans ce navigateur. Un vrai client n'est jamais concerné.
+    let trial = null, cookie = null;
+    if (t.demo) {
+      const q = url.searchParams.get('formule');
+      const m = (request.headers.get('cookie') || '').match(/(?:^|;\s*)bt_formule=(starter|pro|master)\b/);
+      if (q && Object.hasOwn(OFFERS, q)) { trial = q; cookie = `bt_formule=${q}; Path=/; Max-Age=86400; Secure; SameSite=Lax`; }
+      else if (q === 'reel') cookie = 'bt_formule=; Path=/; Max-Age=0; Secure; SameSite=Lax';
+      else if (m) trial = m[1];
+      if (trial === t.offer) trial = null;
+    }
+    const cfg = JSON.stringify(publicConfig(t, trial)).replace(/</g, '\\u003c');
     res = new HTMLRewriter()
       .on('head', { element(el) { el.prepend(`<script>window.BELTAB=${cfg};</script>`, { html: true }); } })
       .transform(res);
     res = new Response(res.body, res);
     res.headers.set('cache-control', 'no-cache');
+    if (cookie) res.headers.append('set-cookie', cookie);
     return res;
   }
 };

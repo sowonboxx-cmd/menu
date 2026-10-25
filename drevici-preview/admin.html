@@ -1242,6 +1242,7 @@ input.in.hr{width:76px;text-align:center;padding:8px 10px;font-size:15px;font-we
 .st-note{font-size:12px;color:var(--mut);margin:4px 2px 0}
 .st-empty{color:var(--mut);font-size:13.5px;padding:6px 0}
 @media(max-width:899px){.st-k{grid-template-columns:1fr 1fr;gap:9px}.st-k .n{font-size:25px}.st-g{grid-template-columns:1fr}.st-bars{height:100px}.st-seg button{padding:7px 11px}}
+.trialbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 14px;padding:8px 12px;border-radius:12px;background:#fff1cc;color:#6b4300;font-size:13px;font-weight:600}.trialbar span{margin-right:4px}.trialbar a{padding:4px 12px;border-radius:99px;background:rgba(107,67,0,.1);color:inherit;text-decoration:none}.trialbar a.on{background:#6b4300;color:#fff}.trialbar a.back{margin-left:auto;background:none;text-decoration:underline}
 </style>
 </head>
 <body>
@@ -1487,6 +1488,29 @@ function jumpToBlock(){ if(!(PG==='etab'||PG==='site')||!ARG) return; if(PG==='e
 
 const NAV=[['dash','stats','Tableau de bord'],['resa','resa','Réservations'],['clients','users','Clients'],['messages','chat','Messages'],['emails','mail','Emails'],['carte','carte','Ma carte'],['menus','spe','Mes menus'],['stats','vue','Statistiques']];
 const NAVS=[['app','lune','Apparence'],['secu','sauv','Sécurité']];
+// ══ Formules : qui a accès à quoi ══
+// Les interrupteurs viennent de workers/tenants.js (OFFERS par formule + réglages du restaurant) ;
+// le Worker commun les donne à la page dans window.BELTAB.features. Interrupteur absent = ouvert
+// (le labo, sans BELTAB, a donc tout). Une page coupée disparaît du menu, des raccourcis et des
+// onglets ; ouverte par son adresse, elle affiche « pas incluse dans votre formule ».
+const FEAT=(window.BELTAB&&window.BELTAB.features)||{};
+const can=k=>FEAT[k]!==false;
+const LOCKS={menus:'formules',mdj:'formules',formule:'formules',tuner:'formules',xprint:'print',emails:'campaigns',stats:'stats',
+  'resa/boost':'tableBoost','resa/esp':'tables','resa/stats':'stats','comm/social':'socialPublish','comm/email':'campaigns','comm/boost':'tableBoost'};
+const NEED={formules:'Pro',print:'Pro',tables:'Pro',tableBoost:'Master',floorplan:'Master',stats:'Master',campaigns:'Master',socialPublish:'Master'};
+const LOCK_TXT={formules:'Menus du jour, menus spéciaux et formules',print:'Impression du menu',tables:'Salle et tables',tableBoost:'Table Boost',
+  stats:'Statistiques',campaigns:'Emails et SMS à vos clients',socialPublish:'Publication sur les réseaux'};
+function lockOf(pg,arg){ arg=arg||''; let k=LOCKS[pg+'/'+arg]||LOCKS[pg];
+  if(pg==='comm'&&!arg&&!can('socialPublish')&&!can('campaigns')&&!can('tableBoost')) k='campaigns';
+  return k&&!can(k)?k:null; }
+const navOk=n=>!lockOf(n[0],'');
+function lockedView(k){ return mtop('Tableau de bord','dash')+ph(LOCK_TXT[k]||'Cette fonction','Pas incluse dans votre formule','')+
+  `<div class="c"><section class="list pc"><div class="pb"><p>Cette fonction est incluse à partir de la formule <b>${NEED[k]||''}</b>. Pour l'ajouter, contactez Beltab.</p><a class="btn" href="#/dash">Retour au tableau de bord</a></div></section></div>`; }
+// Cache tous les liens vers une page coupée (raccourcis du tableau de bord, onglets, boutons).
+function hideLocked(){ document.querySelectorAll('#app a[href^="#/"]').forEach(a=>{ const [p,...r]=a.getAttribute('href').slice(2).split('/'); if(lockOf(p,r.join('/'))) a.style.display='none'; }); }
+// Démo seulement : barre « voir comme Starter / Pro / Master » (le Worker change la formule pour ce navigateur).
+function trialBar(){ const B=window.BELTAB; if(!B||!B.demo) return ''; const L={starter:'Starter',pro:'Pro',master:'Master'}, real=B.realOffer||B.offer;
+  return `<div class="trialbar"><span>Démo · voir comme</span>${['starter','pro','master'].map(k=>`<a href="?formule=${k}${esc(location.hash)}" class="${B.offer===k?'on':''}">${L[k]}</a>`).join('')}${B.trial?`<a class="back" href="?formule=reel${esc(location.hash)}">Revenir à ${L[real]||real}</a>`:''}</div>`; }
 // Sous-rubriques : chaque lien ouvre la page et descend jusqu'au bloc
 const NAV_ETAB=[['etab/etab','etab','Informations'],['etab/logo','logo','Logo'],['etab/hor','hor','Horaires'],['etab/res','res','Réseaux sociaux']];
 // Page d'entrée commune Paris / Surzur : réglée seulement depuis l'admin de Paris (et sa copie de test).
@@ -1495,8 +1519,8 @@ const NAV_SITE=[...(ENTREE_ON?[['site/ecran','ecran','Page d\'entrée']]:[]),['s
 const PARENT={export:'carte',xprint:'carte',xgbiz:'carte',xinsta:'carte',xcol:'carte',mdj:'menus',formule:'menus',tuner:'menus'};
 const nv=([k,ic,l])=>{ const [pg,sub]=k.split('/'); const on=sub?(PG===pg&&(ARG===sub||(!ARG&&(pg==='etab'?'etab':'acc')===sub))):(PG===k||PARENT[PG]===k); const nb=k==='messages'?msgNew():0; return `<a class="nv${on?' on':''}" href="#/${k}">${I(ic)}${l}${nb?`<span class="nv-bd">${nb}</span>`:''}</a>`; };
 const side=()=>`<nav class="side"><a class="who" href="#/dash" title="Tableau de bord">${logoBox()}<b>${esc(DATA.restaurantName||'Mon restaurant')}</b></a>
-  ${NAV.map(nv).join('')}<div class="gap"></div><div class="mini">Mon établissement</div>${NAV_ETAB.map(nv).join('')}<div class="gap"></div><div class="mini">Mon site</div>${NAV_SITE.map(nv).join('')}<div class="gap"></div><div class="mini">Réglages</div>${NAVS.map(nv).join('')}
-  <div class="gap"></div><a class="nv" href="${SITE_URL}studio/">${I('stats')}Studio</a><a class="nv" href="${SITE_URL}" target="_blank" rel="noopener">${I('share')}Site ↗</a><a class="nv${PG==='compte'?' on':''}" href="#/compte">${I('compte')}Mon compte</a></nav>`;
+  ${NAV.filter(navOk).map(nv).join('')}<div class="gap"></div><div class="mini">Mon établissement</div>${NAV_ETAB.map(nv).join('')}<div class="gap"></div><div class="mini">Mon site</div>${NAV_SITE.map(nv).join('')}<div class="gap"></div><div class="mini">Réglages</div>${NAVS.map(nv).join('')}
+  <div class="gap"></div>${can('studio')?`<a class="nv" href="${SITE_URL}studio/">${I('stats')}Studio</a>`:''}<a class="nv" href="${SITE_URL}" target="_blank" rel="noopener">${I('share')}Site ↗</a><a class="nv${PG==='compte'?' on':''}" href="#/compte">${I('compte')}Mon compte</a></nav>`;
 const LOGO_SQ={};
 function logoLoaded(img){ const sq=Math.abs(img.naturalWidth-img.naturalHeight)<img.naturalWidth*.08; LOGO_SQ[img.getAttribute('src')]=sq; img.parentNode.classList.toggle('sq',sq); }
 function logoBox(){ const u=DATA&&DATA.restaurantLogo; return u?`<div class="logo img${LOGO_SQ[u]?' sq':''}"><img src="${esc(u)}" alt="" onload="logoLoaded(this)" onerror="this.parentNode.classList.remove('img');this.parentNode.textContent='${esc(initials())}'"></div>`:`<div class="logo">${esc(initials())}</div>`; }
@@ -1588,7 +1612,7 @@ function dash(){
     <div class="msec">Autres</div><div class="mlist">${[['stats','vue','Statistiques','Visites du site · QR table · offres','#0E8A8A'],['secu','sauv','Sécurité','Sauvegardes · Historique','#6B7080']].map(mrow).join('')}</div>
     <div class="msec">Thème</div><div class="mlist"><div class="mli"><span class="mic" style="color:#6E56CF">${I('lune')}</span><span class="mtx"><b>Apparence</b></span><label class="msel">${{clair:'Clair',sombre:'Sombre',systeme:'Système'}[am]}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"/></svg><select data-act="appSel" aria-label="Apparence">${[['systeme','Système'],['clair','Clair'],['sombre','Sombre']].map(([k,l])=>`<option value="${k}"${am===k?' selected':''}>${l}</option>`).join('')}</select></label></div></div>
   </section>`;
-  return `${header()}${msgDash()}<div class="L">${resa}${carte}${menus}${comm}${sets}${visitsCard()}${mhome}</div>`;
+  return `${header()}${msgDash()}<div class="L">${resa}${carte}${can('formules')?menus:''}${lockOf('comm','')?'':comm}${sets}${visitsCard()}${mhome}</div>`;
 }
 const setBlock=(c,h,ts)=>`<div class="set ${c}"><h4>${h}</h4><div class="tiles">${ts.map(([k,l,p])=>`<a class="tile" href="#/${p}"><span class="ico">${I(k)}</span><div><b>${l}</b></div></a>`).join('')}</div></div>`;
 function appSeg(){ const m=applyAppearance(); return `<div class="seg">${[['clair','Clair','jour'],['sombre','Sombre','lune'],['systeme','Système','ecran']].map(([k,l,ic])=>`<button type="button" data-act="appearance" data-v="${k}" class="${m===k?'on':''}">${I(ic)}${l}</button>`).join('')}</div>`; }
@@ -1687,7 +1711,7 @@ let ENGFONTS=null;
 function pageExport(){
   const r=(t,sub,prev,btns,pg,desc)=>`<section class="list pc xc"><div class="xrow"><div class="xprev"><div class="pvx">${prev}</div></div><div class="xside"><h3>${t}</h3><small>${sub}</small><p>${desc}</p><div class="xbtns">${btns}<a class="btn g" href="#/${pg}">${I('edit')}Personnaliser</a></div></div></div></section>`;
   return mtop('Ma carte','carte')+crumb([['Ma carte','carte'],['Exporter votre menu']])+ph('Exporter votre menu','Votre carte prête à imprimer, à mettre sur Google ou à poster, à vos couleurs',linkBtn('Couleurs des menus','coul','#/xcol','w'))+
-  `<div class="xgrid">${r('Impression','A4 · PDF',pvFrame('print',0,'pv-a4')+pvFrame('print',1,'pv-a4'),btn('Générer le PDF / Imprimer','share','','data-act="print"'),'xprint','Le menu complet en A4, prêt à imprimer ou à enregistrer en PDF. Logo, cadre, pointillés et sauts de page se règlent dans Personnaliser.')}
+  `<div class="xgrid">${!can('print')?'':r('Impression','A4 · PDF',pvFrame('print',0,'pv-a4')+pvFrame('print',1,'pv-a4'),btn('Générer le PDF / Imprimer','share','','data-act="print"'),'xprint','Le menu complet en A4, prêt à imprimer ou à enregistrer en PDF. Logo, cadre, pointillés et sauts de page se règlent dans Personnaliser.')}
   ${r('Google Business','1 image par page',pvFrame('gbiz',0,'pv-gb')+pvFrame('gbiz',1,'pv-gb'),btn('Générer les images','share','','data-act="gbiz"'),'xgbiz','Une image par page, au format de la fiche Google Business. Vous choisissez quelle catégorie va sur quelle page.')}
   ${r('Instagram','Story 9:16 · Post 3:4',pvFrame('insta',0,'pv-st',{variant:'story'})+pvFrame('insta',0,'pv-po',{variant:'post',over:igOver('post')}),`<span class="two">${btn('Télécharger les stories','share','','data-act="insta" data-v="story"')}${btn('Télécharger les posts','share','w','data-act="insta" data-v="post"')}</span>`,'xinsta','Une image par catégorie, en story (9:16) ou en post (3:4). Police et tailles dans Personnaliser.')}</div>`;
 }
@@ -1971,7 +1995,7 @@ async function resaUpd(ref,patch,ok){
 }
 
 // ── communication ──
-const resaTabs=()=>`<div class="rtabs">${[['','Réservations'],['boost','Table Boost'],['esp','Salle et tables'],['svc','Services'],['stats','Statistiques']].map(([k,l])=>`<a href="#/resa${k?'/'+k:''}" class="${(ARG||'')===k?'on':''}">${l}</a>`).join('')}</div>`;
+const resaTabs=()=>`<div class="rtabs">${[['','Réservations'],['boost','Table Boost'],['esp','Salle et tables'],['svc','Services'],['stats','Statistiques']].filter(([k])=>!lockOf('resa',k)).map(([k,l])=>`<a href="#/resa${k?'/'+k:''}" class="${(ARG||'')===k?'on':''}">${l}</a>`).join('')}</div>`;
 
 // ══ Messages des clients (bouton « Message » du site) : table contact_messages ══
 const msgNew=()=>MSGS.filter(m=>m.status==='new').length;
@@ -2260,10 +2284,11 @@ function pageComm(){
     <div class="kpis"><div><b>0</b><small>table vide</small></div><div><b>2 clics</b><small>pour lancer une offre</small></div><div><b>+ CA</b><small>chaque soir rempli</small></div></div>
     <div class="cards6">${STEPS.map((x,i)=>`<div class="c6"><em>${i+1}</em><span class="c6i">${I(x[0])}</span><b>${x[1]}</b><small>${x[2]}</small></div>`).join('')}</div></section>`;
   const subs=`<div class="rtabs"><a href="#/comm" class="${!ARG?'on':''}">Tout</a><a href="#/comm/social" class="${ARG==='social'?'on':''}">Poster sur les réseaux</a><a href="#/comm/email" class="${ARG==='email'?'on':''}">Campagne email</a><a href="#/comm/boost" class="${ARG==='boost'?'on':''}">Table Boost</a></div>`;
+  const show=[can('socialPublish')?social:'',can('campaigns')?email:''].join('');
   if(ARG==='social') return mtop('Communication','comm')+ph('Poster sur les réseaux','Une photo, un clic, c\'est publié','')+subs+`<div class="csolo">${social}</div>`;
   if(ARG==='email') return mtop('Communication','comm')+ph('Campagne email','Écrivez à vos clients, quand vous voulez','')+subs+`<div class="csolo">${email}</div>`;
   if(ARG==='boost') return mtop('Communication','comm')+ph('Table Boost','Remplissez vos tables, boostez votre CA','')+subs+boost;
-  return mtop('Tableau de bord','dash')+ph('Communication','Faites venir du monde quand vous en avez besoin','')+subs+`<div class="cgrid">${social}${email}</div>${boost}`;
+  return mtop('Tableau de bord','dash')+ph('Communication','Faites venir du monde quand vous en avez besoin','')+subs+(show?`<div class="cgrid">${show}</div>`:'')+(can('tableBoost')?boost:'');
 }
 
 // ── Statistiques du site (sql/stats-site.sql ; codes : notice « codes de suivi ») ──
@@ -2695,10 +2720,10 @@ function svcSummary(){
     <a class="btn w ssbtn" href="#/resa/svc">${I('edit')}Gérer les services</a></div>`;
 }
 function pageResaEsp(){
-  const v=UI.espv||'plan';
+  const v=can('floorplan')?(UI.espv||'plan'):'list';
   const vs=`<div><div class="vsel">${[['plan','Plan de salle'],['list','Liste des tables']].map(([k,l])=>`<a href="#" data-act="espV" data-v="${k}" class="${v===k?'on':''}">${l}</a>`).join('')}</div></div>`;
   const plan=`<section class="fpsec fpB"><div id="fpHost"></div></section>`;
-  return mtop('Réservations','resa')+crumb([['Réservations','resa'],['Salle et tables']])+ph('Salle et tables',`${SPACES.length} espace${SPACES.length>1?'s':''} · ${TABLES.length} tables · ${capacity()} places`,'')+resaTabs()+vs+(v==='plan'?plan:`<div class="spwrap2">${spacesEditor()}</div>`);
+  return mtop('Réservations','resa')+crumb([['Réservations','resa'],['Salle et tables']])+ph('Salle et tables',`${SPACES.length} espace${SPACES.length>1?'s':''} · ${TABLES.length} tables · ${capacity()} places`,'')+resaTabs()+(can('floorplan')?vs:'')+(v==='plan'?plan:`<div class="spwrap2">${spacesEditor()}</div>`);
 }
 function pageResaSvc(){
   const rows=SERVICES.map(x=>{ const del=UI.delc==='sv'+x.id?`<span class="delc">Supprimer ?<button class="btn g" data-act="svDel" data-id="${x.id}">Oui</button><button class="btn red" data-act="delNo">Non</button></span>`:`<button class="sptrash" data-act="delAsk" data-k="sv${x.id}" aria-label="Supprimer">${I('trash')}</button>`;
@@ -2759,10 +2784,10 @@ function render(){
   if(!SESSION){ app.innerHTML=loginView(); return; }
   if(!DATA){ app.innerHTML=missingView(); return; }
   setFav(DATA.restaurantLogo);
-  const fn=PAGES[PG]||dash;
+  const lk=lockOf(PG,ARG), fn=lk?()=>lockedView(lk):(PAGES[PG]||dash);
   const focus=document.activeElement&&document.activeElement.dataset?document.activeElement.dataset.bind:null;
   const y=scrollY;
-  let html=PG==='tuner'?`<div class="v2">${fn()}</div>`:`<div class="v2"><div class="shell">${side()}<div class="main">${fn()}</div></div></div>`;
+  let html=PG==='tuner'?`<div class="v2">${fn()}</div>`:`<div class="v2"><div class="shell">${side()}<div class="main">${trialBar()}${fn()}</div></div></div>`;
   html=levelOneCrumb(html);
   if(html.indexOf('class="crb"')>=0){ const f=DATA.restoFont?`'${String(DATA.restoFont).replace(/'/g,'')}',Inter,sans-serif`:'Inter,sans-serif'; html=html.replace('<div class="crb"',`<a class="rname" href="#/dash" style="font-family:${f};--rn:${/^#[0-9a-f]{3,8}$/i.test((DATA.brandColors||{}).primary||'')?DATA.brandColors.primary:'#10285e'}">${esc(DATA.restaurantName||'Mon restaurant')}</a><div class="crb"`); }
   // Mise à jour fine plutôt que tout redessiner : seuls les éléments qui changent
@@ -2781,8 +2806,8 @@ function render(){
     if(focus){ const el=app.querySelector(`[data-bind="${focus}"]`); if(el){ el.focus(); try{ const l=el.value.length; el.setSelectionRange(l,l);}catch(e){} } }
     scrollTo(0,y);
   }
-  refreshPreviews();
-  if(window.FP&&PG==='resa'&&ARG==='esp') FP.sync();
+  refreshPreviews(); hideLocked();
+  if(window.FP&&PG==='resa'&&ARG==='esp'&&can('floorplan')) FP.sync();
   if(UI.tbw&&UI.tbw.step===4&&PG==='resa'&&ARG==='boost'){ const cv=document.getElementById('tbCanvas'), W=UI.tbw, k=[W.photo,W.title,W.detail,W.date,W.deadline,W.sv].join('|'); if(cv&&cv.dataset.k!==k){ cv.dataset.k=k; tbDraw(); } }
 }
 function loginView(){ return `<div class="login"><div class="c"><h1>Beltab</h1><p>Espace restaurateur</p><form id="loginForm"><label class="fd"><span>Email</span><input class="in" type="email" name="email" autocomplete="username" required></label><label class="fd"><span>Mot de passe</span><input class="in" type="password" name="pw" autocomplete="current-password" required></label><button class="btn" type="submit">Se connecter</button><div class="err" id="loginErr"></div></form></div></div>`; }
