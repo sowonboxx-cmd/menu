@@ -3964,9 +3964,14 @@ function escapeHtmlLocal(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;
 // sign from an already-formatted price string when off. Kept as one
 // small helper rather than touching how prices are stored, so this is
 // purely a display-time decision and never risks mangling saved data.
+// Prix à la française à l'affichage : « 20.5€ » → « 20,50€ ». Les données gardent
+// le point (saisies par des champs numériques dans l'admin) ; seul l'affichage
+// change, et seulement en français — l'anglais garde le point décimal.
+function frDecimals(s){ s=String(s==null?'':s); if(lang!=='fr') return s;
+  return s.replace(/(\d+)\.(\d{1,2})(?!\d)/g,(m,a,b)=>a+','+(b.length===1?b+'0':b)); }
 function fmtCurrency(s){
-  if(DATA.showCurrency===false) return String(s||'').replace(/€/g,'').trim();
-  return s;
+  if(DATA.showCurrency===false) return frDecimals(String(s||'').replace(/€/g,'').trim());
+  return frDecimals(s);
 }
 // Dish/plat price: normalizes to "X€" (or "" if unset) then applies the
 // currency toggle — used by both grid and list rendering so the two
@@ -8742,7 +8747,7 @@ function buildPdfBlocks(cfg){
   // ce réglage et retire toujours le symbole € — demande explicite de
   // Will, spécifique à ce format uniquement.
   const isInstaFmt = cfg.format === 'insta';
-  const pdfCurrency = s => (cfg.showCurrency===false || isInstaFmt) ? String(s||'').replace(/€/g,'').trim() : s;
+  const pdfCurrency = s => frDecimals((cfg.showCurrency===false || isInstaFmt) ? String(s||'').replace(/€/g,'').trim() : s);
   // Sur Instagram, un double prix (ex. huîtres "Les 6 — 12€ · Les 12 —
   // 22€") n'affiche que le premier — demande explicite de Will, pour
   // rester le plus épuré possible sur ce format précis uniquement.
@@ -8789,7 +8794,7 @@ function buildPdfBlocks(cfg){
           // plats à tailles multiples (huîtres, etc.).
           const sizes = isInstaFmt
             ? ((item.sizes||[])[0] ? String((item.sizes||[])[0].price||'') : '')
-            : (item.sizes||[]).map(s=>bevSizeLabel(s)+' — '+s.price+'€').join(' · ');
+            : (item.sizes||[]).map(s=>(bevSizeLabel(s)?bevSizeLabel(s)+' — ':'')+s.price+'€').join(' · '); // sans contenance (Spritz) : pas de tiret orphelin
           return `<div class="pdf-dish${soloCls}"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(item.name)||''}</span>${dots}<span class="pdf-dish-price">${pdfCurrency(sizes||item.price||'')}</span></div>${t(item.desc)?`<div class="pdf-dish-desc">${t(item.desc)}</div>`:''}</div>`;
         }) : [];
       items.forEach((itemHtml, i)=>{
@@ -10894,7 +10899,7 @@ function exportMenuPDF(){
         });
       } else if(card.type==='bevs'){
         (card.items||[]).forEach(item=>{
-          const sizes=(item.sizes||[]).map(s=>bevSizeLabel(s)+' — '+s.price+'€').join(' · ');
+          const sizes=(item.sizes||[]).map(s=>(bevSizeLabel(s)?bevSizeLabel(s)+' — ':'')+s.price+'€').join(' · ');
           lines.push(`<div class="dish-wrap"><div class="dish"><span class="dish-name">${t(item.name)||''}</span><span class="dish-price">${sizes||item.price||''}</span></div>${t(item.desc)?`<div class="dish-desc">${t(item.desc)}</div>`:''}</div>`);
         });
       }
