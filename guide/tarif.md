@@ -4,7 +4,7 @@ Référence des prix pour tous les devis et factures. **À relire avant chaque p
 
 - Tous les prix sont **HT**.
 - Un prix est toujours un **pack** : il comprend tout le contenu listé, rien de plus, aucun frais caché.
-- Dernière mise à jour : 25 octobre 2026 (fichiers sources du logo animé : 390 € ; référencement Google et IA inclus dans les formules ; option anglais réservée aux formules, plus sur Google) ; 15 octobre 2026 (pack « Votre carte partout » : Google 249 €, Google + Instagram 349 €, option anglais + 100 €, mise à jour 149 €, illimitée en Master) ; 12 octobre 2026 (personnalisation sur mesure sur devis ; plan de salle visuel réservé à Master) ; 11 octobre 2026 (offres annexes chiffrées : Aperçu du menu, Avis Google, Google Business ; SMS et emails de la formule Master ; Master à 399 € / mois depuis le 10 octobre).
+- Dernière mise à jour : 26 octobre 2026 (vidéos des plats réservées à Master) ; 25 octobre 2026 (fichiers sources du logo animé : 390 € ; référencement Google et IA inclus dans les formules ; option anglais réservée aux formules, plus sur Google) ; 15 octobre 2026 (pack « Votre carte partout » : Google 249 €, Google + Instagram 349 €, option anglais + 100 €, mise à jour 149 €, illimitée en Master) ; 12 octobre 2026 (personnalisation sur mesure sur devis ; plan de salle visuel réservé à Master) ; 11 octobre 2026 (offres annexes chiffrées : Aperçu du menu, Avis Google, Google Business ; SMS et emails de la formule Master ; Master à 399 € / mois depuis le 10 octobre).
 
 ---
 
@@ -38,6 +38,7 @@ Chaque formule comprend la précédente. Les frais de mise en service sont payé
   - Remplissez vos tables vides (Table Boost)
   - Envoyez des emails et SMS à vos clients
   - Publiez sur vos réseaux sociaux
+  - Vidéos de vos plats : un court clip sans son à la place de la photo, sur la carte et dans la fiche du plat (le restaurant ajoute ses clips lui-même ; le tournage reste une prestation à part, voir Photos et vidéos).
   - Plan de salle visuel : le restaurant dessiné vu de haut (salles, fenêtres, tables, chaises), avec la vue service en direct. La gestion des salles et tables en liste reste incluse dès Pro.
 
 La réservation en ligne est incluse dans les trois formules, à trois niveaux : Basique (Starter), Avancée (Pro), Pro (Master).

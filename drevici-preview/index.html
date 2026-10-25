@@ -3669,7 +3669,8 @@ function openLb(idx){ if(editMode) return; lbMode='normal'; collectLbImages(); l
 // La vidéo n'est téléchargée et lancée que lorsqu'elle est visible à l'écran (et pas du tout si le
 // téléphone demande moins d'animations ou d'économiser les données). Elle apparaît en fondu par-dessus
 // la photo, qui sert d'attente.
-function vidOk(){ return !((window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) || (navigator.connection && navigator.connection.saveData)); }
+// Formule : les vidéos des plats sont réservées à Master (interrupteur « videos » du Worker ; absent = ouvert).
+function vidOk(){ if (window.BELTAB && BELTAB.features && BELTAB.features.videos === false) return false; return !((window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) || (navigator.connection && navigator.connection.saveData)); }
 function dishVidHtml(d, cls){
   return (d && d.video && vidOk()) ? `<video class="${cls}" data-src="${escAttr(d.video)}" muted loop playsinline preload="none" aria-hidden="true"></video>` : '';
 }

@@ -21,12 +21,13 @@
 //   tableBoost    Table Boost                                                   Master
 //   campaigns     Emails et SMS aux clients                                    Master
 //   socialPublish Publication sur les réseaux                                  Master
+//   videos        Vidéos des plats (clip 4:5 sur la carte et la fiche du plat)  Master
 //   studio        Studio (mode agence, offre La Cabine)                        option
 //   club          Club de fidélité : mode agence seulement, fait sur mesure (modèle Drevici)
 export const OFFERS = {
-  starter: { formules: false, print: false, tables: false, floorplan: false, stats: false, tableBoost: false, campaigns: false, socialPublish: false, studio: false, club: false },
-  pro:     { formules: true,  print: true,  tables: true,  floorplan: false, stats: false, tableBoost: false, campaigns: false, socialPublish: false, studio: false, club: false },
-  master:  { formules: true,  print: true,  tables: true,  floorplan: true,  stats: true,  tableBoost: true,  campaigns: true,  socialPublish: true,  studio: false, club: false }
+  starter: { formules: false, print: false, tables: false, floorplan: false, stats: false, tableBoost: false, campaigns: false, socialPublish: false, videos: false, studio: false, club: false },
+  pro:     { formules: true,  print: true,  tables: true,  floorplan: false, stats: false, tableBoost: false, campaigns: false, socialPublish: false, videos: false, studio: false, club: false },
+  master:  { formules: true,  print: true,  tables: true,  floorplan: true,  stats: true,  tableBoost: true,  campaigns: true,  socialPublish: true,  videos: true,  studio: false, club: false }
 };
 
 export const TENANTS = {
