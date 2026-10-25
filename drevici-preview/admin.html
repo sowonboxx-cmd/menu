@@ -696,6 +696,7 @@ input[type=number].in{font-size:17px;font-weight:600}
 .slots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.slots.one{grid-template-columns:minmax(0,260px)}
 .slot{border-radius:16px;background:var(--soft);overflow:hidden;display:flex;flex-direction:column}
 .slot img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.slot video{width:100%;aspect-ratio:4/5;object-fit:cover;display:block;background:#000}
 .slot .ph{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--mut)}.slot .ph svg{width:26px;height:26px;opacity:.5}.slot .ph small{font-size:12.5px;font-weight:600}
 .slot-a{display:flex;align-items:center;gap:8px;padding:8px;flex-wrap:wrap}.slot-a .btn{padding:7px 12px;font-size:13px}
 .fd.cap textarea.in{min-height:110px;font-size:16px}
@@ -1781,6 +1782,10 @@ const fIn=(label,val,bind,ph='',cls='',type='text',ex='')=>fld(label,`<input cla
 const fTa=(label,val,bind,ph='',cls='')=>fld(label,`<textarea class="in" rows="2" data-bind="${bind}" placeholder="${esc(ph)}">${esc(val)}</textarea>`,cls);
 const fEur=(label,val,bind)=>fld(label,`<div class="eurw"><input class="in" type="number" min="0" step="0.1" inputmode="decimal" value="${esc(val)}" data-bind="${bind}" placeholder="0"><i>€</i></div>`,'num');
 const thumb=u=>u?`<span class="ith"><img src="${esc(u)}" alt="" loading="lazy"></span>`:`<span class="ith none">${I('acc')}</span>`;
+// Vidéo du plat (facultative) : clip 4:5 sans son, 2 Mo conseillés. Elle tourne sur le site dans « Nos incontournables »
+// (téléphone), dans la grille (ordinateur, une par rangée) et dans la fiche du plat ; la photo reste la base partout ailleurs.
+const vidSlot=(url,path)=>`<div class="slot${url?' has':''}">${url?`<video src="${esc(url)}" muted loop autoplay playsinline></video>`:`<span class="ph">${I('vue')}<small>Clip 4:5 · sans son · 2 Mo max</small></span>`}
+  <div class="slot-a"><label class="btn w">${I('share')}${url?'Changer':'Ajouter'}<input type="file" accept="video/mp4,video/webm,video/quicktime" hidden data-act="itemVid" data-p="${path}"></label>${url?`<button type="button" class="lk red" data-act="itemVidDel" data-p="${path}">Retirer</button>`:''}</div></div>`;
 const upSlot=(url,path,slot,label)=>`<div class="slot${url?' has':''}">${url?`<img src="${esc(url)}" alt="">`:`<span class="ph">${I('acc')}<small>${label}</small></span>`}
   <div class="slot-a"><label class="btn w">${I('share')}${url?'Changer':'Ajouter'}<input type="file" accept="image/*" hidden data-act="itemImg" data-p="${path}" data-slot="${slot}"></label>${url?`<button type="button" class="lk red" data-act="itemImgDel" data-p="${path}" data-slot="${slot}">Retirer</button>`:''}</div></div>`;
 
@@ -1851,6 +1856,7 @@ function pageItem(ti,ci,ix){
     (bev?'':`<div class="mdiet${UI.dietOpen?' open':''}"><button type="button" class="mdiet-h" data-act="dietTog"><b>Informations alimentaires</b><small>${nb.length?nb.length+' sur '+BADGES.length:'Aucune'}</small><span class="chev">›</span></button>${UI.dietOpen?badgeRow(it,ti,ci,ix):''}</div>`);
   const g=it.gallery||[];
   const media=cardI('Photo principale','acc','photo',`<div class="slots one">${upSlot(it.img,path,'main',bev?'La bouteille ou le verre':'Le plat seul')}</div>`)+
+    (bev?'':`<section class="list pc" id="b-vue"><div class="bh"><span class="ico">${I('vue')}</span>Vidéo (facultative)</div><div class="pb"><div class="slots one">${vidSlot(it.video,path)}</div></div></section>`)+
     cardI('Galerie réseaux sociaux','post','galerie',`<div class="slots">${[0,1,2].map(k=>upSlot(g[k],path,'g'+k,'Photo '+(k+2))).join('')}</div>`)+
     cardI('Description Instagram','post','caption',fTa('Caption · description pré-enregistrée',it.caption||'',`${P}.caption`,bev?'Ex : Notre sélection du moment 🍷':'Ex : Nos huîtres Spéciales N°3 — iodées, fraîches, servies sur glace 🦪','w cap')+
       `<div class="capx"><small>Ajouté automatiquement à la fin</small><pre>${esc(restoSig())}</pre></div>`);
@@ -2900,6 +2906,7 @@ document.addEventListener('change',async e=>{
   if(a==='pdfLogo'&&el.files&&el.files[0]){ const url=await uploadImage(el.files[0],'logo-impression'); if(url){ pS().logoData=url; touch(true); } }
   if(a==='entUp'&&el.files&&el.files[0]){ const sl=el.dataset.slot, e=entree(); const url=sl==='video'?await uploadVideo(el.files[0]):await uploadImage(el.files[0],sl==='logo'?'logo-entree':'entree'); if(url){ e[sl]=url; touch(true); } }
   if(a==='siteUp'&&el.files&&el.files[0]){ const sl=el.dataset.slot, hc=DATA.homeCover; const url=sl==='video'?await uploadVideo(el.files[0]):await uploadImage(el.files[0],sl==='logo'?'logo-accueil':'accueil'); if(url){ if(/^s\d$/.test(sl)) hc.slideshow[+sl[1]].image=url; else hc[sl]=url; touch(true); } }
+  if(a==='itemVid'&&el.files&&el.files[0]){ const f=el.files[0]; if(f.size>4*1024*1024){ toast('Vidéo trop lourde pour un plat : 2 Mo conseillés, 4 Mo maximum'); return; } const x=itemAt(el.dataset.p); const url=await uploadVideo(f); if(url){ x.it.video=url; touch(true); } }
   if(a==='itemImg'&&el.files&&el.files[0]){ const x=itemAt(el.dataset.p); const sl=el.dataset.slot; const url=await uploadImage(el.files[0],sl==='main'?(isBevCard(x.c)?'boisson':'plat'):'galerie'); if(url){ if(sl==='main') x.it.img=url; else { const g=x.it.gallery||[]; g[+sl.slice(1)]=url; x.it.gallery=g; } touch(true); } }
   if(a==='appSel'){ setAppearance(el.value); return; }
   if(a==='logoUp'&&el.files&&el.files[0]){ const url=await uploadImage(el.files[0],'logo'); if(url){ DATA.restaurantLogo=url; touch(true); } }
@@ -3025,6 +3032,7 @@ document.addEventListener('click',async e=>{
       if(k>=0) pins.splice(k,1); else if(pinCount(tid)>=PIN_MAX){ toast(PIN_MAX+' favoris maximum par catégorie'); UI.info='pin'; render(); break; } else { pins.push({tabId:tid,pid:x.it._pid,name:tr(x.it.name)}); UI.info='pin'; } touch(true); break; }
     case 'szAdd': { const {it}=itemAt(d.p); if(!Array.isArray(it.sizes)) it.sizes=[]; it.sizes.push({format:'',cl:'',unit:'cl',price:''}); touch(true); break; }
     case 'szDel': { const {it}=itemAt(d.p); it.sizes.splice(+d.si,1); touch(true); break; }
+    case 'itemVidDel': { const {it}=itemAt(d.p); delete it.video; touch(true); break; }
     case 'itemImgDel': { const {it}=itemAt(d.p); if(d.slot==='main') it.img=''; else { const g=it.gallery||[]; g[+d.slot.slice(1)]=''; it.gallery=g; } touch(true); break; }
     case 'copySite': try{ navigator.clipboard.writeText(SITE_URL); toast('Lien copié'); }catch(e){ toast(SITE_URL); } break;
     case 'jourFlag': sp[d.k]=!(d.k==='showHome'?sp.showHome!==false:!!sp[d.k]); touch(true); break;

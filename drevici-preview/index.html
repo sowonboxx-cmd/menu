@@ -944,6 +944,18 @@ body.sched-modal .sched-scrim{opacity:1;visibility:visible;pointer-events:auto}
   .rp-ico svg{width:15px;height:15px;fill:var(--navy)}
 }
 
+/* Vidéos des plats (25/10, Will) : un plat peut avoir, en plus de sa photo, un court clip 4:5 sans son.
+   Téléphone : la vidéo tourne dans « Nos incontournables », la liste garde les photos.
+   Ordinateur : les incontournables gardent la photo ; la vidéo tourne dans la grille, une seule par rangée.
+   Partout : elle tourne aussi dans la fiche du plat. La photo reste dessous tant que la vidéo ne joue pas. */
+.rail-vid,.gc-vid{position:absolute;left:0;top:0;width:100%;object-fit:cover;opacity:0;transition:opacity .35s;pointer-events:none;background:transparent}
+.rail-vid{aspect-ratio:4/5;border-radius:20px}
+.rail-vid.on,.gc-vid.on{opacity:1}
+.gc-vid{display:none;height:100%}
+@media(min-width:641px){.rail-vid{display:none}.gc-vid{display:block}}
+#lbVid{position:absolute;left:0;top:0;width:100%;aspect-ratio:4/5;object-fit:cover;pointer-events:none;z-index:1}
+#lbVid[hidden]{display:none}
+
 /* ── ADMIN ── */
 .admin-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9000;display:none}
 .admin-overlay.open{display:block}
@@ -2140,6 +2152,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
       <div class="lb-zone lb-zone-left" onclick="lbStep(-1)"></div>
       <div class="lb-zone lb-zone-right" onclick="lbStep(1)"></div>
       <img id="lbImg" src="" alt=""/>
+      <video id="lbVid" muted loop playsinline preload="none" hidden aria-hidden="true"></video>
     </div>
     <div class="lb-info" id="lbFooter">
       <!-- Nom + description forment UN bloc dont seule la hauteur
@@ -3586,6 +3599,7 @@ function renderCategoryRail(tab){
     const d=s.dish, price=dishPriceShort(d);
     return `<div class="rail-card" data-edit="dish" data-ti="${ti}" data-ci="${s.ci}" data-di="${s.di}" data-lbidx="${s.lb}">`
       + `<img class="rail-img" src="${d.img}" alt="${dishAlt(d)}" loading="lazy">`
+      + dishVidHtml(d,'rail-vid')
       + `<div class="rail-text"><div class="rail-meta"><div class="rail-name">${t(d.name)}</div>`
       // Sur mobile, pas de prix ici : le nom occupe toute la carte, il
       // se lit en entier et rien ne detourne l'oeil. Le prix reste dans
@@ -3605,7 +3619,7 @@ function collectLbImages(){
   if(!tab) return;
   const cat=t(tab.label);
   tab.cards.forEach(card=>{
-    if(card.dishes) card.dishes.filter(d=>!d.hidden).forEach(d=>{ if(d.img) lbImages.push({src:d.img,name:t(d.name),desc:t(d.desc)||'',price:dishPriceDisplay(d)||'',cat}); });
+    if(card.dishes) card.dishes.filter(d=>!d.hidden).forEach(d=>{ if(d.img) lbImages.push({src:d.img,video:d.video||'',name:t(d.name),desc:t(d.desc)||'',price:dishPriceDisplay(d)||'',cat}); });
     if(card.img && !card.dishes) lbImages.push({src:card.img,name:t(card.label),desc:'',price:'',cat});
   });
 }
@@ -3633,7 +3647,7 @@ function openPinLb(idx){
 function renderPinLb(){
   const d=pinLbDishes[pinLbIdx];
   if(!d) return;
-  document.getElementById('lbImg').src=d.img||'';
+  setLbMedia(d.img,d.video);
   document.getElementById('lbName').textContent=t(d.name);
   document.getElementById('lbDesc').textContent=t(d.desc)||'';
   const catEl2=document.getElementById('lbCat'); if(catEl2) catEl2.textContent='Incontournables';
@@ -3651,7 +3665,43 @@ function openLb(idx){ if(editMode) return; lbMode='normal'; collectLbImages(); l
   // n'existe pas avant).
   sizeLbDesc(lbImages.map(i=>i.desc||''), lbImages.map(i=>i.name||''));
   document.body.style.overflow='hidden'; }
-function closeLb(){ document.getElementById('lb').classList.remove('open'); document.body.style.overflow=''; lbMode='normal'; }
+// ── Vidéos des plats ──
+// La vidéo n'est téléchargée et lancée que lorsqu'elle est visible à l'écran (et pas du tout si le
+// téléphone demande moins d'animations ou d'économiser les données). Elle apparaît en fondu par-dessus
+// la photo, qui sert d'attente.
+function vidOk(){ return !((window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) || (navigator.connection && navigator.connection.saveData)); }
+function dishVidHtml(d, cls){
+  return (d && d.video && vidOk()) ? `<video class="${cls}" data-src="${escAttr(d.video)}" muted loop playsinline preload="none" aria-hidden="true"></video>` : '';
+}
+let _vidIO = null;
+function wireDishVideos(){
+  if (!vidOk() || !('IntersectionObserver' in window)) return;
+  if (!_vidIO) _vidIO = new IntersectionObserver(es => es.forEach(e => {
+    const v = e.target;
+    if (e.isIntersecting && v.offsetParent !== null) {
+      if (!v.getAttribute('src')) { v.addEventListener('playing', () => v.classList.add('on'), { once: true }); v.src = v.dataset.src; }
+      const p = v.play(); if (p && p.catch) p.catch(() => {});
+    } else if (!v.paused) v.pause();
+  }), { threshold: 0.35 });
+  document.querySelectorAll('video[data-src]:not([data-io])').forEach(v => { v.dataset.io = '1'; _vidIO.observe(v); });
+}
+new MutationObserver(() => { clearTimeout(window._vidT); window._vidT = setTimeout(wireDishVideos, 120); }).observe(document.documentElement, { childList: true, subtree: true });
+// Fiche du plat : la vidéo remplace la photo quand le plat en a une.
+function setLbMedia(img, video){
+  const im = document.getElementById('lbImg'), v = document.getElementById('lbVid');
+  if (im) im.src = img || '';
+  if (!v) return;
+  if (video && vidOk()) {
+    v.poster = img || '';
+    if (v.getAttribute('src') !== video) v.src = video;
+    v.hidden = false;
+    const p = v.play(); if (p && p.catch) p.catch(() => {});
+  } else {
+    v.pause(); v.hidden = true;
+    if (v.getAttribute('src')) { v.removeAttribute('src'); v.load(); }
+  }
+}
+function closeLb(){ setLbMedia('',''); document.getElementById('lb').classList.remove('open'); document.body.style.overflow=''; lbMode='normal'; }
 // Route lbStep to the right mode
 function lbStep(d){ if(lbMode==='pin'){ stepPinLb(d); } else { lbIdx=(lbIdx+d+lbImages.length)%lbImages.length; renderLbSlide(); } }
 // La description fait une, deux ou trois lignes selon le plat : sans
@@ -3705,7 +3755,7 @@ function sizeLbDesc(descs, names){
 }
 function renderLbSlide(){
   const item=lbImages[lbIdx];
-  document.getElementById('lbImg').src=item.src;
+  setLbMedia(item.src,item.video);
   document.getElementById('lbName').textContent=item.name;
   document.getElementById('lbDesc').textContent=item.desc||'';
   const catEl=document.getElementById('lbCat'); if(catEl) catEl.textContent=item.cat||'';
@@ -5411,7 +5461,7 @@ function renderTabContent(tab,lbOffset){
   const hasGridableContent = tab.cards.some(c => c.type !== 'bevs');
   if(view==='grid' && hasGridableContent){
     // Collect all grid items across cards into one unified 2-col grid
-    let gridItems=[];
+    let gridItems=[]; const vidRows=new Set();
     // BUG FIX: bevs-type cards (name+format+price, no image) don't suit
     // an image-tile grid, so they used to be skipped entirely here —
     // fine when a WHOLE tab was bevs-only, but a card was silently
@@ -5456,7 +5506,7 @@ function renderTabContent(tab,lbOffset){
         const gcBody=d.priceType==='dual'
           ? `<div class="gc-name">${t(d.name)}${isPinnedDish(d)?'&nbsp;<span class="dish-star">\u2605</span>':''}${badges?` <span class="dish-badges" style="display:inline-flex">${badges}</span>`:''}</div><div class="gc-desc">${t(d.desc)}</div><div class="gc-price">${priceHtml}</div>`
           : `<div class="gc-top-row"><div class="gc-name">${t(d.name)}${isPinnedDish(d)?'&nbsp;<span class="dish-star">\u2605</span>':''}${badges?` <span class="dish-badges" style="display:inline-flex">${badges}</span>`:''}</div>${priceHtml?`<span class="gc-price-inline">${priceHtml}</span>`:''}</div><div class="gc-desc">${t(d.desc)}</div>`;
-        gridItems.push(`<div class="gc" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${ci}" data-di="${di}"${d.img?` data-lbidx="${idx}"`:''}><div class="gc-wrap">${d.img?`<img class="gc-img" src="${d.img}" alt="${dishAlt(d)}" loading="lazy">`:'<div style="aspect-ratio:1;background:#ece8e1"></div>'}</div><div class="gc-body">${gcBody}</div></div>`);
+        gridItems.push(`<div class="gc" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${ci}" data-di="${di}"${d.img?` data-lbidx="${idx}"`:''}><div class="gc-wrap">${d.img?`<img class="gc-img" src="${d.img}" alt="${dishAlt(d)}" loading="lazy">`:'<div style="aspect-ratio:1;background:#ece8e1"></div>'}${(d.img&&d.video&&!vidRows.has(Math.floor(gridItems.length/3)))?(vidRows.add(Math.floor(gridItems.length/3)),dishVidHtml(d,'gc-vid')):''}</div><div class="gc-body">${gcBody}</div></div>`);
       });
     });
     if(gridItems.length){
