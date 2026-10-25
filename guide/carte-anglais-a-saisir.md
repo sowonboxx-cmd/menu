@@ -9,11 +9,10 @@ pour que la carte papier, Google Business et le site disent la même chose. Là 
 - Le site reste en français tant que **tout** n'est pas traduit ; la bascule se fera ensuite automatiquement
   selon la langue du téléphone.
 
-## ⚠️ À vérifier avant Google Business
+## Décidé le 25/10
 
-- **Planche de charcuterie bretonne : 15 € sur la carte papier, 20 € sur le site.** Tous les autres prix concordent.
-- La carte papier dit « homemade mayonnaise » pour les bulots et gambas, mais le français dit **« mayonnalgue »**
-  (mayonnaise aux algues). Proposé ci-dessous : *homemade seaweed mayonnaise* — plus fidèle, et c'est un argument.
+- **Planche de charcuterie bretonne : 20 €** (prix du site). La carte papier indique encore 15 € : à corriger à la prochaine impression.
+- **Mayonnaise : *homemade seaweed mayonnaise*** pour les bulots et les gambas. C'est la « mayonnalgue » maison ; la carte papier disait seulement « homemade mayonnaise ».
 
 ## Petites fautes d'anglais sur la carte papier (corrigées ici)
 
@@ -42,8 +41,8 @@ Prix : *half a dozen* / *a dozen* pour les natures, *the 3* / *the 6* pour les g
 | Plat (FR) | Nom anglais | Description anglaise | Source |
 |---|---|---|---|
 | Planche de charcuterie bretonne | Breton charcuterie platter | Ham saucisson, Breton andouille, smoked pork filet mignon | nom : carte papier |
-| Gambas de Madagascar | 6 King prawns from Madagascar | Served with homemade seaweed mayonnaise | carte papier (+ algues) |
-| Bulots | Whelks 200g | Served with homemade seaweed mayonnaise | carte papier (+ algues) |
+| Gambas de Madagascar | 6 King prawns from Madagascar | Served with homemade seaweed mayonnaise | carte papier + algues (validé) |
+| Bulots | Whelks 200g | Served with homemade seaweed mayonnaise | carte papier + algues (validé) |
 | Soupe de Poisson | Fish soup | Served with homemade croutons and grated cheese | carte papier |
 | Hampe de bœuf | Beef flank steak | With shallot sauce and fries | proposition |
 
