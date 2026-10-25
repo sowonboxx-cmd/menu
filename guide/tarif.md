@@ -1,11 +1,10 @@
-# Grille tarifaire — Tensai Agency
+# Grille tarifaire — Beltab
 
 Référence des prix pour tous les devis et factures. **À relire avant chaque proposition de prix.**
 
 - Tous les prix sont **HT**.
 - Un prix est toujours un **pack** : il comprend tout le contenu listé, rien de plus, aucun frais caché.
-- Dernière mise à jour : 15 octobre 2026 (pack « Votre carte partout » : Google 249 €, Google + Instagram 349 €, option anglais + 100 €, mise à jour 149 €, illimitée en Master) ; 12 octobre 2026 (personnalisation sur mesure sur devis ; plan de salle visuel réservé à Master) ; 11 octobre 2026 (offres annexes chiffrées : Aperçu du menu, Avis Google, Google Business ; SMS et emails de la formule Master ; Master à 399 € / mois depuis le 10 octobre).
-- Positionnement : environ 15 à 20 % sous l'équivalent Zenchef (Reserve + site = 158 €, Manage + site + marketing = 227 €, Grow + options = 375 € par mois).
+- Dernière mise à jour : 25 octobre 2026 (référencement Google et IA inclus dans les formules ; option anglais réservée aux formules, plus sur Google) ; 15 octobre 2026 (pack « Votre carte partout » : Google 249 €, Google + Instagram 349 €, option anglais + 100 €, mise à jour 149 €, illimitée en Master) ; 12 octobre 2026 (personnalisation sur mesure sur devis ; plan de salle visuel réservé à Master) ; 11 octobre 2026 (offres annexes chiffrées : Aperçu du menu, Avis Google, Google Business ; SMS et emails de la formule Master ; Master à 399 € / mois depuis le 10 octobre).
 
 ---
 
@@ -28,6 +27,7 @@ Chaque formule comprend la précédente. Les frais de mise en service sont payé
 
 - **Starter**
   - Site internet Premium
+  - Référencement Google et IA (SEO / GEO), fait à la mise en service : titre, description, image de partage, carte lue par Google et les IA
   - Modifications instantanées
   - Export du menu pour Instagram et Google
 - **Pro** : tout Starter, plus
@@ -102,7 +102,7 @@ Offres à part, liées à aucune formule : elles se prennent seules ou en compl�
 |---|---|---|
 | **Votre carte partout · Google** | 249 € (ponctuel) | Menu PDF généré + menu intégré dans la fiche Google Business, avec les descriptions des plats. **À proposer à chaque nouveau client, quelle que soit sa formule.** Fait une fois par nous, **prêt en 3 jours ouvrés** (hors séance photo). Photos facultatives (affichées en petit sur Google) : non incluses. **Prises par Will lui-même, une seule photo par plat**, facturées selon la grille Photos (section 2), mêmes prix. Si le restaurant prend ensuite une formule, ces photos restent utilisables, mais le site demande d'autres photos (usage différent), au même tarif. |
 | **Votre carte partout · Google + Instagram** | 349 € (ponctuel) | Tout le pack Google, plus la carte en **post Instagram à épingler** et en **story à mettre « À la une »** : la carte reste visible en permanence en haut du profil. Même export, fait une fois par nous. |
-| **Option anglais** | + 100 € (ponctuel) | Tout le pack aussi en anglais : fiche Google, post et story, et la carte du site. Par défaut, le restaurant fournit sa carte en anglais ; sinon, cette option. |
+| **Option anglais** | + 100 € (ponctuel) | **Uniquement avec une formule** : la carte du site en anglais. Pas sur la fiche Google (le menu de Google n'est pas bilingue : une carte anglaise y créerait des doublons). Par défaut, le restaurant fournit sa carte en anglais ; sinon, cette option. |
 | **Mise à jour du pack** | 149 € (à chaque fois) | Refaire le pack quand la carte change (mêmes supports, mêmes langues). **Formule Master : mises à jour illimitées, incluses.** Une direction artistique propre au restaurant reste sur devis (Personnalisation sur mesure). |
 | **Aperçu du menu** | 49 € / mois · mise en service 149 € | Le client scanne un QR code et voit le menu en grand, en HD, avec les meilleurs plats en photo. Fait entrer les passants qui ne lisent pas les menus papier ou qui ne connaissent pas la cuisine. |
 | **Avis Google** | 39 € / mois · mise en service 99 € | QR code posé près de la caisse : le client le scanne, joue à un petit jeu et laisse un avis Google. Collecte du numéro de téléphone encore à décider. |
@@ -205,13 +205,3 @@ La création du logo lui-même, quand Tensai le dessine, est une ligne à part :
 - Tensai reste l'auteur du personnage et le seul à pouvoir en créer de nouvelles déclinaisons. C'est ce qui permet de facturer chaque déclinaison.
 - Le rachat complet (4 900 €) cède le personnage lui-même : le client peut alors le faire décliner par qui il veut. Ce prix est volontairement élevé : ce n'est pas l'offre qu'on pousse.
 - Garder les croquis, fichiers sources et versions datées du personnage pour pouvoir prouver la création.
-
----
-
-## Cas particuliers et historique
-
-Prix accordés hors grille. **Ne pas les appliquer par défaut** aux autres clients.
-
-| Date | Client | Prestation | Prix | Raison |
-|---|---|---|---|---|
-| Oct. 2026 | Drevici Oyster | Logo animé « La marée », 4 déclinaisons : BZH, Bar, Paris, Surzur | 999 € les quatre | Client ami : même prix que la formule 2 logos |
