@@ -4,7 +4,7 @@ Référence des prix pour tous les devis et factures. **À relire avant chaque p
 
 - Tous les prix sont **HT**.
 - Un prix est toujours un **pack** : il comprend tout le contenu listé, rien de plus, aucun frais caché.
-- Dernière mise à jour : 25 octobre 2026 (référencement Google et IA inclus dans les formules ; option anglais réservée aux formules, plus sur Google) ; 15 octobre 2026 (pack « Votre carte partout » : Google 249 €, Google + Instagram 349 €, option anglais + 100 €, mise à jour 149 €, illimitée en Master) ; 12 octobre 2026 (personnalisation sur mesure sur devis ; plan de salle visuel réservé à Master) ; 11 octobre 2026 (offres annexes chiffrées : Aperçu du menu, Avis Google, Google Business ; SMS et emails de la formule Master ; Master à 399 € / mois depuis le 10 octobre).
+- Dernière mise à jour : 25 octobre 2026 (fichiers sources du logo animé : 390 € ; référencement Google et IA inclus dans les formules ; option anglais réservée aux formules, plus sur Google) ; 15 octobre 2026 (pack « Votre carte partout » : Google 249 €, Google + Instagram 349 €, option anglais + 100 €, mise à jour 149 €, illimitée en Master) ; 12 octobre 2026 (personnalisation sur mesure sur devis ; plan de salle visuel réservé à Master) ; 11 octobre 2026 (offres annexes chiffrées : Aperçu du menu, Avis Google, Google Business ; SMS et emails de la formule Master ; Master à 399 € / mois depuis le 10 octobre).
 
 ---
 
@@ -145,7 +145,7 @@ Animation sur mesure du logo du client (environ 5 s d'animation + 1 s de tenue s
 
 **Droits :** cession exclusive des droits d'auteur, tous supports, monde entier, pour toute la durée légale. Le client garde son logo animé à vie.
 
-**Non inclus :** fichiers sources modifiables (restent chez Tensai Agency ; option payante si demandée, prix à définir).
+**Option fichiers sources : 390 € par logo** (environ la moitié du pack) : les fichiers modifiables du projet d'animation, mis à disposition sur un espace en ligne. Sans cette option, ils restent chez Tensai Agency. Les sources permettent de faire modifier le logo par quelqu'un d'autre : c'est pour cela qu'elles se paient à part.
 
 ### Déclinaisons du logo animé
 
