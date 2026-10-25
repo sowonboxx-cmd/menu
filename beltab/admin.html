@@ -1199,7 +1199,7 @@ async function doPrint(){
   const go=()=>{ try{ win.focus(); win.print(); }catch(e){} };
   if(win.document.fonts&&win.document.fonts.ready) Promise.race([win.document.fonts.ready,sleep(3000)]).then(()=>setTimeout(go,150)); else setTimeout(go,1200);
 }
-async function doGbiz(){ toast('Génération des images Google Business…'); const w=await eng(); await w.exportGbizImage(w.pdfCfg()); }
+async function doGbiz(){ toast('Génération des images Google Business…'); const w=await eng(); await w.exportGbizImage({...w.pdfCfg(),format:'gbiz'}); } // même format que l'aperçu : sans lui, pdfCfg() retombe sur 'a4' (style impression)
 function igOver(v){ const p=(DATA.pdfStyle||{}); if(v!=='post') return {}; const o={}; ['instaTitleSize','instaMenuSize','instaDescSize'].forEach(k=>{ const pk=k.replace('insta','instaPost'); if(p[pk]) o[k]=p[pk]; }); return o; }
 async function doInsta(v){ toast('Génération des images Instagram…'); const w=await eng(); const cfg=Object.assign({...w.pdfCfg(),format:'insta'},igOver(v)); await w.exportInstaImages(cfg,v); }
 async function doFormule(obj,v){ toast('Génération en cours…'); const w=await eng(); const cfg=w.formule_buildCfg(obj,v); await w.exportInstaImages(cfg,v); }
