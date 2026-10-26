@@ -1498,9 +1498,9 @@ const FEAT=(window.BELTAB&&window.BELTAB.features)||{};
 const can=k=>FEAT[k]!==false;
 const LOCKS={menus:'formules',mdj:'formules',formule:'formules',tuner:'formules',xprint:'print',emails:'campaigns',stats:'stats',
   'resa/boost':'tableBoost','resa/esp':'tables','resa/stats':'stats','comm/social':'socialPublish','comm/email':'campaigns','comm/boost':'tableBoost'};
-const NEED={formules:'Pro',print:'Pro',tables:'Pro',tableBoost:'Master',floorplan:'Master',stats:'Master',campaigns:'Master',socialPublish:'Master'};
+const NEED={formules:'Pro',print:'Pro',tables:'Pro',tableBoost:'Master',floorplan:'Master',stats:'Master',campaigns:'Master',socialPublish:'Master',videos:'Master'};
 const LOCK_TXT={formules:'Menus du jour, menus spéciaux et formules',print:'Impression du menu',tables:'Salle et tables',tableBoost:'Table Boost',
-  stats:'Statistiques',campaigns:'Emails et SMS à vos clients',socialPublish:'Publication sur les réseaux'};
+  stats:'Statistiques',campaigns:'Emails et SMS à vos clients',socialPublish:'Publication sur les réseaux',videos:'Vidéos des plats'};
 function lockOf(pg,arg){ arg=arg||''; let k=LOCKS[pg+'/'+arg]||LOCKS[pg];
   if(pg==='comm'&&!arg&&!can('socialPublish')&&!can('campaigns')&&!can('tableBoost')) k='campaigns';
   return k&&!can(k)?k:null; }
@@ -1856,7 +1856,7 @@ function pageItem(ti,ci,ix){
     (bev?'':`<div class="mdiet${UI.dietOpen?' open':''}"><button type="button" class="mdiet-h" data-act="dietTog"><b>Informations alimentaires</b><small>${nb.length?nb.length+' sur '+BADGES.length:'Aucune'}</small><span class="chev">›</span></button>${UI.dietOpen?badgeRow(it,ti,ci,ix):''}</div>`);
   const g=it.gallery||[];
   const media=cardI('Photo principale','acc','photo',`<div class="slots one">${upSlot(it.img,path,'main',bev?'La bouteille ou le verre':'Le plat seul')}</div>`)+
-    (bev?'':`<section class="list pc" id="b-vue"><div class="bh"><span class="ico">${I('vue')}</span>Vidéo (facultative)</div><div class="pb"><div class="slots one">${vidSlot(it.video,path)}</div></div></section>`)+
+    (bev?'':`<section class="list pc" id="b-vue"><div class="bh"><span class="ico">${I('vue')}</span>Vidéo (facultative)</div><div class="pb">${can('videos')?`<div class="slots one">${vidSlot(it.video,path)}</div>`:`<p style="margin:0;color:var(--mut)">Faites vivre vos plats : un court clip qui tourne à la place de la photo. Inclus dans la formule <b>Master</b>.</p>`}</div></section>`)+
     cardI('Galerie réseaux sociaux','post','galerie',`<div class="slots">${[0,1,2].map(k=>upSlot(g[k],path,'g'+k,'Photo '+(k+2))).join('')}</div>`)+
     cardI('Description Instagram','post','caption',fTa('Caption · description pré-enregistrée',it.caption||'',`${P}.caption`,bev?'Ex : Notre sélection du moment 🍷':'Ex : Nos huîtres Spéciales N°3 — iodées, fraîches, servies sur glace 🦪','w cap')+
       `<div class="capx"><small>Ajouté automatiquement à la fin</small><pre>${esc(restoSig())}</pre></div>`);
