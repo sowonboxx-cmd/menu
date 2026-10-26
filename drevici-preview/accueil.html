@@ -86,7 +86,9 @@ const SB_URL='https://fdbzzkzfipzabryfanun.supabase.co', SB_KEY='sb_publishable_
     // est toujours opaque : à 80 %, la vidéo se voyait à travers.
     if(e.logoOn===false) $('eLogo').remove(); else { if(e.logo && e.logo!=='media/accueil-logo.png') $('eLogo').src=e.logo; }
     txt('eK',e.kicker); txt('eName',e.name); txt('eTag',e.tagline); txt('eTagM',e.taglineMobile);
-    [['eB1',e.b1],['eB2',e.b2]].forEach(([id,b])=>{ if(!b) return; const a=$(id); if(b.label) a.querySelector('b').textContent=b.label; if(typeof b.sub==='string'&&b.sub.trim()) a.querySelector('small').textContent=b.sub; if(b.url) a.href=b.url; });
+    // Sous drevicioyster.fr/, les sites sont en /paris/ et /surzur/ : on y ramène aussi les liens réglés dans l'admin
+    const brandUrl=(u,cur)=>{ try{ if(!/\/(paris|surzur)\/?$/.test(new URL(cur).pathname)) return u; const h=new URL(u).hostname, m={'drevici.beltab.app':'/paris/','drevici-surzur.beltab.app':'/surzur/'}; return m[h]?location.origin+m[h]:u; }catch(_){ return u; } };
+    [['eB1',e.b1],['eB2',e.b2]].forEach(([id,b])=>{ if(!b) return; const a=$(id); if(b.label) a.querySelector('b').textContent=b.label; if(typeof b.sub==='string'&&b.sub.trim()) a.querySelector('small').textContent=b.sub; if(b.url) a.href=brandUrl(b.url,a.href); });
     if(e.kicker||e.name) document.title=(e.name||'Drevici Oyster')+' · '+(e.kicker||'Maison ostréicole');
   }catch(err){ console.warn('Réglages de la page d\'entrée illisibles, valeurs par défaut :',err); }
 })();
