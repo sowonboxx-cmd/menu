@@ -4394,7 +4394,7 @@ async function clubSubmit(e){
   let src='SITE'; try{ const o=JSON.parse(localStorage.getItem('beltab_src')||'null'); if(o&&o.code&&Date.now()-o.t<7*864e5) src=o.code; }catch(_){}
   go.disabled=true; go.textContent='Un instant…';
   try{
-    const r=await fetch(CLUB_API+'/club/join',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({slug:CLUB_SLUG,first:v('first'),last:v('last'),email:v('email'),phone:v('phone'),consent:f.elements.consent.checked,show:true,hp:v('hp'),src,site:location.origin+'/book'})});
+    const r=await fetch(CLUB_API+'/club/join',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({slug:CLUB_SLUG,first:v('first'),last:v('last'),email:v('email'),phone:v('phone'),consent:f.elements.consent.checked,show:true,hp:v('hp'),src,site:location.origin+((location.pathname.match(/^\/(paris|surzur)(?=\/|$)/)||[''])[0])+'/book'})});
     const d=await r.json();
     if(!d.ok){ err.textContent=d.error||'Une erreur est survenue, réessayez.'; go.disabled=false; go.textContent='Je rejoins le club'; return; }
     const me={at:Date.now(),code:d.code,no:d.no,first:d.first||v('first'),last:v('last'),email:v('email'),phone:v('phone')};
@@ -7884,6 +7884,8 @@ const CLIENT_SLUG_RACINE = 'drevici-preview';
 const _pathParts = (()=>{
   const parts = window.location.pathname.replace(/\/+$/,'').replace(/^\/+/,'').split('/');
   if(parts.length && /\.[a-z0-9]{1,6}$/i.test(parts[parts.length-1])) parts.pop();
+  // drevicioyster.fr/paris/… et /surzur/… : le préfixe de la maison n'est pas un nom de client
+  if(parts.length && /^(paris|surzur)$/.test(parts[0])) parts.shift();
   return parts;
 })();
 // Le suffixe "-preview" designe un dossier de recette (…/drevici-preview/)
