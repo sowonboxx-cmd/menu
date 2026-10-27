@@ -40,6 +40,8 @@ if os.path.exists(st):
     t = open(st, encoding='utf-8').read()
     t = t.replace('data-prod="calendar.html"', 'data-prod="studio/calendar"').replace('data-prod="admin.html"', 'data-prod="reservations"')
     open(st, 'w', encoding='utf-8').write(t)
+# Icônes « écran d'accueil » (iPhone/Android) : copiées telles quelles
+for f in ('apple-touch-icon.png', 'icon-512.png'): shutil.copy2(os.path.join(SRC, f), os.path.join(DST, f))
 for d in DIRS:
     if os.path.isdir(os.path.join(SRC, d)): shutil.copytree(os.path.join(SRC, d), os.path.join(DST, d), dirs_exist_ok=True)
 

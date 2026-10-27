@@ -21,6 +21,7 @@ def sub(t, old, new, f, count=1):
 
 os.makedirs(DST, exist_ok=True)
 for f in FILES: shutil.copy2(os.path.join(SRC, f), os.path.join(DST, f))
+for f in ('apple-touch-icon.png', 'icon-512.png'): shutil.copy2(os.path.join(SRC, f), os.path.join(DST, f))
 for d in DIRS: shutil.copytree(os.path.join(SRC, d), os.path.join(DST, d), dirs_exist_ok=True)
 os.makedirs(os.path.join(DST, 'studio'), exist_ok=True)
 shutil.copy2(os.path.join(SRC, 'studio', 'index.html'), os.path.join(DST, 'studio', 'index.html'))
