@@ -274,6 +274,7 @@ button{cursor:pointer;background:none}
 .clab{display:flex;gap:6px;margin-top:5px}.clab span{flex:1;text-align:center;font-size:10.5px;color:var(--mut);font-weight:700}
 .goal{height:10px;border-radius:9px;background:var(--cream);overflow:hidden;margin:8px 0 4px}.goal i{display:block;height:100%;background:var(--gold)}
 .qrbox{display:flex;gap:14px;align-items:center}
+.carteprev{width:180px;aspect-ratio:61/91;margin:4px auto 14px;border-radius:6px;overflow:hidden}.carteprev svg{display:block}
 .qrbig{background:#fff;border-radius:16px;padding:10px;max-width:320px;margin:0 auto}.qrbig svg{display:block;width:100%;height:auto}
 .qstyles{display:flex;flex-wrap:wrap;gap:6px}.qstyles button{background:var(--paper);border-radius:999px;padding:7px 11px;font-size:12.5px;font-weight:700;color:var(--mut);cursor:pointer}.qstyles button.on{background:var(--ink);color:#fff}
 .qlink{background:var(--gold-soft);border-radius:12px;padding:10px 12px;font:700 12.5px ui-monospace,Menlo,monospace;color:#6b4d0f;word-break:break-all}
@@ -1042,6 +1043,68 @@ function downloadQR(code,fmt){
     c.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=code+'.png';a.click();});};
   img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg.replace('width="100%" height="100%"','width="1200" height="1200"'));
 }
+/* ═══ La carte à imprimer (plat en test) : SVG, PNG 600 dpi et PDF pour l'imprimeur ═══
+   Carte de visite 55 × 85 mm + 3 mm de fond perdu = 61 × 91 mm (1 unité = 0,1 mm). */
+const isPlatTest=q=>!!q&&(/plat.?(en.)?test/i.test(campOf(q))||/^plat-test\//.test(q.path||''));
+let CARTE_A=null;
+const b64=buf=>{const u=new Uint8Array(buf);let s='';for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s);};
+async function carteAssets(){
+  if(CARTE_A) return CARTE_A;
+  const css=await (await fetch('https://fonts.googleapis.com/css2?family=Anton&family=Playfair+Display:ital,wght@1,700&family=Inter:wght@700&display=swap')).text();
+  let face='';
+  for(const b of css.split('/*').filter(x=>/^ latin \*\//.test(x))){
+    const u=(b.match(/url\((https:[^)]+)\)/)||[])[1]; if(!u) continue;
+    face+=b.replace(/^ latin \*\//,'').replace(u,'data:font/woff2;base64,'+b64(await (await fetch(u)).arrayBuffer()));
+  }
+  const m=await (await fetch('carte-mascotte.png')).arrayBuffer();
+  return CARTE_A={face,masc:'data:image/png;base64,'+b64(m)};
+}
+function carteSVG(q,A){
+  const N='#1a2540',R='#8a1b1b',G='#b8913f',C='#f4e6d1';
+  const qr=qrArt(q,198,true).replace('<svg ','<svg x="206" y="578" ');
+  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="61mm" height="91mm" viewBox="0 0 610 910">
+<defs><style>${A.face}</style></defs>
+<rect width="610" height="910" fill="${C}"/>
+<rect x="66.75" y="66.75" width="476.5" height="776.5" fill="none" stroke="${G}" stroke-width="3.5"/>
+<rect x="75.65" y="75.65" width="458.7" height="758.7" fill="none" stroke="${G}" stroke-width="1.3"/>
+<rect x="175.3" y="125" width="58" height="2" fill="${R}"/><rect x="381" y="125" width="58" height="2" fill="${R}"/>
+<text x="309.3" y="131" text-anchor="middle" font-family="Inter" font-weight="700" font-size="13.5" letter-spacing="4.32" fill="${R}">EN CUISINE</text>
+<text x="305" y="179" text-anchor="middle" font-family="Anton" font-size="66" letter-spacing=".66" fill="${N}" dominant-baseline="central">LE PLAT EN TEST</text>
+<text x="305" y="236.5" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-weight="700" font-size="23" fill="${R}" dominant-baseline="central">Le chef cuisine, vous goûtez</text>
+<rect x="184.5" y="556.5" width="241" height="241" rx="21.5" fill="${R}"/>
+<rect x="187" y="559" width="236" height="236" rx="19" fill="${C}"/>
+<rect x="191" y="563" width="228" height="228" rx="15" fill="${N}"/>
+<rect x="195" y="567" width="220" height="220" rx="11" fill="#fff"/>
+${qr}
+<image x="189.4" y="262" width="231.3" height="312" href="${A.masc}" xlink:href="${A.masc}"/>
+<polygon points="232.4,787 377.6,787 368.9,806 377.6,825 232.4,825 241.1,806" fill="${R}"/>
+<text x="307.6" y="806" text-anchor="middle" font-family="Anton" font-size="20" letter-spacing="3.2" fill="#fff" dominant-baseline="central">SCANNEZ</text>
+</svg>`;
+}
+const carteName=q=>'Carte-plat-en-test-'+String(qName(q)).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'');
+function carteCanvas(svg){
+  return new Promise((ok,ko)=>{const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=1441;c.height=2150;c.getContext('2d').drawImage(img,0,0,c.width,c.height);ok(c);};img.onerror=ko;
+    img.src=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'}));});
+}
+let JSPDF=null;
+const jspdfLoad=()=>JSPDF||(JSPDF=new Promise((ok,ko)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';s.onload=()=>ok(window.jspdf.jsPDF);s.onerror=ko;document.head.appendChild(s);}));
+const dlBlob=(b,name)=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(a.href);},4000);};
+async function downloadCarte(code,fmt){
+  const q=QRS.find(x=>x.code===code); if(!q) return;
+  toast('Préparation de la carte…');
+  try{
+    const svg=carteSVG(q,await carteAssets()), name=carteName(q);
+    if(fmt==='svg') return dlBlob(new Blob([svg],{type:'image/svg+xml'}),name+'.svg');
+    await document.fonts.ready; const c=await carteCanvas(svg);
+    if(fmt==='png') return c.toBlob(b=>dlBlob(b,name+'-600dpi.png'));
+    const P=await jspdfLoad(), d=new P({unit:'mm',format:[61,91],orientation:'portrait'});
+    d.addImage(c.toDataURL('image/jpeg',.95),'JPEG',0,0,61,91); dlBlob(d.output('blob'),name+'.pdf');
+  }catch(e){ toast('Carte : échec du téléchargement'); }
+}
+async function cartePreview(code){
+  const el=document.getElementById('cartePrev'), q=QRS.find(x=>x.code===code); if(!el||!q) return;
+  try{ el.innerHTML=carteSVG(q,await carteAssets()).replace('width="61mm" height="91mm"','width="100%" height="100%"'); }catch(e){}
+}
 const device=ua=>/iphone|ipad/i.test(ua||'')?'iPhone':/android/i.test(ua||'')?'Android':'Ordinateur';
 const ago=t=>{const m=Math.round((Date.now()-new Date(t))/60000);return m<1?'à l’instant':m<60?'il y a '+m+' min':m<1440?'il y a '+Math.round(m/60)+' h':new Date(t).toLocaleDateString('fr-FR',{day:'numeric',month:'short'});};
 function convRow(c){return `<div class="pend"><span class="av" style="background:${c.kind==='resa'?'var(--red)':c.status==='pending'?'var(--gold)':'var(--green)'}">${c.kind==='resa'?'R':c.kind==='plat'?'P':'€'}</span><div><b>${esc(c.label||c.kind)}</b>${c.amount?' · '+eur(+c.amount):''}<small>${esc(c.code)} · ${ago(c.created_at)} · ${c.status==='pending'?'à valider':c.status==='validated'?'validée':'refusée'}</small></div>
@@ -1106,12 +1169,14 @@ function renderQRD(code){
       <div class="r"><div><b style="word-break:break-all;font-size:12.5px">${esc(q.destination)}</b><span>Destination (modifiable sans réimprimer)</span></div></div></div></div>
       <div class="copyrow"><span>${link}</span><button class="cbtn" type="button" data-copyval="${link}">Copier</button></div>
       <div class="visbar"><button class="cbtn" type="button" data-dl="png" data-code="${esc(code)}">Télécharger PNG</button><button class="cbtn gh" type="button" data-dl="svg" data-code="${esc(code)}">SVG (impression)</button></div></div>
+    ${isPlatTest(q)?`<div class="card"><h2>La carte à imprimer</h2><div id="cartePrev" class="carteprev"></div><div class="visbar"><button class="cbtn" type="button" data-carte="pdf" data-code="${esc(code)}">PDF imprimeur</button><button class="cbtn gh" type="button" data-carte="png" data-code="${esc(code)}">PNG</button><button class="cbtn gh" type="button" data-carte="svg" data-code="${esc(code)}">SVG</button></div></div>`:''}
     <div class="card"><h2>Ventes et réservations ${q.category==='Hors carte'||q.category==='Plateaux Noël'||q.kind!=='resa'?`<button class="cbtn" type="button" data-addconv="${esc(code)}">+ Vente</button>`:''}</h2>${convs.map(convRow).join('')||'<p class="empty">Aucune pour l’instant. Les réservations faites via ce code arrivent toutes seules.</p>'}</div>
   </div><div>
     <div class="card"><h2>Scans par jour</h2><div class="chart">${b.html}</div><div class="clab">${b.lab}</div></div>
     ${jeu?jlCard('qrd',[code],'Joueurs venus par ce QR'):''}
     <div class="card"><h2>Derniers scans</h2>${jScansWho(code,all.slice(0,8)).map(x=>`<div class="row" style="padding:7px 4px">${ago(x.at)} · ${device(x.ua)}${x.who?` · <b>${esc(x.who)} a joué</b>`:jeu?' · <span style="color:var(--mut)">sans partie</span>':''}</div>`).join('')||'<p class="empty">Pas encore de scan.</p>'}</div>
   </div></div>`;
+  if(isPlatTest(q)) cartePreview(code);
 }
 function renderTeam(cat,boxId,title,sub){
   const codes=QRS.filter(q=>q.category===cat),st=statsFor(codes.map(q=>q.code));
@@ -1202,7 +1267,7 @@ document.getElementById('qSave').onclick=async()=>{
     if(qEdit)Object.assign(QRS.find(x=>x.code===qEdit),r.data);else QRS.push(r.data);
   } else { if(qEdit)Object.assign(QRS.find(x=>x.code===qEdit),row);else QRS.push({...row,id:'l'+Date.now()});toast('Exemple : non enregistré'); }
   const code=qEdit||row.code;
-  if(!qEdit){toast('QR créé ✓ · téléchargement');downloadQR(code,'svg');}else toast('QR modifié ✓');
+  if(!qEdit){const nq=QRS.find(x=>x.code===code);if(isPlatTest(nq)){toast('QR créé ✓ · carte en PDF');downloadCarte(code,'pdf');}else{toast('QR créé ✓ · téléchargement');downloadQR(code,'svg');}}else toast('QR modifié ✓');
   location.hash='#qr/'+encodeURIComponent(code);renderQRAll();
 };
 document.getElementById('qDel').onclick=async()=>{
@@ -1405,6 +1470,7 @@ document.addEventListener('click',e=>{
   if(g('[data-cref]')){setConv(g('[data-cref]').dataset.cref,'refused');return;}
   if(g('[data-addconv]')){addConvSheet(g('[data-addconv]').dataset.addconv);return;}
   if(g('[data-dl]')){downloadQR(g('[data-dl]').dataset.code,g('[data-dl]').dataset.dl);return;}
+  if(g('[data-carte]')){downloadCarte(g('[data-carte]').dataset.code,g('[data-carte]').dataset.carte);return;}
   if(g('#importOld')){importOld();return;}
   if(e.target===sheet){if(sheetKb){sheetKb=false;document.activeElement.blur();return;}closeSheet();}
 });
