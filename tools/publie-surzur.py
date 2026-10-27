@@ -25,7 +25,7 @@ for f in ('apple-touch-icon.png', 'icon-512.png'): shutil.copy2(os.path.join(SRC
 for d in DIRS: shutil.copytree(os.path.join(SRC, d), os.path.join(DST, d), dirs_exist_ok=True)
 os.makedirs(os.path.join(DST, 'studio'), exist_ok=True)
 shutil.copy2(os.path.join(SRC, 'studio', 'index.html'), os.path.join(DST, 'studio', 'index.html'))
-for x in ('qr-drevici.js', 'huitre-qr.svg', 'carte-mascotte.png'): shutil.copy2(os.path.join(SRC, 'studio', x), os.path.join(DST, 'studio', x))
+for x in ('qr-drevici.js', 'huitre-qr.svg', 'carte-mascotte.png', 'qr-logo.svg'): shutil.copy2(os.path.join(SRC, 'studio', x), os.path.join(DST, 'studio', x))
 
 P = {
  'index.html': [
