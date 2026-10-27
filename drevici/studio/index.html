@@ -902,12 +902,9 @@ const qSub=q=>[q.support,q.num>1?'n° '+q.num:'',q.is_test?'test':'',q.active===
 // Campagnes toujours affichées dans Scans QR, même sans QR encore créé
 const CAMP_DEF=[['Plateau de fruits de mer','Plateau fruits de mer']];
 const qslug=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
-/* Centre des QR : le logo rond Drevici sur fond bleu (qr-logo.svg). Tant qu'il n'est pas chargé : l'huître. */
-let QR_LOGO=null, QR_LC=0;
-fetch('qr-logo.svg').then(r=>r.ok?r.text():null).then(s=>{ if(!s) return; QR_LOGO='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(s))); try{ renderQRAll(); }catch(e){} }).catch(()=>{});
-function qrLogo(v){ if(!QR_LOGO) return v; const i=v.lastIndexOf('<rect x='), j=v.lastIndexOf('</svg>'); const m=v.slice(i).match(/<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)"/); if(i<0||!m) return v;
-  const x=+m[1], y=+m[2], L=+m[3], id='qlc'+(++QR_LC);
-  return v.slice(0,i)+`<defs><clipPath id="${id}"><rect x="${x}" y="${y}" width="${L}" height="${L}" rx="${L*.2}"/></clipPath></defs><image href="${QR_LOGO}" x="${x}" y="${y}" width="${L}" height="${L}" clip-path="url(#${id})"/>`+v.slice(j); }
+/* Centre des QR : l'huître blanche sur le bleu Drevici (au lieu du noir). Seule l'image change, jamais le lien. */
+const QR_CENTRE='#253968';
+function qrLogo(v){ const i=v.lastIndexOf('<rect x='); if(i<0) return v; return v.slice(0,i)+v.slice(i).replace(/fill="#000"/,`fill="${QR_CENTRE}"`); }
 function qrArt(q,size=600,fixed){const st=QSTYLES.find(x=>x[0]===(q&&q.style))||QSTYLES[0];if(!window.qrDrevici)return qrSvg(qrLink(q));const v=qrLogo(qrDrevici(qrLink(q),size,{style:st[0],eye:st[2]}));return fixed?v:v.replace(`width="${size}" height="${size}"`,'width="100%" height="100%" style="display:block"');}
 let QRS=[], SCANS=[], CONVS=[], DB_QR=true, QF='Tous';
 
