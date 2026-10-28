@@ -95,6 +95,9 @@ h1{font-family:var(--f-title);font-weight:700;font-size:clamp(40px,4.4vw,62px);l
 /* plate */
 .plate-col{min-width:0;display:flex;flex-direction:column;align-items:center}
 .plate{width:100%;max-width:1080px;display:block;overflow:visible}
+.plate.enter .co{animation:coIn .75s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(.5s + var(--i) * .11s);transform-box:view-box}
+.plate.enter .coL{--dx:14px}.plate.enter .coR{--dx:-14px}
+@keyframes coIn{from{opacity:0;transform:translateX(var(--dx));filter:blur(3px)}to{opacity:1;transform:none;filter:none}}
 .lit-el{animation:lit .45s ease-out both;transform-box:fill-box;transform-origin:center}
 @keyframes lit{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
 .extra{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:6px}
@@ -474,10 +477,10 @@ function renderPlate(){
       const L=[],R=[];pins.forEach(p=>(p.z[0]<350?L:R).push(p));
       const lay=a=>{a.sort((x,y)=>x.z[1]-y.z[1]);let last=-1e9;a.forEach(p=>{p.ly=Math.max(p.z[1],last+76);last=p.ly;});};
       lay(L);lay(R);
-      const line=(p,side)=>{const ex=side==='L'?-24:724, bx=side==='L'?p.z[0]-p.z[2]*.55:p.z[0]+p.z[2]*.55;
-        return `<path d="M${p.z[0]},${p.z[1]} L${bx},${p.ly} L${ex},${p.ly}" fill="none" stroke="#253968" stroke-width="1.3" stroke-dasharray="3 4"/>
+      let ci=0;const line=(p,side)=>{const ex=side==='L'?-24:724, bx=side==='L'?p.z[0]-p.z[2]*.55:p.z[0]+p.z[2]*.55;
+        return `<g class="co co${side}" style="--i:${ci++}"><path d="M${p.z[0]},${p.z[1]} L${bx},${p.ly} L${ex},${p.ly}" fill="none" stroke="#253968" stroke-width="1.3" stroke-dasharray="3 4"/>
         <text x="${side==='L'?ex-8:ex+8}" y="${p.ly-6}" text-anchor="${side==='L'?'end':'start'}" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700" letter-spacing="1" fill="#0D255C">${p.cat.toUpperCase()}</text>
-        <text x="${side==='L'?ex-8:ex+8}" y="${p.ly+18}" text-anchor="${side==='L'?'end':'start'}" font-family="Inter,Arial,sans-serif" font-size="18" fill="#3C4560">${p.q}</text>`;};
+        <text x="${side==='L'?ex-8:ex+8}" y="${p.ly+18}" text-anchor="${side==='L'?'end':'start'}" font-family="Inter,Arial,sans-serif" font-size="18" fill="#3C4560">${p.q}</text></g>`;};
       L.forEach(p=>ov+=line(p,'L'));R.forEach(p=>ov+=line(p,'R'));
     }
     pins.forEach(p=>ov+=p.k==='mayo'?`<g transform="translate(${p.z[0]} ${p.z[1]})" filter="url(#fPin)"><circle r="9" fill="#fff" stroke="#D09D39" stroke-width="4"/></g>`:`<g transform="translate(${p.z[0]} ${p.z[1]})" filter="url(#fPin)"><circle r="11" fill="#D09D39" stroke="#fff" stroke-width="4"/></g>`);
@@ -537,7 +540,7 @@ function thumb(c,sc,id){
 }
 function renderRail(){
   const sc=Object.keys(sauces).filter(k=>sauces[k]);
-  let h=`<div class="rh"><b>Nos plateaux</b><span>Noël 2026</span></div>`+PLATEAUX.map((p,i)=>`<button aria-current="${i===view}" data-v="${i}"><span class="ix">${i+1}</span>${thumb(p.c,p.s,'mt'+i)}<span class="tx"><div class="rn">${p.name}</div><div class="rm">${p.pers.replace('Pour ','')}</div></span><span class="rp tab">${eur(p.price)}</span></button>`).join('');
+  let h=`<div class="rh"><b>Nos plateaux</b></div>`+PLATEAUX.map((p,i)=>`<button aria-current="${i===view}" data-v="${i}"><span class="ix">${i+1}</span>${thumb(p.c,p.s,'mt'+i)}<span class="tx"><div class="rn">${p.name}</div><div class="rm">${p.pers.replace('Pour ','')}</div></span><span class="rp tab">${eur(p.price)}</span></button>`).join('');
   h+=`<div class="sep"></div><button aria-current="${view===COMPOSE}" data-v="${COMPOSE}"><span class="ix">+</span>${thumb(comp,sc,'mtc')}<span class="tx"><div class="rn">Composer le vôtre</div><div class="rm">Sur mesure</div></span><span class="rp tab">${compCount()?eur(compTotal()):''}</span></button>`;
   $('rail').innerHTML=h;
   $('rail').querySelectorAll('button').forEach(b=>b.onclick=()=>go(+b.dataset.v));
@@ -545,7 +548,8 @@ function renderRail(){
   $('hint').textContent=view<COMPOSE?'Faites défiler pour changer de plateau':'Ce qui est en couleur est dans votre plateau';
   $('stage').classList.toggle('composing',view===COMPOSE);
 }
-function go(v){v=(v+COMPOSE+1)%(COMPOSE+1);if(v===view)return;view=v;
+let enterT;function enter(){const p=$('plate');p.classList.add('enter');clearTimeout(enterT);enterT=setTimeout(()=>p.classList.remove('enter'),2200);}
+function go(v){v=(v+COMPOSE+1)%(COMPOSE+1);if(v===view)return;view=v;enter();
   const p=$('plate');if(!matchMedia('(prefers-reduced-motion:reduce)').matches)p.animate([{opacity:.25,transform:'scale(.97)'},{opacity:1,transform:'none'}],{duration:420,easing:'cubic-bezier(.2,.8,.2,1)'});
   render();}
 function fitTitle(){const h=document.querySelector('.card h1');if(!h)return;h.style.fontSize='';let f=parseFloat(getComputedStyle(h).fontSize);while(h.scrollWidth>h.clientWidth+1&&f>24){f-=1;h.style.fontSize=f+'px';}}
@@ -632,7 +636,7 @@ function openDrawer(){clearTimeout(tT);$('toast').classList.remove('show');if(st
 function closeDrawer(){$('drawer').classList.remove('open');$('scrim').classList.remove('open');$('drawer').setAttribute('aria-hidden','true');if(step==='pickup')step='cart';}
 $('cartBtn').onclick=openDrawer;$('dClose').onclick=closeDrawer;$('scrim').onclick=closeDrawer;
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer();});
-mq.addEventListener('change',render);
+enter();mq.addEventListener('change',render);
 render();
 })();
 </script>
