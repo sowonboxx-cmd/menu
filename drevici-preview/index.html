@@ -10125,16 +10125,17 @@ async function renderGbizPageToBlob(css, pages, i, restName, bg){
 // Instagram : même moteur robuste que Google Business (délai de
 // sécurité + repli sans foreignObjectRendering), mais dimensions et
 // police propres au format story (voir buildInstaCSS/buildInstaPages).
-async function renderInstaPageToBlob(css, pages, i, restName, bg, ratio, variantLabel, targetW){
+async function renderInstaPageToBlob(css, pages, i, restName, bg, ratio, variantLabel, targetW, renderW){
   ratio = ratio || INSTA_RATIO;
+  const RW = renderW || INSTA_RENDER_W; // plus large que d'habitude quand une bande de couleur est ajoutée
   const TARGET_W = targetW || 1080;
-  const scale = TARGET_W / INSTA_RENDER_W;
+  const scale = TARGET_W / RW;
   const holder = document.createElement('div');
-  const pageHeightPx = Math.round(INSTA_RENDER_W*ratio);
+  const pageHeightPx = Math.round(RW*ratio);
   const zoomCancel = 1 / getActiveZoomRatio();
-  holder.style.cssText = `position:fixed;left:0;top:0;width:${INSTA_RENDER_W}px;height:${pageHeightPx}px;opacity:0.001;pointer-events:none;z-index:-1;zoom:${zoomCancel}`;
+  holder.style.cssText = `position:fixed;left:0;top:0;width:${RW}px;height:${pageHeightPx}px;opacity:0.001;pointer-events:none;z-index:-1;zoom:${zoomCancel}`;
   const scaleStyle = pages[i].spaceScale && pages[i].spaceScale!==1 ? `--space-scale:${pages[i].spaceScale};` : '';
-  holder.innerHTML = `<style>${css}</style><div class="pdf-page" id="instaPage${i}" style="width:${INSTA_RENDER_W}px;height:${pageHeightPx}px;overflow:hidden;${scaleStyle}">${pages[i].html}</div>`;
+  holder.innerHTML = `<style>${css}</style><div class="pdf-page" id="instaPage${i}" style="width:${RW}px;height:${pageHeightPx}px;overflow:hidden;${scaleStyle}">${pages[i].html}</div>`;
   document.body.appendChild(holder);
   const pageEl = holder.querySelector(`#instaPage${i}`);
   try{
@@ -10170,12 +10171,40 @@ async function renderInstaPageToBlob(css, pages, i, restName, bg, ratio, variant
 // aucune nouvelle règle (rétrécissement une ligne, découpage équilibré
 // multi-pages, compression d'espacement) n'est dupliquée, tout
 // continue de s'appliquer tel quel avec ce nouveau ratio.
+// ── Bande de couleur en haut des stories ──
+// Sur Instagram, le haut de la story (barres, avatar, « Suivre », croix) est toujours en blanc :
+// sur un fond clair, il ne se voit plus. On réserve donc en haut de chaque story une bande à la
+// couleur principale du restaurant (en général sombre), et la page est mise en page dans la hauteur
+// qui reste. Le découpage en pages reste celui de la story normale (même nombre d'images) : la page
+// est simplement mise en page un peu plus large, puis ramenée à 1080 px, donc ~9 % plus petite.
+// Réglages : pdfStyle.instaBand=false pour l'enlever, pdfStyle.instaBandColor pour forcer une couleur.
+const INSTA_BAND_FRAC = 170/1920;
+function instaBandOn(cfg, variant){ return variant === 'story' && cfg.instaBand !== false; }
+function instaBandColor(cfg){ return cfg.instaBandColor || (DATA.brandColors && DATA.brandColors.primary) || cfg.titleColor || '#10285E'; }
+async function addInstaBand(blob, color, ratio){
+  const img = await createImageBitmap(blob);
+  const W = img.width, H = Math.round(W * ratio), B = H - img.height;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d'); x.fillStyle = color; x.fillRect(0, 0, W, B); x.drawImage(img, 0, B);
+  return await new Promise(res => c.toBlob(res, 'image/png'));
+}
+// Aperçu (admin) : la même bande autour d'une page déjà mise en page.
+const instaBandW = () => Math.round(INSTA_RENDER_W / (1 - INSTA_BAND_FRAC));
+// doc : construit par buildPreviewSlideDoc avec la hauteur TOTALE (bande comprise), Hp : hauteur de la page.
+function instaBandPreviewDoc(doc, W, Hp, color){
+  const H = Math.round(Hp / (1 - INSTA_BAND_FRAC)), B = H - Hp;
+  return doc.replace(/<div id="stage" class="pdf-page" style="([^"]*)">/, (m, st) =>
+    `<div id="stage" style="width:${W}px;height:${H}px;background:${color}"><div style="height:${B}px"></div><div class="pdf-page" style="${st}width:${W}px;height:${Hp}px;margin:0;overflow:hidden">`)
+    .replace(/<\/div>\s*<script>/, '</div></div>\n<script>');
+}
 async function exportInstaImages(cfg, variant){
   return withExportLogo(()=>_exportInstaImages(cfg, variant));
 }
 async function _exportInstaImages(cfg, variant){
   variant = variant || 'story';
-  const ratio = variant === 'post' ? INSTA_POST_RATIO : variant === 'a4' ? INSTA_A4_RATIO : INSTA_RATIO;
+  const fullRatio = variant === 'post' ? INSTA_POST_RATIO : variant === 'a4' ? INSTA_A4_RATIO : INSTA_RATIO;
+  const band = instaBandOn(cfg, variant);
+  const ratio = fullRatio; // découpage et mise en page : ceux de la story normale
   const targetW = variant === 'a4' ? 1600 : 1080; // A4 : un peu plus de résolution pour l'impression
   if(typeof html2canvas === 'undefined'){ showToast('⚠ html2canvas non chargé'); return; }
   showToast('Génération des images en cours…');
@@ -10196,7 +10225,10 @@ async function _exportInstaImages(cfg, variant){
   const blobs = [];
   for(let i=0;i<pages.length;i++){
     try{
-      const result = await renderInstaPageToBlob(css, pages, i, restName, bg, ratio, variant, targetW);
+      const result = band
+        ? await renderInstaPageToBlob(css, pages, i, restName, bg, fullRatio * (1 - INSTA_BAND_FRAC), variant, targetW, instaBandW())
+        : await renderInstaPageToBlob(css, pages, i, restName, bg, ratio, variant, targetW);
+      if(band) result.blob = await addInstaBand(result.blob, instaBandColor(cfg), fullRatio);
       blobs.push(result);
     } catch(err){
       console.error(err);
