@@ -1430,7 +1430,7 @@ function engine(){
 const ENGINE_HELPERS=`window.__prev=function(kind,o){o=o||{};
   if(kind==='print'){const cfg=pdfCfg();const css=buildPdfCSS(cfg);const pages=paginatePdfPages(cfg);const a5=cfg.paperSize==='a5';const W=a5?Math.round(794*.72):794,H=a5?794:1123;return pages.map(p=>buildPreviewSlideDoc(css,p.html,p.spaceScale,W,H));}
   if(kind==='gbiz'){const cfg={...pdfCfg(),format:'gbiz'};const css=buildPdfCSS(cfg);const r=paginateGbizPages(cfg);return r.pages.map(p=>buildGbizPreviewDoc(css,p.html,p.spaceScale));}
-  if(kind==='insta'){const v=o.variant||'story';const full=v==='post'?INSTA_POST_RATIO:INSTA_RATIO;const cfg=Object.assign({...pdfCfg(),format:'insta'},o.over||{});const band=typeof instaBandOn==='function'&&instaBandOn(cfg,v);const css=buildInstaCSS(cfg,full);const pages=buildInstaPages(cfg,full);const H=Math.round(INSTA_RENDER_W*full);return pages.map(p=>band?instaBandPreviewDoc(buildPreviewSlideDoc(css,p.html,p.spaceScale,instaBandW(),Math.round(H/(1-INSTA_BAND_FRAC))),instaBandW(),H,instaBandColor(cfg)):buildPreviewSlideDoc(css,p.html,p.spaceScale,INSTA_RENDER_W,H));}
+  if(kind==='insta'){const v=o.variant||'story';const full=v==='post'?INSTA_POST_RATIO:INSTA_RATIO;const cfg=Object.assign({...pdfCfg(),format:'insta'},o.over||{});const band=typeof instaBandOn==='function'&&instaBandOn(cfg,v);const css=buildInstaCSS(cfg,full);const pages=buildInstaPages(cfg,full);const H=Math.round(INSTA_RENDER_W*full);const docs=pages.map(p=>band?instaBandPreviewDoc(buildPreviewSlideDoc(css,p.html,p.spaceScale,instaBandW(),Math.round(H/(1-INSTA_BAND_FRAC))),instaBandW(),H,instaBandColor(cfg)):buildPreviewSlideDoc(css,p.html,p.spaceScale,INSTA_RENDER_W,H));const cv=typeof instaCoverUrl==='function'&&instaCoverUrl();if(cv&&!o.noCover)docs.unshift(instaCoverPreviewDoc(cv,INSTA_RENDER_W,H));return docs;}
   if(kind==='formule'){const v=o.variant||'story';const ratio=v==='post'?INSTA_POST_RATIO:v==='a4'?INSTA_A4_RATIO:INSTA_RATIO;const cfg=formule_buildCfg(o.f,v);const b=buildFormulePage(cfg,ratio);return b.pages.map(p=>buildPreviewSlideDoc(b.css,p.html,p.spaceScale,INSTA_RENDER_W,Math.round(INSTA_RENDER_W*ratio)));}
   return [];
 };
@@ -1753,7 +1753,7 @@ function pageXgbiz(){
 function pageXinsta(){
   if(ARG==='post'||ARG==='story') UI.igf=ARG;
   const v=UI.igf, p=pS(), over=igOver(v);
-  const pages=[0,1,2,3,4,5,6,7,8,9].map(i=>`<div class="pv-wrap">${pvFrame('insta',i,v==='post'?'pv-po':'pv-st',{variant:v,over})}</div>`).join('');
+  const pages=[0,1,2,3,4,5,6,7,8,9,10].map(i=>`<div class="pv-wrap">${pvFrame('insta',i,v==='post'?'pv-po':'pv-st',{variant:v,over})}</div>`).join('');
   const k=s=>v==='post'?s.replace('insta','instaPost'):s;
   const sizes=[['Titre des catégories','instaTitleSize',45],['Nom des plats','instaMenuSize',21],['Description des plats','instaDescSize',19]].map(([l,key,def])=>{ const val=p[k(key)]||p[key]||def; return `<div class="op"><b>${l}</b><div class="step"><button data-act="igSize" data-k="${k(key)}" data-d="-1">−</button><b>${val}</b><button data-act="igSize" data-k="${k(key)}" data-d="1">＋</button></div></div>`; }).join('');
   const bevTabs=DATA.tabs.filter(t=>(t.cards||[]).some(c=>c.type==='bevs'));
@@ -1761,6 +1761,7 @@ function pageXinsta(){
   `<div class="xsplit"><div class="stage s"><div class="pvs grid-st">${pages}</div></div><aside class="panel">
    ${card('Police','edit',`<select class="in" data-act="igFont">${(ENGFONTS||[p.instaFont||'Playfair Display']).map(x=>`<option ${x===(p.instaFont||'Playfair Display')?'selected':''}>${esc(x)}</option>`).join('')}</select><small class="muted2">La même pour la story et le post.</small>`)}
    ${card('Tailles · '+(v==='story'?'Story':'Post'),'pres',sizes+`<small class="muted2">Réglées à part pour ${v==='story'?'la story (plus haute, plus de place)':'le post'}.</small>`)}
+   ${card('Page de garde','acc',`<div class="lgbox"><div class="lgsw" style="width:54px;height:96px;border-radius:8px;overflow:hidden;background:#F2F2F5">${p.instaCover?`<img src="${esc(p.instaCover)}" style="width:100%;height:100%;object-fit:cover">`:''}</div><div><label class="lk" style="cursor:pointer">${p.instaCover?'Changer l\'image':'Ajouter une page de garde'}<input type="file" accept="image/*" data-act="igCover" hidden></label>${p.instaCover?'<br><button class="lk muted" data-act="igCoverDel">Retirer</button>':''}<small class="muted2">Une image « Menu » faite pour ce restaurant, en 1080 × 1920. Elle passe en premier dans la story et le post (recadrée au centre). Sans image, pas de page de garde.</small></div></div>`)}
    ${bevTabs.length?card('Boissons','spe',bevTabs.map(t=>opt('Inclure « '+esc(tr(t.label))+' »',!!t.instaIncludeBevs,'igBev',`data-id="${esc(t.id)}"`,'Exclues par défaut')).join('')):''}</aside></div>`;
 }
 const COLS=[['Texte',[['menuTitleColor','Titre des catégories',''],['menuNameColor','Nom des plats',''],['menuDescColor','Description des plats',''],['menuBgColor','Arrière-plan','']]],['Décoration',[['menuFrameColor','Cadre et sous-catégories',''],['menuSepColor','Pointillés','Entre le nom du plat et son prix'],['menuInstaSepColor','Séparateur','Trait entre les plats sur Instagram']]]];
@@ -2920,6 +2921,7 @@ document.addEventListener('change',async e=>{
   if(a==='dImport'&&el.value){ const f=findF(ARG); const [n,d,p]=el.value.split('|'); const s=f.tabs[+el.dataset.si]; s.cards[0].dishes.push({name:{fr:n},desc:{fr:d},price:p}); touch(true); }
   if(a==='tunerFont'){ tunerTarget().obj.instaFont=el.value||undefined; touch(true); }
   if(a==='igFont'){ pS().instaFont=el.value; touch(true); }
+  if(a==='igCover'&&el.files&&el.files[0]){ const url=await uploadImage(el.files[0],'page-de-garde'); if(url){ pS().instaCover=url; touch(true); } }
   if(a==='pdfLogo'&&el.files&&el.files[0]){ const url=await uploadImage(el.files[0],'logo-impression'); if(url){ pS().logoData=url; touch(true); } }
   if(a==='entUp'&&el.files&&el.files[0]){ const sl=el.dataset.slot, e=entree(); const url=sl==='video'?await uploadVideo(el.files[0]):await uploadImage(el.files[0],sl==='logo'?'logo-entree':'entree'); if(url){ e[sl]=url; touch(true); } }
   if(a==='siteUp'&&el.files&&el.files[0]){ const sl=el.dataset.slot, hc=DATA.homeCover; const url=sl==='video'?await uploadVideo(el.files[0]):await uploadImage(el.files[0],sl==='logo'?'logo-accueil':'accueil'); if(url){ if(/^s\d$/.test(sl)) hc.slideshow[+sl[1]].image=url; else hc[sl]=url; touch(true); } }
@@ -2946,7 +2948,7 @@ async function uploadVideo(file){
 async function uploadImage(file,kind){
   if(!file||!/^image\//.test(file.type)){ toast('Choisissez une image (PNG, JPG, WebP ou SVG)'); return null; }
   toast('Envoi de l\'image…');
-  const blob=await fileToWebpBlob(file, kind==='logo'?900:1600);
+  const blob=await fileToWebpBlob(file, kind==='logo'?900:kind==='page-de-garde'?1920:1600);
   try{
     const r=await fetch(UPLOAD_URL+'?slug='+encodeURIComponent(SLUG)+'&kind='+encodeURIComponent(kind),{method:'POST',headers:{'Authorization':'Bearer '+(SESSION&&SESSION.access_token||''),'Content-Type':blob.type||'image/webp'},body:blob});
     const j=await r.json().catch(()=>({}));
@@ -3080,6 +3082,7 @@ document.addEventListener('click',async e=>{
     case 'print': doPrint(); break;
     case 'gbiz': doGbiz(); break;
     case 'insta': doInsta(d.v); break;
+    case 'igCoverDel': delete pS().instaCover; touch(true); break;
     case 'igf': UI.igf=d.v; go('xinsta/'+d.v); break;
     case 'igSize': { const p=pS(); const base={instaTitleSize:45,instaMenuSize:21,instaDescSize:19,instaPostTitleSize:p.instaTitleSize||45,instaPostMenuSize:p.instaMenuSize||21,instaPostDescSize:p.instaDescSize||19}[d.k]; p[d.k]=Math.max(8,Math.min(120,(p[d.k]||base)+(+d.d))); touch(true); break; }
     case 'igBev': { const t=DATA.tabs.find(x=>x.id===d.id); t.instaIncludeBevs=!t.instaIncludeBevs; touch(true); break; }
