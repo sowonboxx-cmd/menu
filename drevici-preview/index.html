@@ -10113,7 +10113,7 @@ async function renderGbizPageToBlob(css, pages, i, restName, bg){
       console.error('foreignObjectRendering a échoué ou expiré, repli sans lui :', errFo);
       canvas = await withTimeout(html2canvas(pageEl, { scale, useCORS:true, backgroundColor:bg, logging:false, foreignObjectRendering:false }), 20000);
     }
-    const suffix = pages.length>1 ? `-${i+1}` : '';
+    const suffix = pages.length>1 ? `-${String(i+1).padStart(2,'0')}` : '';
     const blob = await new Promise(res=>canvas.toBlob(res,'image/png'));
     if(!blob) throw new Error('toBlob a renvoyé null');
     return { blob, name: `${restName}-google-business${suffix}.png`, pageIndex: i };
@@ -10160,7 +10160,7 @@ async function renderInstaPageToBlob(css, pages, i, restName, bg, ratio, variant
     const slug = (pages[i].tabLabel || `image-${i+1}`).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
     const blob = await new Promise(res=>canvas.toBlob(res,'image/png'));
     if(!blob) throw new Error('toBlob a renvoyé null');
-    return { blob, name: `${restName}-instagram-${variantLabel||'story'}-${slug||i+1}.png`, pageIndex: i };
+    return { blob, name: `${restName}-instagram-${variantLabel||'story'}-${String(i+1).padStart(2,'0')}${slug?'-'+slug:''}.png`, pageIndex: i };
   } finally {
     document.body.removeChild(holder);
   }
