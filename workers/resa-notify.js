@@ -171,8 +171,9 @@ export default {
         // Code gagnant du jeu (PERLE-XXXX) : vérifier, puis valider une seule fois.
         if (url.pathname === '/jeu/redeem') {
           const code = String(body.code || '').toUpperCase().replace(/[^A-Z0-9-]/g, '');
-          const full = code.startsWith('PERLE-') ? code : 'PERLE-' + code;
-          const rows = await sb(env, `jeu_plays?client_slug=eq.${enc(cslug)}&code=eq.${enc(full)}&select=*,player:jeu_players(first_name,last_name,email)`);
+          const full = /^(PERLE|BOO)-/.test(code) ? code : 'PERLE-' + code;
+          // codes du jeu principal et des jeux d'un moment du restaurant (slug « cslug--… »)
+          const rows = await sb(env, `jeu_plays?or=${enc(`(client_slug.eq.${cslug},client_slug.like.${cslug}--*)`)}&code=eq.${enc(full)}&select=*,player:jeu_players(first_name,last_name,email)`);
           const p = rows && rows[0];
           if (!p) return json({ ok: false, error: 'Code inconnu' }, 404, cors);
           const pl = p.player || {}, name = [pl.first_name, pl.last_name].filter(Boolean).join(' ') || pl.email || '';
@@ -734,14 +735,19 @@ const mailClub = (st, first, code, no, site, unsub) => page(st.restaurant_name,
 // ════════════════ Jeu Free Oyster ════════════════
 // Une partie par personne (email OU téléphone), + 1 partie une seule fois quand un ami joue avec son lien.
 // Tout joueur rejoint le club (carte + coupe) ; les offres email/SMS restent une case à part, jamais pré-cochée.
-const JEU_LOTS = { huitre: 'Une huître offerte', plateau: 'Un plateau de 6 huîtres', tshirt: 'Un T-shirt Drevici', bonus: 'Une huître bonus', trio: '3 huîtres offertes', perdu: '' };
+const JEU_LOTS = { huitre: 'Une huître offerte', plateau: 'Un plateau de 6 huîtres', tshirt: 'Un T-shirt Drevici', bonus: 'Une huître bonus', trio: '3 huîtres offertes', shot: 'Un shot offert', perdu: '' };
+// Jeux d'un moment (Halloween…) : slug « <restaurant>--<jeu> » (ex. drevici-paris--halloween-2026).
+// Ses joueurs et ses parties sont à part ; réglages, club et validation des codes restent ceux du restaurant.
+const jeuBase = s => String(s || '').split('--')[0];
+const JEU_NOMS = { 'halloween-2026': 'Trick or Huître' };
+const jeuNom = s => JEU_NOMS[String(s || '').split('--')[1]] || 'Free Oyster';
 const rnd = (n, chars = CODE_CHARS) => Array.from(crypto.getRandomValues(new Uint8Array(n)), b => chars[b % chars.length]).join('');
 const jeuSlugOk = s => /^[a-z0-9-]{2,60}$/.test(s);
 async function jeuPlay(env, b) {
   const slug = String(b.slug || '');
   if (!jeuSlugOk(slug)) return { ok: false, error: 'Jeu inconnu' };
   if (b.hp) return { ok: true, result: 'perdu', plays_left: 0 };            // robot : champ caché rempli
-  const st = await settings(env, slug);
+  const st = await settings(env, jeuBase(slug));
   if (!st) return { ok: false, error: 'Jeu inconnu' };
   const src = String(b.src || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 40) || null;
   let pl = null;
@@ -780,13 +786,13 @@ async function jeuPlay(env, b) {
   // Carte du club : seulement si la case « Je rejoins le club » est cochée (elle vaut accord pour les offres).
   // Sans la case : on joue pour le lot, sans carte ni coupe, et les coordonnées ne servent qu'au jeu.
   let club = null;
-  if (pl.optin) { try { club = await jeuClub(env, st, slug, pl, src); } catch (e) { console.warn('jeu club', e); } }
+  if (pl.optin) { try { club = await jeuClub(env, st, jeuBase(slug), pl, src); } catch (e) { console.warn('jeu club', e); } }
   const base = { t: pl.token, ref_code: pl.ref_code, first: pl.first_name, club };
   if (!r || !r.ok) return { ...base, ok: false, done: !!(r && r.done), closed: !!(r && r.closed), bonus_used: !!(r && r.bonus_used),
     error: r && r.closed ? 'Le jeu est terminé.' : r && r.done ? 'Vous avez déjà joué.' : 'Réessayez dans un instant' };
-  if (r.result !== 'perdu' && st.notify_email) {
+  if (r.result !== 'perdu' && r.result !== 'shot' && st.notify_email) {
     // petit mot à l'équipe : un lot gagné (pour prévoir au comptoir)
-    sendEmail(env, st, st.notify_email, st.restaurant_name, `Free Oyster · ${JEU_LOTS[r.result]} gagné(e) par ${pl.first_name}`,
+    sendEmail(env, st, st.notify_email, st.restaurant_name, `${jeuNom(slug)} · ${JEU_LOTS[r.result]} gagné(e) par ${pl.first_name}`,
       page(st.restaurant_name, `<p><b>${esc(pl.first_name)} ${esc(pl.last_name || '')}</b> vient de gagner : <b>${esc(JEU_LOTS[r.result])}</b>.</p><p>Code : <b style="font-family:'Courier New',monospace;letter-spacing:1px">${esc(r.code)}</b>, valable jusqu'au ${new Date(r.expires_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', timeZone: 'Europe/Paris' })}. À valider dans l'espace restaurateur → Clients.</p>`)).catch(() => {});
   }
   return { ...base, ok: true, result: r.result, prize: JEU_LOTS[r.result], code: r.code, expires_at: r.expires_at, mode: r.mode || 'rue', plays_left: r.plays_left, bonus_used: r.bonus_used };
