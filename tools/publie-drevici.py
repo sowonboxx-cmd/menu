@@ -6,7 +6,7 @@ Ne touche pas aux fichiers propres au site en ligne (reservations.html = ancien 
 import shutil, os, re, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC, DST = os.path.join(ROOT, 'drevici-preview'), os.path.join(ROOT, 'drevici')
-FILES = ['index.html', 'book.html', 'resa.html', 'admin.html', 'gestion.html', 'floorplan.js', 'confidentialite.html', 'accueil.html', 'free-oyster.html', 'free-oyster-reglement.html', 'plat-test.html']  # accueil.html : page d'entrée commune Paris / Surzur (Paris seulement)
+FILES = ['index.html', 'book.html', 'resa.html', 'admin.html', 'gestion.html', 'floorplan.js', 'confidentialite.html', 'accueil.html', 'free-oyster.html', 'free-oyster-reglement.html', 'plat-test.html', 'halloween-2026.html', 'halloween-2026-reglement.html']  # accueil.html : page d'entrée commune Paris / Surzur (Paris seulement)
 DIRS = ['club', 'seo', 'media', 'charte', 'studio', 'jeu']  # studio/ : seule la page d'accueil (index.html) vient du labo ; calendar et tracker restent ceux du site en ligne
 
 def sub(text, old, new, path):
@@ -61,6 +61,9 @@ P = {
  'free-oyster.html': [
    ("const JEU_SLUG = 'drevici-test';", "const JEU_SLUG = 'drevici-paris';"),
  ],
+ 'halloween-2026.html': [
+   ("const JEU_SLUG = 'drevici-test--halloween-2026';", "const JEU_SLUG = 'drevici-paris--halloween-2026';"),
+ ],
  'plat-test.html': [
    ("const SLUG = 'drevici-test';", "const SLUG = 'drevici-paris';"),
  ],
@@ -81,7 +84,7 @@ for f, pairs in P.items():
 # garde-fou : plus aucune trace des réglages de test dans le site en ligne
 for f in FILES:
     t = open(os.path.join(DST, f), encoding='utf-8').read()
-    bad = [m for m in ("'drevici-test'", "drevici-preview.beltab.app") if m in t]
+    bad = [m for m in ("'drevici-test'", "'drevici-test--", "drevici-preview.beltab.app") if m in t]
     if bad: sys.exit(f'⚠ {f} contient encore {bad}')
 print('OK : préview copiée dans drevici/ avec les réglages du vrai restaurant.')
 

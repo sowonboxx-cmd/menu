@@ -939,7 +939,7 @@ const GO='https://go.beltab.app/';
 const QR_SITE='https://drevici-preview.beltab.app';   // publie-drevici.py met https://drevici.beltab.app
 const JEU_SLUG='drevici-test';                         // parties du jeu Free Oyster (préview : copie de test)
 const QSTYLES=[['losange','Losanges','feuille'],['rond','Perles','rond'],['liquide','Liquide','feuille'],['barres','Barres','rond'],['etoile','Étoiles','feuille'],['goutte','Gouttes','feuille'],['croix','Croix','carre'],['pixel','Pixels','carre']];
-let JEU={players:[],plays:[],ev:[]}, QF2='Tous', JCFG=null;
+let JEU={players:[],plays:[],ev:[]}, HAL={players:[],plays:[]}, QF2='Tous', JCFG=null;
 const qrLink=q=>q&&q.path?QR_SITE+'/qr/'+q.path:GO+String(q&&q.code||'CODE').toLowerCase();
 const campOf=q=>q.campaign||q.category||'Autre';
 const capF=t=>t?String(t).charAt(0).toUpperCase()+String(t).slice(1):'';
@@ -973,6 +973,11 @@ async function loadQR(){
       sb.from('jeu_plays').select('id,player_id,src,result,code,expires_at,redeemed_at,n,mode,created_at').eq('client_slug',JEU_SLUG).limit(50000),
       sb.from('site_events').select('kind,name,src').eq('client_slug',JEU_SLUG).not('src','is',null).gte('at',since).limit(50000)]);
     JEU={players:pl.data||[],plays:py.data||[],ev:ev.data||[]};}catch(e){JEU={players:[],plays:[],ev:[]};}
+  // Jeu d'Halloween : tous les joueurs, d'où qu'ils viennent (affiche ou lien direct)
+  try{const HS=JEU_SLUG+'--halloween-2026';const [hp,hy]=await Promise.all([
+      sb.from('jeu_players').select('id,src,optin,created_at,first_name,last_name,email,phone').eq('client_slug',HS).limit(20000),
+      sb.from('jeu_plays').select('id,player_id,src,result,code,expires_at,redeemed_at,n,mode,created_at').eq('client_slug',HS).limit(50000)]);
+    HAL={players:hp.data||[],plays:hy.data||[]};}catch(e){HAL={players:[],plays:[]};}
   try{const c=await sb.from('jeu_config').select('*').eq('client_slug',JEU_SLUG).maybeSingle();JCFG=c.data||null;}catch(e){JCFG=null;}
 }
 // Parcours d'un ou plusieurs codes : scans → joueurs → club → amis → Instagram / Réserver → lots
@@ -1077,6 +1082,7 @@ function renderQR(){
         return `<div class="fun" style="grid-template-columns:1fr 1fr"><div><small>Dans la rue (affiches)</small><b class="num">${a.players} joueurs</b><i>${a.club} au club · ${a.won} lots</i></div><div><small>À table (carte)</small><b class="num">${b.players} joueurs</b><i>${b.club} au club · ${b.won} lots</i></div></div>`;})()}
       <table class="qt"><tr><th></th><th>QR</th><th>Scans</th>${jeu?'<th>Joueurs</th><th class="hm">Club</th><th class="hm">Amis</th><th class="hm">Insta</th><th>Lots</th>':'<th><span class="lg">Conversions</span><span class="sh">Conv.</span></th><th><span class="lg">Commission</span><span class="sh">Comm.</span></th>'}</tr>
       ${qs.map(q=>{const g=funnel([q.code]),s7=statsFor([q.code]);return `<tr data-href="#qr/${encodeURIComponent(q.code)}"><td style="width:44px"><div class="qmini">${qrArt(q,120)}</div></td><td><b class="qn">${esc(qName(q))}</b><small>${esc(qSub(q))}</small></td><td>${g.scans}</td>${jeu?`<td>${g.players}</td><td class="hm">${g.club}</td><td class="hm">${g.friends}</td><td class="hm">${g.insta}</td><td>${g.won} / ${g.redeemed}</td>`:`<td>${s7.conv}</td><td>${hasCom(q)?eur(comOf(q)):'—'}</td>`}</tr>`;}).join('')}</table></div>${jeu?jlCard('c-'+qslug(c),qs.map(q=>q.code),'Lots à remettre · '+c,true):''}`;}).join('')+empty.map(([c,cat])=>`<div class="card camp"><div class="ch"><b>${esc(c)}</b><span class="ctag t">À lancer</span><small>0 QR</small></div><p class="empty" style="margin:0 0 10px">Pas encore de QR. Un par serveur, comme pour le plat en test.</p><a class="cbtn" href="#qr-new/${encodeURIComponent(cat)}">+ Créer un QR</a></div>`).join('');
+  document.getElementById('qrCamps').insertAdjacentHTML('afterbegin',jlCard('hal',[],'🎃 Trick or Huître · Halloween 2026 · '+HAL.players.length+' joueur'+(HAL.players.length>1?'s':''),true,HAL));
   document.getElementById('qrK').innerHTML=`<div class="kpi n"><span>Scans · 7 j</span><b class="num">${st.scans.toLocaleString('fr-FR')}</b></div><div class="kpi"><span>Conversions</span><b class="num">${st.conv}</b></div><div class="kpi"><span>Taux</span><b class="num">${st.scans?(st.conv/st.scans*100).toFixed(1).replace('.',','):'0'} %</b></div>`;
   document.getElementById('qrList').innerHTML=l.map(q=>({q,s:statsFor([q.code])})).sort((a,b)=>b.s.scans-a.s.scans).map(({q,s})=>`<a class="qrl" href="#qr/${encodeURIComponent(q.code)}"><span class="ic">${q.path?'<span style="display:block;width:30px;height:30px">'+qrArt(q,90)+'</span>':'<b style="color:var(--ink)">'+esc((q.owner||q.category||'?')[0])+'</b>'}</span><div><b class="qn">${esc(q.path?qName(q):q.label||q.code)}</b><small>${esc(q.path?campOf(q)+' · '+q.support:q.code)}</small></div><div class="r"><b class="num">${s.scans}</b>${s.conv} conv.</div></a>`).join('')||'<p class="empty">Aucun code.</p>';
   const b=dayBars(st.sc);document.getElementById('qrChart').innerHTML=b.html;document.getElementById('qrLab').innerHTML=b.lab;
@@ -1165,9 +1171,9 @@ const ago=t=>{const m=Math.round((Date.now()-new Date(t))/60000);return m<1?'à 
 function convRow(c){return `<div class="pend"><span class="av" style="background:${c.kind==='resa'?'var(--red)':c.status==='pending'?'var(--gold)':'var(--green)'}">${c.kind==='resa'?'R':c.kind==='plat'?'P':'€'}</span><div><b>${esc(c.label||c.kind)}</b>${c.amount?' · '+eur(+c.amount):''}<small>${esc(c.code)} · ${ago(c.created_at)} · ${c.status==='pending'?'à valider':c.status==='validated'?'validée':'refusée'}</small></div>
   ${c.pt&&c.status==='pending'?`<div class="acts"><a class="ok" href="#plat">Valider →</a></div>`:c.status==='pending'?`<div class="acts"><button class="ok" type="button" data-cval="${esc(c.id)}">Valider</button><button type="button" data-cref="${esc(c.id)}">Refuser</button></div>`:''}</div>`;}
 /* ═══ Joueurs du jeu : qui a joué, son lot, son code, et « Remettre » ═══ */
-const JLOT={huitre:'Huître',plateau:'Plateau de 6',tshirt:'T-shirt',bonus:'Huître bonus',trio:'3 huîtres'};
+const JLOT={huitre:'Huître',plateau:'Plateau de 6',tshirt:'T-shirt',bonus:'Huître bonus',trio:'3 huîtres',shot:'Shot'};
 const JL={};   // état de chaque liste : recherche et onglet
-const jPlayer=id=>JEU.players.find(x=>x.id===id)||{};
+const jPlayer=(id,D=JEU)=>D.players.find(x=>x.id===id)||{};
 const jTel=t=>{const d=String(t||'').replace(/\D/g,'');return d.length===10?d.replace(/(\d\d)(?=\d)/g,'$1 '):t||'';};
 const jName=p=>[p.first_name,p.last_name].filter(Boolean).join(' ')||p.email||'Joueur';
 function jState(y){ if(y.result==='perdu')return {k:'l',t:'Perdu'};
@@ -1177,7 +1183,8 @@ function jState(y){ if(y.result==='perdu')return {k:'l',t:'Perdu'};
   return {k:'w',t:lot+(y.mode==='table'?' · ce repas':''),todo:1};}
 function jRows(id){
   const st=JL[id],set=new Set(st.codes),qq=(st.q||'').trim().toLowerCase();
-  let ys=JEU.plays.filter(y=>set.has(y.src)).map(y=>({y,p:jPlayer(y.player_id),s:jState(y)})).sort((a,b)=>String(b.y.created_at).localeCompare(String(a.y.created_at)));
+  const D=st.data||JEU;
+  let ys=(st.data?D.plays:D.plays.filter(y=>set.has(y.src))).map(y=>({y,p:jPlayer(y.player_id,D),s:jState(y)})).sort((a,b)=>String(b.y.created_at).localeCompare(String(a.y.created_at)));
   if(qq)ys=ys.filter(r=>[jName(r.p),r.p.email,r.p.phone,r.y.code].some(v=>String(v||'').toLowerCase().replace(/\s/g,'').includes(qq.replace(/\s/g,''))));
   if(st.tab==='win')ys=ys.filter(r=>r.y.result!=='perdu');
   if(st.tab==='todo')ys=ys.filter(r=>r.s.todo);
@@ -1185,9 +1192,9 @@ function jRows(id){
   const q0=c=>QRS.find(x=>x.code===c);
   return ys.slice(0,200).map(({y,p,s})=>`<div class="jp"><div class="who"><b>${esc(jName(p))}</b><small>${st.camp?esc((q0(y.src)?qName(q0(y.src)):y.src)+' · '):''}${esc([p.email,jTel(p.phone)].filter(Boolean).join(' · '))} · ${ago(y.created_at)}</small></div>${y.code?`<span class="jcode">${esc(y.code)}</span>`:''}<span class="jst ${s.k}">${esc(s.t)}</span>${s.todo?`<button class="cbtn" type="button" data-jred="${esc(y.code)}" data-jl="${esc(id)}">Remettre</button>`:''}</div>`).join('')
     ||`<p class="empty">${qq?'Personne ne correspond.':st.tab==='todo'?'Aucun lot à remettre.':'Pas encore de joueur.'}</p>`;}
-function jlCard(id,codes,title,camp){
-  const old=JL[id]||{}; JL[id]={codes,camp,q:old.q||'',tab:old.tab||(camp?'todo':'all')};
-  const todo=JEU.plays.filter(y=>codes.includes(y.src)&&jState(y).todo).length;
+function jlCard(id,codes,title,camp,data){
+  const old=JL[id]||{}; JL[id]={codes,camp,data,q:old.q||'',tab:old.tab||(camp?'todo':'all')};
+  const todo=(data?data.plays:JEU.plays.filter(y=>codes.includes(y.src))).filter(y=>jState(y).todo).length;
   const tabs=camp?[['todo','À remettre'],['done','Remis'],['all','Tous les joueurs']]:[['all','Tous'],['win','Gagnants'],['todo','À remettre']];
   return `<div class="card jl" data-jlid="${esc(id)}"><h2>${esc(title)}${todo?`<b class="jtodo">${todo} à remettre</b>`:''}</h2>
     <input class="jsrch" type="search" placeholder="Rechercher un nom, un email, un téléphone ou un code" value="${esc(JL[id].q)}" data-jq="${esc(id)}">
@@ -1202,7 +1209,7 @@ document.addEventListener('click',async e=>{
   try{const res=await fetch('https://resa.beltab.app/jeu/redeem',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+(SESSION&&SESSION.access_token||'')},body:JSON.stringify({slug:JEU_SLUG,code})});
     const j=await res.json().catch(()=>({}));
     if(!res.ok&&!j.used)throw new Error(j.error||('Erreur '+res.status));
-    const y=JEU.plays.find(x=>x.code===code);if(y)y.redeemed_at=(j.play&&j.play.redeemed_at)||new Date().toISOString();
+    const y=JEU.plays.find(x=>x.code===code)||HAL.plays.find(x=>x.code===code);if(y)y.redeemed_at=(j.play&&j.play.redeemed_at)||new Date().toISOString();
     toast(j.used?'Ce lot était déjà remis':'Lot remis · '+code);
     if(location.hash.startsWith('#qr/'))renderQRD(decodeURIComponent(location.hash.slice(4)));else renderQR();
   }catch(err){r.disabled=false;toast('Erreur : '+err.message);}

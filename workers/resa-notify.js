@@ -795,7 +795,22 @@ async function jeuPlay(env, b) {
     sendEmail(env, st, st.notify_email, st.restaurant_name, `${jeuNom(slug)} · ${JEU_LOTS[r.result]} gagné(e) par ${pl.first_name}`,
       page(st.restaurant_name, `<p><b>${esc(pl.first_name)} ${esc(pl.last_name || '')}</b> vient de gagner : <b>${esc(JEU_LOTS[r.result])}</b>.</p><p>Code : <b style="font-family:'Courier New',monospace;letter-spacing:1px">${esc(r.code)}</b>, valable jusqu'au ${new Date(r.expires_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', timeZone: 'Europe/Paris' })}. À valider dans l'espace restaurateur → Clients.</p>`)).catch(() => {});
   }
+  // Jeu d'un moment (Halloween…) : le joueur reçoit son code par email, avec comment récupérer son lot.
+  if (slug.includes('--') && r.code && pl.email) { try { await sendEmail(env, st, pl.email, pl.first_name, `Ton code ${jeuNom(slug)} : ${r.code}`, mailJeu(st, slug, pl.first_name, r)); } catch (e) { console.warn('jeu email', e); } }
   return { ...base, ok: true, result: r.result, prize: JEU_LOTS[r.result], code: r.code, expires_at: r.expires_at, mode: r.mode || 'rue', plays_left: r.plays_left, bonus_used: r.bonus_used };
+}
+function mailJeu(st, slug, first, r) {
+  const until = new Date(r.expires_at).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Paris' });
+  const site = st.site_url ? String(st.site_url).replace(/\/$/, '') : '';
+  const how = r.result === 'shot' ? 'Passe au comptoir quand tu veux, sans réserver, et montre ce code : ton shot t\'attend.'
+    : r.result === 'tshirt' ? 'Dis-nous quand tu passes (par téléphone ou sur Instagram), puis montre ce code au comptoir pour récupérer ton T-shirt.'
+    : 'Réserve une table et montre ce code en arrivant : ton lot t\'attend à table.';
+  const btn = r.result !== 'shot' && r.result !== 'tshirt' && site ? `<p style="text-align:center;margin:22px 0 6px"><a href="${esc(site)}/book?jeu=${enc(r.code)}" style="background:#f97316;color:#1b1222;text-decoration:none;border-radius:999px;padding:13px 26px;font-weight:700;display:inline-block">Réserver ma table</a></p>` : '';
+  return page(st.restaurant_name, `<p style="margin:0 0 6px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#c2410c;font-weight:700">${esc(jeuNom(slug))}</p>
+   <p style="margin:0 0 14px;font-size:20px;font-weight:700">Bravo ${esc(first || '')} ! Tu as gagné : ${esc(JEU_LOTS[r.result] || '')}</p>
+   <div style="text-align:center;background:#f5efe6;border-radius:14px;padding:14px;margin:0 0 14px"><div style="font-family:'Courier New',monospace;font-size:28px;font-weight:700;letter-spacing:4px">${esc(r.code)}</div><div style="font-size:13px;color:#6b5b7b;margin-top:4px">Valable jusqu'au ${esc(until)} · une seule fois</div></div>
+   <p style="margin:0">${how}</p>${btn}
+   <p style="margin:16px 0 0;font-size:12px;color:#8a8478">${esc(st.restaurant_name)} · 8 rue Biot, 75017 Paris. Aucun achat obligatoire.</p>`);
 }
 // Joueur qui a coché « Je rejoins le club » → membre du club (même règle que l'inscription au club du site).
 async function jeuClub(env, st, slug, pl, src) {

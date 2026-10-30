@@ -112,8 +112,9 @@ begin
   end loop;
 end $$;
 
--- Le QR de l'affiche A0 (go.beltab.app/HALLOWEEN-AFFICHE-1 → page du jeu, scans comptés dans Studio → Scans QR)
+-- Le QR de l'affiche A0 : https://drevici.beltab.app/qr/halloween-2026/affiche-1 → page du jeu, scan compté (Studio → Scans QR)
+update public.cabine_qr set active = false where code = 'HALLOWEEN-AFFICHE-1';   -- ancien brouillon
 insert into public.cabine_qr (client_slug, code, label, category, owner, destination, goal, campaign, support, place, num, path, style, note)
-values ('drevici','HALLOWEEN-AFFICHE-1','Affiche A0 · Trick or Huître','Affiches rue','Will','/halloween-2026','Partie jouée','Halloween 2026','Affiche','biot',1,'halloween-2026/affiche-1','losange','Affiche A0 « TRICK OR HUÎTRE »')
-on conflict (code) do nothing;
+values ('drevici','HALLOWEEN-2026-AFFICHE-1','Affiche A0 · Trick or Huître','Affiches rue','Will','/halloween-2026','Partie jouée','Halloween 2026','Affiche','biot',1,'halloween-2026/affiche-1','losange','Affiche A0 « TRICK OR HUÎTRE · SCANNE SI T''OSES »')
+on conflict (code) do update set destination = excluded.destination, path = excluded.path, label = excluded.label, campaign = excluded.campaign, active = true;
 notify pgrst, 'reload schema';
