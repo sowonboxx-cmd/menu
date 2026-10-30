@@ -1112,6 +1112,15 @@ if (new URLSearchParams(window.location.search).get('admin') === '1') {
 </script>
 <script>
 // Club : arrivée depuis la carte membre → formulaire prérempli + bandeau + explication
+// Lien « Réserver » d'un gagnant du jeu (?jeu=BOO-XXXX ou PERLE-XXXX) : le code est noté dans la réservation.
+(function(){ const code=(new URLSearchParams(location.search).get('jeu')||'').toUpperCase(); if(!/^(BOO|PERLE)-[A-Z0-9]{4}$/.test(code)) return;
+  const n=document.getElementById('fNote'); if(n&&!n.value) n.value='Lot du jeu · code '+code;
+  const st=document.createElement('style'); st.textContent='.jeubn{display:block;background:#1b1222;color:#fff;border-radius:14px;padding:10px 14px;margin:10px 16px 12px;font:600 13px Inter,system-ui,sans-serif;line-height:1.4;text-align:center}.jeubn u{color:#fdba74;letter-spacing:.08em;text-underline-offset:3px}.jeubn small{display:block;font-weight:500;font-size:11.5px;color:#cfc6dc}@media(min-width:592px){.jeubn{max-width:560px;margin:10px auto 12px}}';
+  document.head.appendChild(st);
+  const b=document.createElement('div'); b.className='jeubn';
+  b.innerHTML=(code.startsWith('BOO')?'🎃 ':'🦪 ')+'Ton lot est noté avec ta réservation · <u>'+code+'</u><small>Montre ce code en arrivant. Aucun achat obligatoire.</small>';
+  (document.querySelector('main')||document.body).prepend(b);
+})();
 (function(){ const q=new URLSearchParams(location.search), code=q.get('club'); if(!code||!/^CLUB-[A-Z0-9]{4}$/.test(code)) return;
   const set=(id,v)=>{ const el=document.getElementById(id); if(el&&v&&!el.value) el.value=v; };
   set('fPre',q.get('prenom')); set('fNom',q.get('nom')); set('fMail',q.get('email'));

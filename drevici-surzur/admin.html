@@ -2989,7 +2989,7 @@ document.addEventListener('click',async e=>{
     case 'clArchGo': { const id=+d.id, on=d.v==='1', c=(CLIENTS||[]).find(x=>x.id===id); try{ const j=await napi('/client/archive',{id,on}); if(c) c.archived_at=j.archived_at; toast(on?'Client archivé':'Client restauré'); UI.clarch=null; if(on) UI.clopen=null; }catch(e){ toast('⚠ '+e.message); } render(); break; }
     case 'clCheck': { const code=(UI.clcode||'').trim(); if(!code){ toast('Tapez le code de la carte'); break; }
       // Codes du jeu Free Oyster (PERLE-XXXX) : même champ, lot du jeu au lieu de la coupe.
-      if(/^perle/i.test(code)){ try{ const j=await napi('/jeu/redeem',{code,check:true}); UI.clres={jeu:j.play}; }catch(e){ UI.clres={err:e.message}; } render(); break; }
+      if(/^(perle|boo)/i.test(code)){ try{ const j=await napi('/jeu/redeem',{code,check:true}); UI.clres={jeu:j.play}; }catch(e){ UI.clres={err:e.message}; } render(); break; }
       try{ const j=await napi('/club/redeem',{code,check:true}); UI.clres={client:j.client}; }catch(e){ UI.clres={err:e.message}; } render(); break; }
     case 'jeuRedeem': { try{ const j=await napi('/jeu/redeem',{code:UI.clcode}); UI.clres={jeu:j.play,done:1}; UI.clcode=''; }catch(e){ UI.clres={err:e.message}; } render(); break; }
     case 'clRedeem': { try{ const j=await napi('/club/redeem',{code:UI.clcode}); UI.clres={done:1,client:j.client}; UI.clcode=''; loadClients(true); }catch(e){ UI.clres={err:e.message}; } render(); break; }
