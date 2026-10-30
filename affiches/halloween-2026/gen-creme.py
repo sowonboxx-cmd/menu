@@ -18,7 +18,7 @@ def porte_svg(masc=True, seuil='', standalone=False):
     step = f'<rect x="10" y="{850-sh}" width="480" height="{sh}" rx="5" fill="{INK}"/>'
     if seuil:
         step += f'<text x="250" y="{850-sh/2+1}" text-anchor="middle" dominant-baseline="central" font-family="Anton, Impact, sans-serif" font-size="38" letter-spacing="8" fill="{OR}">{seuil}</text>'
-    m = f'<image href="mascotte.webp" x="40" y="{215 - (sh-24)}" width="440" height="635" preserveAspectRatio="xMidYMax meet"/>' if masc else ''
+    m = f'<image href="mascotte.webp" x="18" y="{185 - (sh-24)}" width="470" height="665" preserveAspectRatio="xMidYMax meet"/>' if masc else ''
     batmini = f'<path fill="#000" d="{BAT}" transform="translate(110 300) scale(.35)"/>'
     head = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 850" width="500" height="850">' if standalone else '<svg viewBox="0 0 500 850" style="position:absolute;left:110px;top:770px;width:500px;height:850px;overflow:visible">'
     return f'''{head}{DEFS}
