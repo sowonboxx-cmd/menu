@@ -4,7 +4,7 @@ Référence des prix pour tous les devis et factures. **À relire avant chaque p
 
 - Tous les prix sont **HT**.
 - Un prix est toujours un **pack** : il comprend tout le contenu listé, rien de plus, aucun frais caché.
-- Dernière mise à jour : 26 octobre 2026 (vidéos des plats réservées à Master ; tarifs des vidéos des plats ; 3 clips offerts à la mise en service Master) ; 25 octobre 2026 (fichiers sources du logo animé : 390 € ; référencement Google et IA inclus dans les formules ; option anglais réservée aux formules, plus sur Google) ; 15 octobre 2026 (pack « Votre carte partout » : Google 249 €, Google + Instagram 349 €, option anglais + 100 €, mise à jour 149 €, illimitée en Master) ; 12 octobre 2026 (personnalisation sur mesure sur devis ; plan de salle visuel réservé à Master) ; 11 octobre 2026 (offres annexes chiffrées : Aperçu du menu, Avis Google, Google Business ; SMS et emails de la formule Master ; Master à 399 € / mois depuis le 10 octobre).
+- Dernière mise à jour : 30 octobre 2026 (Beltab Menu remplace Votre carte partout : 499 € avec 15 photos de carte, 599 € avec 30, 349 € sans photos, publication Instagram par nous + 100 € ; les photos de carte sont distinctes des séances photo) ; 26 octobre 2026 (vidéos des plats réservées à Master ; tarifs des vidéos des plats ; 3 clips offerts à la mise en service Master) ; 25 octobre 2026 (fichiers sources du logo animé : 390 € ; référencement Google et IA inclus dans les formules ; option anglais réservée aux formules, plus sur Google) ; 15 octobre 2026 (pack « Votre carte partout » : Google 249 €, Google + Instagram 349 €, option anglais + 100 €, mise à jour 149 €, illimitée en Master) ; 12 octobre 2026 (personnalisation sur mesure sur devis ; plan de salle visuel réservé à Master) ; 11 octobre 2026 (offres annexes chiffrées : Aperçu du menu, Avis Google, Google Business ; SMS et emails de la formule Master ; Master à 399 € / mois depuis le 10 octobre).
 
 ---
 
@@ -93,6 +93,8 @@ Un clip par plat : format 4:5 (vertical), 6 à 10 secondes, sans son, en boucle,
 - **Par nos soins, avec une séance photo** : les clips se tournent pendant la même visite, avec 30 minutes de plus sur place, sans frais de déplacement supplémentaires.
 - Au-delà de 15 clips : sur devis, dégressif.
 
+**Photos de carte (Beltab Menu) : un autre produit.** Une photo par plat, le plat seul, cadrage simple, retouche légère, une heure sur place au maximum, sans ambiance ni salle ni équipe. Elles sont comprises dans Beltab Menu (section 3) et ne se vendent pas seules. Le restaurant peut les réutiliser partout, y compris sur son site. La séance de cette section reste la séance complète : jusqu'à 3 photos par plat, la salle, la devanture, l'équipe et une retouche poussée.
+
 **Conditions de la séance (par nos soins) :**
 
 - Durée sur place : **1 heure maximum**.
@@ -116,10 +118,12 @@ Offres à part, liées à aucune formule : elles se prennent seules ou en compl�
 
 | Offre | Prix | Contenu |
 |---|---|---|
-| **Votre carte partout · Google** | 249 € (ponctuel) | Menu PDF généré + menu intégré dans la fiche Google Business, avec les descriptions des plats. **À proposer à chaque nouveau client, quelle que soit sa formule.** Fait une fois par nous, **prêt en 3 jours ouvrés** (hors séance photo). Photos facultatives (affichées en petit sur Google) : non incluses. **Prises par Will lui-même, une seule photo par plat**, facturées selon la grille Photos (section 2), mêmes prix. Si le restaurant prend ensuite une formule, ces photos restent utilisables, mais le site demande d'autres photos (usage différent), au même tarif. |
-| **Votre carte partout · Google + Instagram** | 349 € (ponctuel) | Tout le pack Google, plus la carte en **post Instagram à épingler** et en **story à mettre « À la une »** : la carte reste visible en permanence en haut du profil. Même export, fait une fois par nous. |
+| **Beltab Menu · Essentiel** | 499 € (ponctuel, prix de lancement) | La carte du restaurant **partout où on le cherche** : menu intégré dans la fiche Google (Google Maps), pages menu au format Google, carte en story Instagram « À la une » et en post à épingler, PDF et PNG haute qualité. **Jusqu'à 15 photos de carte comprises.** **À proposer à chaque restaurant, quelle que soit sa formule.** Fait une fois par nous, **prêt en 3 jours ouvrés** après réception de la carte et de l'accès à la fiche Google. Le restaurant publie lui-même sur Instagram. |
+| **Beltab Menu · Complet** | 599 € (ponctuel, prix de lancement) | Le même pack, **jusqu'à 30 photos de carte comprises**. Au-delà : sur devis. |
+| **Beltab Menu · sans photos** | 349 € (ponctuel) | Le même pack, pour un restaurant qui a déjà de bonnes photos de ses plats. |
+| **Publication Instagram par nous** | + 100 € (ponctuel) | Nous publions nous-mêmes la story « À la une » et le post épinglé sur le compte du restaurant. |
 | **Option anglais** | + 100 € (ponctuel) | **Uniquement avec une formule** : la carte du site en anglais. Pas sur la fiche Google (le menu de Google n'est pas bilingue : une carte anglaise y créerait des doublons). Par défaut, le restaurant fournit sa carte en anglais ; sinon, cette option. |
-| **Mise à jour du pack** | 149 € (à chaque fois) | Refaire le pack quand la carte change (mêmes supports, mêmes langues). **Formule Master : mises à jour illimitées, incluses.** Une direction artistique propre au restaurant reste sur devis (Personnalisation sur mesure). |
+| **Mise à jour de Beltab Menu** | 149 € (à chaque fois) | Refaire le pack quand la carte change (mêmes supports, mêmes langues). **Formule Master : mises à jour illimitées, incluses.** Une direction artistique propre au restaurant reste sur devis (Personnalisation sur mesure). |
 | **Aperçu du menu** | 49 € / mois · mise en service 149 € | Le client scanne un QR code et voit le menu en grand, en HD, avec les meilleurs plats en photo. Fait entrer les passants qui ne lisent pas les menus papier ou qui ne connaissent pas la cuisine. |
 | **Avis Google** | 39 € / mois · mise en service 99 € | QR code posé près de la caisse : le client le scanne, joue à un petit jeu et laisse un avis Google. Collecte du numéro de téléphone encore à décider. |
 | **Personnalisation sur mesure** | Sur devis | Tout ce qui va au-delà des réglages standard (couleurs, polices, logo), créé à la main par Tensai pour que tout soit vraiment à l'image du restaurant. Détail ci-dessous. |
