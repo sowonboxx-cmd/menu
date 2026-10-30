@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0c0a12">
 <link rel="icon" href="seo/logo-pics-bar.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@800&family=Playfair+Display:ital,wght@0,900;1,700;1,900&family=IBM+Plex+Mono:wght@600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@800&family=Playfair+Display:ital,wght@0,900;1,700;1,900&family=IBM+Plex+Mono:wght@600&display=swap">
 <link rel="preload" as="image" href="jeu/halloween/mascotte.webp">
 <link rel="prefetch" href="jeu/trio.webp"><link rel="prefetch" href="jeu/plateau.webp"><link rel="prefetch" href="jeu/tshirt.webp">
 <style>
@@ -112,6 +112,7 @@ a{color:inherit}
 .ap{transition:opacity .7s ease,transform .7s ease}
 .intro .ap{opacity:0;transform:translateY(3cqw)}
 #intro{position:absolute;inset:0;z-index:20;pointer-events:none}
+#batsx{position:absolute;inset:0;z-index:18;pointer-events:none;overflow:hidden}#batsx .bat{transform-origin:50% 50%}
 #enter{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);z-index:3;pointer-events:auto;text-align:center;color:#1b0f05;transition:opacity .35s}
 #enter b{display:block;font:900 9cqw/1 "Playfair Display",Georgia,serif;font-style:italic}
 #enter span{display:inline-block;margin-top:3cqw;font:700 3.4cqw Inter;letter-spacing:.14em;text-transform:uppercase;background:#1b0f05;color:var(--pump2);border-radius:99px;padding:2cqw 4cqw;white-space:nowrap;animation:pulse 1.6s ease-in-out infinite}
@@ -313,6 +314,14 @@ function batSound(ctx, out, t0 = ctx.currentTime + .02) {
   }
   return t0 + 3.4;
 }
+async function batSwoop(mid) {
+  if (matchMedia('(prefers-reduced-motion:reduce)').matches) return mid();
+  const o = document.createElement('div'); o.id = 'batsx';
+  o.innerHTML = ['b1', 'b2', 'b3', 'b4', 'b2', 'b3'].map((c, i) => `<svg class="bat ${c}" style="${i > 3 ? 'left:' + (i === 4 ? '-10%' : '60%') + ';top:' + (i === 4 ? '55%' : '8%') : ''}"><use href="#bat"/></svg>`).join('');
+  $('#app').appendChild(o); playBats();
+  [...o.children].forEach((b, i) => setTimeout(() => b.classList.add('go'), i * 110));
+  await wait(1050); mid(); await wait(1500); o.remove();
+}
 let AC = null;
 function playBats() {
   try {
@@ -462,9 +471,9 @@ $('#f').addEventListener('submit', async e => {
   $('#sheet').classList.remove('on'); $('#veil').classList.remove('on');
   await wait(350);
   await GAME.reveal(d);
-  $('#flash').classList.add('on'); setTimeout(() => $('#flash').classList.remove('on'), 260);
   track('click', 'jeu_gagne_' + d.result);
-  result(d);
+  // avant le cadeau : les chauves-souris foncent sur l'écran, et le lot apparaît derrière elles
+  await batSwoop(() => { $('#flash').classList.add('on'); setTimeout(() => $('#flash').classList.remove('on'), 260); result(d); });
 });
 async function play(body) {
   if (TEST) return testPlay(body);
