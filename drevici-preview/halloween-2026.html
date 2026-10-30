@@ -68,6 +68,11 @@ a{color:inherit}
 .ap{transition:opacity .7s ease,transform .7s ease}
 .intro .ap{opacity:0;transform:translateY(3cqw)}
 #intro{position:absolute;inset:0;z-index:20;pointer-events:none}
+#enter{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);z-index:3;pointer-events:auto;text-align:center;color:#1b0f05;transition:opacity .35s}
+#enter b{display:block;font:900 9cqw/1 "Playfair Display",Georgia,serif;font-style:italic}
+#enter span{display:inline-block;margin-top:3cqw;font:700 3.4cqw Inter;letter-spacing:.14em;text-transform:uppercase;background:#1b0f05;color:var(--pump2);border-radius:99px;padding:2cqw 4cqw;animation:pulse 1.6s ease-in-out infinite}
+#enter.out{opacity:0;pointer-events:none}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
 #intro.gone{display:none}
 .bigmoon{position:absolute;left:50%;top:44%;width:120cqw;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle at 40% 38%,#fff3d6,#f6c98a 45%,#e08a3a 68%,transparent 70%);box-shadow:0 0 80px 30px rgba(249,115,22,.35);transition:opacity .6s}
 .bigmoon.out{opacity:0}
@@ -167,8 +172,9 @@ a{color:inherit}
   </main>
 
   <!-- entrée -->
-  <div id="intro" aria-hidden="true">
+  <div id="intro">
     <div class="bigmoon" id="bigmoon"></div>
+    <button id="enter" aria-label="Entrer dans le jeu"><b>Entre…<br>si t'oses</b><span>Touche la lune · son 🔊</span></button>
     <svg class="bat b1"><use href="#bat"/></svg><svg class="bat b2"><use href="#bat"/></svg><svg class="bat b3"><use href="#bat"/></svg><svg class="bat b4"><use href="#bat"/></svg>
   </div>
 
@@ -220,11 +226,59 @@ const SID = Math.random().toString(36).slice(2, 12);
 const track = (k, n) => { if (TEST) return; try { navigator.sendBeacon(API + '/t', JSON.stringify({ slug: SITE_SLUG, sid: SID, k, n, src: SRC, p: '/halloween-2026' })); } catch (_) {} };
 track('view');
 
-// ═══ Entrée : la lune, les chauves-souris foncent vers l'écran, puis le jeu apparaît ═══
-(async () => {
+// ═══ Entrée : on touche la lune (le son a besoin d'un geste), les chauves-souris foncent vers l'écran avec leur cri, puis le jeu apparaît ═══
+// Son fabriqué dans le navigateur (aucun fichier) : battements d'ailes, petits cris aigus, nappe grave qui fait peur.
+function batSound(ctx, out, t0 = ctx.currentTime + .02) {
+  const comp = ctx.createDynamicsCompressor(); comp.connect(out); const master = ctx.createGain(); master.gain.value = 2.4; master.connect(comp);
+  // écho de caverne
+  const rev = ctx.createConvolver(), len = ctx.sampleRate * 2.2, ir = ctx.createBuffer(2, len, ctx.sampleRate);
+  for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3); }
+  rev.buffer = ir; const wet = ctx.createGain(); wet.gain.value = .35; rev.connect(wet); wet.connect(master);
+  const noise = ctx.createBuffer(1, ctx.sampleRate * 3, ctx.sampleRate); { const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+  // 1 · nappe grave : deux notes en triton qui montent puis s'éteignent
+  [[49, 0], [69.3, 4], [98, -6]].forEach(([f, det]) => {
+    const o = ctx.createOscillator(), g = ctx.createGain(), lp = ctx.createBiquadFilter();
+    o.type = 'sawtooth'; o.frequency.setValueAtTime(f, t0); o.frequency.linearRampToValueAtTime(f * 1.06, t0 + 2.4); o.detune.value = det;
+    lp.type = 'lowpass'; lp.frequency.setValueAtTime(180, t0); lp.frequency.linearRampToValueAtTime(700, t0 + 1.2); lp.frequency.linearRampToValueAtTime(150, t0 + 3);
+    g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(.09, t0 + .5); g.gain.linearRampToValueAtTime(0, t0 + 3.2);
+    o.connect(lp); lp.connect(g); g.connect(master); g.connect(rev); o.start(t0); o.stop(t0 + 3.3);
+  });
+  // 2 · nuée d'ailes : bruit filtré, battu vite, qui passe de gauche à droite en grossissant
+  for (let k = 0; k < 4; k++) {
+    const st = t0 + .15 + k * .17, dur = 1.5 - k * .15;
+    const src = ctx.createBufferSource(); src.buffer = noise;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = .9; bp.frequency.setValueAtTime(700 + k * 250, st); bp.frequency.linearRampToValueAtTime(2200, st + dur * .6); bp.frequency.linearRampToValueAtTime(500, st + dur);
+    const flap = ctx.createGain(), lfo = ctx.createOscillator(), depth = ctx.createGain();
+    lfo.frequency.value = 11 + k * 3; depth.gain.value = .5; flap.gain.value = .5; lfo.connect(depth); depth.connect(flap.gain);
+    const env = ctx.createGain(); env.gain.setValueAtTime(0, st); env.gain.linearRampToValueAtTime(.55 - k * .08, st + dur * .55); env.gain.exponentialRampToValueAtTime(.001, st + dur);
+    const pan = ctx.createStereoPanner(); pan.pan.setValueAtTime(-.9 + k * .3, st); pan.pan.linearRampToValueAtTime(.9 - k * .2, st + dur);
+    src.connect(bp); bp.connect(flap); flap.connect(env); env.connect(pan); pan.connect(master); env.connect(rev);
+    src.start(st, Math.random()); src.stop(st + dur); lfo.start(st); lfo.stop(st + dur);
+  }
+  // 3 · cris de chauves-souris : petits glissés très aigus
+  for (let k = 0; k < 7; k++) {
+    const st = t0 + .3 + Math.random() * 1.3, o = ctx.createOscillator(), g = ctx.createGain(), pan = ctx.createStereoPanner();
+    const f = 3800 + Math.random() * 2600;
+    o.type = 'triangle'; o.frequency.setValueAtTime(f, st); o.frequency.exponentialRampToValueAtTime(f * .55, st + .07);
+    g.gain.setValueAtTime(0, st); g.gain.linearRampToValueAtTime(.07, st + .008); g.gain.exponentialRampToValueAtTime(.001, st + .09);
+    pan.pan.value = Math.random() * 1.6 - .8;
+    o.connect(g); g.connect(pan); pan.connect(master); g.connect(rev); o.start(st); o.stop(st + .1);
+  }
+  return t0 + 3.4;
+}
+let AC = null;
+function playBats() {
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === 'suspended') AC.resume();
+    batSound(AC, AC.destination);
+  } catch (_) {}
+}
+async function intro() {
   const app = $('#app');
-  if (matchMedia('(prefers-reduced-motion:reduce)').matches) { $('#intro').classList.add('gone'); app.classList.remove('intro'); return start(); }
-  await wait(350);
+  $('#enter').classList.add('out');
+  playBats();
+  await wait(150);
   $$('#intro .bat').forEach((b, i) => setTimeout(() => b.classList.add('go'), i * 170));
   await wait(1500);
   $('#bigmoon').classList.add('out');
@@ -233,7 +287,9 @@ track('view');
   ap.forEach((e, i) => { e.style.transitionDelay = (i * .14) + 's'; });
   setTimeout(() => { ap.forEach(e => e.style.transitionDelay = ''); $('#intro').classList.add('gone'); }, 1800);
   start();
-})();
+}
+if (matchMedia('(prefers-reduced-motion:reduce)').matches) { $('#intro').classList.add('gone'); $('#app').classList.remove('intro'); start(); }
+else $('#enter').addEventListener('click', intro, { once: true });
 
 // Joueur déjà connu sur ce téléphone : on lui remontre son code.
 async function start() {
