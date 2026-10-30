@@ -10,18 +10,25 @@ DEFS = f'''<defs><radialGradient id="nuit" cx="50%" cy="25%" r="75%"><stop offse
 <radialGradient id="lune" cx="38%" cy="36%" r="60%"><stop offset="0" stop-color="#fff7e0"/><stop offset=".6" stop-color="#f6d9a0"/><stop offset="1" stop-color="#d9a85b"/></radialGradient></defs>'''
 MASC = '<image href="mascotte.webp" x="{x}" y="{y}" width="{w}" height="{h}" preserveAspectRatio="xMidYMax meet"/>'
 
-def porte():
-    # porte gothique en ogive : montants en pierre, trait orange, nuit dedans, la mascotte sur le seuil
-    ogive = 'M40 850V330C40 170 150 60 250 10C350 60 460 170 460 330V850Z'
-    inner = 'M70 850V336C70 192 168 96 250 48C332 96 430 192 430 336V850Z'
-    return f'''<svg viewBox="0 0 500 850" style="position:absolute;left:110px;top:770px;width:500px;height:850px;overflow:visible">{DEFS}
-<clipPath id="cp"><path d="{inner}"/></clipPath>
+def porte_svg(masc=True, seuil='', standalone=False):
+    # porte gothique en ogive : montants en pierre, trait orange, nuit et lune dedans, seuil en bas
+    ogive = 'M40 826V330C40 170 150 60 250 10C350 60 460 170 460 330V826Z'
+    inner = 'M70 826V336C70 192 168 96 250 48C332 96 430 192 430 336V826'
+    sh = 24 if not seuil else 54
+    step = f'<rect x="10" y="{850-sh}" width="480" height="{sh}" rx="5" fill="{INK}"/>'
+    if seuil:
+        step += f'<text x="250" y="{850-sh/2+1}" text-anchor="middle" dominant-baseline="central" font-family="Anton, Impact, sans-serif" font-size="38" letter-spacing="8" fill="{OR}">{seuil}</text>'
+    m = f'<image href="mascotte.webp" x="40" y="{215 - (sh-24)}" width="440" height="635" preserveAspectRatio="xMidYMax meet"/>' if masc else ''
+    batmini = f'<path fill="#000" d="{BAT}" transform="translate(110 300) scale(.35)"/>'
+    head = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 850" width="500" height="850">' if standalone else '<svg viewBox="0 0 500 850" style="position:absolute;left:110px;top:770px;width:500px;height:850px;overflow:visible">'
+    return f'''{head}{DEFS}
+<clipPath id="cp"><path d="{inner}Z"/></clipPath>
 <path d="{ogive}" fill="{INK}"/>
-<g clip-path="url(#cp)"><rect width="500" height="850" fill="url(#nuit)"/><circle cx="250" cy="150" r="46" fill="url(#lune)"/>
-{bat("", "#000").replace('<svg ', '<svg x="110" y="300" width="70" height="32" ')}{MASC.format(x=40, y=215, w=440, h=635)}</g>
-<path d="{inner}" fill="none" stroke="{OR}" stroke-width="8"/>
-<g stroke="{CR}" stroke-width="3" opacity=".35">{''.join(f'<path d="M40 {y}H70M430 {y}H460"/>' for y in range(390, 850, 70))}</g>
-<rect x="10" y="826" width="480" height="24" rx="4" fill="{INK}"/></svg>'''
+<g clip-path="url(#cp)"><rect width="500" height="850" fill="url(#nuit)"/><circle cx="250" cy="150" r="46" fill="url(#lune)"/>{batmini}{m}</g>
+<path d="{inner}" fill="none" stroke="{OR}" stroke-width="8" stroke-linecap="square"/>
+<g stroke="{CR}" stroke-width="3" opacity=".35">{''.join(f'<path d="M40 {y}H70M430 {y}H460"/>' for y in range(390, 826, 70))}</g>
+{step}</svg>'''
+porte = lambda **k: porte_svg(**k)
 
 def goo():
     # tache de nuit qui coule : bord haut ondulé, gouttes en bas
@@ -78,6 +85,14 @@ def poster(fn, cadre, label, halloween=None):
     if halloween == 'bandeau':
         # « HALLOWEEN 2026 » à la place de l'ornement du haut
         orn = f'<div class="hal"><svg viewBox="0 0 200 90"><path fill="{OR}" d="{BAT}"/></svg><span>HALLOWEEN 2026 · 31 OCT → 7 NOV</span><svg viewBox="0 0 200 90" style="transform:scaleX(-1)"><path fill="{OR}" d="{BAT}"/></svg></div>'
+    if halloween == 'bandeau2':
+        orn = f'<div class="hal"><svg viewBox="0 0 200 90"><path fill="{OR}" d="{BAT}"/></svg><span>HALLOWEEN 2026</span><svg viewBox="0 0 200 90" style="transform:scaleX(-1)"><path fill="{OR}" d="{BAT}"/></svg></div>'
+    if halloween == 'tampon2':
+        hal = f'''<svg viewBox="0 0 240 240" style="position:absolute;left:1075px;top:470px;width:240px;height:240px;transform:rotate(14deg)">
+<defs><path id="ci" d="M120 120m-86 0a86 86 0 1 1 172 0a86 86 0 1 1 -172 0"/></defs>
+<circle cx="120" cy="120" r="112" fill="{INK}"/><circle cx="120" cy="120" r="102" fill="none" stroke="{OR}" stroke-width="3"/>
+<text font-family="Anton" font-size="25" fill="{OR}" letter-spacing="5.5"><textPath href="#ci">✦ HALLOWEEN ✦ HALLOWEEN ✦ HALLOWEEN</textPath></text>
+<text x="120" y="138" text-anchor="middle" font-family="Anton" font-size="62" fill="{CR}">2026</text></svg>'''
     if halloween == 'tampon':
         hal = f'''<svg viewBox="0 0 240 240" style="position:absolute;left:1080px;top:480px;width:230px;height:230px;transform:rotate(14deg)">
 <defs><path id="ci" d="M120 120m-86 0a86 86 0 1 1 172 0a86 86 0 1 1 -172 0"/></defs>
@@ -115,7 +130,12 @@ h1.l2{{top:445px;color:{OR};text-shadow:9px 9px 0 {INK}}}
 </div></body></html>'''
     open(fn, 'w').write(html)
 
-poster('affiche-creme-porte.html',  porte(),  label_ruban("T'AS LES COQUILLES ?", 70))
+poster('affiche-creme-porte.html',  porte(),  label_ruban("SCANNE SI T’OSES.", 72))
+poster('affiche-porte-hal-bandeau.html', porte(), label_ruban("SCANNE SI T’OSES.", 72), halloween='bandeau2')
+poster('affiche-porte-hal-seuil.html',   porte(seuil='HALLOWEEN 2026'), label_ruban("SCANNE SI T’OSES.", 72))
+poster('affiche-porte-hal-tampon.html',  porte(), label_ruban("SCANNE SI T’OSES.", 72), halloween='tampon2')
+open('svg/porte-nuit-lune.svg','w').write(porte_svg(masc=False, standalone=True))
+open('svg/porte-nuit-lune-seuil-halloween.svg','w').write(porte_svg(masc=False, seuil='HALLOWEEN 2026', standalone=True))
 poster('affiche-creme-goo.html',    goo(),    label_bulle('MÊME PAS CAP DE SCANNER !', 54), halloween='bandeau')
 poster('affiche-creme-ticket.html', ticket(), label_panneau('TROUILLARDS S’ABSTENIR', 57), halloween='tampon')
 
