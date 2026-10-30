@@ -71,7 +71,12 @@ a{color:inherit}
 #enter{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);z-index:3;pointer-events:auto;text-align:center;color:#1b0f05;transition:opacity .35s}
 #enter b{display:block;font:900 9cqw/1 "Playfair Display",Georgia,serif;font-style:italic}
 #enter span{display:inline-block;margin-top:3cqw;font:700 3.4cqw Inter;letter-spacing:.14em;text-transform:uppercase;background:#1b0f05;color:var(--pump2);border-radius:99px;padding:2cqw 4cqw;white-space:nowrap;animation:pulse 1.6s ease-in-out infinite}
-#enter.out{opacity:0;pointer-events:none}
+#enter.out,.gbrand.out{opacity:0;pointer-events:none}
+#intro.gate{pointer-events:auto;cursor:pointer}
+.brandb{text-align:center}
+.brandb b,.gbrand b{display:block;font:800 7.4cqw/1.1 'Playfair Display',Georgia,serif;color:var(--bone);letter-spacing:.01em}
+.brandb i,.gbrand i{display:block;font:italic 800 4.2cqw/1.5 'Playfair Display',Georgia,serif;color:#d6cfe0}.brandb em,.gbrand em{color:var(--pump)}
+.gbrand{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 6cqw);text-align:center;z-index:3;transition:opacity .35s}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
 #intro.gone{display:none}
 .bigmoon{position:absolute;left:50%;top:44%;width:120cqw;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle at 40% 38%,#fff3d6,#f6c98a 45%,#e08a3a 68%,transparent 70%);box-shadow:0 0 80px 30px rgba(249,115,22,.35);transition:opacity .6s}
@@ -174,7 +179,8 @@ a{color:inherit}
   <!-- entrée -->
   <div id="intro">
     <div class="bigmoon" id="bigmoon"></div>
-    <button id="enter" aria-label="Entrer dans le jeu"><b>Entre…<br>si t'oses</b><span>Touche la lune 🔊</span></button>
+    <button id="enter" aria-label="Entrer dans le jeu"><b>Entre…<br>si t'oses</b><span>Touche pour entrer</span></button>
+    <div class="gbrand" id="gbrand"><b>DREVICI OYSTER</b><i>8 Rue Biot, 75017 <em>Paris</em></i></div>
     <svg class="bat b1"><use href="#bat"/></svg><svg class="bat b2"><use href="#bat"/></svg><svg class="bat b3"><use href="#bat"/></svg><svg class="bat b4"><use href="#bat"/></svg>
   </div>
 
@@ -276,7 +282,7 @@ function playBats() {
 }
 async function intro() {
   const app = $('#app');
-  $('#enter').classList.add('out');
+  $('#enter').classList.add('out'); $('#gbrand').classList.add('out'); $('#intro').classList.remove('gate');
   playBats();
   await wait(150);
   $$('#intro .bat').forEach((b, i) => setTimeout(() => b.classList.add('go'), i * 170));
@@ -289,7 +295,7 @@ async function intro() {
   start();
 }
 if (matchMedia('(prefers-reduced-motion:reduce)').matches) { $('#intro').classList.add('gone'); $('#app').classList.remove('intro'); start(); }
-else $('#enter').addEventListener('click', intro, { once: true });
+else { $('#intro').classList.add('gate'); $('#intro').addEventListener('click', intro, { once: true }); }
 
 // Joueur déjà connu sur ce téléphone : on lui remontre son code.
 async function start() {
@@ -381,7 +387,7 @@ function result(d) {
   const top = d.result === 'shot'
     ? `<div class="k">${L.k}</div><h1>Le shot <i>offert</i></h1><div class="shot"><div class="g"></div><div class="liq"></div></div>`
     : `<div class="k">${L.k}</div><h1>Gagné${first ? `, <i>${esc(first)}</i>` : ' !'}</h1><img class="lot" src="${L.img}" alt="${L.alt}">`;
-  $('#res').innerHTML = skyHTML + `<div class="res"><div class="sp" style="flex:.5"></div>${top}<div class="what">${L.what}</div>${ticket(d.code, d.expires_at)}${btns(d.code)}<div class="sp"></div><div class="addr">Une seule partie par personne · 8 rue Biot, Paris 17e</div></div>`;
+  $('#res').innerHTML = skyHTML + `<div class="res"><div class="sp" style="flex:.5"></div>${top}<div class="what">${L.what}</div>${ticket(d.code, d.expires_at)}${btns(d.code)}<div class="sp"></div><div class="brandb"><b>DREVICI OYSTER</b><i>8 Rue Biot, 75017 <em>Paris</em></i></div></div>`;
   $('#res').classList.add('on');
 }
 function doneScreen() {
@@ -391,11 +397,11 @@ function doneScreen() {
     <img class="mascs" src="jeu/halloween/mascotte.webp" alt="">
     ${live ? `<div class="tx">Ton lot : <b>${esc(L.what.toLowerCase())}</b>.</div>${ticket(l.code, l.expires_at)}${btns(l.code)}`
            : `<div class="tx">Une partie par personne. ${l && l.redeemed ? 'Ton lot a bien été remis.' : 'Merci d\'avoir joué !'}</div><a class="btn2 o" href="book">Réserver une table</a><a class="btn2" href="${INSTA}" target="_blank" rel="noopener">Suivre @drevicioysterbar</a>`}
-    <div class="sp"></div><div class="addr">8 rue Biot, Paris 17e</div></div>`;
+    <div class="sp"></div><div class="brandb"><b>DREVICI OYSTER</b><i>8 Rue Biot, 75017 <em>Paris</em></i></div></div>`;
   $('#res').classList.add('on');
 }
 function closedScreen() {
-  $('#res').innerHTML = skyHTML + `<div class="res"><div class="k">Trick or Huître</div><h1>Le jeu est <i>terminé</i></h1><img class="mascs" src="jeu/halloween/mascotte.webp" alt=""><div class="tx">Merci d'avoir joué ! Suis-nous pour le prochain.</div><a class="btn2 o" href="${INSTA}" target="_blank" rel="noopener">Suivre @drevicioysterbar</a><div class="sp"></div><div class="addr">8 rue Biot, Paris 17e</div></div>`;
+  $('#res').innerHTML = skyHTML + `<div class="res"><div class="k">Trick or Huître</div><h1>Le jeu est <i>terminé</i></h1><img class="mascs" src="jeu/halloween/mascotte.webp" alt=""><div class="tx">Merci d'avoir joué ! Suis-nous pour le prochain.</div><a class="btn2 o" href="${INSTA}" target="_blank" rel="noopener">Suivre @drevicioysterbar</a><div class="sp"></div><div class="brandb"><b>DREVICI OYSTER</b><i>8 Rue Biot, 75017 <em>Paris</em></i></div></div>`;
   $('#res').classList.add('on');
 }
 
@@ -419,7 +425,7 @@ if (TEST) {
   document.body.insertAdjacentHTML('beforeend', '<div style="position:fixed;right:10px;top:calc(env(safe-area-inset-top) + 6px);background:#f97316;color:#1b0f05;font:700 10.5px Inter;border-radius:999px;padding:4px 9px;z-index:30;opacity:.9;white-space:nowrap">' + (TEST === 'demo' ? 'Démo' : 'Mode test') + ' · rien n\'est enregistré</div>');
   // bouton pour rejouer, sous le résultat
   const _result = result;
-  result = d => { _result(d); $('#res .res').insertAdjacentHTML('beforeend', '<button class="btn2" onclick="location.reload()" style="margin-top:3cqw">Rejouer la démo</button>'); };
+  result = d => { _result(d); $('#res .res .sp:last-of-type').insertAdjacentHTML('beforebegin', '<button class="btn2" onclick="location.reload()">Rejouer la démo</button>'); };
   const f = $('#f'); f.elements.first.value = 'Will'; f.elements.last.value = 'Drevici'; f.elements.email.value = 'test@drevici.fr'; f.elements.phone.value = '06 00 00 00 00';
 }
 </script>
