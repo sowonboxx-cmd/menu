@@ -94,10 +94,11 @@ revoke all on function public.jeu_play(bigint, text) from public, anon, authenti
 grant execute on function public.jeu_play(bigint, text) to service_role;
 
 -- Les deux jeux : copie de test (préview) et vrai jeu. Fin du vrai jeu : samedi 7 novembre 2026 à minuit.
-insert into public.jeu_config (client_slug, p_huitre, p_plateau, p_tshirt, valid_days, ends_at, code_prefix, lot_huitre, consolation) values
-  ('drevici-test--halloween-2026',  0.10, 0.02, 0.01, 7, null,                          'BOO', 'trio', 'shot'),
-  ('drevici-paris--halloween-2026', 0.10, 0.02, 0.01, 7, '2026-11-08 00:00:00+01',      'BOO', 'trio', 'shot')
-on conflict (client_slug) do update set p_huitre = excluded.p_huitre, p_plateau = excluded.p_plateau, p_tshirt = excluded.p_tshirt,
+-- Stock : 10 plateaux et 10 T-shirts au maximum (une fois atteint, le lot devient le shot) ; 3 huîtres et shot sans limite.
+insert into public.jeu_config (client_slug, p_huitre, p_plateau, p_tshirt, max_plateau, max_tshirt, valid_days, ends_at, code_prefix, lot_huitre, consolation) values
+  ('drevici-test--halloween-2026',  0.10, 0.02, 0.01, 10, 10, 7, null,                          'BOO', 'trio', 'shot'),
+  ('drevici-paris--halloween-2026', 0.10, 0.02, 0.01, 10, 10, 7, '2026-11-08 00:00:00+01',      'BOO', 'trio', 'shot')
+on conflict (client_slug) do update set p_huitre = excluded.p_huitre, p_plateau = excluded.p_plateau, p_tshirt = excluded.p_tshirt, max_plateau = excluded.max_plateau, max_tshirt = excluded.max_tshirt,
   valid_days = excluded.valid_days, ends_at = excluded.ends_at, code_prefix = excluded.code_prefix, lot_huitre = excluded.lot_huitre, consolation = excluded.consolation;
 
 -- L'équipe du restaurant voit aussi les joueurs et les parties de ses jeux d'un moment (statistiques).
