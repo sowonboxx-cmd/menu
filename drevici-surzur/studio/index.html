@@ -135,8 +135,8 @@ button{cursor:pointer;background:none}
 .qh-set .sq{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:none}.qh-set .sq img,.qh-set .sq svg{width:22px;height:22px}
 .qh-set .t{flex:1;min-width:0}.qh-set .t b{display:block;font:600 14px Inter;color:#111}.qh-set .t small{display:block;font:500 12px/1.35 Inter;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .qh-set .v{font:600 12.5px Inter;color:var(--mut);white-space:nowrap}
-.qh-split{display:block}.qh-split .qh-right{display:none}.qh-split .qh-set{display:none}
-@media(min-width:900px){.qh-split{display:grid;grid-template-columns:360px 1fr;gap:18px;align-items:start}.qh-split .qh-left{position:sticky;top:12px}.qh-split .qh-right{display:block;min-width:0}.qh-split .qh-set{display:block}.qh-split .qh-wal{display:none}}
+.qh-split{display:block}.qh-split .qh-right{display:none}.qh-split .qh-wal{display:none}
+@media(min-width:900px){.qh-split{display:grid;grid-template-columns:360px 1fr;gap:18px;align-items:start}.qh-split .qh-left{position:sticky;top:12px}.qh-split .qh-right{display:block;min-width:0}}
 .qh-hero{position:relative;border-radius:22px;overflow:hidden;color:#fff;padding:18px 20px;min-height:170px;margin-bottom:12px}
 .qh-hero .qh-tag{position:relative;z-index:1;font:800 11px Inter;letter-spacing:.12em;text-transform:uppercase;opacity:.85}
 .qh-hero h2{position:relative;z-index:1;font:800 28px/1.05 "Playfair Display",serif;margin:8px 0 6px;max-width:66%;color:#fff}.qh-hero h2 i{color:#f97316}
@@ -1133,7 +1133,7 @@ function renderQRHome(){
   const {live,plan}=camps();
   if(!QSEL||!live.some(c=>c.n===QSEL))QSEL=live[0]&&live[0].n;
   const wal=live.map((c,i)=>`<a class="qh-wc" href="#qrc/${encodeURIComponent(c.n)}" style="background:${c.m.col};z-index:${i}"><div class="h">${icHTML(c.m)}<b>${esc(c.n)}</b>${c.todo?`<span class="qh-badge" style="background:#fff;color:#1b1222">${c.todo} à remettre</span>`:`<span class="qh-k" style="font-size:17px">${c.b}<small style="display:inline;margin-left:4px">${c.bl}</small></span>`}</div><small>${esc(c.m.d)}</small><div class="row"><div class="qh-k">${c.a}<small>${c.al}</small></div><div class="qh-k" style="text-align:right">${c.b}<small>${c.bl}</small></div></div></a>`).join('');
-  const set=live.map(c=>`<a class="${c.n===QSEL?'on':''}" data-qsel="${esc(c.n)}"><span class="sq" style="background:${c.m.sq||c.m.col}">${icHTML(c.m)}</span><span class="t"><b>${esc(c.n)}</b><small>${esc(c.m.d)}</small></span>${c.todo?`<span class="qh-badge">${c.todo}</span>`:`<span class="v">${c.b} ${c.bl}</span>`}</a>`).join('');
+  const set=live.map(c=>`<a class="${c.n===QSEL&&matchMedia('(min-width:900px)').matches?'on':''}" href="#qrc/${encodeURIComponent(c.n)}" data-qsel="${esc(c.n)}"><span class="sq" style="background:${c.m.sq||c.m.col}">${icHTML(c.m)}</span><span class="t"><b>${esc(c.n)}</b><small>${esc(c.m.d)}</small></span>${c.todo?`<span class="qh-badge">${c.todo}</span>`:`<span class="v">${c.b} ${c.bl}</span>`}</a>`).join('');
   const pl=plan.length?`<div class="qh-sec">À planifier<i></i></div><div class="qh-plan">${plan.map(c=>`<a href="${c.plan?'#qr-new':'#qrc/'+encodeURIComponent(c.n)}"><img src="${ICO(c.m.ic==='pk'?'Barre-a-roue':c.m.ic).replace('_Blanc','_Bleu')}" alt=""><span><b>${esc(c.n)}</b><small>${c.plan?'Pas encore de QR':c.qs.every(q=>q.is_test)?'Codes de test':'En pause'}</small></span></a>`).join('')}</div>`:'';
   document.getElementById('qrHome').innerHTML=`<div class="qh-split"><div class="qh-left"><div class="qh-sec"><span class="qh-dot"></span>En cours<i></i></div>
     <div class="qh-wal">${wal||'<p class="empty">Aucune campagne en cours.</p>'}</div><div class="qh-set">${set}</div>${pl}</div>
@@ -1163,7 +1163,8 @@ function renderQRC(n){
 }
 document.addEventListener('click',e=>{
   const s=e.target.closest&&e.target.closest('[data-qsel]');
-  if(s){QSEL=s.dataset.qsel;QTAB='res';renderQRHome();return;}
+  // ordinateur : le détail s'affiche à droite ; téléphone : on ouvre la page de la campagne
+  if(s){QTAB='res';if(!matchMedia('(min-width:900px)').matches)return;e.preventDefault();QSEL=s.dataset.qsel;renderQRHome();return;}
   const t=e.target.closest&&e.target.closest('[data-qtab]');
   if(t){QTAB=t.dataset.qtab;if(location.hash.startsWith('#qrc/'))renderQRC(t.dataset.qc);else{QSEL=t.dataset.qc;renderQRHome();}}
 });
