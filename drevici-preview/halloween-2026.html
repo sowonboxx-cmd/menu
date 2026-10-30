@@ -528,7 +528,9 @@ const LOTS = {
 const until = d => new Date(d).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 // Shot et T-shirt : au comptoir, sans réserver. Huîtres : en réservant une table.
 const ticket = (code, exp, res) => `<div class="tick"><div class="c">${esc(code)}</div><small>${res === 'shot' ? 'Montre ce code au comptoir, sans réserver' : res === 'tshirt' ? 'Dis-nous quand tu passes et montre ce code au comptoir' : 'Réserve une table et montre ce code en arrivant'} · avant le <b>${until(exp)}</b></small></div>`;
-const btns = code => `<a class="btn2 o" href="book?jeu=${encodeURIComponent(code || '')}">Réserver une table</a><a class="btn2" href="${INSTA}" target="_blank" rel="noopener">Suivre @drevicioysterbar</a>`;
+// Réservation : la page officielle du restaurant (le code du lot est noté dans la réservation)
+const BOOK = 'https://drevici.beltab.app/book';
+const btns = code => `<a class="btn2 o" href="${BOOK}?jeu=${encodeURIComponent(code || '')}">Réserver une table</a><a class="btn2" href="${INSTA}" target="_blank" rel="noopener">Suivre @drevicioysterbar</a>`;
 const skyHTML = '<div class="sky"></div><div class="burst"></div>';
 function result(d) {
   const L = LOTS[d.result] || LOTS.shot, first = (ME && ME.first) || '';
@@ -544,7 +546,7 @@ function doneScreen() {
   $('#res').innerHTML = skyHTML + `<div class="res"><div class="k">Trick or Huître</div><h1>Tu as déjà <i>joué</i></h1>
     <img class="mascs" src="jeu/halloween/mascotte.webp" alt="">
     ${live ? `<div class="tx">Ton lot : <b>${esc(L.what.toLowerCase())}</b>.</div>${ticket(l.code, l.expires_at, l.result)}${btns(l.code)}`
-           : `<div class="tx">Une partie par personne. ${l && l.redeemed ? 'Ton lot a bien été remis.' : 'Merci d\'avoir joué !'}</div><a class="btn2 o" href="book">Réserver une table</a><a class="btn2" href="${INSTA}" target="_blank" rel="noopener">Suivre @drevicioysterbar</a>`}
+           : `<div class="tx">Une partie par personne. ${l && l.redeemed ? 'Ton lot a bien été remis.' : 'Merci d\'avoir joué !'}</div><a class="btn2 o" href="${BOOK}">Réserver une table</a><a class="btn2" href="${INSTA}" target="_blank" rel="noopener">Suivre @drevicioysterbar</a>`}
     <div class="sp"></div><div class="brandb"><b>DREVICI OYSTER</b><i>8 Rue Biot, 75017 <em>Paris</em></i></div></div>`;
   $('#res').classList.add('on');
 }

@@ -23,7 +23,7 @@ eyes = ''.join(rr(x, y, 7, 2.6, k) + rr(x + 1, y + 1, 5, 1.9, k) for x, y, k in 
 dots = ''.join(f'<circle cx="{x+3.5}" cy="{y+3.5}" r="1.55"/>' for x, y in [(0, 0), (n - 7, 0), (0, n - 7)])
 href = 'logo.png'
 if inline:
-    im = Image.open('logo.png').convert('RGB').resize((700, 700), Image.LANCZOS); b = io.BytesIO(); im.save(b, 'PNG')
+    im = Image.open('logo.png').convert('RGB').resize((1600, 1600), Image.LANCZOS); b = io.BytesIO(); im.save(b, 'PNG')
     href = 'data:image/png;base64,' + base64.b64encode(b.getvalue()).decode()
 x0, s = a + .25, L - .5
 svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 {n+2} {n+2}"{" width=\"1000\" height=\"1000\"" if inline else ""}>'
