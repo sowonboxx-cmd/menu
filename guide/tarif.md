@@ -30,7 +30,7 @@ Chaque formule comprend la précédente (à partir de Starter ; Quartier est une
   - Site simple, **hébergé sur une adresse Beltab** (nom.beltab.app) : pas de nom de domaine à acheter ni à configurer. Un nom de domaine à lui : en option, sur devis.
   - Une ou deux photos en ouverture (prises sur place, pas de vidéo), la carte et les formules, boutons Appeler et Réserver
   - Réservation en ligne simple : heure, nom, téléphone, nombre de personnes. Email au restaurant et au client, **aucun SMS**. Admin réduit à la liste des réservations.
-  - **Pas de modification par le restaurant** : il envoie sa demande, nous faisons le changement. **2 modifications par mois comprises**, puis **39 € la modification**.
+  - **Pas de modification par le restaurant** : il envoie sa demande, nous faisons le changement. **2 modifications par mois comprises**, puis **39 € la modification**. Elles concernent **le menu du site uniquement**, pas Google : la mise à jour de Beltab Menu reste à 149 €.
   - Mise en service payable en une fois, ou étalée sur 12 mois (environ 25 € de plus par mois). Prêt dans la journée.
   - Ensuite, proposer Beltab Menu (section 3) pour être visible sur Google Maps et Instagram.
 - **Starter**
