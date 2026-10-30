@@ -110,4 +110,9 @@ begin
       using (exists (select 1 from public.restaurant_admins a where a.user_id = auth.uid() and a.client_slug = split_part(%1$s.client_slug, ''--'', 1)))', t);
   end loop;
 end $$;
+
+-- Le QR de l'affiche A0 (go.beltab.app/HALLOWEEN-AFFICHE-1 → page du jeu, scans comptés dans Studio → Scans QR)
+insert into public.cabine_qr (client_slug, code, label, category, owner, destination, goal, campaign, support, place, num, path, style, note)
+values ('drevici','HALLOWEEN-AFFICHE-1','Affiche A0 · Trick or Huître','Affiches rue','Will','/halloween-2026','Partie jouée','Halloween 2026','Affiche','biot',1,'halloween-2026/affiche-1','losange','Affiche A0 « TRICK OR HUÎTRE »')
+on conflict (code) do nothing;
 notify pgrst, 'reload schema';
