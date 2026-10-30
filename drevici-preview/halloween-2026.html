@@ -207,7 +207,7 @@ let SRC = (QS.get('src') || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0
 try { if (SRC) localStorage.setItem('beltab_src', JSON.stringify({ code: SRC, t: Date.now() })); else { const o = JSON.parse(localStorage.getItem('beltab_src') || 'null'); if (o && o.code && Date.now() - o.t < 7 * 864e5) SRC = o.code; } } catch (_) {}
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
 const store = { get() { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (_) { return null; } }, set(v) { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (_) {} } };
-// Mode test (préview seulement) : ?test=trio | plateau | tshirt | shot | hasard · rien n'est envoyé ni gardé.
+// Mode test (préview seulement) : ?test=trio | plateau | tshirt | shot | hasard | demo (les 4 lots à chance égale) · rien n'est envoyé ni gardé.
 const TEST = /preview|localhost|127\.0\.0\.1/.test(location.host) ? (QS.get('test') || '').toLowerCase() : '';
 let ME = TEST ? null : store.get();   // {t, first, club, last}
 let PICK = 0;
@@ -353,12 +353,17 @@ document.addEventListener('click', e => {
 // ═══ Mode test ═══
 function testPlay(body) {
   let res = { trio: 'trio', huitre: 'trio', gagne: 'trio', plateau: 'plateau', tshirt: 'tshirt', shot: 'shot', perdu: 'shot' }[TEST];
+  // démo : chaque lot a la même chance, pour montrer tous les écrans
+  if (TEST === 'demo') res = ['trio', 'plateau', 'tshirt', 'shot'][Math.floor(Math.random() * 4)];
   if (!res) { const r = Math.random(); res = r < .01 ? 'tshirt' : r < .03 ? 'plateau' : r < .13 ? 'trio' : 'shot'; }
   ME = { t: '', first: body.first || 'Test', club: body.optin === true, plays_left: 0 };
   return { ok: true, result: res, code: 'BOO-TEST', expires_at: new Date(Date.now() + 7 * 864e5).toISOString(), plays_left: 0 };
 }
 if (TEST) {
-  document.body.insertAdjacentHTML('beforeend', '<div style="position:fixed;right:10px;top:calc(env(safe-area-inset-top) + 6px);background:#f97316;color:#1b0f05;font:700 10.5px Inter;border-radius:999px;padding:4px 9px;z-index:30;opacity:.9;white-space:nowrap">Mode test · rien n\'est enregistré</div>');
+  document.body.insertAdjacentHTML('beforeend', '<div style="position:fixed;right:10px;top:calc(env(safe-area-inset-top) + 6px);background:#f97316;color:#1b0f05;font:700 10.5px Inter;border-radius:999px;padding:4px 9px;z-index:30;opacity:.9;white-space:nowrap">' + (TEST === 'demo' ? 'Démo' : 'Mode test') + ' · rien n\'est enregistré</div>');
+  // bouton pour rejouer, sous le résultat
+  const _result = result;
+  result = d => { _result(d); $('#res .res').insertAdjacentHTML('beforeend', '<button class="btn2" onclick="location.reload()" style="margin-top:3cqw">Rejouer la démo</button>'); };
   const f = $('#f'); f.elements.first.value = 'Will'; f.elements.last.value = 'Drevici'; f.elements.email.value = 'test@drevici.fr'; f.elements.phone.value = '06 00 00 00 00';
 }
 </script>
