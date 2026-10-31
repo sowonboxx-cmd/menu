@@ -143,10 +143,10 @@ a{color:inherit}
 @keyframes swoop{0%{transform:translate(-30%,40%) scale(.15) rotate(-20deg);opacity:0}20%{opacity:1}60%{transform:translate(0,0) scale(1.6) rotate(0);opacity:1}100%{transform:translate(90%,-140%) scale(3.4) rotate(14deg);opacity:0}}
 
 /* ── formulaire (feuille qui monte) ── */
-#veil{position:absolute;inset:0;z-index:8;background:rgba(5,4,8,.55);opacity:0;pointer-events:none;transition:opacity .3s}
+#veil{position:absolute;inset:0;z-index:13;background:rgba(5,4,8,.55);opacity:0;pointer-events:none;transition:opacity .3s}
 #veil.on{opacity:1;pointer-events:auto}
-#sheet{position:absolute;left:0;right:0;bottom:0;z-index:9;background:var(--night2);border-radius:6cqw 6cqw 0 0;padding:5.5cqw 5.5cqw calc(env(safe-area-inset-bottom) + 4cqw);box-shadow:0 -.4cqw 0 rgba(249,115,22,.45),0 -20px 60px rgba(0,0,0,.6);transform:translateY(105%);transition:transform .38s cubic-bezier(.2,.9,.3,1);max-height:92%;overflow:auto}
-#sheet.on{transform:none}
+#sheet{position:absolute;left:0;right:0;bottom:0;z-index:14;background:var(--night2);border-radius:6cqw 6cqw 0 0;padding:5.5cqw 5.5cqw calc(env(safe-area-inset-bottom) + 4cqw);box-shadow:0 -.4cqw 0 rgba(249,115,22,.45),0 -20px 60px rgba(0,0,0,.6);transform:translateY(105%);transition:transform .38s cubic-bezier(.2,.9,.3,1);max-height:92%;overflow:auto}
+#sheet.on{transform:none}#sheet:not(.on){box-shadow:none}
 #sheet .grab{width:12cqw;height:1.2cqw;border-radius:9px;background:#3a2f48;margin:-2cqw auto 3.5cqw}
 #sheet h2{font:800 5.8cqw/1.15 "Inter Tight",Inter;letter-spacing:-.01em}
 #sheet h2 em{font-style:normal;color:var(--pump)}
@@ -186,6 +186,10 @@ a{color:inherit}
 .tick .c{font:600 7.6cqw 'IBM Plex Mono',monospace;letter-spacing:.14em;user-select:all}
 .tick small{display:block;font:600 3.2cqw/1.4 Inter;color:#6b5b7b;margin-top:1cqw;border-top:1px dashed #d6c9b8;padding-top:1.6cqw}
 .tick small b{color:#c2410c}
+.tick.lock{position:relative}.tick.lock .c{filter:blur(7px)}.tick.lock small{filter:blur(4px)}
+.tick.lock .lk{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:800 4cqw Inter;color:#1b1222}
+#unlock{margin-top:4cqw}.lknote{font:500 3.1cqw/1.45 Inter;color:#cfc6dc;margin-top:2.4cqw}
+.res .sent{position:absolute;top:calc(env(safe-area-inset-top) + 3cqw);left:6%;right:6%;background:#a3e635;color:#1b1222;font:700 3.4cqw Inter;border-radius:99px;padding:2.4cqw;z-index:3}
 .btn2{display:block;width:100%;margin-top:2.4cqw;border-radius:99px;padding:3.4cqw;font:700 3.8cqw Inter;background:var(--field);color:var(--bone);text-decoration:none}
 .btn2.o{background:var(--pump);color:#1b0f05}
 .shot{width:30cqw;aspect-ratio:.72;margin:6cqw 0 3cqw}
@@ -454,7 +458,7 @@ function choose(el, label) {
   const what = lab ? 'le ' + lab : GAME.the + (el && el.dataset && el.dataset.pick ? ' ' + PICK : '');
   $('#sheet h2').innerHTML = (JEU === 'roue' ? 'Avant de lancer ' : JEU === 'chaudron' ? 'Avant de goûter ' : "Avant d'ouvrir ") + `<em>${what}</em>`;
   track('click', 'jeu_choix');
-  setTimeout(() => openSheet(true), JEU === 'portes' ? 650 : 250);
+  setTimeout(playFirst, JEU === 'portes' ? 650 : 250);
 }
 $$('[data-jar],[data-pick]').forEach(b => b.addEventListener('click', () => choose(b)));
 if ($('#wheel')) $('#wheel').addEventListener('click', () => choose(null, 'La roue va tourner…'));
@@ -476,7 +480,7 @@ function openSheet(on) {
     $$('[data-pick]').forEach(j => { j.classList.remove('dim', 'on'); j.classList.add('wob'); });
   }
 }
-$('#veil').addEventListener('click', () => { if (!$('#fgo').disabled) openSheet(false); });
+$('#veil').addEventListener('click', () => { if ($('#fgo').disabled) return; if (DRAW) { $('#sheet').classList.remove('on'); $('#veil').classList.remove('on'); } else openSheet(false); });
 
 // ═══ Inscription → le tirage est fait par le serveur ═══
 $('#f').addEventListener('submit', async e => {
@@ -489,11 +493,19 @@ $('#f').addEventListener('submit', async e => {
   if (v('phone').replace(/\D/g, '').length < 9) return err.textContent = 'Ce numéro ne semble pas valide.';
   go.disabled = true; go.textContent = 'Un instant…';
   let d = null;
-  try { d = await play({ first: v('first'), last: v('last'), email: v('email'), phone: v('phone'), optin: f.elements.optin.checked, hp: v('hp') }); }
+  try { d = await play({ first: v('first'), last: v('last'), email: v('email'), phone: v('phone'), optin: f.elements.optin.checked, hp: v('hp'), draw: DRAW && DRAW.draw }); }
   catch (_) { err.textContent = 'Connexion impossible, réessaie.'; }
-  go.disabled = false; go.textContent = CTA;
+  go.disabled = false; go.textContent = DRAW ? 'Recevoir mon code' : CTA;
   if (!d) return;
   track('click', 'jeu_inscrit');
+  // « on joue d'abord » : le lot est déjà affiché, on montre simplement le code
+  if (DRAW) {
+    $('#sheet').classList.remove('on'); $('#veil').classList.remove('on');
+    DRAW = null; try { localStorage.removeItem(KEY + '_draw'); } catch (_) {}
+    result(d);
+    $('#res .res').insertAdjacentHTML('afterbegin', `<div class="sent">✓ Code envoyé à ${esc(v('email'))}</div>`);
+    return;
+  }
   // le bocal choisi s'ouvre
   $('#sheet').classList.remove('on'); $('#veil').classList.remove('on');
   await wait(350);
@@ -502,6 +514,44 @@ $('#f').addEventListener('submit', async e => {
   // avant le cadeau : les chauves-souris foncent sur l'écran, et le lot apparaît derrière elles
   await batSwoop(GAME.silentSwoop, () => { $('#flash').classList.add('on'); setTimeout(() => $('#flash').classList.remove('on'), 260); result(d); });
 });
+// ═══ On joue d'abord : le serveur tire le lot (attaché au téléphone), on s'inscrit ensuite pour le récupérer ═══
+const DEV = (() => { try { let x = localStorage.getItem('jeu_dev'); if (!x) { x = Array.from(crypto.getRandomValues(new Uint8Array(12)), b => b.toString(16).padStart(2, '0')).join(''); localStorage.setItem('jeu_dev', x); } return x; } catch (_) { return Math.random().toString(16).slice(2) + Date.now().toString(16); } })();
+let DRAW = null;
+async function playFirst() {
+  let d;
+  try {
+    if (TEST) d = testDraw();
+    else { const r = await fetch(API + '/jeu/draw', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ slug: JEU_SLUG, dev: DEV, src: SRC }) }); d = await r.json(); }
+  } catch (_) { d = { ok: false }; }
+  if (!d || !d.ok) { if (d && d.closed) return closedScreen(); openSheet(false); $('#hint').textContent = 'Connexion impossible, réessaie.'; return; }
+  if (d.claimed && ME && ME.t) { await refreshMe(); return doneScreen(); }
+  DRAW = d; track('click', 'jeu_tirage_' + d.result);
+  if (navigator.vibrate) navigator.vibrate([20, 40, 20, 40, 60]);
+  await GAME.reveal(d);
+  await batSwoop(GAME.silentSwoop, () => { $('#flash').classList.add('on'); setTimeout(() => $('#flash').classList.remove('on'), 260); resultLocked(d); });
+}
+function resultLocked(d) {
+  const L = LOTS[d.result] || LOTS.shot;
+  const top = d.result === 'shot' ? `<div class="k">${L.k}</div><h1>Le shot <i>offert</i></h1><div class="shot"><div class="g"></div><div class="liq"></div></div>`
+    : `<div class="k">${L.k}</div><h1>Tu as <i>gagné</i> !</h1><img class="lot" src="${L.img}" alt="${L.alt}">`;
+  $('#res').innerHTML = skyHTML + `<div class="res"><div class="sp" style="flex:.5"></div>${top}<div class="what">${L.what}</div>
+    <div class="tick lock"><div class="c">BOO-7K2R</div><small>Montre ce code au comptoir</small><div class="lk">🔒 Ton code est prêt</div></div>
+    <button class="cta" id="unlock" type="button">Récupérer mon lot</button>
+    <div class="lknote">On t'envoie ton code par email pour ne pas le perdre.<br>Ton tirage est enregistré : rejouer ne change rien.</div>
+    <div class="sp"></div><div class="brandb"><b>DREVICI OYSTER</b><i>8 Rue Biot, 75017 <em>Paris</em></i></div></div>`;
+  $('#res').classList.add('on');
+  $('#unlock').onclick = () => {
+    $('#sheet h2').innerHTML = 'Dernière étape : <em>ton code</em>';
+    $('#sheet .p').textContent = 'Pour t\'envoyer ton code et éviter les doubles parties.';
+    $('#fgo').textContent = 'Recevoir mon code'; $('#sheet').classList.add('on'); $('#veil').classList.add('on');
+  };
+}
+function testDraw() {
+  let res = { trio: 'trio', huitre: 'trio', gagne: 'trio', plateau: 'plateau', tshirt: 'tshirt', shot: 'shot', perdu: 'shot' }[TEST];
+  if (TEST === 'demo') res = ['trio', 'plateau', 'tshirt', 'shot'][Math.floor(Math.random() * 4)];
+  if (!res) { const r = Math.random(); res = r < .01 ? 'tshirt' : r < .03 ? 'plateau' : r < .13 ? 'trio' : 'shot'; }
+  return { ok: true, draw: 'test', result: res };
+}
 async function play(body) {
   if (TEST) return testPlay(body);
   const r = await fetch(API + '/jeu/play', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ slug: JEU_SLUG, src: SRC, ...body }) });
@@ -510,6 +560,7 @@ async function play(body) {
   if (d.club && d.club.code) { try { const k = 'club_' + SITE_SLUG, old = JSON.parse(localStorage.getItem(k) || 'null'); if (!old || old.code !== d.club.code) localStorage.setItem(k, JSON.stringify({ at: Date.now(), code: d.club.code, no: d.club.no, first: d.club.first || d.first })); } catch (_) {} }
   if (!d.ok) {
     if (d.reset) { ME = null; store.set(null); $('#ferr').textContent = d.error; return null; }
+    if (d.reset_draw) { DRAW = null; openSheet(false); $('#res').classList.remove('on'); return null; }
     openSheet(false);
     if (d.closed) { closedScreen(); return null; }
     if (d.done) { await refreshMe(); doneScreen(); return null; }
@@ -564,6 +615,7 @@ document.addEventListener('click', e => {
 
 // ═══ Mode test ═══
 function testPlay(body) {
+  if (DRAW) { ME = { t: '', first: body.first || 'Test', club: body.optin === true, plays_left: 0 }; return { ok: true, result: DRAW.result, code: 'BOO-TEST', expires_at: new Date(Date.now() + 7 * 864e5).toISOString(), plays_left: 0 }; }
   let res = { trio: 'trio', huitre: 'trio', gagne: 'trio', plateau: 'plateau', tshirt: 'tshirt', shot: 'shot', perdu: 'shot' }[TEST];
   // démo : chaque lot a la même chance, pour montrer tous les écrans
   if (TEST === 'demo') res = ['trio', 'plateau', 'tshirt', 'shot'][Math.floor(Math.random() * 4)];

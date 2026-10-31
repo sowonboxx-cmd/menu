@@ -78,6 +78,18 @@ export default {
       try { b = await req.json(); const r = await jeuPlay(env, b); return json(r, 200, cors); }
       catch (e) { console.error('jeu/play', e); return json({ ok: false, error: 'Le jeu est momentanément indisponible, réessayez dans un instant.', ...(String(b.slug || '').endsWith('-test') ? { detail: String(e && e.message || e) } : {}) }, 500, cors); }
     }
+    // Jeu « on joue d'abord » : tirage avant l'inscription (sql/jeu-tirage-avant.sql)
+    if (req.method === 'POST' && url.pathname === '/jeu/draw') {
+      try {
+        const b = await req.json(), slug = String(b.slug || ''), dev = String(b.dev || '').replace(/[^a-z0-9]/gi, '').slice(0, 40);
+        if (!jeuSlugOk(slug) || !slug.includes('--') || dev.length < 12) return json({ ok: false, error: 'Jeu inconnu' }, 400, cors);
+        const ip = req.headers.get('cf-connecting-ip') || '';
+        const ipHash = ip ? [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(slug + '|' + ip)))].map(x => x.toString(16).padStart(2, '0')).join('').slice(0, 32) : null;
+        const src = String(b.src || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 40) || null;
+        const r = await sb(env, 'rpc/jeu_draw', { method: 'POST', body: { p_slug: slug, p_device: dev, p_ip: ipHash, p_src: src } });
+        return json(r && r.ok ? { ok: true, draw: r.draw, result: r.result, prize: JEU_LOTS[r.result], claimed: !!r.claimed } : { ok: false, closed: !!(r && r.closed), error: r && r.closed ? 'Le jeu est terminé.' : 'Réessayez dans un instant' }, 200, cors);
+      } catch (e) { console.error('jeu/draw', e); return json({ ok: false, error: 'Le jeu est momentanément indisponible, réessayez dans un instant.' }, 500, cors); }
+    }
     if (req.method === 'GET' && url.pathname === '/jeu/me') {
       try { return json(await jeuMe(env, String(url.searchParams.get('slug') || ''), String(url.searchParams.get('t') || '')), 200, cors); }
       catch (e) { return json({ ok: false, error: String(e && e.message || e) }, 500, cors); }
@@ -782,14 +794,17 @@ async function jeuPlay(env, b) {
       if (!pl) return { ok: false, error: 'Réessayez dans un instant' };
     }
   }
-  const r = await sb(env, 'rpc/jeu_play', { method: 'POST', body: { p_player: pl.id, p_src: src } });
+  // tirage déjà fait avant l'inscription (« on joue d'abord ») : on le rattache au joueur
+  const draw = String(b.draw || '').replace(/[^a-f0-9]/g, '').slice(0, 64);
+  const r = draw ? await sb(env, 'rpc/jeu_claim', { method: 'POST', body: { p_player: pl.id, p_draw: draw } })
+                 : await sb(env, 'rpc/jeu_play', { method: 'POST', body: { p_player: pl.id, p_src: src } });
   // Carte du club : seulement si la case « Je rejoins le club » est cochée (elle vaut accord pour les offres).
   // Sans la case : on joue pour le lot, sans carte ni coupe, et les coordonnées ne servent qu'au jeu.
   let club = null;
   if (pl.optin) { try { club = await jeuClub(env, st, jeuBase(slug), pl, src); } catch (e) { console.warn('jeu club', e); } }
   const base = { t: pl.token, ref_code: pl.ref_code, first: pl.first_name, club };
-  if (!r || !r.ok) return { ...base, ok: false, done: !!(r && r.done), closed: !!(r && r.closed), bonus_used: !!(r && r.bonus_used),
-    error: r && r.closed ? 'Le jeu est terminé.' : r && r.done ? 'Vous avez déjà joué.' : 'Réessayez dans un instant' };
+  if (!r || !r.ok) return { ...base, ok: false, done: !!(r && r.done), closed: !!(r && r.closed), bonus_used: !!(r && r.bonus_used), reset_draw: !!(r && r.reset_draw),
+    error: r && r.closed ? 'Le jeu est terminé.' : r && r.done ? 'Vous avez déjà joué.' : (r && r.error) || 'Réessayez dans un instant' };
   if (r.result !== 'perdu' && r.result !== 'shot' && st.notify_email) {
     // petit mot à l'équipe : un lot gagné (pour prévoir au comptoir)
     sendEmail(env, st, st.notify_email, st.restaurant_name, `${jeuNom(slug)} · ${JEU_LOTS[r.result]} gagné(e) par ${pl.first_name}`,
