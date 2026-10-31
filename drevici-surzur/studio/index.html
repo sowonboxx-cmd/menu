@@ -115,6 +115,11 @@ button{cursor:pointer;background:none}
 /* pages */
 .card{background:#fff;border-radius:var(--r);padding:16px;margin-bottom:12px}
 /* Scans QR : campagnes en cartes (téléphone) · liste + détail (ordinateur) */
+.hconv{display:flex;align-items:center;gap:16px;background:linear-gradient(120deg,#1b1222,#3a2350);color:#fff;border-radius:16px;padding:14px 16px;margin:0 0 12px}
+.hconv .ring{--p:0;flex:none;width:82px;height:82px;border-radius:50%;background:conic-gradient(#f97316 calc(var(--p)*1%),rgba(255,255,255,.14) 0);display:flex;align-items:center;justify-content:center}
+.hconv .ring b{width:66px;height:66px;border-radius:50%;background:#241830;display:flex;align-items:center;justify-content:center;font:800 24px "Inter Tight",Inter;color:#fff}.hconv .ring small{font-size:13px;margin-left:1px;color:#fdba74}
+.hcx small{display:block;font:700 11px Inter;letter-spacing:.08em;text-transform:uppercase;color:#fdba74}.hcx>b{display:block;font:800 26px "Inter Tight",Inter;margin:3px 0}.hcx>b span{font:600 14px Inter;color:#cfc6dc}
+.hcx i{display:block;font:500 12.5px/1.45 Inter;color:#d6cfe0;font-style:normal}.hcx i b{color:#fff}
 .qh-sec{font:800 11px Inter;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);margin:16px 2px 9px;display:flex;align-items:center;gap:8px}.qh-sec i{flex:1;height:1px;background:#ddd5c4}
 .qh-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px rgba(46,139,87,.16)}
 .qh-badge{display:inline-flex;align-items:center;font:800 11px Inter;padding:3px 8px;border-radius:99px;background:var(--red);color:#fff;white-space:nowrap}
@@ -1015,7 +1020,9 @@ async function loadQR(){
   try{const HS=JEU_SLUG+'--halloween-2026';const [hp,hy]=await Promise.all([
       sb.from('jeu_players').select('id,src,optin,created_at,first_name,last_name,email,phone').eq('client_slug',HS).limit(20000),
       sb.from('jeu_plays').select('id,player_id,src,result,code,expires_at,redeemed_at,n,mode,created_at').eq('client_slug',HS).limit(50000)]);
-    HAL={players:hp.data||[],plays:hy.data||[]};}catch(e){HAL={players:[],plays:[]};}
+    HAL={players:hp.data||[],plays:hy.data||[]};
+    try{const dr=await sb.from('jeu_draws').select('created_at,claimed_at,result').eq('client_slug',HS).limit(50000);HAL.draws=dr.data||[];}catch(e){HAL.draws=[];}
+  }catch(e){HAL={players:[],plays:[],draws:[]};}
   // les joueurs d'Halloween comptent aussi dans le parcours de leur QR (scans → joueurs → lots)
   JEU.players=JEU.players.concat(HAL.players);JEU.plays=JEU.plays.concat(HAL.plays);
   try{const c=await sb.from('jeu_config').select('*').eq('client_slug',JEU_SLUG).maybeSingle();JCFG=c.data||null;}catch(e){JCFG=null;}
@@ -1304,7 +1311,18 @@ function halStats(){
   const P=HAL.plays,n=r=>P.filter(y=>y.result===r).length,rem=r=>P.filter(y=>y.result===r&&y.redeemed_at).length;
   const cell=(t,r,max)=>`<div><small>${t}</small><b class="num">${n(r)}${max?'<span style="font-size:.55em;opacity:.6"> / '+max+'</span>':''}</b><i>${rem(r)} remis</i></div>`;
   const today=P.filter(y=>new Date(y.created_at).toDateString()===new Date().toDateString()).length;
-  return `<div class="card"><h2>🎃 Trick or Huître · Halloween 2026</h2>
+  // Conversion : joueurs inscrits / scans des QR de la campagne (affiche, story, bio…)
+  const hc=QRS.filter(q=>/halloween/i.test(campOf(q))).map(q=>q.code),hs=SCANS.filter(x=>hc.includes(x.code));
+  const pl=HAL.players.length,sc=hs.length,pct=sc?Math.round(pl/sc*100):0;
+  const t0=[...hs.map(x=>x.at),...HAL.players.map(p=>p.created_at)].filter(Boolean).sort()[0];
+  const hrs=t0?Math.max(.25,(Date.now()-new Date(t0))/36e5):0, rate=hrs?pl/hrs:0;
+  const dur=hrs<1?Math.round(hrs*60)+' min':hrs<48?Math.round(hrs*10)/10+' h':Math.round(hrs/24)+' j';
+  const D=HAL.draws||[], dc=D.filter(x=>x.claimed_at).length, dp=D.length?Math.round(dc/D.length*100):0;
+  const conv=`<div class="hconv"><div class="ring" style="--p:${Math.min(100,pct)}"><b>${pct}<small>%</small></b></div>
+    <div class="hcx"><small>Conversion · scan → joueur inscrit</small><b>${pl} <span>/ ${sc} scans</span></b>
+    <i>En ${dur} · ${rate>=1?Math.round(rate*10)/10:Math.round(rate*24*10)/10} joueur${rate>=1?'s':'s'}${rate>=1?' / heure':' / jour'}</i>
+    ${D.length?`<i>Portes ouvertes → inscrits : <b>${dc} / ${D.length}</b> (${dp} %) depuis le nouveau parcours</i>`:''}</div></div>`;
+  return `<div class="card"><h2>🎃 Trick or Huître · Halloween 2026</h2>${conv}
     <div class="fun"><div><small>Joueurs</small><b class="num">${HAL.players.length}</b><i>${today} aujourd'hui</i></div><div><small>Inscrits au club</small><b class="num">${HAL.players.filter(p=>p.optin).length}</b><i>${HAL.players.length?Math.round(HAL.players.filter(p=>p.optin).length/HAL.players.length*100)+' %':'—'}</i></div>
     ${cell('Plateaux de 6','plateau',10)}${cell('T-shirts','tshirt',10)}${cell('3 huîtres','trio')}${cell('Shots','shot')}</div></div>`;
 }
