@@ -2055,6 +2055,40 @@ async function boot(){
   renderAll(); RENDER_ERR=errs.concat(RENDER_ERR); renderBanners(); route();
 }
 boot();
+
+/* ═══════════ Mise à jour automatique ═══════════ */
+// Toutes les minutes, et dès qu'on revient sur l'onglet : on recharge les
+// scans, les joueurs et les réservations, sans bouger la page. On attend si
+// une fiche est ouverte ou si on est en train de taper.
+let LIVE_AT=Date.now(), LIVE_BUSY=false;
+async function liveRefresh(force){
+  if(LIVE_BUSY||document.hidden||!sb||!SESSION) return;
+  if(!force&&Date.now()-LIVE_AT<55000) return;
+  const view=(location.hash||'#home').slice(1).split('/')[0];
+  if(/^(qr-new|qr-edit|event-new|event-edit|sim)$/.test(view)) return;
+  if(!sheet.hidden) return;
+  const a=document.activeElement; if(a&&a.matches&&a.matches('input,textarea,select,[contenteditable]')) return;
+  LIVE_BUSY=true; const y=scrollY;
+  try{
+    await Promise.allSettled([loadQR(),loadResa()]);
+    renderQRAll();
+    const raw=(location.hash||'').slice(1);
+    if(raw.startsWith('qrc/'))renderQRC(decodeURIComponent(raw.slice(4)));
+    scrollTo(0,y); LIVE_AT=Date.now(); liveStamp();
+  }catch(e){console.error('mise à jour',e);}
+  LIVE_BUSY=false;
+}
+function liveStamp(){
+  let el=document.getElementById('liveStamp');
+  if(!el){el=document.createElement('div');el.id='liveStamp';
+    el.style.cssText='position:fixed;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:50;font:600 11px/1 system-ui,sans-serif;color:#8a8577;background:rgba(255,255,255,.85);border:1px solid rgba(0,0,0,.06);padding:6px 9px;border-radius:99px;backdrop-filter:blur(6px);pointer-events:none';
+    document.body.appendChild(el);}
+  const d=new Date(LIVE_AT);el.textContent='● À jour · '+String(d.getHours()).padStart(2,'0')+'h'+String(d.getMinutes()).padStart(2,'0');
+}
+setInterval(()=>liveRefresh(false),60000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)liveRefresh(true);});
+addEventListener('focus',()=>liveRefresh(Date.now()-LIVE_AT>15000));
+setTimeout(liveStamp,1500);
 </script>
 </body>
 </html>
