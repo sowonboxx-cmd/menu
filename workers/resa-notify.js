@@ -735,7 +735,7 @@ const mailClub = (st, first, code, no, site, unsub) => page(st.restaurant_name,
 // ════════════════ Jeu Free Oyster ════════════════
 // Une partie par personne (email OU téléphone), + 1 partie une seule fois quand un ami joue avec son lien.
 // Tout joueur rejoint le club (carte + coupe) ; les offres email/SMS restent une case à part, jamais pré-cochée.
-const JEU_LOTS = { huitre: 'Une huître offerte', plateau: 'Un plateau de 6 huîtres', tshirt: 'Un T-shirt Drevici', bonus: 'Une huître bonus', trio: '3 huîtres offertes', shot: 'Un shot offert', perdu: '' };
+const JEU_LOTS = { huitre: 'Une huître offerte', plateau: 'Un plateau de 6 huîtres', tshirt: 'Un T-shirt Drevici', bonus: 'Une huître bonus', trio: '3 huîtres offertes', shot: 'Un shot potion offert', perdu: '' };
 // Jeux d'un moment (Halloween…) : slug « <restaurant>--<jeu> » (ex. drevici-paris--halloween-2026).
 // Ses joueurs et ses parties sont à part ; réglages, club et validation des codes restent ceux du restaurant.
 const jeuBase = s => String(s || '').split('--')[0];
