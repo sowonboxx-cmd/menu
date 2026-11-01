@@ -197,7 +197,7 @@ page("v2", v2_css, v2_body)
 
 # ───────────────────────── Réserver maintenant (bloc commun)
 OFFRE = "une coupe de pétillant offerte à l'arrivée"
-CODE = "VITRINE"
+CODE = "AMOUR"
 RESA_CSS = """
 .resa{margin-top:auto;border-radius:3mm;padding:5mm;display:flex;align-items:center;gap:5mm}
 .resa .t{flex:1}
