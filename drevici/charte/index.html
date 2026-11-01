@@ -194,13 +194,14 @@ p.wide{max-width:none}
   document.title = `${B.name} — Charte graphique`;
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const fill = (tpl, o) => tpl.replace(/\{(\w+)\}/g, (_, k) => k === 'prefix' ? P : (o[k] ?? ''));
-  const dl = (base, exts) => `<div class="dl">${exts.map(x => `<a href="${base}.${x}" download>${x.toUpperCase()}</a>`).join('')}</div>`;
+  const V = '?v=' + encodeURIComponent(B.version || '');
+  const dl = (base, exts) => `<div class="dl">${exts.map(x => `<a href="${base}.${x}${V}" download>${x.toUpperCase()}</a>`).join('')}</div>`;
   const head = (n, eyebrow, title, lead) => `<div class="sec-head"><div><p class="eyebrow"><span class="num">${n}</span> ${eyebrow}</p><h2>${esc(title)}</h2>${lead ? `<p class="lead">${lead}</p>` : ''}</div></div>`;
   const venues = B.venues;
 
   const logoTiles = (grp, maxH) => venues.map(v => grp.versions.map(ver => {
     const n = fill(grp.file, { venue: v.id, key: ver.key }), base = `files/logos/${n}`;
-    return `<div class="tile" data-venue="${v.id}"><div class="plate ${ver.bg}"><img src="${base}.svg" alt="${esc(grp.title)} ${esc(v.label)} ${esc(ver.label)}" loading="lazy" style="max-height:${maxH}px"></div>
+    return `<div class="tile" data-venue="${v.id}"><div class="plate ${ver.bg}"><img src="${base}.svg${V}" alt="${esc(grp.title)} ${esc(v.label)} ${esc(ver.label)}" loading="lazy" style="max-height:${maxH}px"></div>
       <div class="cap"><b>${esc(ver.label)}</b><span class="muted">${esc(ver.use)}</span><span class="file">${n}</span>${dl(base, ['svg', 'png'])}</div></div>`;
   }).join('')).join('');
 
@@ -234,9 +235,9 @@ p.wide{max-width:none}
 </section>
 ${MN ? `<section id="menus">${head('03', 'Menu', MN.title, MN.lead)}
   <div class="menus">${MN.items.map(m => { const b = `files/menus/${fill(MN.file, { key: m.key })}`;
-    return `<figure><a class="pv" href="${b}_${m.formats[0]}.pdf" target="_blank" rel="noopener"><img src="${b}.jpg" alt="${esc(m.title)}" loading="lazy"></a>
+    return `<figure><a class="pv" href="${b}_${m.formats[0]}.pdf${V}" target="_blank" rel="noopener"><img src="${b}.jpg${V}" alt="${esc(m.title)}" loading="lazy"></a>
       <figcaption><b>${esc(m.title)}</b><span class="muted">${esc(m.sub)} · ${m.formats.join(' et ')}</span>
-      <div class="dl">${m.formats.map(f => `<a href="${b}_${f}.pdf" download>PDF ${f}</a>`).join('')}</div></figcaption></figure>`; }).join('')}</div>
+      <div class="dl">${m.formats.map(f => `<a href="${b}_${f}.pdf${V}" download>PDF ${f}</a>`).join('')}</div></figcaption></figure>`; }).join('')}</div>
   <p class="muted" style="margin-top:14px">${esc(MN.note)}</p>
 </section>` : ''}
 <section id="fonds">${head('04', 'Usage', F.title, F.lead)}
