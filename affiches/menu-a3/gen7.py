@@ -20,7 +20,7 @@ TXT = {
 }
 CSS = """
 .vid{position:relative;border-radius:3mm;overflow:hidden;min-height:58mm;display:flex;align-items:flex-end;color:#fff;background:#253968}
-.vid .ph{position:absolute;inset:0;background:url(photos/p2.jpg) center 80%/cover}
+.vid .ph{position:absolute;inset:0;background:url(photos/p3.jpg) 70% 45%/cover}
 .vid .sh{position:absolute;inset:0;background:linear-gradient(100deg,rgba(13,37,92,.93) 0%,rgba(13,37,92,.72) 38%,rgba(13,37,92,.08) 72%,rgba(13,37,92,0) 100%)}
 .vid .in{position:relative;display:flex;align-items:flex-end;gap:5mm;padding:6mm;width:100%}
 .vid .t{flex:1}
