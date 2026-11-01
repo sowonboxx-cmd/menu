@@ -16,6 +16,8 @@ h2{font-family:'Playfair Display',serif;font-weight:700;font-size:7mm;color:var(
 h2::after{content:"";flex:1;height:.4mm;background:var(--gold);transform:translateY(.22em)}
 h3{font-size:3.3mm;letter-spacing:.24em;text-transform:uppercase;color:var(--gold);font-weight:700;margin:1mm 0 2.2mm}
 .sec{margin-bottom:5.5mm}
+.it+h3{margin-top:5mm}
+.tart .it{margin-bottom:3.4mm}
 .bloc{margin-top:auto}
 .drinks{background:#fff;border-radius:3mm;padding:5mm 6mm 2.5mm}
 .drinks h2{margin-bottom:3mm}
@@ -24,7 +26,7 @@ h3{font-size:3.3mm;letter-spacing:.24em;text-transform:uppercase;color:var(--gol
 .resa .k{font-size:3.1mm;letter-spacing:.24em;text-transform:uppercase;font-weight:700}
 .resa .h{font-family:'Playfair Display',serif;font-weight:700;font-size:8.6mm;line-height:1.02;margin:1.6mm 0 2.6mm}
 .resa .o{font-size:3.5mm;line-height:1.9}
-.resa .code{display:inline-flex;align-items:center;justify-content:center;height:5.6mm;font-weight:800;font-size:3.3mm;letter-spacing:.16em;padding:0 2.6mm 0 2.9mm;border-radius:1.2mm;margin:0 .2mm 0 .8mm;vertical-align:middle;line-height:1;position:relative;top:-.25mm}
+.resa .code{display:inline-flex;align-items:center;justify-content:center;height:5.6mm;font-weight:800;font-size:3.3mm;letter-spacing:.16em;padding:0 2.6mm 0 2.9mm;border-radius:1.2mm;margin:0 .2mm 0 .8mm;vertical-align:middle;line-height:1;position:relative;top:.35mm}
 .resa img{width:30mm;height:30mm;background:#fff;padding:2mm;border-radius:2mm;flex:none}
 .resa.bleu{background:var(--blue);color:#fff}.resa.bleu .k{color:var(--gold)}.resa.bleu .code{background:var(--red);color:#fff}
 .resa.blanc{background:#fff;color:var(--ink)}.resa.blanc .k{color:var(--red)}.resa.blanc .code{background:var(--red);color:#fff}.resa.blanc img{padding:0}
@@ -54,7 +56,7 @@ def variant(name, head, logo, pied, resa_cls):
     <div class="bloc">{resa(resa_cls)}</div>
   </div>
   <div>
-    <div class="sec"><h2>Tartinades</h2><h3>Rillettes de poissons</h3>{rows(RILLETTES)}<h3>Tartares d'algues</h3>{rows(ALGUES)}</div>
+    <div class="sec tart"><h2>Tartinades</h2><h3>Rillettes de poissons</h3>{rows(RILLETTES)}<h3>Tartares d'algues</h3>{rows(ALGUES)}</div>
     <div class="bloc drinks"><h2>Boissons</h2>{bev_rows()}</div>
   </div>
 </div>
