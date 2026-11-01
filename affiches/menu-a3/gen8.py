@@ -6,7 +6,7 @@ html,body{width:216mm;height:303mm;overflow:hidden}body{font-family:Inter,sans-s
 :root{--cream:#F4EFE4;--ink:#0D255C;--blue:#253968;--gold:#D09D39}
 .p{position:relative;width:216mm;height:303mm;overflow:hidden}
 .logo{position:absolute;left:50%;transform:translateX(-50%)}
-.k{position:absolute;left:0;right:0;text-align:center;font-weight:600;letter-spacing:.42em;text-transform:uppercase;padding-left:.42em}"""
+.k{position:absolute;left:0;right:0;text-align:center;font-weight:800;letter-spacing:.42em;text-transform:uppercase;padding-left:.42em}"""
 
 def cover(name, css, body):
     open(f"final/{name}.html", "w").write(
