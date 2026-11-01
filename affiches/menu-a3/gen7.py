@@ -15,8 +15,8 @@ def to_en(s):
 
 RESA = re.compile(r'<div class="resa bleu">.*?<img src="qr\.svg"></div>', re.S)
 TXT = {
-  "fr": ("La carte en images", "Voyez avant<br>de choisir", "Chaque plat en photo et en vidéo, sur notre carte en ligne.", "Voir la carte", "qr-a4-fr.svg"),
-  "en": ("The menu in pictures", "Sea before<br>you choose", "Every dish in photos and videos, on our online menu.", "See the menu", "qr-a4-en.svg"),
+  "fr": ("La carte en images", "Voyez avant<br>de choisir", "Chaque plat en photo et en vidéo,<br>sur notre carte en ligne.", "Voir la carte", "qr-a4-fr.svg"),
+  "en": ("The menu in pictures", "Sea before<br>you choose", "Every dish in photos and videos,<br>on our online menu.", "See the menu", "qr-a4-en.svg"),
 }
 CSS = """
 .vid{position:relative;border-radius:3mm;overflow:hidden;min-height:58mm;display:flex;align-items:flex-end;color:#fff;background:#253968}
