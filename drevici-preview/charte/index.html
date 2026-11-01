@@ -141,6 +141,9 @@ footer{padding-top:40px;font-size:13px;color:var(--muted);display:flex;flex-wrap
 .spec b{display:block;font-size:17px;color:var(--ink);font-variant-numeric:tabular-nums}
 .spec span{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .anim-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:20px;align-items:start}
+.anim-left{display:grid;gap:14px;min-width:0}
+.anim-sound h3{margin-bottom:2px}
+p.wide{max-width:none}
 .anim-hero video{width:100%;aspect-ratio:1;border-radius:6px;background:var(--navy);display:block}
 .anim-groups{display:grid;gap:14px}
 .anim-group{background:#fff;border:1px solid var(--line);border-radius:6px;padding:14px 16px}
@@ -202,6 +205,9 @@ footer{padding-top:40px;font-size:13px;color:var(--muted);display:flex;flex-wrap
   }).join('')).join('');
 
   const MN = C.menus, AN = C.animation, L = C.logos, F = C.fonds, R = C.regles, K = C.couleurs, T = C.typos, I = C.icones, M = C.mascotte, X = C.fichiers;
+  const SOUND = `<div class="anim-group anim-sound"><h3>${esc(AN.sound.title)}</h3><p class="muted" style="margin:0 0 6px">${esc(AN.sound.note)}</p>
+    <audio src="files/animation/${AN.sound.files[1].file}.mp3" controls preload="none" style="width:100%"></audio>
+    ${AN.sound.files.map(fm => `<div class="anim-row"><div><b>${esc(fm.label)}</b><span class="muted">${esc(fm.use)}</span></div><div class="dl"><a href="files/animation/${fm.file}.${fm.ext}" download>${fm.ext.toUpperCase()}</a></div></div>`).join('')}</div>`;
   app.innerHTML = `
 <header class="hero"><div class="wrap">
   <div><p class="eyebrow">Charte graphique · Version ${esc(B.version)} · ${esc(B.date)}</p>
@@ -215,18 +221,15 @@ footer{padding-top:40px;font-size:13px;color:var(--muted);display:flex;flex-wrap
 <main class="wrap">
 <section id="logos">${head('01', 'Logos', L.title, L.lead)}
   <div class="venues" role="group" aria-label="Établissement affiché">${venues.map((v, i) => `<button type="button" aria-pressed="${i === 0}" data-v="${v.id}">${esc(v.label)}</button>`).join('')}</div>
-  <h3>${esc(L.rond.title)}</h3><p class="muted">${esc(L.rond.usage)}</p><div class="grid g2">${logoTiles(L.rond, 230)}</div>
-  <h3 style="margin-top:30px">${esc(L.texte.title)}</h3><p class="muted">${esc(L.texte.usage)}</p><div class="grid g3">${logoTiles(L.texte, 170)}</div>
+  <h3>${esc(L.rond.title)}</h3><p class="muted wide">${esc(L.rond.usage)}</p><div class="grid g2">${logoTiles(L.rond, 230)}</div>
+  <h3 style="margin-top:30px">${esc(L.texte.title)}</h3><p class="muted wide">${esc(L.texte.usage)}</p><div class="grid g3">${logoTiles(L.texte, 170)}</div>
 </section>
 <section id="anime">${head('02', 'Logo animé', AN.title, AN.lead)}
   <div class="specs">${AN.specs.map(([a, b]) => `<div class="spec"><b>${esc(a)}</b><span>${esc(b)}</span></div>`).join('')}</div>
   <div class="venues" role="group" aria-label="Établissement affiché">${venues.map((v, i) => `<button type="button" aria-pressed="${i === 0}" data-v="${v.id}">${esc(v.label)}</button>`).join('')}</div>
   ${venues.map(v => { const f = k => `files/animation/${fill(AN.file, { venue: v.id, key: k })}`;
-    return `<div data-venue="${v.id}"><div class="anim-hero"><video src="${f('Carre_son')}.mp4" poster="${f('Poster')}.jpg" controls playsinline preload="none"></video>
+    return `<div data-venue="${v.id}"><div class="anim-hero"><div class="anim-left"><video src="${f('Carre_son')}.mp4" poster="${f('Poster')}.jpg" controls playsinline preload="none"></video>${SOUND}</div>
       <div class="anim-groups">${AN.groups.map(g => `<div class="anim-group"><h3>${esc(g.title)}</h3>${g.formats.map(fm => `<div class="anim-row"><div><b>${esc(fm.label)}</b><span class="muted">${esc(fm.use)}</span></div><div class="dl"><a href="${f(fm.key)}.${fm.ext}" download>${fm.ext.toUpperCase()}</a></div></div>`).join('')}</div>`).join('')}</div></div></div>`; }).join('')}
-  <div class="anim-group" style="margin-top:18px"><h3>${esc(AN.sound.title)}</h3><p class="muted" style="margin:0 0 6px">${esc(AN.sound.note)}</p>
-    <audio src="files/animation/${AN.sound.files[1].file}.mp3" controls preload="none" style="width:100%;max-width:420px"></audio>
-    ${AN.sound.files.map(fm => `<div class="anim-row"><div><b>${esc(fm.label)}</b><span class="muted">${esc(fm.use)}</span></div><div class="dl"><a href="files/animation/${fm.file}.${fm.ext}" download>${fm.ext.toUpperCase()}</a></div></div>`).join('')}</div>
   <h3 style="margin-top:24px">Bonnes pratiques</h3><ul class="rules ok">${AN.tips.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
 </section>
 ${MN ? `<section id="menus">${head('03', 'Menu', MN.title, MN.lead)}
