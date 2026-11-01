@@ -194,6 +194,77 @@ v2_body = f"""
 """
 page("v2", v2_css, v2_body)
 
+
+# ───────────────────────── Réserver maintenant (bloc commun)
+OFFRE = "une coupe de pétillant offerte à l'arrivée"
+CODE = "VITRINE"
+RESA_CSS = """
+.resa{margin-top:auto;border-radius:3mm;padding:5mm;display:flex;align-items:center;gap:5mm}
+.resa .t{flex:1}
+.resa .k{font-size:3.1mm;letter-spacing:.24em;text-transform:uppercase;font-weight:700}
+.resa .h{font-family:'Playfair Display',serif;font-weight:700;font-size:8.6mm;line-height:1.02;margin:1.6mm 0 2.4mm}
+.resa .o{font-size:3.5mm;line-height:1.45}
+.resa .code{display:inline-block;font-weight:800;letter-spacing:.16em;padding:.6mm 2.4mm;border-radius:1.2mm;margin:0 .6mm}
+.resa img{width:30mm;height:30mm;background:#fff;padding:2mm;border-radius:2mm;flex:none}
+"""
+def resa_block(cls=""):
+    return (f'<div class="resa {cls}"><div class="t"><div class="k">Vous passez devant&nbsp;?</div>'
+            f'<div class="h">Réservez<br>maintenant</div>'
+            f'<div class="o">Scannez, c\'est fait en 30 secondes.<br>Avec le code <span class="code">{CODE}</span>, {OFFRE}.</div></div>'
+            f'<img src="qr.svg"></div>')
+
+# ───────────────────────── V1b · Bistro avec bandeau bleu
+v1b_css = v1_css + RESA_CSS + """
+.band{position:absolute;left:0;right:0;top:0;height:84mm;background:var(--blue)}
+.top{top:12mm}
+.it{margin-bottom:2.6mm}.it.b{margin-bottom:1.45mm}.bcat{margin:2.2mm 0 1.1mm}.rule{margin-bottom:4.5mm}.sec{margin-bottom:4.5mm}
+.stripes span{background:var(--cream)}
+.sub{color:#fff;opacity:.9}
+.body{top:92mm}
+.body>div{display:flex;flex-direction:column}
+.resa{background:var(--blue);color:#fff;margin-left:11mm}
+.resa .k{color:var(--gold)}.resa .code{background:var(--red);color:#fff}
+"""
+v1b_body = v1_body.replace('<div class="top">','<div class="band"></div><div class="top">',1) \
+    .replace('fill="#0D255C"','fill="#FFFFFF"').replace('src="ico-Huitre.svg"','src="ico-Huitre-blanc.svg"') \
+    .replace('<div class="sec"><h2>Terre & mer</h2>{rows(TERRE)}</div>'.replace('{rows(TERRE)}',rows(TERRE)),
+             '<div class="sec"><h2>Terre & mer</h2>'+rows(TERRE)+'</div>'+resa_block())
+page("v1b", v1b_css, v1b_body)
+
+# ───────────────────────── V2 · variantes avec du rouge
+def v2_variant(name, extra):
+    css = v2_css + RESA_CSS + """
+h2::after{transform:translateY(.22em)}
+.head{gap:3.4mm}
+.head img.logo{width:62mm}
+.head .tag{letter-spacing:.14em;text-transform:none;font-size:3.5mm;opacity:.9}
+""" + extra
+    body = v2_body.replace('<span class="dots l">',
+        f'<div class="tag">{ADRESSE} · {HORAIRES} · {TEL}</div><span class="dots l">',1)
+    import re
+    body = re.sub(r'<div class="bas">.*?<img src="qr.svg"></div></div>', resa_block(), body, flags=re.S)
+    page(name, css, body)
+
+v2_variant("v2a", """
+h2::after{background:var(--red)}
+h3{color:var(--red)}
+.head .dots{background:var(--red)}
+.resa{background:#fff}
+.resa .k{color:var(--red)}.resa .h{color:var(--ink)}.resa .code{background:var(--red);color:#fff}
+""")
+v2_variant("v2b", """
+h2{color:var(--red)}
+.resa{background:var(--red);color:#fff}
+.resa .k{color:#fff;opacity:.85}.resa .code{background:#fff;color:var(--red)}
+""")
+v2_variant("v2c", """
+.head .dots{background:var(--red)}
+.bcat{color:var(--red)}
+.stripes span{background:var(--red)}
+.resa{background:var(--blue);color:#fff}
+.resa .k{color:var(--gold)}.resa .code{background:var(--red);color:#fff}
+""")
+
 # ───────────────────────── V3 · Colonne bleue (bande verticale, logo rond, QR)
 v3_css = """
 .side{position:absolute;left:0;top:0;bottom:0;width:62mm;background:var(--blue);color:#fff;display:flex;flex-direction:column;align-items:center;padding:20mm 0 18mm}
