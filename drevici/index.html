@@ -225,6 +225,17 @@ body.hdr-band .nav-tab{color:#6B6559}
 body.hdr-band .nav-tab.active,
 body.hdr-band .nav-tab.nav-tab-swiping{color:var(--navy)}
 body.hdr-band .nav-indicator{top:auto;bottom:0;height:2px;background:var(--gold);border-radius:2px}
+/* Onglets de la carte en pastilles (validé le 1er nov. 2026, « D3 bleu ») :
+   rail blanc arrondi, onglet choisi en bleu Drevici, texte blanc ; flat, sans bordure ni ombre ;
+   seule la première lettre en majuscule. */
+body.hdr-band .nav-bar,body.hdr-light .nav-bar{background:var(--bg);padding:12px 0 10px}
+body.hdr-band .nav-bar::after,body.hdr-light .nav-bar::after{content:"";flex:0 0 16px}
+body.hdr-band .nav-bar-inner,body.hdr-light .nav-bar-inner{gap:2px;background:#fff;border-radius:999px;padding:4px;margin:0 0 0 16px;align-items:center;box-shadow:none}
+body.hdr-band .nav-indicator,body.hdr-light .nav-indicator{display:none}
+body.hdr-band .nav-tab,body.hdr-light .nav-tab{text-transform:none;letter-spacing:0;font-size:14px;font-weight:500;padding:8px 15px;border-radius:999px;color:#6B6559;background:transparent;box-shadow:none}
+body.hdr-band .nav-tab::first-letter,body.hdr-light .nav-tab::first-letter{text-transform:uppercase}
+body.hdr-band .nav-tab.active,body.hdr-light .nav-tab.active{background:var(--navy);color:#fff}
+body.hdr-band .nav-tab.nav-tab-swiping:not(.active),body.hdr-light .nav-tab.nav-tab-swiping:not(.active){color:var(--navy)}
 body.hdr-band .view-bar{display:none}
 /* ── HORAIRES ──
    Deux traitements, parce que les deux emplacements ne posent pas le
@@ -3911,7 +3922,7 @@ function scrollNavToActive(){
     const tabs=Array.from(nav.querySelectorAll('.nav-tab'));
     const activeIdx=tabs.indexOf(activeEl);
     const barW=navBar.offsetWidth;
-    const totalW=nav.scrollWidth;
+    const totalW=Math.max(nav.scrollWidth, navBar.scrollWidth);   // la barre compte aussi ses marges (pastilles)
 
     // Compute target: position scroll so active tab sits at left + 16px padding,
     // letting the next 2 full + half of 3rd peek to the right naturally
