@@ -1,5 +1,5 @@
 const {chromium}=require('playwright');const fs=require('fs');const path=require('path');
-(async()=>{const b=await chromium.launch();const dir=path.join(__dirname,'final');
+(async()=>{const b=await chromium.launch();const dir=path.join(__dirname,process.env.OUT||'final');
 const only=process.argv[2];
 for(const f of fs.readdirSync(dir).filter(x=>x.endsWith('.html')&&(!only||x.includes(only))).sort()){
  const m=fs.readFileSync(path.join(dir,f),'utf8').match(/size:([\d.]+)mm ([\d.]+)mm/);const w=+m[1],h=+m[2];
