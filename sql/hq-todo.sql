@@ -30,6 +30,8 @@ create table if not exists public.todo_tasks (
   updated_at   timestamptz not null default now(),
   primary key (owner, id)
 );
+-- Checklist d'une tâche : [{"t":"texte","ok":false}, …] (ajouté le 01/11, relançable)
+alter table public.todo_tasks add column if not exists items jsonb not null default '[]'::jsonb;
 create index if not exists todo_tasks_owner_list on public.todo_tasks (owner, list_id);
 
 alter table public.todo_lists enable row level security;
