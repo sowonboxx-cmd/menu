@@ -35,9 +35,9 @@ R = [
     ('nm">Pétillant Saumur', 'nm">Saumur sparkling wine'), ('nm">Saint-Jacques à la bretonne', 'nm">Breton-style scallops'),
     ("nm\">Sardines au piment d'Espelette", 'nm">Sardines, Espelette pepper'), ('nm">Soleil', 'nm">Sun'),
     ('nm">Soupe de poisson', 'nm">Fish soup'), ('nm">Truite de Bretagne', 'nm">Breton trout'),
-    ("Vous avez aimé&nbsp;?", "Enjoyed your visit?"), ("Revenez<br>nous voir", "Come back<br>soon"),
-    ("Scannez pour réserver votre prochaine table.", "Scan to book your next table."),
-    ("Avec le code", "With the code"), (", une coupe de pétillant offerte à l'arrivée.", ", a glass of sparkling wine on the house."),
+    ("Vous passez devant&nbsp;?", "Passing by?"), ("Réservez<br>maintenant", "Book<br>now"),
+    ("Scannez, c'est fait en 30 secondes.", "Scan, it only takes 30 seconds."),
+    ("Avec le code", "With the code"), (", une coupe de pétillant offerte à l'arrivée.", ", a glass of sparkling wine on arrival."),
     ("<span>Du mardi au dimanche, dès 17 h</span>", "<span>Tuesday to Sunday, from 5 pm</span>"),
     ("<span>09 74 64 05 87</span>", "<span>+33 9 74 64 05 87</span>"),
 ]

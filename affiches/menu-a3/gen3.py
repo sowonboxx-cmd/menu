@@ -19,14 +19,10 @@ body::before{content:"";position:absolute;left:0;right:0;top:0;height:77mm;backg
 </style>""")
 write("menu-a3-fond-perdu", a3b)
 
-# ── A4 : même mise en page réduite (A4 = A3 ÷ √2), bloc réservation adapté à la table
+# ── A4 : même mise en page réduite (A4 = A3 ÷ √2), contenu identique au A3
 a4 = src.replace("@page{size:297mm 420mm;margin:0}", "@page{size:210mm 297mm;margin:0}") \
         .replace("html,body{width:297mm;height:420mm}", "html,body{width:210mm;height:297mm;overflow:hidden}")
 a4 = a4.replace("</style>", ".page{zoom:0.70711}</style>")
-a4 = a4.replace("Vous passez devant&nbsp;?", "Vous avez aimé&nbsp;?") \
-       .replace("Réservez<br>maintenant", "Revenez<br>nous voir") \
-       .replace("Scannez, c'est fait en 30 secondes.", "Scannez pour réserver votre prochaine table.") \
-       .replace('src="qr.svg"', 'src="qr-a4.svg"')
 write("menu-a4", a4)
 
 FONTS = '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">'
