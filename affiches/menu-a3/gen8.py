@@ -13,14 +13,14 @@ def cover(name, css, body):
         f'<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>{name}</title>{FONTS}<style>{BASE}{css}</style></head>'
         f'<body><div class="p">{body}</div></body></html>')
 
-for mot, slug in (("La carte", "la-carte"), ("Menu", "menu")):
+for mot, slug in (("Menu", "menu"),):
     # Bateau : l'aquarelle en haut, fondue dans le crème ; logo en bas au centre, le mot en petit dessous
     cover(f"couverture-bateau-{slug}", """
 .p{background:var(--cream)}
 .pic{position:absolute;left:0;right:0;top:0;height:218mm;background:url(../histoire-3.jpg) center 30%/cover}
 .fade{position:absolute;left:0;right:0;top:132mm;height:88mm;background:linear-gradient(rgba(244,239,228,0),var(--cream))}
-.logo{top:226mm;width:46mm}
-.k{top:274mm;font-size:3.6mm;color:var(--ink)}
+.logo{top:214mm;width:62mm}
+.k{top:274mm;font-size:5.6mm;color:var(--ink)}
 """, f'<div class="pic"></div><div class="fade"></div><img class="logo" src="../bar-Couleur.svg"><div class="k">{mot}</div>')
 
     # Gentleman Oyster : la peinture en haut, fondue dans le bleu ; logo au milieu du bleu, le mot en blanc dessous
@@ -28,7 +28,7 @@ for mot, slug in (("La carte", "la-carte"), ("Menu", "menu")):
 .p{background:var(--blue)}
 .pic{position:absolute;left:0;right:0;top:0;height:206mm;background:url(../peinture-gentleman.jpg) center 62%/cover}
 .fade{position:absolute;left:0;right:0;top:150mm;height:58mm;background:linear-gradient(rgba(37,57,104,0),#253968)}
-.logo{top:222mm;width:46mm}
-.k{top:270mm;font-size:3.6mm;color:#fff;opacity:.92}
+.logo{top:212mm;width:62mm}
+.k{top:272mm;font-size:5.6mm;color:#fff}
 """, f'<div class="pic"></div><div class="fade"></div><img class="logo" src="../bar-Inverse-barblanc.svg"><div class="k">{mot}</div>')
 print("ok")
