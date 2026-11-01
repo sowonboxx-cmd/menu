@@ -74,3 +74,8 @@ V = [
 for v in V:
     variant(*v)
 print("ok c1-c7")
+
+# Finale : la 3, avec « BAR » en blanc, et avec la réservation en blanc
+variant("c3w", "bleu", "bar-Inverse-barblanc.svg", "creme", "bleu")
+variant("c3r", "bleu", "bar-Inverse.svg", "creme", "blanc")
+print("ok c3w c3r")
