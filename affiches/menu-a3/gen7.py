@@ -56,7 +56,7 @@ for lang in ("fr", "en"):
     write(f"carte-a3-{lang}", s)
     a3b = s.replace("@page{size:297mm 420mm;margin:0}", "@page{size:303mm 426mm;margin:0}") \
            .replace("html,body{width:297mm;height:420mm}", "html,body{width:303mm;height:426mm}") \
-           .replace("</style>", "body{position:relative}body::before{content:'';position:absolute;left:0;right:0;top:0;height:77mm;background:#253968}.page{position:absolute;left:3mm;top:3mm}</style>")
+           .replace("</style>", "body{position:relative}body::before{content:'';position:absolute;left:0;right:0;top:0;height:67mm;background:#253968}.page{position:absolute;left:3mm;top:3mm}</style>")
     write(f"carte-a3-{lang}-fond-perdu", a3b)
     # A4 = A3 réduit (A4 = A3 ÷ √2)
     a4 = s.replace("@page{size:297mm 420mm;margin:0}", "@page{size:210mm 297mm;margin:0}") \
@@ -65,7 +65,7 @@ for lang in ("fr", "en"):
     write(f"carte-a4-{lang}", a4)
     a4b = s.replace("@page{size:297mm 420mm;margin:0}", "@page{size:216mm 303mm;margin:0}") \
            .replace("html,body{width:297mm;height:420mm}", "html,body{width:216mm;height:303mm;overflow:hidden}") \
-           .replace("</style>", "body{position:relative}body::before{content:'';position:absolute;left:0;right:0;top:0;height:55.4mm;background:#253968}.page{position:absolute;left:3mm;top:3mm;zoom:0.70711}</style>")
+           .replace("</style>", "body{position:relative}body::before{content:'';position:absolute;left:0;right:0;top:0;height:48.3mm;background:#253968}.page{position:absolute;left:3mm;top:3mm;zoom:0.70711}</style>")
     # avec zoom, left/top sont aussi réduits : on compense
     a4b = a4b.replace(".page{position:absolute;left:3mm;top:3mm;zoom:0.70711}", ".page{position:absolute;left:4.243mm;top:4.243mm;zoom:0.70711}")
     write(f"carte-a4-{lang}-fond-perdu", a4b)
