@@ -1144,35 +1144,46 @@ function dayBars(sc){const v=[...Array(7)].map((_,i)=>{const d0=daysAgo(6-i),d1=
 /* ═══ Guide des campagnes : ce qu'on gagne, comment, à quelle fréquence (modifiable) ═══ */
 const JDEF={p_huitre:.10,p_plateau:.02,p_tshirt:.01,valid_days:7,t_bonus:1/3,t_trio:1/15,t_tshirt:1/150,t_tshirt_7j:1,t_valid_h:4};
 const oneIn=p=>p>0?Math.round(1/p):0;
-function renderGuide(){
+// Réglages des jeux : affichés dans le Guide et dans l'onglet « Infos » de chaque campagne
+function guideParts(){
   const c=Object.assign({},JDEF,JCFG||{}), edit=!!(JCFG&&SESSION);
   const inp=(k,v)=>edit?`1 sur <input type="number" min="1" inputmode="numeric" data-jc="${k}" value="${oneIn(v)}">`:`1 sur <b>${oneIn(v)}</b>`;
   const raw=(k,v,unit)=>edit?`<input type="number" min="1" inputmode="numeric" data-jr="${k}" value="${v}"> ${unit}`:`<b>${v}</b> ${unit}`;
   const site=QR_SITE, t=(q,x)=>`<a href="${site}/free-oyster?test=${q}${x||''}" target="_blank" rel="noopener">${({gagne:'Huître',huitre:'Huître',plateau:'Plateau',tshirt:'T-shirt',perdu:'Perdu',bonus:'Huître bonus',trio:'3 huîtres'})[q]}</a>`;
-  document.getElementById('v-qrg').innerHTML=`<div class="sub-hd"><a class="back" href="#qr" aria-label="Retour">‹</a><div><h1>Guide des campagnes</h1><p>Ce que chaque QR fait gagner, comment, et à quelle fréquence${edit?' · les chances se modifient ici':''}</p></div></div>
-  ${!JCFG?'<div class="banner"><span>Chiffres par défaut affichés : ils deviennent modifiables une fois le jeu installé (sql/jeu-free-oyster-table.sql) et la session admin ouverte.</span></div>':''}
-  <div class="gd"><h2>Free Oyster · dans la rue <span class="tg">Jeu · en cours</span></h2><p>Les affiches A0 (DON'T SCAN !). QR : <b>/qr/free-oyster/affiche-&lt;rue&gt;-&lt;n&gt;</b> → le jeu « Ouvre l'huître ».</p>
+    return {
+    head:`<div class="sub-hd"><a class="back" href="#qr" aria-label="Retour">‹</a><div><h1>Guide des campagnes</h1><p>Ce que chaque QR fait gagner, comment, et à quelle fréquence${edit?' · les chances se modifient ici':''}</p></div></div>
+  `,
+    banner:`${!JCFG?'<div class="banner"><span>Chiffres par défaut affichés : ils deviennent modifiables une fois le jeu installé (sql/jeu-free-oyster-table.sql) et la session admin ouverte.</span></div>':''}
+  `,
+    rue:`<div class="gd"><h2>Free Oyster · dans la rue <span class="tg">Jeu · en cours</span></h2><p>Les affiches A0 (DON'T SCAN !). QR : <b>/qr/free-oyster/affiche-&lt;rue&gt;-&lt;n&gt;</b> → le jeu « Ouvre l'huître ».</p>
     <table class="lotg"><tr><td>Une huître offerte</td><td class="r">${inp('p_huitre',c.p_huitre)} parties</td></tr><tr><td>Un plateau de 6 huîtres</td><td class="r">${inp('p_plateau',c.p_plateau)} parties</td></tr><tr><td>Un T-shirt Drevici</td><td class="r">${inp('p_tshirt',c.p_tshirt)} parties</td></tr><tr><td>Code valable</td><td class="r">${raw('valid_days',c.valid_days,'jours')}</td></tr></table>
     <table class="lotg"><tr><td colspan="2" style="font-weight:800;padding-top:12px">Stock maximum <small style="font-weight:600;color:var(--mut)">· depuis le début du jeu, vide = sans limite</small></td></tr>
       ${[['max_huitre','Huîtres offertes','huitre'],['max_plateau','Plateaux de 6 huîtres','plateau'],['max_tshirt','T-shirts','tshirt']].map(([k,l,r])=>{const n=JEU.plays.filter(y=>y.result===r).length,v=c[k];
         return `<tr><td>${l} <small style="color:var(--mut)">· ${n} déjà gagné${n>1?'s':''}</small></td><td class="r">${edit?`<input type="number" min="0" inputmode="numeric" data-jm="${k}" value="${v==null?'':v}" placeholder="sans limite">`:`<b>${v==null?'sans limite':v}</b>`}</td></tr>`;}).join('')}</table>
     <ul class="gl"><li><b>1 partie par personne</b> (même email ou même téléphone), toutes affiches et cartes confondues.</li><li><b>Parrainage</b> : si un ami joue avec son lien, le joueur rejoue <b>une fois</b>, seulement s'il n'a rien gagné.</li><li><b>Club</b> : seulement si la case est cochée (carte + coupe offerte + offres). Sans la case, il joue pour le lot uniquement.</li><li><b>Au comptoir</b> : le code PERLE-XXXX se valide dans l'admin → Clients → « Valider une coupe ou un lot ».</li></ul>
     <div class="glinks"><span style="align-self:center;font-size:12px;color:var(--mut)">Tester :</span>${t('gagne')}${t('plateau')}${t('tshirt')}${t('perdu')}<a href="${site}/free-oyster-reglement" target="_blank" rel="noopener">Règlement</a></div></div>
-  <div class="gd"><h2>Free Oyster · à table <span class="tg">Jeu · en cours</span></h2><p>La petite carte posée avec le menu. QR : <b>/qr/free-oyster/carte-table-&lt;n&gt;</b>. Les lots se mangent pendant le repas : on montre le code au serveur.</p>
+  `,
+    table:`<div class="gd"><h2>Free Oyster · à table <span class="tg">Jeu · en cours</span></h2><p>La petite carte posée avec le menu. QR : <b>/qr/free-oyster/carte-table-&lt;n&gt;</b>. Les lots se mangent pendant le repas : on montre le code au serveur.</p>
     <table class="lotg"><tr><td>Une huître bonus</td><td class="r">${inp('t_bonus',c.t_bonus)} parties</td></tr><tr><td>3 huîtres offertes</td><td class="r">${inp('t_trio',c.t_trio)} parties</td></tr><tr><td>Un T-shirt Drevici</td><td class="r">${inp('t_tshirt',c.t_tshirt)} parties, au plus ${raw('t_tshirt_7j',c.t_tshirt_7j,'par semaine')}</td></tr><tr><td>Code valable</td><td class="r">${raw('t_valid_h',c.t_valid_h,'heures (ce repas)')}</td></tr></table>
     <ul class="gl"><li>Même règle : <b>1 partie par personne</b>. Quelqu'un qui a joué dans la rue ne rejoue pas à table.</li><li>Un groupe de 6 : chacun peut jouer, en moyenne <b>${Math.round(6*c.t_bonus)}</b> huîtres bonus.</li><li>Pas d'alcool en lot (loi Évin) : uniquement des huîtres et le T-shirt.</li></ul>
     <div class="glinks"><span style="align-self:center;font-size:12px;color:var(--mut)">Tester :</span>${t('bonus','&table=1')}${t('trio','&table=1')}${t('tshirt','&table=1')}${t('perdu','&table=1')}</div></div>
-  ${edit?'<div class="actions" style="margin-bottom:14px"><button class="cbtn" type="button" id="jcSave">Enregistrer les chances et le stock</button></div>':''}
-  <div class="gd"><h2>Plat en test <span class="tg t">Préview</span></h2><p>Une carte de table par serveur (le Gentleman chef et sa cloche). QR : <b>/qr/plat-test/serveur-&lt;prénom&gt;-1</b> → la page du plat du moment, changé depuis <a href="#plat">Plat en test</a> : la carte ne se réimprime jamais. Rien à gagner : un prix test plus bas, puis un avis.</p>
+  `,
+    save:`${edit?'<div class="actions" style="margin-bottom:14px"><button class="cbtn" type="button" id="jcSave">Enregistrer les chances et le stock</button></div>':''}
+  `,
+    plat:`<div class="gd"><h2>Plat en test <span class="tg t">Préview</span></h2><p>Une carte de table par serveur (le Gentleman chef et sa cloche). QR : <b>/qr/plat-test/serveur-&lt;prénom&gt;-1</b> → la page du plat du moment, changé depuis <a href="#plat">Plat en test</a> : la carte ne se réimprime jamais. Rien à gagner : un prix test plus bas, puis un avis.</p>
     <ul class="gl"><li>Le client touche « Je le commande » : c'est son clic qui fait foi. La commande arrive dans Plat en test, <b>l'administrateur la valide</b> après vérification en caisse (ou la refuse). La commission ne compte que les commandes validées, et seulement sur les cartes à prénom.</li><li>En rouvrant la page après dégustation : étoiles, quelques mots, un commentaire. Prénom, email et club facultatifs. Un seul avis par commande, badge « commandé ✓ » quand la commande est confirmée.</li><li>Aperçus : <a href="../plat-test?test=plat" target="_blank">plat</a> · <a href="../plat-test?test=commande" target="_blank">commande</a> · <a href="../plat-test?test=avis" target="_blank">avis</a> · <a href="../plat-test?test=merci" target="_blank">merci</a> · <a href="../plat-test?test=vide" target="_blank">aucun plat</a></li></ul></div>
-  <div class="gd"><h2>Codes de test <span class="tg t">Test</span></h2><p>Menu (carte de table), Club (chevalet caisse), Halloween (flyer) et la carte d'un serveur : des exemples pour voir le Studio rempli. Ils ne mènent à aucun lot.</p></div>`;
-  const b=document.getElementById('jcSave'); if(b) b.onclick=async()=>{
+  `,
+    tests:`<div class="gd"><h2>Codes de test <span class="tg t">Test</span></h2><p>Menu (carte de table), Club (chevalet caisse), Halloween (flyer) et la carte d'un serveur : des exemples pour voir le Studio rempli. Ils ne mènent à aucun lot.</p></div>`
+  };
+}
+function renderGuide(){const g=guideParts();document.getElementById('v-qrg').innerHTML=g.head+g.banner+g.rue+g.table+g.save+g.plat+g.tests;}
+// Enregistrer chances + stock (Guide ou onglet Infos d'une campagne)
+document.addEventListener('click',async e=>{if(!e.target.closest('#jcSave'))return;
     const up={};document.querySelectorAll('[data-jc]').forEach(i=>{const n=parseInt(i.value);if(n>0)up[i.dataset.jc]=Math.round(1/n*1e6)/1e6;});
     document.querySelectorAll('[data-jr]').forEach(i=>{const n=parseInt(i.value);if(n>0)up[i.dataset.jr]=n;});
     document.querySelectorAll('[data-jm]').forEach(i=>{const v=i.value.trim(),n=parseInt(v);up[i.dataset.jm]=v===''?null:(n>=0?n:null);});
     const {data,error}=await sb.from('jeu_config').update({...up,updated_at:new Date().toISOString()}).eq('client_slug',JEU_SLUG).select().maybeSingle();
-    if(error)return toast('Erreur : '+error.message); JCFG=data||Object.assign(JCFG,up); toast('Chances et stock enregistrés ✓'); renderGuide();};
-}
+    if(error)return toast('Erreur : '+error.message); JCFG=data||Object.assign(JCFG,up); toast('Chances et stock enregistrés ✓'); route();});
 /* ═══ Scans QR par campagne : cartes (téléphone), liste + détail (ordinateur) ═══ */
 const ICO=n=>`../charte/files/icones/DreviciOyster_Icone_${n}_Blanc.svg`;
 const PUMPKIN=`<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 22c2-8 6-12 12-14" stroke="#3f6212" stroke-width="5" fill="none" stroke-linecap="round"/><ellipse cx="50" cy="60" rx="44" ry="36" fill="#f97316"/><path d="M32 26Q22 60 32 95M50 22V98M68 26Q78 60 68 95" stroke="#c2410c" stroke-width="3" fill="none" opacity=".7"/><g fill="#fde047"><path d="M26 52l9-11 9 11z"/><path d="M56 52l9-11 9 11z"/><path d="M28 68q22 18 44 0l-6 4-5-5-6 6-6-6-6 6-5-5z"/></g></svg>`;
@@ -1261,7 +1272,7 @@ function campDetail(n,inline){
   const hero=`<div class="qh-hero" style="background:${m.col}">${m.hal?`<img class="m" src="../jeu/halloween/mascotte.webp" alt="">`:m.ic==='pk'?'':`<img class="ico" src="${ICO(m.ic)}" alt="">`}
     <div class="qh-tag">${c.live?'● En cours':'À planifier'}${m.hal?' · jusqu\'au 7 nov.':''}</div><h2>${m.hal?'Trick or <i>Huître</i>':esc(n)}</h2><p>${esc(m.hal?'Halloween 2026 · '+m.d:m.d)}</p>
     <div class="qh-row"><div class="qh-k">${c.a}<small>${c.al}</small></div><div class="qh-k">${c.b}<small>${c.bl}</small></div>${c.jeu?`<div class="qh-k" style="color:#fdba74">${c.todo}<small>à remettre</small></div>`:''}</div></div>`;
-  const tabs=[['res','Résumé']].concat(c.jeu?[['jou','Joueurs']]:[]).concat([['qr','QR']]);
+  const tabs=[['res','Résumé']].concat(c.jeu?[['jou','Joueurs']]:[]).concat([['qr','QR']]).concat((/free oyster/i.test(n)||/plat.?(en.)?test/i.test(n))?[['inf','Infos']]:[]);
   if(!tabs.some(t=>t[0]===QTAB))QTAB='res';
   let body='';
   if(QTAB==='res'){
@@ -1271,6 +1282,7 @@ function campDetail(n,inline){
       body=`<div class="card"><div class="kpis"><div class="kpi n"><span>Scans · 7 j</span><b class="num">${c.st.scans||0}</b></div><div class="kpi"><span>Conversions</span><b class="num">${c.st.conv||0}</b></div><div class="kpi"><span>À valider</span><b class="num">${c.st.pending||0}</b></div><div class="kpi"><span>Codes</span><b class="num">${c.qs.length}</b></div></div></div>
         <div class="card"><h2>Ventes et réservations</h2>${convs.map(convRow).join('')||'<p class="empty">Rien pour le moment.</p>'}</div>`;}
   } else if(QTAB==='jou') body=m.hal?jlCard(id+'_all',[],'Tous les joueurs',false,HAL):jlCard(id+'_all',c.codes,'Tous les joueurs',false);
+  else if(QTAB==='inf'){const g=guideParts();body=/free oyster/i.test(n)?g.banner+g.rue+g.table+g.save:g.plat;}
   else body=`<div class="card"><h2>Les QR de la campagne <a class="cbtn" style="margin-left:auto" href="#qr-new">+ Nouveau</a></h2><div class="qh-codes">${c.qs.map(q=>{const s=statsFor([q.code]);return `<a href="#qr/${encodeURIComponent(q.code)}"><div class="qmini">${qrArt(q,120)}</div><span><b>${esc(qName(q))}</b><small>${esc(qSub(q)||q.code)}</small></span><span class="n">${s.scans}<small>scans</small></span></a>`;}).join('')||'<p class="empty">Pas encore de QR.</p>'}</div></div>`;
   return hero+`<div class="qh-tabs">${tabs.map(([k,t])=>`<button type="button" class="${QTAB===k?'on':''}" data-qtab="${k}" data-qc="${esc(n)}">${t}</button>`).join('')}</div>`+body;
 }
