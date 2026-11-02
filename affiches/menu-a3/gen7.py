@@ -20,8 +20,10 @@ TXT = {
 }
 CSS = """
 .vid{position:relative;border-radius:3mm;overflow:hidden;min-height:58mm;display:flex;align-items:flex-end;color:#fff;background:#253968}
-.vid .ph{position:absolute;inset:0;background:url(photos/p3.jpg) 70% 45%/cover}
-.vid .sh{position:absolute;inset:0;background:linear-gradient(100deg,rgba(13,37,92,.93) 0%,rgba(13,37,92,.72) 38%,rgba(13,37,92,.08) 72%,rgba(13,37,92,0) 100%)}
+/* photo + dégradé bleu fusionnés en une seule image (photos/carte-en-images-fond.jpg) : pas de transparence dans le PDF,
+   sinon certains lecteurs PDF (Aperçu, iPhone) teintent le dégradé en rose */
+.vid .ph{position:absolute;inset:0;background:url(photos/carte-en-images-fond.jpg) center/cover}
+.vid .sh{display:none}
 .vid .in{position:relative;display:flex;align-items:flex-end;gap:5mm;padding:6mm;width:100%}
 .vid .t{flex:1}
 .vid .k{font-size:3.1mm;letter-spacing:.24em;text-transform:uppercase;font-weight:700;color:var(--gold)}
