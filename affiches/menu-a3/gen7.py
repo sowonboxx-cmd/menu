@@ -1,6 +1,6 @@
 # Carte finale Drevici Oyster Bar : même carte pour la vitrine (A3) et la table (A4), FR et EN,
 # avec l'encart « La carte en images » (photo 2) à la place de « Réservez maintenant ».
-# python3 gen7.py → final/*.html   (puis node /tmp/print7.js pour PDF et PNG)
+# python3 gen7.py → final/*.html   (puis : NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt node print7.js final carte-  → PDF + PNG 300 dpi ; il faut undici)
 import re, os
 os.makedirs("final", exist_ok=True)
 SRC = open("c3w.html").read()

@@ -69,7 +69,10 @@ EN = {
 "Champagne la Maison Fricot":"Champagne Maison Fricot","Pétillant Saumur":"Saumur sparkling wine","Côte du Rhône":"Côtes du Rhône","Côtes-du-Rhône":"Côtes du Rhône",
 "Rosé":"Rosé","La Blonde 5,5°":"Blonde beer 5.5°","La IPA 6°":"IPA 6°","Liqueur de Citron ou de Menthe":"Lemon or mint liqueur",
 "Gin, Rhum, Esprit Malt":"Gin, rum, malt spirit","Jus de Pomme breton":"Breton apple juice","Breizh Cola / Cola Zero":"Breizh Cola / Cola zero",
-"Ginger Beer":"Ginger beer","Coca-Cola, Thé Oolong, Coca Zéro, Perrier":"Coca-Cola, oolong tea, Coke Zero, Perrier",
+"Ginger Beer":"Ginger beer",
+"Bières & cidres":"Beers & ciders","Cidre Nicol pression":"Nicol draught cider","Royal Guillevic, Label Rouge":"Royal Guillevic cider, Label Rouge",
+"Shot":"Shot","Shot premium":"Premium shot","Mojito, Moscow mule":"Mojito, Moscow mule",
+"Saucisson de jambon, andouille bretonne, filet mignon fumée. Supplément fromage +4 €":"Ham sausage, Breton andouille, smoked pork fillet. Extra cheese +€4","Coca-Cola, Thé Oolong, Coca Zéro, Perrier":"Coca-Cola, oolong tea, Coke Zero, Perrier",
 }
 import json, os, unicodedata
 def norm(s): return ' '.join(s.replace('’',"'").replace('“','"').replace('”','"').replace(' ',' ').split()).lower()
