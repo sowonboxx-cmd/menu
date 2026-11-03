@@ -202,6 +202,19 @@ a{color:inherit}
 .flash{position:absolute;inset:0;z-index:15;background:var(--pump2);opacity:0;pointer-events:none;transition:opacity .25s}
 .flash.on{opacity:.6}
 @media (prefers-reduced-motion:reduce){.jar.wob,.mini-bat,.burst,.shot .liq{animation:none}}
+
+/* Le lot se voit 5 s, puis se floute et le formulaire monte : pas de lot sans code */
+.lotzone{display:flex;flex-direction:column;align-items:center;width:100%}
+.lotzone .lot,.lotzone .what,.lotzone .shot{transition:filter .9s ease,opacity .9s ease}
+.res.locked .lotzone .lot,.res.locked .lotzone .shot{filter:blur(16px) grayscale(.4);opacity:.55}
+.res.locked .lotzone .what{filter:blur(7px);opacity:.6}
+.timer{margin-top:3cqw;font:600 3.4cqw Inter;color:#c9b8e0;display:flex;align-items:center;gap:2cqw;justify-content:center}
+.timer i{width:6cqw;height:6cqw;border-radius:50%;background:conic-gradient(var(--pump) var(--p,100%),rgba(255,255,255,.15) 0);display:block}
+.res.locked .timer{display:none}
+#sheet .love{display:none;text-align:center;font:500 3.4cqw Inter;color:#cdbfe0;margin-top:3cqw}
+#sheet.claim .love{display:block}
+.hrt{color:var(--pump);font-size:1.25em;display:inline-block;animation:bat 1.3s ease-in-out infinite}
+@keyframes bat{0%,100%{transform:scale(1)}15%{transform:scale(1.25)}30%{transform:scale(1)}}
 </style></head><body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
  <symbol id="bat" viewBox="0 0 200 90"><path d="M100 30c-4-10-8-14-8-14s-1 8 0 13c-10-2-20 3-26 12-3-8-12-14-22-12 4 5 5 11 3 16-8-4-19-3-27 4-6 5-10 12-12 19 9-5 20-6 29-2 6 3 10 8 12 14 4-7 11-11 19-11 6 0 11 3 15 8 3-8 9-14 17-14s14 6 17 14c4-5 9-8 15-8 8 0 15 4 19 11 2-6 6-11 12-14 9-4 20-3 29 2-2-7-6-14-12-19-8-7-19-8-27-4-2-5-1-11 3-16-10-2-19 4-22 12-6-9-16-14-26-12 1-5 0-13 0-13s-4 4-8 14z"/></symbol>
@@ -253,6 +266,7 @@ a{color:inherit}
       <div class="err" id="ferr"></div>
       <button class="cta" type="submit" id="fgo">Ouvrir mon bocal</button>
     </form>
+    <div class="love">On garde ça entre nous <span class="hrt">♥</span></div>
     <div class="fine">Vos données restent chez Drevici · <a href="confidentialite">Vos données</a> · <a href="halloween-2026-reglement">Règlement</a><br>L'abus d'alcool est dangereux pour la santé.</div>
   </section>
 
@@ -534,17 +548,24 @@ function resultLocked(d) {
   const L = LOTS[d.result] || LOTS.shot;
   const top = d.result === 'shot' ? `<div class="k">${L.k}</div><h1>Le shot <i>offert</i></h1><div class="shot"><div class="g"></div><div class="liq"></div></div>`
     : `<div class="k">${L.k}</div><h1>Tu as <i>gagné</i> !</h1><img class="lot" src="${L.img}" alt="${L.alt}">`;
-  $('#res').innerHTML = skyHTML + `<div class="res"><div class="sp" style="flex:.5"></div>${top}<div class="what">${L.what}</div>
+  $('#res').innerHTML = skyHTML + `<div class="res"><div class="sp" style="flex:.5"></div><div class="lotzone">${top}<div class="what">${L.what}</div>
+    <div class="timer"><i></i><span>Ton lot se met de côté dans <b id="sec">5</b> s</span></div></div>
     <div class="tick lock"><div class="c">BOO-7K2R</div><small>Montre ce code au comptoir</small><div class="lk">🔒 Ton code est prêt</div></div>
     <button class="cta" id="unlock" type="button">Récupérer mon lot</button>
     <div class="lknote">On t'envoie ton code par email pour ne pas le perdre.<br>Ton tirage est enregistré : rejouer ne change rien.</div>
     <div class="sp"></div><div class="brandb"><b>DREVICI OYSTER</b><i>8 Rue Biot, 75017 <em>Paris</em></i></div></div>`;
   $('#res').classList.add('on');
-  $('#unlock').onclick = () => {
-    $('#sheet h2').innerHTML = 'Dernière étape : <em>ton code</em>';
-    $('#sheet .p').textContent = 'Pour t\'envoyer ton code et éviter les doubles parties.';
-    $('#fgo').textContent = 'Recevoir mon code'; $('#sheet').classList.add('on'); $('#veil').classList.add('on');
+  const claim = () => {
+    $('#sheet h2').innerHTML = 'Dernière <em>petite</em> étape';
+    $('#sheet .p').textContent = 'Dis-nous qui t\'es, valide et récupère ton lot !';
+    $('#fgo').textContent = 'Récupérer mon lot'; $('#sheet').classList.add('on', 'claim'); $('#veil').classList.add('on');
   };
+  $('#unlock').onclick = claim;
+  // 5 s pour voir son lot, puis il se floute et le formulaire monte tout seul
+  { const r = $('#res .res'), sec = $('#sec'), ring = $('#res .timer i'), t0 = Date.now();
+    const tk = setInterval(() => { if (!r.isConnected) return clearInterval(tk); const e = (Date.now() - t0) / 1000;
+      ring.style.setProperty('--p', Math.max(0, 100 - e * 20) + '%'); sec.textContent = Math.max(0, Math.ceil(5 - e));
+      if (e >= 5) { clearInterval(tk); r.classList.add('locked'); claim(); } }, 100); }
 }
 function testDraw() {
   let res = { trio: 'trio', huitre: 'trio', gagne: 'trio', plateau: 'plateau', tshirt: 'tshirt', shot: 'shot', perdu: 'shot' }[TEST];
