@@ -71,7 +71,8 @@ EN = {
 "Gin, Rhum, Esprit Malt":"Gin, rum, malt spirit","Jus de Pomme breton":"Breton apple juice","Breizh Cola / Cola Zero":"Breizh Cola / Cola zero",
 "Ginger Beer":"Ginger beer",
 "Bières & cidres":"Beers & ciders","Cidre Nicol pression":"Nicol draught cider","Royal Guillevic, Label Rouge":"Royal Guillevic cider, Label Rouge",
-"Shot":"Shot","Shot premium":"Premium shot","Mojito, Moscow mule":"Mojito, Moscow mule",
+"Shot":"Shot","Shot premium":"Premium shot","Maquereau fumé au bois de hêtre":"Beech-smoked mackerel","Gin tonic, Moscow mule":"Gin & tonic, Moscow mule",
+"60 % de filets de maquereau, fumés au bois de hêtre sur l'île de Groix":"60% mackerel fillets, smoked over beech wood on Groix island","Mojito, Moscow mule":"Mojito, Moscow mule",
 "Saucisson de jambon, andouille bretonne, filet mignon fumée. Supplément fromage +4 €":"Ham sausage, Breton andouille, smoked pork fillet. Extra cheese +€4","Coca-Cola, Thé Oolong, Coca Zéro, Perrier":"Coca-Cola, oolong tea, Coke Zero, Perrier",
 }
 import json, os, unicodedata
