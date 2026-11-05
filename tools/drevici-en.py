@@ -17,7 +17,7 @@ EN = {
 "Gratinées au four, beurre herbé, chapelure croustillante, servies chaudes":"Oven-baked with herb butter and crispy breadcrumbs, served hot",
 "Huîtres gratinées • Duo Champagne • Rillettes à la truite de Bretagne":"Baked oysters • Champagne duo • Breton trout rillettes",
 # Plateaux
-"Drevici":"Drevici","Capitaine":"Capitaine","Matelot":"Matelot","Mousaillon":"Mousaillon","Duo champagne":"Champagne duo","Solo champagne":"Champagne solo",
+"Drevici":"Drevici","Capitaine":"Capitaine","Matelot":"Matelot","Mousaillon":"Mousaillon","Moussaillon":"Moussaillon","Duo champagne":"Champagne duo","Solo champagne":"Champagne solo",
 "12 huîtres N°3, 2 coupes de champagne":"12 n°3 oysters, 2 glasses of champagne",
 "12 huîtres N°3, 200gr de bulots, 6 gambas de Madagascar":"12 n°3 oysters, 200 g whelks, 6 Madagascar prawns",
 "12 huîtres N°3, charcuterie bretonne, gambas, bulots, tartinade":"12 n°3 oysters, Breton charcuterie, prawns, whelks, a spread",
