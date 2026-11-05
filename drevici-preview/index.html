@@ -3167,6 +3167,7 @@ function openEditDish(ti,ci,di){
   h+=`<div id="ed-price-block">${efPriceBlockHtml(d)}</div>`;
   h+=`<div class="ef"><label class="ei-check"><input type="checkbox" id="ed-dual" ${d.priceType==='dual'?'checked':''} onchange="efToggleDual(this)"><span>Double tarif (ex : Les 6 / Les 12)</span></label></div>`;
   h+=efImgField('ed-img', d.img||'', 'Photo 1 — le plat seul');
+  h+=efVidField(d.video||'');
   h+=efBadgesField(d);
   h+=efSocialAccordion(d.gallery||[], d.caption||'', 'Ex: Nos huîtres Spéciales N°3 — iodées, fraîches, servies sur glace 🦪 Disponibles au bar ou à emporter.');
   // Masquer / Supprimer ferment la fiche, comme dans le panneau admin :
@@ -3281,6 +3282,7 @@ function saveEditPop(silent){
         d.price=pv?pv+'€':'';
       }
       d.img=v('ed-img');
+      if(document.getElementById('ed-video')){ const vu=v('ed-video'); if(vu) d.video=vu; else delete d.video; }
       d.gallery=readGalleryFields();
       d.caption=v('ed-caption');
       readBadgeFields(d);
@@ -5506,7 +5508,7 @@ function renderTabContent(tab,lbOffset){
   const hasGridableContent = tab.cards.some(c => c.type !== 'bevs');
   if(view==='grid' && hasGridableContent){
     // Collect all grid items across cards into one unified 2-col grid
-    let gridItems=[]; const vidRows=new Set();
+    let gridItems=[]; const vidRows=new Set(); const gridPids=[];
     // BUG FIX: bevs-type cards (name+format+price, no image) don't suit
     // an image-tile grid, so they used to be skipped entirely here —
     // fine when a WHOLE tab was bevs-only, but a card was silently
@@ -5537,6 +5539,7 @@ function renderTabContent(tab,lbOffset){
         const ci=tab.cards.indexOf(card);
         const idx=card.img?imgIdx++:null;
         const vinfo=variantsPriceInfo(card.variants);
+        gridPids.push(null);
         gridItems.push(`<div class="gc" data-edit="variants" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${ci}"${card.img?` data-lbidx="${idx}"`:''}><div class="gc-wrap">${card.img?`<img class="gc-img" src="${card.img}" alt="${dishAlt(card)}" loading="lazy">`:'<div style="aspect-ratio:1;background:#ece8e1"></div>'}</div><div class="gc-body"><div class="gc-name">${t(card.label)}</div><div class="gc-desc">${vinfo.flavourText}</div><div class="gc-price">${vinfo.sharedPrice}</div></div></div>`);
         return;
       }
@@ -5551,9 +5554,19 @@ function renderTabContent(tab,lbOffset){
         const gcBody=d.priceType==='dual'
           ? `<div class="gc-name">${t(d.name)}${isPinnedDish(d)?'&nbsp;<span class="dish-star">\u2605</span>':''}${badges?` <span class="dish-badges" style="display:inline-flex">${badges}</span>`:''}</div><div class="gc-desc">${t(d.desc)}</div><div class="gc-price">${priceHtml}</div>`
           : `<div class="gc-top-row"><div class="gc-name">${t(d.name)}${isPinnedDish(d)?'&nbsp;<span class="dish-star">\u2605</span>':''}${badges?` <span class="dish-badges" style="display:inline-flex">${badges}</span>`:''}</div>${priceHtml?`<span class="gc-price-inline">${priceHtml}</span>`:''}</div><div class="gc-desc">${t(d.desc)}</div>`;
+        gridPids.push(d._pid||null);
         gridItems.push(`<div class="gc" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${ci}" data-di="${di}"${d.img?` data-lbidx="${idx}"`:''}><div class="gc-wrap">${d.img?`<img class="gc-img" src="${d.img}" alt="${dishAlt(d)}" loading="lazy">`:'<div style="aspect-ratio:1;background:#ece8e1"></div>'}${(d.img&&d.video&&!vidRows.has(Math.floor(gridItems.length/3)))?(vidRows.add(Math.floor(gridItems.length/3)),dishVidHtml(d,'gc-vid')):''}</div><div class="gc-body">${gcBody}</div></div>`);
       });
     });
+    // Les incontournables (étoile) passent en tête de la grille, dans l'ordre choisi dans la fiche (1, 2, 3),
+    // comme dans le bandeau sur téléphone. Le reste garde l'ordre de la carte. En mode édition, l'ordre de la carte.
+    if(!editMode && gridItems.length){
+      const po=(DATA.pinnedDishes||[]).filter(p=>p.tabId===tab.id).map(p=>p.pid);
+      if(po.length){
+        const rank=i=>{const k=po.indexOf(gridPids[i]);return k<0?po.length+i:k;};
+        gridItems=gridItems.map((h,i)=>({h,r:rank(i)})).sort((a,b)=>a.r-b.r).map(x=>x.h);
+      }
+    }
     if(gridItems.length){
       // Ordinateur (3 par ligne) : s'il reste 1 ou 2 plats seuls sur la dernière ligne, on comble le trou
       // avec un encart « réserver ». 1 plat seul : il passe en bandeau photo sur deux tiers.
@@ -12279,6 +12292,29 @@ function compressImageFile(file, {ratio=null, maxDim=1000, quality=0.8}={}){
 function readImageFileSafe(file, onOk, opts){
   if(!file) return;
   compressImageFile(file, opts).then(onOk).catch(e => showToast('⚠️ '+e.message));
+}
+// Vidéo (facultative) d'un plat : le même champ que dans l'admin, pour que les deux restent synchro.
+function efVidField(val){
+  return `<div class="ef"><label class="el">Vidéo (facultative)</label><div class="ai-img-wrap">
+    <input class="ei" id="ed-video" value="${escAttr(val||'')}" placeholder="Collez un lien MP4 ou envoyez une vidéo" oninput="efVidPrev()">
+    <label class="ai-upload-btn" title="Envoyer une vidéo"><input type="file" accept="video/mp4,video/webm,video/quicktime" style="display:none" onchange="uploadDishVideo(this)"><svg width="18" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg></label>
+  </div><video id="ed-video-prev" src="${escAttr(val||'')}" muted loop autoplay playsinline style="${val?'':'display:none;'}width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-top:8px;background:#000"></video>
+  <div style="display:flex;gap:8px;align-items:center;margin-top:6px;font-size:12px;color:#8a8f9c">Coupée du son, en boucle, 60 Mo max.${val?` <button type="button" class="aadd" style="margin:0 0 0 auto;padding:4px 10px" onclick="document.getElementById('ed-video').value='';efVidPrev()">Retirer la vidéo</button>`:''}</div></div>`;
+}
+function efVidPrev(){ const u=(document.getElementById('ed-video')||{}).value||'', p=document.getElementById('ed-video-prev'); if(!p) return; if(u){ p.src=u; p.style.display=''; } else { p.removeAttribute('src'); p.style.display='none'; } }
+async function uploadDishVideo(input){
+  const file=input.files&&input.files[0]; input.value=''; if(!file) return;
+  if(IS_PREVIEW){ showToast('👁 Preview en lecture seule'); return; }
+  if(!/^video\//.test(file.type)){ showToast('Choisissez une vidéo MP4 ou WebM'); return; }
+  if(file.size>60*1024*1024){ showToast('Vidéo trop lourde (60 Mo max) : raccourcissez-la'); return; }
+  if(!supaSession){ showToast('Connectez-vous d\'abord'); return; }
+  showToast('Envoi de la vidéo… (peut prendre une minute)');
+  try{
+    const r=await fetch('https://upload.beltab.app/upload?slug='+encodeURIComponent(CLIENT_SLUG)+'&kind=video',{method:'POST',headers:{'Authorization':'Bearer '+supaSession.access_token,'Content-Type':file.type},body:file});
+    const j=await r.json().catch(()=>({}));
+    if(r.ok&&j.url){ const f=document.getElementById('ed-video'); if(f){ f.value=j.url; efVidPrev(); } showToast('✓ Vidéo envoyée — Enregistrez la fiche'); }
+    else showToast('⚠ '+(j.error||('Envoi impossible ('+r.status+')')));
+  }catch(e){ console.warn('video',e); showToast('⚠ Serveur d\'envoi injoignable'); }
 }
 // Vidéo plein écran de l'accueil : envoyée sur media.beltab.app (même serveur d'envoi que /gestion).
 async function uploadCoverVideo(input){
