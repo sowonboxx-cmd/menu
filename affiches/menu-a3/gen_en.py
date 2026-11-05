@@ -24,7 +24,7 @@ R = [
     ("Servie avec fromage et pain", "Served with cheese and bread"),
     ('nm">Breizh Cola / Cola zéro', 'nm">Breizh Cola / Cola zero'), ('nm">Bulots', 'nm">Whelks'),
     ('nm">Caviar de nori', 'nm">Nori caviar'), ('nm">Dorade combava &amp; gingembre', 'nm">Sea bream, makrut lime &amp; ginger'),
-    ('nm">Gambas de Madagascar', 'nm">Madagascar prawns'), ('nm">Gin, rhum, esprit malt', 'nm">Gin, rum, malt spirit'),
+    ('nm">Gambas</span>', 'nm">Prawns</span>'), ('nm">Gin, rhum, esprit malt', 'nm">Gin, rum, malt spirit'),
     ('nm">Homard bleu', 'nm">Blue lobster'), ('nm">Huîtres gratinées', 'nm">Baked oysters'),
     ('nm">Huîtres natures n°2', 'nm">Natural oysters n°2'), ('nm">Huîtres natures n°3', 'nm">Natural oysters n°3'),
     ('nm">Huîtres natures n°4', 'nm">Natural oysters n°4'), ('nm">Jus de pomme breton', 'nm">Breton apple juice'),
