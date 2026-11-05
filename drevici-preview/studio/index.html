@@ -1058,7 +1058,8 @@ let JEU={players:[],plays:[],ev:[]}, HAL={players:[],plays:[]}, QF2='Tous', JCFG
 const qrLink=q=>q&&q.path?QR_SITE+'/qr/'+q.path:GO+String(q&&q.code||'CODE').toLowerCase();
 const campOf=q=>q.campaign||q.category||'Autre';
 const capF=t=>t?String(t).charAt(0).toUpperCase()+String(t).slice(1):'';
-const qName=q=>q.owner&&q.support==='Serveur'?q.owner:q.support==='Carte table'&&/plat|plateau/i.test(campOf(q))?'Maison':q.place?capF(String(q.place).replace(/-/g,' ')):(q.owner||q.label||q.code);
+// Le « Nom affiché » saisi dans Modifier passe en premier ; sinon on déduit un nom du support et du lieu
+const qName=q=>(q.label&&q.label.trim())||(q.owner&&q.support==='Serveur'?q.owner:q.support==='Carte table'&&/plat|plateau/i.test(campOf(q))?'Maison':q.place?capF(String(q.place).replace(/-/g,' ')):(q.owner||q.code));
 const qSub=q=>[q.support,q.num>1?'n° '+q.num:'',q.is_test?'test':'',q.active===false?'désactivé':''].filter(Boolean).join(' · ');
 // Campagnes toujours affichées dans Scans QR, même sans QR encore créé
 const CAMP_DEF=[['Plateau de fruits de mer','Plateau fruits de mer']];
