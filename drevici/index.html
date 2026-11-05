@@ -2522,7 +2522,7 @@ let DATA = {
 // pas sur le cover : dans ce cas on laisse la couleur de marque du site
 // s'appliquer, sinon la barre de statut flasherait la couleur du cover
 // avant d'être corrigée au premier render.
-if(DATA.homeCover && DATA.homeCover.active && !(location.hash||'').replace(/^#/,'').trim()){
+if(DATA.homeCover && DATA.homeCover.active && !(location.hash||'').replace(/^#/,'').trim() && !/[?&]src=MENU-/i.test(location.search)){
   const _tm=document.getElementById('themeColorMeta');
   if(_tm) _tm.setAttribute('content', DATA.homeCover.statusBarColor || (DATA.brandColors&&DATA.brandColors.accent) || '#000000');
 }
@@ -4133,7 +4133,9 @@ function variantsPriceInfo(variants){
 // menu". Une URL nue = splashscreen, une URL avec #tab = le menu sur
 // cette tab. Lu ici pendant que le hash est encore intact : le premier
 // renderAll() (qui pourrait le réécrire) ne tourne qu'en fin de script.
-let homeCoverDismissedThisSession=!!(location.hash||'').replace(/^#/,'').trim();
+// Les QR « menu » (?src=MENU-…) ouvrent directement la carte, sans passer par l'accueil.
+const FROM_MENU_QR=/[?&]src=MENU-/i.test(location.search);
+let homeCoverDismissedThisSession=FROM_MENU_QR||!!(location.hash||'').replace(/^#/,'').trim();
 function isHomeCoverShowing(){
   return !!(DATA.homeCover && DATA.homeCover.active && !homeCoverDismissedThisSession);
 }
