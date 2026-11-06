@@ -17,7 +17,7 @@ EN = {
 "Gratinées au four, beurre herbé, chapelure croustillante, servies chaudes":"Oven-baked with herb butter and crispy breadcrumbs, served hot",
 "Huîtres gratinées • Duo Champagne • Rillettes à la truite de Bretagne":"Baked oysters • Champagne duo • Breton trout rillettes",
 # Plateaux
-"Drevici":"Drevici","Capitaine":"Capitaine","Matelot":"Matelot","Mousaillon":"Mousaillon","Gambas":"Prawns","12 huîtres n°3, 200gr de bulots, 6 gambas":"12 n°3 oysters, 200 g whelks, 6 prawns","6 huîtres n°3, 4 gambas":"6 n°3 oysters, 4 prawns","3 huîtres n°3, 50gr de bulots, 3 gambas":"3 n°3 oysters, 50 g whelks, 3 prawns","Moussaillon":"Moussaillon","Duo champagne":"Champagne duo","Solo champagne":"Champagne solo",
+"Drevici":"Drevici","Capitaine":"Capitaine","Matelot":"Matelot","Mousaillon":"Mousaillon","Beurre persillé, emmental gratiné, servies chaudes":"Parsley butter, grilled Emmental cheese, served hot","Servie avec croûtons et emmental":"Served with croutons and Emmental cheese","Gambas":"Prawns","12 huîtres n°3, 200gr de bulots, 6 gambas":"12 n°3 oysters, 200 g whelks, 6 prawns","6 huîtres n°3, 4 gambas":"6 n°3 oysters, 4 prawns","3 huîtres n°3, 50gr de bulots, 3 gambas":"3 n°3 oysters, 50 g whelks, 3 prawns","Moussaillon":"Moussaillon","Duo champagne":"Champagne duo","Solo champagne":"Champagne solo",
 "12 huîtres N°3, 2 coupes de champagne":"12 n°3 oysters, 2 glasses of champagne",
 "12 huîtres N°3, 200gr de bulots, 6 gambas de Madagascar":"12 n°3 oysters, 200 g whelks, 6 Madagascar prawns",
 "12 huîtres N°3, charcuterie bretonne, gambas, bulots, tartinade":"12 n°3 oysters, Breton charcuterie, prawns, whelks, a spread",
@@ -49,7 +49,7 @@ EN = {
 "Dame Blanche : glace vanille, crumble, crème de marron, chantilly & sauce chocolat":"Dame Blanche: vanilla ice cream, crumble, chestnut cream, whipped cream & chocolate sauce",
 "Salade de fruits":"Fruit salad","Trou Normand (sorbet pomme & calvados)":"Trou Normand (apple sorbet & calvados)",
 # Tartinades
-"Nature":"Natural","Soleil":"Sun","Pomme et Miel":"Apple & honey","Caviar de nori":"Nori caviar",
+"Nature":"Natural","Soleil":"Soleil","Pomme et Miel":"Apple & honey","Caviar de nori":"Nori caviar",
 "Tartare d'algues (4 algues) poivrons grillés et paprika":"Seaweed tartare (4 seaweeds), grilled peppers and paprika",
 "Excellente avec du fromage ou à consommer directement dans une huître":"Excellent with cheese, or straight on an oyster",
 "Parfait pour accompagner des toasts de chèvre chaud, avec tomme de brebis":"Perfect with warm goat's cheese toast or sheep's milk tomme",
