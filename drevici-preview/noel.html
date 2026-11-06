@@ -229,6 +229,7 @@ h1{font-family:var(--f-title);font-weight:700;font-size:clamp(40px,4.4vw,62px);l
 [data-add="3"] .card .buy .price{margin-right:18px}
 [data-add="3"] .addb.round{width:52px;height:50px;border-radius:0 999px 999px 0;background:var(--navy);color:var(--white);box-shadow:inset 1px 0 0 rgba(255,255,255,.25);font-size:24px}
 [data-add="3"] .addb.round:hover{background:var(--ink)}
+.buy .cta:disabled,.buy .addb:disabled{background:var(--navy)!important;color:#fff!important;opacity:.4;cursor:not-allowed}
 /* Pastilles ×1 : x1 pilule, x2 rond, x3 carré arrondi */
 [data-x="2"] .it .x:not(.off){width:32px;height:32px;padding:0;border-radius:50%;display:grid;place-items:center}
 [data-x="3"] .it .x:not(.off){width:34px;height:28px;padding:0;border-radius:8px;display:grid;place-items:center}
@@ -676,7 +677,7 @@ function renderPlate(){
 /* ---- Fiche ---- */
 function renderInfo(pins){
   const el=$('info'), s=sub();
-  const giftHTML=amount=>{if(s>=GIFT_AT)return 'Six huîtres offertes avec votre bourriche.';if(s)return `Votre bourriche : ${eur(s)}. Encore ${eur(GIFT_AT-s)} pour six huîtres offertes.`;return amount>=GIFT_AT?'Six huîtres offertes avec ce plateau.':`Plus que ${eur(GIFT_AT-amount)} pour six huîtres offertes.`;};
+  const giftHTML=amount=>{if(s>=GIFT_AT)return 'Six huîtres offertes : votre bourriche dépasse déjà 100 €.';if(s+amount>=GIFT_AT)return 'Six huîtres offertes avec ce plateau.';if(s)return `Avec votre bourriche (${eur(s)}), plus que ${eur(GIFT_AT-s-amount)} pour six huîtres offertes.`;return `Plus que ${eur(GIFT_AT-amount)} pour six huîtres offertes.`;};
   if(view<COMPOSE){
     const p=PLATEAUX[view];
     const split=t=>{const m=t.match(/^(\S+(?: g)?) (?:de )?(.*)$/);return m?[m[1],m[2]]:[t,''];};
@@ -698,7 +699,7 @@ function renderInfo(pins){
     const pct=Math.min(100,(s+t)/GIFT_AT*100);
     el.innerHTML=`<div class="card compo"><div class="sec head"><div class="eyebrow">Sur mesure</div><h1>Composez le vôtre</h1><p class="sub">Ce qui est en couleur est dans votre plateau.</p></div>
       <div class="sec"><div class="comp">${ORDER.map(row).join('')}</div></div>
-      <div class="sec buy"><div class="price tab">${eur(t)}</div><button class="cta" id="add" ${n?'':'disabled'}>${ctaLabel()}</button>${n?ctaLink():''}</div>
+      <div class="sec buy"><div class="price tab">${eur(t)}</div><button class="cta" id="add" ${n?'':'disabled'}>${ctaLabel()}</button>${n?ctaLink():ctaLink().replace('<button','<button disabled')}</div>
       <div class="sec gift"><span class="gt">${giftHTML(t)}</span>${bar(s+t)}</div></div>`;
     el.querySelectorAll('.step button').forEach(b=>b.onclick=()=>{const k=b.dataset.k;comp[k]=Math.max(0,(comp[k]||0)+(+b.dataset.d));if(!comp[k])delete comp[k];save();render();});
     el.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{sauces[b.dataset.s]=!sauces[b.dataset.s];save();render();});
