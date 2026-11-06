@@ -96,6 +96,8 @@ h1{font-family:var(--f-title);font-weight:700;font-size:clamp(40px,4.4vw,62px);l
 .plate-col{min-width:0;display:flex;flex-direction:column;align-items:center}
 .plate{width:100%;max-width:1080px;display:block;overflow:visible}
 .plate.enter .co{animation:coIn 1.3s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(.9s + var(--i) * .25s);transform-box:view-box}
+.plate.enter .co{}
+@media (max-width:760px){.plate.enter .co{animation-duration:.45s;animation-delay:calc(.15s + var(--i) * .05s)}}
 .plate.enter .coL{--dx:20px}.plate.enter .coR{--dx:-20px}
 @keyframes coIn{from{opacity:0;transform:translateX(var(--dx));filter:blur(3px)}to{opacity:1;transform:none;filter:none}}
 .lit-m{animation:litM .6s ease-out both}
@@ -314,8 +316,27 @@ h1{font-family:var(--f-title);font-weight:700;font-size:clamp(40px,4.4vw,62px);l
   [data-info="5"] .buy .cta,[data-info="6"] .buy .cta{flex:1;text-align:center}
 }
 
+
+/* Composer : toucher un produit -> fenêtre +/− */
+#overlay .hit{fill:transparent;cursor:pointer;pointer-events:all}
+.sheet{position:fixed;inset:0;z-index:60;background:rgba(13,37,92,.28);display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.sheet.on{opacity:1;pointer-events:auto}
+.shin{width:100%;max-width:440px;background:var(--white,#fff);border-radius:22px 22px 0 0;padding:22px 20px calc(20px + env(safe-area-inset-bottom,0px));transform:translateY(30px);transition:transform .28s cubic-bezier(.2,.8,.2,1)}
+.sheet.on .shin{transform:none}
+@media (min-width:761px){.sheet{align-items:center}.shin{border-radius:22px}}
+.shh{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px}
+.shn{font-family:var(--f-title);font-size:26px;font-weight:700;color:var(--ink);line-height:1.1}
+.shu{font-size:14px;color:var(--muted);margin-top:4px}
+.shq{font-family:var(--f-title);font-size:24px;font-weight:700;color:var(--ink)}
+.shs{display:flex;align-items:center;justify-content:space-between;background:var(--bg);border-radius:999px;padding:6px}
+.shs button{width:52px;height:52px;border-radius:50%;background:var(--white,#fff);color:var(--navy);font-size:26px;font-weight:500;display:grid;place-items:center}
+.shs button:disabled{color:#C9C5BC}
+.shc{text-align:center}.shc b{display:block;font-size:22px;color:var(--ink)}.shc span{font-size:13px;color:var(--muted)}
+.shok{width:100%;margin-top:14px;background:var(--navy);color:#fff;border-radius:999px;padding:16px;font-size:15px;font-weight:600}
+.mleg.vh .hint2{font-size:13px;font-weight:600;color:var(--navy);background:var(--white,#fff);border-radius:999px;padding:10px 18px}
 /* Maquettes mobile : légendes (l1-l6) et sélection (s1-s4) */
 #mleg,#mrail,#mpeek,.mdown,.mnav,.mdots{display:none}
+.labs{opacity:0;transition:opacity .22s;pointer-events:none}.showlab .labs{opacity:1}
 @media (max-width:760px){
   #mleg{display:flex}
   [data-sel="6"] #mrail{display:grid}
@@ -388,7 +409,8 @@ h1{font-family:var(--f-title);font-weight:700;font-size:clamp(40px,4.4vw,62px);l
   .mrail{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;width:100%;margin:14px 0 6px}
   .mrail button{background:none;display:flex;flex-direction:column;align-items:center;gap:0;padding:0;color:var(--ink)}
   .mrail .th{position:relative;width:min(86px,19.5vw);height:min(86px,19.5vw);display:block;transition:transform .35s ease,opacity .35s}
-  .mrail .th svg{width:100%;height:100%;display:block}
+  .mrail .th svg,.mrail .th img{width:100%;height:100%;display:block;border-radius:50%}
+  .r3 [aria-current="false"] .th img{opacity:.55}
   .mrail .th::after{content:"";position:absolute;inset:2px;border-radius:50%;border:0 solid transparent;transition:border-color .3s}
   .mrail .th em{position:absolute;right:-2px;bottom:-2px;width:26px;height:26px;border-radius:50%;background:#fff;display:grid;place-items:center;font-style:normal;font-size:18px;font-weight:600;color:var(--navy);line-height:1}
   .mrail .lb{display:flex;flex-direction:column;align-items:center}
@@ -562,6 +584,7 @@ h1{font-family:var(--f-title);font-weight:700;font-size:clamp(40px,4.4vw,62px);l
   <div class="dbody" id="dBody"></div>
   <div class="dfoot" id="dFoot"></div>
 </aside>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true"><div class="shin" id="sheetIn"></div></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -649,7 +672,9 @@ function renderPlate(){
     const sl=p=>p.full.replace(' de Madagascar','').replace('Mayonnaise','Sauce');
     if(mob()){
       const show=MV!=='3'||window.SHOWLAB;
-      if(MV==='1'&&show||MV==='3'&&show) pins.forEach((p,i)=>{const t=sl(p),w=t.length*12.4+36,y=p.z[1]+p.z[3]*.15;ov+=`<g transform="translate(${p.z[0]} ${y})"><g class="co" style="--i:${i}"><rect x="${-w/2}" y="-21" width="${w}" height="42" rx="21" fill="#0D255C" opacity=".9"/><text y="8" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="600" fill="#fff">${t}</text></g></g>`;});
+      if(MV==='3') ov+='<g class="labs">';
+      if(MV==='1'&&show||MV==='3') pins.forEach((p,i)=>{const t=sl(p),w=t.length*12.4+36,y=p.z[1]+p.z[3]*.15;ov+=`<g transform="translate(${p.z[0]} ${y})"><g class="co" style="--i:${i}"><rect x="${-w/2}" y="-21" width="${w}" height="42" rx="21" fill="#0D255C" opacity=".9"/><text y="8" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="600" fill="#fff">${t}</text></g></g>`;});
+      if(MV==='3') ov+='</g>';
       if(MV==='2'){let n=0;pins.forEach(p=>{p.mn=++n;ov+=`<g transform="translate(${p.z[0]} ${p.z[1]})" filter="url(#fPin)"><circle r="22" fill="#0D255C" stroke="#fff" stroke-width="4"/><text y="8" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#fff">${p.mn}</text></g>`;});}
       if(MV==='4') pins.forEach((p,i)=>{const t=sl(p),w=t.length*12+30,ly=p.z[1]-p.z[3]*.55-26;ov+=`<g class="co" style="--i:${i}"><line x1="${p.z[0]}" y1="${p.z[1]}" x2="${p.z[0]}" y2="${ly+20}" stroke="#fff" stroke-width="3"/><circle cx="${p.z[0]}" cy="${p.z[1]}" r="8" fill="#D09D39" stroke="#fff" stroke-width="3"/><rect x="${p.z[0]-w/2}" y="${ly-20}" width="${w}" height="40" rx="10" fill="#fff"/><text x="${p.z[0]}" y="${ly+7}" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#0D255C">${t}</text></g>`;});
       const leg=$('mleg');
@@ -658,7 +683,7 @@ function renderPlate(){
         else if(MV==='5') leg.innerHTML=`<div class="strip">${pins.map(p=>`<span>${sl(p)}</span>`).join('<i>·</i>')}</div>`;
         else if(MV==='3') leg.innerHTML=`<button class="tog" id="tog">${window.SHOWLAB?'Masquer le détail':'Voir le détail'}</button>`;
         else leg.innerHTML='';
-        const tg=$('tog');if(tg)tg.onclick=()=>{window.SHOWLAB=!window.SHOWLAB;render();};}
+        const tg=$('tog');if(tg)tg.onclick=()=>{window.SHOWLAB=!window.SHOWLAB;document.body.classList.toggle('showlab',!!window.SHOWLAB);tg.textContent=window.SHOWLAB?'Masquer le détail':'Voir le détail';};}
     } else pins.forEach(p=>ov+=p.k==='mayo'?`<g transform="translate(${p.z[0]} ${p.z[1]})" filter="url(#fPin)"><circle r="9" fill="#fff" stroke="#D09D39" stroke-width="4"/></g>`:`<g transform="translate(${p.z[0]} ${p.z[1]})" filter="url(#fPin)"><circle r="11" fill="#D09D39" stroke="#fff" stroke-width="4"/></g>`);
   }else{
     const KV=(location.hash.match(/k([1-9ab])/)||[,'7'])[1];
@@ -691,8 +716,11 @@ function renderPlate(){
       if(KV==='3')g=seg('#0D255C','#fff','#D09D39','#0D255C');
       ov+=`<g transform="translate(${x} ${y})"><g class="co" style="--i:${i}">${g}</g></g>`;
     });
+    ORDER.forEach(k=>{const z=ITEMS[k].z;if(z)ov+=`<ellipse class="hit" data-k="${k}" cx="${z[0]}" cy="${z[1]}" rx="${z[2]*1.05}" ry="${z[3]*1.05}"/>`;});
+    if(mob()){const leg=$('mleg');if(leg){leg.className='mleg vh';leg.innerHTML='<span class="hint2">Touchez un produit pour l’ajouter</span>';}}
   }
   $('overlay').innerHTML=ov;
+  $('overlay').querySelectorAll('.hit').forEach(h=>h.onclick=()=>openSheet(h.dataset.k));
   // éléments pas encore sur la photo
   const ex=ORDER.filter(k=>c[k]&&!ITEMS[k].z).map(k=>ITEMS[k].full(c[k]));
   $('extra').innerHTML=`<span class="k">Avec chaque plateau</span><span>Mayonnaise maison</span><span>Vinaigre à l'échalote</span><span>Citron</span>`+(ex.length?`<span class="k">Aussi</span>`+ex.map(t=>`<span>${t}</span>`).join(''):'');
@@ -734,12 +762,23 @@ function renderInfo(pins){
   }
 }
 
-function thumb(c,sc,id){
+const THC={};
+function thumbKey(c,sc){return ORDER.filter(k=>c[k]&&MASKS[k]).join('.')+(sc.includes('mayo')?'+m':'');}
+function loadImg(src){return new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.src=src;});}
+async function bakeThumb(c,sc){const key=thumbKey(c,sc);if(THC[key])return;THC[key]='…';
+  const lit=['lemon'].concat(ORDER.filter(k=>c[k]&&MASKS[k])).concat(sc.includes('mayo')?['mayo']:[]);const S=220;
+  const [b,im,...ms]=await Promise.all([loadImg(BASE),loadImg(IMG),...lit.map(k=>loadImg(MASKS[k]))]);
+  const m=document.createElement('canvas');m.width=m.height=S;const mx=m.getContext('2d');ms.forEach(x=>mx.drawImage(x,0,0,S,S));mx.globalCompositeOperation='source-in';mx.drawImage(im,0,0,S,S);
+  const cv=document.createElement('canvas');cv.width=cv.height=S;const cx=cv.getContext('2d');cx.drawImage(b,0,0,S,S);cx.drawImage(m,0,0);
+  THC[key]=cv.toDataURL('image/webp',.86);}
+function thumb(c,sc,id){const t=THC[thumbKey(c,sc)];if(t&&t!=='…')return `<img src="${t}" alt="" draggable="false">`;
+
   const lit=['lemon'].concat(ORDER.filter(k=>c[k]&&MASKS[k])).concat(sc.includes('mayo')?['mayo']:[]);
   return `<svg viewBox="0 0 700 700" aria-hidden="true"><defs><mask id="${id}" maskUnits="userSpaceOnUse" x="-50" y="-50" width="800" height="800"><g>${lit.map(k=>`<image href="${MASKS[k]}" width="700" height="700"/>`).join('')}</g></mask></defs>
     <image href="${BASE}" width="700" height="700"/><image href="${IMG}" width="700" height="700" mask="url(#${id})"/></svg>`;
 }
 function renderRail(){
+  if(mob()&&document.body.dataset.sel==='6'){$('stage').classList.toggle('composing',view===COMPOSE);return;}
   const sc=Object.keys(sauces).filter(k=>sauces[k]);
   let h=`<div class="rh"><b>Nos plateaux</b></div>`+PLATEAUX.map((p,i)=>`<button aria-current="${i===view}" data-v="${i}"><span class="ix">${i+1}</span>${thumb(p.c,p.s,'mt'+i)}<span class="tx"><div class="rn">${p.name}</div><div class="rm">${p.pers.replace('Pour ','')}</div></span><span class="rp tab">${eur(p.price)}</span></button>`).join('');
   h+=`<div class="sep"></div><button aria-current="${view===COMPOSE}" data-v="${COMPOSE}"><span class="ix">+</span>${thumb(comp,sc,'mtc')}<span class="tx"><div class="rn">Composer le vôtre</div><div class="rm">Sur mesure</div></span><span class="rp tab">${compCount()?eur(compTotal()):''}</span></button>`;
@@ -751,8 +790,8 @@ function renderRail(){
 }
 let enterT;function enter(){const p=$('plate');p.classList.add('enter');clearTimeout(enterT);enterT=setTimeout(()=>p.classList.remove('enter'),4500);}
 /* Transition entre plateaux : carrousel (glisse + flou) */
-const TR=()=>'2';
-const TRS={'2':d=>[[{transform:'none',opacity:1,filter:'blur(0)'},{transform:`translateX(${-d*35}%) scale(.94)`,opacity:0,filter:'blur(6px)'}],[{transform:`translateX(${d*35}%) scale(.94)`,opacity:0,filter:'blur(6px)'},{transform:'none',opacity:1,filter:'blur(0)'}],600,1250]};
+const TR=()=>mob()?'m':'2';
+const TRS={'m':d=>[[{transform:'none',opacity:1},{transform:`translateX(${-d*22}%)`,opacity:0}],[{transform:`translateX(${d*22}%)`,opacity:0},{transform:'none',opacity:1}],220,420],'2':d=>[[{transform:'none',opacity:1,filter:'blur(0)'},{transform:`translateX(${-d*35}%) scale(.94)`,opacity:0,filter:'blur(6px)'}],[{transform:`translateX(${d*35}%) scale(.94)`,opacity:0,filter:'blur(6px)'},{transform:'none',opacity:1,filter:'blur(0)'}],600,1250]};
 let busyGo=false;
 function go(v){v=(v+COMPOSE+1)%(COMPOSE+1);if(v===view||busyGo)return;
   const d=(v===(view+1)%(COMPOSE+1))?1:(v===(view+COMPOSE)%(COMPOSE+1)?-1:(v>view?1:-1));
@@ -763,7 +802,7 @@ function go(v){v=(v+COMPOSE+1)%(COMPOSE+1);if(v===view||busyGo)return;
     view=v;enter();render();
     p.getAnimations().forEach(a=>a.cancel());
     p.animate(inn,{duration:t2,easing:'cubic-bezier(.16,1,.3,1)'});
-    setTimeout(()=>busyGo=false,400);
+    setTimeout(()=>busyGo=false,mob()?120:400);
   };}
 function fitTitle(){const h=document.querySelector('.card h1');if(!h)return;h.style.fontSize='';let f=parseFloat(getComputedStyle(h).fontSize);while(h.scrollWidth>h.clientWidth+1&&f>24){f-=1;h.style.fontSize=f+'px';}}
 addEventListener('resize',()=>{try{fitTitle()}catch(e){}});
@@ -771,12 +810,23 @@ function renderMnav(){const n=$('mnav');if(!n)return;const names=PLATEAUX.map(p=
 const NOMS={a:['Escale','Large','Réveillon','Sur-mesure'],b:['Marée','Hauturier','Réveillon','Atelier'],c:['Écume','Traversée','Réveillon','Signature']};
 function mName(i){if(document.body.dataset.sel!=='6'||!mob())return null;const ns=NOMS[(location.hash.match(/n([abc])/)||[,'c'])[1]];return ns[i];}
 function renderPeek(){const k=$('mpeek');if(!k)return;const p=view<COMPOSE?PLATEAUX[view]:{pers:'Sur mesure',sub:'Composez votre plateau'};k.innerHTML=`<span class="e">${p.pers.replace('Pour ','')}</span>${document.body.dataset.pk==='3'?'<i>·</i>':''}<span class="s">${p.sub}</span>`;}
-function renderMrail(){renderPeek();const r=$('mrail');if(!r)return;if(document.body.dataset.sel!=='6'){r.innerHTML='';return;}
+function openSheet(k){const it=ITEMS[k],sh=$('sheet');window.SHK=k;
+  const draw=()=>{const q=comp[k]||0;$('sheetIn').innerHTML=`<div class="shh"><div><div class="shn">${it.name}</div><div class="shu">${it.unit} · ${eur(it.price)}</div></div><div class="shq tab">${q?eur(q*it.price):''}</div></div>
+    <div class="shs"><button id="shM" aria-label="Retirer" ${q?'':'disabled'}>−</button><div class="shc"><b class="tab">${q}</b><span>${q?it.full(q):'Pas dans le plateau'}</span></div><button id="shP" aria-label="Ajouter">+</button></div>
+    <button class="shok" id="shOk">${q?'Valider':'Fermer'}</button>`;
+    $('shM').onclick=()=>{comp[k]=Math.max(0,(comp[k]||0)-1);if(!comp[k])delete comp[k];save();render();draw();};
+    $('shP').onclick=()=>{comp[k]=(comp[k]||0)+1;save();render();draw();};
+    $('shOk').onclick=closeSheet;};
+  draw();sh.classList.add('on');}
+function closeSheet(){$('sheet').classList.remove('on');}
+let MR='';function renderMrail(){renderPeek();const r=$('mrail');if(!r)return;if(document.body.dataset.sel!=='6'||!mob()){r.innerHTML='';MR='';return;}
+  if(MR==='ok'){r.querySelectorAll('button').forEach(b=>b.setAttribute('aria-current',+b.dataset.v===view));return;}
   const rv=(location.hash.match(/r([1-6])/)||[,'3'])[1],ns=NOMS[(location.hash.match(/n([abc])/)||[,'c'])[1]];
   r.className='mrail r'+rv;const sc=Object.keys(sauces).filter(k=>sauces[k]);
   const it=[...PLATEAUX.map((p,i)=>[i,thumb(p.c,p.s,'mr'+i),eur(p.price)]),[COMPOSE,thumb(Object.fromEntries(ORDER.map(k=>[k,1])),['mayo'],'mrc'),'à composer']];
   r.innerHTML=it.map(([v,t,pr],i)=>`<button aria-current="${v===view}" data-v="${v}"><span class="th">${t}${v===COMPOSE?'<em>+</em>':''}</span><span class="lb"><b>${ns[i]}</b><span class="pr">${pr}</span></span></button>`).join('');
-  r.querySelectorAll('button').forEach(b=>b.onclick=()=>go(+b.dataset.v));}
+  r.querySelectorAll('button').forEach(b=>b.onclick=()=>go(+b.dataset.v));if(baked&&Object.keys(THC).every(k=>THC[k]!=='…'))MR='ok';}
+let baked=false;function bakeAll(){if(baked)return;baked=true;const ALL=Object.fromEntries(ORDER.map(k=>[k,1]));Promise.all([...PLATEAUX.map(p=>bakeThumb(p.c,p.s)),bakeThumb(ALL,['mayo'])]).then(()=>{MR='';render();});}
 function render(){setTimeout(()=>window.fitHero&&fitHero(),0);renderMrail();renderMnav();renderRail();const pins=renderPlate();renderInfo(pins);fitTitle();$('cartN').textContent=cart.reduce((t,l)=>t+l.qty,0);}
 $('navP').onclick=()=>{if(view===COMPOSE)go(0);window.scrollTo({top:0,behavior:'smooth'});};
 $('navC').onclick=()=>{go(COMPOSE);window.scrollTo({top:0,behavior:'smooth'});};
@@ -870,7 +920,8 @@ function fitHero(){if(document.body.dataset.sel!=='6'||!mob())return;const B=doc
   B.style.setProperty('--pw',Math.max(200,Math.min(innerWidth-32,pw))+'px');}
 addEventListener('resize',fitHero);addEventListener('scroll',()=>document.body.classList.toggle('scrolled',scrollY>40),{passive:true});
 $('mdown').onclick=()=>{const i=$('info');scrollTo({top:i.getBoundingClientRect().top+scrollY-(parseFloat(getComputedStyle(document.body).getPropertyValue('--hh'))||64)-6,behavior:'smooth'});};
-enter();mq.addEventListener('change',render);setTimeout(fitHero,0);
+$('sheet').addEventListener('click',e=>{if(e.target.id==='sheet')closeSheet();});
+enter();mq.addEventListener('change',render);setTimeout(bakeAll,50);setTimeout(fitHero,0);
 render();
 })();
 </script>
