@@ -335,7 +335,9 @@ h1{font-family:var(--f-title);font-weight:700;font-size:clamp(40px,4.4vw,62px);l
 .shok{width:100%;margin-top:14px;background:var(--navy);color:#fff;border-radius:999px;padding:16px;font-size:15px;font-weight:600}
 .mleg.vh .hint2{font-size:13px;font-weight:600;color:var(--navy);background:var(--white,#fff);border-radius:999px;padding:10px 18px}
 /* Maquettes mobile : légendes (l1-l6) et sélection (s1-s4) */
+html,body{touch-action:manipulation}
 #mleg,#mrail,#mpeek,.mdown,.mnav,.mdots{display:none}
+@media (max-width:760px){input,select,textarea{font-size:16px!important}}
 .labs{opacity:0;transition:opacity .22s;pointer-events:none}.showlab .labs{opacity:1}
 @media (max-width:760px){
   #mleg{display:flex}
@@ -631,8 +633,8 @@ const eur=n=>n.toLocaleString('fr-FR')+' €';
 
 /* ---- État ---- */
 let view=0, comp={huitres:1}, sauces={mayo:true,echalote:true}, cart=[], step='cart', pick={day:null,slot:null};
-try{const sv=JSON.parse(localStorage.getItem('drv-noel-2')||'null');if(sv){cart=sv.cart||[];comp=sv.comp||comp;}}catch(e){}
-const save=()=>{try{localStorage.setItem('drv-noel-2',JSON.stringify({cart,comp,sauces}))}catch(e){}};
+try{const sv=JSON.parse(localStorage.getItem('drv-noel-3')||'null');if(sv){cart=sv.cart||[];comp=sv.comp||comp;}}catch(e){}
+const save=()=>{try{localStorage.setItem('drv-noel-3',JSON.stringify({cart,comp,sauces}))}catch(e){}};
 const mq=matchMedia('(max-width:760px)'); const mob=()=>mq.matches;
 const compTotal=()=>ORDER.reduce((t,k)=>t+(comp[k]||0)*ITEMS[k].price,0);
 const compCount=()=>ORDER.reduce((t,k)=>t+(comp[k]||0),0);
@@ -918,7 +920,9 @@ function closeDrawer(){$('drawer').classList.remove('open');$('scrim').classList
 $('cartBtn').onclick=openDrawer;$('dClose').onclick=closeDrawer;$('scrim').onclick=closeDrawer;
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer();});
 let tx0=null;$('plate').addEventListener('touchstart',e=>{tx0=e.touches[0].clientX;},{passive:true});$('plate').addEventListener('touchend',e=>{if(tx0==null)return;const d=e.changedTouches[0].clientX-tx0;tx0=null;if(Math.abs(d)>50)go(view+(d<0?1:-1));},{passive:true});
-document.addEventListener('gesturestart',e=>e.preventDefault());
+['gesturestart','gesturechange','gestureend'].forEach(t=>document.addEventListener(t,e=>e.preventDefault(),{passive:false}));
+document.addEventListener('touchmove',e=>{if(e.touches.length>1||(e.scale&&e.scale!==1))e.preventDefault();},{passive:false});
+let lastTouch=0;document.addEventListener('touchend',e=>{const n=Date.now();if(n-lastTouch<320&&!e.target.closest('input,textarea,select'))e.preventDefault();lastTouch=n;},{passive:false});
 function fitHero(){if(document.body.dataset.sel!=='6'||!mob())return;const B=document.body;const hh=$('stage').getBoundingClientRect().top+scrollY;B.style.setProperty('--hh',hh+'px');
   const H=(window.visualViewport?visualViewport.height:innerHeight)-hh-$('mbar').offsetHeight;
   const h=id=>{const e=$(id);return e?e.offsetHeight:0};const head=document.querySelector('.info .sec.head');
