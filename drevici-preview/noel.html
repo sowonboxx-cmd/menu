@@ -97,7 +97,7 @@ h1{font-family:var(--f-title);font-weight:700;font-size:clamp(40px,4.4vw,62px);l
 .plate{width:100%;max-width:1080px;display:block;overflow:visible}
 .plate.enter .co{animation:coIn 1.3s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(.9s + var(--i) * .25s);transform-box:view-box}
 .plate.enter .co{}
-@media (max-width:760px){.plate.enter .co{animation-duration:.45s;animation-delay:calc(.15s + var(--i) * .05s)}}
+@media (max-width:760px){.plate.enter .co{animation-duration:.3s;animation-delay:calc(.05s + var(--i) * .03s)}.lit-m{animation-duration:.25s}.plate{will-change:transform,opacity;transform:translateZ(0)}}
 .plate.enter .coL{--dx:20px}.plate.enter .coR{--dx:-20px}
 @keyframes coIn{from{opacity:0;transform:translateX(var(--dx));filter:blur(3px)}to{opacity:1;transform:none;filter:none}}
 .lit-m{animation:litM .6s ease-out both}
@@ -649,6 +649,7 @@ function renderPlate(){
   lit.push({key:'lemon',z:LEMONS[0]});
   ORDER.forEach(k=>{if(c[k]&&ITEMS[k].z)lit.push({key:k,z:ITEMS[k].z});});
   if(s.includes('mayo'))lit.push({key:'mayo',z:SAUCES.mayo.z});
+  if(mob())$('litShapes').removeAttribute('filter');else $('litShapes').setAttribute('filter','url(#fFeather)');
   $('litShapes').innerHTML=lit.map(o=>MASKS[o.key]?`<image class="${prevLit[o.key]?'':'lit-m'}" href="${MASKS[o.key]}" width="700" height="700"/>`:'').join('');
   prevLit={};lit.forEach(o=>prevLit[o.key]=1);
   // repères
@@ -796,7 +797,7 @@ function renderRail(){
 let enterT;function enter(){const p=$('plate');p.classList.add('enter');clearTimeout(enterT);enterT=setTimeout(()=>p.classList.remove('enter'),4500);}
 /* Transition entre plateaux : carrousel (glisse + flou) */
 const TR=()=>mob()?'m':'2';
-const TRS={'m':d=>[[{transform:'none',opacity:1},{transform:`translateX(${-d*22}%)`,opacity:0}],[{transform:`translateX(${d*22}%)`,opacity:0},{transform:'none',opacity:1}],220,420],'2':d=>[[{transform:'none',opacity:1,filter:'blur(0)'},{transform:`translateX(${-d*35}%) scale(.94)`,opacity:0,filter:'blur(6px)'}],[{transform:`translateX(${d*35}%) scale(.94)`,opacity:0,filter:'blur(6px)'},{transform:'none',opacity:1,filter:'blur(0)'}],600,1250]};
+const TRS={'m':d=>[[{transform:'none',opacity:1},{transform:`translateX(${-d*22}%)`,opacity:0}],[{transform:`translateX(${d*22}%)`,opacity:0},{transform:'none',opacity:1}],160,300],'2':d=>[[{transform:'none',opacity:1,filter:'blur(0)'},{transform:`translateX(${-d*35}%) scale(.94)`,opacity:0,filter:'blur(6px)'}],[{transform:`translateX(${d*35}%) scale(.94)`,opacity:0,filter:'blur(6px)'},{transform:'none',opacity:1,filter:'blur(0)'}],600,1250]};
 let busyGo=false;
 function go(v){v=(v+COMPOSE+1)%(COMPOSE+1);if(v===view||busyGo)return;
   const d=(v===(view+1)%(COMPOSE+1))?1:(v===(view+COMPOSE)%(COMPOSE+1)?-1:(v>view?1:-1));
