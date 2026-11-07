@@ -1266,11 +1266,21 @@ function renderHomeCamp(live){
   document.getElementById('hcpStats').innerHTML=`<div><b class="num">${all.scans.toLocaleString('fr-FR')}</b>scans · 7 j</div><div><b class="num">${pl.toLocaleString('fr-FR')}</b>joueurs</div><div><b class="num" style="${td?'color:var(--red)':''}">${td}</b>à traiter</div>`;
 }
 document.addEventListener('click',e=>{const b=e.target.closest('[data-cpf]');if(b){CPF=b.dataset.cpf;renderQRHome();}});
+// Liens de test des jeux (pour Will) : toujours sur la préview, seul endroit où « ?test= » marche ; rien n'est enregistré.
+// L'adresse est assemblée exprès pour rester sur la préview une fois le Studio publié.
+const TEST_SITE='https://'+['drevici','preview'].join('-')+'.beltab.app/';
+const TEST_GAMES=[[/halloween|trick/i,'halloween-2026',[['trio','3 huîtres offertes'],['plateau','Le plateau de 6 huîtres'],['tshirt','Le T-shirt Drevici'],['shot','Le shot potion']]],
+  [/free oyster/i,'free-oyster',[['huitre',"L'huître offerte"],['plateau','Le plateau'],['tshirt','Le T-shirt Drevici'],['perdu','Perdu']]]];
+function testCard(n){const g=TEST_GAMES.find(([r])=>r.test(n));if(!g)return '';const [,page,lots]=g;
+  const rows=[['hasard','Au hasard, comme un vrai joueur']].concat(lots);
+  return `<div class="card"><h2>Test <span class="ctag t" style="margin-left:8px">Rien n'est enregistré</span></h2>
+    <p class="hint" style="margin:-4px 0 10px">Le jeu en version test, à refaire autant de fois que tu veux avec des données bidon. Choisis le lot que tu veux voir.</p>
+    ${rows.map(([k,l])=>{const u=TEST_SITE+page+'?test='+k;return `<div class="tl" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line,#eee)"><a href="${u}" target="_blank" rel="noopener" style="flex:1;font-weight:700;text-decoration:none;color:inherit">${esc(l)}<small style="display:block;font-weight:500;opacity:.55;word-break:break-all">${esc(u.replace('https://',''))}</small></a><button type="button" class="cbtn" data-copyval="${u}">Copier</button></div>`;}).join('')}</div>`;}
 function campDetail(n,inline){
   const c=camps().live.concat(camps().plan).find(x=>x.n===n); if(!c) return '<p class="empty">Campagne introuvable.</p>';
   const m=c.m,id='c_'+qslug(n);
   const hero=`<div class="qh-hero" style="background:${m.col}">${m.hal?`<img class="m" src="../jeu/halloween/mascotte.webp" alt="">`:m.ic==='pk'?'':`<img class="ico" src="${ICO(m.ic)}" alt="">`}
-    <div class="qh-tag">${c.live?'● En cours':'À planifier'}${m.hal?' · jusqu\'au 7 nov.':''}</div><h2>${m.hal?'Trick or <i>Huître</i>':esc(n)}</h2><p>${esc(m.hal?'Halloween 2026 · '+m.d:m.d)}</p>
+    <div class="qh-tag">${c.live?'● En cours':'À planifier'}${m.hal?' · jusqu\'au 14 nov.':''}</div><h2>${m.hal?'Trick or <i>Huître</i>':esc(n)}</h2><p>${esc(m.hal?'Halloween 2026 · '+m.d:m.d)}</p>
     <div class="qh-row"><div class="qh-k">${c.a}<small>${c.al}</small></div><div class="qh-k">${c.b}<small>${c.bl}</small></div>${c.jeu?`<div class="qh-k" style="color:#fdba74">${c.todo}<small>à remettre</small></div>`:''}</div></div>`;
   const tabs=[['res','Résumé']].concat(c.jeu?[['jou','Joueurs']]:[]).concat([['qr','QR']]).concat((/free oyster/i.test(n)||/plat.?(en.)?test/i.test(n))?[['inf','Infos']]:[]);
   if(!tabs.some(t=>t[0]===QTAB))QTAB='res';
@@ -1283,7 +1293,7 @@ function campDetail(n,inline){
         <div class="card"><h2>Ventes et réservations</h2>${convs.map(convRow).join('')||'<p class="empty">Rien pour le moment.</p>'}</div>`;}
   } else if(QTAB==='jou') body=m.hal?jlCard(id+'_all',[],'Tous les joueurs',false,HAL):jlCard(id+'_all',c.codes,'Tous les joueurs',false);
   else if(QTAB==='inf'){const g=guideParts();body=/free oyster/i.test(n)?g.banner+g.rue+g.save:g.plat;}
-  else body=`<div class="card"><h2>Les QR de la campagne <a class="cbtn" style="margin-left:auto" href="#qr-new">+ Nouveau</a></h2><div class="qh-codes">${c.qs.map(q=>{const s=statsFor([q.code]);return `<a href="#qr/${encodeURIComponent(q.code)}"><div class="qmini">${qrArt(q,120)}</div><span><b>${esc(qName(q))}</b><small>${esc(qSub(q)||q.code)}</small></span><span class="n">${s.scans}<small>scans</small></span></a>`;}).join('')||'<p class="empty">Pas encore de QR.</p>'}</div></div>`;
+  else body=testCard(n)+`<div class="card"><h2>Les QR de la campagne <a class="cbtn" style="margin-left:auto" href="#qr-new">+ Nouveau</a></h2><div class="qh-codes">${c.qs.map(q=>{const s=statsFor([q.code]);return `<a href="#qr/${encodeURIComponent(q.code)}"><div class="qmini">${qrArt(q,120)}</div><span><b>${esc(qName(q))}</b><small>${esc(qSub(q)||q.code)}</small></span><span class="n">${s.scans}<small>scans</small></span></a>`;}).join('')||'<p class="empty">Pas encore de QR.</p>'}</div></div>`;
   return hero+`<div class="qh-tabs">${tabs.map(([k,t])=>`<button type="button" class="${QTAB===k?'on':''}" data-qtab="${k}" data-qc="${esc(n)}">${t}</button>`).join('')}</div>`+body;
 }
 function renderQRC(n){
