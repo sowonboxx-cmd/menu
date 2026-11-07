@@ -147,6 +147,30 @@ a{color:inherit}
 #veil.on{opacity:1;pointer-events:auto}
 #sheet{position:absolute;left:0;right:0;bottom:0;z-index:14;background:var(--night2);border-radius:6cqw 6cqw 0 0;padding:5.5cqw 5.5cqw calc(env(safe-area-inset-bottom) + 4cqw);box-shadow:0 -.4cqw 0 rgba(249,115,22,.45),0 -20px 60px rgba(0,0,0,.6);transform:translateY(105%);transition:transform .38s cubic-bezier(.2,.9,.3,1);max-height:92%;overflow:auto}
 #sheet.on{transform:none}#sheet:not(.on){box-shadow:none}
+#sheet .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:2cqw;margin:0 0 4cqw}
+#sheet .steps i{display:block;height:1.1cqw;border-radius:9px;background:#3a2f48}
+#sheet .steps span{display:block;text-align:center;font:700 2.8cqw Inter;color:#7e7491;margin-top:1.6cqw;letter-spacing:.02em}
+#sheet .steps .done i{background:var(--pump2)}#sheet .steps .done span{color:var(--pump2)}
+#sheet .steps .on i{background:#f5efe6}#sheet .steps .on span{color:#f5efe6}
+#st2[hidden],#st1[hidden]{display:none}
+.masc{display:block;width:28cqw;margin:-3cqw auto -2.5cqw;position:relative;z-index:2;filter:drop-shadow(0 0 5cqw rgba(249,115,22,.35));animation:mfloat 3.2s ease-in-out infinite}
+@keyframes mfloat{50%{transform:translateY(-1.6cqw) rotate(-2deg)}}
+.clubc{position:relative;display:block;border-radius:5cqw;padding:7cqw 4.4cqw 4cqw;cursor:pointer;background:linear-gradient(150deg,#3b2410,#24182e 70%);box-shadow:0 0 0 .4cqw rgba(249,115,22,.6),0 0 9cqw rgba(249,115,22,.28);animation:glow 2.6s ease-in-out infinite;transition:background .3s}
+@keyframes glow{50%{box-shadow:0 0 0 .4cqw rgba(249,115,22,.9),0 0 13cqw rgba(249,115,22,.45)}}
+.clubc .tag{position:absolute;top:-3cqw;left:4.4cqw;background:var(--pump);color:#1b0f05;font:800 2.7cqw Inter;letter-spacing:.1em;text-transform:uppercase;border-radius:99px;padding:1cqw 2.8cqw;z-index:3}
+.clubc .h{display:flex;gap:3cqw;align-items:center;justify-content:space-between}
+.clubc .h b{font:800 4.6cqw/1.22 Inter;color:#f5efe6}.clubc .h b em{font-style:normal;color:#e9c46a}
+.clubc input{position:absolute;opacity:0;pointer-events:none}
+.clubc .sw{flex:none;width:15cqw;height:9cqw;border-radius:99px;background:#4a3d5c;position:relative;transition:background .25s}
+.clubc .sw::after{content:"";position:absolute;left:1cqw;top:1cqw;width:7cqw;height:7cqw;border-radius:50%;background:#f5efe6;transition:transform .3s cubic-bezier(.3,1.6,.5,1)}
+.clubc.on .sw{background:var(--pump)}.clubc.on .sw::after{transform:translateX(6cqw)}
+.clubc.on{background:linear-gradient(150deg,#5a3410,#2e1d16 70%)}
+.clubc .perks{display:grid;grid-template-columns:1fr 1fr;gap:2cqw;margin-top:3.4cqw}
+.clubc .perks>span{background:rgba(245,239,230,.07);border-radius:3cqw;padding:2.4cqw 2.8cqw;font:500 3.2cqw/1.3 Inter;color:#efe6f7}
+.clubc .perks strong{display:block;color:#e9c46a;font:800 3.5cqw Inter;margin-bottom:.4cqw}
+.clubc .cf{display:block;font:500 2.8cqw/1.4 Inter;color:#9d93ad;margin-top:3cqw}
+#fgo2{margin-top:4cqw}
+.conf{position:fixed;z-index:60;pointer-events:none;left:0;top:0;will-change:transform,opacity}
 #sheet .grab{width:12cqw;height:1.2cqw;border-radius:9px;background:#3a2f48;margin:-2cqw auto 3.5cqw}
 #sheet h2{font:800 5.8cqw/1.15 "Inter Tight",Inter;letter-spacing:-.01em}
 #sheet h2 em{font-style:normal;color:var(--pump)}
@@ -255,16 +279,31 @@ a{color:inherit}
   <div id="veil"></div>
   <section id="sheet" aria-label="Avant d'ouvrir ton bocal">
     <div class="grab"></div>
+    <div class="steps" id="steps"><div class="s on"><i></i><span>Toi</span></div><div class="s"><i></i><span>Le club</span></div><div class="s"><i></i><span>Ton lot</span></div></div>
     <h2>Avant d'ouvrir le <em id="sheetJar">bocal</em></h2>
     <p class="p">Pour te donner ton code et éviter les doubles parties.</p>
     <form id="f" novalidate>
-      <div class="two"><label class="fld"><small>Prénom</small><input name="first" autocomplete="given-name" placeholder="Claire" required></label><label class="fld"><small>Nom</small><input name="last" autocomplete="family-name" placeholder="Martin" required></label></div>
+      <div id="st1">
+      <label class="fld"><small>Ton prénom</small><input name="first" autocomplete="given-name" placeholder="ex. Claire" required></label>
+      <label class="fld"><small>Ton nom de famille</small><input name="last" autocomplete="family-name" placeholder="ex. Martin" required></label>
       <label class="fld"><small>Email</small><input name="email" type="email" inputmode="email" autocomplete="email" placeholder="vous@exemple.fr" required></label>
       <label class="fld"><small>Téléphone</small><input name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="06 12 34 56 78" required></label>
       <input class="hp" name="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
-      <label class="club"><input type="checkbox" name="optin"><span><b>Je rejoins le Club Drevici</b><span>Carte de membre et coupe de champagne offerte. J'accepte de recevoir les offres de Drevici.</span></span></label>
+      <input type="checkbox" name="optin" hidden>
       <div class="err" id="ferr"></div>
-      <button class="cta" type="submit" id="fgo">Ouvrir mon bocal</button>
+      <button class="cta" type="submit" id="fgo">Suivant</button>
+      </div>
+      <div id="st2" hidden>
+        <img class="masc" src="jeu/halloween/mascotte.webp" alt="">
+        <label class="clubc" id="clubc">
+          <span class="tag">Club Drevici</span>
+          <span class="h"><b>Rejoins le club et gagne une <em>coupe de champagne</em> en plus</b><input type="checkbox" id="optsw"><span class="sw" aria-hidden="true"></span></span>
+          <span class="perks"><span><strong>Coupe offerte</strong>à ton prochain repas</span><span><strong>En premier</strong>au prochain jeu</span></span>
+          <span class="cf">Offres du club par email et SMS, désinscription en un clic. Facultatif : ton lot est le même dans les deux cas.</span>
+        </label>
+        <div class="err" id="ferr2"></div>
+        <button class="cta" type="button" id="fgo2">Voir mon lot</button>
+      </div>
     </form>
     <div class="love">On garde ça entre nous <span class="hrt">♥</span></div>
     <div class="fine">Vos données restent chez Drevici · <a href="confidentialite">Vos données</a> · <a href="halloween-2026-reglement">Règlement</a><br>L'abus d'alcool est dangereux pour la santé.</div>
@@ -460,7 +499,7 @@ if (JEU === 'portes' || JEU === 'citrouilles' || JEU === 'tombes') setInterval((
 $('#game').innerHTML = GAME.html;
 if (JEU !== 'bocal' && GAMES[JEU]) { $('#fhint').id = 'hint'; $('#hint').textContent = GAME.hint; } else $('#fhint').remove();
 const CTA = { bocal: 'Ouvrir mon bocal', citrouilles: 'Ouvrir ma citrouille', tombes: 'Ouvrir la tombe', portes: 'Ouvrir la porte', chaudron: 'Voir ma potion', roue: 'Lancer la roue' }[JEU] || 'Ouvrir mon bocal';
-$('#fgo').textContent = CTA;
+$('#fgo').textContent = 'Suivant';
 
 function choose(el, label) {
   if ($('#app').classList.contains('intro') || PICK) return;
@@ -487,6 +526,7 @@ if ($('#cauld')) {
   c.addEventListener('click', () => { if (PICK) return; taps++; turn += Math.PI * .8; sp.style.transform = `rotate(${turn * 57.3}deg)`; prog(); });
 }
 function openSheet(on) {
+  if (on) step(1);
   $('#sheet').classList.toggle('on', on); $('#veil').classList.toggle('on', on);
   if (!on) {
     PICK = 0; const h = $('#hint'); if (h) h.textContent = GAME.hint;
@@ -497,21 +537,51 @@ function openSheet(on) {
 $('#veil').addEventListener('click', () => { if ($('#fgo').disabled) return; if (DRAW) { $('#sheet').classList.remove('on'); $('#veil').classList.remove('on'); } else openSheet(false); });
 
 // ═══ Inscription → le tirage est fait par le serveur ═══
+// Étapes : 1 · Toi  2 · Le club (choix obligatoire, rien de coché d'avance)  3 · Ton lot
+function step(n) {
+  $$('#steps .s').forEach((el, i) => { el.classList.toggle('done', i < n - 1); el.classList.toggle('on', i === n - 1); });
+  const first = ($('#f').elements.first.value || '').trim();
+  if (n > 1 && first) $$('#steps .s span')[0].textContent = first;
+  $('#st1').hidden = n !== 1; $('#st2').hidden = n !== 2;
+  if (n === 1) $$('#steps .s span')[0].textContent = 'Toi';
+  if (n === 2) { $('#optsw').checked = false; $('#clubc').classList.remove('on'); }
+  if (n === 2) { $('#sheet h2').innerHTML = 'Avant ton <em>lot</em>'; $('#sheet .p').textContent = 'Un petit bonus pour toi, si tu veux.'; }
+}
 $('#f').addEventListener('submit', async e => {
   e.preventDefault();
-  const f = e.target, v = n => (f.elements[n].value || '').trim(), err = $('#ferr'), go = $('#fgo');
+  const f = e.target, v = n => (f.elements[n].value || '').trim(), err = $('#ferr');
   err.textContent = '';
   if (!v('first')) return err.textContent = 'Ton prénom, s\'il te plaît.';
   if (!v('last')) return err.textContent = 'Ton nom, s\'il te plaît.';
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v('email'))) return err.textContent = 'Cet email ne semble pas valide.';
   if (v('phone').replace(/\D/g, '').length < 9) return err.textContent = 'Ce numéro ne semble pas valide.';
+  step(2); track('click', 'jeu_etape_club');
+});
+$('#optsw').addEventListener('change', e => { $('#clubc').classList.toggle('on', e.target.checked); if (e.target.checked) confetti($('#clubc .sw')); });
+$('#fgo2').addEventListener('click', e => send($('#optsw').checked, e.currentTarget));
+function confetti(from) {
+  const r = from.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  const cols = ['#f97316', '#fdba74', '#e9c46a', '#f5efe6', '#a3e635'];
+  for (let i = 0; i < 80; i++) {
+    const el = document.createElement('i'), star = i % 3 === 0, sz = star ? 14 + Math.random() * 6 : 8 + Math.random() * 6;
+    el.className = 'conf';
+    el.style.cssText += `width:${sz}px;height:${star ? sz : sz * .55}px;background:${cols[i % cols.length]};border-radius:${star ? '0' : '2px'};${star ? 'clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)' : ''}`;
+    document.body.appendChild(el);
+    const a = Math.random() * Math.PI * 2, v = 90 + Math.random() * 190, dx = Math.cos(a) * v, dy = Math.sin(a) * v - 120;
+    el.animate([{ transform: `translate(${cx}px,${cy}px) rotate(0) scale(1)`, opacity: 1 }, { transform: `translate(${cx + dx}px,${cy + dy + 160}px) rotate(${(Math.random() - .5) * 720}deg) scale(.6)`, opacity: 0 }], { duration: 900 + Math.random() * 600, easing: 'cubic-bezier(.2,.7,.4,1)' }).onfinish = () => el.remove();
+  }
+  if (navigator.vibrate) try { navigator.vibrate(18); } catch (_) {}
+}
+async function send(optin, go) {
+  const f = $('#f'), v = n => (f.elements[n].value || '').trim(), err = $('#ferr2'), label = go.textContent;
+  f.elements.optin.checked = optin; err.textContent = '';
   go.disabled = true; go.textContent = 'Un instant…';
   let d = null;
   try { d = await play({ first: v('first'), last: v('last'), email: v('email'), phone: v('phone'), optin: f.elements.optin.checked, hp: v('hp'), draw: DRAW && DRAW.draw }); }
   catch (_) { err.textContent = 'Connexion impossible, réessaie.'; }
-  go.disabled = false; go.textContent = DRAW ? 'Recevoir mon code' : CTA;
+  go.disabled = false; go.textContent = label;
   if (!d) return;
-  track('click', 'jeu_inscrit');
+  track('click', 'jeu_inscrit'); if (optin) track('click', 'jeu_optin');
   // « on joue d'abord » : le lot est déjà affiché, on montre simplement le code
   if (DRAW) {
     $('#sheet').classList.remove('on'); $('#veil').classList.remove('on');
@@ -527,7 +597,7 @@ $('#f').addEventListener('submit', async e => {
   track('click', 'jeu_gagne_' + d.result);
   // avant le cadeau : les chauves-souris foncent sur l'écran, et le lot apparaît derrière elles
   await batSwoop(GAME.silentSwoop, () => { $('#flash').classList.add('on'); setTimeout(() => $('#flash').classList.remove('on'), 260); result(d); });
-});
+}
 // ═══ On joue d'abord : le serveur tire le lot (attaché au téléphone), on s'inscrit ensuite pour le récupérer ═══
 const DEV = (() => { try { let x = localStorage.getItem('jeu_dev'); if (!x) { x = Array.from(crypto.getRandomValues(new Uint8Array(12)), b => b.toString(16).padStart(2, '0')).join(''); localStorage.setItem('jeu_dev', x); } return x; } catch (_) { return Math.random().toString(16).slice(2) + Date.now().toString(16); } })();
 let DRAW = null;
@@ -558,7 +628,7 @@ function resultLocked(d) {
   const claim = () => {
     $('#sheet h2').innerHTML = 'Dernière <em>petite</em> étape';
     $('#sheet .p').textContent = 'Dis-nous qui t\'es, valide et récupère ton lot !';
-    $('#fgo').textContent = 'Récupérer mon lot'; $('#sheet').classList.add('on', 'claim'); $('#veil').classList.add('on');
+    $('#fgo').textContent = 'Suivant'; step(1); $('#sheet').classList.add('on', 'claim'); $('#veil').classList.add('on');
   };
   $('#unlock').onclick = claim;
   // 5 s pour voir son lot, puis il se floute et le formulaire monte tout seul
