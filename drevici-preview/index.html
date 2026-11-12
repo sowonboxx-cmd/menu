@@ -12843,7 +12843,7 @@ function dshEdgeColor(src){
       for(let y=0;y<48;y++) for(let xx=0;xx<48;xx++){ if(!(y>=46 || ((xx<2||xx>=46) && y>=24))) continue; const i=(y*48+xx)*4; r+=d[i]; g+=d[i+1]; b+=d[i+2]; n++; }
       const col=`rgb(${Math.round(r/n)},${Math.round(g/n)},${Math.round(b/n)})`; dshEdge.set(src,col); res(col);
     }catch(e){ res(null); } };
-    im.onerror=()=>res(null); im.src=src;
+    im.onerror=()=>res(null); im.src=/^data:/.test(src)?src:src+(src.includes('?')?'&':'?')+'edge=1';
   });
 }
 let dshState=null, dshPushed=false;
@@ -12952,7 +12952,7 @@ function dshRender(first){
     const vh=vid?`<video src="${escAttr(e.video)}" poster="${escAttr(e.img)}" autoplay muted loop playsinline></video>`:'';
     if(e.fy || e.fz<1){
       // Cadrage réglé dans l'éditeur : photo montée et/ou réduite, le vide comblé par la couleur du bord de la photo
-      h+=`<div class="dsh-hero dsh-fr${e.fz>=1?' full':''}" style="--fy:${e.fy}%;--fz:${e.fz};background:${dshEdge.get(e.img)||'#f4f1ec'}"><div class="dsh-ph" style="background-image:url('${escAttr(e.img)}')">${vh}</div></div>`;
+      h+=`<div class="dsh-hero dsh-fr${e.fz>=1?' full':''}" style="--fy:${e.fy}%;--fz:${e.fz};background:${dshEdge.get(e.img)||'#ede4d3'}"><div class="dsh-ph" style="background-image:url('${escAttr(e.img)}')">${vh}</div></div>`;
     } else {
       h+=`<div class="dsh-hero" style="background-image:url('${escAttr(e.img)}')">${vh}</div>`;
     }
@@ -12996,6 +12996,7 @@ function dshRender(first){
   if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=>dshTwoLines(card.querySelector('.dsh-ds')));
   card.querySelector('.dsh-hero').classList.add('dsh-fade');
   { const fr=card.querySelector('.dsh-hero.dsh-fr'); if(fr && !dshEdge.has(e.img)) dshEdgeColor(e.img).then(c=>{ if(c && fr.isConnected) fr.style.background=c; }); }
+  items.forEach(x=>{ if((x.fy||x.fz<1) && x.img && !dshEdge.has(x.img)) dshEdgeColor(x.img); });
   // Onglets : s'ils tiennent, on les répartit sur toute la largeur ;
   // sinon ils défilent, l'onglet actif ramené au centre.
   const tb=card.querySelector('.dsh-tabs');
