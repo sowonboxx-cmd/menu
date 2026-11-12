@@ -2216,13 +2216,14 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 #dsh .dsh-fade{animation:dshIn .28s ease}
 @keyframes dshIn{from{opacity:.25}to{opacity:1}}
 #dsh .dsh-bh{position:relative;background:var(--navy);color:#fff;text-align:center;overflow:hidden;padding:calc(46px + env(safe-area-inset-top)) 20px 26px}
-#dsh .dsh-bh .dsh-logo{width:56px;height:56px}
+#dsh .dsh-bh .dsh-logo{width:104px;height:104px}
 #dsh .dsh-bh .dsh-kick{margin-top:10px}
 #dsh .dsh-bh .dsh-big{font-size:30px;margin-top:6px}
 #dsh .dsh-card.bevm{display:block;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 #dsh .dsh-bh{flex:none}
 #dsh .dsh-card.bevm .dsh-tabs{position:sticky;top:0;z-index:2;background:#fff;margin-top:0;padding-top:13px}
-#dsh .dsh-bth{display:grid;column-gap:6px;align-items:baseline;padding:18px 20px 4px}
+#dsh .dsh-bth{display:grid;column-gap:6px;align-items:baseline;padding:38px 20px 6px}
+#dsh .dsh-tabs+.dsh-bth{padding-top:22px}
 #dsh .dsh-bth .c{font:600 11px Jost,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#8a8478}
 #dsh .dsh-bth .s{text-align:right;font:500 11.5px Jost,sans-serif;color:#8a8478;white-space:nowrap}
 #dsh .dsh-btr{display:grid;column-gap:6px;align-items:baseline;padding:10px 20px;border-bottom:1px solid #f0ebe3}
@@ -13020,7 +13021,7 @@ function dshRenderBevs(tab,card,first){
     const its=(c.items||[]).map((it,ii)=>({it,ii})).filter(o=>!o.it.hidden);
     if(!its.length) return;
     const cols=[], seen={};
-    its.forEach(o=>(o.it.sizes||[]).filter(s=>s.price).forEach(s=>{ const k=dshSizeKey(s); if(!(k in seen)){ seen[k]=1; cols.push({k,v:dshSizeVal(s)}); } }));
+    its.forEach(o=>(o.it.sizes||[]).filter(s=>s.price).forEach(s=>{ const k=dshSizeKey(s); if(k && !(k in seen)){ seen[k]=1; cols.push({k,v:dshSizeVal(s)}); } }));
     cols.sort((a,b)=>a.v-b.v);
     const one=!cols.length;
     const g=`grid-template-columns:minmax(0,1fr) ${one?'auto':cols.map(()=>'minmax(40px,auto)').join(' ')}`;
@@ -13030,7 +13031,10 @@ function dshRenderBevs(tab,card,first){
       const showDs=ds && !sz.some(s=>dshSizeKey(s).replace(/\s/g,'')===ds.replace(/\s/g,''));
       h+=`<div class="dsh-btr" style="${g}"${isAd?` data-dsh="bevedit" data-ci="${ci}" data-ii="${ii}"`:''}><div class="n">${t(it.name)||''}${showDs?`<small>${ds}</small>`:''}</div>`;
       if(one) h+=`<div class="v">${it.price?dshNum(it.price):''}</div>`;
-      else h+=cols.map(x=>{ const s=sz.find(s=>dshSizeKey(s)===x.k); return s?`<div class="v">${dshNum(s.price)}</div>`:'<div class="v e">–</div>'; }).join('');
+      else { const nos=sz.find(s=>!dshSizeKey(s)) || (!sz.length && it.price ? {price:it.price} : null);
+        // boisson sans taille (cocktail) : son prix va dans la dernière colonne
+        if(nos && !sz.some(s=>dshSizeKey(s))) h+=`<div class="v" style="grid-column:2 / -1">${dshNum(nos.price)}</div>`;
+        else h+=cols.map(x=>{ const s=sz.find(s=>dshSizeKey(s)===x.k); return s?`<div class="v">${dshNum(s.price)}</div>`:'<div class="v e">–</div>'; }).join(''); }
       h+='</div>';
     });
   });
