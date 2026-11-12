@@ -2215,9 +2215,23 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 #dsh .dsh-t.on .dsh-tile{background:var(--navy);color:#fff}
 #dsh .dsh-fade{animation:dshIn .28s ease}
 @keyframes dshIn{from{opacity:.25}to{opacity:1}}
+#dsh .dsh-bh{position:relative;background:var(--navy);color:#fff;text-align:center;overflow:hidden;padding:calc(46px + env(safe-area-inset-top)) 20px 26px}
+#dsh .dsh-bh .dsh-logo{width:56px;height:56px}
+#dsh .dsh-bh .dsh-kick{margin-top:10px}
+#dsh .dsh-bh .dsh-big{font-size:30px;margin-top:6px}
+#dsh .dsh-card.bevm{display:block;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+#dsh .dsh-bh{flex:none}
+#dsh .dsh-card.bevm .dsh-tabs{position:sticky;top:0;z-index:2;background:#fff;margin-top:0;padding-top:13px}
+#dsh .dsh-bth{display:grid;column-gap:6px;align-items:baseline;padding:18px 20px 4px}
+#dsh .dsh-bth .c{font:600 11px Jost,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#8a8478}
+#dsh .dsh-bth .s{text-align:right;font:500 11.5px Jost,sans-serif;color:#8a8478;white-space:nowrap}
+#dsh .dsh-btr{display:grid;column-gap:6px;align-items:baseline;padding:10px 20px;border-bottom:1px solid #f0ebe3}
+#dsh .dsh-btr .n{min-width:0;font-family:var(--restoFont,'Playfair Display'),serif;font-weight:700;font-size:15px;line-height:1.25;color:var(--navy)}
+#dsh .dsh-btr .n small{display:block;font:400 12px Jost,sans-serif;color:#6b6760;margin-top:2px}
+#dsh .dsh-btr .v{text-align:right;font:600 16px Jost,sans-serif;color:var(--navy);white-space:nowrap}
+#dsh .dsh-btr .v.e{color:#cfc8bc;font-weight:400}
 @media (max-height:720px){#dsh{--dshNm:21px;--dshDs:13px;--dshTh:74px}#dsh .dsh-prow,#dsh .dsh-seg button{height:46px}#dsh .dsh-seg button b{font-size:16px}#dsh .dsh-tabs{margin-top:10px}#dsh .dsh-lab{padding-top:10px}#dsh .dsh-body{padding-top:10px}}
 @media (min-width:768px){#dsh{display:none}}
-.bev-card .card-label{color:var(--navy);font-weight:600;font-size:11px}
 /* ── Menu admin rapide (téléphone) : panneau qui monte du bas, ouvert par le bouton trois traits ── */
 #qm{position:fixed;inset:0;z-index:2300;pointer-events:none;font-family:Inter,system-ui,sans-serif}
 #qm .qm-veil{position:absolute;inset:0;background:rgba(10,18,40,.45);opacity:0;transition:opacity .3s}
@@ -12815,8 +12829,9 @@ function dshEl(){
     const a=b.dataset.dsh;
     if(a==='x') return dshClose();
     if(a==='edit'){ const tb=DATA.tabs.find(x=>x.id===dshState.tabId), ti=DATA.tabs.indexOf(tb), e=dshItems(tb)[dshState.i]; if(!e) return; if(e.kind==='dish') openEditDish(ti,e.ci,e.di); else if(e.kind==='var') openEditVariants(ti,e.ci); return; }
-    if(a==='tab'){ const tb=DATA.tabs.find(x=>x.id===b.dataset.tab); if(tb && !dshItems(tb).length){ const go=()=>{ goToTab(tb.id); window.scrollTo(0,0); }; if(dshPushed){ window.addEventListener('popstate',()=>setTimeout(go,0),{once:true}); dshClose(); } else { dshClose(); go(); } return; } return dshGo(b.dataset.tab,0); }
+    if(a==='tab'){ const tb=DATA.tabs.find(x=>x.id===b.dataset.tab); if(tb && !dshItems(tb).length && dshHasBevs(tb)) return dshGo(tb.id,'bev'); if(tb && !dshItems(tb).length){ const go=()=>{ goToTab(tb.id); window.scrollTo(0,0); }; if(dshPushed){ window.addEventListener('popstate',()=>setTimeout(go,0),{once:true}); dshClose(); } else { dshClose(); go(); } return; } return dshGo(b.dataset.tab,0); }
     if(a==='item') return dshGo(dshState.tabId,+b.dataset.i);
+    if(a==='bevedit'){ const ti=DATA.tabs.findIndex(x=>x.id===dshState.tabId); return openEditBev(ti,+b.dataset.ci,+b.dataset.ii); }
     if(a==='price'){ b.parentNode.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); }
   });
   // Glisser vers le bas (depuis le haut de la fiche) pour fermer ;
@@ -12842,7 +12857,7 @@ function dshEl(){
   return el;
 }
 function dshStep(dir){
-  if(!dshState) return;
+  if(!dshState || dshState.i==='bev') return;
   const tab=DATA.tabs.find(tb=>tb.id===dshState.tabId); if(!tab) return;
   const items=dshItems(tab), cur=items[dshState.i];
   const grp=items.map((e,i)=>({e,i})).filter(o=>o.e.group===cur.group);
@@ -12883,6 +12898,9 @@ function dshGo(tabId,i){
 function dshRender(first){
   const el=dshEl(), card=el.querySelector('.dsh-card');
   const tab=DATA.tabs.find(tb=>tb.id===dshState.tabId); if(!tab) return dshClose();
+  card.classList.toggle('bevm',dshState.i==='bev');
+  if(dshState.i!=='bev') delete card.dataset.bt;
+  if(dshState.i==='bev') return dshRenderBevs(tab,card,first);
   const items=dshItems(tab);
   if(!items.length) return dshClose();
   if(dshState.i>=items.length) dshState.i=0;
@@ -12945,6 +12963,44 @@ function dshRender(first){
   else { const on=tb.querySelector('.on'); if(on) tb.scrollLeft=on.offsetLeft-(tb.clientWidth-on.offsetWidth)/2; }
   const th=card.querySelector('.dsh-th');
   if(th){ const on=th.querySelector('.on'); if(on) th.scrollLeft=Math.max(0,on.offsetLeft-th.offsetLeft-(th.clientWidth-on.offsetWidth)/2); }
+}
+// Fiche boissons (choix D de Will, 12/11) : une seule page pour toutes les
+// boissons de l'onglet, en-tête texturé, et pour chaque catégorie les
+// tailles en colonnes avec tous les prix visibles, sans rien toucher.
+function dshHasBevs(tab){ return (tab.cards||[]).some(c=>!c.hidden && c.type==='bevs' && (c.items||[]).some(it=>!it.hidden)); }
+function dshSizeKey(s){ return bevSizeLabel(s)||''; }
+function dshSizeVal(s){ const n=parseFloat(String(s.cl||'').replace(',','.')); if(isNaN(n)) return 1e9; return /^l$/i.test(s.unit||'')?n*100:n; }
+function dshRenderBevs(tab,card,first){
+  const logo=getRestaurantLogo(), isAd=document.body.classList.contains('is-admin');
+  let h=`<div class="dsh-bh">${dshTexture('bulles')}<div style="position:relative">${logo?`<img class="dsh-logo" src="${escAttr(logo)}" alt="">`:''}<div class="dsh-kick">${getRestaurantName()}</div><div class="dsh-big">${t(tab.label)||(lang==='en'?'Drinks':'Les boissons')}</div></div></div>`;
+  h+=`<button type="button" class="dsh-x dk" data-dsh="x" aria-label="${lang==='en'?'Close':'Fermer'}" style="color:#fff">${DSH_X}</button>`;
+  const tabs=dshTabsList();
+  h+='<div class="dsh-tabs">'+tabs.map(tb=>`<button type="button" data-dsh="tab" data-tab="${escAttr(tb.id)}"${tb.id===tab.id?' class="on"':''}>${t(tb.label)}</button>`).join('')+'</div>';
+  (tab.cards||[]).forEach((c,ci)=>{
+    if(c.hidden || c.type!=='bevs') return;
+    const its=(c.items||[]).map((it,ii)=>({it,ii})).filter(o=>!o.it.hidden);
+    if(!its.length) return;
+    const cols=[], seen={};
+    its.forEach(o=>(o.it.sizes||[]).filter(s=>s.price).forEach(s=>{ const k=dshSizeKey(s); if(!(k in seen)){ seen[k]=1; cols.push({k,v:dshSizeVal(s)}); } }));
+    cols.sort((a,b)=>a.v-b.v);
+    const one=!cols.length;
+    const g=`grid-template-columns:minmax(0,1fr) ${one?'auto':cols.map(()=>'minmax(40px,auto)').join(' ')}`;
+    h+=`<div class="dsh-bth" style="${g}"><div class="c">${t(c.label)||''}</div>${one?'<div></div>':cols.map(x=>`<div class="s">${x.k.replace(/(\d)(cl|L)$/,'$1 $2')}</div>`).join('')}</div>`;
+    its.forEach(({it,ii})=>{
+      const sz=(it.sizes||[]).filter(s=>s.price), ds=t(it.desc)||'';
+      const showDs=ds && !sz.some(s=>dshSizeKey(s).replace(/\s/g,'')===ds.replace(/\s/g,''));
+      h+=`<div class="dsh-btr" style="${g}"${isAd?` data-dsh="bevedit" data-ci="${ci}" data-ii="${ii}"`:''}><div class="n">${t(it.name)||''}${showDs?`<small>${ds}</small>`:''}</div>`;
+      if(one) h+=`<div class="v">${it.price?dshNum(it.price):''}</div>`;
+      else h+=cols.map(x=>{ const s=sz.find(s=>dshSizeKey(s)===x.k); return s?`<div class="v">${dshNum(s.price)}</div>`:'<div class="v e">–</div>'; }).join('');
+      h+='</div>';
+    });
+  });
+  card.innerHTML=h;
+  if(first || card.dataset.bt!==tab.id) card.scrollTop=0;
+  card.dataset.bt=tab.id;
+  const tb=card.querySelector('.dsh-tabs');
+  if(tb.scrollWidth<=tb.clientWidth+1) tb.classList.add('fit');
+  else { const on=tb.querySelector('.on'); if(on) tb.scrollLeft=on.offsetLeft-(tb.clientWidth-on.offsetWidth)/2; }
 }
 // Ouvrir la fiche depuis un élément de la carte (data-ti / data-ci / data-di ou data-ii)
 function dshOpenFromEl(el){
