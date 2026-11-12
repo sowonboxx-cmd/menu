@@ -2234,6 +2234,10 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 #dsh .dsh-card.dsh-fd .dsh-body{position:relative;z-index:1;margin-top:calc(-1 * (2*1.12*var(--dshNm) + 6px + 2*1.4*var(--dshDs)) - 14px);padding-top:0}
 #dsh .dsh-card.dsh-fd .dsh-txt{position:relative;padding-top:34px;height:auto;min-height:calc(2*1.12*var(--dshNm) + 6px + 2*1.4*var(--dshDs) + 34px);justify-content:flex-end}
 #dsh .dsh-card.dsh-fd .dsh-txt:before{content:"";position:absolute;left:-22px;right:-22px;top:0;bottom:-30px;background:linear-gradient(to bottom,rgba(255,255,255,0),#fff 38%);z-index:-1}
+#dsh .dsh-hero.dsh-fr .dsh-ph{position:absolute;left:50%;top:calc(50% - var(--fy,0%));width:calc(100% * var(--fz,1));height:calc(100% * var(--fz,1));transform:translate(-50%,-50%);background:center/cover no-repeat}
+#dsh .dsh-hero.dsh-fr .dsh-ph{-webkit-mask-image:linear-gradient(to right,transparent,#000 7%,#000 93%,transparent),linear-gradient(to bottom,transparent,#000 6%,#000 90%,transparent);-webkit-mask-composite:source-in;mask-image:linear-gradient(to right,transparent,#000 7%,#000 93%,transparent),linear-gradient(to bottom,transparent,#000 6%,#000 90%,transparent);mask-composite:intersect}
+#dsh .dsh-hero.dsh-fr.full .dsh-ph{-webkit-mask-image:linear-gradient(to bottom,#000 90%,transparent);mask-image:linear-gradient(to bottom,#000 90%,transparent)}
+#dsh .dsh-hero.dsh-fr .dsh-ph video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 @media (max-height:720px){#dsh{--dshNm:21px;--dshDs:13px;--dshTh:74px}#dsh .dsh-prow,#dsh .dsh-seg button{height:46px}#dsh .dsh-seg button b{font-size:16px}#dsh .dsh-tabs{margin-top:10px}#dsh .dsh-lab{padding-top:10px}#dsh .dsh-body{padding-top:10px}}
 @media (min-width:768px){#dsh{display:none}}
 /* ── Menu admin rapide (téléphone) : panneau qui monte du bas, ouvert par le bouton trois traits ── */
@@ -3288,6 +3292,12 @@ function openEditDish(ti,ci,di){
   h+=efPinRow(ti,ci,di,d);
   h+=efBi('Nom du plat', d.name&&d.name.fr, d.name&&d.name[lang]);
   h+=`<div class="ef"><label class="el">Nom court (sous les vignettes de la fiche, une ligne)</label><input class="ei" id="ed-short" maxlength="18" value="${escAttr(typeof d.short==='string'?d.short:'')}" placeholder="Vide = automatique. Ex : Charcuterie"></div>`;
+  { const fy=+d.sheetY||0, fz=Math.round((+d.sheetZ||1)*100);
+    h+=`<div class="ef"><label class="el">Cadrage de la photo dans la fiche (téléphone)</label>
+      <div style="display:grid;grid-template-columns:auto 1fr 42px;gap:8px 10px;align-items:center;font-size:13px">
+        <span>Monter</span><input type="range" id="ed-fy" min="0" max="40" step="1" value="${fy}" oninput="this.nextElementSibling.textContent=this.value+' %'"><b>${fy} %</b>
+        <span>Taille</span><input type="range" id="ed-fz" min="60" max="100" step="1" value="${fz}" oninput="this.nextElementSibling.textContent=this.value+' %'"><b>${fz} %</b>
+      </div></div>`; }
   h+=efBi('Description', d.desc&&d.desc.fr, d.desc&&d.desc[lang], true);
   // Le double tarif n'etait propose que dans la categorie « huitres »,
   // alors qu'une planche, un pichet ou une portion se vendent en deux
@@ -3415,6 +3425,7 @@ function saveEditPop(silent){
       d.img=v('ed-img');
       if(document.getElementById('ed-video')){ const vu=v('ed-video'); if(vu) d.video=vu; else delete d.video; }
       if(document.getElementById('ed-short')){ const sh=v('ed-short').trim(); if(sh) d.short=sh; else delete d.short; }
+      if(document.getElementById('ed-fy')){ const fy=+v('ed-fy')||0, fz=(+v('ed-fz')||100)/100; if(fy) d.sheetY=fy; else delete d.sheetY; if(fz<1) d.sheetZ=fz; else delete d.sheetZ; }
       d.gallery=readGalleryFields();
       d.caption=v('ed-caption');
       readBadgeFields(d);
@@ -12760,7 +12771,7 @@ function dshItems(tab){
     }
     (card.dishes||[]).forEach((d,di)=>{
       if(d.hidden || !d.img) return;
-      out.push({kind:'dish', ci, di, group:'tab', name:t(d.name)||'', desc:t(d.desc)||'', img:d.img, video:d.video||'', short:t(d.short)||'', prices:dshDishPrices(d)});
+      out.push({kind:'dish', ci, di, group:'tab', name:t(d.name)||'', desc:t(d.desc)||'', img:d.img, video:d.video||'', short:t(d.short)||'', prices:dshDishPrices(d), fy:+d.sheetY||0, fz:Math.min(1,+d.sheetZ||1)});
     });
   });
   dshShorts(out.filter(e=>e.group==='tab'), dshCols(tab)===4?11:14);
@@ -12818,6 +12829,21 @@ function dshTexture(fam){
       s+= r>5 ? `<circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="${r}" fill="none" stroke="${G}" stroke-opacity="${o}" stroke-width="1.6"/>` : `<circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="${r}" fill="#fff" fill-opacity="${o}"/>`; }
   }
   return `<svg class="dsh-tex" viewBox="0 0 360 340" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${s}</svg>`;
+}
+// Couleur moyenne du bord d'une photo (pour combler le vide quand on la monte ou la réduit)
+const dshEdge=new Map();
+function dshEdgeColor(src){
+  return new Promise(res=>{
+    const im=new Image(); if(!/^data:/.test(src)) im.crossOrigin='anonymous';
+    im.onload=()=>{ try{
+      const c=document.createElement('canvas'); c.width=c.height=48; const x=c.getContext('2d'); x.drawImage(im,0,0,48,48);
+      const d=x.getImageData(0,0,48,48).data; let r=0,g=0,b=0,n=0;
+      // bas de la photo surtout (2 dernières lignes), plus les deux côtés
+      for(let y=0;y<48;y++) for(let xx=0;xx<48;xx++){ if(!(y>=46 || ((xx<2||xx>=46) && y>=24))) continue; const i=(y*48+xx)*4; r+=d[i]; g+=d[i+1]; b+=d[i+2]; n++; }
+      const col=`rgb(${Math.round(r/n)},${Math.round(g/n)},${Math.round(b/n)})`; dshEdge.set(src,col); res(col);
+    }catch(e){ res(null); } };
+    im.onerror=()=>res(null); im.src=src;
+  });
 }
 let dshState=null, dshPushed=false;
 function dshEl(){
@@ -12922,7 +12948,13 @@ function dshRender(first){
       +`<div class="dsh-big">${e.name}${e.desc?`<em>${e.desc}</em>`:''}</div></div>`;
   } else {
     const vid=e.video && vidOk();
-    h+=`<div class="dsh-hero" style="background-image:url('${escAttr(e.img)}')">${vid?`<video src="${escAttr(e.video)}" poster="${escAttr(e.img)}" autoplay muted loop playsinline></video>`:''}</div>`;
+    const vh=vid?`<video src="${escAttr(e.video)}" poster="${escAttr(e.img)}" autoplay muted loop playsinline></video>`:'';
+    if(e.fy || e.fz<1){
+      // Cadrage réglé dans l'éditeur : photo montée et/ou réduite, le vide comblé par la couleur du bord de la photo
+      h+=`<div class="dsh-hero dsh-fr${e.fz>=1?' full':''}" style="--fy:${e.fy}%;--fz:${e.fz};background:${dshEdge.get(e.img)||'#f4f1ec'}"><div class="dsh-ph" style="background-image:url('${escAttr(e.img)}')">${vh}</div></div>`;
+    } else {
+      h+=`<div class="dsh-hero" style="background-image:url('${escAttr(e.img)}')">${vh}</div>`;
+    }
   }
   h+=`<button type="button" class="dsh-x${isBev?' dk':''}" data-dsh="x" aria-label="${lang==='en'?'Close':'Fermer'}" style="color:${isBev?'#fff':'var(--navy)'}">${DSH_X}</button>`;
   if(document.body.classList.contains('is-admin') && !isBev) h+=`<button type="button" class="dsh-x dsh-ed" data-dsh="edit" aria-label="Modifier" style="color:var(--navy)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>`;
@@ -12962,6 +12994,7 @@ function dshRender(first){
   dshTwoLines(card.querySelector('.dsh-ds'));
   if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=>dshTwoLines(card.querySelector('.dsh-ds')));
   card.querySelector('.dsh-hero').classList.add('dsh-fade');
+  { const fr=card.querySelector('.dsh-hero.dsh-fr'); if(fr && !dshEdge.has(e.img)) dshEdgeColor(e.img).then(c=>{ if(c && fr.isConnected) fr.style.background=c; }); }
   // Onglets : s'ils tiennent, on les répartit sur toute la largeur ;
   // sinon ils défilent, l'onglet actif ramené au centre.
   const tb=card.querySelector('.dsh-tabs');
