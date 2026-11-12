@@ -2163,7 +2163,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 #dsh .dsh-card{position:absolute;inset:0;height:100%;height:100dvh;background:#fff;border-radius:22px 22px 0 0;transform:translateY(100%);transition:transform .38s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column;overflow:hidden;padding-bottom:calc(14px + env(safe-area-inset-bottom))}
 #dsh.open{pointer-events:auto}
 #dsh.open .dsh-veil{opacity:1}
-#dsh.open .dsh-card{transform:none}
+#dsh.open .dsh-card{transform:none;border-radius:0}
 #dsh .dsh-card.drag{transition:none}
 #dsh .dsh-x{position:fixed;top:calc(14px + env(safe-area-inset-top));right:14px;z-index:3;width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.94);display:grid;place-items:center;cursor:pointer;padding:0}
 #dsh .dsh-x.dk{background:rgba(255,255,255,.14)}
@@ -12846,6 +12846,32 @@ function dshEdgeColor(src){
     im.onerror=()=>res(null); im.src=src;
   });
 }
+// Barre d'état (heure, batterie) : pendant que la fiche est ouverte, elle prend la couleur
+// du haut de la photo, pour que la photo paraisse aller jusqu'en haut de l'écran.
+const dshTop=new Map(); let dshThemeWas=null;
+function dshTopColor(src){
+  if(dshTop.has(src)) return Promise.resolve(dshTop.get(src));
+  return new Promise(res=>{
+    const im=new Image(); if(!/^data:/.test(src)) im.crossOrigin='anonymous';
+    im.onload=()=>{ try{
+      const c=document.createElement('canvas'); c.width=48; c.height=48; const x=c.getContext('2d'); x.drawImage(im,0,0,48,48);
+      const d=x.getImageData(0,0,48,3).data; let r=0,g=0,b=0,n=0;
+      for(let i=0;i<d.length;i+=4){ r+=d[i]; g+=d[i+1]; b+=d[i+2]; n++; }
+      const col='#'+[r,g,b].map(v=>Math.round(v/n).toString(16).padStart(2,'0')).join(''); dshTop.set(src,col); res(col);
+    }catch(e){ res(null); } };
+    im.onerror=()=>res(null); im.src=src;
+  });
+}
+function dshTheme(col){
+  const m=document.getElementById('themeColorMeta'); if(!m) return;
+  if(dshThemeWas===null) dshThemeWas=m.getAttribute('content');
+  if(col) m.setAttribute('content',col);
+}
+function dshThemeRestore(){
+  const m=document.getElementById('themeColorMeta');
+  if(m && dshThemeWas!==null) m.setAttribute('content',dshThemeWas);
+  dshThemeWas=null;
+}
 let dshState=null, dshPushed=false;
 function dshEl(){
   let el=document.getElementById('dsh');
@@ -12908,6 +12934,7 @@ function dshClose(fromPop){
   const el=document.getElementById('dsh'); if(!el||!el.classList.contains('open')) return;
   el.classList.remove('open');
   document.body.style.overflow='';
+  dshThemeRestore();
   const v=el.querySelector('video'); if(v) v.pause();
   dshState=null;
   if(dshPushed && !fromPop){ dshPushed=false; try{ history.back(); }catch(e){} }
@@ -12995,6 +13022,7 @@ function dshRender(first){
   dshTwoLines(card.querySelector('.dsh-ds'));
   if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=>dshTwoLines(card.querySelector('.dsh-ds')));
   card.querySelector('.dsh-hero').classList.add('dsh-fade');
+  { const src=e.img; dshTopColor(src).then(c=>{ if(dshState && dshState.i!=='bev' && c) dshTheme(c); }); }
   { const fr=card.querySelector('.dsh-hero.dsh-fr'); if(fr && !dshEdge.has(e.img)) dshEdgeColor(e.img).then(c=>{ if(c && fr.isConnected) fr.style.background=c; }); }
   // Onglets : s'ils tiennent, on les répartit sur toute la largeur ;
   // sinon ils défilent, l'onglet actif ramené au centre.
@@ -13041,6 +13069,7 @@ function dshRenderBevs(tab,card,first){
   card.innerHTML=h;
   if(first || card.dataset.bt!==tab.id) card.scrollTop=0;
   card.dataset.bt=tab.id;
+  dshTheme(getComputedStyle(document.documentElement).getPropertyValue('--navy').trim()||'#10285E');
   const tb=card.querySelector('.dsh-tabs');
   if(tb.scrollWidth<=tb.clientWidth+1) tb.classList.add('fit');
   else { const on=tb.querySelector('.on'); if(on) tb.scrollLeft=on.offsetLeft-(tb.clientWidth-on.offsetWidth)/2; }
