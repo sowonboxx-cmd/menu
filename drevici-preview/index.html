@@ -5669,7 +5669,7 @@ function renderTabContent(tab,lbOffset){
       // visible en mode édition pour pouvoir la réafficher.
       if(card.hidden && !editMode) return;
       const _ciE=tab.cards.indexOf(card);
-      html+=`<div class="card"><div class="card-hdr"><span class="card-label">${t(card.label)}</span></div><div class="card-body">`;
+      html+=`<div class="card${card.type==='bevs'?' bev-card':''}"><div class="card-hdr"><span class="card-label">${t(card.label)}</span></div><div class="card-body">`;
 
       if(card.type==='bevs'){
         (card.items||[]).filter(item=>!item.hidden).forEach(item=>{
@@ -12716,7 +12716,7 @@ function dshEl(){
     const b=e.target.closest('[data-dsh]'); if(!b) return;
     const a=b.dataset.dsh;
     if(a==='x') return dshClose();
-    if(a==='tab'){ const tb=DATA.tabs.find(x=>x.id===b.dataset.tab); if(tb && !dshItems(tb).length){ dshClose(); goToTab(tb.id); return; } return dshGo(b.dataset.tab,0); }
+    if(a==='tab'){ const tb=DATA.tabs.find(x=>x.id===b.dataset.tab); if(tb && !dshItems(tb).length){ const go=()=>{ goToTab(tb.id); window.scrollTo(0,0); }; if(dshPushed){ window.addEventListener('popstate',()=>setTimeout(go,0),{once:true}); dshClose(); } else { dshClose(); go(); } return; } return dshGo(b.dataset.tab,0); }
     if(a==='item') return dshGo(dshState.tabId,+b.dataset.i);
     if(a==='price'){ b.parentNode.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); }
   });
