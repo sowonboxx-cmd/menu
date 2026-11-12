@@ -156,7 +156,7 @@ Chaque restaurant a **sa** carte, dessinée pour lui, et plus jamais une carte s
 
 - **Le pack comprend** : 3 formats papier dans le même dessin (A5 sur papier épais pour les tables, A4, A3 pour la salle ou la vitrine), en français et en anglais, avec la place prévue pour ajouter 1 ou 2 menus plus tard. Fichiers prêts pour l'imprimeur.
 - **L'anglais partout** : la carte papier est en français et en anglais, et **l'option anglais du site (100 €) est offerte** avec la Carte sur mesure. Papier et site sont donc bilingues tous les deux.
-- **Format en plus** (chevalet, menu du jour, carte des vins à part) : **+ 190 €** chacun.
+- **Format en plus** (chevalet, menu du jour, carte des vins à part) : **+ 190 €** chacun. Le menu du jour **standard** (modèle commun des formules) reste inclus ; les + 190 € concernent un menu du jour **dessiné pour le restaurant**, dans le style de sa Carte sur mesure.
 - **Ce n'est pas Beltab Menu** : la carte sur mesure, c'est le papier. Google Maps, les stories et les posts Instagram restent dans Beltab Menu (section 3). Les deux lisent la même carte, donc tout reste à jour partout.
 - **Pourquoi + 29 € alors que la carte du site se modifie sans frais** : la carte du site repose sur un modèle commun à tous nos restaurants. La carte sur mesure est un modèle unique, entretenu pour lui seul : à chaque changement, elle doit se recalculer dans 3 formats papier et 2 langues sans casser sa mise en page, en qualité imprimeur. Ailleurs, un graphiste facture chaque retouche ; ici, c'est illimité.
 - **Pourquoi plus cher sans formule** : sans formule, il n'a pas l'outil pour la modifier, chaque changement passe par nous. C'est voulu : la formule est la bonne affaire.
