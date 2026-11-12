@@ -38,7 +38,7 @@ R = [
     ("Vous passez devant&nbsp;?", "Passing by?"), ("Réservez<br>maintenant", "Book<br>now"),
     ("Scannez, c'est fait en 30 secondes.", "Scan, it only takes 30 seconds."),
     ("Avec le code", "With the code"), (", une coupe de pétillant offerte à l'arrivée.", ", a glass of sparkling wine on arrival."),
-    ("<span>Du mardi au dimanche, dès 17 h</span>", "<span>Tuesday to Sunday, from 5 pm</span>"),
+    ("<span>Du mardi au samedi, dès 17 h</span>", "<span>Tuesday to Saturday, from 5 pm</span>"),
     ("<span>09 74 64 05 87</span>", "<span>+33 9 74 64 05 87</span>"),
     ('nm">Maquereau fumé au bois de hêtre', 'nm">Beech-smoked mackerel'), ('nm">Gin tonic, mule', 'nm">Gin & tonic, mule'),
     ('nm">Cidre Nicol pression', 'nm">Nicol draught cider'), ('nm">Shot premium', 'nm">Premium shot'),
