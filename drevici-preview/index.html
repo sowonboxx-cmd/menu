@@ -975,7 +975,7 @@ body.sched-modal .sched-scrim{opacity:1;visibility:visible;pointer-events:auto}
   body.is-admin #reserveFloat, body.admin-entry-visible #reserveFloat{display:block;padding:0;background:none;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
   body.is-admin #reserveFloat .admin-quick:first-child, body.admin-entry-visible #reserveFloat .admin-quick:first-child,
   body.is-admin #reserveFloat #modeLinkEdit, body.admin-entry-visible #reserveFloat #modeLinkEdit{display:none!important}
-  body.is-admin #reserveFloat .mode-link-settings, body.admin-entry-visible #reserveFloat .mode-link-settings{pointer-events:auto;display:grid;place-items:center;width:56px;height:56px;padding:0;border-radius:18px;color:var(--navy);background:rgba(255,255,255,.88);-webkit-backdrop-filter:blur(20px) saturate(1.7);backdrop-filter:blur(20px) saturate(1.7);box-shadow:0 10px 26px rgba(16,40,94,.28)}
+  body.is-admin #reserveFloat .mode-link-settings, body.admin-entry-visible #reserveFloat .mode-link-settings{pointer-events:auto;display:grid;place-items:center;width:56px;height:56px;padding:0;border-radius:18px;color:#fff;background:var(--navy);-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none}
   body.is-admin #reserveFloat .mode-link-settings > svg:not(.aq-menu), body.admin-entry-visible #reserveFloat .mode-link-settings > svg:not(.aq-menu),
   body.is-admin #reserveFloat .mode-link-settings .aq-lb, body.admin-entry-visible #reserveFloat .mode-link-settings .aq-lb{display:none}
   body.is-admin #reserveFloat .mode-link-settings .aq-menu, body.admin-entry-visible #reserveFloat .mode-link-settings .aq-menu{display:block;width:24px;height:24px}
@@ -2167,6 +2167,7 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 #dsh .dsh-card.drag{transition:none}
 #dsh .dsh-x{position:fixed;top:calc(14px + env(safe-area-inset-top));right:14px;z-index:3;width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.94);display:grid;place-items:center;cursor:pointer;padding:0}
 #dsh .dsh-x.dk{background:rgba(255,255,255,.14)}
+#dsh .dsh-ed{top:calc(60px + env(safe-area-inset-top))}
 #dsh .dsh-hero{position:relative;width:100%;flex:1 1 auto;min-height:150px;background:#eee center/cover no-repeat;overflow:hidden}
 #dsh .dsh-hero video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 #dsh .dsh-hero.bev{background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#fff;aspect-ratio:auto;height:min(40vh,300px);padding:24px 24px 14px}
@@ -3193,6 +3194,7 @@ function closeEditPop(){
   document.getElementById('editPop').classList.remove('open');
   document.body.style.overflow='';
   editCtx=null;
+  if(typeof dshState!=='undefined' && dshState){ document.body.style.overflow='hidden'; try{ dshRender(false); }catch(e){} }
 }
 document.getElementById('editPop').addEventListener('click',e=>{ if(e.target===e.currentTarget) closeEditPop(); });
 
@@ -12716,6 +12718,7 @@ function dshEl(){
     const b=e.target.closest('[data-dsh]'); if(!b) return;
     const a=b.dataset.dsh;
     if(a==='x') return dshClose();
+    if(a==='edit'){ const tb=DATA.tabs.find(x=>x.id===dshState.tabId), ti=DATA.tabs.indexOf(tb), e=dshItems(tb)[dshState.i]; if(!e) return; if(e.kind==='dish') openEditDish(ti,e.ci,e.di); else if(e.kind==='var') openEditVariants(ti,e.ci); return; }
     if(a==='tab'){ const tb=DATA.tabs.find(x=>x.id===b.dataset.tab); if(tb && !dshItems(tb).length){ const go=()=>{ goToTab(tb.id); window.scrollTo(0,0); }; if(dshPushed){ window.addEventListener('popstate',()=>setTimeout(go,0),{once:true}); dshClose(); } else { dshClose(); go(); } return; } return dshGo(b.dataset.tab,0); }
     if(a==='item') return dshGo(dshState.tabId,+b.dataset.i);
     if(a==='price'){ b.parentNode.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); }
@@ -12769,6 +12772,12 @@ function dshClose(fromPop){
   dshPushed=false;
 }
 window.addEventListener('popstate',()=>{ if(dshState){ dshPushed=false; dshClose(true); } });
+// Administrateur connecté (hors mode modification) : toucher une boisson ouvre sa fiche de modification.
+document.addEventListener('click',e=>{
+  if(editMode || !document.body.classList.contains('is-admin')) return;
+  const b=e.target.closest('.bev-row[data-ti]'); if(!b || b.closest('#editPop')) return;
+  openEditBev(+b.dataset.ti,+b.dataset.ci,+b.dataset.ii);
+});
 document.addEventListener('keydown',e=>{ if(e.key==='Escape' && dshState) dshClose(); });
 function dshGo(tabId,i){
   if(!dshState) return;
@@ -12797,6 +12806,7 @@ function dshRender(first){
     h+=`<div class="dsh-hero" style="background-image:url('${escAttr(e.img)}')">${vid?`<video src="${escAttr(e.video)}" poster="${escAttr(e.img)}" autoplay muted loop playsinline></video>`:''}</div>`;
   }
   h+=`<button type="button" class="dsh-x${isBev?' dk':''}" data-dsh="x" aria-label="${lang==='en'?'Close':'Fermer'}" style="color:${isBev?'#fff':'var(--navy)'}">${DSH_X}</button>`;
+  if(document.body.classList.contains('is-admin') && !isBev) h+=`<button type="button" class="dsh-x dsh-ed" data-dsh="edit" aria-label="Modifier" style="color:var(--navy)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>`;
   // Nom, description, prix
   h+='<div class="dsh-body">';
   if(!isBev){
