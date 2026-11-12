@@ -2230,6 +2230,10 @@ body.ig-admin-ui #newSectionPickList input[type="checkbox"]:checked::after{
 #dsh .dsh-btr .n small{display:block;font:400 12px Jost,sans-serif;color:#6b6760;margin-top:2px}
 #dsh .dsh-btr .v{text-align:right;font:600 16px Jost,sans-serif;color:var(--navy);white-space:nowrap}
 #dsh .dsh-btr .v.e{color:#cfc8bc;font-weight:400}
+/* Fondu (choix C de Will, 12/11) : plats à prix unique, la photo descend jusqu'au prix et le texte se pose sur un fondu blanc */
+#dsh .dsh-card.dsh-fd .dsh-body{position:relative;z-index:1;margin-top:calc(-1 * (2*1.12*var(--dshNm) + 6px + 2*1.4*var(--dshDs)) - 14px);padding-top:0}
+#dsh .dsh-card.dsh-fd .dsh-txt{position:relative;padding-top:34px;height:auto;min-height:calc(2*1.12*var(--dshNm) + 6px + 2*1.4*var(--dshDs) + 34px);justify-content:flex-end}
+#dsh .dsh-card.dsh-fd .dsh-txt:before{content:"";position:absolute;left:-22px;right:-22px;top:0;bottom:-30px;background:linear-gradient(to bottom,rgba(255,255,255,0),#fff 38%);z-index:-1}
 @media (max-height:720px){#dsh{--dshNm:21px;--dshDs:13px;--dshTh:74px}#dsh .dsh-prow,#dsh .dsh-seg button{height:46px}#dsh .dsh-seg button b{font-size:16px}#dsh .dsh-tabs{margin-top:10px}#dsh .dsh-lab{padding-top:10px}#dsh .dsh-body{padding-top:10px}}
 @media (min-width:768px){#dsh{display:none}}
 /* ── Menu admin rapide (téléphone) : panneau qui monte du bas, ouvert par le bouton trois traits ── */
@@ -12899,6 +12903,7 @@ function dshRender(first){
   const el=dshEl(), card=el.querySelector('.dsh-card');
   const tab=DATA.tabs.find(tb=>tb.id===dshState.tabId); if(!tab) return dshClose();
   card.classList.toggle('bevm',dshState.i==='bev');
+  if(dshState.i==='bev') card.classList.remove('dsh-fd');
   if(dshState.i!=='bev') delete card.dataset.bt;
   if(dshState.i==='bev') return dshRenderBevs(tab,card,first);
   const items=dshItems(tab);
@@ -12928,6 +12933,7 @@ function dshRender(first){
   }
   h+='<div class="dsh-prow">';
   const P=e.prices||[];
+  card.classList.toggle('dsh-fd', !isBev && P.length<=1 && !(P[0]&&P[0].label));
   if(P.length>1 || (P.length===1 && P[0].label)){
     h+='<div class="dsh-seg">'+P.map((p,k)=>`<button type="button" data-dsh="price"${k===0?' class="on"':''}><b>${p.v}</b>${p.label||''}</button>`).join('')+'</div>';
   } else if(P.length===1){
