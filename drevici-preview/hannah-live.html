@@ -70,7 +70,7 @@ body{background:var(--navy);color:#fff;font-family:Jost,system-ui,sans-serif;-we
   <div class="sub" id="sub">messages for Hannah</div>
   <div class="bar"><i id="bar"></i></div>
   <div class="list" id="list"></div>
-  <div class="draw" id="draw"><b>The draw · after midnight</b><small>3 names will take Hannah to dinner · <span id="nn">0</span> in the hat</small></div>
+  <div class="draw" id="draw"><b>The draw · during the night</b><small>3 names will take Hannah to dinner · <span id="nn">0</span> in the hat</small></div>
   <div class="adm" id="adm" style="display:none"></div>
 </div>
 <script>
@@ -91,7 +91,7 @@ let shown='',winners=null;
 function clock(){const d=new Date();document.getElementById('clock').textContent=d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}
 function drawBox(n){const el=document.getElementById('draw');
   if(winners){el.innerHTML=`<b>They take Hannah to dinner</b><div class="win">${winners.map((w,i)=>`<div style="animation-delay:${i*.5}s">${esc(w.name)}</div>`).join('')}</div>`;return}
-  el.innerHTML=`<b>The draw · after midnight</b><small>3 names will take Hannah to dinner · <span id="nn">${n}</span> in the hat</small>${(key||TEST)?'<button id="go">Draw 3 names</button>':''}`;
+  el.innerHTML=`<b>The draw · during the night</b><small>3 names will take Hannah to dinner · <span id="nn">${n}</span> in the hat</small>${(key||TEST)?'<button id="go">Draw 3 names</button>':''}`;
   const b=document.getElementById('go');if(b)b.onclick=async()=>{if(!confirm('Draw the 3 names now?'))return;b.disabled=true;const r=await rpc('hannah_draw',{p_key:key});if(r&&r.ok){winners=r.drawn;drawBox(n);admin(r.drawn);if(window.confettiBurst)confettiBurst()}else{alert('Wrong key');b.disabled=false}}}
 
 // Admin (clé) : emails des 3 gagnants, à envoyer d'un geste
