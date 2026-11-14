@@ -54,6 +54,12 @@ body{background:var(--navy);color:#fff;font-family:Jost,system-ui,sans-serif;-we
 .glass{position:absolute;right:-4px;top:40px;width:70px;animation:wob 3s ease-in-out infinite;z-index:2}
 .balloons{position:absolute;left:-4px;top:30px;width:78px;animation:floaty 5s ease-in-out infinite;z-index:2}
 .spark{position:absolute;width:30px;animation:wob 2.4s ease-in-out infinite}
+
+.adm{background:#fff;color:#10285E;border-radius:22px;padding:16px;margin-top:14px}
+.adm>b{display:block;font:800 17px 'Baloo 2',system-ui}.adm>small{display:block;font:500 13px Jost;color:#6b6760;margin-top:2px}
+.aw{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;padding:12px 0 0;margin-top:12px;box-shadow:0 -1px 0 #eee}
+.aw b{font:700 16px Jost}.aw small{font:500 13px Jost;color:#6b6760;grid-column:1}.aw code{font:800 15px 'Baloo 2',system-ui;color:#E8336B;letter-spacing:.06em}
+.aw a{grid-row:1/span 3;grid-column:2;background:#E8336B;color:#fff;text-decoration:none;font:800 15px 'Baloo 2',system-ui;border-radius:99px;padding:10px 16px}
 </style></head><body>
 <div id="testbar" style="display:none;position:sticky;top:0;z-index:9;background:#b3261e;color:#fff;font:600 12px Jost,sans-serif;text-align:center;padding:6px">TEST · nothing is saved or counted · <a href="#" id="treset" style="color:#fff">reset</a></div>
 <div class="app">
@@ -65,6 +71,7 @@ body{background:var(--navy);color:#fff;font-family:Jost,system-ui,sans-serif;-we
   <div class="bar"><i id="bar"></i></div>
   <div class="list" id="list"></div>
   <div class="draw" id="draw"><b>The draw · after midnight</b><small>3 names will take Hannah to dinner · <span id="nn">0</span> in the hat</small></div>
+  <div class="adm" id="adm" style="display:none"></div>
 </div>
 <script>
 const SB='https://fdbzzkzfipzabryfanun.supabase.co', KEY='sb_publishable_9PaqDuXnWV3aOCBPk9ImmQ_4YgYTU9n';
@@ -75,7 +82,7 @@ function mockRpc(fn,b){let st=tst()||{rows:[{first:'Sophie',msg:'To the woman wh
   if(fn==='hannah_post'){const ex=st.rows.find(r=>r.email===b.p_email);if(ex){ex.msg=b.p_msg;ex.club=ex.club||b.p_club}else{st.rows.unshift({first:b.p_first,last:b.p_last,email:b.p_email,msg:b.p_msg,club:b.p_club});st.n++}
     const me=st.rows.find(r=>r.email===b.p_email);if(me.club&&!me.code)me.code='TEST-'+Math.random().toString(36).slice(2,5).toUpperCase();
     localStorage.setItem('hannah-test',JSON.stringify(st));return Promise.resolve({ok:true,count:st.n,code:me.code||null,first:me.first})}
-  if(fn==='hannah_draw'){if(!st.drawn.length)st.drawn=['Sophie M.','Marco R.','James W.'].map(n=>({name:n}));localStorage.setItem('hannah-test',JSON.stringify(st));return Promise.resolve({ok:true,drawn:st.drawn})}
+  if(fn==='hannah_draw'){if(!st.drawn.length)st.drawn=[['Sophie','Martin','en'],['Marco','Rossi','en'],['Léa','Dubois','fr']].map(([f,l,g],i)=>({first:f,name:f+' '+l,email:f.toLowerCase()+'@example.com',lang:g,dinner:'DINER-'+['7KQ2','M4XA','R9TD'][i]}));localStorage.setItem('hannah-test',JSON.stringify(st));return Promise.resolve({ok:true,drawn:st.drawn})}
   return Promise.resolve({count:st.n,goal:25,latest:st.rows.slice(0,8).map(r=>({first:r.first,msg:r.msg})),drawn:st.drawn})}
 const rpc=(fn,body)=>TEST?mockRpc(fn,body||{}):fetch(`${SB}/rest/v1/rpc/${fn}`,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify(body||{})}).then(r=>r.json());
 const key=new URLSearchParams(location.search).get('key');
@@ -85,14 +92,54 @@ function clock(){const d=new Date();document.getElementById('clock').textContent
 function drawBox(n){const el=document.getElementById('draw');
   if(winners){el.innerHTML=`<b>They take Hannah to dinner</b><div class="win">${winners.map((w,i)=>`<div style="animation-delay:${i*.5}s">${esc(w.name)}</div>`).join('')}</div>`;return}
   el.innerHTML=`<b>The draw · after midnight</b><small>3 names will take Hannah to dinner · <span id="nn">${n}</span> in the hat</small>${(key||TEST)?'<button id="go">Draw 3 names</button>':''}`;
-  const b=document.getElementById('go');if(b)b.onclick=async()=>{if(!confirm('Draw the 3 names now?'))return;b.disabled=true;const r=await rpc('hannah_draw',{p_key:key});if(r&&r.ok){winners=r.drawn;drawBox(n);if(window.confettiBurst)confettiBurst()}else{alert('Wrong key');b.disabled=false}}}
+  const b=document.getElementById('go');if(b)b.onclick=async()=>{if(!confirm('Draw the 3 names now?'))return;b.disabled=true;const r=await rpc('hannah_draw',{p_key:key});if(r&&r.ok){winners=r.drawn;drawBox(n);admin(r.drawn);if(window.confettiBurst)confettiBurst()}else{alert('Wrong key');b.disabled=false}}}
+
+// Admin (clé) : emails des 3 gagnants, à envoyer d'un geste
+const RESA='https://drevici.beltab.app/resa';
+function mail(w,all){const others=all.filter(x=>x!==w).map(x=>x.first).join(w.lang==='fr'?' et ':' and ');
+  const fr=w.lang==='fr';
+  const sub=fr?'Vous invitez Hannah à dîner chez Drevici':"You're taking Hannah to dinner at Drevici";
+  const body=fr?`Bonjour ${w.first},
+
+Votre nom est sorti du chapeau hier soir, à l'anniversaire de Hannah. Vous faites partie des 3 amis qui l'invitent à dîner chez Drevici Oyster : c'est votre cadeau pour elle.
+
+Votre code : ${w.dinner}
+
+Comment faire :
+1. Choisissez une soirée avec ${others} et Hannah (du mardi au samedi).
+2. Réservez votre table ici : ${RESA} et notez votre code dans le commentaire.
+3. Montrez le code en arrivant. Les 3 huîtres de Hannah sont offertes par la maison.
+
+Valable jusqu'au 15 janvier 2027.
+
+À très vite,
+Will et toute l'équipe Drevici Oyster
+8 rue Biot, Paris 17e`:`Hi ${w.first},
+
+Your name came out of the hat last night at Hannah's birthday. You're one of the 3 friends taking Hannah to dinner at Drevici Oyster: your gift to her.
+
+Your code: ${w.dinner}
+
+How it works:
+1. Pick an evening with ${others} and Hannah (Tuesday to Saturday).
+2. Book your table here: ${RESA} and add your code in the comment.
+3. Show the code when you arrive. Hannah's 3 oysters are on the house.
+
+Valid until 15 January 2027.
+
+See you soon,
+Will and everyone at Drevici Oyster
+8 rue Biot, Paris 17e`;
+  return 'mailto:'+encodeURIComponent(w.email)+'?subject='+encodeURIComponent(sub)+'&body='+encodeURIComponent(body)}
+function admin(list){if(!list||!list.length||!list[0].email)return;const el=document.getElementById('adm');el.style.display='block';
+  el.innerHTML='<b>Admin · emails to the 3 winners</b><small>Only you see this (key). One tap opens the email, ready to send.</small>'+list.map(w=>`<div class="aw"><b>${esc(w.name)}</b><small>${esc(w.email)}</small><code>${esc(w.dinner||'')}</code><a href="${mail(w,list)}">Email</a></div>`).join('')}
 async function poll(){try{const r=await rpc('hannah_wall');if(!r||typeof r.count!=='number')return;
   const bott=Math.floor(r.count/r.goal),next=(bott+1)*r.goal;if(window._lb!==undefined&&bott>window._lb&&window.confettiBurst)confettiBurst();window._lb=bott;document.getElementById('n').textContent=r.count;document.getElementById('g').textContent=next;
   document.getElementById('bar').style.width=((r.count-bott*r.goal)/r.goal*100)+'%';
   document.getElementById('goal').textContent=bott?`${bott} bottle${bott>1?'s':''} of Chardonnay earned`:'';
   document.getElementById('sub').textContent=`messages for Hannah · ${next-r.count} more for bottle #${bott+1}`;
   const sig=JSON.stringify(r.latest);if(sig!==shown){shown=sig;document.getElementById('list').innerHTML=r.latest.slice(0,5).map(m=>`<div class="m"><b>${esc(m.first)}</b><p>${esc(m.msg)}</p></div>`).join('')}
-  if(!winners&&r.drawn&&r.drawn.length){winners=r.drawn}
+  if(!winners&&r.drawn&&r.drawn.length){winners=r.drawn;if(key||TEST)rpc('hannah_draw',{p_key:key}).then(d=>d&&d.ok&&admin(d.drawn))}
   drawBox(r.count);
 }catch(e){}}
 clock();setInterval(clock,10000);poll();setInterval(poll,5000);
