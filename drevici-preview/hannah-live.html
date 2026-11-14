@@ -1,0 +1,64 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Hannah's table · live · Drevici Oyster</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#10285E">
+<link rel="icon" href="seo/logo-pics-bar.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,700&family=Caveat:wght@700&family=Jost:wght@400;500;600;700&display=swap">
+<style>
+:root{--navy:#10285E;--gold:#C6A24A}
+*{box-sizing:border-box;margin:0}
+body{background:var(--navy);color:#fff;font-family:Jost,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.app{max-width:520px;margin:0 auto;min-height:100vh;min-height:100dvh;padding:calc(env(safe-area-inset-top) + 18px) 20px calc(env(safe-area-inset-bottom) + 22px);display:flex;flex-direction:column}
+.top{display:flex;justify-content:space-between;font:600 11px Jost;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.65)}
+.goal{text-align:center;font:600 12px Jost;letter-spacing:.24em;text-transform:uppercase;color:var(--gold);margin-top:28px;min-height:15px}
+.big{text-align:center;font:800 84px/1 'Playfair Display',serif;margin-top:6px}
+.big small{font-size:38px;color:rgba(255,255,255,.45)}
+.sub{text-align:center;font:500 17px Jost;margin-top:6px}
+.bar{height:8px;border-radius:9px;background:rgba(255,255,255,.14);margin-top:18px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--gold);border-radius:9px;transition:width 1s cubic-bezier(.2,.8,.2,1)}
+.list{margin-top:18px;display:grid;gap:9px;flex:1;align-content:start}
+.m{background:rgba(255,255,255,.08);border-radius:15px;padding:12px 14px;animation:in .5s ease}
+.m b{display:block;font:700 22px/1 Caveat,cursive;color:var(--gold)}
+.m p{font:italic 400 15px/1.45 'Playfair Display',serif;color:rgba(255,255,255,.88);margin-top:4px}
+@keyframes in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.draw{background:var(--gold);color:var(--navy);border-radius:18px;padding:14px 16px;margin-top:16px}
+.draw b{display:block;font:700 17px Jost}.draw small{font:500 14px Jost}
+.draw button{display:block;width:100%;margin-top:12px;background:var(--navy);color:#fff;border:0;border-radius:99px;font:600 16px Jost;padding:14px 0;cursor:pointer}
+.win{font:800 26px/1.25 'Playfair Display',serif;margin-top:8px}
+.win div{animation:in .6s ease both}
+.win small{display:block;font:500 13px Jost;opacity:.75}
+</style></head><body>
+<div class="app">
+  <div class="top"><span>Live · Hannah's table</span><span id="clock"></span></div>
+  <div class="goal" id="goal"></div>
+  <div class="big"><span id="n">0</span><small> / <span id="g">25</span></small></div>
+  <div class="sub" id="sub">messages for Hannah</div>
+  <div class="bar"><i id="bar"></i></div>
+  <div class="list" id="list"></div>
+  <div class="draw" id="draw"><b>The draw · after midnight</b><small>3 names will dine with Hannah · <span id="nn">0</span> in the hat</small></div>
+</div>
+<script>
+const SB='https://fdbzzkzfipzabryfanun.supabase.co', KEY='sb_publishable_9PaqDuXnWV3aOCBPk9ImmQ_4YgYTU9n';
+const rpc=(fn,body)=>fetch(`${SB}/rest/v1/rpc/${fn}`,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify(body||{})}).then(r=>r.json());
+const key=new URLSearchParams(location.search).get('key');
+const esc=s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let shown='',winners=null;
+function clock(){const d=new Date();document.getElementById('clock').textContent=d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}
+function drawBox(n){const el=document.getElementById('draw');
+  if(winners){el.innerHTML=`<b>Dinner with Hannah</b><div class="win">${winners.map((w,i)=>`<div style="animation-delay:${i*.5}s">${esc(w.name)}</div>`).join('')}</div>`;return}
+  el.innerHTML=`<b>The draw · after midnight</b><small>3 names will dine with Hannah · <span id="nn">${n}</span> in the hat</small>${key?'<button id="go">Draw 3 names</button>':''}`;
+  const b=document.getElementById('go');if(b)b.onclick=async()=>{if(!confirm('Draw the 3 names now?'))return;b.disabled=true;const r=await rpc('hannah_draw',{p_key:key});if(r&&r.ok){winners=r.drawn;drawBox(n)}else{alert('Wrong key');b.disabled=false}}}
+async function poll(){try{const r=await rpc('hannah_wall');if(!r||typeof r.count!=='number')return;
+  document.getElementById('n').textContent=r.count;document.getElementById('g').textContent=r.goal;
+  document.getElementById('bar').style.width=Math.min(100,r.count/r.goal*100)+'%';
+  document.getElementById('goal').textContent=r.count>=r.goal?'Goal reached':'';
+  document.getElementById('sub').textContent=r.count>=r.goal?'The bottle is on its way':'messages for Hannah';
+  const sig=JSON.stringify(r.latest);if(sig!==shown){shown=sig;document.getElementById('list').innerHTML=r.latest.slice(0,5).map(m=>`<div class="m"><b>${esc(m.first)}</b><p>${esc(m.msg)}</p></div>`).join('')}
+  if(!winners&&r.drawn&&r.drawn.length){winners=r.drawn}
+  drawBox(r.count);
+}catch(e){}}
+clock();setInterval(clock,10000);poll();setInterval(poll,5000);
+</script>
+</body></html>
