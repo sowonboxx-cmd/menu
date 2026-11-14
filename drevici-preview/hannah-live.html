@@ -138,10 +138,10 @@ Will and everyone at Drevici Oyster
 function admin(list){if(!list||!list.length||!list[0].email)return;const el=document.getElementById('adm');el.style.display='block';
   el.innerHTML='<b>Admin · emails to the 3 winners</b><small>Only you see this (key). One tap opens the email, ready to send.</small>'+list.map(w=>`<div class="aw"><b>${esc(w.name)}</b><small>${esc(w.email)}</small><code>${esc(w.dinner||'')}</code><a href="${mail(w,list)}">Email</a></div>`).join('')}
 async function poll(){try{const r=await rpc('hannah_wall');if(!r||typeof r.count!=='number')return;
-  const bott=Math.floor(r.count/r.goal),next=(bott+1)*r.goal;if(window._lb!==undefined&&bott>window._lb&&window.confettiBurst)confettiBurst();window._lb=bott;document.getElementById('n').textContent=r.count;document.getElementById('g').textContent=next;
-  document.getElementById('bar').style.width=((r.count-bott*r.goal)/r.goal*100)+'%';
-  document.getElementById('goal').textContent=bott?`${bott} bottle${bott>1?'s':''} of Chardonnay earned`:'';
-  document.getElementById('sub').textContent=`messages for Hannah · ${next-r.count} more for bottle #${bott+1}`;
+  const bott=r.count>=r.goal?1:0,next=r.goal;if(window._lb!==undefined&&bott>window._lb&&window.confettiBurst)confettiBurst();window._lb=bott;document.getElementById('n').textContent=r.count;document.getElementById('g').textContent=next;
+  document.getElementById('bar').style.width=Math.min(100,r.count/r.goal*100)+'%';
+  document.getElementById('goal').textContent=bott?'Bottle of Chardonnay unlocked':'';
+  document.getElementById('sub').textContent=bott?'messages for Hannah · Chardonnay unlocked!':`messages for Hannah · ${next-r.count} more to pop the bottle`;
   const sig=JSON.stringify(r.latest);if(sig!==shown){shown=sig;document.getElementById('list').innerHTML=r.latest.slice(0,5).map(m=>`<div class="m"><b>${esc(m.first)}</b><p>${esc(m.msg)}</p></div>`).join('')}
   if(!winners&&r.drawn&&r.drawn.length){winners=r.drawn;if(key||TEST)rpc('hannah_draw',{p_key:key}).then(d=>d&&d.ok&&admin(d.drawn))}
   drawBox(r.count);
