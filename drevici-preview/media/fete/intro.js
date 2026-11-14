@@ -9,7 +9,7 @@
   const ph=document.querySelector('#v1 .story.lg'),hb=document.querySelector('#v1 .hb'),app=document.querySelector('.app');
   if(!ph||!hb||!document.getElementById('v1').classList.contains('on'))return;
   scrollTo(0,0);
-  const ov=document.createElement('div');ov.id='intro';app.prepend(ov);
+  const ov=document.createElement('div');ov.id='intro';ov.innerHTML='<i class="grain"></i>';app.prepend(ov);
   document.body.classList.add('intro');
   const vw=innerWidth,vh=innerHeight,r1=ph.getBoundingClientRect(),r2=hb.getBoundingClientRect();
   const S=Math.min(1.7,vw*.6/r1.width);
@@ -24,9 +24,10 @@
   const rest=[...document.querySelectorAll('.app>*:not(#v1):not(#intro),#v1>*:not(.hero):not(.dz),#v1 .hero>svg')];
   const dz=[...document.querySelectorAll('#v1 .dz')];
   rest.forEach(e=>e.classList.add('fadein'));
-  setTimeout(()=>{ov.classList.add('rv');document.body.classList.add('rv2')},850);
-  setTimeout(()=>{hb.style.opacity=1;hb.style.animation='islam .5s cubic-bezier(.2,.9,.3,1) both'},1050);
-  setTimeout(()=>{window.confettiBurst&&confettiBurst()},1100);
+  setTimeout(()=>window.confettiBurst&&confettiBurst(),150);
+  setTimeout(()=>{ov.classList.add('rv');document.body.classList.add('rv2')},1000);
+  setTimeout(()=>{hb.style.opacity=1;hb.style.animation='islam .5s cubic-bezier(.2,.9,.3,1) both'},1200);
+  setTimeout(()=>{window.confettiBurst&&confettiBurst()},1250);
   setTimeout(()=>{ // tout glisse à sa place
     ph.style.transition='';hb.style.transition='';hb.style.animation='none';
     requestAnimationFrame(()=>{ph.style.transform='';hb.style.transform=''});
@@ -35,7 +36,7 @@
     dz.forEach(e=>{e.style.transition='opacity .8s ease .5s'});
     rest.forEach((e,i)=>{e.style.transform='translateY(18px)';e.style.opacity=0;e.style.transitionDelay=(.1+Math.min(i,8)*.06)+'s';
       requestAnimationFrame(()=>requestAnimationFrame(()=>{e.style.transform='';e.style.opacity=''}))});
-  },1650);
+  },1850);
   setTimeout(()=>{ov.remove();[ph,hb].forEach(e=>{e.classList.remove('fl');e.style.cssText=''});rest.forEach(e=>{e.classList.remove('fadein');e.style.transitionDelay=''});
-    const b=document.querySelector('#v1 .btn');b&&b.classList.add('wig')},2700);
+    const b=document.querySelector('#v1 .btn');b&&b.classList.add('wig')},2900);
 })();
