@@ -5,7 +5,8 @@
 <meta name="theme-color" content="#10285E">
 <link rel="icon" href="seo/logo-pics-bar.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,700&family=Caveat:wght@700&family=Jost:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,700&family=Caveat:wght@700&family=Jost:wght@400;500;600;700&family=Baloo+2:wght@600;700;800&display=swap">
+<link rel="stylesheet" href="media/fete/fete.css">
 <style>
 :root{--navy:#10285E;--gold:#C6A24A}
 *{box-sizing:border-box;margin:0}
@@ -35,11 +36,29 @@ body{background:var(--navy);color:#fff;font-family:Jost,system-ui,sans-serif;-we
 .story img{display:block;width:100%;height:100%;border-radius:50%;object-fit:cover}
 .story{width:96px;height:96px;margin-top:22px}.story span{width:88px;height:88px;--bgc:#10285E}
 .goal{margin-top:14px}
+
+:root{--pink:#E8336B;--yellow:#F6C945}
+.big{font:800 96px/1 'Baloo 2',system-ui,sans-serif}
+.big small{font-size:44px}
+.goal{color:var(--yellow);font-family:'Baloo 2',system-ui;font-weight:800;font-size:14px}
+.bar{height:12px}.bar i{background:var(--pink)}
+.m{background:#fff;color:#10285E;border-radius:18px}
+.m:nth-child(3n+2){background:#FFE9F0}.m:nth-child(3n){background:#FFF3C9}
+.m b{color:var(--pink);font-size:24px}
+.m p{color:#3d3a34}
+.draw{background:var(--yellow);border-radius:22px}
+.draw b{font:800 19px 'Baloo 2',system-ui}
+.draw button{background:var(--pink);font:800 18px 'Baloo 2',system-ui}
+.win{font-family:'Baloo 2',system-ui}
+.hero{position:relative}
+.glass{position:absolute;right:-4px;top:40px;width:70px;animation:wob 3s ease-in-out infinite;z-index:2}
+.balloons{position:absolute;left:-4px;top:30px;width:78px;animation:floaty 5s ease-in-out infinite;z-index:2}
+.spark{position:absolute;width:30px;animation:wob 2.4s ease-in-out infinite}
 </style></head><body>
 <div id="testbar" style="display:none;position:sticky;top:0;z-index:9;background:#b3261e;color:#fff;font:600 12px Jost,sans-serif;text-align:center;padding:6px">TEST · nothing is saved or counted · <a href="#" id="treset" style="color:#fff">reset</a></div>
 <div class="app">
   <div class="top"><span>Live · Hannah's table</span><span id="clock"></span></div>
-  <div class="story"><span><img src="media/hannah.jpg" alt="Hannah"></span></div>
+  <div class="hero"><svg class="balloons" viewBox="0 0 96 150" aria-hidden="true"><path d="M30 70 Q34 100 26 148" stroke="#fff" stroke-width="1.3" fill="none" opacity=".6"/><path d="M66 62 Q60 100 70 148" stroke="#fff" stroke-width="1.3" fill="none" opacity=".6"/><ellipse cx="62" cy="34" rx="26" ry="31" fill="#3B82F6"/><path d="M62 65l-4 6h8z" fill="#3B82F6"/><ellipse cx="54" cy="24" rx="6" ry="10" fill="#fff" opacity=".35"/><ellipse cx="32" cy="42" rx="25" ry="30" fill="#E8336B"/><path d="M32 72l-4 6h8z" fill="#E8336B"/><ellipse cx="24" cy="32" rx="6" ry="10" fill="#fff" opacity=".35"/></svg><svg class="glass" viewBox="0 0 70 120" aria-hidden="true"><path d="M18 6h34l-3 40a14 14 0 0 1-28 0z" fill="#F6C945"/><path d="M20 6h30l-1 12H21z" fill="#fff" opacity=".55"/><circle cx="31" cy="30" r="2.4" fill="#fff"/><circle cx="40" cy="38" r="1.8" fill="#fff"/><circle cx="36" cy="24" r="1.6" fill="#fff"/><rect x="33" y="58" width="4" height="40" fill="#fff"/><rect x="20" y="96" width="30" height="6" rx="3" fill="#fff"/></svg><svg class="spark" style="left:110px;top:30px" viewBox="0 0 34 34" aria-hidden="true"><path d="M17 3v8M17 23v8M3 17h8M23 17h8" stroke="#F6C945" stroke-width="3.2" stroke-linecap="round"/></svg><svg class="spark" style="right:100px;top:110px;animation-delay:.9s" viewBox="0 0 34 34" aria-hidden="true"><path d="M17 3v8M17 23v8M3 17h8M23 17h8" stroke="#F6C945" stroke-width="3.2" stroke-linecap="round"/></svg><div class="story"><span><img src="media/hannah.jpg" alt="Hannah"></span></div></div>
   <div class="goal" id="goal"></div>
   <div class="big"><span id="n">0</span><small> / <span id="g">25</span></small></div>
   <div class="sub" id="sub">messages for Hannah</div>
@@ -66,9 +85,9 @@ function clock(){const d=new Date();document.getElementById('clock').textContent
 function drawBox(n){const el=document.getElementById('draw');
   if(winners){el.innerHTML=`<b>They take Hannah to dinner</b><div class="win">${winners.map((w,i)=>`<div style="animation-delay:${i*.5}s">${esc(w.name)}</div>`).join('')}</div>`;return}
   el.innerHTML=`<b>The draw · after midnight</b><small>3 names will take Hannah to dinner · <span id="nn">${n}</span> in the hat</small>${(key||TEST)?'<button id="go">Draw 3 names</button>':''}`;
-  const b=document.getElementById('go');if(b)b.onclick=async()=>{if(!confirm('Draw the 3 names now?'))return;b.disabled=true;const r=await rpc('hannah_draw',{p_key:key});if(r&&r.ok){winners=r.drawn;drawBox(n)}else{alert('Wrong key');b.disabled=false}}}
+  const b=document.getElementById('go');if(b)b.onclick=async()=>{if(!confirm('Draw the 3 names now?'))return;b.disabled=true;const r=await rpc('hannah_draw',{p_key:key});if(r&&r.ok){winners=r.drawn;drawBox(n);if(window.confettiBurst)confettiBurst()}else{alert('Wrong key');b.disabled=false}}}
 async function poll(){try{const r=await rpc('hannah_wall');if(!r||typeof r.count!=='number')return;
-  const bott=Math.floor(r.count/r.goal),next=(bott+1)*r.goal;document.getElementById('n').textContent=r.count;document.getElementById('g').textContent=next;
+  const bott=Math.floor(r.count/r.goal),next=(bott+1)*r.goal;if(window._lb!==undefined&&bott>window._lb&&window.confettiBurst)confettiBurst();window._lb=bott;document.getElementById('n').textContent=r.count;document.getElementById('g').textContent=next;
   document.getElementById('bar').style.width=((r.count-bott*r.goal)/r.goal*100)+'%';
   document.getElementById('goal').textContent=bott?`${bott} bottle${bott>1?'s':''} of Chardonnay earned`:'';
   document.getElementById('sub').textContent=`messages for Hannah · ${next-r.count} more for bottle #${bott+1}`;
@@ -79,4 +98,5 @@ async function poll(){try{const r=await rpc('hannah_wall');if(!r||typeof r.count
 clock();setInterval(clock,10000);poll();setInterval(poll,5000);
 if(TEST){document.getElementById('testbar').style.display='block';document.getElementById('treset').onclick=e=>{e.preventDefault();localStorage.removeItem('hannah-test');localStorage.removeItem('hannah-me-test');location.reload()}}
 </script>
+<script src="media/fete/fete.js"></script>
 </body></html>
