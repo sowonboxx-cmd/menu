@@ -9,7 +9,7 @@
   const ph=document.querySelector('#v1 .story.lg'),hb=document.querySelector('#v1 .hb'),app=document.querySelector('.app');
   if(!ph||!hb||!document.getElementById('v1').classList.contains('on'))return;
   scrollTo(0,0);
-  const ov=document.createElement('div');ov.id='intro';ov.innerHTML='<i class="grain"></i>';app.prepend(ov);
+  const ov=document.createElement('div');ov.id='intro';app.prepend(ov);
   document.body.classList.add('intro');
   const vw=innerWidth,vh=innerHeight,r1=ph.getBoundingClientRect(),r2=hb.getBoundingClientRect();
   const S=Math.min(1.7,vw*.6/r1.width);
