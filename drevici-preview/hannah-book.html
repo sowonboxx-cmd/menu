@@ -96,6 +96,10 @@ const DEMO_PHOTOS=[1,2,3,4,5,6,7,8].map(i=>`media/hannah-demo/n${i}.jpg`);
 let D=null, PHOTOS=[];
 async function load(){
   if(DEMO){document.getElementById('demo').style.display='block';D=DEMO_DATA;PHOTOS=DEMO_PHOTOS;return render()}
+  if(Q.has('test')){let st=null;try{st=JSON.parse(localStorage.getItem('hannah-test'))}catch(e){}
+    const dm=document.getElementById('demo');dm.textContent='TEST · your test messages from this phone · sample photos';dm.style.display='block';
+    if(!st){D=DEMO_DATA}else{D={count:st.n,goal:25,drawn:(st.drawn||[]).map(w=>w.name),messages:st.rows.slice().reverse().map(r=>({first:r.first,msg:r.msg}))}}
+    PHOTOS=DEMO_PHOTOS;return render()}
   const r=await fetch(`${SB}/rest/v1/rpc/hannah_book`,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({p_key:Q.get('k')||''})}).then(r=>r.json()).catch(()=>null);
   if(!r||!r.ok){document.getElementById('app').innerHTML='<p class="sub" style="margin-top:40vh">This book is private.</p>';return}
   D=r;try{PHOTOS=(await fetch('media/hannah-night/photos.json').then(r=>r.json())).map(f=>'media/hannah-night/'+f)}catch(e){PHOTOS=[]}
