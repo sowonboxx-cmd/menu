@@ -36,6 +36,7 @@ body{background:var(--navy);color:#fff;font-family:Jost,system-ui,sans-serif;-we
 .story{width:96px;height:96px;margin-top:22px}.story span{width:88px;height:88px;--bgc:#10285E}
 .goal{margin-top:14px}
 </style></head><body>
+<div id="testbar" style="display:none;position:sticky;top:0;z-index:9;background:#b3261e;color:#fff;font:600 12px Jost,sans-serif;text-align:center;padding:6px">TEST · nothing is saved or counted · <a href="#" id="treset" style="color:#fff">reset</a></div>
 <div class="app">
   <div class="top"><span>Live · Hannah's table</span><span id="clock"></span></div>
   <div class="story"><span><img src="media/hannah.jpg" alt="Hannah"></span></div>
@@ -48,14 +49,23 @@ body{background:var(--navy);color:#fff;font-family:Jost,system-ui,sans-serif;-we
 </div>
 <script>
 const SB='https://fdbzzkzfipzabryfanun.supabase.co', KEY='sb_publishable_9PaqDuXnWV3aOCBPk9ImmQ_4YgYTU9n';
-const rpc=(fn,body)=>fetch(`${SB}/rest/v1/rpc/${fn}`,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify(body||{})}).then(r=>r.json());
+// Mode test (?test) : rien n'est envoyé ni compté, tout reste sur ce téléphone.
+const TEST=/[?&]test/.test(location.search);
+const tst=()=>{try{return JSON.parse(localStorage.getItem('hannah-test'))||null}catch(e){return null}};
+function mockRpc(fn,b){let st=tst()||{rows:[{first:'Sophie',msg:'To the woman who knows every good table in Paris. Love you!'},{first:'Marco',msg:'Tanti auguri Hannah!'},{first:'James',msg:'Another year of you being the best host in Paris.'}],n:18,drawn:[]};
+  if(fn==='hannah_post'){const ex=st.rows.find(r=>r.email===b.p_email);if(ex){ex.msg=b.p_msg;ex.club=ex.club||b.p_club}else{st.rows.unshift({first:b.p_first,last:b.p_last,email:b.p_email,msg:b.p_msg,club:b.p_club});st.n++}
+    const me=st.rows.find(r=>r.email===b.p_email);if(me.club&&!me.code)me.code='TEST-'+Math.random().toString(36).slice(2,5).toUpperCase();
+    localStorage.setItem('hannah-test',JSON.stringify(st));return Promise.resolve({ok:true,count:st.n,code:me.code||null,first:me.first})}
+  if(fn==='hannah_draw'){if(!st.drawn.length)st.drawn=['Sophie M.','Marco R.','James W.'].map(n=>({name:n}));localStorage.setItem('hannah-test',JSON.stringify(st));return Promise.resolve({ok:true,drawn:st.drawn})}
+  return Promise.resolve({count:st.n,goal:25,latest:st.rows.slice(0,8).map(r=>({first:r.first,msg:r.msg})),drawn:st.drawn})}
+const rpc=(fn,body)=>TEST?mockRpc(fn,body||{}):fetch(`${SB}/rest/v1/rpc/${fn}`,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify(body||{})}).then(r=>r.json());
 const key=new URLSearchParams(location.search).get('key');
 const esc=s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let shown='',winners=null;
 function clock(){const d=new Date();document.getElementById('clock').textContent=d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}
 function drawBox(n){const el=document.getElementById('draw');
   if(winners){el.innerHTML=`<b>They take Hannah to dinner</b><div class="win">${winners.map((w,i)=>`<div style="animation-delay:${i*.5}s">${esc(w.name)}</div>`).join('')}</div>`;return}
-  el.innerHTML=`<b>The draw · after midnight</b><small>3 names will take Hannah to dinner · <span id="nn">${n}</span> in the hat</small>${key?'<button id="go">Draw 3 names</button>':''}`;
+  el.innerHTML=`<b>The draw · after midnight</b><small>3 names will take Hannah to dinner · <span id="nn">${n}</span> in the hat</small>${(key||TEST)?'<button id="go">Draw 3 names</button>':''}`;
   const b=document.getElementById('go');if(b)b.onclick=async()=>{if(!confirm('Draw the 3 names now?'))return;b.disabled=true;const r=await rpc('hannah_draw',{p_key:key});if(r&&r.ok){winners=r.drawn;drawBox(n)}else{alert('Wrong key');b.disabled=false}}}
 async function poll(){try{const r=await rpc('hannah_wall');if(!r||typeof r.count!=='number')return;
   document.getElementById('n').textContent=r.count;document.getElementById('g').textContent=r.goal;
@@ -67,5 +77,6 @@ async function poll(){try{const r=await rpc('hannah_wall');if(!r||typeof r.count
   drawBox(r.count);
 }catch(e){}}
 clock();setInterval(clock,10000);poll();setInterval(poll,5000);
+if(TEST){document.getElementById('testbar').style.display='block';document.getElementById('treset').onclick=e=>{e.preventDefault();localStorage.removeItem('hannah-test');localStorage.removeItem('hannah-me-test');location.reload()}}
 </script>
 </body></html>

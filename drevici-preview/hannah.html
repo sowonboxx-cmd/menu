@@ -87,6 +87,7 @@ h2{font:800 32px/1.08 'Playfair Display',serif;color:var(--navy);margin-top:24px
 .story.sm{width:64px;height:64px;margin:22px 0 0}.story.sm span{width:56px;height:56px;padding:3px}
 .hb.ph{margin-top:16px}
 </style></head><body>
+<div id="testbar" style="display:none;position:sticky;top:0;z-index:9;background:#b3261e;color:#fff;font:600 12px Jost,sans-serif;text-align:center;padding:6px">TEST · nothing is saved or counted · <a href="#" id="treset" style="color:#fff">reset</a></div>
 <div class="app">
   <div class="top"><div class="k" data-t="kick">Drevici Oyster · 14.11</div><div class="lang"><button data-l="en" class="on">EN</button><button data-l="fr">FR</button></div></div>
 
@@ -133,7 +134,16 @@ h2{font:800 32px/1.08 'Playfair Display',serif;color:var(--navy);margin-top:24px
 </div>
 <script>
 const SB='https://fdbzzkzfipzabryfanun.supabase.co', KEY='sb_publishable_9PaqDuXnWV3aOCBPk9ImmQ_4YgYTU9n';
-const rpc=(fn,body)=>fetch(`${SB}/rest/v1/rpc/${fn}`,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify(body||{})}).then(r=>r.json());
+// Mode test (?test) : rien n'est envoyé ni compté, tout reste sur ce téléphone.
+const TEST=/[?&]test/.test(location.search);
+const tst=()=>{try{return JSON.parse(localStorage.getItem('hannah-test'))||null}catch(e){return null}};
+function mockRpc(fn,b){let st=tst()||{rows:[{first:'Sophie',msg:'To the woman who knows every good table in Paris. Love you!'},{first:'Marco',msg:'Tanti auguri Hannah!'},{first:'James',msg:'Another year of you being the best host in Paris.'}],n:18,drawn:[]};
+  if(fn==='hannah_post'){const ex=st.rows.find(r=>r.email===b.p_email);if(ex){ex.msg=b.p_msg;ex.club=ex.club||b.p_club}else{st.rows.unshift({first:b.p_first,last:b.p_last,email:b.p_email,msg:b.p_msg,club:b.p_club});st.n++}
+    const me=st.rows.find(r=>r.email===b.p_email);if(me.club&&!me.code)me.code='TEST-'+Math.random().toString(36).slice(2,5).toUpperCase();
+    localStorage.setItem('hannah-test',JSON.stringify(st));return Promise.resolve({ok:true,count:st.n,code:me.code||null,first:me.first})}
+  if(fn==='hannah_draw'){if(!st.drawn.length)st.drawn=['Sophie M.','Marco R.','James W.'].map(n=>({name:n}));localStorage.setItem('hannah-test',JSON.stringify(st));return Promise.resolve({ok:true,drawn:st.drawn})}
+  return Promise.resolve({count:st.n,goal:25,latest:st.rows.slice(0,8).map(r=>({first:r.first,msg:r.msg})),drawn:st.drawn})}
+const rpc=(fn,body)=>TEST?mockRpc(fn,body||{}):fetch(`${SB}/rest/v1/rpc/${fn}`,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify(body||{})}).then(r=>r.json());
 const T={
  en:{kick:'Drevici Oyster · 14.11',lead:'Leave her a message. When 25 of us have written, Drevici opens a bottle of Chardonnay for her.',cntl:'Messages for Hannah',
   g1:'Join the club: a glass of champagne',g1s:'Not tonight: on your next visit, on the house',g2:'3 of you take Hannah to dinner',g2s:'Drawn after midnight: your gift to her, at Drevici on your next visit',
@@ -159,7 +169,7 @@ const T={
 let L=(navigator.language||'en').startsWith('fr')&&!/[?&]lang=en/.test(location.search)?'fr':'en';
 try{const s=localStorage.getItem('hannah-lang');if(s)L=s}catch(e){}
 let count=0,goal=25,me=null;
-try{me=JSON.parse(localStorage.getItem('hannah-me')||'null')}catch(e){}
+try{me=JSON.parse(localStorage.getItem(TEST?'hannah-me-test':'hannah-me')||'null')}catch(e){}
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 function lang(l){L=l;try{localStorage.setItem('hannah-lang',l)}catch(e){}document.documentElement.lang=l;
   $$('.lang button').forEach(b=>b.classList.toggle('on',b.dataset.l===l));
@@ -189,11 +199,12 @@ async function post(joinOnly){
   const b=joinOnly?$('#joinb'):$('#send');b.disabled=true;
   try{const r=await rpc('hannah_post',{p_first:d.first,p_last:d.last,p_email:d.email,p_phone:d.phone,p_msg:d.msg,p_club:!!d.club,p_lang:L});
     if(!r||!r.ok){$('#err').textContent=T[L].e[(r&&r.error)||'net']||T[L].e.net;b.disabled=false;return}
-    count=r.count;me={first:r.first,code:r.code,form:d};try{localStorage.setItem('hannah-me',JSON.stringify(me))}catch(e){}
+    count=r.count;me={first:r.first,code:r.code,form:d};try{localStorage.setItem(TEST?'hannah-me-test':'hannah-me',JSON.stringify(me))}catch(e){}
     paint();thanks();show('v3');
   }catch(e){$('#err').textContent=T[L].e.net;b.disabled=false}}
 $('#send').onclick=()=>post(false);
 lang(L);poll();setInterval(poll,8000);
 if(me){thanks();show('v3')}
+if(TEST){document.getElementById('testbar').style.display='block';document.getElementById('treset').onclick=e=>{e.preventDefault();localStorage.removeItem('hannah-test');localStorage.removeItem('hannah-me-test');location.reload()}}
 </script>
 </body></html>
