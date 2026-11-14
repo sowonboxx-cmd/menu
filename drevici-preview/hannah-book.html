@@ -61,11 +61,26 @@ body{background:#FFF6EE}
 .balloons{position:absolute;top:0;width:78px;animation:floaty 5s ease-in-out infinite;z-index:2}
 .spark{position:absolute;width:30px;animation:wob 2.4s ease-in-out infinite}
 .gimg{display:block;width:44px;margin:0 auto 6px}
+
+.bar{z-index:5}
+.prev{padding:16px 0}.strip{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;width:100%;padding:0 12vw;-webkit-overflow-scrolling:touch}
+.strip img{flex:none;width:76vw;max-width:360px;max-height:none;border-radius:14px;scroll-snap-align:center}
+.strip .wait{color:#fff;font:500 15px Jost;margin:auto}
+.pb{display:flex;gap:10px}.prev .ps{background:var(--pink);color:#fff;font:800 17px 'Baloo 2',system-ui}
+.photos img{cursor:zoom-in}
+.lb{position:fixed;inset:0;z-index:20;background:rgba(10,18,40,.96);display:none}.lb.on{display:block;animation:lbin .25s ease}
+@keyframes lbin{from{opacity:0}to{opacity:1}}
+.lbt{display:flex;height:100%;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}.lbt::-webkit-scrollbar{display:none}
+.sl{flex:none;width:100%;height:100%;display:grid;place-items:center;scroll-snap-align:center;padding:60px 14px}
+.sl img{max-width:100%;max-height:100%;border-radius:16px;object-fit:contain}
+.lbh{position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:center;padding:calc(env(safe-area-inset-top) + 12px) 16px 0;color:#fff;font:600 14px Jost}
+.lbh button{width:40px;height:40px;border:0;border-radius:50%;background:rgba(255,255,255,.14);display:grid;place-items:center}
 </style></head><body>
 <div class="demo" id="demo">DEMO · fake messages and sample photos</div>
 <div class="app" id="app"></div>
-<div class="bar"><button class="a" id="share"><svg width="16" height="16" viewBox="0 0 16 16"><rect x="1.5" y="1.5" width="13" height="13" rx="4" fill="none" stroke="#fff" stroke-width="1.7"/><circle cx="8" cy="8" r="3" fill="none" stroke="#fff" stroke-width="1.7"/><circle cx="11.8" cy="4.2" r=".9" fill="#fff"/></svg>Share as a story</button><button class="b" id="save">Save</button></div>
-<div class="prev" id="prev"><img id="pimg" alt=""><p id="ptxt">Press and hold the image to save it, then share it in your story.</p><button id="pclose">Close</button></div>
+<div class="bar"><button class="a" id="share"><svg width="16" height="16" viewBox="0 0 16 16"><rect x="1.5" y="1.5" width="13" height="13" rx="4" fill="none" stroke="#fff" stroke-width="1.7"/><circle cx="8" cy="8" r="3" fill="none" stroke="#fff" stroke-width="1.7"/><circle cx="11.8" cy="4.2" r=".9" fill="#fff"/></svg>Share my stories</button><button class="b" id="save">Save</button></div>
+<div class="prev" id="prev"><div class="strip" id="strip"></div><p id="ptxt"></p><div class="pb"><button id="pshare" class="ps">Share all</button><button id="pclose">Close</button></div></div>
+<div class="lb" id="lb"><div class="lbt" id="lbt"></div><div class="lbh"><span id="lbn"></span><button id="lbx" aria-label="Close"><svg width="18" height="18" viewBox="0 0 18 18"><path d="M3 3l12 12M15 3L3 15" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg></button></div></div>
 <script>
 const SB='https://fdbzzkzfipzabryfanun.supabase.co', KEY='sb_publishable_9PaqDuXnWV3aOCBPk9ImmQ_4YgYTU9n';
 const Q=new URLSearchParams(location.search), DEMO=Q.has('demo');
@@ -104,46 +119,79 @@ function render(){
 const img=src=>new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=src});
 function wrap(x,t,maxW){const w=t.split(' '),L=[];let l='';for(const s of w){const n=l?l+' '+s:s;if(x.measureText(n).width>maxW&&l){L.push(l);l=s}else l=n}if(l)L.push(l);return L}
 function rr(x,X,Y,W,H,R){x.beginPath();x.moveTo(X+R,Y);x.arcTo(X+W,Y,X+W,Y+H,R);x.arcTo(X+W,Y+H,X,Y+H,R);x.arcTo(X,Y+H,X,Y,R);x.arcTo(X,Y,X+W,Y,R);x.closePath()}
-async function storyBlob(){
-  await document.fonts.ready;
-  const c=document.createElement('canvas');c.width=1080;c.height=1920;const x=c.getContext('2d');
-  x.fillStyle='#10285E';x.fillRect(0,0,1080,1920);
-  // photos de la soirée en bandeau du haut
-  const ph=(await Promise.all(PHOTOS.slice(0,3).map(img))).filter(Boolean);
-  let top=0;
-  if(ph.length){const w=1080/ph.length;ph.forEach((p,i)=>{const s=Math.max(w/p.width,520/p.height);x.save();x.beginPath();x.rect(i*w,0,w,520);x.clip();x.drawImage(p,i*w+(w-p.width*s)/2,(520-p.height*s)/2,p.width*s,p.height*s);x.restore()});
-    const g=x.createLinearGradient(0,300,0,520);g.addColorStop(0,'rgba(16,40,94,0)');g.addColorStop(1,'#10285E');x.fillStyle=g;x.fillRect(0,300,1080,220);top=380}
-  // anneau story + photo
-  const cx=540,cy=top+150,R=130;const gr=x.createConicGradient?x.createConicGradient(3.66,cx,cy):null;
+// ── stories 1080 × 1920 : une couverture + des pages photo avec les messages en stickers ──
+const COLS=['#E8336B','#F6C945','#3B82F6','#2BB673','#FF8A3D','#10285E'];
+const rnd=seed=>{let s=seed;return()=>{s=(s*9301+49297)%233280;return s/233280}};
+function confetti(x,r,n){for(let i=0;i<n;i++){const X=r()*1080,Y=r()*1920;x.save();x.translate(X,Y);x.rotate(r()*6.28);const c=COLS[i%6];x.fillStyle=c;x.strokeStyle=c;const t=r();
+  if(t<.4){rr(x,-15,-5,30,11,4);x.fill()}else if(t<.7){x.beginPath();x.arc(0,0,7,0,7);x.fill()}else{x.lineWidth=6;x.lineCap='round';x.beginPath();x.moveTo(-15,0);x.quadraticCurveTo(-7,-11,0,0);x.quadraticCurveTo(7,11,15,0);x.stroke()}x.restore()}}
+function sparkle(x,X,Y,s){x.save();x.translate(X,Y);x.strokeStyle='#F6C945';x.lineWidth=8*s;x.lineCap='round';[[0,-32,0,-12],[0,12,0,32],[-32,0,-12,0],[12,0,32,0]].forEach(([a,b,c,d])=>{x.beginPath();x.moveTo(a*s,b*s);x.lineTo(c*s,d*s);x.stroke()});x.restore()}
+function balloon(x,X,Y,c,s){x.save();x.translate(X,Y);x.scale(s,s);x.strokeStyle='#10285E';x.globalAlpha=.6;x.lineWidth=2.5;x.beginPath();x.moveTo(0,78);x.quadraticCurveTo(14,130,-4,200);x.stroke();x.globalAlpha=1;
+  x.fillStyle=c;x.beginPath();x.ellipse(0,0,62,76,0,0,7);x.fill();x.beginPath();x.moveTo(0,74);x.lineTo(-9,88);x.lineTo(9,88);x.fill();x.fillStyle='rgba(255,255,255,.35)';x.beginPath();x.ellipse(-20,-24,14,24,-.3,0,7);x.fill();x.restore()}
+const ST=[{bg:'#FFE680',ink:'#3d3a34',nm:'#E8336B',tape:1},{bg:'#FFD3E0',ink:'#3d3a34',nm:'#10285E'},{bg:'#10285E',ink:'#fff',nm:'#F6C945'},{bg:'#CFE3FF',ink:'#10285E',nm:'#E8336B',tape:1},{bg:'#fff',ink:'#3d3a34',nm:'#E8336B'},{bg:'#C9F0D9',ink:'#10285E',nm:'#E8336B',tape:1}];
+function sticker(x,m,X,Y,W,rot,k){const st=ST[k%ST.length];x.font='700 46px Caveat';const L=wrap(x,m.msg,W-72).slice(0,5);const H=58+L.length*50+66;
+  x.save();x.translate(X+W/2,Y+H/2);x.rotate(rot);x.shadowColor='rgba(16,40,94,.2)';x.shadowBlur=26;x.shadowOffsetY=12;x.fillStyle=st.bg;rr(x,-W/2,-H/2,W,H,st.tape?10:30);x.fill();x.shadowColor='transparent';
+  if(st.tape){x.fillStyle='rgba(255,255,255,.65)';x.save();x.rotate(-.06);x.fillRect(-64,-H/2-20,128,40);x.restore()}
+  x.textAlign='left';x.fillStyle=st.ink;x.font='700 46px Caveat';L.forEach((l,i)=>x.fillText(l,-W/2+36,-H/2+76+i*50));
+  x.fillStyle=st.nm;x.font='800 38px "Baloo 2"';x.fillText(m.first,-W/2+36,-H/2+76+L.length*50+30);
+  // petit cœur
+  const hx=W/2-50,hy=-H/2+40;x.fillStyle=st.nm;x.beginPath();x.moveTo(hx,hy+12);x.bezierCurveTo(hx-22,hy-4,hx-10,hy-20,hx,hy-8);x.bezierCurveTo(hx+10,hy-20,hx+22,hy-4,hx,hy+12);x.fill();
+  x.restore();return H}
+function stickers(x,list,y0,yMax,r,k0){const col=[y0,y0+70];let n=0;
+  for(const m of list){const c=col[0]<=col[1]?0:1;const X=c?552:58,W=470;x.font='700 46px Caveat';const H=58+Math.min(5,wrap(x,m.msg,W-72).length)*50+66;
+    if(col[c]+H>yMax)break;sticker(x,m,X,col[c],W,(r()-.5)*.14,k0+n);col[c]+=H+34;n++}return n}
+function footer(x,dark){x.textAlign='center';x.fillStyle=dark?'rgba(255,255,255,.6)':'rgba(16,40,94,.55)';x.font='600 26px Jost';x.letterSpacing='8px';x.fillText('AT DREVICI OYSTER · PARIS',540,1870);x.letterSpacing='0px'}
+function cover(c,ph){const x=c.getContext('2d');const r=rnd(7);const h=c.height;
+  x.fillStyle='#FFF6EE';x.fillRect(0,0,1080,1920);confetti(x,r,80);
+  balloon(x,150,250,'#E8336B',1.2);balloon(x,240,200,'#3B82F6',1.1);balloon(x,900,230,'#F6C945',1.15);balloon(x,980,300,'#E8336B',1);
+  const cx=540,cy=440,R=230;const gr=x.createConicGradient?x.createConicGradient(3.66,cx,cy):null;
   if(gr){['#feda75','#fa7e1e','#d62976','#962fbf','#4f5bd5','#feda75'].forEach((col,i)=>gr.addColorStop(i/5,col));x.fillStyle=gr}else x.fillStyle='#d62976';
-  x.beginPath();x.arc(cx,cy,R,0,7);x.fill();x.fillStyle='#10285E';x.beginPath();x.arc(cx,cy,R-10,0,7);x.fill();
-  const me=await img('media/hannah.jpg');if(me){x.save();x.beginPath();x.arc(cx,cy,R-20,0,7);x.clip();x.drawImage(me,cx-R+20,cy-R+20,2*(R-20),2*(R-20));x.restore()}
-  x.textAlign='center';x.fillStyle='#fff';x.font='800 96px "Baloo 2"';x.fillText('Happy Birthday,',540,cy+R+110);
-  x.fillStyle='#E8336B';x.font='800 128px "Baloo 2"';x.fillText('Hannah!',540,cy+R+225);
-  x.fillStyle='rgba(255,255,255,.8)';x.font='500 36px Jost';x.fillText(`${D.count} friends wrote to me last night`,540,cy+R+295);
-  // 4 messages
-  let y=cy+R+350;const msgs=D.messages.slice(0,8);const colW=470,gap=20;
-  const cards=msgs.map(m=>{x.font='italic 400 30px "Playfair Display"';const L=wrap(x,m.msg,colW-56).slice(0,4);return{L,first:m.first,h:56+L.length*42+50}});
-  let used=0;for(let i=0;i<cards.length;i+=2){const row=cards.slice(i,i+2),h=Math.max(...row.map(r=>r.h));if(y+h>1660)break;used=i+row.length;row.forEach((cd,j)=>{const X=60+j*(colW+gap);x.fillStyle='rgba(255,255,255,.09)';rr(x,X,y,colW,h,28);x.fill();
-     x.textAlign='left';x.fillStyle='rgba(255,255,255,.9)';x.font='italic 400 30px "Playfair Display"';cd.L.forEach((l,k)=>x.fillText(l,X+28,y+58+k*42));
-     x.fillStyle='#F6C945';x.font='700 40px Caveat';x.fillText(cd.first,X+28,y+58+cd.L.length*42+22)});y+=h+gap}
-  // prénoms
-  x.textAlign='center';x.fillStyle='rgba(255,255,255,.9)';x.font='700 40px Caveat';
-  const names=D.messages.slice(used).map(m=>m.first);const more=D.count-used-Math.min(8,names.length);const line=names.slice(0,8).join(' · ')+(more>0?` · and ${more} more`:'');
-  wrap(x,line,940).slice(0,3).forEach((l,k)=>x.fillText(l,540,y+40+k*50));
-  x.fillStyle='rgba(255,255,255,.55)';x.font='600 26px Jost';x.letterSpacing='8px';x.fillText('AT DREVICI OYSTER · PARIS',540,1860);
-  return new Promise(r=>c.toBlob(r,'image/jpeg',.92));
-}
-async function share(save){
-  const b=await storyBlob();const f=new File([b],'hannah-birthday-story.jpg',{type:'image/jpeg'});
-  if(!save&&navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f]});return}catch(e){if(e.name==='AbortError')return}}
-  const u=URL.createObjectURL(b);
-  if(/iPhone|iPad|Android/i.test(navigator.userAgent)){document.getElementById('pimg').src=u;document.getElementById('prev').classList.add('on');return}
-  const a=document.createElement('a');a.href=u;a.download=f.name;a.click();
-}
-document.getElementById('share').onclick=()=>share(false);
-document.getElementById('save').onclick=()=>share(true);
+  x.beginPath();x.arc(cx,cy,R,0,7);x.fill();x.fillStyle='#FFF6EE';x.beginPath();x.arc(cx,cy,R-12,0,7);x.fill();
+  if(ph){x.save();x.beginPath();x.arc(cx,cy,R-24,0,7);x.clip();x.drawImage(ph,cx-R+24,cy-R+24,2*(R-24),2*(R-24));x.restore()}
+  sparkle(x,190,560,1.2);sparkle(x,900,520,1);
+  x.textAlign='center';x.fillStyle='#10285E';x.font='800 112px "Baloo 2"';x.fillText('Happy Birthday,',540,820);
+  x.fillStyle='#E8336B';x.font='800 160px "Baloo 2"';x.fillText('Hannah!',540,970);
+  x.fillStyle='#5d5952';x.font='500 40px Jost';x.fillText(`${D.count} friends wrote to me last night`,540,1050);
+  const n=stickers(x,D.messages,1110,1800,r,0);footer(x,false);return n}
+function page(c,p,list,i){const x=c.getContext('2d');const r=rnd(31+i*17);const bg=['#FFE9F0','#FFF3C9','#E4EEFF','#FFF6EE'][i%4];
+  x.fillStyle=bg;x.fillRect(0,0,1080,1920);confetti(x,r,60);
+  // photo façon polaroid
+  if(p){x.save();x.translate(540,560);x.rotate((r()-.5)*.1);x.shadowColor='rgba(16,40,94,.22)';x.shadowBlur=36;x.shadowOffsetY=16;x.fillStyle='#fff';x.fillRect(-400,-450,800,900);x.shadowColor='transparent';
+    const s=Math.max(740/p.width,740/p.height);x.save();x.beginPath();x.rect(-370,-420,740,740);x.clip();x.drawImage(p,-p.width*s/2,-420+370-p.height*s/2,p.width*s,p.height*s);x.restore();
+    x.fillStyle='#10285E';x.font='700 58px Caveat';x.textAlign='center';x.fillText("Hannah's night · 14.11",0,400);
+    x.fillStyle='rgba(255,255,255,.7)';x.save();x.rotate(.04);x.fillRect(-90,-478,180,52);x.restore();x.restore()}
+  sparkle(x,110,170,1.1);sparkle(x,980,1000,.9);
+  const n=stickers(x,list,p?1080:160,1800,r,i*2+1);footer(x,false);return n}
+async function storySlides(){
+  await document.fonts.ready;await document.fonts.load('700 46px Caveat');await document.fonts.load('800 40px "Baloo 2"');
+  const mk=()=>{const c=document.createElement('canvas');c.width=1080;c.height=1920;return c};
+  const me=await img('media/hannah.jpg');const ph=(await Promise.all(PHOTOS.map(img))).filter(Boolean);
+  const out=[];const c0=mk();let used=cover(c0,me);out.push(c0);
+  let i=0;while(used<D.messages.length&&out.length<6){const c=mk();const n=page(c,ph.length?ph[i%ph.length]:null,D.messages.slice(used),i);if(!n)break;used+=n;out.push(c);i++}
+  // s'il reste des photos sans message, une page photo de plus
+  return out}
+const toBlob=c=>new Promise(r=>c.toBlob(r,'image/jpeg',.9));
+let SLIDES=null;
+async function openStories(){const pv=document.getElementById('prev'),st=document.getElementById('strip');st.innerHTML='<p class="wait">Preparing your stories…</p>';pv.classList.add('on');
+  if(!SLIDES){const cs=await storySlides();SLIDES=await Promise.all(cs.map(toBlob))}
+  st.innerHTML=SLIDES.map((b,i)=>`<img src="${URL.createObjectURL(b)}" alt="Story ${i+1}">`).join('');
+  document.getElementById('ptxt').textContent=`${SLIDES.length} stories, swipe to see them all`;}
+async function shareAll(){const fs=SLIDES.map((b,i)=>new File([b],`hannah-story-${i+1}.jpg`,{type:'image/jpeg'}));
+  if(navigator.canShare&&navigator.canShare({files:fs})){try{await navigator.share({files:fs});return}catch(e){if(e.name==='AbortError')return}}
+  if(/iPhone|iPad|Android/i.test(navigator.userAgent)){document.getElementById('ptxt').textContent='Press and hold each image to save it, then post them in your story.';return}
+  fs.forEach(f=>{const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=f.name;a.click()})}
+document.getElementById('share').onclick=openStories;
+document.getElementById('save').onclick=async()=>{await openStories();shareAll()};
+document.getElementById('pshare').onclick=shareAll;
 document.getElementById('pclose').onclick=()=>document.getElementById('prev').classList.remove('on');
+// ── photos : on touche, elles s'agrandissent et se passent comme des cartes ──
+function openLb(k){const lb=document.getElementById('lb'),tr=document.getElementById('lbt');tr.innerHTML=PHOTOS.map(p=>`<div class="sl"><img src="${p}" alt=""></div>`).join('');
+  lb.classList.add('on');document.body.style.overflow='hidden';requestAnimationFrame(()=>{tr.scrollLeft=k*tr.clientWidth;cnt()})}
+function cnt(){const tr=document.getElementById('lbt');document.getElementById('lbn').textContent=`${Math.round(tr.scrollLeft/tr.clientWidth)+1} / ${PHOTOS.length}`}
+document.getElementById('lbt').addEventListener('scroll',cnt,{passive:true});
+document.getElementById('lbx').onclick=()=>{document.getElementById('lb').classList.remove('on');document.body.style.overflow=''};
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.getElementById('lbx').click()});
+document.getElementById('app').addEventListener('click',e=>{const t=e.target.closest('.photos img');if(t)openLb([...document.querySelectorAll('.photos img')].indexOf(t))});
+
 load();
 </script>
 <script src="media/fete/fete.js"></script>
