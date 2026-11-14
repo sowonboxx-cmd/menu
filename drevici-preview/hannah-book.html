@@ -1,0 +1,130 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Hannah's birthday book · Drevici Oyster</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#F6EEE2">
+<link rel="icon" href="seo/logo-pics-bar.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,700;1,800&family=Caveat:wght@700&family=Jost:wght@400;500;600;700&display=swap">
+<style>
+:root{--navy:#10285E;--gold:#C6A24A;--cream:#F6EEE2;--mut:#6b6760}
+*{box-sizing:border-box;margin:0}
+body{background:var(--cream);color:#1d1d1f;font-family:Jost,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.app{max-width:560px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 26px) 16px calc(env(safe-area-inset-bottom) + 110px)}
+.story{display:block;margin:0 auto;width:118px;height:118px;border-radius:50%;padding:4px;background:conic-gradient(from 210deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5,#feda75)}
+.story span{display:block;width:110px;height:110px;border-radius:50%;padding:4px;background:var(--cream)}
+.story img{display:block;width:100%;height:100%;border-radius:50%;object-fit:cover}
+.hb{font:italic 800 44px/1 'Playfair Display',serif;color:var(--navy);text-align:center;margin-top:16px}
+.hb em{display:block;color:var(--gold);font-size:56px}
+.sub{text-align:center;font:500 15px Jost;color:var(--mut);margin-top:10px}
+.sub b{color:var(--navy)}
+.k{font:600 11px Jost;letter-spacing:.22em;text-transform:uppercase;color:var(--navy);text-align:center;margin:30px 0 12px}
+.gifts{display:grid;gap:10px;margin-top:22px}
+.gift{background:var(--navy);color:#fff;border-radius:20px;padding:18px;text-align:center}
+.gift .t{font:600 11px Jost;letter-spacing:.22em;text-transform:uppercase;color:var(--gold)}
+.gift .g{font:800 22px/1.2 'Playfair Display',serif;margin-top:6px}
+.gift .n{font:700 25px/1.25 Caveat,cursive;color:#fff;margin-top:8px}
+.gift small{display:block;font:400 13.5px/1.4 Jost;color:rgba(255,255,255,.75);margin-top:6px}
+.gift.lt{background:#fff;color:var(--navy)}.gift.lt small{color:var(--mut)}
+.photos{columns:2;column-gap:8px}
+.photos img{display:block;width:100%;border-radius:14px;margin-bottom:8px;break-inside:avoid}
+.cards{columns:2;column-gap:8px}
+.c{break-inside:avoid;background:#fff;border-radius:16px;padding:13px 13px 11px;margin-bottom:8px;font:italic 400 15px/1.45 'Playfair Display',serif;color:#3d3a34}
+.c i{display:block;font:700 22px/1 Caveat,cursive;font-style:normal;color:var(--navy);margin-top:8px}
+.c.g{background:var(--navy);color:rgba(255,255,255,.9)}.c.g i{color:var(--gold)}
+.c.o{background:#f3e7c9}
+.logo{display:block;width:110px;margin:34px auto 0}
+.bar{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(env(safe-area-inset-bottom) + 12px);background:linear-gradient(rgba(246,238,226,0),var(--cream) 35%);display:flex;gap:8px;max-width:560px;margin:0 auto}
+.bar button{flex:1;border:0;border-radius:99px;font:600 15px Jost;padding:15px 0;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}
+.bar .a{background:var(--navy);color:#fff}.bar .b{background:#fff;color:var(--navy)}
+.prev{position:fixed;inset:0;background:rgba(10,18,40,.85);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;z-index:9;padding:20px}
+.prev.on{display:flex}.prev img{max-height:78vh;max-width:100%;border-radius:12px}
+.prev p{color:#fff;font:500 14px Jost;text-align:center}
+.prev button{border:0;border-radius:99px;background:#fff;color:var(--navy);font:600 15px Jost;padding:12px 26px}
+.demo{position:sticky;top:0;z-index:5;background:#b3261e;color:#fff;font:600 12px Jost;text-align:center;padding:6px;display:none}
+</style></head><body>
+<div class="demo" id="demo">DEMO · fake messages and sample photos</div>
+<div class="app" id="app"></div>
+<div class="bar"><button class="a" id="share"><svg width="16" height="16" viewBox="0 0 16 16"><rect x="1.5" y="1.5" width="13" height="13" rx="4" fill="none" stroke="#fff" stroke-width="1.7"/><circle cx="8" cy="8" r="3" fill="none" stroke="#fff" stroke-width="1.7"/><circle cx="11.8" cy="4.2" r=".9" fill="#fff"/></svg>Share as a story</button><button class="b" id="save">Save</button></div>
+<div class="prev" id="prev"><img id="pimg" alt=""><p id="ptxt">Press and hold the image to save it, then share it in your story.</p><button id="pclose">Close</button></div>
+<script>
+const SB='https://fdbzzkzfipzabryfanun.supabase.co', KEY='sb_publishable_9PaqDuXnWV3aOCBPk9ImmQ_4YgYTU9n';
+const Q=new URLSearchParams(location.search), DEMO=Q.has('demo');
+const esc=s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const DEMO_DATA={count:27,goal:25,drawn:['Sophie Martin','Marco Rossi','James Walker'],messages:[
+ ['Sophie','To the woman who knows every good table in Paris. Love you!'],['James','Another year of you being the best host in Paris. Champagne on me next time.'],
+ ['Marco','Tanti auguri Hannah, see you at the dinner if I win the draw.'],['Léa','Midnight oysters for your birthday, only you. Never change.'],
+ ['Daniel','Best decision I made in Paris: meeting you.'],['Inès','Joyeux anniversaire ma belle, à toutes les prochaines.'],
+ ['Chloé','Sicily, Sri Lanka, Paris… where are you taking us next? Happy birthday!'],['Tom','The Fox strikes again. Happy birthday, legend.'],
+ ['Priya','You make every city feel like home. Love you lots.'],['Lucas','Here\'s to another year of good wine and better company.'],
+ ['Emma','Happy birthday to the most stylish person on any boat.'],['Noor','Thank you for always bringing everyone together. Cheers to you!']].map(([first,msg])=>({first,msg}))};
+const DEMO_PHOTOS=[1,2,3,4,5,6,7,8].map(i=>`media/hannah-demo/n${i}.jpg`);
+let D=null, PHOTOS=[];
+async function load(){
+  if(DEMO){document.getElementById('demo').style.display='block';D=DEMO_DATA;PHOTOS=DEMO_PHOTOS;return render()}
+  const r=await fetch(`${SB}/rest/v1/rpc/hannah_book`,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({p_key:Q.get('k')||''})}).then(r=>r.json()).catch(()=>null);
+  if(!r||!r.ok){document.getElementById('app').innerHTML='<p class="sub" style="margin-top:40vh">This book is private.</p>';return}
+  D=r;try{PHOTOS=(await fetch('media/hannah-night/photos.json').then(r=>r.json())).map(f=>'media/hannah-night/'+f)}catch(e){PHOTOS=[]}
+  render();
+}
+function render(){
+  const tone=i=>i%5===1?'g':i%5===3?'o':'';
+  let h=`<div class="story"><span><img src="media/hannah.jpg" alt="Hannah"></span></div>
+  <div class="hb">Happy birthday,<em>Hannah</em></div>
+  <p class="sub"><b>${D.count} friends</b> wrote to you on your birthday night · Drevici Oyster · 14.11</p>
+  <div class="gifts">`;
+  if(D.count>=D.goal) h+=`<div class="gift lt"><div class="t" style="color:#C6A24A">Gift from Drevici</div><div class="g">A bottle of Chardonnay</div><small>${D.count} messages: you made the goal of ${D.goal}.</small></div>`;
+  if(D.drawn&&D.drawn.length) h+=`<div class="gift"><div class="t">They take you to dinner</div><div class="n">${D.drawn.map(esc).join(' · ')}</div><small>At Drevici, on your next visit. Your 3 oysters are on us.</small></div>`;
+  h+=`</div>`;
+  if(PHOTOS.length) h+=`<div class="k">Your night</div><div class="photos">${PHOTOS.map(p=>`<img src="${p}" alt="" loading="lazy">`).join('')}</div>`;
+  h+=`<div class="k">Your messages</div><div class="cards">${D.messages.map((m,i)=>`<div class="c ${tone(i)}">${esc(m.msg)}<i>${esc(m.first)}</i></div>`).join('')}</div>
+  <img class="logo" src="charte/files/logos/DreviciOyster-Paris_LogoTexte_Couleur.svg" alt="Drevici Oyster">`;
+  document.getElementById('app').innerHTML=h;
+}
+// ── image story 1080 × 1920 ──
+const img=src=>new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=src});
+function wrap(x,t,maxW){const w=t.split(' '),L=[];let l='';for(const s of w){const n=l?l+' '+s:s;if(x.measureText(n).width>maxW&&l){L.push(l);l=s}else l=n}if(l)L.push(l);return L}
+function rr(x,X,Y,W,H,R){x.beginPath();x.moveTo(X+R,Y);x.arcTo(X+W,Y,X+W,Y+H,R);x.arcTo(X+W,Y+H,X,Y+H,R);x.arcTo(X,Y+H,X,Y,R);x.arcTo(X,Y,X+W,Y,R);x.closePath()}
+async function storyBlob(){
+  await document.fonts.ready;
+  const c=document.createElement('canvas');c.width=1080;c.height=1920;const x=c.getContext('2d');
+  x.fillStyle='#10285E';x.fillRect(0,0,1080,1920);
+  // photos de la soirée en bandeau du haut
+  const ph=(await Promise.all(PHOTOS.slice(0,3).map(img))).filter(Boolean);
+  let top=0;
+  if(ph.length){const w=1080/ph.length;ph.forEach((p,i)=>{const s=Math.max(w/p.width,520/p.height);x.save();x.beginPath();x.rect(i*w,0,w,520);x.clip();x.drawImage(p,i*w+(w-p.width*s)/2,(520-p.height*s)/2,p.width*s,p.height*s);x.restore()});
+    const g=x.createLinearGradient(0,300,0,520);g.addColorStop(0,'rgba(16,40,94,0)');g.addColorStop(1,'#10285E');x.fillStyle=g;x.fillRect(0,300,1080,220);top=380}
+  // anneau story + photo
+  const cx=540,cy=top+150,R=130;const gr=x.createConicGradient?x.createConicGradient(3.66,cx,cy):null;
+  if(gr){['#feda75','#fa7e1e','#d62976','#962fbf','#4f5bd5','#feda75'].forEach((col,i)=>gr.addColorStop(i/5,col));x.fillStyle=gr}else x.fillStyle='#d62976';
+  x.beginPath();x.arc(cx,cy,R,0,7);x.fill();x.fillStyle='#10285E';x.beginPath();x.arc(cx,cy,R-10,0,7);x.fill();
+  const me=await img('media/hannah.jpg');if(me){x.save();x.beginPath();x.arc(cx,cy,R-20,0,7);x.clip();x.drawImage(me,cx-R+20,cy-R+20,2*(R-20),2*(R-20));x.restore()}
+  x.textAlign='center';x.fillStyle='#fff';x.font='italic 800 92px "Playfair Display"';x.fillText('Happy birthday,',540,cy+R+110);
+  x.fillStyle='#C6A24A';x.font='italic 800 118px "Playfair Display"';x.fillText('Hannah',540,cy+R+225);
+  x.fillStyle='rgba(255,255,255,.8)';x.font='500 36px Jost';x.fillText(`${D.count} friends wrote to me last night`,540,cy+R+295);
+  // 4 messages
+  let y=cy+R+350;const msgs=D.messages.slice(0,8);const colW=470,gap=20;
+  const cards=msgs.map(m=>{x.font='italic 400 30px "Playfair Display"';const L=wrap(x,m.msg,colW-56).slice(0,4);return{L,first:m.first,h:56+L.length*42+50}});
+  let used=0;for(let i=0;i<cards.length;i+=2){const row=cards.slice(i,i+2),h=Math.max(...row.map(r=>r.h));if(y+h>1660)break;used=i+row.length;row.forEach((cd,j)=>{const X=60+j*(colW+gap);x.fillStyle='rgba(255,255,255,.09)';rr(x,X,y,colW,h,28);x.fill();
+     x.textAlign='left';x.fillStyle='rgba(255,255,255,.9)';x.font='italic 400 30px "Playfair Display"';cd.L.forEach((l,k)=>x.fillText(l,X+28,y+58+k*42));
+     x.fillStyle='#C6A24A';x.font='700 40px Caveat';x.fillText(cd.first,X+28,y+58+cd.L.length*42+22)});y+=h+gap}
+  // prénoms
+  x.textAlign='center';x.fillStyle='rgba(255,255,255,.9)';x.font='700 40px Caveat';
+  const names=D.messages.slice(used).map(m=>m.first);const more=D.count-used-Math.min(8,names.length);const line=names.slice(0,8).join(' · ')+(more>0?` · and ${more} more`:'');
+  wrap(x,line,940).slice(0,3).forEach((l,k)=>x.fillText(l,540,y+40+k*50));
+  x.fillStyle='rgba(255,255,255,.55)';x.font='600 26px Jost';x.letterSpacing='8px';x.fillText('AT DREVICI OYSTER · PARIS',540,1860);
+  return new Promise(r=>c.toBlob(r,'image/jpeg',.92));
+}
+async function share(save){
+  const b=await storyBlob();const f=new File([b],'hannah-birthday-story.jpg',{type:'image/jpeg'});
+  if(!save&&navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f]});return}catch(e){if(e.name==='AbortError')return}}
+  const u=URL.createObjectURL(b);
+  if(/iPhone|iPad|Android/i.test(navigator.userAgent)){document.getElementById('pimg').src=u;document.getElementById('prev').classList.add('on');return}
+  const a=document.createElement('a');a.href=u;a.download=f.name;a.click();
+}
+document.getElementById('share').onclick=()=>share(false);
+document.getElementById('save').onclick=()=>share(true);
+document.getElementById('pclose').onclick=()=>document.getElementById('prev').classList.remove('on');
+load();
+</script>
+</body></html>
