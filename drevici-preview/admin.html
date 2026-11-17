@@ -1251,6 +1251,15 @@ input.in.hr{width:76px;text-align:center;padding:8px 10px;font-size:15px;font-we
 .st-empty{color:var(--mut);font-size:13.5px;padding:6px 0}
 @media(max-width:899px){.st-k{grid-template-columns:1fr 1fr;gap:9px}.st-k .n{font-size:25px}.st-g{grid-template-columns:1fr}.st-bars{height:100px}.st-seg button{padding:7px 11px}}
 .trialbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 14px;padding:8px 12px;border-radius:12px;background:#fff1cc;color:#6b4300;font-size:13px;font-weight:600}.trialbar span{margin-right:4px}.trialbar a{padding:4px 12px;border-radius:99px;background:rgba(107,67,0,.1);color:inherit;text-decoration:none}.trialbar a.on{background:#6b4300;color:#fff}.trialbar a.back{margin-left:auto;background:none;text-decoration:underline}
+.it.inc{display:flex;align-items:center;gap:10px}
+.it.inc.on{background:rgba(198,162,74,.09);border-radius:12px;margin-bottom:4px}
+.it.inc.off .ith,.it.inc.off .it-n b{opacity:.5}
+.it.inc .it-n{display:flex;flex-direction:column;flex:1;min-width:0}
+.it.inc .it-n small{font-size:12px;color:var(--mut)}
+.inc-k{width:20px;text-align:center;color:#c6a24a;font-size:15px;flex:none}
+.inc-st{width:40px;height:40px;border:none;background:none;font-size:22px;line-height:1;color:#c9c9ce;cursor:pointer;flex:none}
+.inc-st.on{color:#c6a24a}
+.it.inc .mvs{display:flex}
 </style>
 </head>
 <body>
@@ -1609,6 +1618,7 @@ function dash(){
   const sketch=`<svg class="sk" viewBox="0 0 62 82" fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 4.2c9-.9 30.8-.4 48.6.3.9 14.6 1.2 49.2.4 72.9-15.7.6-35.6.9-49.3.2C5.4 61 5.8 25 6.5 4.2z"/><path d="M10.8 8.6c11.6-.4 27.4-.2 40.2.4.5 13.1.6 46.3 0 64.2-12.8.4-28 .5-40 .1-.6-17.9-.7-49.4-.2-64.7z" opacity=".55"/><path d="M22 18.5c5.8-.6 12.5-.5 18.2.2"/><path d="M26.4 23.4c3.1-.2 6-.2 9.3.1" opacity=".7"/><path d="M17.5 33.2c8.4-.3 18.4-.2 27.4.3M17.8 38.4c6.2-.2 14.6-.1 20.6.2"/><path d="M17.3 48.1c8.7-.4 18.6-.2 27.6.2M17.6 53.2c5.4-.2 12.2-.2 17.2.1"/><path d="M17.4 62.6c8.3-.2 18.5-.1 27.1.3"/><path d="M28.4 43.4c1.6-.4 3.6-.4 5.2.1M28.6 57.6c1.6-.3 3.4-.3 5 0" opacity=".6"/></svg>`;
   const fsD=DATA.formules||[];
   const menus=`<section class="a-menus"><div class="list"><div class="bh"><span class="ico">${I('spe')}</span>Mes menus</div>
+    <a class="li" href="#/incontournables"><span class="dot">${I('spe')}</span><div><b>Nos incontournables</b><small>${pinCount()} / ${PIN_MAX} · ${DATA.pinnedShowRail===false?'masqués':'en haut de « '+esc(tr((DATA.tabs[0]||{}).label)||'')+' »'}</small></div><span class="chev">›</span></a>
     <a class="li" href="#/mdj"><span class="dot">${I('jour')}</span><div><b>Menu du jour ${sp.active?'<span class="pill ok">En ligne</span>':'<span class="pill">Hors ligne</span>'}</b><small>Activer, modifier, exporter votre menu du jour</small></div><span class="chev">›</span></a>
     <a class="li" href="#/menus"><span class="dot">${I('spe')}</span><div><b>Menus personnalisés</b><small>Ajouter · modifier · exporter${fsD.length?' · '+fsD.length+' menu'+(fsD.length>1?'s':''):''}</small></div><span class="chev">›</span></a>
     ${fsD.length?`<div class="subm">${fsD.slice(0,3).map(f=>`<a href="#/formule/${encodeURIComponent(f.id)}"><span><b>${esc(f.name||f.title||'(sans nom)')}</b></span><span class="chev">›</span></a>`).join('')}</div>`:''}</div></section>`;
@@ -1682,6 +1692,23 @@ function pageMenus(){
   `<div class="pgrid g-1-1"><div>${card('Menu du jour','jour',ln('#/mdj','Menu du jour',sp.active?'<span class="pill ok">En ligne</span>':'<span class="pill off">Hors ligne</span>'))}</div>
    <div>${card('Menus personnalisés','spe',(fs.length?fs.map(f=>ln('#/formule/'+encodeURIComponent(f.id),esc(f.name||f.title||'(sans nom)'))).join(''):'<div class="empty">Aucun menu personnalisé pour l\'instant.</div>')+
      `<button class="lk add" data-act="fAdd">＋ Ajouter un menu personnalisé</button>${fs.length>=10?'<p class="note">La limite de 10 est atteinte : en ajouter un nouveau remplacera le plus ancien.</p>':''}`)}</div></div>`;
+}
+// ── Nos incontournables : une seule liste ──
+function pageInc(){
+  const L=pinList(), on=DATA.pinnedShowRail!==false, first=esc(tr((DATA.tabs[0]||{}).label)||'la première catégorie');
+  const sel=new Set(L.map(o=>o.p.pid));
+  const top=card('Affichage','eye',opt('Afficher les incontournables',on,'rootFlag','data-k="pinnedShowRail"',on?`Visibles par vos clients, en haut de « ${first} »`:'Masqués : vos clients ne les voient pas'));
+  const selRows=L.map((o,k)=>{ const it=o.x.it, over=k>=PIN_MAX;
+    const note=over?`Au-delà de ${PIN_MAX} : pas affiché`:(!it.img?'Sans photo : pas affiché':(it.hidden?'Masqué : pas affiché':esc(tr(o.x.tb.label))));
+    return `<div class="it inc on${over||!it.img||it.hidden?' off':''}"><b class="inc-k">${k+1}</b>${thumb(it.img)}<span class="it-n"><b>${esc(tr(it.name))||'(sans nom)'}</b><small>${note}</small></span><span class="mvs sgrp sm"><button type="button" data-act="incMove" data-k="${k}" data-d="-1" title="Monter">${I('aup')}</button><button type="button" data-act="incMove" data-k="${k}" data-d="1" title="Descendre">${I('adown')}</button></span><button type="button" class="inc-st on" data-act="incTog" data-pid="${esc(o.p.pid)}" title="Retirer">★</button></div>`; }).join('');
+  const head=L.length>PIN_MAX?`${L.length} choisis, ${PIN_MAX} affichés : retirez-en ${L.length-PIN_MAX}`:`${L.length} / ${PIN_MAX}`;
+  const selCard=card('Sélection','spe',(selRows||'<div class="empty">Touchez l\'étoile d\'un plat ci-dessous pour l\'ajouter.</div>'),head);
+  const cats=(DATA.tabs||[]).map((tb,ti)=>{ const rows=[];
+    (tb.cards||[]).forEach((c,ci)=>{ if(isBevCard(c)) return; (c.dishes||[]).forEach((it,ix)=>{ if(it.hidden) return; if(it._pid&&sel.has(it._pid)) return;
+      rows.push(`<div class="it inc">${thumb(it.img)}<span class="it-n"><b>${esc(tr(it.name))||'(sans nom)'}</b>${it.img?'':'<small>Sans photo</small>'}</span><button type="button" class="inc-st" data-act="incTog" data-p="${ti}.${ci}.${ix}" title="Ajouter">☆</button></div>`); }); });
+    return rows.length?card(esc(tr(tb.label)),'plats',rows.join('')):''; }).join('');
+  return mtop('Ma carte','carte')+crumb([['Ma carte','carte'],['Nos incontournables']])+ph('Nos incontournables',`${PIN_MAX} plats maximum, de n'importe quelle catégorie, affichés en haut de « ${first} ». L'étoile ajoute ou retire, les flèches changent l'ordre.`)+
+  `<div class="pgrid g-1-1"><div>${top}${selCard}</div><div>${cats}</div></div>`;
 }
 function findF(id){ return DATA.formules.find(f=>f.id===id); }
 function pageFormule(){
@@ -1783,9 +1810,14 @@ const setL=(o,v)=>{ if(!o||typeof o!=='object') o={fr:typeof o==='string'?o:''};
 const phL=(o,def)=>LG()==='fr'?def:(tr(o)||def);
 const isBevCard=c=>c&&(c.type==='bevs'||Array.isArray(c.items));
 const itemsOf=c=>isBevCard(c)?(c.items||(c.items=[])):(c.dishes||(c.dishes=[]));
-const PIN_MAX=3;
+// RÈGLE (17/11) : incontournables GLOBAUX, 5 au maximum, plats de n'importe
+// quelle catégorie, affichés en tête de la PREMIÈRE catégorie du site. Ils se
+// choisissent dans une seule liste (page « Incontournables »), plus plat par plat.
+const PIN_MAX=5;
 const pinOn=(d)=>!!(d&&d._pid&&(DATA.pinnedDishes||[]).some(p=>p.pid===d._pid));
-const pinCount=tabId=>(DATA.pinnedDishes||[]).filter(p=>p.tabId===tabId).length;
+function pinFind(pid){ const T=DATA.tabs||[]; for(let ti=0;ti<T.length;ti++){ const C=T[ti].cards||[]; for(let ci=0;ci<C.length;ci++){ if(isBevCard(C[ci])) continue; const D=C[ci].dishes||[]; for(let ix=0;ix<D.length;ix++) if(D[ix]._pid===pid) return {ti,ci,ix,it:D[ix],tb:T[ti]}; } } return null; }
+const pinList=()=>(DATA.pinnedDishes||[]).map(p=>({p,x:pinFind(p.pid)})).filter(o=>o.x);
+const pinCount=()=>pinList().length;
 const newPid=()=>'d_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
 function priceLabel(it){
   if(it.priceType==='dual') return `${it.qty1||'?'} · ${it.p1||'?'} € — ${it.qty2||'?'} · ${it.p2||'?'} €`;
@@ -1864,12 +1896,12 @@ function pageItem(ti,ci,ix){
     '')+(bev?'':`<section class="list pc plain diet desk"><div class="pb"><div class="grp-t">Informations alimentaires</div>${badgeRow(it,ti,ci,ix)}</div></section>`);
   const mainP=main.replace(/<div class="bh">[\s\S]*?<\/div>/,'').replace('class="list pc"','class="list pc nohd"');
   const acts=`<section class="list pc plain"><div class="pb">`+
-    (bev?'':row(`<b><i class="star">★</i> Favori ${infoBtn('pin')}</b>`,'','',tgl(on,'pinTog',`data-p="${path}"`)))+
+    (bev?'':row(`<b><i class="star">★</i> Incontournable</b>`,on?(rank<=PIN_MAX?'N° '+rank+' dans le bandeau':'Choisi, au-delà de '+PIN_MAX+' : pas affiché'):'Non','','<a class="lk" href="#/incontournables">Gérer →</a>'))+
     row(`<b>Masquer ${bev?'la boisson':'le plat'}</b>`,it.hidden?'Masqué sur le site':'','',tgl(!!it.hidden,'itemVis',`data-p="${path}"`))+
     `<div class="rw del">${UI.delc==='i'+path?`<span class="delc">Supprimer « ${esc(nm)} » ?<button class="btn g" data-act="itemDel" data-p="${path}">Oui</button><button class="btn red" data-act="delNo">Non</button></span>`:`<button class="lk red" data-act="delAsk" data-k="i${path}">Supprimer ${bev?'la boisson':'le plat'}</button>`}</div></div></section>`;
   // Téléphone : options sur une ligne (interrupteurs + corbeille), infos alimentaires repliables
   const nb=BADGES.filter(([k])=>it[k]).map(([,l])=>l);
-  const mopts=`<div class="mopts">${bev?'':`<div class="mchip"><i class="star">★</i><span>Favori</span>${tgl(on,'pinTog',`data-p="${path}"`)}</div>`}<div class="mchip"><span>Masqué</span>${tgl(!!it.hidden,'itemVis',`data-p="${path}"`)}</div><button type="button" class="mtrash" data-act="delAsk" data-k="i${path}" aria-label="Supprimer">${I('trash')}</button></div>`+
+  const mopts=`<div class="mopts">${bev?'':`<a class="mchip" href="#/incontournables" style="text-decoration:none;color:inherit"><i class="star">★</i><span>${on?'Incontournable n°'+rank:'Incontournables'}</span><span class="chev">›</span></a>`}<div class="mchip"><span>Masqué</span>${tgl(!!it.hidden,'itemVis',`data-p="${path}"`)}</div><button type="button" class="mtrash" data-act="delAsk" data-k="i${path}" aria-label="Supprimer">${I('trash')}</button></div>`+
     (UI.delc==='i'+path?`<div class="mdel"><span>Supprimer « ${esc(nm)} » ?</span><button class="btn g" data-act="itemDel" data-p="${path}">Oui</button><button class="btn red" data-act="delNo">Non</button></div>`:'')+
     (bev?'':`<div class="mdiet${UI.dietOpen?' open':''}"><button type="button" class="mdiet-h" data-act="dietTog"><b>Informations alimentaires</b><small>${nb.length?nb.length+' sur '+BADGES.length:'Aucune'}</small><span class="chev">›</span></button>${UI.dietOpen?badgeRow(it,ti,ci,ix):''}</div>`);
   const g=it.gallery||[];
@@ -1889,8 +1921,8 @@ function fmtPhone(p){ const d=String(p||'').replace(/\D/g,''); return d.length==
 function restoSig(){ const a=DATA.address||{}; const L=[]; const nm=DATA.restaurantName||'Mon restaurant'; L.push((/oyster|huître|huitre/i.test(nm)?'🦪 ':'🍽️ ')+nm);
   const ad=[a.street,[a.zip,a.city].filter(Boolean).join(' ')].filter(Boolean).join(', '); if(ad) L.push('📍 '+ad);
   if(a.phone) L.push('📞 '+fmtPhone(a.phone)); L.push('🗓️ Réservation : lien en bio'); return L.join('\n'); }
-const pinsOf=tabId=>(DATA.pinnedDishes||[]).filter(p=>p.tabId===tabId);
-const pinRank=(tabId,pid)=>pinsOf(tabId).findIndex(p=>p.pid===pid)+1;
+const pinsOf=()=>pinList().map(o=>o.p);
+const pinRank=(tabId,pid)=>pinsOf().findIndex(p=>p.pid===pid)+1;
 function setPinRank(tabId,pid,r){ const all=DATA.pinnedDishes||[]; const i=all.findIndex(p=>p.pid===pid); if(i<0) return; const [me]=all.splice(i,1);
   const mine=all.map((p,k)=>[p,k]).filter(([p])=>p.tabId===tabId); const at=r-1<mine.length?mine[r-1][1]:(mine.length?mine[mine.length-1][1]+1:all.length); all.splice(at,0,me); }
 function infoModal(k,x){
@@ -2532,8 +2564,8 @@ function pageSite(){
     fontSel('Police du site (nom et titres)',DATA.restoFont,'root.restoFont','Cormorant Garamond'));
   const menu=card('Menu','plats',
     `<div class="op"><div><b>Affichage du menu</b><small>Sur mobile. Sur ordinateur, toujours la grille.</small></div><div class="seg">${[['list','Liste'],['grid','Grille']].map(([k,l])=>`<button type="button" data-act="viewSet" data-v="${k}" class="${(DATA.defaultView||'list')===k?'on':''}">${l}</button>`).join('')}</div></div>`+
-    opt('Afficher les favoris',DATA.pinnedShowRail!==false,'rootFlag','data-k="pinnedShowRail"','Le bandeau photo en haut de chaque catégorie. Les étoiles restent sur les plats.')+
-    opt('Favoris sur l\'accueil',DATA.pinnedShowHome!==false,'rootFlag','data-k="pinnedShowHome"')+
+    opt('Afficher les incontournables',DATA.pinnedShowRail!==false,'rootFlag','data-k="pinnedShowRail"','Le bandeau photo en haut de la première catégorie, '+PIN_MAX+' plats maximum.')+
+    row('Incontournables',`${pinCount()} / ${PIN_MAX}`,'','<a class="lk" href="#/incontournables">Choisir →</a>')+
     opt('Afficher le symbole €',DATA.showCurrency!==false,'rootFlag','data-k="showCurrency"')+
     row('Catégories',`${DATA.tabs.length} catégories`,'','<a class="lk" href="#/carte">Gérer →</a>'));
   return mtop('Tableau de bord','dash')+ph('Mon site','Ce que vos clients voient en ouvrant votre site',`<a class="btn w" href="${SITE_URL}" target="_blank" rel="noopener">${I('share')}Voir le site ↗</a>`)+
@@ -2796,7 +2828,7 @@ function pageResaStats(){
 // ══ Rendu ══
 // Mon compte : l'identifiant connecté et la déconnexion (depuis le bas de la barre latérale).
 function pageCompte(){ return mtop('Tableau de bord','dash')+ph('Mon compte','','')+`<div class="pgrid g-1-1"><div>${card('Mon compte','compte',row('Connecté',esc((SESSION&&SESSION.user&&SESSION.user.email)||'—'))+`<div class="acts2" style="justify-content:flex-start"><button class="btn g" data-act="logout">${I('out')}Se déconnecter</button></div>`)}</div></div>`; }
-const PAGES={compte:pageCompte,messages:pageMessages,dash,resa:pageResa,carte:pageCarte,menus:pageMenus,mdj:pageMdj,formule:pageFormule,tuner:pageTuner,export:pageExport,xprint:pageXprint,xgbiz:pageXgbiz,xinsta:pageXinsta,xcol:pageXcol,comm:pageComm,stats:pageStats,etab:pageEtab,site:pageSite,app:pageApp,secu:pageSecu,clients:pageClients,emails:pageEmails};
+const PAGES={incontournables:pageInc,compte:pageCompte,messages:pageMessages,dash,resa:pageResa,carte:pageCarte,menus:pageMenus,mdj:pageMdj,formule:pageFormule,tuner:pageTuner,export:pageExport,xprint:pageXprint,xgbiz:pageXgbiz,xinsta:pageXinsta,xcol:pageXcol,comm:pageComm,stats:pageStats,etab:pageEtab,site:pageSite,app:pageApp,secu:pageSecu,clients:pageClients,emails:pageEmails};
 // Téléphone : même au premier niveau, fil d'Ariane « Accueil › Page » à la place du simple retour
 function levelOneCrumb(html){
   if(html.indexOf('class="crb"')>=0) return html;
@@ -3047,6 +3079,13 @@ document.addEventListener('click',async e=>{
     case 'dietTog': UI.dietOpen=!UI.dietOpen; render(); break;
     case 'itemDel': { const x=itemAt(d.p); if(x.it._pid) DATA.pinnedDishes=(DATA.pinnedDishes||[]).filter(q=>q.pid!==x.it._pid); x.arr.splice(x.ix,1); UI.delc=null; touch(true); go('carte/'+x.ti); break; }
     case 'itemDual': { const {it}=itemAt(d.p); if(it.priceType==='dual'){ it.priceType=''; it.price=it.p1?fmtEur(it.p1)+'€':''; } else { const n=priceNum(it.price); it.priceType='dual'; if(!it.p1&&n) it.p1=n; dualSync(it); } touch(true); break; }
+    case 'incTog': { const pins=DATA.pinnedDishes||(DATA.pinnedDishes=[]);
+      if(d.pid){ const k=pins.findIndex(q=>q.pid===d.pid); if(k>=0) pins.splice(k,1); touch(true); break; }
+      if(pinCount()>=PIN_MAX){ toast(PIN_MAX+' incontournables maximum : retirez-en un d\'abord'); break; }
+      const [ti,ci,ix]=d.p.split('.').map(Number); const it=DATA.tabs[ti].cards[ci].dishes[ix]; if(!it._pid) it._pid=newPid();
+      pins.push({tabId:DATA.tabs[ti].id,pid:it._pid,name:tr(it.name)}); touch(true); break; }
+    case 'incMove': { const L=pinList().map(o=>o.p), k=+d.k, j=k+(+d.d); if(j<0||j>=L.length) break; [L[k],L[j]]=[L[j],L[k]];
+      const rest=(DATA.pinnedDishes||[]).filter(p=>!L.includes(p)); DATA.pinnedDishes=L.concat(rest); touch(true); break; }
     case 'pinTog': { const x=itemAt(d.p), tid=DATA.tabs[x.ti].id; if(!x.it._pid) x.it._pid=newPid(); const pins=DATA.pinnedDishes||(DATA.pinnedDishes=[]); const k=pins.findIndex(q=>q.pid===x.it._pid);
       if(k>=0) pins.splice(k,1); else if(pinCount(tid)>=PIN_MAX){ toast(PIN_MAX+' favoris maximum par catégorie'); UI.info='pin'; render(); break; } else { pins.push({tabId:tid,pid:x.it._pid,name:tr(x.it.name)}); UI.info='pin'; } touch(true); break; }
     case 'szAdd': { const {it}=itemAt(d.p); if(!Array.isArray(it.sizes)) it.sizes=[]; it.sizes.push({format:'',cl:'',unit:'cl',price:''}); touch(true); break; }
