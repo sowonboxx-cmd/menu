@@ -1,0 +1,109 @@
+// Page carte : MapLibre + tuiles OpenFreeMap, filtres, fiche résumée en bas.
+(function () {
+  var FILTERS = [
+    { id: 'tous', label: 'Tous' },
+    { id: 'ouvert', label: 'Ouvert maintenant' },
+    { id: 'bistronomie', label: 'Bistronomie' },
+    { id: 'cuisine-familiale', label: 'Cuisine familiale' },
+    { id: 'menu-du-jour', label: 'Plat du jour' }
+  ];
+  var state = { filter: 'tous', q: '', selected: null, data: [], cats: {} };
+  var markers = [];
+
+  var map = new maplibregl.Map({
+    container: 'map',
+    style: 'https://tiles.openfreemap.org/styles/positron',
+    center: [2.3185, 48.8865],
+    zoom: 14.2,
+    attributionControl: { compact: true }
+  });
+  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+  map.addControl(new maplibregl.GeolocateControl({ positionOptions: { enableHighAccuracy: true } }), 'bottom-right');
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function hasPdj(r) { return r.platDuJour && Beltab.isToday(r.platDuJour.date); }
+  function catLabel(r) { return (r.categories || []).map(function (c) { return state.cats[c] || c; }).join(', '); }
+
+  function matches(r) {
+    var f = state.filter;
+    if (f === 'ouvert' && !Beltab.status(r.horaires).open) return false;
+    if (f === 'menu-du-jour' && !hasPdj(r)) return false;
+    if ((f === 'bistronomie' || f === 'cuisine-familiale') && (r.categories || []).indexOf(f) < 0) return false;
+    if (state.q) {
+      var hay = (r.nom + ' ' + r.accroche + ' ' + r.arrondissement + ' ' + catLabel(r)).toLowerCase();
+      if (hay.indexOf(state.q.toLowerCase()) < 0) return false;
+    }
+    return true;
+  }
+
+  function renderFilters() {
+    var box = document.getElementById('filters');
+    box.innerHTML = FILTERS.map(function (f) {
+      return '<button type="button" class="filter' + (f.id === state.filter ? ' is-on' : '') + '" data-f="' + f.id + '" aria-pressed="' + (f.id === state.filter) + '">' + esc(f.label) + '</button>';
+    }).join('');
+    box.querySelectorAll('button').forEach(function (b) {
+      b.addEventListener('click', function () { state.filter = b.getAttribute('data-f'); state.selected = null; render(); });
+    });
+  }
+
+  function cardHtml(r) {
+    var st = Beltab.status(r.horaires);
+    var pdj = hasPdj(r) ? '<div class="sheet-pdj"><span class="eyebrow">Plat du jour</span><span>' + esc(r.platDuJour.nom) + (r.platDuJour.prix ? ' · ' + esc(r.platDuJour.prix) + ' €' : '') + '</span></div>' : '';
+    return '<div class="sheet-card">' +
+      (r.photo ? '<img class="sheet-photo" src="' + esc(r.photo) + '" alt="">' : '') +
+      '<div class="sheet-info">' +
+      '<span class="verified small">Indépendant vérifié</span>' +
+      '<strong class="sheet-name">' + esc(r.nom) + '</strong>' +
+      '<span class="muted">' + esc(catLabel(r)) + ' · ' + esc(r.arrondissement) + ' · ' + esc(r.prix) + '</span>' +
+      '<span class="chip ' + (st.open ? '' : 'chip-closed') + '">' + esc(st.label) + '</span>' +
+      '</div></div>' + pdj +
+      '<div class="sheet-actions"><a class="btn" href="' + esc(r.url) + '">Voir la fiche</a>' +
+      '<a class="btn btn-light" href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(r.lat + ',' + r.lng) + '" rel="nofollow">Itinéraire</a></div>';
+  }
+
+  function renderSheet(list) {
+    var sheet = document.getElementById('sheet');
+    var sel = state.selected && list.filter(function (r) { return r.slug === state.selected; })[0];
+    if (sel) { sheet.innerHTML = '<div class="grip"></div>' + cardHtml(sel); return; }
+    sheet.innerHTML = '<div class="grip"></div><p class="sheet-count"><strong>' + list.length + '</strong> restaurant' + (list.length > 1 ? 's' : '') + ' indépendant' + (list.length > 1 ? 's' : '') + '</p>' +
+      '<ul class="sheet-list">' + list.map(function (r) {
+        return '<li><button type="button" data-s="' + esc(r.slug) + '"><strong>' + esc(r.nom) + '</strong><span class="muted">' + esc(catLabel(r)) + ' · ' + esc(Beltab.status(r.horaires).label) + '</span></button></li>';
+      }).join('') + '</ul>';
+    sheet.querySelectorAll('[data-s]').forEach(function (b) {
+      b.addEventListener('click', function () { select(b.getAttribute('data-s')); });
+    });
+  }
+
+  function select(slug) {
+    state.selected = slug;
+    var r = state.data.filter(function (x) { return x.slug === slug; })[0];
+    if (r) map.easeTo({ center: [r.lng, r.lat], zoom: Math.max(map.getZoom(), 15) });
+    render();
+  }
+
+  function render() {
+    renderFilters();
+    markers.forEach(function (m) { m.remove(); });
+    markers = [];
+    var list = state.data.filter(matches);
+    list.forEach(function (r) {
+      var el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'pin' + (r.slug === state.selected ? ' is-on' : '');
+      el.setAttribute('aria-label', r.nom);
+      el.innerHTML = '<span>' + esc(r.nom) + '</span>';
+      el.addEventListener('click', function (e) { e.stopPropagation(); select(r.slug); });
+      markers.push(new maplibregl.Marker({ element: el, anchor: 'bottom' }).setLngLat([r.lng, r.lat]).addTo(map));
+    });
+    renderSheet(list);
+  }
+
+  map.on('click', function () { if (state.selected) { state.selected = null; render(); } });
+  document.getElementById('q').addEventListener('input', function (e) { state.q = e.target.value.trim(); state.selected = null; render(); });
+
+  fetch('/restaurants.json').then(function (r) { return r.json(); }).then(function (d) {
+    state.data = d.restaurants;
+    state.cats = d.categories || {};
+    render();
+  });
+})();
