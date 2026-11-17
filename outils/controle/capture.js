@@ -39,7 +39,7 @@ const FIGE=`*,*:before,*:after{animation:none!important;transition:none!importan
         await p.evaluate(id=>{ if(typeof goToTab==='function') goToTab(id); },tabs[i]); await p.waitForTimeout(900);
         await p.evaluate(()=>scrollTo(0,0));
         await shot(`02-menu-${String(i+1).padStart(2,'0')}-${tabs[i]}`);
-        if(vue==='telephone'){
+        { // fiche plat : téléphone (fiche plein écran) et ordinateur (fenêtre avec vignettes)
           const ok=await p.evaluate(id=>{ const el=document.querySelector('#tab-'+id+' [data-lbidx]'); if(!el) return false; el.click(); return true; },tabs[i]);
           if(ok){ await p.waitForTimeout(1000); await shot(`03-fiche-${String(i+1).padStart(2,'0')}-${tabs[i]}`);
           }
