@@ -442,6 +442,22 @@ body.hdr-light .hdr-sched .resto-badge-inline svg{color:rgba(20,35,70,.55)!impor
 .rail-price{display:none;font-size:13px;font-weight:500;color:var(--navy);white-space:nowrap;flex:none}
 .dish-star{color:var(--gold);font-size:11px;line-height:1;white-space:nowrap}
 .rail-desc{display:none}
+/* ═══ TÉLÉPHONE (17/11) : incontournables = mêmes cases carrées que la grille ═══
+   Même forme que le menu en grille (case blanche, photo carrée), deux par
+   écran ; seule différence : le nom seul, sans prix ni description. La
+   vidéo tourne en petit dans la case ; un tap l'ouvre en grand. */
+@media (max-width:767px){
+  .rail-card{flex:0 0 calc((100% - 26px)/2);max-width:none;background:#fff;border-radius:var(--r);overflow:hidden}
+  .rail-img{aspect-ratio:1;border-radius:0}
+  .rail-card .rail-vid{aspect-ratio:1;height:auto;border-radius:0}
+  .rail-meta{justify-content:flex-start;margin:0;padding:10px 12px 12px}
+  .rail-name{font-size:14px;line-height:1.2;text-align:left;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .rail-pick .rail-pick-box{aspect-ratio:auto;height:100%;min-height:160px;border-radius:var(--r)}
+  .rail-card.rail-pick{background:none}
+}
+.rail-hdr{display:flex;align-items:center}
+.rail-count{margin-left:auto;font-family:'Open Sans',sans-serif;font-size:12px;font-weight:600;color:var(--text3,#8a8478);letter-spacing:.02em;font-variant-numeric:tabular-nums}
+@media (min-width:768px){ .rail-count{display:none} }
 /* ═══ DESKTOP ═══
    Les incontournables passent EN BAS et en liste : en haut et en
    carrousel, ils feraient doublon avec la grille de photos juste en
@@ -3854,7 +3870,7 @@ function renderCategoryRail(tab){
   if(!pinned.length && !editMode) return '';
   const items=pinned;
   const head=pinned.length
-    ? `<div class="rail-hdr"><span class="rail-star">★</span><span class="rail-title">${lang==='en'?'Our must-tries':'Nos incontournables'}</span></div>`
+    ? `<div class="rail-hdr"><span class="rail-star">★</span><span class="rail-title">${lang==='en'?'Our must-tries':'Nos incontournables'}</span>${pinned.length>1?`<span class="rail-count">1 / ${pinned.length}</span>`:''}</div>`
     : '';
   const cards=items.map(s=>{
     const d=s.dish, price=dishPriceShort(d);
@@ -3977,6 +3993,17 @@ function ppBindDrag(m){
     });
   });
 }
+// Compteur « 2 / 5 » du bandeau : suit le défilement (au bout du bandeau,
+// la dernière case est affichée même si deux cases tiennent à l'écran).
+document.addEventListener('scroll',e=>{
+  const r=e.target; if(!r || !r.classList || !r.classList.contains('rail')) return;
+  const cnt=r.parentElement && r.parentElement.querySelector('.rail-count'); if(!cnt) return;
+  const cards=[...r.querySelectorAll('.rail-card:not(.rail-pick)')]; if(!cards.length) return;
+  const step=cards.length>1 ? cards[1].offsetLeft-cards[0].offsetLeft : 1;
+  let i=Math.round(r.scrollLeft/step)+1;
+  if(r.scrollLeft>=r.scrollWidth-r.clientWidth-4) i=cards.length;
+  cnt.textContent=Math.min(Math.max(i,1),cards.length)+' / '+cards.length;
+},true);
 function collectLbImages(){
   lbImages=[];
   const tab=DATA.tabs.find(tb=>tb.id===currentTabId);
