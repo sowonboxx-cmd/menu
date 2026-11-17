@@ -5,6 +5,7 @@
     { id: 'ouvert', label: 'Ouvert maintenant' },
     { id: 'bistronomie', label: 'Bistronomie' },
     { id: 'cuisine-familiale', label: 'Cuisine familiale' },
+    { id: 'bar-a-huitres', label: 'Bar à huîtres' },
     { id: 'menu-du-jour', label: 'Plat du jour' }
   ];
   var state = { filter: 'tous', q: '', selected: null, data: [], cats: {} };
@@ -28,7 +29,7 @@
     var f = state.filter;
     if (f === 'ouvert' && !Beltab.status(r.horaires).open) return false;
     if (f === 'menu-du-jour' && !hasPdj(r)) return false;
-    if ((f === 'bistronomie' || f === 'cuisine-familiale') && (r.categories || []).indexOf(f) < 0) return false;
+    if (['bistronomie', 'cuisine-familiale', 'bar-a-huitres'].indexOf(f) >= 0 && (r.categories || []).indexOf(f) < 0) return false;
     if (state.q) {
       var hay = (r.nom + ' ' + r.accroche + ' ' + r.arrondissement + ' ' + catLabel(r)).toLowerCase();
       if (hay.indexOf(state.q.toLowerCase()) < 0) return false;

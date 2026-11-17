@@ -30,7 +30,7 @@ const TIER = { gratuit: 0, chef: 1, local: 1, starter: 1, pro: 2, master: 2 };
 const tierOf = (n) => TIER[n] ?? 0;
 const PHOTO_LIMIT = [0, 3, Infinity];
 
-const CATEGORIES = { 'bistronomie': 'Bistronomie', 'cuisine-familiale': 'Cuisine familiale', 'bistrot': 'Bistrot' };
+const CATEGORIES = { 'bistronomie': 'Bistronomie', 'cuisine-familiale': 'Cuisine familiale', 'bistrot': 'Bistrot', 'bar-a-huitres': 'Bar à huîtres' };
 const JOURS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
 
 const icon = {
@@ -66,7 +66,7 @@ ${ogImage ? `<meta property="og:image" content="${esc(ogImage)}">` : ''}
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld)}</script>` : ''}
 </head>
 <body class="${bodyClass}">
-${demo ? '<div class="demo-banner">Version de démonstration : les restaurants et les prix sont des exemples.</div>' : ''}
+${demo ? '<div class="demo-banner">Version de démonstration : certaines fiches sont des exemples.</div>' : ''}
 ${body}
 <script src="/src/common.js"></script>
 ${scripts.map((s) => `<script src="${s}"></script>`).join('\n')}
@@ -102,7 +102,8 @@ function nearest(r, n = 3) {
 }
 
 function horairesHtml(h) {
-  const fmt = (slots) => slots.length ? slots.map(([a, b]) => `${a.replace(':00', 'h').replace(':', 'h')}–${b.replace(':00', 'h').replace(':', 'h')}`).join(' · ') : 'Fermé';
+  const hh = (t) => t.replace(/^0(\d)/, '$1').replace(':00', 'h').replace(':', 'h');
+  const fmt = (slots) => slots.length ? slots.map(([a, b]) => `${hh(a)}–${hh(b)}`).join(' · ') : 'Fermé';
   return JOURS.map((j) => `<div class="row"><span class="muted">${j[0].toUpperCase() + j.slice(1)}</span><span class="strong">${fmt(h[j] || [])}</span></div>`).join('');
 }
 
@@ -131,7 +132,8 @@ function renderFiche(r, niveau, { variant } = {}) {
 <div class="menu-head"><h3>${esc(s.section)}</h3>${s.prix && paid ? `<span class="strong">${esc(s.prix)}</span>` : ''}</div>
 ${s.plats.map((p) => {
     const ph = paid ? usePhoto(p.photo) : '';
-    return `<div class="dish">${ph ? `<img src="${esc(ph)}" alt="${esc(p.nom)}" loading="lazy" width="80" height="80">` : ''}<span class="dish-name">${esc(p.nom)}</span>${p.prix ? `<span class="dish-price">${esc(p.prix)}</span>` : ''}</div>`;
+    const longPrice = p.prix && p.prix.length > 9;
+    return `<div class="dish">${ph ? `<img src="${esc(ph)}" alt="${esc(p.nom)}" loading="lazy" width="80" height="80" onerror="this.remove()">` : ''}<span class="dish-name">${esc(p.nom)}${p.description ? `<small class="dish-desc">${esc(p.description)}</small>` : ''}${longPrice ? `<small class="dish-price-line">${esc(p.prix)}</small>` : ''}</span>${p.prix && !longPrice ? `<span class="dish-price">${esc(p.prix)}</span>` : ''}</div>`;
   }).join('')}
 </div>`).join('');
 
@@ -186,7 +188,7 @@ ${resaBtn}
   const body = `${header()}
 ${demoSwitch}
 <main class="fiche ${paid ? 'is-paid' : 'is-free'}">
-${hero ? `<div class="hero"><img src="${esc(hero)}" alt="${esc(r.nom)}"></div>` : ''}
+${hero ? `<div class="hero"><img src="${esc(hero)}" alt="${esc(r.nom)}" onerror="this.parentNode.remove()"></div>` : ''}
 <div class="wrap fiche-grid">
 <div class="fiche-main">
 <div class="fiche-title">

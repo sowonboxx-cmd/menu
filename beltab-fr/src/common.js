@@ -18,7 +18,7 @@
   }
 
   function toMin(hhmm) { var s = hhmm.split(':'); return (+s[0]) * 60 + (+s[1]); }
-  function fmt(hhmm) { return hhmm.replace(':00', 'h').replace(':', 'h'); }
+  function fmt(hhmm) { return hhmm.replace(/^0(\d)/, '$1').replace(':00', 'h').replace(':', 'h'); }
 
   // Renvoie { open: bool, label: 'Ouvert · ferme à 14h30' | 'Fermé · ouvre à 19h' | 'Fermé aujourd'hui' }
   function status(horaires) {
@@ -26,6 +26,12 @@
     var jour = p.weekday.toLowerCase();
     var now = (+p.hour % 24) * 60 + (+p.minute);
     var slots = (horaires && horaires[jour]) || [];
+    var veille = JOURS[(JOURS.indexOf(jour) + 6) % 7];
+    var prev = (horaires && horaires[veille]) || [];
+    for (var k = 0; k < prev.length; k++) {
+      var pa = toMin(prev[k][0]), pb = toMin(prev[k][1]);
+      if (pb <= pa && now < pb) return { open: true, label: 'Ouvert \u00b7 ferme \u00e0 ' + fmt(prev[k][1]) };
+    }
     for (var i = 0; i < slots.length; i++) {
       var a = toMin(slots[i][0]), b = toMin(slots[i][1]);
       if (b <= a) b += 24 * 60;
