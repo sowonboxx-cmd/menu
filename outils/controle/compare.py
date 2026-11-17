@@ -14,6 +14,9 @@ for (vue,nom),fs in sorted(paires.items()):
     W=max(a.width,b.width); H=max(a.height,b.height)
     A=Image.new('RGB',(W,H),'white'); A.paste(a); B=Image.new('RGB',(W,H),'white'); B.paste(b)
     d=np.abs(np.asarray(A,np.int16)-np.asarray(B,np.int16)).max(2)>24
+    # La zone au-delà de la page la plus courte n'est pas un « vide » du site : la page
+    # s'arrête là. On ne l'entoure pas en rouge, on la hachure en gris (voir plus bas).
+    hmin=min(a.height,b.height); d[hmin:]=False
     pct=round(100*d.mean(),2)
     m=Image.fromarray((d*255).astype('uint8')).filter(ImageFilter.MaxFilter(15))
     mk=np.asarray(m)>0
@@ -27,6 +30,12 @@ for (vue,nom),fs in sorted(paires.items()):
                 dr.rectangle([cols[0]-3,start-3,cols[-1]+3,prev+3],outline=(230,30,40),width=4)
                 if r is not None: start=r
             if r is not None: prev=r
+    def hach(im,h0):
+        if h0>=im.height: return
+        dr2=ImageDraw.Draw(im); dr2.rectangle([0,h0,im.width,im.height],fill=(226,222,214))
+        for x in range(-im.height,im.width,28): dr2.line([(x,im.height),(x+(im.height-h0),h0)],fill=(205,200,190),width=3)
+        dr2.text((14,h0+12),'Fin de la page (page plus courte)',fill=(110,105,96))
+    hach(A,a.height); hach(Bm,b.height)
     cap=min(H,2600); S=Image.new('RGB',(W*2+30,cap),'#e9e6df')
     S.paste(A.crop((0,0,W,cap)),(0,0)); S.paste(Bm.crop((0,0,W,cap)),(W+30,0))
     k=900/S.width if S.width>900 else 1
