@@ -3048,6 +3048,7 @@ function efSocialAccordion(gallery, caption, placeholder){
 // dit a la fois DE QUOI il s'agit et QUOI en faire. Sans ce cadre,
 // quatre lignes « Image URL » identiques se fondaient dans le noir et
 // rien ne montrait ou coller le lien.
+const SLOT_HINT = 'Une photo par emplacement : en envoyer une nouvelle remplace l\'actuelle, téléchargez-la avant si vous voulez la garder.';
 function efImgField(id, val, label, ratio=1, flat){
   const previewStyle = val ? '' : 'display:none';
   if(flat){
@@ -3065,14 +3066,9 @@ function efImgField(id, val, label, ratio=1, flat){
   </div><img class="ai-img-preview" src="${escAttr(val||'')}" style="${previewStyle};width:100%;max-width:120px;aspect-ratio:1;object-fit:cover;border-radius:6px;margin-top:6px;border:1px solid var(--border)" onerror="this.style.display='none'"></div>`;
 }
 function uploadEditImgFile(fileInput, ratio){
-  const file=fileInput.files[0];
-  readImageFileSafe(file, dataUrl => {
-    const wrap=fileInput.closest('.ai-img-wrap');
-    const inp=wrap&&wrap.querySelector('.ei');
-    if(!inp) return;
-    inp.value=dataUrl;
-    syncEfImgPreview(inp);
-  }, {ratio});
+  const wrap=fileInput.closest('.ai-img-wrap');
+  const inp=wrap&&wrap.querySelector('.ei');
+  slotUpload(fileInput, ratio, inp, url => { inp.value=url; syncEfImgPreview(inp); });
 }
 function syncEfImgPreview(input){
   const wrap=input.closest('.ai-img-wrap');
@@ -3355,6 +3351,7 @@ function openEditDish(ti,ci,di){
   h+=`<div id="ed-price-block">${efPriceBlockHtml(d)}</div>`;
   h+=`<div class="ef"><label class="ei-check"><input type="checkbox" id="ed-dual" ${d.priceType==='dual'?'checked':''} onchange="efToggleDual(this)"><span>Double tarif (ex : Les 6 / Les 12)</span></label></div>`;
   h+=efImgField('ed-img', d.img||'', 'Photo 1 — le plat seul');
+  h+=`<div class="ef" style="margin-top:-6px;font-size:11.5px;line-height:1.45;color:var(--text3)">${SLOT_HINT}</div>`;
   h+=efVidField(d.video||'');
   h+=efBadgesField(d);
   h+=efSocialAccordion(d.gallery||[], d.caption||'', 'Ex: Nos huîtres Spéciales N°3 — iodées, fraîches, servies sur glace 🦪 Disponibles au bar ou à emporter.');
@@ -7142,6 +7139,7 @@ function renderDishDetailBody(ti, ci, di){
     </label>
   </div>
   <img class="ai-img-preview" src="${escAttr(d.img||'')}" style="${d.img?'':'display:none'};width:120px;aspect-ratio:1;object-fit:cover;border-radius:12px;margin-bottom:10px;display:block" onerror="this.style.display='none'">`;
+  h+=`<div style="font-size:12px;line-height:1.45;color:var(--ig-text-dimmer,#8a8a8e);margin:-2px 0 12px">${SLOT_HINT}</div>`;
 
   h+=`<div class="ig-panel-card">
     <div class="ig-panel-hdr">
@@ -12123,9 +12121,58 @@ const MENU_MANAGEMENT_ROWS = [
 const MEDIA_ORIGIN = 'https://media.beltab.app/';
 let RAPATRIEMENT = null;
 function renderRapatriementSection(){
-  setTimeout(fillRapatriement, 0);
+  setTimeout(fillRapatriement, 0); setTimeout(fillB64Box, 0);
   return `<div class="ig-hint-block">Range toutes les photos de la carte sur <b>media.beltab.app</b>, l'hébergement définitif. Les anciennes adresses sont remplacées par les nouvelles, puis la carte est publiée. Une version est archivée avant : on peut revenir en arrière.</div>
-    <div id="rapaBox" class="ig-list" style="margin-top:10px"><div class="ig-row" style="cursor:default;color:var(--ig-text-dimmer)">Vérification…</div></div>`;
+    <div id="rapaBox" class="ig-list" style="margin-top:10px"><div class="ig-row" style="cursor:default;color:var(--ig-text-dimmer)">Vérification…</div></div>
+    <div class="ig-hint-block" style="margin-top:16px">Photos envoyées depuis l'admin avant le passage sur media.beltab.app : elles sont écrites en texte dans la carte, ce qui l'alourdit. Ce bouton les envoie sur media.beltab.app et met le lien à la place.</div>
+    <div id="b64Box" class="ig-list" style="margin-top:10px"></div>`;
+}
+// Photos en base64 (data:image/…) encore écrites dans la carte.
+function b64Collect(node, set){
+  if(typeof node === 'string'){ if(/^data:image\//.test(node)) set.add(node); return; }
+  if(Array.isArray(node)){ node.forEach(n=>b64Collect(n,set)); return; }
+  if(node && typeof node === 'object'){ for(const k in node) b64Collect(node[k],set); }
+}
+function b64Replace(node, map){
+  if(typeof node === 'string') return map.has(node) ? map.get(node) : node;
+  if(Array.isArray(node)) return node.map(n=>b64Replace(n,map));
+  if(node && typeof node === 'object'){ const o={}; for(const k in node) o[k]=b64Replace(node[k],map); return o; }
+  return node;
+}
+function fillB64Box(){
+  const box=document.getElementById('b64Box'); if(!box) return;
+  const set=new Set(); b64Collect(DATA,set);
+  const kb=Math.round([...set].reduce((a,v)=>a+v.length,0)/1024);
+  const row=(h,st='')=>`<div class="ig-row" style="cursor:default;${st}">${h}</div>`;
+  if(!set.size){ box.innerHTML=row('✓ Aucune photo écrite en texte dans la carte.'); return; }
+  box.innerHTML = row(`<b>${set.size}</b>&nbsp;photo(s) écrite(s) en texte · environ ${kb>1024?(kb/1024).toFixed(1)+' Mo':kb+' Ko'} dans la carte`)
+    + (IS_PREVIEW
+      ? row('Preview : simulation seulement. La conversion se lance depuis le site en ligne.','color:var(--ig-text-dimmer)')
+      : `<div class="ig-row" style="cursor:default;justify-content:center"><button onclick="runB64Convert()" style="background:#253968;color:#fff;border:0;border-radius:10px;padding:12px 18px;font:600 14px Inter,sans-serif;cursor:pointer">Envoyer ${set.size} photo(s) sur media.beltab.app et publier</button></div>`);
+}
+async function runB64Convert(){
+  if(IS_PREVIEW){ showToast('👁 Preview en lecture seule'); return; }
+  if(!supaSession){ showToast('⚠️ Connecte-toi d\'abord'); return; }
+  if(DATA_SOURCE!=='supabase'){ showToast('⚠️ Données non chargées : rien n\'est modifié'); return; }
+  const set=new Set(); b64Collect(DATA,set);
+  if(!set.size){ showToast('Rien à convertir'); return; }
+  askConfirm('Envoyer '+set.size+' photo(s) sur media.beltab.app, remplacer le texte par les liens et publier ?', async ()=>{
+    const map=new Map(); let i=0, fail=0;
+    for(const d of set){
+      i++; showToast('Envoi '+i+' / '+set.size+'…');
+      const r=await sendSlotImage(d,'','image');
+      if(r.local) fail++; else map.set(d,r.url);
+    }
+    if(!map.size){ showToast('⚠ Aucune photo envoyée : serveur injoignable'); return; }
+    try{
+      await supabaseClient.from(HISTORY_TABLE).insert({ client_slug: CLIENT_SLUG, data: JSON.parse(JSON.stringify(DATA)) });
+      const next=b64Replace(DATA,map);
+      Object.keys(DATA).forEach(k=>delete DATA[k]); Object.assign(DATA,next);
+      await publishToSupabase();
+      showToast('✓ '+map.size+' photo(s) converties'+(fail?' · '+fail+' en échec, relancez':'')+' — rechargement…');
+      setTimeout(()=>location.reload(),1200);
+    }catch(e){ showToast('❌ '+e.message); }
+  });
 }
 function rapaCollect(node, map, found){
   if(typeof node === 'string'){ for(const k in map){ if(node.indexOf(k)!==-1) found[k]=(found[k]||0)+1; } return; }
@@ -12535,15 +12582,87 @@ async function uploadCoverVideo(input){
     else showToast('⚠ '+(j.error||('Envoi impossible ('+r.status+')')));
   }catch(e){ console.warn('video',e); showToast('⚠ Serveur d\'envoi injoignable'); }
 }
+// ── PHOTOS : UN EMPLACEMENT = UN FICHIER ──
+// Les photos envoyées depuis l'admin partent sur media.beltab.app (comme
+// les vidéos) au lieu d'être écrites en texte (base64) dans la carte :
+// la carte reste légère et les photos se gardent en cache. Chaque champ
+// photo est un emplacement : en envoyer une nouvelle ÉCRASE le fichier de
+// l'emplacement (paramètre replace du serveur d'envoi). Pas de
+// bibliothèque qui grossit à l'infini, et la photo d'un emplacement est
+// toujours la bonne. Avant d'écraser, on prévient et on propose de
+// télécharger l'actuelle.
+// Garde-fous : on n'écrase jamais un fichier utilisé à deux endroits de la
+// carte (plat dupliqué) ; en preview, on n'écrase que les fichiers envoyés
+// depuis cette preview (jamais une photo du site en ligne). Sans connexion
+// ou si le serveur ne répond pas, la photo reste dans la carte comme avant.
+const MEDIA_SESSION_UPLOADS = new Set();
+function mediaKeyOf(url){
+  if(typeof url!=='string' || !url.startsWith('https://media.beltab.app/')) return '';
+  const k = url.slice('https://media.beltab.app/'.length).split('?')[0];
+  return k.startsWith(CLIENT_SLUG+'/uploads/') ? k : '';
+}
+function mediaKeyUses(key){ try{ return JSON.stringify(DATA).split(key).length-1; }catch(e){ return 2; } }
+function dataUrlToBlob(d){
+  const [head, b64] = d.split(',');
+  const type = (head.match(/data:([^;]+)/)||[])[1] || 'image/webp';
+  const bin = atob(b64), arr = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+  return new Blob([arr], {type});
+}
+async function sendSlotImage(dataUrl, prev, kind){
+  if(!supaSession || !/^data:image\//.test(dataUrl)) return {url:dataUrl, local:true, quiet:true};
+  let key = mediaKeyOf(prev);
+  if(key && (mediaKeyUses(key)>1 || (IS_PREVIEW && !MEDIA_SESSION_UPLOADS.has(key)))) key='';
+  const blob = dataUrlToBlob(dataUrl);
+  const q = 'slug='+encodeURIComponent(CLIENT_SLUG)+'&kind='+encodeURIComponent(kind||'image')+(key?'&replace='+encodeURIComponent(key):'');
+  try{
+    const r = await fetch('https://upload.beltab.app/upload?'+q, {method:'POST', headers:{'Authorization':'Bearer '+supaSession.access_token,'Content-Type':blob.type}, body:blob});
+    const j = await r.json().catch(()=>({}));
+    if(r.ok && j.url){
+      MEDIA_SESSION_UPLOADS.add(mediaKeyOf(j.url));
+      return {url: j.url+'?v='+Date.now().toString(36), replaced: !!key && mediaKeyOf(j.url)===key};
+    }
+    console.warn('upload', r.status, j);
+  }catch(e){ console.warn('upload', e); }
+  return {url:dataUrl, local:true};
+}
+// Fenêtre « Remplacer la photo ? » — seulement si l'emplacement a déjà une photo.
+function confirmSlotReplace(prev, go){
+  if(!prev){ go(); return; }
+  let m = document.getElementById('slotReplaceModal');
+  if(!m){
+    m = document.createElement('div'); m.id='slotReplaceModal'; m.className='confirm-modal';
+    m.innerHTML = `<div class="confirm-box">
+      <div class="confirm-title">Remplacer la photo ?</div>
+      <div class="confirm-text">Chaque emplacement garde une seule photo : la nouvelle prend la place de l'actuelle, qui ne sera plus disponible. Si vous voulez la garder, téléchargez-la d'abord.</div>
+      <div style="display:flex;align-items:center;gap:12px;margin:0 0 14px"><img id="slotReplaceImg" style="width:64px;height:64px;object-fit:cover;border-radius:10px;background:#eee"><a id="slotReplaceDl" target="_blank" rel="noopener" download="photo-actuelle" style="font:600 13px Inter,sans-serif;color:var(--ig-blue,#0a84ff);text-decoration:none">Télécharger l'actuelle</a></div>
+      <div class="confirm-btns"><button class="confirm-cancel" id="slotReplaceNo">Annuler</button><button class="confirm-ok" id="slotReplaceOk" style="background:#253968">Remplacer</button></div>
+    </div>`;
+    document.body.appendChild(m);
+  }
+  m.querySelector('#slotReplaceImg').src = prev;
+  m.querySelector('#slotReplaceDl').href = prev;
+  m.querySelector('#slotReplaceNo').onclick = ()=>m.classList.remove('open');
+  m.querySelector('#slotReplaceOk').onclick = ()=>{ m.classList.remove('open'); go(); };
+  m.classList.add('open');
+}
+// Choix d'un fichier dans un champ photo : on prévient si ça remplace,
+// on compresse (WebP), on envoie, puis on met le lien dans le champ.
+function slotUpload(fileInput, ratio, inp, apply){
+  const file = fileInput.files && fileInput.files[0]; fileInput.value='';
+  if(!file || !inp) return;
+  const prev = inp.value.trim();
+  confirmSlotReplace(prev, ()=> readImageFileSafe(file, async dataUrl => {
+    if(supaSession) showToast('Envoi de la photo…');
+    const r = await sendSlotImage(dataUrl, prev, 'image');
+    apply(r.url);
+    if(!r.quiet) showToast(r.local ? '⚠ Serveur d\'envoi injoignable : photo gardée dans la carte' : (r.replaced ? '✓ Photo remplacée' : '✓ Photo envoyée'));
+  }, {ratio}));
+}
 function uploadImgFile(fileInput, ratio){
-  const file = fileInput.files[0];
-  readImageFileSafe(file, dataUrl => {
-    const wrap = fileInput.closest('.ai-img-wrap');
-    const inp = wrap && wrap.querySelector('.ai');
-    if(!inp) return;
-    inp.value = dataUrl;
-    inp.dispatchEvent(new Event('input'));
-  }, {ratio});
+  const wrap = fileInput.closest('.ai-img-wrap');
+  const inp = wrap && wrap.querySelector('.ai');
+  slotUpload(fileInput, ratio, inp, url => { inp.value = url; inp.dispatchEvent(new Event('input')); });
 }
 
 function toggleAdminSection(el){

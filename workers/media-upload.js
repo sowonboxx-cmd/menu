@@ -6,6 +6,11 @@
 //        en-tête Authorization : le jeton de session Supabase de l'administrateur
 //   → { ok:true, url:"https://media.beltab.app/<client>/uploads/<kind>-<date>.webp" }
 //
+//   &replace=<client>/uploads/<fichier>  (facultatif) : réécrit ce fichier au lieu
+//        d'en créer un nouveau. Une photo de plat = un emplacement = un fichier :
+//        changer la photo écrase l'ancienne, pas de bibliothèque qui grossit sans fin.
+//        Le site ajoute ?v=… au lien pour que les téléphones ne gardent pas l'ancienne.
+//
 // Sécurité : le jeton est vérifié auprès de Supabase, puis on vérifie que cette
 // personne est bien administratrice du restaurant (table restaurant_admins).
 // Aucune clé secrète ici : seule la clé publique Supabase, comme sur les sites.
@@ -50,7 +55,9 @@ export default {
 
     const folder = slug.replace(/-(test|preview)$/, '');
     const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
-    const key = `${folder}/uploads/${kind}-${stamp}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
+    let key = `${folder}/uploads/${kind}-${stamp}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
+    const rep = (url.searchParams.get('replace') || '').split('?')[0];
+    if (!isVideo && rep && new RegExp(`^${folder}/uploads/[a-z0-9-]{1,80}\\.${ext}$`).test(rep)) key = rep;
     await env.MEDIA.put(key, body, { httpMetadata: { contentType: type, cacheControl: 'public, max-age=31536000, immutable' } });
     return json({ ok: true, url: PUBLIC + key }, 200, cors);
   },
