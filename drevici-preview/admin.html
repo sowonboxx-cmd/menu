@@ -1618,7 +1618,6 @@ function dash(){
   const sketch=`<svg class="sk" viewBox="0 0 62 82" fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 4.2c9-.9 30.8-.4 48.6.3.9 14.6 1.2 49.2.4 72.9-15.7.6-35.6.9-49.3.2C5.4 61 5.8 25 6.5 4.2z"/><path d="M10.8 8.6c11.6-.4 27.4-.2 40.2.4.5 13.1.6 46.3 0 64.2-12.8.4-28 .5-40 .1-.6-17.9-.7-49.4-.2-64.7z" opacity=".55"/><path d="M22 18.5c5.8-.6 12.5-.5 18.2.2"/><path d="M26.4 23.4c3.1-.2 6-.2 9.3.1" opacity=".7"/><path d="M17.5 33.2c8.4-.3 18.4-.2 27.4.3M17.8 38.4c6.2-.2 14.6-.1 20.6.2"/><path d="M17.3 48.1c8.7-.4 18.6-.2 27.6.2M17.6 53.2c5.4-.2 12.2-.2 17.2.1"/><path d="M17.4 62.6c8.3-.2 18.5-.1 27.1.3"/><path d="M28.4 43.4c1.6-.4 3.6-.4 5.2.1M28.6 57.6c1.6-.3 3.4-.3 5 0" opacity=".6"/></svg>`;
   const fsD=DATA.formules||[];
   const menus=`<section class="a-menus"><div class="list"><div class="bh"><span class="ico">${I('spe')}</span>Mes menus</div>
-    <a class="li" href="#/incontournables"><span class="dot">${I('spe')}</span><div><b>Nos incontournables</b><small>${pinCount()} / ${PIN_MAX} · ${DATA.pinnedShowRail===false?'masqués':'en haut de « '+esc(tr((DATA.tabs[0]||{}).label)||'')+' »'}</small></div><span class="chev">›</span></a>
     <a class="li" href="#/mdj"><span class="dot">${I('jour')}</span><div><b>Menu du jour ${sp.active?'<span class="pill ok">En ligne</span>':'<span class="pill">Hors ligne</span>'}</b><small>Activer, modifier, exporter votre menu du jour</small></div><span class="chev">›</span></a>
     <a class="li" href="#/menus"><span class="dot">${I('spe')}</span><div><b>Menus personnalisés</b><small>Ajouter · modifier · exporter${fsD.length?' · '+fsD.length+' menu'+(fsD.length>1?'s':''):''}</small></div><span class="chev">›</span></a>
     ${fsD.length?`<div class="subm">${fsD.slice(0,3).map(f=>`<a href="#/formule/${encodeURIComponent(f.id)}"><span><b>${esc(f.name||f.title||'(sans nom)')}</b></span><span class="chev">›</span></a>`).join('')}</div>`:''}</div></section>`;
@@ -1692,23 +1691,6 @@ function pageMenus(){
   `<div class="pgrid g-1-1"><div>${card('Menu du jour','jour',ln('#/mdj','Menu du jour',sp.active?'<span class="pill ok">En ligne</span>':'<span class="pill off">Hors ligne</span>'))}</div>
    <div>${card('Menus personnalisés','spe',(fs.length?fs.map(f=>ln('#/formule/'+encodeURIComponent(f.id),esc(f.name||f.title||'(sans nom)'))).join(''):'<div class="empty">Aucun menu personnalisé pour l\'instant.</div>')+
      `<button class="lk add" data-act="fAdd">＋ Ajouter un menu personnalisé</button>${fs.length>=10?'<p class="note">La limite de 10 est atteinte : en ajouter un nouveau remplacera le plus ancien.</p>':''}`)}</div></div>`;
-}
-// ── Nos incontournables : une seule liste ──
-function pageInc(){
-  const L=pinList(), on=DATA.pinnedShowRail!==false, first=esc(tr((DATA.tabs[0]||{}).label)||'la première catégorie');
-  const sel=new Set(L.map(o=>o.p.pid));
-  const top=card('Affichage','eye',opt('Afficher les incontournables',on,'rootFlag','data-k="pinnedShowRail"',on?`Visibles par vos clients, en haut de « ${first} »`:'Masqués : vos clients ne les voient pas'));
-  const selRows=L.map((o,k)=>{ const it=o.x.it, over=k>=PIN_MAX;
-    const note=over?`Au-delà de ${PIN_MAX} : pas affiché`:(!it.img?'Sans photo : pas affiché':(it.hidden?'Masqué : pas affiché':esc(tr(o.x.tb.label))));
-    return `<div class="it inc on${over||!it.img||it.hidden?' off':''}"><b class="inc-k">${k+1}</b>${thumb(it.img)}<span class="it-n"><b>${esc(tr(it.name))||'(sans nom)'}</b><small>${note}</small></span><span class="mvs sgrp sm"><button type="button" data-act="incMove" data-k="${k}" data-d="-1" title="Monter">${I('aup')}</button><button type="button" data-act="incMove" data-k="${k}" data-d="1" title="Descendre">${I('adown')}</button></span><button type="button" class="inc-st on" data-act="incTog" data-pid="${esc(o.p.pid)}" title="Retirer">★</button></div>`; }).join('');
-  const head=L.length>PIN_MAX?`${L.length} choisis, ${PIN_MAX} affichés : retirez-en ${L.length-PIN_MAX}`:`${L.length} / ${PIN_MAX}`;
-  const selCard=card('Sélection','spe',(selRows||'<div class="empty">Touchez l\'étoile d\'un plat ci-dessous pour l\'ajouter.</div>'),head);
-  const cats=(DATA.tabs||[]).map((tb,ti)=>{ const rows=[];
-    (tb.cards||[]).forEach((c,ci)=>{ if(isBevCard(c)) return; (c.dishes||[]).forEach((it,ix)=>{ if(it.hidden) return; if(it._pid&&sel.has(it._pid)) return;
-      rows.push(`<div class="it inc">${thumb(it.img)}<span class="it-n"><b>${esc(tr(it.name))||'(sans nom)'}</b>${it.img?'':'<small>Sans photo</small>'}</span><button type="button" class="inc-st" data-act="incTog" data-p="${ti}.${ci}.${ix}" title="Ajouter">☆</button></div>`); }); });
-    return rows.length?card(esc(tr(tb.label)),'plats',rows.join('')):''; }).join('');
-  return mtop('Ma carte','carte')+crumb([['Ma carte','carte'],['Nos incontournables']])+ph('Nos incontournables',`${PIN_MAX} plats maximum, de n'importe quelle catégorie, affichés en haut de « ${first} ». L'étoile ajoute ou retire, les flèches changent l'ordre.`)+
-  `<div class="pgrid g-1-1"><div>${top}${selCard}</div><div>${cats}</div></div>`;
 }
 function findF(id){ return DATA.formules.find(f=>f.id===id); }
 function pageFormule(){
@@ -1855,7 +1837,7 @@ function pageCarte(){
     const head=titled?`<div class="sc-h${c.hidden?' off':''}"><input class="in" value="${esc(trL(c.label))}" data-bind="cardL.${ti}.${ci}" placeholder="${esc(phL(c.label,'Nom de la sous-catégorie'))}">
       <div class="sgrp"><button type="button" class="sg-mv" data-act="cardMove" data-ti="${ti}" data-ci="${ci}" data-d="-1" title="Monter">${I('aup')}</button><button type="button" class="sg-mv" data-act="cardMove" data-ti="${ti}" data-ci="${ci}" data-d="1" title="Descendre">${I('adown')}</button><button type="button" data-act="cardVis" data-ti="${ti}" data-ci="${ci}" title="${c.hidden?'Afficher':'Masquer'}">${I(c.hidden?'eyeoff':'eye')}</button><button type="button" class="r" data-act="delAsk" data-k="c${ti}.${ci}" title="Supprimer">${I('trash')}</button></div></div>
       ${UI.delc===`c${ti}.${ci}`?`<div class="mdel" style="display:flex;margin:0 0 6px"><span>Supprimer « ${esc(tr(c.label))||'cette sous-catégorie'} » et ${its.length} élément${its.length>1?'s':''} ?</span><button class="btn g" data-act="cardDel" data-ti="${ti}" data-ci="${ci}">Oui</button><button class="btn red" data-act="delNo">Non</button></div>`:''}`:'';
-    const rows=its.map((it,ix)=>`<a class="it${it.hidden?' off':''}" href="#/carte/${ti}/${ci}/${ix}">${thumb(it.img)}<span class="it-n"><b>${esc(tr(it.name))||'(sans nom)'}${pinOn(it)?' <i class="star" title="Favori">★</i>':''}</b></span><span class="it-p num">${it.priceType==='dual'?`<span class="pfull">${esc(priceLabel(it))}</span><span class="pshort">${esc((it.qty1||'?')+' · '+(it.p1||'?')+' €')}</span>`:(it.sizes||[]).length>1?`<span class="pfull">${esc(priceLabel(it))}</span><span class="pshort">${esc(priceLabel({sizes:[it.sizes[0]]}))}</span>`:esc(priceLabel(it))}</span>${it.hidden?pill('Masqué'):''}<span class="mvs sgrp sm"><button type="button" data-act="itemMove" data-ti="${ti}" data-ci="${ci}" data-ix="${ix}" data-d="-1" title="Monter">${I('aup')}</button><button type="button" data-act="itemMove" data-ti="${ti}" data-ci="${ci}" data-ix="${ix}" data-d="1" title="Descendre">${I('adown')}</button></span><span class="chev">›</span></a>`).join('');
+    const rows=its.map((it,ix)=>`<a class="it${it.hidden?' off':''}" href="#/carte/${ti}/${ci}/${ix}">${thumb(it.img)}<span class="it-n"><b>${esc(tr(it.name))||'(sans nom)'}</b></span><span class="it-p num">${it.priceType==='dual'?`<span class="pfull">${esc(priceLabel(it))}</span><span class="pshort">${esc((it.qty1||'?')+' · '+(it.p1||'?')+' €')}</span>`:(it.sizes||[]).length>1?`<span class="pfull">${esc(priceLabel(it))}</span><span class="pshort">${esc(priceLabel({sizes:[it.sizes[0]]}))}</span>`:esc(priceLabel(it))}</span>${it.hidden?pill('Masqué'):''}<span class="mvs sgrp sm"><button type="button" data-act="itemMove" data-ti="${ti}" data-ci="${ci}" data-ix="${ix}" data-d="-1" title="Monter">${I('aup')}</button><button type="button" data-act="itemMove" data-ti="${ti}" data-ci="${ci}" data-ix="${ix}" data-d="1" title="Descendre">${I('adown')}</button></span><span class="chev">›</span></a>`).join('');
     return `<div class="sc">${head}${rows||`<div class="empty">${bev?'Aucune boisson.':'Aucun plat.'}</div>`}<button type="button" class="lk add" data-act="itemAdd" data-ti="${ti}" data-ci="${ci}">＋ ${bev?'Ajouter une boisson':'Ajouter un plat'}</button></div>`;
   }).join('');
   const isBevTab=(tb.cards||[]).length&&(tb.cards||[]).every(isBevCard);
@@ -1897,12 +1879,12 @@ function pageItem(ti,ci,ix){
     '')+(bev?'':`<section class="list pc plain diet desk"><div class="pb"><div class="grp-t">Informations alimentaires</div>${badgeRow(it,ti,ci,ix)}</div></section>`);
   const mainP=main.replace(/<div class="bh">[\s\S]*?<\/div>/,'').replace('class="list pc"','class="list pc nohd"');
   const acts=`<section class="list pc plain"><div class="pb">`+
-    (bev?'':row(`<b><i class="star">★</i> Incontournable</b>`,on?(rank<=PIN_MAX?'N° '+rank+' dans le bandeau':'Choisi, au-delà de '+PIN_MAX+' : pas affiché'):'Non','','<a class="lk" href="#/incontournables">Gérer →</a>'))+
+
     row(`<b>Masquer ${bev?'la boisson':'le plat'}</b>`,it.hidden?'Masqué sur le site':'','',tgl(!!it.hidden,'itemVis',`data-p="${path}"`))+
     `<div class="rw del">${UI.delc==='i'+path?`<span class="delc">Supprimer « ${esc(nm)} » ?<button class="btn g" data-act="itemDel" data-p="${path}">Oui</button><button class="btn red" data-act="delNo">Non</button></span>`:`<button class="lk red" data-act="delAsk" data-k="i${path}">Supprimer ${bev?'la boisson':'le plat'}</button>`}</div></div></section>`;
   // Téléphone : options sur une ligne (interrupteurs + corbeille), infos alimentaires repliables
   const nb=BADGES.filter(([k])=>it[k]).map(([,l])=>l);
-  const mopts=`<div class="mopts">${bev?'':`<a class="mchip" href="#/incontournables" style="text-decoration:none;color:inherit"><i class="star">★</i><span>${on?'Incontournable n°'+rank:'Incontournables'}</span><span class="chev">›</span></a>`}<div class="mchip"><span>Masqué</span>${tgl(!!it.hidden,'itemVis',`data-p="${path}"`)}</div><button type="button" class="mtrash" data-act="delAsk" data-k="i${path}" aria-label="Supprimer">${I('trash')}</button></div>`+
+  const mopts=`<div class="mopts"><div class="mchip"><span>Masqué</span>${tgl(!!it.hidden,'itemVis',`data-p="${path}"`)}</div><button type="button" class="mtrash" data-act="delAsk" data-k="i${path}" aria-label="Supprimer">${I('trash')}</button></div>`+
     (UI.delc==='i'+path?`<div class="mdel"><span>Supprimer « ${esc(nm)} » ?</span><button class="btn g" data-act="itemDel" data-p="${path}">Oui</button><button class="btn red" data-act="delNo">Non</button></div>`:'')+
     (bev?'':`<div class="mdiet${UI.dietOpen?' open':''}"><button type="button" class="mdiet-h" data-act="dietTog"><b>Informations alimentaires</b><small>${nb.length?nb.length+' sur '+BADGES.length:'Aucune'}</small><span class="chev">›</span></button>${UI.dietOpen?badgeRow(it,ti,ci,ix):''}</div>`);
   const g=it.gallery||[];
@@ -2565,8 +2547,7 @@ function pageSite(){
     fontSel('Police du site (nom et titres)',DATA.restoFont,'root.restoFont','Cormorant Garamond'));
   const menu=card('Menu','plats',
     `<div class="op"><div><b>Affichage du menu</b><small>Sur mobile. Sur ordinateur, toujours la grille.</small></div><div class="seg">${[['list','Liste'],['grid','Grille']].map(([k,l])=>`<button type="button" data-act="viewSet" data-v="${k}" class="${(DATA.defaultView||'list')===k?'on':''}">${l}</button>`).join('')}</div></div>`+
-    opt('Afficher les incontournables',DATA.pinnedShowRail!==false,'rootFlag','data-k="pinnedShowRail"','Le bandeau photo en haut de la première catégorie, '+PIN_MAX+' plats maximum.')+
-    row('Incontournables',`${pinCount()} / ${PIN_MAX}`,'','<a class="lk" href="#/incontournables">Choisir →</a>')+
+
     opt('Afficher le symbole €',DATA.showCurrency!==false,'rootFlag','data-k="showCurrency"')+
     row('Catégories',`${DATA.tabs.length} catégories`,'','<a class="lk" href="#/carte">Gérer →</a>'));
   return mtop('Tableau de bord','dash')+ph('Mon site','Ce que vos clients voient en ouvrant votre site',`<a class="btn w" href="${SITE_URL}" target="_blank" rel="noopener">${I('share')}Voir le site ↗</a>`)+
@@ -2829,7 +2810,7 @@ function pageResaStats(){
 // ══ Rendu ══
 // Mon compte : l'identifiant connecté et la déconnexion (depuis le bas de la barre latérale).
 function pageCompte(){ return mtop('Tableau de bord','dash')+ph('Mon compte','','')+`<div class="pgrid g-1-1"><div>${card('Mon compte','compte',row('Connecté',esc((SESSION&&SESSION.user&&SESSION.user.email)||'—'))+`<div class="acts2" style="justify-content:flex-start"><button class="btn g" data-act="logout">${I('out')}Se déconnecter</button></div>`)}</div></div>`; }
-const PAGES={incontournables:pageInc,compte:pageCompte,messages:pageMessages,dash,resa:pageResa,carte:pageCarte,menus:pageMenus,mdj:pageMdj,formule:pageFormule,tuner:pageTuner,export:pageExport,xprint:pageXprint,xgbiz:pageXgbiz,xinsta:pageXinsta,xcol:pageXcol,comm:pageComm,stats:pageStats,etab:pageEtab,site:pageSite,app:pageApp,secu:pageSecu,clients:pageClients,emails:pageEmails};
+const PAGES={compte:pageCompte,messages:pageMessages,dash,resa:pageResa,carte:pageCarte,menus:pageMenus,mdj:pageMdj,formule:pageFormule,tuner:pageTuner,export:pageExport,xprint:pageXprint,xgbiz:pageXgbiz,xinsta:pageXinsta,xcol:pageXcol,comm:pageComm,stats:pageStats,etab:pageEtab,site:pageSite,app:pageApp,secu:pageSecu,clients:pageClients,emails:pageEmails};
 // Téléphone : même au premier niveau, fil d'Ariane « Accueil › Page » à la place du simple retour
 function levelOneCrumb(html){
   if(html.indexOf('class="crb"')>=0) return html;

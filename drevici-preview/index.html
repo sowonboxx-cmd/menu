@@ -1065,8 +1065,12 @@ body.sched-modal .sched-scrim{opacity:1;visibility:visible;pointer-events:auto}
 .rail-vid,.gc-vid{position:absolute;left:0;top:0;width:100%;object-fit:cover;opacity:0;transition:opacity .35s;pointer-events:none;background:transparent}
 .rail-vid{aspect-ratio:4/5;border-radius:20px}
 .rail-vid.on,.gc-vid.on{opacity:1}
-.gc-vid{display:none;height:100%}
-@media(min-width:641px){.rail-vid{display:none}.gc-vid{display:block}}
+.gc-vid{display:block;height:100%}
+/* (17/11) Toutes les vidéos tournent dans la carte, téléphone compris : un plat
+   avec vidéo s'affiche animé (la photo reste dessous tant qu'elle charge). */
+.dish-vid{position:absolute;left:0;top:0;width:80px;height:80px;border-radius:8px;object-fit:cover;opacity:0;transition:opacity .35s;pointer-events:none}
+.dish-vid.on{opacity:1}
+@media(min-width:641px){.rail-vid{display:none}}
 #lbVid{position:absolute;left:0;top:0;width:100%;aspect-ratio:4/5;object-fit:cover;pointer-events:none;z-index:1}
 #lbVid[hidden]{display:none}
 
@@ -3854,6 +3858,10 @@ const CAT_LIST_ICON = '<svg class="cat-list-ico" viewBox="0 0 24 24" fill="none"
   + '<path d="M10 6.5h10M10 12h10M10 17.5h10" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>'
   + '</svg>';
 function renderCategoryRail(tab){
+  // RÈGLE (17/11) : les incontournables sont retirés du site (bandeau, choix,
+  // menu rapide). Les épingles restent dans les données, inutilisées, au cas
+  // où la fonction reviendrait un jour.
+  return '';
   // Tout le monde ne veut pas d'un bandeau en tete de categorie. Quand
   // il est coupe, la liste commence directement par les plats — les
   // etoiles, elles, restent a cote des noms : choisir ses
@@ -5784,7 +5792,7 @@ function renderTabContent(tab,lbOffset){
     // Pinned dishes on home tab — own mini lightbox
     const pins2=DATA.pinnedDishes||[];
     const pinDishes2=railPins().map(r=>({...r.dish}));
-    if(pinDishes2.length>0&&(DATA.pinnedShowHome!==false)){
+    if(false && pinDishes2.length>0&&(DATA.pinnedShowHome!==false)){ // incontournables retirés (17/11)
       if(view==='grid'){
         html+=`<div class="featured-card incontournables-block" style="border:1.5px solid var(--gold);box-shadow:0 2px 12px rgba(198,162,74,0.12)">
         <div class="featured-label" style="display:flex;align-items:center;gap:6px">
@@ -5903,10 +5911,10 @@ function renderTabContent(tab,lbOffset){
         // compact top-right slot — those keep the price on its own
         // line below the description, same as before this change.
         const gcBody=d.priceType==='dual'
-          ? `<div class="gc-name">${t(d.name)}${(editMode&&isPinnedDish(d))?'&nbsp;<span class="dish-star">\u2605</span>':''}${badges?` <span class="dish-badges" style="display:inline-flex">${badges}</span>`:''}</div><div class="gc-desc">${t(d.desc)}</div><div class="gc-price">${priceHtml}</div>`
-          : `<div class="gc-top-row"><div class="gc-name">${t(d.name)}${(editMode&&isPinnedDish(d))?'&nbsp;<span class="dish-star">\u2605</span>':''}${badges?` <span class="dish-badges" style="display:inline-flex">${badges}</span>`:''}</div>${priceHtml?`<span class="gc-price-inline">${priceHtml}</span>`:''}</div><div class="gc-desc">${t(d.desc)}</div>`;
+          ? `<div class="gc-name">${t(d.name)}${badges?` <span class="dish-badges" style="display:inline-flex">${badges}</span>`:''}</div><div class="gc-desc">${t(d.desc)}</div><div class="gc-price">${priceHtml}</div>`
+          : `<div class="gc-top-row"><div class="gc-name">${t(d.name)}${badges?` <span class="dish-badges" style="display:inline-flex">${badges}</span>`:''}</div>${priceHtml?`<span class="gc-price-inline">${priceHtml}</span>`:''}</div><div class="gc-desc">${t(d.desc)}</div>`;
         gridPids.push(d._pid||null);
-        gridItems.push(`<div class="gc" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${ci}" data-di="${di}"${d.img?` data-lbidx="${idx}"`:''}><div class="gc-wrap">${d.img?`<img class="gc-img" src="${d.img}" alt="${dishAlt(d)}" loading="lazy">`:'<div style="aspect-ratio:1;background:#ece8e1"></div>'}${(d.img&&d.video&&!vidRows.has(Math.floor(gridItems.length/3)))?(vidRows.add(Math.floor(gridItems.length/3)),dishVidHtml(d,'gc-vid')):''}</div><div class="gc-body">${gcBody}</div></div>`);
+        gridItems.push(`<div class="gc" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${ci}" data-di="${di}"${d.img?` data-lbidx="${idx}"`:''}><div class="gc-wrap">${d.img?`<img class="gc-img" src="${d.img}" alt="${dishAlt(d)}" loading="lazy">`:'<div style="aspect-ratio:1;background:#ece8e1"></div>'}${d.video?dishVidHtml(d,'gc-vid'):''}</div><div class="gc-body">${gcBody}</div></div>`);
       });
     });
     // Les incontournables (étoile) passent en tête de la grille, dans l'ordre choisi dans la fiche (1, 2, 3),
@@ -5971,7 +5979,7 @@ function renderTabContent(tab,lbOffset){
           const badges=badgeIconsHtml(d);
           const _cid=tab.cards.indexOf(card); const _did=card.dishes.indexOf(d);
           const priceHtml=dishPriceDisplay(d);
-          html+=`<div class="dish-row${d.img?' dish-row-clickable':''}" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${_cid}" data-di="${_did}"${d.img?` data-lbidx="${idx}"`:''}${di===0?' style="padding-top:0"':''}><div class="dish-text"><div class="dish-top-row"><div class="dish-name-row"><span class="dish-name">${t(d.name)}${(editMode&&isPinnedDish(d))?'&nbsp;<span class="dish-star">\u2605</span>':''}</span>${badges?`<span class="dish-badges">${badges}</span>`:''}</div>${(priceHtml && d.priceType!=='dual')?`<span class="dish-price-inline">${priceHtml}</span>`:''}</div><div class="dish-desc">${t(d.desc)}</div>${(priceHtml && d.priceType==='dual')?`<div class="dish-price">${priceHtml}</div>`:''}</div>${d.img?`<span class="img-wrap"><img class="dish-img" src="${d.img}" alt="${dishAlt(d)}" loading="lazy"></span>`:''}</div>`;
+          html+=`<div class="dish-row${d.img?' dish-row-clickable':''}" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${_cid}" data-di="${_did}"${d.img?` data-lbidx="${idx}"`:''}${di===0?' style="padding-top:0"':''}><div class="dish-text"><div class="dish-top-row"><div class="dish-name-row"><span class="dish-name">${t(d.name)}</span>${badges?`<span class="dish-badges">${badges}</span>`:''}</div>${(priceHtml && d.priceType!=='dual')?`<span class="dish-price-inline">${priceHtml}</span>`:''}</div><div class="dish-desc">${t(d.desc)}</div>${(priceHtml && d.priceType==='dual')?`<div class="dish-price">${priceHtml}</div>`:''}</div>${d.img?`<span class="img-wrap"><img class="dish-img" src="${d.img}" alt="${dishAlt(d)}" loading="lazy">${dishVidHtml(d,'dish-vid')}</span>`:''}</div>`;
         });
         if(editMode) html+=`<button type="button" class="aadd" onclick="addDish(${DATA.tabs.indexOf(tab)},${_ciE})">Ajouter un plat</button>`;
       }
@@ -6767,12 +6775,7 @@ function renderFirstTabExtrasSection(){
         <span class="ig-row-label">Afficher la présentation</span>
         <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${DATA.intro.active?'checked':''} onchange="DATA.intro.active=this.checked;renderAll();renderAdminSection('__global')"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
       </div>
-      <div class="ig-row" style="cursor:default">
-        <span class="ig-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6l2.5 5.2 5.5.8-4 3.9 1 5.5-5-2.7-5 2.7 1-5.5-4-3.9 5.5-.8z"/></svg></span>
-        <span class="ig-row-label"><span>Afficher les incontournables</span><span class="ig-row-hint">Le bandeau photo en haut de la première catégorie : ${PIN_MAX} plats maximum, de n'importe quelle catégorie. <a href="#" onclick="event.preventDefault();openPinPicker()" style="color:var(--ig-blue,#0a84ff);text-decoration:none;font-weight:600">Choisir les plats</a></span></span>
-        <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${DATA.pinnedShowRail!==false?'checked':''} onchange="DATA.pinnedShowRail=this.checked;renderAll();renderAdminSection('__global');scheduleAutoSave(true)"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
-      </div>
-      <div class="ig-row" style="cursor:default">
+            <div class="ig-row" style="cursor:default">
         <span class="ig-row-icon" style="font-family:'Jost',sans-serif;font-weight:700;font-size:15px">€</span>
         <span class="ig-row-label">Afficher la devise (€)</span>
         <label class="ig-switch" style="margin-left:auto"><input type="checkbox" ${DATA.showCurrency!==false?'checked':''} onchange="DATA.showCurrency=this.checked;renderAll()"><span class="ig-switch-track"><span class="ig-switch-thumb"></span></span></label>
@@ -13007,7 +13010,7 @@ function qmOpen(){
   <div class="qm-h"><span></span><b>${name}</b><button type="button" class="qm-x" aria-label="Fermer">${qmIc('x',K,18,2.2)}</button></div>
   <div class="qm-tl">${tile('store','Resto',qmA('etab'))}${tile('chat','Messages',qmA('messages'))}${tile('cal','Résas',qmA('resa'))}${tile('edit','Modifier','', 'edit')}</div>
   <a class="qm-g qm-bt" href="${qmA('resa/boost')}">${qmIc('boost','#d92d20',21,1.8)}<span class="bn">Table Boost</span><span class="bv"><small>Auj.</small> <span id="qmT0">—</span></span><span class="bv"><small>Demain</small> <span id="qmT1">—</span></span>${qmIc('chev','#c7c7cc',16,2)}</a>
-  <div class="qm-two">${blk('La carte',[['list','La carte',qmA('carte')],['menuc','Mes menus',qmA('menus')],['formule','Mes formules',qmA('menus')],['star','Incontournables','','pins']])}${blk('Mes clients',[['users','Fichier clients',qmA('clients')],['mail','Envoyer un email',qmA('emails')],['insta','Publier un post',qmA('comm/social')]])}</div>
+  <div class="qm-two">${blk('La carte',[['list','La carte',qmA('carte')],['menuc','Mes menus',qmA('menus')],['formule','Mes formules',qmA('menus')]])}${blk('Mes clients',[['users','Fichier clients',qmA('clients')],['mail','Envoyer un email',qmA('emails')],['insta','Publier un post',qmA('comm/social')]])}</div>
   ${blk('Studio',[['campaign','Campagnes','studio/#qr'],['chart','Statistiques',qmA('stats')],['event','Événements','studio/#events'],['palette','Charte graphique','charte/'],['calc','Simulateur','studio/#sim'],['shirt','T-shirts','studio/#tshirts'],['shield','Espace admin',qmA('dash')],['todo','To-do','studio/#todo']],true)}
   <div class="qm-cap">Réglages</div><div class="qm-g">${row('image','Apparence','Accueil, menu, couleurs',qmA('site'))}${row('media','Médias','Photos et vidéos',qmA('carte'))}${row('lock','Sécurité','',qmA('secu'))}</div>
   </div>`;
