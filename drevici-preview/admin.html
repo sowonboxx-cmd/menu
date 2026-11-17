@@ -1888,7 +1888,10 @@ function pageItem(ti,ci,ix){
     (UI.delc==='i'+path?`<div class="mdel"><span>Supprimer « ${esc(nm)} » ?</span><button class="btn g" data-act="itemDel" data-p="${path}">Oui</button><button class="btn red" data-act="delNo">Non</button></div>`:'')+
     (bev?'':`<div class="mdiet${UI.dietOpen?' open':''}"><button type="button" class="mdiet-h" data-act="dietTog"><b>Informations alimentaires</b><small>${nb.length?nb.length+' sur '+BADGES.length:'Aucune'}</small><span class="chev">›</span></button>${UI.dietOpen?badgeRow(it,ti,ci,ix):''}</div>`);
   const g=it.gallery||[];
-  const media=cardI('Photo principale','acc','photo',`<div class="slots one">${upSlot(it.img,path,'main',bev?'La bouteille ou le verre':'Le plat seul')}</div>`)+
+  const thOpts=[['','Photo 1']].concat(g.map((u,k)=>u?['g'+k,'Photo '+(k+2)]:null).filter(Boolean));
+  const thCur=/^g\d$/.test(it.thumb||'')&&g[+String(it.thumb).slice(1)]?it.thumb:'';
+  const thumbPick=bev?'':`<div class="op" style="margin-top:12px"><div><b>Photo affichée dans la carte</b><small>La fiche du plat, en grand, garde la photo 1. Ex : photo 1 sur fond blanc, photo 2 sur fond marron pour la carte.</small></div>${segb(thOpts,thCur,'itemThumb',`data-p="${path}"`)}</div>`;
+  const media=cardI('Photo principale','acc','photo',`<div class="slots one">${upSlot(it.img,path,'main',bev?'La bouteille ou le verre':'Le plat seul')}</div>${thumbPick}`)+
     (bev?'':`<section class="list pc" id="b-vue"><div class="bh"><span class="ico">${I('vue')}</span>Vidéo (facultative)</div><div class="pb">${can('videos')?`<div class="slots one">${vidSlot(it.video,path)}</div>`:`<p style="margin:0;color:var(--mut)">Faites vivre vos plats : un court clip qui tourne à la place de la photo. Inclus dans la formule <b>Master</b>.</p>`}</div></section>`)+
     cardI('Galerie réseaux sociaux','post','galerie',`<div class="slots">${[0,1,2].map(k=>upSlot(g[k],path,'g'+k,'Photo '+(k+2))).join('')}</div>`)+
     cardI('Description Instagram','post','caption',fTa('Caption · description pré-enregistrée',it.caption||'',`${P}.caption`,bev?'Ex : Notre sélection du moment 🍷':'Ex : Nos huîtres Spéciales N°3 — iodées, fraîches, servies sur glace 🦪','w cap')+
@@ -3073,6 +3076,7 @@ document.addEventListener('click',async e=>{
     case 'szAdd': { const {it}=itemAt(d.p); if(!Array.isArray(it.sizes)) it.sizes=[]; it.sizes.push({format:'',cl:'',unit:'cl',price:''}); touch(true); break; }
     case 'szDel': { const {it}=itemAt(d.p); it.sizes.splice(+d.si,1); touch(true); break; }
     case 'itemVidDel': { const {it}=itemAt(d.p); delete it.video; touch(true); break; }
+    case 'itemThumb': { const {it}=itemAt(d.p); if(d.v) it.thumb=d.v; else delete it.thumb; touch(true); break; }
     case 'itemImgDel': { const {it}=itemAt(d.p); if(d.slot==='main') it.img=''; else { const g=it.gallery||[]; g[+d.slot.slice(1)]=''; it.gallery=g; } touch(true); break; }
     case 'copySite': try{ navigator.clipboard.writeText(SITE_URL); toast('Lien copié'); }catch(e){ toast(SITE_URL); } break;
     case 'jourFlag': sp[d.k]=!(d.k==='showHome'?sp.showHome!==false:!!sp[d.k]); touch(true); break;

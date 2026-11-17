@@ -3162,6 +3162,14 @@ function gallerySlots(gallery){
   let last=-1; (gallery||[]).forEach((g,i)=>{ if(g) last=i; });
   return Math.max(GALLERY_MAX, last+1);
 }
+// ---- Photo affichée dans la carte (photo 1 par défaut, ou une photo de la galerie) ----
+function efThumbField(d){
+  const cur=/^g\d$/.test(d.thumb||'')?d.thumb:'';
+  const opts=[['','Photo 1']].concat((d.gallery||[]).map((g,i)=>g?['g'+i,'Photo '+(i+2)]:null).filter(Boolean));
+  return `<div class="ef"><label class="el">Photo affichée dans la carte</label>
+    <select class="ei" id="ed-thumb">${opts.map(([v,l])=>`<option value="${v}"${v===cur?' selected':''}>${l}</option>`).join('')}</select>
+    <div style="font-size:11.5px;line-height:1.45;color:var(--text3);margin-top:4px">La fiche du plat, en grand, montre toujours la photo 1. Ajoutez d'abord la photo dans la galerie ci-dessous pour pouvoir la choisir.</div></div>`;
+}
 // ---- Popup gallery field (photos 2 et 3, used for social posts) ----
 function efGalleryField(gallery){
   gallery=gallery||[];
@@ -3424,6 +3432,7 @@ function openEditDish(ti,ci,di){
   h+=`<div class="ef" style="margin-top:-6px;font-size:11.5px;line-height:1.45;color:var(--text3)">${SLOT_HINT}</div>`;
   h+=efVidField(d.video||'');
   h+=efBadgesField(d);
+  h+=efThumbField(d);
   h+=efSocialAccordion(d.gallery||[], d.caption||'', 'Ex: Nos huîtres Spéciales N°3 — iodées, fraîches, servies sur glace 🦪 Disponibles au bar ou à emporter.');
   // Masquer / Supprimer ferment la fiche, comme dans le panneau admin :
   // on ne met pas une action destructrice sur le trajet du regard.
@@ -3542,6 +3551,7 @@ function saveEditPop(silent){
       if(document.getElementById('ed-short')){ const sh=v('ed-short').trim(); if(sh) d.short=sh; else delete d.short; }
       if(document.getElementById('ed-fy')){ const fy=+v('ed-fy')||0, fz=(+v('ed-fz')||100)/100; if(fy) d.sheetY=fy; else delete d.sheetY; if(fz<1) d.sheetZ=fz; else delete d.sheetZ; }
       d.gallery=readGalleryFields();
+      if(document.getElementById('ed-thumb')){ const th=v('ed-thumb'); const m=/^g(\d)$/.exec(th); if(m && d.gallery[+m[1]]) d.thumb=th; else delete d.thumb; }
       d.caption=v('ed-caption');
       readBadgeFields(d);
     } else if(type==='variants'){
@@ -3731,6 +3741,15 @@ function dishAlt(item){
   // par lettre par certains lecteurs d'ecran : on le remet en casse titre.
   if(resto && resto===resto.toUpperCase()) resto=resto.toLowerCase().replace(/(^|[\s'’-])(\S)/g,(m,a,c)=>a+c.toUpperCase());
   return escAttr(nom && resto ? nom+' — '+resto : (nom || resto));
+}
+// Photo du menu (17/11) : chaque plat peut afficher dans la carte (cases, liste,
+// vignettes de la fiche) une autre de ses photos que la photo 1 — ex. la version
+// sur fond marron — tandis que la fiche en grand garde la photo 1 (fond blanc).
+// d.thumb = '' (photo 1) ou 'g0', 'g1'… (photos 2, 3… de la galerie).
+function dishThumb(d){
+  if(!d) return '';
+  const m=/^g(\d)$/.exec(d.thumb||''); const g=m&&(d.gallery||[])[+m[1]];
+  return g||d.img||'';
 }
 function isPinnedDish(d){
   if(!d || !d._pid) return false;
@@ -5940,7 +5959,7 @@ function renderTabContent(tab,lbOffset){
           ? `<div class="gc-name">${t(d.name)}${badges?` <span class="dish-badges" style="display:inline-flex">${badges}</span>`:''}</div><div class="gc-desc">${t(d.desc)}</div><div class="gc-price">${priceHtml}</div>`
           : `<div class="gc-top-row"><div class="gc-name">${t(d.name)}${badges?` <span class="dish-badges" style="display:inline-flex">${badges}</span>`:''}</div>${priceHtml?`<span class="gc-price-inline">${priceHtml}</span>`:''}</div><div class="gc-desc">${t(d.desc)}</div>`;
         gridPids.push(d._pid||null);
-        gridItems.push(`<div class="gc" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${ci}" data-di="${di}"${d.img?` data-lbidx="${idx}"`:''}><div class="gc-wrap">${d.img?`<img class="gc-img" src="${d.img}" alt="${dishAlt(d)}" loading="lazy">`:'<div style="aspect-ratio:1;background:#ece8e1"></div>'}${d.video?dishVidHtml(d,'gc-vid'):''}</div><div class="gc-body">${gcBody}</div></div>`);
+        gridItems.push(`<div class="gc" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${ci}" data-di="${di}"${d.img?` data-lbidx="${idx}"`:''}><div class="gc-wrap">${d.img?`<img class="gc-img" src="${dishThumb(d)}" alt="${dishAlt(d)}" loading="lazy">`:'<div style="aspect-ratio:1;background:#ece8e1"></div>'}${d.video?dishVidHtml(d,'gc-vid'):''}</div><div class="gc-body">${gcBody}</div></div>`);
       });
     });
     // Les incontournables (étoile) passent en tête de la grille, dans l'ordre choisi dans la fiche (1, 2, 3),
@@ -6005,7 +6024,7 @@ function renderTabContent(tab,lbOffset){
           const badges=badgeIconsHtml(d);
           const _cid=tab.cards.indexOf(card); const _did=card.dishes.indexOf(d);
           const priceHtml=dishPriceDisplay(d);
-          html+=`<div class="dish-row${d.img?' dish-row-clickable':''}" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${_cid}" data-di="${_did}"${d.img?` data-lbidx="${idx}"`:''}${di===0?' style="padding-top:0"':''}><div class="dish-text"><div class="dish-top-row"><div class="dish-name-row"><span class="dish-name">${t(d.name)}</span>${badges?`<span class="dish-badges">${badges}</span>`:''}</div>${(priceHtml && d.priceType!=='dual')?`<span class="dish-price-inline">${priceHtml}</span>`:''}</div><div class="dish-desc">${t(d.desc)}</div>${(priceHtml && d.priceType==='dual')?`<div class="dish-price">${priceHtml}</div>`:''}</div>${d.img?`<span class="img-wrap"><img class="dish-img" src="${d.img}" alt="${dishAlt(d)}" loading="lazy">${dishVidHtml(d,'dish-vid')}</span>`:''}</div>`;
+          html+=`<div class="dish-row${d.img?' dish-row-clickable':''}" data-edit="dish" data-ti="${DATA.tabs.indexOf(tab)}" data-ci="${_cid}" data-di="${_did}"${d.img?` data-lbidx="${idx}"`:''}${di===0?' style="padding-top:0"':''}><div class="dish-text"><div class="dish-top-row"><div class="dish-name-row"><span class="dish-name">${t(d.name)}</span>${badges?`<span class="dish-badges">${badges}</span>`:''}</div>${(priceHtml && d.priceType!=='dual')?`<span class="dish-price-inline">${priceHtml}</span>`:''}</div><div class="dish-desc">${t(d.desc)}</div>${(priceHtml && d.priceType==='dual')?`<div class="dish-price">${priceHtml}</div>`:''}</div>${d.img?`<span class="img-wrap"><img class="dish-img" src="${dishThumb(d)}" alt="${dishAlt(d)}" loading="lazy">${dishVidHtml(d,'dish-vid')}</span>`:''}</div>`;
         });
         if(editMode) html+=`<button type="button" class="aadd" onclick="addDish(${DATA.tabs.indexOf(tab)},${_ciE})">Ajouter un plat</button>`;
       }
@@ -13147,7 +13166,7 @@ function dshItems(tab){
     }
     (card.dishes||[]).forEach((d,di)=>{
       if(d.hidden || !d.img) return;
-      out.push({kind:'dish', ci, di, group:'tab', name:t(d.name)||'', desc:t(d.desc)||'', img:d.img, video:d.video||'', short:t(d.short)||'', prices:dshDishPrices(d), fy:+d.sheetY||0, fz:Math.min(1,+d.sheetZ||1)});
+      out.push({kind:'dish', ci, di, group:'tab', name:t(d.name)||'', desc:t(d.desc)||'', img:d.img, tm:dishThumb(d), video:d.video||'', short:t(d.short)||'', prices:dshDishPrices(d), fy:+d.sheetY||0, fz:Math.min(1,+d.sheetZ||1)});
     });
   });
   dshShorts(out.filter(e=>e.group==='tab'), 12);
@@ -13357,7 +13376,7 @@ function dshRender(first){
   h+='<div class="dsh-tabs">'+tabs.map(tb=>`<button type="button" data-dsh="tab" data-tab="${escAttr(tb.id)}"${tb.id===tab.id?' class="on"':''}>${t(tb.label)}</button>`).join('')+'</div>';
   // Vignettes (la catégorie est déjà dans les onglets : plus de ligne « TARTINADES 1 / 10 »)
   const lab=isBev?(e.fam||t(tab.label)):t(tab.label);
-  const thumb=(o,extra)=>`<button type="button" class="dsh-t${o.i===dshState.i?' on':''}" data-dsh="item" data-i="${o.i}"><div class="im" style="background-image:url('${escAttr(o.x.img)}')"></div><p>${o.x.short}</p></button>`;
+  const thumb=(o,extra)=>`<button type="button" class="dsh-t${o.i===dshState.i?' on':''}" data-dsh="item" data-i="${o.i}"><div class="im" style="background-image:url('${escAttr(o.x.tm||o.x.img)}')"></div><p>${o.x.short}</p></button>`;
   if(isBev){
     h+=`<div class="dsh-lab"><span>${lab}</span><b>${pos+1} / ${grp.length}</b></div>`;
     h+=`<div class="dsh-grid n${Math.min(grp.length,3)}">`+grp.map(o=>{
@@ -13372,7 +13391,7 @@ function dshRender(first){
     } else {
       const st=Math.max(0,Math.min(pos-1,grp.length-4)), shown=grp.slice(st,st+3), rest=grp.length-3, nxt=grp[st+3]||grp[0];
       h+='<div class="dsh-th">'+shown.map(o=>thumb(o)).join('')
-        +`<button type="button" class="dsh-t dsh-more" data-dsh="all"><div class="im"><i style="background-image:url('${escAttr(nxt.x.img)}')"></i><b>+${rest}</b></div><p>${lang==='en'?'See all':'Tout voir'}</p></button></div>`;
+        +`<button type="button" class="dsh-t dsh-more" data-dsh="all"><div class="im"><i style="background-image:url('${escAttr(nxt.x.tm||nxt.x.img)}')"></i><b>+${rest}</b></div><p>${lang==='en'?'See all':'Tout voir'}</p></button></div>`;
       h+=`<div class="dsh-all"><div class="dsh-all-hd"><button type="button" data-dsh="allx" aria-label="${lang==='en'?'Close':'Réduire'}"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5L9 11l4.5-4.5"/></svg></button></div><div class="dsh-all-gd">`+grp.map(o=>thumb(o)).join('')+'</div></div>';
     }
     // Détail complet quand le texte est coupé
