@@ -1251,6 +1251,15 @@ input.in.hr{width:76px;text-align:center;padding:8px 10px;font-size:15px;font-we
 .st-empty{color:var(--mut);font-size:13.5px;padding:6px 0}
 @media(max-width:899px){.st-k{grid-template-columns:1fr 1fr;gap:9px}.st-k .n{font-size:25px}.st-g{grid-template-columns:1fr}.st-bars{height:100px}.st-seg button{padding:7px 11px}}
 .trialbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 14px;padding:8px 12px;border-radius:12px;background:#fff1cc;color:#6b4300;font-size:13px;font-weight:600}.trialbar span{margin-right:4px}.trialbar a{padding:4px 12px;border-radius:99px;background:rgba(107,67,0,.1);color:inherit;text-decoration:none}.trialbar a.on{background:#6b4300;color:#fff}.trialbar a.back{margin-left:auto;background:none;text-decoration:underline}
+.it.inc{display:flex;align-items:center;gap:10px}
+.it.inc.on{background:rgba(198,162,74,.09);border-radius:12px;margin-bottom:4px}
+.it.inc.off .ith,.it.inc.off .it-n b{opacity:.5}
+.it.inc .it-n{display:flex;flex-direction:column;flex:1;min-width:0}
+.it.inc .it-n small{font-size:12px;color:var(--mut)}
+.inc-k{width:20px;text-align:center;color:#c6a24a;font-size:15px;flex:none}
+.inc-st{width:40px;height:40px;border:none;background:none;font-size:22px;line-height:1;color:#c9c9ce;cursor:pointer;flex:none}
+.inc-st.on{color:#c6a24a}
+.it.inc .mvs{display:flex}
 </style>
 </head>
 <body>
@@ -1685,6 +1694,7 @@ function pageMenus(){
 }
 function findF(id){ return DATA.formules.find(f=>f.id===id); }
 function pageFormule(){
+  if(!ARG) return pageMenus(); // lien « Mes formules » sans menu précis : la liste
   const f=findF(ARG); if(!f) return mtop('Mes menus','menus')+'<div class="empty">Ce menu n\'existe plus. <a class="lk" href="#/menus">Retour</a></div>';
   const fi=DATA.formules.indexOf(f);
   const del=UI.delc===f.id?`<span class="delc">Supprimer ce menu ?<button class="btn g" data-act="fDelNo">Annuler</button><button class="btn red" data-act="fDelYes">Oui, supprimer</button></span>`:btn('Supprimer','','g','data-act="fDelAsk"');
@@ -1783,9 +1793,14 @@ const setL=(o,v)=>{ if(!o||typeof o!=='object') o={fr:typeof o==='string'?o:''};
 const phL=(o,def)=>LG()==='fr'?def:(tr(o)||def);
 const isBevCard=c=>c&&(c.type==='bevs'||Array.isArray(c.items));
 const itemsOf=c=>isBevCard(c)?(c.items||(c.items=[])):(c.dishes||(c.dishes=[]));
-const PIN_MAX=3;
+// RÈGLE (17/11) : incontournables GLOBAUX, 5 au maximum, plats de n'importe
+// quelle catégorie, affichés en tête de la PREMIÈRE catégorie du site. Ils se
+// choisissent dans une seule liste (page « Incontournables »), plus plat par plat.
+const PIN_MAX=5;
 const pinOn=(d)=>!!(d&&d._pid&&(DATA.pinnedDishes||[]).some(p=>p.pid===d._pid));
-const pinCount=tabId=>(DATA.pinnedDishes||[]).filter(p=>p.tabId===tabId).length;
+function pinFind(pid){ const T=DATA.tabs||[]; for(let ti=0;ti<T.length;ti++){ const C=T[ti].cards||[]; for(let ci=0;ci<C.length;ci++){ if(isBevCard(C[ci])) continue; const D=C[ci].dishes||[]; for(let ix=0;ix<D.length;ix++) if(D[ix]._pid===pid) return {ti,ci,ix,it:D[ix],tb:T[ti]}; } } return null; }
+const pinList=()=>(DATA.pinnedDishes||[]).map(p=>({p,x:pinFind(p.pid)})).filter(o=>o.x);
+const pinCount=()=>pinList().length;
 const newPid=()=>'d_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
 function priceLabel(it){
   if(it.priceType==='dual') return `${it.qty1||'?'} · ${it.p1||'?'} € — ${it.qty2||'?'} · ${it.p2||'?'} €`;
@@ -1822,7 +1837,7 @@ function pageCarte(){
     const head=titled?`<div class="sc-h${c.hidden?' off':''}"><input class="in" value="${esc(trL(c.label))}" data-bind="cardL.${ti}.${ci}" placeholder="${esc(phL(c.label,'Nom de la sous-catégorie'))}">
       <div class="sgrp"><button type="button" class="sg-mv" data-act="cardMove" data-ti="${ti}" data-ci="${ci}" data-d="-1" title="Monter">${I('aup')}</button><button type="button" class="sg-mv" data-act="cardMove" data-ti="${ti}" data-ci="${ci}" data-d="1" title="Descendre">${I('adown')}</button><button type="button" data-act="cardVis" data-ti="${ti}" data-ci="${ci}" title="${c.hidden?'Afficher':'Masquer'}">${I(c.hidden?'eyeoff':'eye')}</button><button type="button" class="r" data-act="delAsk" data-k="c${ti}.${ci}" title="Supprimer">${I('trash')}</button></div></div>
       ${UI.delc===`c${ti}.${ci}`?`<div class="mdel" style="display:flex;margin:0 0 6px"><span>Supprimer « ${esc(tr(c.label))||'cette sous-catégorie'} » et ${its.length} élément${its.length>1?'s':''} ?</span><button class="btn g" data-act="cardDel" data-ti="${ti}" data-ci="${ci}">Oui</button><button class="btn red" data-act="delNo">Non</button></div>`:''}`:'';
-    const rows=its.map((it,ix)=>`<a class="it${it.hidden?' off':''}" href="#/carte/${ti}/${ci}/${ix}">${thumb(it.img)}<span class="it-n"><b>${esc(tr(it.name))||'(sans nom)'}${pinOn(it)?' <i class="star" title="Favori">★</i>':''}</b></span><span class="it-p num">${it.priceType==='dual'?`<span class="pfull">${esc(priceLabel(it))}</span><span class="pshort">${esc((it.qty1||'?')+' · '+(it.p1||'?')+' €')}</span>`:(it.sizes||[]).length>1?`<span class="pfull">${esc(priceLabel(it))}</span><span class="pshort">${esc(priceLabel({sizes:[it.sizes[0]]}))}</span>`:esc(priceLabel(it))}</span>${it.hidden?pill('Masqué'):''}<span class="mvs sgrp sm"><button type="button" data-act="itemMove" data-ti="${ti}" data-ci="${ci}" data-ix="${ix}" data-d="-1" title="Monter">${I('aup')}</button><button type="button" data-act="itemMove" data-ti="${ti}" data-ci="${ci}" data-ix="${ix}" data-d="1" title="Descendre">${I('adown')}</button></span><span class="chev">›</span></a>`).join('');
+    const rows=its.map((it,ix)=>`<a class="it${it.hidden?' off':''}" href="#/carte/${ti}/${ci}/${ix}">${thumb(it.img)}<span class="it-n"><b>${esc(tr(it.name))||'(sans nom)'}</b></span><span class="it-p num">${it.priceType==='dual'?`<span class="pfull">${esc(priceLabel(it))}</span><span class="pshort">${esc((it.qty1||'?')+' · '+(it.p1||'?')+' €')}</span>`:(it.sizes||[]).length>1?`<span class="pfull">${esc(priceLabel(it))}</span><span class="pshort">${esc(priceLabel({sizes:[it.sizes[0]]}))}</span>`:esc(priceLabel(it))}</span>${it.hidden?pill('Masqué'):''}<span class="mvs sgrp sm"><button type="button" data-act="itemMove" data-ti="${ti}" data-ci="${ci}" data-ix="${ix}" data-d="-1" title="Monter">${I('aup')}</button><button type="button" data-act="itemMove" data-ti="${ti}" data-ci="${ci}" data-ix="${ix}" data-d="1" title="Descendre">${I('adown')}</button></span><span class="chev">›</span></a>`).join('');
     return `<div class="sc">${head}${rows||`<div class="empty">${bev?'Aucune boisson.':'Aucun plat.'}</div>`}<button type="button" class="lk add" data-act="itemAdd" data-ti="${ti}" data-ci="${ci}">＋ ${bev?'Ajouter une boisson':'Ajouter un plat'}</button></div>`;
   }).join('');
   const isBevTab=(tb.cards||[]).length&&(tb.cards||[]).every(isBevCard);
@@ -1864,16 +1879,19 @@ function pageItem(ti,ci,ix){
     '')+(bev?'':`<section class="list pc plain diet desk"><div class="pb"><div class="grp-t">Informations alimentaires</div>${badgeRow(it,ti,ci,ix)}</div></section>`);
   const mainP=main.replace(/<div class="bh">[\s\S]*?<\/div>/,'').replace('class="list pc"','class="list pc nohd"');
   const acts=`<section class="list pc plain"><div class="pb">`+
-    (bev?'':row(`<b><i class="star">★</i> Favori ${infoBtn('pin')}</b>`,'','',tgl(on,'pinTog',`data-p="${path}"`)))+
+
     row(`<b>Masquer ${bev?'la boisson':'le plat'}</b>`,it.hidden?'Masqué sur le site':'','',tgl(!!it.hidden,'itemVis',`data-p="${path}"`))+
     `<div class="rw del">${UI.delc==='i'+path?`<span class="delc">Supprimer « ${esc(nm)} » ?<button class="btn g" data-act="itemDel" data-p="${path}">Oui</button><button class="btn red" data-act="delNo">Non</button></span>`:`<button class="lk red" data-act="delAsk" data-k="i${path}">Supprimer ${bev?'la boisson':'le plat'}</button>`}</div></div></section>`;
   // Téléphone : options sur une ligne (interrupteurs + corbeille), infos alimentaires repliables
   const nb=BADGES.filter(([k])=>it[k]).map(([,l])=>l);
-  const mopts=`<div class="mopts">${bev?'':`<div class="mchip"><i class="star">★</i><span>Favori</span>${tgl(on,'pinTog',`data-p="${path}"`)}</div>`}<div class="mchip"><span>Masqué</span>${tgl(!!it.hidden,'itemVis',`data-p="${path}"`)}</div><button type="button" class="mtrash" data-act="delAsk" data-k="i${path}" aria-label="Supprimer">${I('trash')}</button></div>`+
+  const mopts=`<div class="mopts"><div class="mchip"><span>Masqué</span>${tgl(!!it.hidden,'itemVis',`data-p="${path}"`)}</div><button type="button" class="mtrash" data-act="delAsk" data-k="i${path}" aria-label="Supprimer">${I('trash')}</button></div>`+
     (UI.delc==='i'+path?`<div class="mdel"><span>Supprimer « ${esc(nm)} » ?</span><button class="btn g" data-act="itemDel" data-p="${path}">Oui</button><button class="btn red" data-act="delNo">Non</button></div>`:'')+
     (bev?'':`<div class="mdiet${UI.dietOpen?' open':''}"><button type="button" class="mdiet-h" data-act="dietTog"><b>Informations alimentaires</b><small>${nb.length?nb.length+' sur '+BADGES.length:'Aucune'}</small><span class="chev">›</span></button>${UI.dietOpen?badgeRow(it,ti,ci,ix):''}</div>`);
   const g=it.gallery||[];
-  const media=cardI('Photo principale','acc','photo',`<div class="slots one">${upSlot(it.img,path,'main',bev?'La bouteille ou le verre':'Le plat seul')}</div>`)+
+  const thOpts=[['','Photo 1']].concat(g.map((u,k)=>u?['g'+k,'Photo '+(k+2)]:null).filter(Boolean));
+  const thCur=/^g\d$/.test(it.thumb||'')&&g[+String(it.thumb).slice(1)]?it.thumb:'';
+  const thumbPick=bev?'':`<div class="op" style="margin-top:12px"><div><b>Photo affichée dans la carte</b><small>La fiche du plat, en grand, garde la photo 1. Ex : photo 1 sur fond blanc, photo 2 sur fond marron pour la carte.</small></div>${segb(thOpts,thCur,'itemThumb',`data-p="${path}"`)}</div>`;
+  const media=cardI('Photo principale','acc','photo',`<div class="slots one">${upSlot(it.img,path,'main',bev?'La bouteille ou le verre':'Le plat seul')}</div>${thumbPick}`)+
     (bev?'':`<section class="list pc" id="b-vue"><div class="bh"><span class="ico">${I('vue')}</span>Vidéo (facultative)</div><div class="pb">${can('videos')?`<div class="slots one">${vidSlot(it.video,path)}</div>`:`<p style="margin:0;color:var(--mut)">Faites vivre vos plats : un court clip qui tourne à la place de la photo. Inclus dans la formule <b>Master</b>.</p>`}</div></section>`)+
     cardI('Galerie réseaux sociaux','post','galerie',`<div class="slots">${[0,1,2].map(k=>upSlot(g[k],path,'g'+k,'Photo '+(k+2))).join('')}</div>`)+
     cardI('Description Instagram','post','caption',fTa('Caption · description pré-enregistrée',it.caption||'',`${P}.caption`,bev?'Ex : Notre sélection du moment 🍷':'Ex : Nos huîtres Spéciales N°3 — iodées, fraîches, servies sur glace 🦪','w cap')+
@@ -1889,8 +1907,8 @@ function fmtPhone(p){ const d=String(p||'').replace(/\D/g,''); return d.length==
 function restoSig(){ const a=DATA.address||{}; const L=[]; const nm=DATA.restaurantName||'Mon restaurant'; L.push((/oyster|huître|huitre/i.test(nm)?'🦪 ':'🍽️ ')+nm);
   const ad=[a.street,[a.zip,a.city].filter(Boolean).join(' ')].filter(Boolean).join(', '); if(ad) L.push('📍 '+ad);
   if(a.phone) L.push('📞 '+fmtPhone(a.phone)); L.push('🗓️ Réservation : lien en bio'); return L.join('\n'); }
-const pinsOf=tabId=>(DATA.pinnedDishes||[]).filter(p=>p.tabId===tabId);
-const pinRank=(tabId,pid)=>pinsOf(tabId).findIndex(p=>p.pid===pid)+1;
+const pinsOf=()=>pinList().map(o=>o.p);
+const pinRank=(tabId,pid)=>pinsOf().findIndex(p=>p.pid===pid)+1;
 function setPinRank(tabId,pid,r){ const all=DATA.pinnedDishes||[]; const i=all.findIndex(p=>p.pid===pid); if(i<0) return; const [me]=all.splice(i,1);
   const mine=all.map((p,k)=>[p,k]).filter(([p])=>p.tabId===tabId); const at=r-1<mine.length?mine[r-1][1]:(mine.length?mine[mine.length-1][1]+1:all.length); all.splice(at,0,me); }
 function infoModal(k,x){
@@ -2532,8 +2550,7 @@ function pageSite(){
     fontSel('Police du site (nom et titres)',DATA.restoFont,'root.restoFont','Cormorant Garamond'));
   const menu=card('Menu','plats',
     `<div class="op"><div><b>Affichage du menu</b><small>Sur mobile. Sur ordinateur, toujours la grille.</small></div><div class="seg">${[['list','Liste'],['grid','Grille']].map(([k,l])=>`<button type="button" data-act="viewSet" data-v="${k}" class="${(DATA.defaultView||'list')===k?'on':''}">${l}</button>`).join('')}</div></div>`+
-    opt('Afficher les favoris',DATA.pinnedShowRail!==false,'rootFlag','data-k="pinnedShowRail"','Le bandeau photo en haut de chaque catégorie. Les étoiles restent sur les plats.')+
-    opt('Favoris sur l\'accueil',DATA.pinnedShowHome!==false,'rootFlag','data-k="pinnedShowHome"')+
+
     opt('Afficher le symbole €',DATA.showCurrency!==false,'rootFlag','data-k="showCurrency"')+
     row('Catégories',`${DATA.tabs.length} catégories`,'','<a class="lk" href="#/carte">Gérer →</a>'));
   return mtop('Tableau de bord','dash')+ph('Mon site','Ce que vos clients voient en ouvrant votre site',`<a class="btn w" href="${SITE_URL}" target="_blank" rel="noopener">${I('share')}Voir le site ↗</a>`)+
@@ -3047,11 +3064,19 @@ document.addEventListener('click',async e=>{
     case 'dietTog': UI.dietOpen=!UI.dietOpen; render(); break;
     case 'itemDel': { const x=itemAt(d.p); if(x.it._pid) DATA.pinnedDishes=(DATA.pinnedDishes||[]).filter(q=>q.pid!==x.it._pid); x.arr.splice(x.ix,1); UI.delc=null; touch(true); go('carte/'+x.ti); break; }
     case 'itemDual': { const {it}=itemAt(d.p); if(it.priceType==='dual'){ it.priceType=''; it.price=it.p1?fmtEur(it.p1)+'€':''; } else { const n=priceNum(it.price); it.priceType='dual'; if(!it.p1&&n) it.p1=n; dualSync(it); } touch(true); break; }
+    case 'incTog': { const pins=DATA.pinnedDishes||(DATA.pinnedDishes=[]);
+      if(d.pid){ const k=pins.findIndex(q=>q.pid===d.pid); if(k>=0) pins.splice(k,1); touch(true); break; }
+      if(pinCount()>=PIN_MAX){ toast(PIN_MAX+' incontournables maximum : retirez-en un d\'abord'); break; }
+      const [ti,ci,ix]=d.p.split('.').map(Number); const it=DATA.tabs[ti].cards[ci].dishes[ix]; if(!it._pid) it._pid=newPid();
+      pins.push({tabId:DATA.tabs[ti].id,pid:it._pid,name:tr(it.name)}); touch(true); break; }
+    case 'incMove': { const L=pinList().map(o=>o.p), k=+d.k, j=k+(+d.d); if(j<0||j>=L.length) break; [L[k],L[j]]=[L[j],L[k]];
+      const rest=(DATA.pinnedDishes||[]).filter(p=>!L.includes(p)); DATA.pinnedDishes=L.concat(rest); touch(true); break; }
     case 'pinTog': { const x=itemAt(d.p), tid=DATA.tabs[x.ti].id; if(!x.it._pid) x.it._pid=newPid(); const pins=DATA.pinnedDishes||(DATA.pinnedDishes=[]); const k=pins.findIndex(q=>q.pid===x.it._pid);
       if(k>=0) pins.splice(k,1); else if(pinCount(tid)>=PIN_MAX){ toast(PIN_MAX+' favoris maximum par catégorie'); UI.info='pin'; render(); break; } else { pins.push({tabId:tid,pid:x.it._pid,name:tr(x.it.name)}); UI.info='pin'; } touch(true); break; }
     case 'szAdd': { const {it}=itemAt(d.p); if(!Array.isArray(it.sizes)) it.sizes=[]; it.sizes.push({format:'',cl:'',unit:'cl',price:''}); touch(true); break; }
     case 'szDel': { const {it}=itemAt(d.p); it.sizes.splice(+d.si,1); touch(true); break; }
     case 'itemVidDel': { const {it}=itemAt(d.p); delete it.video; touch(true); break; }
+    case 'itemThumb': { const {it}=itemAt(d.p); if(d.v) it.thumb=d.v; else delete it.thumb; touch(true); break; }
     case 'itemImgDel': { const {it}=itemAt(d.p); if(d.slot==='main') it.img=''; else { const g=it.gallery||[]; g[+d.slot.slice(1)]=''; it.gallery=g; } touch(true); break; }
     case 'copySite': try{ navigator.clipboard.writeText(SITE_URL); toast('Lien copié'); }catch(e){ toast(SITE_URL); } break;
     case 'jourFlag': sp[d.k]=!(d.k==='showHome'?sp.showHome!==false:!!sp[d.k]); touch(true); break;
