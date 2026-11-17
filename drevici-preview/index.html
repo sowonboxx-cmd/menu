@@ -5660,6 +5660,11 @@ function renderInfoBanner(ib){
       }
     }
     if(!isDragging||dir===0) return;
+    // (17/11) Plus de page « flottante » sous le doigt : dès que le geste est
+    // clairement horizontal, la bascule part toute seule jusqu'au bout (comme
+    // les onglets de X / Twitter). On ne peut plus s'arrêter entre deux catégories.
+    if(Math.abs(dx)>40){ swipeCommit(); return; }
+    return;
     // Move both panels together with the finger — the neighbour follows
     // right along at its fixed offset, so it visibly slides in as the
     // active panel slides out, instead of a cut between two states.
@@ -5674,8 +5679,26 @@ function renderInfoBanner(ib){
     }
   },{passive:true});
 
+  let swipeDone=false;
+  function swipeCommit(){
+    if(swipeDone||!activeEl||!neighborEl||dir===0) return;
+    swipeDone=true; dragLocked=true;
+    const W=window.innerWidth;
+    const vis=DATA.tabs.filter(tb=>tb.visible!==false);
+    const idx=vis.findIndex(tb=>tb.id===currentTabId);
+    const newIdx=idx+dir;
+    if(newIdx<0||newIdx>=vis.length){ swipeDone=false; cleanupSlide(); return; }
+    const EASE='transform .28s cubic-bezier(0.22,1,0.36,1)';
+    const NAV_EASE='left .28s cubic-bezier(0.22,1,0.36,1),width .28s cubic-bezier(0.22,1,0.36,1)';
+    activeEl.style.transition=EASE; neighborEl.style.transition=EASE;
+    activeEl.style.transform=`translate3d(${-dir*W}px,0,0)`;
+    neighborEl.style.transform=`translate3d(${-dir*W}px,0,0)`;
+    if(navIndicatorEl){ navIndicatorEl.style.transition=NAV_EASE; navIndicatorEl.style.left=navNeighborLeft+'px'; navIndicatorEl.style.width=navNeighborWidth+'px'; }
+    setTimeout(()=>{ cleanupSlide(); goToTab(vis[newIdx].id); swipeDone=false; },290);
+  }
   document.addEventListener('touchend',e=>{
     if(!swipeAllowed) return;
+    if(swipeDone){ isDragging=false; return; }
     const wasDragging=isDragging;
     isDragging=false;
     dragLocked=false;
