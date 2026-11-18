@@ -66,7 +66,6 @@ ${ogImage ? `<meta property="og:image" content="${esc(ogImage)}">` : ''}
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld)}</script>` : ''}
 </head>
 <body class="${bodyClass}">
-${demo ? '<div class="demo-banner">Version de démonstration : certaines fiches sont des exemples.</div>' : ''}
 ${body}
 <script src="/src/common.js"></script>
 ${scripts.map((s) => `<script src="${s}"></script>`).join('\n')}
@@ -239,16 +238,35 @@ ${footer()}`;
 
 // ---------- page carte ----------
 function renderCarte() {
-  const body = `${header()}
-<main class="map-page">
+  const ico = {
+    menu: '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+    filter: '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>',
+    locate: '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>',
+    search: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B6B6B" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>',
+  };
+  const body = `<main class="map-page">
 <div id="map" class="map" aria-label="Carte des restaurants indépendants"></div>
 <div class="map-top">
-<p class="map-tagline">${esc(site.accroche)}</p>
-<label class="search"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B6B6B" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="Un quartier, une cuisine, un restaurant" aria-label="Rechercher"></label>
-<div class="filters" id="filters" role="group" aria-label="Filtres"></div>
+<div class="map-bar">
+<a class="map-brand" href="/"><span class="map-eyebrow">Paris · 100 % indépendants</span><span class="map-name">Beltab</span></a>
+<button type="button" class="round-btn" id="menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="menu">${ico.menu}</button>
 </div>
+<div class="search-row">
+<label class="search">${ico.search}<input id="q" type="search" placeholder="Un quartier, une cuisine, un restaurant" aria-label="Rechercher" autocomplete="off"></label>
+<button type="button" class="round-btn" id="filter-btn" aria-label="Filtres" aria-expanded="false" aria-controls="filters">${ico.filter}<span class="badge" id="filter-badge" hidden></span></button>
+</div>
+<ul class="results" id="results" hidden></ul>
+<div class="filters" id="filters" role="group" aria-label="Filtres" hidden></div>
+<button type="button" class="round-btn locate" id="locate-btn" aria-label="Me localiser">${ico.locate}</button>
+</div>
+<nav class="menu-panel" id="menu" aria-label="Menu" hidden>
+<a href="/">La carte</a>
+<a href="/regles/">Les règles</a>
+<a href="${esc(site.espaceRestaurateur)}">Vous êtes restaurateur ?</a>
+${demo ? '<p class="menu-note">Version de démonstration : certaines fiches sont des exemples.</p>' : ''}
+</nav>
 <button type="button" class="outside" id="outside" hidden></button>
-<div class="sheet" id="sheet" aria-live="polite"></div>
+<div class="sheet" id="sheet" aria-live="polite" hidden></div>
 </main>`;
   return layout({
     title: `Beltab · ${site.accroche}`,
