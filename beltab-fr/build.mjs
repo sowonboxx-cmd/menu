@@ -28,7 +28,7 @@ const urlOf = (r) => `/${r.zone}/${r.slug}/`;
 // Niveaux : 0 = gratuit, 1 = Chef (et Local, Starter), 2 = Pro (et Master)
 const TIER = { gratuit: 0, chef: 1, local: 1, starter: 1, pro: 2, master: 2 };
 const tierOf = (n) => TIER[n] ?? 0;
-const PHOTO_LIMIT = [0, 3, Infinity];
+const PHOTO_LIMIT = [1, 3, Infinity]; // gratuit : la seule photo de présentation
 
 const CATEGORIES = { 'bistronomie': 'Bistronomie', 'cuisine-familiale': 'Cuisine familiale', 'bistrot': 'Bistrot', 'bar-a-huitres': 'Bar à huîtres' };
 const JOURS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
@@ -117,7 +117,7 @@ function renderFiche(r, niveau, { variant } = {}) {
   let photoBudget = PHOTO_LIMIT[tier];
   const usePhoto = (src) => { if (!src || photoBudget <= 0) return ''; photoBudget--; return src; };
 
-  const hero = paid ? usePhoto(r.photoPrincipale) : '';
+  const hero = usePhoto(r.photoPrincipale);
   const pdj = r.platDuJour || {};
   const pdjPhoto = paid && pdj.nom ? usePhoto(pdj.photo) : '';
 
@@ -341,7 +341,7 @@ const pub = restaurants.map((r) => {
   return {
     slug: r.slug, nom: r.nom, url: urlOf(r), paid, lat: r.lat, lng: r.lng, accroche: r.accroche,
     arrondissement: r.arrondissement, categories: r.categories, prix: r.prix, horaires: r.horaires,
-    photo: paid ? r.photoPrincipale || '' : '',
+    photo: r.photoPrincipale || '',
     logo: r.logo || '',
     site: r.site || '',
     reservation: r.reservation && r.reservation.url ? { type: paid && r.reservation.type === 'beltab' ? 'beltab' : 'externe', url: r.reservation.url, nom: r.reservation.nom || '' } : null,
