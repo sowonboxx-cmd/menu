@@ -107,12 +107,18 @@ export default {
       try { return json(await jeuAmi(env, String(url.searchParams.get('slug') || ''), String(url.searchParams.get('c') || '')), 200, cors); }
       catch (e) { return json({ ok: false }, 200, cors); }
     }
+    // ── Équipe : qui suis-je (admin / staff) et gestion des accès (admins seulement) ──
+    if (req.method === 'POST' && url.pathname.startsWith('/team/')) {
+      try { const b = await req.json(); return await team(env, req, url.pathname.slice(6), b, cors); }
+      catch (e) { return json({ ok: false, error: String(e.message || e) }, 500, cors); }
+    }
     // ── Espace restaurateur (/gestion) : session Supabase + admin du resto ──
     if (['/clients', '/campaign/preview', '/campaign/send', '/club/redeem', '/club/tier', '/club/tshirt-won', '/client/archive', '/client/name', '/jeu/redeem', '/jeu/stats', '/plat/admin', '/plat/save', '/plat/order-status'].includes(url.pathname)) {
       try {
         const body = req.method === 'POST' ? await req.json() : {};
         const slug = String(body.slug || url.searchParams.get('slug') || '');
-        const who = await adminOf(env, req, slug);
+        // Un staff peut consulter / remettre les lots des campagnes s'il a la zone « campagnes » ; le reste est réservé aux admins.
+        const who = await adminOf(env, req, slug) || (['/jeu/redeem', '/jeu/stats'].includes(url.pathname) ? await staffOf(env, req, slug, 'campagnes') : null);
         if (!who) return json({ ok: false, error: 'Accès refusé' }, 403, cors);
         // Club commun à plusieurs établissements (ex. Surzur partage le club de Paris) : resa_settings.club_slug.
         const cslug = await clubSlugOf(env, slug);
@@ -512,6 +518,122 @@ async function adminOf(env, req, slug) {
   const user = await u.json();
   const rows = await sb(env, `restaurant_admins?select=client_slug&user_id=eq.${enc(user.id)}&client_slug=eq.${enc(slug)}`).catch(() => []);
   return rows && rows.length ? { id: user.id, email: user.email } : null;
+}
+// ════════════════ Équipe (comptes admin / staff) ════════════════
+// Slugs d'un même établissement : un accès donné depuis l'admin couvre la carte, les réservations et la copie de test.
+const SLUG_FAMILY = { drevici: ['drevici', 'drevici-paris', 'drevici-test'], 'drevici-test': ['drevici', 'drevici-paris', 'drevici-test'] };
+const familyOf = slug => SLUG_FAMILY[slug] || [slug];
+const STAFF_AREAS = ['resa', 'calendrier', 'campagnes', 'tshirts'];
+async function userOf(env, req) {
+  const auth = req.headers.get('authorization') || '';
+  if (!auth.startsWith('Bearer ')) return null;
+  const u = await fetch(env.SUPABASE_URL + '/auth/v1/user', { headers: { apikey: env.SUPABASE_ANON_KEY || env.SUPABASE_SERVICE_KEY, authorization: auth } });
+  return u.ok ? u.json() : null;
+}
+async function staffOf(env, req, slug, area) {
+  if (!/^[a-z0-9-]{2,60}$/.test(slug)) return null;
+  const user = await userOf(env, req); if (!user) return null;
+  const base = slug.split('--')[0];
+  const rows = await sb(env, `restaurant_staff?user_id=eq.${enc(user.id)}&select=perms,slugs`).catch(() => []);
+  const ok = (rows || []).some(r => (r.slugs || []).includes(base) && (!area || (r.perms || []).includes(area)));
+  return ok ? { id: user.id, email: user.email, staff: true } : null;
+}
+async function authAdmin(env, path, { method = 'GET', body } = {}) {
+  const k = env.SUPABASE_SERVICE_KEY || '';
+  const h = { apikey: k, 'content-type': 'application/json' };
+  if (!k.startsWith('sb_')) h.authorization = 'Bearer ' + k;
+  const r = await fetch(`${env.SUPABASE_URL}/auth/v1/admin/${path}`, { method, headers: h, body: body ? JSON.stringify(body) : undefined });
+  const t = await r.text(); const j = t ? JSON.parse(t) : null;
+  if (!r.ok) throw new Error('Auth ' + r.status + ' ' + (j && (j.msg || j.message || j.error_description) || t));
+  return j;
+}
+async function findUserByEmail(env, email) {
+  for (let page = 1; page <= 20; page++) {
+    const j = await authAdmin(env, `users?page=${page}&per_page=200`);
+    const list = (j && j.users) || [];
+    const u = list.find(x => String(x.email || '').toLowerCase() === email);
+    if (u) return u;
+    if (list.length < 200) return null;
+  }
+  return null;
+}
+const TEAM_LABEL = { resa: 'Réservations', calendrier: 'Calendrier et events', campagnes: 'Campagnes QR', tshirts: 'T-shirts' };
+async function team(env, req, action, b, cors) {
+  const slug = String(b.slug || '');
+  if (action === 'me') {
+    const user = await userOf(env, req);
+    if (!user) return json({ ok: false, error: 'Non connecté' }, 401, cors);
+    if (await adminOf(env, req, slug)) return json({ ok: true, role: 'admin', email: user.email }, 200, cors);
+    const base = slug.split('--')[0];
+    const rows = await sb(env, `restaurant_staff?user_id=eq.${enc(user.id)}&select=perms,slugs`) || [];
+    const r = rows.find(x => (x.slugs || []).includes(base));
+    return json({ ok: true, role: r ? 'staff' : null, perms: r ? r.perms || [] : [], email: user.email }, 200, cors);
+  }
+  const me = await adminOf(env, req, slug);
+  if (!me) return json({ ok: false, error: 'Réservé aux administrateurs' }, 403, cors);
+  const fam = familyOf(slug);
+  // Slugs de la famille que l'admin gère lui-même (on ne donne jamais plus que ce qu'on a).
+  const mine = (await sb(env, `restaurant_admins?user_id=eq.${enc(me.id)}&client_slug=in.(${fam.map(enc).join(',')})&select=client_slug`) || []).map(r => r.client_slug);
+  if (action === 'list') {
+    const admins = await sb(env, `restaurant_admins?client_slug=eq.${enc(slug)}&select=user_id`) || [];
+    const staff = await sb(env, `restaurant_staff?client_slug=eq.${enc(familyOf(slug)[0])}&select=user_id,email,perms,created_at`) || [];
+    const out = [];
+    for (const a of admins) {
+      let email = '';
+      try { const u = await authAdmin(env, `users/${a.user_id}`); email = u.email || ''; } catch (e) {}
+      out.push({ user_id: a.user_id, email, role: 'admin', me: a.user_id === me.id });
+    }
+    for (const s of staff) out.push({ user_id: s.user_id, email: s.email, role: 'staff', perms: s.perms || [], created_at: s.created_at });
+    return json({ ok: true, members: out, areas: STAFF_AREAS.map(k => ({ k, label: TEAM_LABEL[k] })) }, 200, cors);
+  }
+  const perms = (Array.isArray(b.perms) ? b.perms : []).filter(p => STAFF_AREAS.includes(p));
+  if (action === 'add') {
+    const email = String(b.email || '').trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json({ ok: false, error: 'Email invalide' }, 400, cors);
+    const role = b.role === 'admin' ? 'admin' : 'staff';
+    let user = await findUserByEmail(env, email), created = false;
+    if (!user) { user = await authAdmin(env, 'users', { method: 'POST', body: { email, email_confirm: true } }); created = true; }
+    if (role === 'admin') {
+      for (const s of mine) await sb(env, 'restaurant_admins?on_conflict=user_id,client_slug', { method: 'POST', body: { user_id: user.id, client_slug: s }, prefer: 'resolution=ignore-duplicates' }).catch(async () => {
+        const ex = await sb(env, `restaurant_admins?user_id=eq.${enc(user.id)}&client_slug=eq.${enc(s)}&select=user_id`);
+        if (!ex || !ex.length) await sb(env, 'restaurant_admins', { method: 'POST', body: { user_id: user.id, client_slug: s } });
+      });
+      await sb(env, `restaurant_staff?user_id=eq.${enc(user.id)}&client_slug=eq.${enc(fam[0])}`, { method: 'DELETE' });
+    } else {
+      if (user.id === me.id) return json({ ok: false, error: 'Vous êtes déjà administrateur' }, 400, cors);
+      const isAdm = await sb(env, `restaurant_admins?user_id=eq.${enc(user.id)}&client_slug=eq.${enc(slug)}&select=user_id`);
+      if (isAdm && isAdm.length) return json({ ok: false, error: 'Cette personne est déjà administrateur' }, 400, cors);
+      await sb(env, 'restaurant_staff?on_conflict=user_id,client_slug', { method: 'POST', body: { user_id: user.id, client_slug: fam[0], slugs: mine, email, perms, created_by: me.id }, prefer: 'resolution=merge-duplicates' });
+    }
+    // Lien pour choisir son mot de passe (aussi pour un compte qui existait déjà : il peut s'en servir ou l'ignorer).
+    const site = String(b.site || '').replace(/[?#].*$/, '');
+    const redirect = /^https:\/\/([a-z0-9-]+\.)*(beltab\.app|drevicioyster\.com)\//.test(site) ? site : undefined;
+    const link = await authAdmin(env, 'generate_link', { method: 'POST', body: { type: 'recovery', email, redirect_to: redirect } });
+    const url = link.action_link || (link.properties && link.properties.action_link);
+    const st = await settings(env, familyOf(slug).includes('drevici-paris') ? 'drevici-paris' : slug).catch(() => null) || { restaurant_name: 'Beltab' };
+    const what = role === 'admin' ? 'un accès <b>administrateur</b> (tout le back-office)' : `un accès <b>staff</b> : ${perms.map(p => TEAM_LABEL[p]).join(', ') || 'aucune section pour l’instant'}`;
+    const html = `<div style="font-family:Inter,Arial,sans-serif;max-width:520px;margin:0 auto;padding:28px 22px;color:#1d2433">
+      <h2 style="font-family:Georgia,serif;margin:0 0 14px">${esc(st.restaurant_name)}</h2>
+      <p>Bonjour,</p><p>${esc(me.email || 'Un administrateur')} vous a donné ${what}.</p>
+      <p>Cliquez sur le bouton pour choisir votre mot de passe, puis connectez-vous avec cette adresse : <b>${esc(email)}</b>.</p>
+      <p style="margin:26px 0"><a href="${esc(url)}" style="background:#1f3a5f;color:#fff;text-decoration:none;padding:13px 22px;border-radius:10px;font-weight:700">Choisir mon mot de passe</a></p>
+      <p style="font-size:12.5px;color:#6b7280">Ce lien ne sert qu’une fois. S’il a expiré, demandez à l’administrateur de vous le renvoyer.</p></div>`;
+    await sendEmail(env, st, email, '', `Votre accès à l’espace ${st.restaurant_name}`, html);
+    return json({ ok: true, created, role }, 200, cors);
+  }
+  const uid = String(b.user_id || '');
+  if (!/^[0-9a-f-]{36}$/.test(uid)) return json({ ok: false, error: 'Compte inconnu' }, 400, cors);
+  if (action === 'update') {
+    await sb(env, `restaurant_staff?user_id=eq.${enc(uid)}&client_slug=eq.${enc(fam[0])}`, { method: 'PATCH', body: { perms } });
+    return json({ ok: true }, 200, cors);
+  }
+  if (action === 'remove') {
+    if (uid === me.id) return json({ ok: false, error: 'Vous ne pouvez pas retirer votre propre accès' }, 400, cors);
+    if (b.role === 'admin') { for (const s of mine) await sb(env, `restaurant_admins?user_id=eq.${enc(uid)}&client_slug=eq.${enc(s)}`, { method: 'DELETE' }); }
+    else await sb(env, `restaurant_staff?user_id=eq.${enc(uid)}&client_slug=eq.${enc(fam[0])}`, { method: 'DELETE' });
+    return json({ ok: true }, 200, cors);
+  }
+  return json({ ok: false, error: 'Action inconnue' }, 404, cors);
 }
 const KNOWN_SEGS = new Set(['fideles', 'relance', 'nouveaux', 'club']);
 function inSegment(c, seg) {

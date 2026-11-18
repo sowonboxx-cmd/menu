@@ -339,6 +339,9 @@ button{cursor:pointer;background:none}
 .whosel{appearance:none;-webkit-appearance:none;border:0;cursor:pointer;padding-right:28px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2310285e' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;font-family:inherit;color:inherit}
 #tdChips{flex-wrap:wrap;overflow:visible}
 textarea.tdesc{min-height:140px;resize:none;overflow:hidden}
+/* Compte staff : on cache ce qui n'est pas ouvert pour lui */
+html.st .hk-sim,html.st .hk-admin,html.st .hk-charte,html.st a[href^="#qr-new"],html.st a[href^="#qr-edit"],html.st a[href="#plat"],html.st a[href^="../plat-test"]{display:none!important}
+html.no-resa .x.resa,html.no-calendrier .x.cal,html.no-calendrier .hk-todo,html.no-campagnes .hk-camp,html.no-tshirts .hk-tee{display:none!important}
 </style>
 </head>
 <body>
@@ -1921,6 +1924,7 @@ document.addEventListener('change',e=>{ const t=e.target; if(!t.closest||!t.clos
 document.addEventListener('input',e=>{ const t=e.target; if(!t.matches||!t.matches('[data-ssrch]')) return; SIM_Q=t.value; clearTimeout(t._h); t._h=setTimeout(()=>{ renderSim().then(()=>{ const n=document.querySelector('[data-ssrch]'); if(n){ n.focus(); n.setSelectionRange(n.value.length,n.value.length); } }); },200); });
 function route(){
   const raw=(location.hash||'#home').slice(1), i=raw.indexOf('/'), view=i<0?raw:raw.slice(0,i), arg=i<0?'':decodeURIComponent(raw.slice(i+1));
+  if(STAFF&&!staffOk(view||'home')&&location.hash!=='#home'){location.hash='#home';return;}
   document.querySelectorAll('main').forEach(m=>m.hidden=true); closeSheet();
   if(view==='events'){
     if(arg){evSel=arg;const o=findOcc(arg);if(o){const d=dOf(o.date);curM=new Date(d.getFullYear(),d.getMonth(),1);}} else if(!matchMedia('(min-width:900px)').matches) evSel=null;
@@ -2176,8 +2180,23 @@ function ptSheet(d){
   };
 }
 
+/* ═══════════ Équipe : compte staff = seulement les zones cochées par l'admin ═══════════
+   (la base protège aussi les données : sql/equipe.sql). Admin ou service indisponible : tout s'affiche. */
+let STAFF=null;
+const STAFF_VIEW={home:1,events:'calendrier','event-new':'calendrier','event-edit':'calendrier',todo:'calendrier',
+  qr:'campagnes',qrc:'campagnes','qr-guide':'campagnes',horscarte:'campagnes',noel:'campagnes',tshirts:'tshirts'};
+const staffOk=v=>{const a=STAFF_VIEW[v];return a===1||(!!a&&STAFF.includes(a));};
+async function whoAmI(){
+  if(!SESSION)return;
+  try{const r=await fetch('https://resa.beltab.app/team/me',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+SESSION.access_token},body:JSON.stringify({slug:MENU_SLUG})});
+    const j=await r.json().catch(()=>({}));
+    if(r.ok&&j.ok&&j.role==='staff'){STAFF=j.perms||[];const h=document.documentElement;h.classList.add('st');
+      ['resa','calendrier','campagnes','tshirts'].forEach(a=>{if(!STAFF.includes(a))h.classList.add('no-'+a);});}
+  }catch(e){}
+}
 async function boot(){
   if(sb){const {data}=await sb.auth.getSession();SESSION=data.session||null;}
+  await whoAmI();
   renderAuth();
   const res=await Promise.allSettled([loadEvents(),loadTasks(),loadResa(),loadQR(),loadShop(),loadPlat()]);
   res.forEach((r,i)=>{if(r.status==='rejected'){RENDER_ERR.push(['Events','Tâches','Réservations','QR','T-shirts','Plat en test'][i]+' (chargement) : '+(r.reason&&r.reason.message||r.reason));console.error(r.reason);}});
