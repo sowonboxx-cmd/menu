@@ -575,13 +575,14 @@ async function team(env, req, action, b, cors) {
   // Slugs de la famille que l'admin gère lui-même (on ne donne jamais plus que ce qu'on a).
   const mine = (await sb(env, `restaurant_admins?user_id=eq.${enc(me.id)}&client_slug=in.(${fam.map(enc).join(',')})&select=client_slug`) || []).map(r => r.client_slug);
   if (action === 'list') {
-    const admins = await sb(env, `restaurant_admins?client_slug=eq.${enc(slug)}&select=user_id`) || [];
+    // « locked » : administrateur protégé (sql/equipe.sql), impossible à retirer. Colonne absente : personne n'est protégé.
+    const admins = await sb(env, `restaurant_admins?client_slug=eq.${enc(slug)}&select=user_id,locked`).catch(() => sb(env, `restaurant_admins?client_slug=eq.${enc(slug)}&select=user_id`)) || [];
     const staff = await sb(env, `restaurant_staff?client_slug=eq.${enc(familyOf(slug)[0])}&select=user_id,email,perms,created_at`) || [];
     const out = [];
     for (const a of admins) {
       let email = '';
       try { const u = await authAdmin(env, `users/${a.user_id}`); email = u.email || ''; } catch (e) {}
-      out.push({ user_id: a.user_id, email, role: 'admin', me: a.user_id === me.id });
+      out.push({ user_id: a.user_id, email, role: 'admin', me: a.user_id === me.id, locked: !!a.locked });
     }
     for (const s of staff) out.push({ user_id: s.user_id, email: s.email, role: 'staff', perms: s.perms || [], created_at: s.created_at });
     return json({ ok: true, members: out, areas: STAFF_AREAS.map(k => ({ k, label: TEAM_LABEL[k] })) }, 200, cors);
@@ -629,7 +630,10 @@ async function team(env, req, action, b, cors) {
   }
   if (action === 'remove') {
     if (uid === me.id) return json({ ok: false, error: 'Vous ne pouvez pas retirer votre propre accès' }, 400, cors);
-    if (b.role === 'admin') { for (const s of mine) await sb(env, `restaurant_admins?user_id=eq.${enc(uid)}&client_slug=eq.${enc(s)}`, { method: 'DELETE' }); }
+    if (b.role === 'admin') {
+      const lk = await sb(env, `restaurant_admins?user_id=eq.${enc(uid)}&locked=is.true&select=user_id`).catch(() => []);
+      if (lk && lk.length) return json({ ok: false, error: 'Administrateur protégé : son accès ne peut pas être retiré' }, 403, cors);
+      for (const s of mine) await sb(env, `restaurant_admins?user_id=eq.${enc(uid)}&client_slug=eq.${enc(s)}`, { method: 'DELETE' }); }
     else await sb(env, `restaurant_staff?user_id=eq.${enc(uid)}&client_slug=eq.${enc(fam[0])}`, { method: 'DELETE' });
     return json({ ok: true }, 200, cors);
   }

@@ -105,3 +105,22 @@ end $$;
 
 -- Vérification : doit lister les règles « _staff_ » créées
 select tablename, policyname, cmd from pg_policies where policyname like '%\_staff\_%' order by tablename, policyname;
+
+-- ════════════════════════════════════════════════════════════════════
+-- Administrateur protégé (super admin) : son accès ne peut être retiré
+-- ni depuis la page Équipe, ni par une suppression dans la base.
+-- Pour protéger un compte : décommentez la dernière ligne et mettez SON email.
+-- ════════════════════════════════════════════════════════════════════
+alter table public.restaurant_admins add column if not exists locked boolean not null default false;
+create or replace function public.restaurant_admins_keep_locked()
+returns trigger language plpgsql as $$
+begin
+  if tg_op = 'DELETE' and old.locked then raise exception 'Administrateur protégé : accès impossible à retirer'; end if;
+  if tg_op = 'UPDATE' and old.locked and (not new.locked or new.user_id <> old.user_id or new.client_slug <> old.client_slug) then
+    raise exception 'Administrateur protégé : modification impossible'; end if;
+  return case when tg_op = 'DELETE' then old else new end;
+end $$;
+drop trigger if exists restaurant_admins_keep_locked on public.restaurant_admins;
+create trigger restaurant_admins_keep_locked before delete or update on public.restaurant_admins
+  for each row execute function public.restaurant_admins_keep_locked();
+-- update public.restaurant_admins set locked = true where user_id = (select id from auth.users where email = 'VOTRE-EMAIL@exemple.com');

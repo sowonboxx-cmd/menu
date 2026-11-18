@@ -2843,9 +2843,9 @@ function pageEquipe(){
     <div class="acts2" style="justify-content:flex-start;margin-top:12px">${btn(UI.tbusy?'Envoi…':'Envoyer l\'invitation','mail','','data-act="tmAdd"'+(UI.tbusy?' disabled':''))}</div>
     <p class="tmhint">La personne reçoit un email pour choisir son mot de passe. L'adresse doit exister (boîte mail ou redirection).</p>`;
   const list=TEAM_ST==='err'?`<div class="empty">Impossible de charger l'équipe : ${esc(TEAM_ERR)}</div>`:TEAM_ST!=='ok'?'<div class="empty">Chargement…</div>':
-    (TEAM||[]).map(m=>`<div class="tmm"><div class="tmh"><b>${esc(m.email||'—')}</b>${pill(m.role==='admin'?'Admin':'Staff',m.role==='admin'?'':'w')}${m.me?'<small>vous</small>':''}</div>
+    (TEAM||[]).map(m=>`<div class="tmm"><div class="tmh"><b>${esc(m.email||'—')}</b>${pill(m.role==='admin'?'Admin':'Staff',m.role==='admin'?'':'w')}${m.locked?'<small>protégé</small>':''}${m.me?'<small>vous</small>':''}</div>
       ${m.role==='staff'?`<div class="tmareas">${areaRows(m.perms||[],'tmArea',m.user_id)}</div>`:''}
-      ${m.me?'':`<div class="acts2" style="justify-content:flex-start">${btn('Renvoyer le lien','mail','g',`data-act="tmResend" data-id="${m.user_id}"`)}${UI.tdel===m.user_id?btn('Confirmer le retrait','','red',`data-act="tmDel" data-id="${m.user_id}" data-role="${m.role}"`):btn('Retirer l\'accès','','g',`data-act="tmDelAsk" data-id="${m.user_id}"`)}</div>`}</div>`).join('')||'<div class="empty">Personne pour l\'instant.</div>';
+      ${m.me||m.locked?'':`<div class="acts2" style="justify-content:flex-start">${btn('Renvoyer le lien','mail','g',`data-act="tmResend" data-id="${m.user_id}"`)}${UI.tdel===m.user_id?btn('Confirmer le retrait','','red',`data-act="tmDel" data-id="${m.user_id}" data-role="${m.role}"`):btn('Retirer l\'accès','','g',`data-act="tmDelAsk" data-id="${m.user_id}"`)}</div>`}</div>`).join('')||'<div class="empty">Personne pour l\'instant.</div>';
   return mtop('Tableau de bord','dash')+ph('Équipe','Qui a accès à votre espace, et à quoi','')+
     `<div class="pgrid g-1-1"><div>${card('Ajouter une personne','users',add)}</div><div>${card('Accès','sauv',list)}</div></div>`;
 }
