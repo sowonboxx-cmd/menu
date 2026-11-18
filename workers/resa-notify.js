@@ -881,10 +881,10 @@ const JEU_NOMS = { 'halloween-2026': 'Trick or Huître' };
 const jeuNom = s => JEU_NOMS[String(s || '').split('--')[1]] || 'Free Oyster';
 const rnd = (n, chars = CODE_CHARS) => Array.from(crypto.getRandomValues(new Uint8Array(n)), b => chars[b % chars.length]).join('');
 const jeuSlugOk = s => /^[a-z0-9-]{2,60}$/.test(s);
-// Contre les faux emails : les lots à emporter ou pour une prochaine visite (plateau, 3 huîtres, huître, T-shirt…)
-// ne sont donnés QUE par email ; le code n'est jamais renvoyé au téléphone. Restent à l'écran : le shot et
-// les lots « à table, pour ce repas », consommés tout de suite sur place.
-const jeuMailOnly = r => !!r && r.result !== 'perdu' && r.result !== 'shot' && (r.mode || 'rue') !== 'table';
+// Contre les faux emails : les gros lots, pour lesquels on revient (plateau, 3 huîtres, T-shirt…),
+// ne sont donnés QUE par email ; le code n'est jamais renvoyé au téléphone. Restent à l'écran : le shot,
+// l'huître Free Oyster et les lots « à table, pour ce repas », consommés tout de suite sur place.
+const jeuMailOnly = r => !!r && !['perdu', 'shot', 'huitre', 'bonus'].includes(r.result) && (r.mode || 'rue') !== 'table';
 const maskEmail = e => { const [u, d] = String(e || '').split('@'); return d ? (u.slice(0, 2) + '•••@' + d) : ''; };
 async function jeuPlay(env, b) {
   const slug = String(b.slug || '');
