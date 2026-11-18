@@ -518,7 +518,7 @@ function testPlay(body) {
   let res = (TABLE ? { gagne: 'bonus', bonus: 'bonus', trio: 'trio', plateau: 'trio', tshirt: 'tshirt', perdu: 'perdu' } : { gagne: 'huitre', huitre: 'huitre', plateau: 'plateau', tshirt: 'tshirt', perdu: 'perdu' })[TEST];
   if (!res) { const r = Math.random(); res = TABLE ? (r < .0067 ? 'tshirt' : r < .073 ? 'trio' : r < .41 ? 'bonus' : 'perdu') : (r < .01 ? 'tshirt' : r < .03 ? 'plateau' : r < .13 ? 'huitre' : 'perdu'); }
   ME = { t: '', ref_code: 'TEST00', first: body.first || 'Test', bonus_used: false, plays_left: 0, club: body.optin === true };
-  RES = { ok: true, result: res, prize: lots[res] || '', mode: TABLE ? 'table' : 'rue', code: res === 'perdu' || !TABLE ? null : 'PERLE-TEST', by_email: res !== 'perdu' && !TABLE, email_hint: res !== 'perdu' && !TABLE ? 'te•••@gmail.com' : undefined, expires_at: new Date(Date.now() + (TABLE ? 4 * 36e5 : 7 * 864e5)).toISOString(), plays_left: 0 };
+  RES = { ok: true, result: res, prize: lots[res] || '', mode: TABLE ? 'table' : 'rue', ...(res === 'perdu' ? { code: null } : !TABLE && res !== 'huitre' ? { code: null, by_email: true, email_hint: 'te•••@gmail.com' } : { code: 'PERLE-TEST' }), expires_at: new Date(Date.now() + (TABLE ? 4 * 36e5 : 7 * 864e5)).toISOString(), plays_left: 0 };
   return RES;
 }
 if (TEST) {
