@@ -24,9 +24,11 @@
     attributionControl: false
   });
   map.touchZoomRotate.disableRotation();
+  // Tablette et ordi (>= 640 px) : tout est dans une colonne à gauche, comme Plans/Google Maps sur iPad.
+  var WIDE = window.innerWidth >= 640;
   var attrib = new maplibregl.AttributionControl({ compact: true });
-  map.addControl(attrib, 'bottom-left');
-  if (window.innerWidth >= 900) map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-left');
+  map.addControl(attrib, WIDE ? 'bottom-right' : 'bottom-left');
+  if (window.innerWidth >= 900) map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
   var geo = new maplibregl.GeolocateControl({ positionOptions: { enableHighAccuracy: true }, showAccuracyCircle: false });
   map.addControl(geo, 'top-right'); // bouton caché, déclenché par notre bouton rond
 
@@ -171,7 +173,7 @@
     state.selected = slug;
     var r = state.data.filter(function (x) { return x.slug === slug; })[0];
     if (navigator.vibrate) { try { navigator.vibrate(12); } catch (e) {} }
-    if (r) map.easeTo({ center: [r.lng, r.lat], zoom: Math.max(map.getZoom(), 15), offset: [0, window.innerWidth < 900 ? -90 : 0] });
+    if (r) map.easeTo({ center: [r.lng, r.lat], zoom: Math.max(map.getZoom(), 15), offset: WIDE ? [220, 0] : [0, -90] });
     render();
   }
 
@@ -219,7 +221,7 @@
     if (!state.list.length) return;
     var bounds = new maplibregl.LngLatBounds();
     state.list.forEach(function (r) { bounds.extend([r.lng, r.lat]); });
-    map.fitBounds(bounds, { padding: { top: 190, bottom: 60, left: 50, right: 50 }, maxZoom: 14 });
+    map.fitBounds(bounds, { padding: WIDE ? { top: 60, bottom: 60, left: 480, right: 60 } : { top: 190, bottom: 60, left: 50, right: 50 }, maxZoom: 14 });
   }
 
   // ---------- événements ----------
