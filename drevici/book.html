@@ -88,6 +88,7 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-weight:400;font-si
 /* Espace (indoor/outdoor/terrace/bar) — optional step, same visual
    language as Couverts but text labels instead of digits, and no
    gating: skipping it is a normal, supported outcome. */
+.sp-plan{margin:0 0 14px;border-radius:var(--r,14px);background:#fff;border:1px solid var(--border);padding:10px 10px 8px}.sp-plan-svg{display:block;width:100%;height:auto;max-height:300px}.sp-plan-hint{text-align:center;font-size:11.5px;color:var(--text3);margin-top:6px}
 .space-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .space-btn{border-radius:var(--rs);border:1px solid var(--border);background:#fff;font-size:14px;font-weight:600;color:var(--text);cursor:pointer;padding:18px 10px;text-align:center;transition:all .12s}
 .space-btn:hover{border-color:var(--navy);color:var(--navy)}
@@ -237,6 +238,7 @@ body.has-admin-sticky .wrap{padding-bottom:88px}
   <div class="panel hidden" id="panelEspace">
     <div class="no-slots hidden" id="noPrevForEspaceMsg">Sélectionnez d'abord la date et le nombre de couverts.</div>
     <div class="space-title" id="espaceTitle">Où souhaitez-vous être installé ?</div>
+    <div class="sp-plan hidden" id="spPlan"></div>
     <div class="space-grid" id="spaceGrid"></div>
     <div class="sp-ok hidden" id="spaceOk"></div>
     <div class="space-skip" id="espaceSkip" onclick="skipSpace()">Peu importe</div>
@@ -412,7 +414,7 @@ const WRITE_SLUG = 'drevici-paris';
 const RESA_NOTIFY_URL = 'https://resa.beltab.app/notify';
 // ── Statistiques du site (même compteur que l'accueil ; voir la notice « codes de suivi ») ──
 const BT = (() => { const API = 'https://resa.beltab.app/t', q = new URLSearchParams(location.search);
-  const off = window.top !== window || q.get('admin') === '1' || /localhost|127\.0\.0\.1|file:/.test(location.href);
+  const off = (window.top !== window && q.get('embed') !== '1') || q.get('admin') === '1' || /localhost|127\.0\.0\.1|file:/.test(location.href);
   let sid = ''; try { sid = sessionStorage.getItem('bt_sid') || ''; if (!sid) { sid = Math.random().toString(36).slice(2, 10) + Date.now().toString(36); sessionStorage.setItem('bt_sid', sid); } } catch (e) { sid = Math.random().toString(36).slice(2, 12); }
   const from = () => { const o = q.get('o'), c = q.get('src');
     if (o && /^[A-Za-z0-9]{2,12}$/.test(o)) return 'OFFRE:' + o.toUpperCase();
@@ -454,6 +456,9 @@ const MENU_CLIENT_SLUG = 'drevici';
   const parts = window.location.pathname.replace(/\/+$/,'').split('/');
   parts.pop();
   lien.setAttribute('href', (parts.join('/') || '') + '/');
+  // Ouverte dans la petite fenêtre du site (ordinateur) : le logo ramène la page entière au menu.
+  if (new URLSearchParams(location.search).get('embed') === '1') { lien.setAttribute('target', '_top'); document.documentElement.classList.add('embed');
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') try { parent.postMessage('bk-close', location.origin); } catch (x) {} }); }
 })();
 
 // Header branding (logo takes over from the styled text once one is
@@ -469,6 +474,7 @@ async function loadHeaderBranding() {
       .maybeSingle();
     if (error) throw error;
     const d = row && row.data;
+    if (d && d.floorPlan && d.floorPlan.rooms) { FLOOR = d.floorPlan; renderEspacePanel(); }
     if (!d) return;
     const cd = closedDaysFromSchedule(d.schedule);
     if (cd) { CLOSED_DAYS = cd; renderCal(); }
@@ -652,6 +658,7 @@ const SPACES_DEFAULT = ['Intérieur','Extérieur','Terrasse','Bar'];
 // interrupteur « tables » de workers/tenants.js). Le labo, sans BELTAB, garde l'étape.
 const SPACE_STEP = !(window.BELTAB && window.BELTAB.features && window.BELTAB.features.tables === false);
 let SPACES = SPACES_DEFAULT.slice();
+let FLOOR = null; // plan dessiné dans l'admin (menu_data → floorPlan), lecture seule ici
 let SPACE_ROWS = []; // {id, name} — needed to look up a space's tables for capacity checks
 let TABLES = [];
 let SERVICES = [];
@@ -683,10 +690,11 @@ async function loadTables() {
   try {
     const { data, error } = await supabaseClient
       .from('restaurant_tables')
-      .select('id,space_id,seats')
+      .select('id,space_id,seats,name')
       .eq('client_slug', CLIENT_SLUG);
     if (error) throw error;
     TABLES = data || [];
+    renderEspacePanel();
   } catch (e) {
     console.warn('Tables load failed:', e.message);
   }
@@ -734,7 +742,68 @@ function renderEspacePanel() {
     grid.appendChild(btn);
   });
   spaceNote();
+  renderPlan();
 }
+
+// ── Plan du restaurant (lecture seule) : le même plan que l'admin (Réservations → Espaces et tables),
+// pour que le client voie où sont les espaces. Toucher une table choisit son espace.
+function renderPlan() {
+  const host = document.getElementById('spPlan'); if (!host) return;
+  const svg = planSvg(); host.classList.toggle('hidden', !svg || !(S.date && S.covers)); if (!svg) return;
+  host.innerHTML = svg + '<div class="sp-plan-hint">Touchez une table pour choisir son espace</div>';
+  host.querySelectorAll('[data-sp]').forEach(g => g.addEventListener('click', () => { const n = g.getAttribute('data-sp'); const b = [...document.querySelectorAll('.space-btn')].find(x => x.textContent === n); if (b) pickSpace(n, b); }));
+}
+function planSvg() {
+  const L = FLOOR; if (!L || !L.rooms || !L.rooms.length || !TABLES.length) return '';
+  const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const R = (x, y, w, h, rx, a) => `<rect x="${x}" y="${y}" width="${Math.max(0, w)}" height="${Math.max(0, h)}" rx="${rx}" ${a || ''}/>`;
+  const T = (x, y, t, a) => `<text x="${x}" y="${y}" font-family="Inter,system-ui,sans-serif" ${a}>${t}</text>`;
+  const MD = id => (L.models || []).find(m => m.id === id);
+  const roomOf = (x, y) => L.rooms.slice().reverse().find(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h);
+  const spName = id => { const r = SPACE_ROWS.find(x => x.id === id); return r ? r.name : ''; };
+  const shortSp = (nm, room) => { nm = String(nm || ''); const rn = String((room && room.name) || '').trim(); if (!rn) return nm; const lo = nm.toLowerCase(), rl = rn.toLowerCase(); if (lo === rl) return ''; let r = lo.startsWith(rl) ? nm.slice(rn.length) : nm; r = r.replace(/^[\s\-–·:]+/, '').replace(/^\((.*)\)$/, '$1').trim(); return r ? r.charAt(0).toUpperCase() + r.slice(1) : ''; };
+  const its = [];
+  TABLES.forEach(row => { const p = L.pos && L.pos[row.id]; if (!p) return; const md = p.model && MD(p.model), r4 = (((+p.rot || 0) % 4) + 4) % 4, rot = r4 % 2, sc = p.sc || 1;
+    const t = { id: row.id, seats: +row.seats || 1, sp: row.space_id, x: p.x, y: p.y, r4, rot, side: p.side, units: p.units || 1 };
+    if (md && md.round) { t.round = 1; t.w = t.h = md.w * sc; }
+    else if (md) { const Ln = md.w * t.units * sc * (p.fx || 1), Hh = md.h * sc * (p.fy || 1); t.w = rot ? Hh : Ln; t.h = rot ? Ln : Hh; }
+    else { t.w = p.w || 80; t.h = p.h || 56; }
+    if (roomOf(t.x + t.w / 2, t.y + t.h / 2)) its.push(t); });
+  if (!its.length) return '';
+  const chairs = t => { const o = [], cw = 20, ch = 12, g = 5;
+    if (t.round) { const cx = t.x + t.w / 2, cy = t.y + t.h / 2, Rr = t.w / 2 + g + 7; for (let i = 0; i < t.seats; i++) { const a = -Math.PI / 2 + i * 2 * Math.PI / t.seats; o.push({ x: cx + Rr * Math.cos(a) - 7, y: cy + Rr * Math.sin(a) - 7, w: 14, h: 14, rx: 7 }); } return o; }
+    const hz = t.w > t.h || (t.w === t.h && !t.rot); let s;
+    if (t.side === 'one') { const k = ['t', 'r', 'b', 'l'][t.r4 || 0]; s = { t: 0, b: 0, l: 0, r: 0 }; s[(hz && (k === 'l' || k === 'r')) ? 't' : (!hz && (k === 't' || k === 'b')) ? 'r' : k] = t.seats; }
+    else { const a = Math.ceil(t.seats / 2), b = Math.floor(t.seats / 2); s = hz ? { t: a, b, l: 0, r: 0 } : { t: 0, b: 0, l: a, r: b }; }
+    const side = (n, h, f) => { for (let i = 0; i < n; i++) { const Ln = h ? t.w : t.h, q = (h ? t.x : t.y) + Ln * (i + .5) / n; o.push(h ? { x: q - cw / 2, y: f, w: cw, h: ch, rx: 5 } : { x: f, y: q - cw / 2, w: ch, h: cw, rx: 5 }); } };
+    side(s.t, 1, t.y - g - ch); side(s.b, 1, t.y + t.h + g); side(s.l, 0, t.x - g - ch); side(s.r, 0, t.x + t.w + g); return o; };
+  let x1 = 1e9, y1 = 1e9, x2 = -1e9, y2 = -1e9; L.rooms.forEach(r => { x1 = Math.min(x1, r.x); y1 = Math.min(y1, r.y); x2 = Math.max(x2, r.x + r.w); y2 = Math.max(y2, r.y + r.h); });
+  let out = '';
+  L.rooms.forEach(r => { out += r.kind === 'terrace' ? R(r.x, r.y, r.w, r.h, 18, 'fill="#f1e8d8"') : R(r.x, r.y, r.w, r.h, 14, 'fill="#faf5ec" stroke="#2f3437" stroke-width="6"');
+    const nm = esc(String(r.name || '').toUpperCase()), w = nm.length * 10 + 40, cx = r.x + r.w / 2;
+    out += R(cx - w / 2, r.y + 14, w, 34, 17, 'fill="#fff"') + T(cx, r.y + 37, nm, 'text-anchor="middle" font-size="15" font-weight="800" fill="#16181d" letter-spacing="1"'); });
+  (L.opens || []).forEach(o => { const r = L.rooms.find(x => x.id === o.room); if (!r) return; const hzS = o.side === 't' || o.side === 'b', Ln = hzS ? r.w : r.h, pos = Math.max(8, Math.min(Ln - o.len - 8, o.pos));
+    const gx = o.side === 'r' ? r.x + r.w : o.side === 'l' ? r.x : r.x + pos, gy = o.side === 'b' ? r.y + r.h : o.side === 't' ? r.y : r.y + pos;
+    let q = hzS ? R(gx, gy - 5, o.len, 10, 0, 'fill="#fff"') : R(gx - 5, gy, 10, o.len, 0, 'fill="#fff"');
+    if (o.type === 'win') q += hzS ? `<line x1="${gx}" y1="${gy}" x2="${gx + o.len}" y2="${gy}" stroke="#2f3437" stroke-width="1.5"/>` : `<line x1="${gx}" y1="${gy}" x2="${gx}" y2="${gy + o.len}" stroke="#2f3437" stroke-width="1.5"/>`;
+    else { const nrm = { t: [0, 1], b: [0, -1], l: [1, 0], r: [-1, 0] }[o.side], sg = o.out ? -1 : 1, n = [nrm[0] * sg, nrm[1] * sg], a = hzS ? [1, 0] : [0, 1];
+      const leaf = (Hx, Hy, Ex, Ey, Lq) => { const Px = Hx + n[0] * Lq, Py = Hy + n[1] * Lq, c = (Px - Hx) * (Ey - Hy) - (Py - Hy) * (Ex - Hx); return `<path d="M${Hx} ${Hy} L${Px} ${Py} A${Lq} ${Lq} 0 0 ${c > 0 ? 1 : 0} ${Ex} ${Ey}Z" fill="#f1e8d8" stroke="#2f3437" stroke-width="1" stroke-opacity=".35"/>`; };
+      const Fx = gx + a[0] * o.len, Fy = gy + a[1] * o.len;
+      q = (o.type === 'pf' ? leaf(gx, gy, (gx + Fx) / 2, (gy + Fy) / 2, o.len / 2) + leaf(Fx, Fy, (gx + Fx) / 2, (gy + Fy) / 2, o.len / 2) : o.flip ? leaf(Fx, Fy, gx, gy, o.len) : leaf(gx, gy, Fx, Fy, o.len)) + q; }
+    out += q; });
+  (L.deco || []).forEach(d => { if (d.kind !== 'stairs') return; const w = (d.rot % 2) ? d.h : d.w, h = (d.rot % 2) ? d.w : d.h, vt = h > w, n = Math.max(4, Math.round((vt ? h : w) / 14));
+    out += R(d.x, d.y, w, h, 4, 'fill="#e9e1d2" stroke="#2f3437" stroke-width="2"');
+    for (let i = 1; i < n; i++) { const f = i / n; out += vt ? `<line x1="${d.x}" y1="${d.y + h * f}" x2="${d.x + w}" y2="${d.y + h * f}" stroke="#2f3437" stroke-width="1.2" opacity=".5"/>` : `<line x1="${d.x + w * f}" y1="${d.y}" x2="${d.x + w * f}" y2="${d.y + h}" stroke="#2f3437" stroke-width="1.2" opacity=".5"/>`; } });
+  const sel = S.space;
+  its.forEach(t => { const nm = spName(t.sp), on = sel && nm === sel, dim = sel && !on, cx = t.x + t.w / 2, cy = t.y + t.h / 2, room = roomOf(cx, cy), lab = shortSp(nm, room);
+    let g = ''; chairs(t).forEach(c => g += R(c.x, c.y, c.w, c.h, c.rx, `fill="${on ? '#10285E' : '#8fae7c'}"`));
+    g += t.round ? `<circle cx="${cx}" cy="${cy}" r="${t.w / 2}" fill="${on ? '#10285E' : '#e08a62'}"/>` : R(t.x, t.y, t.w, t.h, 8, `fill="${on ? '#10285E' : '#e08a62'}"`);
+    if (lab && t.h >= 44 && t.w >= 44) { g += T(cx, cy + 2, t.seats, 'text-anchor="middle" font-size="18" font-weight="800" fill="#fff"') + T(cx, cy + 17, esc(lab), 'text-anchor="middle" font-size="11" font-weight="600" fill="#fff" opacity=".92"'); }
+    else g += T(cx, cy + 6, t.seats, 'text-anchor="middle" font-size="18" font-weight="800" fill="#fff"');
+    out += `<g data-sp="${esc(nm)}" style="cursor:pointer" opacity="${dim ? .35 : 1}">${R(t.x - 16, t.y - 16, t.w + 32, t.h + 32, 10, 'fill="transparent"')}${g}</g>`; });
+  return `<svg class="sp-plan-svg" viewBox="${x1 - 12} ${y1 - 12} ${x2 - x1 + 24} ${y2 - y1 + 24}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Plan du restaurant">${out}</svg>`;
+}
+
 // Message après le choix d'un espace : c'est une préférence, pas une garantie.
 function spaceNote() {
   const ok = document.getElementById('spaceOk'); if (!ok) return;
@@ -746,8 +815,8 @@ function spaceNote() {
 }
 function pickSpace(name, el) {
   S.space = name;
-  document.querySelectorAll('.space-btn').forEach(b => b.classList.remove('sel'));
-  el.classList.add('sel');
+  document.querySelectorAll('.space-btn').forEach(b => b.classList.toggle('sel', b.textContent === name));
+  renderPlan();
   spaceNote();
   updateSegLabels();
   renderRecapPanel();
@@ -756,7 +825,7 @@ function pickSpace(name, el) {
   clearTimeout(window._spAdv); window._spAdv = setTimeout(() => { if (S.space === name) autoAdvance('espace'); }, 1800);
 }
 function skipSpace() {
-  S.space = null; clearTimeout(window._spAdv);
+  S.space = null; clearTimeout(window._spAdv); setTimeout(renderPlan, 0);
   document.querySelectorAll('.space-btn').forEach(b => b.classList.remove('sel'));
   spaceNote();
   updateSegLabels();
