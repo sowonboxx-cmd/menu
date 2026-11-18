@@ -27,6 +27,8 @@ function cfg(env) {
 export default {
   async fetch(request, env, ctx) {
     const B = cfg(env), url = new URL(request.url);
+    // www.<marque> → <marque> (une seule adresse officielle)
+    if (B && url.hostname.startsWith('www.') && (B.hosts || []).includes(url.hostname.slice(4))) { url.hostname = url.hostname.slice(4); return Response.redirect(url.toString(), 301); }
     if (!B || !(B.hosts || []).includes(url.hostname)) return site.fetch(request, env, ctx);
 
     const origin = url.origin, path = url.pathname;
