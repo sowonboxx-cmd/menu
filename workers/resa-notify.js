@@ -877,6 +877,11 @@ const JEU_NOMS = { 'halloween-2026': 'Trick or Huître' };
 const jeuNom = s => JEU_NOMS[String(s || '').split('--')[1]] || 'Free Oyster';
 const rnd = (n, chars = CODE_CHARS) => Array.from(crypto.getRandomValues(new Uint8Array(n)), b => chars[b % chars.length]).join('');
 const jeuSlugOk = s => /^[a-z0-9-]{2,60}$/.test(s);
+// Contre les faux emails : les lots à emporter ou pour une prochaine visite (plateau, 3 huîtres, huître, T-shirt…)
+// ne sont donnés QUE par email ; le code n'est jamais renvoyé au téléphone. Restent à l'écran : le shot et
+// les lots « à table, pour ce repas », consommés tout de suite sur place.
+const jeuMailOnly = r => !!r && r.result !== 'perdu' && r.result !== 'shot' && (r.mode || 'rue') !== 'table';
+const maskEmail = e => { const [u, d] = String(e || '').split('@'); return d ? (u.slice(0, 2) + '•••@' + d) : ''; };
 async function jeuPlay(env, b) {
   const slug = String(b.slug || '');
   if (!jeuSlugOk(slug)) return { ok: false, error: 'Jeu inconnu' };
@@ -932,19 +937,29 @@ async function jeuPlay(env, b) {
     sendEmail(env, st, st.notify_email, st.restaurant_name, `${jeuNom(slug)} · ${JEU_LOTS[r.result]} gagné(e) par ${pl.first_name}`,
       page(st.restaurant_name, `<p><b>${esc(pl.first_name)} ${esc(pl.last_name || '')}</b> vient de gagner : <b>${esc(JEU_LOTS[r.result])}</b>.</p><p>Code : <b style="font-family:'Courier New',monospace;letter-spacing:1px">${esc(r.code)}</b>, valable jusqu'au ${new Date(r.expires_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', timeZone: 'Europe/Paris' })}. À valider dans l'espace restaurateur → Clients.</p>`)).catch(() => {});
   }
-  // Jeu d'un moment (Halloween…) : le joueur reçoit son code par email, avec comment récupérer son lot.
-  if (slug.includes('--') && r.code && pl.email) { try { await sendEmail(env, st, pl.email, pl.first_name, `Ton code ${jeuNom(slug)} : ${r.code}`, mailJeu(st, slug, pl.first_name, r)); } catch (e) { console.warn('jeu email', e); } }
-  return { ...base, ok: true, result: r.result, prize: JEU_LOTS[r.result], code: r.code, expires_at: r.expires_at, mode: r.mode || 'rue', plays_left: r.plays_left, bonus_used: r.bonus_used };
+  // Le joueur reçoit son code par email (toujours pour les lots « par email », et pour tous les lots des jeux d'un moment).
+  const mailOnly = jeuMailOnly(r);
+  let mailed = false;
+  if ((mailOnly || slug.includes('--')) && r.code && pl.email) { try { await sendEmail(env, st, pl.email, pl.first_name, `${slug.includes('--') ? 'Ton' : 'Votre'} code ${jeuNom(slug)} : ${r.code}`, mailJeu(st, slug, pl.first_name, r)); mailed = true; } catch (e) { console.warn('jeu email', e); } }
+  return { ...base, ok: true, result: r.result, prize: JEU_LOTS[r.result], code: mailOnly ? null : r.code, by_email: mailOnly, email_hint: mailOnly ? maskEmail(pl.email) : undefined, mail_failed: mailOnly && !mailed,
+    expires_at: r.expires_at, mode: r.mode || 'rue', plays_left: r.plays_left, bonus_used: r.bonus_used };
 }
 function mailJeu(st, slug, first, r) {
   const until = new Date(r.expires_at).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Paris' });
   const site = st.site_url ? String(st.site_url).replace(/\/$/, '') : '';
-  const how = r.result === 'shot' ? 'Passe au comptoir quand tu veux, sans réserver, et montre ce code : ton shot t\'attend.'
-    : r.result === 'tshirt' ? 'Dis-nous quand tu passes (par téléphone ou sur Instagram), puis montre ce code au comptoir pour récupérer ton T-shirt.'
-    : 'Réserve une table et montre ce code en arrivant : ton lot t\'attend à table.';
-  const btn = r.result !== 'shot' && r.result !== 'tshirt' && site ? `<p style="text-align:center;margin:22px 0 6px"><a href="${esc(site)}/book?jeu=${enc(r.code)}" style="background:#f97316;color:#1b1222;text-decoration:none;border-radius:999px;padding:13px 26px;font-weight:700;display:inline-block">Réserver ma table</a></p>` : '';
-  return page(st.restaurant_name, `<p style="margin:0 0 6px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#c2410c;font-weight:700">${esc(jeuNom(slug))}</p>
-   <p style="margin:0 0 14px;font-size:20px;font-weight:700">Bravo ${esc(first || '')} ! Tu as gagné : ${esc(JEU_LOTS[r.result] || '')}</p>
+  // Jeux d'un moment (Halloween…) : on tutoie, couleurs orange. Free Oyster : on vouvoie, couleurs de la maison.
+  const tu = slug.includes('--');
+  const how = tu
+    ? (r.result === 'shot' ? 'Passe au comptoir quand tu veux, sans réserver, et montre ce code : ton shot t\'attend.'
+      : r.result === 'tshirt' ? 'Dis-nous quand tu passes (par téléphone ou sur Instagram), puis montre ce code au comptoir pour récupérer ton T-shirt.'
+      : 'Réserve une table et montre ce code en arrivant : ton lot t\'attend à table.')
+    : (r.result === 'tshirt' ? 'Dites-nous quand vous passez (par téléphone ou sur Instagram), puis montrez ce code au comptoir pour récupérer votre T-shirt.'
+      : r.result === 'huitre' ? 'Passez au comptoir ou réservez une table, et montrez ce code : votre huître vous attend.'
+      : 'Réservez une table et montrez ce code en arrivant : votre lot vous attend à table.');
+  const bs = tu ? 'background:#f97316;color:#1b1222' : 'background:#1f3a5f;color:#ffffff';
+  const btn = r.result !== 'shot' && r.result !== 'tshirt' && site ? `<p style="text-align:center;margin:22px 0 6px"><a href="${esc(site)}/book?jeu=${enc(r.code)}" style="${bs};text-decoration:none;border-radius:999px;padding:13px 26px;font-weight:700;display:inline-block">Réserver ma table</a></p>` : '';
+  return page(st.restaurant_name, `<p style="margin:0 0 6px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:${tu ? '#c2410c' : '#1f3a5f'};font-weight:700">${esc(jeuNom(slug))}</p>
+   <p style="margin:0 0 14px;font-size:20px;font-weight:700">Bravo ${esc(first || '')} ! ${tu ? 'Tu as' : 'Vous avez'} gagné : ${esc(JEU_LOTS[r.result] || '')}</p>
    <div style="text-align:center;background:#f5efe6;border-radius:14px;padding:14px;margin:0 0 14px"><div style="font-family:'Courier New',monospace;font-size:28px;font-weight:700;letter-spacing:4px">${esc(r.code)}</div><div style="font-size:13px;color:#6b5b7b;margin-top:4px">Valable jusqu'au ${esc(until)} · une seule fois</div></div>
    <p style="margin:0">${how}</p>${btn}
    <p style="margin:16px 0 0;font-size:12px;color:#8a8478">${esc(st.restaurant_name)} · 8 rue Biot, 75017 Paris. Aucun achat obligatoire.</p>`);
@@ -982,12 +997,12 @@ async function jeuClub(env, st, slug, pl, src) {
 }
 async function jeuMe(env, slug, t) {
   if (!jeuSlugOk(slug) || !/^[a-z0-9]{10,40}$/.test(t)) return { ok: false };
-  const pl = (await sb(env, `jeu_players?client_slug=eq.${enc(slug)}&token=eq.${enc(t)}&select=id,first_name,ref_code,plays_allowed,plays_used,ref_bonus_at,optin`) || [])[0];
+  const pl = (await sb(env, `jeu_players?client_slug=eq.${enc(slug)}&token=eq.${enc(t)}&select=id,first_name,email,ref_code,plays_allowed,plays_used,ref_bonus_at,optin`) || [])[0];
   if (!pl) return { ok: false };
   const last = (await sb(env, `jeu_plays?player_id=eq.${pl.id}&select=*&order=id.desc&limit=1`) || [])[0] || null;
   const friends = (await sb(env, `jeu_players?referred_by=eq.${pl.id}&select=id`) || []).length;
   return { ok: true, first: pl.first_name, ref_code: pl.ref_code, plays_left: pl.plays_allowed - pl.plays_used, bonus_used: !!pl.ref_bonus_at, friends, club: !!pl.optin,
-    last: last && { result: last.result, prize: JEU_LOTS[last.result], code: last.code, expires_at: last.expires_at, mode: last.mode || 'rue', redeemed: !!last.redeemed_at } };
+    last: last && { result: last.result, prize: JEU_LOTS[last.result], code: jeuMailOnly(last) ? null : last.code, by_email: jeuMailOnly(last), email_hint: jeuMailOnly(last) ? maskEmail(pl.email) : undefined, expires_at: last.expires_at, mode: last.mode || 'rue', redeemed: !!last.redeemed_at } };
 }
 async function jeuAmi(env, slug, c) {
   c = c.toUpperCase().replace(/[^A-Z0-9]/g, '');
