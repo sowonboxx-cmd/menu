@@ -32,10 +32,18 @@
 
   // Carte « flat » : pas de bâtiments, pas de 3D, pas d'icônes de lieux, de transports ni de panneaux.
   map.on('style.load', function () {
+    var paint = function (id, prop, val) { try { map.setPaintProperty(id, prop, val); } catch (e) {} };
     map.getStyle().layers.forEach(function (l) {
-      if (l.type === 'fill-extrusion' || /building|poi|transit|aerialway|airport|ferry|shield/.test(l.id)) {
-        map.setLayoutProperty(l.id, 'visibility', 'none');
+      var id = l.id;
+      if (l.type === 'fill-extrusion' || /building|poi|transit|aerialway|airport|aeroway|ferry|shield|path|pedestrian|track|service|rail|cycle|steps|oneway|hatching|housenum/.test(id)) {
+        map.setLayoutProperty(id, 'visibility', 'none');
+        return;
       }
+      if (l.type === 'background') paint(id, 'background-color', '#F3F2EC');
+      if (/water/.test(id) && l.type === 'fill') paint(id, 'fill-color', '#7CC6F7');
+      if (/waterway/.test(id) && l.type === 'line') paint(id, 'line-color', '#7CC6F7');
+      if (/park|grass|wood|forest|landcover|cemetery|pitch/.test(id) && l.type === 'fill') { paint(id, 'fill-color', '#B5E3A0'); paint(id, 'fill-opacity', 1); paint(id, 'fill-outline-color', 'rgba(0,0,0,0)'); }
+      if (/landuse/.test(id) && l.type === 'fill' && !/park|grass|wood|cemetery|pitch/.test(id)) map.setLayoutProperty(id, 'visibility', 'none');
     });
   });
   map.on('load', function () {

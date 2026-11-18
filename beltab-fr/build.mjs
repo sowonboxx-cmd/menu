@@ -59,7 +59,12 @@ ${canonical ? `<link rel="canonical" href="${esc(site.url + canonical)}">` : ''}
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(description)}">
 ${ogImage ? `<meta property="og:image" content="${esc(ogImage)}">` : ''}
-<meta name="theme-color" content="#F6F6F4">
+<meta name="theme-color" content="#F3F2EC">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Beltab">
+<link rel="manifest" href="/manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/src/styles.css">
@@ -344,6 +349,7 @@ write('_headers', '/restaurants.json\n  Cache-Control: public, max-age=300\n/ass
 write('404.html', layout({ title: 'Page introuvable | Beltab', description: 'Page introuvable', noindex: true, body: `${header()}<main class="wrap prose"><h1>Page introuvable</h1><p><a href="/">Revenir à la carte</a></p></main>` }));
 if (!demo) write('robots.txt', `User-agent: *\nAllow: /\nSitemap: ${site.url}/sitemap.xml\n`);
 else write('robots.txt', 'User-agent: *\nDisallow: /\n');
+write('manifest.webmanifest', JSON.stringify({ name: 'Beltab', short_name: 'Beltab', start_url: '/', display: 'standalone', background_color: '#F3F2EC', theme_color: '#F3F2EC', lang: 'fr' }));
 write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${['/', '/regles/', ...restaurants.map(urlOf)].map((u) => `<url><loc>${site.url}${u}</loc></url>`).join('\n')}\n</urlset>\n`);
 
 console.log(`OK : ${restaurants.length} restaurants, site généré dans dist/${demo ? ' (mode démo : non indexé)' : ''}`);
