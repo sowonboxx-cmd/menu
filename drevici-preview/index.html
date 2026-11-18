@@ -2447,6 +2447,16 @@ body.hdr-light .adm-b-hdr{color:var(--navy)}
   /* Menu : au bout du cadre, aligné sur le bord droit de la 3e image (marge intérieure du conteneur). */
   .adm-b-hdr{right:16px;height:24px;width:33px}
 }
+
+/* ── Réservation sur ordinateur : petite fenêtre au milieu de la page (façon widget), au lieu d'une page entière.
+   Sur téléphone, rien ne change : la page de réservation est déjà à la taille de l'écran. */
+.bk-modal{position:fixed;inset:0;z-index:10050;display:none;align-items:center;justify-content:center;background:rgba(12,20,38,.5);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);opacity:0;transition:opacity .2s}
+.bk-modal.on{display:flex}.bk-modal.vis{opacity:1}
+.bk-box{position:relative;width:430px;height:min(760px,calc(100vh - 40px));background:#f5f2ec;border-radius:20px;overflow:hidden;box-shadow:0 28px 80px rgba(0,0,0,.38);transform:translateY(14px) scale(.98);transition:transform .25s}
+.bk-modal.vis .bk-box{transform:none}
+.bk-box iframe{display:block;width:100%;height:100%;border:0}
+.bk-x{position:absolute;top:12px;right:12px;z-index:2;width:32px;height:32px;border:0;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.bk-x:hover{background:rgba(255,255,255,.28)}.bk-x svg{width:14px;height:14px}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
@@ -8439,7 +8449,7 @@ const CLIENT_SLUG = _lastSegment.replace(/-preview$/, '');
 // branche — elle ne sert qu'en recette.
 const PROD_BASE = 'https://drevici.beltab.app/';
 const RESA_ADMIN_URL = IS_PREVIEW ? PROD_BASE + 'reservations' : 'reservations'; // ancien tableau des réservations (le nouvel espace restaurateur est /admin)
-if(IS_PREVIEW) document.querySelectorAll('a[href="book"]').forEach(a => { a.href = PROD_BASE + 'book'; });
+// La préview a maintenant sa propre page de réservation de test (écrite sous « drevici-test ») : les liens « book » restent relatifs.
 
 const supabaseClient = (SUPABASE_URL !== 'COLLE_ICI_SUPABASE_URL' && window.supabase)
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
@@ -13591,6 +13601,32 @@ function dshOpenPin(idx){
   if(i<0) return false;
   dshOpen(p.tab.id,i); return true;
 }
+</script>
+
+<script>
+/* Réservation sur ordinateur : les liens « book » ouvrent une petite fenêtre au milieu de la page. */
+(function(){
+  const desk=()=>window.matchMedia('(min-width:641px)').matches;
+  let M=null;
+  function close(){ if(!M) return; M.classList.remove('vis'); setTimeout(()=>{ M.classList.remove('on'); M.querySelector('iframe').src='about:blank'; document.documentElement.style.overflow=''; },200); }
+  function open(u){
+    if(!M){ M=document.createElement('div'); M.className='bk-modal'; M.setAttribute('role','dialog'); M.setAttribute('aria-label','Réserver une table');
+      M.innerHTML='<div class="bk-box"><button class="bk-x" type="button" aria-label="Fermer"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 2l10 10M12 2L2 12"/></svg></button><iframe title="Réserver une table" allow="clipboard-write"></iframe></div>';
+      document.body.appendChild(M); M.addEventListener('click',e=>{ if(e.target===M||e.target.closest('.bk-x')) close(); });
+      document.addEventListener('keydown',e=>{ if(e.key==='Escape') close(); });
+      window.addEventListener('message',e=>{ if(e.origin===location.origin&&e.data==='bk-close') close(); }); }
+    u.searchParams.set('embed','1'); M.querySelector('iframe').src=u.toString();
+    document.documentElement.style.overflow='hidden'; M.classList.add('on'); requestAnimationFrame(()=>M.classList.add('vis'));
+  }
+  window.openBookModal=(href)=>{ if(!desk()) return false; try{ open(new URL(href||'book',location.href)); return true; }catch(e){ return false; } };
+  document.addEventListener('click',e=>{
+    if(!desk()||e.defaultPrevented||e.metaKey||e.ctrlKey||e.shiftKey) return;
+    const a=e.target.closest&&e.target.closest('a[href]'); if(!a||a.target==='_blank') return;
+    let u; try{ u=new URL(a.getAttribute('href'),location.href); }catch(_){ return; }
+    if(u.origin!==location.origin||!/\/book(\.html)?$/.test(u.pathname)) return;
+    e.preventDefault(); e.stopPropagation(); open(u);
+  },true);
+})();
 </script>
 </body>
 </html>
