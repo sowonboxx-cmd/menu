@@ -247,6 +247,7 @@ function renderCarte() {
 <label class="search"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B6B6B" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="Un quartier, une cuisine, un restaurant" aria-label="Rechercher"></label>
 <div class="filters" id="filters" role="group" aria-label="Filtres"></div>
 </div>
+<button type="button" class="outside" id="outside" hidden></button>
 <div class="sheet" id="sheet" aria-live="polite"></div>
 </main>`;
   return layout({
@@ -314,7 +315,7 @@ for (const r of restaurants) {
 const pub = restaurants.map((r) => {
   const paid = tierOf(r.niveau) >= 1;
   return {
-    slug: r.slug, nom: r.nom, url: urlOf(r), lat: r.lat, lng: r.lng, accroche: r.accroche,
+    slug: r.slug, nom: r.nom, url: urlOf(r), paid, lat: r.lat, lng: r.lng, accroche: r.accroche,
     arrondissement: r.arrondissement, categories: r.categories, prix: r.prix, horaires: r.horaires,
     photo: paid ? r.photoPrincipale || '' : '',
     platDuJour: paid && r.platDuJour?.nom ? { date: r.platDuJour.date, nom: r.platDuJour.nom, prix: r.platDuJour.prix } : null,

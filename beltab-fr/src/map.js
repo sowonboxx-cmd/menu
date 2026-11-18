@@ -13,12 +13,12 @@
 
   var map = new maplibregl.Map({
     container: 'map',
-    style: 'https://tiles.openfreemap.org/styles/positron',
+    style: 'https://tiles.openfreemap.org/styles/liberty',
     center: [2.3185, 48.8865],
     zoom: 14.2,
     attributionControl: { compact: true }
   });
-  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-left');
   map.addControl(new maplibregl.GeolocateControl({ positionOptions: { enableHighAccuracy: true } }), 'bottom-right');
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -90,15 +90,38 @@
     list.forEach(function (r) {
       var el = document.createElement('button');
       el.type = 'button';
-      el.className = 'pin' + (r.slug === state.selected ? ' is-on' : '');
+      el.className = 'dot' + (r.paid ? ' is-paid' : '') + (r.slug === state.selected ? ' is-on' : '');
       el.setAttribute('aria-label', r.nom);
-      el.innerHTML = '<span>' + esc(r.nom) + '</span>';
+      el.title = r.nom;
+      el.innerHTML = r.slug === state.selected ? '<span class="dot-label">' + esc(r.nom) + '</span>' : '';
       el.addEventListener('click', function (e) { e.stopPropagation(); select(r.slug); });
-      markers.push(new maplibregl.Marker({ element: el, anchor: 'bottom' }).setLngLat([r.lng, r.lat]).addTo(map));
+      markers.push(new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat([r.lng, r.lat]).addTo(map));
     });
     renderSheet(list);
+    state.list = list;
+    updateOutside();
   }
 
+  function updateOutside() {
+    var pill = document.getElementById('outside');
+    var list = state.list || [];
+    if (!pill || !list.length) { if (pill) pill.hidden = true; return; }
+    var b = map.getBounds();
+    var out = list.filter(function (r) { return !b.contains([r.lng, r.lat]); }).length;
+    pill.hidden = out === 0;
+    pill.textContent = out + ' hors du cadre \u00b7 Tout voir';
+  }
+
+  function fitAll() {
+    var list = state.list || [];
+    if (!list.length) return;
+    var bounds = new maplibregl.LngLatBounds();
+    list.forEach(function (r) { bounds.extend([r.lng, r.lat]); });
+    map.fitBounds(bounds, { padding: 80, maxZoom: 14 });
+  }
+
+  map.on('moveend', updateOutside);
+  document.getElementById('outside').addEventListener('click', fitAll);
   map.on('click', function () { if (state.selected) { state.selected = null; render(); } });
   document.getElementById('q').addEventListener('input', function (e) { state.q = e.target.value.trim(); state.selected = null; render(); });
 
@@ -106,5 +129,6 @@
     state.data = d.restaurants;
     state.cats = d.categories || {};
     render();
+    fitAll();
   });
 })();
