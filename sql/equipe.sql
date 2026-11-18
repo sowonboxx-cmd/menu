@@ -30,6 +30,8 @@ alter table public.restaurant_staff enable row level security;
 -- Droits de la table (les projets Supabase récents ne les donnent plus automatiquement)
 grant select, insert, update, delete on public.restaurant_staff to service_role;
 grant select on public.restaurant_staff to authenticated;
+-- Le Worker ajoute / retire aussi des administrateurs depuis la page Équipe
+grant select, insert, delete on public.restaurant_admins to service_role;
 drop policy if exists restaurant_staff_self on public.restaurant_staff;
 create policy restaurant_staff_self on public.restaurant_staff for select to authenticated
   using (user_id = auth.uid());
