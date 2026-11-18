@@ -31,6 +31,7 @@ P = {
  'index.html': [
    ("const CLIENT_SLUG_RACINE = 'drevici';", f"const CLIENT_SLUG_RACINE = '{SLUG}';", 1),
    ("const PROD_BASE = 'https://drevici.beltab.app/';", f"const PROD_BASE = '{HOST}';", 1),
+   ("const QM_RESA_SLUG='drevici-paris';", f"const QM_RESA_SLUG='{SLUG}';", 1),   # menu rapide : résas du jour
  ],
  'book.html': [
    ("const CLIENT_SLUG = 'drevici-paris';", f"const CLIENT_SLUG = '{SLUG}';", 1),

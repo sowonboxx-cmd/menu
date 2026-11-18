@@ -442,6 +442,42 @@ body.hdr-light .hdr-sched .resto-badge-inline svg{color:rgba(20,35,70,.55)!impor
 .rail-price{display:none;font-size:13px;font-weight:500;color:var(--navy);white-space:nowrap;flex:none}
 .dish-star{color:var(--gold);font-size:11px;line-height:1;white-space:nowrap}
 .rail-desc{display:none}
+
+/* ═══ FICHE PLAT ORDINATEUR (17/11, maquette G2) ═══
+   Photo en grand à gauche, infos centrées à droite (catégorie, nom, description
+   entière, prix entre deux filets or), vignettes de la catégorie en grille, et
+   « Réserver une table » en barre pleine largeur. Flèches et compteur en verre. */
+#dsk{position:fixed;inset:0;z-index:9000;display:none;align-items:center;justify-content:center;background:rgba(16,24,40,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+#dsk.open{display:flex}
+#dsk .k-m{background:#fff;border-radius:24px;overflow:hidden;width:min(1100px,84vw);height:min(680px,78vh);display:flex;position:relative;box-shadow:0 30px 80px rgba(0,0,0,.35)}
+#dsk .k-ph{width:54%;flex:none;position:relative;background:#f1ece2 center/cover no-repeat}
+#dsk .k-ph video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .35s}
+#dsk .k-ph video.on{opacity:1}
+#dsk .k-gl{background:rgba(16,40,94,.28);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#fff}
+#dsk .k-ar{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:50%;border:0;display:grid;place-items:center;cursor:pointer;z-index:2}
+#dsk .k-ar svg{width:18px;height:18px}
+#dsk .k-ar.l{left:16px}#dsk .k-ar.r{right:16px}
+#dsk .k-ar:hover{background:rgba(16,40,94,.45)}
+#dsk .k-cnt{position:absolute;left:18px;bottom:18px;border-radius:99px;padding:6px 13px;font:600 13px Jost,sans-serif;z-index:2}
+#dsk .k-gold{width:2px;background:var(--gold,#C6A24A);flex:none}
+#dsk .k-r{flex:1;display:flex;flex-direction:column;min-width:0}
+#dsk .k-info{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:40px 38px 18px;min-height:0;overflow:auto}
+#dsk .k-pill{background:var(--navy);color:#fff;font:700 11px Jost,sans-serif;letter-spacing:.16em;text-transform:uppercase;padding:7px 14px;border-radius:99px}
+#dsk .k-nm{font-family:var(--restoFont,'Playfair Display'),serif;font-weight:800;color:var(--navy);font-size:clamp(28px,2.6vw,40px);line-height:1.08;margin:14px 0 10px;text-wrap:balance}
+#dsk .k-ds{font-family:'Open Sans',sans-serif;font-size:15.5px;line-height:1.6;color:#5d5952;max-width:440px}
+#dsk .k-pr{display:flex;align-items:center;gap:14px;margin-top:20px;font:600 20px Jost,sans-serif;color:var(--gold,#C6A24A)}
+#dsk .k-pr i{width:40px;height:1px;background:var(--gold,#C6A24A)}
+#dsk .k-th{background:#faf8f3;padding:16px 20px;max-height:46%;overflow-y:auto}
+#dsk .k-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+#dsk .k-t{border:0;background:none;padding:0;cursor:pointer;text-align:center;min-width:0;font:inherit}
+#dsk .k-t .im{aspect-ratio:1.35;border-radius:10px;background:#efe9de center/cover no-repeat}
+#dsk .k-t.on .im{outline:2px solid var(--navy);outline-offset:2px}
+#dsk .k-t p{margin:5px 0 0;font:500 11.5px 'Open Sans',sans-serif;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#dsk .k-t.on p{font-weight:700}
+#dsk .k-bk{display:block;text-align:center;background:var(--navy);color:#fff;text-decoration:none;font:600 14px Jost,sans-serif;letter-spacing:.14em;text-transform:uppercase;padding:18px}
+#dsk .k-bk:hover{filter:brightness(1.15)}
+#dsk .k-x{position:absolute;top:16px;right:16px;width:40px;height:40px;border-radius:50%;border:0;background:#fff;color:var(--navy);display:grid;place-items:center;cursor:pointer;z-index:3}
+@media (max-width:767px){#dsk{display:none!important}}
 /* ═══ TÉLÉPHONE (17/11) : incontournables = mêmes cases carrées que la grille ═══
    Même forme que le menu en grille (case blanche, photo carrée), deux par
    écran ; seule différence : le nom seul, sans prix ni description. La
@@ -5492,7 +5528,7 @@ function renderTabs(){
         const pin = e.target.closest('.rail-card[data-pinidx]');
         if(pin){ if(dshOn() && dshOpenFromEl(pin)) return; openPinLb(parseInt(pin.dataset.pinidx)); return; }
         const el = e.target.closest('[data-lbidx]');
-        if(el){ if(dshOn() && dshOpenFromEl(el)) return; openLb(parseInt(el.dataset.lbidx)); }
+        if(el){ if(dshOn() && dshOpenFromEl(el)) return; if(dskOn() && dskOpenFromEl(el)) return; openLb(parseInt(el.dataset.lbidx)); }
       });
     } else {
       const inner=section.querySelector('.container');
@@ -11545,7 +11581,7 @@ async function publishToSupabase(silent){
     console.warn('[menu] ecriture refusee — page de preview, lecture seule');
     // Une seule fois par visite : sinon on modifie en preview, on croit
     // avoir publié, et rien n'est enregistré sans qu'aucun message le dise.
-    if(!window._previewWarned){ window._previewWarned=true; showToast('Preview : rien n\'est enregistré ici. Modifiez la carte sur le vrai site (drevici.beltab.app).'); }
+    if(!window._previewWarned){ window._previewWarned=true; showToast('Preview : rien n\'est enregistré ici. Modifiez la carte sur le site en ligne.'); }
     return;
   }
   if(DATA_SOURCE!=='supabase'){
@@ -12076,7 +12112,10 @@ const SITE_INTERNET_ROWS = [
 const ADMIN_THEME_KEY='adminTheme';
 let adminTheme=(()=>{ try{ return localStorage.getItem(ADMIN_THEME_KEY)||'system'; }catch(e){ return 'system'; } })();
 const ADMIN_THEME_LABELS={system:'Système',light:'Clair',dark:'Sombre'};
+// (17/11, Will) L'admin est toujours en clair, sur ordinateur comme sur
+// téléphone : plus de mode sombre. Le réglage « Apparence » est retiré.
 function resolvedAdminTheme(){
+  return 'light';
   if(adminTheme==='light'||adminTheme==='dark') return adminTheme;
   return (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
 }
@@ -12164,7 +12203,6 @@ function closeThemeMenu(){
   if(m) m.classList.remove('open');
 }
 const THEME_ROWS = [
-  { key:'apparence', label:'Apparence', value:()=>ADMIN_THEME_LABELS[adminTheme], action:'toggleThemeMenu(event)', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.5A9 9 0 1 1 11.5 3 7 7 0 0 0 21 12.5Z"/></svg>' }
 ];
 // Dynamique — reconstruite à chaque affichage pour toujours refléter
 // les vraies catégories du menu (ajout/suppression/renommage), pas une
@@ -13093,6 +13131,57 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape') qmClose(); });
 // Sur ordinateur et en mode modification, la visionneuse reste celle
 // d'avant.
 // ═══════════════════════════════════════════
+
+// ═══ FICHE PLAT ORDINATEUR (maquette G2) ═══
+let dskState=null;
+function dskOn(){ return !editMode && window.matchMedia && matchMedia('(min-width:768px)').matches; }
+function dskItems(tab){
+  const out=[];
+  (tab.cards||[]).forEach((card,ci)=>{ if(card.hidden) return; (card.dishes||[]).forEach((d,di)=>{ if(!d.hidden && d.img) out.push({ci,di,d}); }); });
+  return out;
+}
+function dskOpenFromEl(el){
+  if(el.dataset.di==null) return false;
+  const ti=+el.dataset.ti, ci=+el.dataset.ci, di=+el.dataset.di;
+  const tab=DATA.tabs[ti]; if(!tab) return false;
+  const items=dskItems(tab); const i=items.findIndex(x=>x.ci===ci&&x.di===di);
+  if(i<0) return false;
+  dskState={ti,i}; dskRender();
+  document.getElementById('dsk').classList.add('open'); document.body.style.overflow='hidden';
+  return true;
+}
+function dskClose(){ const el=document.getElementById('dsk'); if(!el) return; el.classList.remove('open'); const v=el.querySelector('video'); if(v) v.pause(); document.body.style.overflow=''; dskState=null; }
+function dskGo(n){ if(!dskState) return; const items=dskItems(DATA.tabs[dskState.ti]); dskState.i=(n+items.length)%items.length; dskRender(); }
+function dskRender(){
+  let el=document.getElementById('dsk');
+  if(!el){
+    el=document.createElement('div'); el.id='dsk'; el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true'); document.body.appendChild(el);
+    el.addEventListener('click',e=>{
+      if(e.target===el) return dskClose();
+      const b=e.target.closest('[data-k]'); if(!b) return;
+      const k=b.dataset.k;
+      if(k==='x') dskClose(); else if(k==='p') dskGo(dskState.i-1); else if(k==='n') dskGo(dskState.i+1); else if(k==='t') dskGo(+b.dataset.i);
+    });
+    document.addEventListener('keydown',e=>{ if(!dskState) return; if(e.key==='Escape') dskClose(); else if(e.key==='ArrowLeft') dskGo(dskState.i-1); else if(e.key==='ArrowRight') dskGo(dskState.i+1); });
+  }
+  const tab=DATA.tabs[dskState.ti], items=dskItems(tab), cur=items[dskState.i].d;
+  const price=(dishPriceDisplay(cur)||'').replace(/\s*€/g,'');
+  const chev=dir=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="${dir<0?'M15 5l-7 7 7 7':'M9 5l7 7-7 7'}"/></svg>`;
+  const vid=(cur.video&&vidOk())?`<video src="${escAttr(cur.video)}" muted loop playsinline autoplay></video>`:'';
+  el.innerHTML=`<div class="k-m">
+    <div class="k-ph" style="background-image:url('${escAttr(cur.img)}')">${vid}
+      ${items.length>1?`<button class="k-ar l k-gl" data-k="p" aria-label="${lang==='en'?'Previous':'Précédent'}">${chev(-1)}</button><button class="k-ar r k-gl" data-k="n" aria-label="${lang==='en'?'Next':'Suivant'}">${chev(1)}</button>`:''}
+      <div class="k-cnt k-gl">${dskState.i+1} / ${items.length}</div></div>
+    <div class="k-gold"></div>
+    <div class="k-r">
+      <div class="k-info"><span class="k-pill">${escapeHtmlLocal(t(tab.label))}</span><div class="k-nm">${t(cur.name)}</div>${t(cur.desc)?`<div class="k-ds">${t(cur.desc)}</div>`:''}${price?`<div class="k-pr"><i></i><span>${price}</span><i></i></div>`:''}</div>
+      ${items.length>1?`<div class="k-th"><div class="k-grid">${items.map((x,i)=>`<button class="k-t${i===dskState.i?' on':''}" data-k="t" data-i="${i}"><div class="im" style="background-image:url('${escAttr(dishThumb(x.d))}')"></div><p>${t(x.d.short)||t(x.d.name)}</p></button>`).join('')}</div></div>`:''}
+      <a class="k-bk" href="book">${lang==='en'?'Book a table':'Réserver une table'}</a>
+    </div>
+    <button class="k-x" data-k="x" aria-label="${lang==='en'?'Close':'Fermer'}">${DSH_X}</button></div>`;
+  const v=el.querySelector('video'); if(v){ v.addEventListener('playing',()=>v.classList.add('on'),{once:true}); const pr=v.play(); if(pr&&pr.catch) pr.catch(()=>{}); }
+  const on=el.querySelector('.k-t.on'); if(on) on.scrollIntoView({block:'nearest'});
+}
 function dshOn(){ return !editMode && window.matchMedia && matchMedia('(max-width:767px)').matches; }
 const DSH_X='<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
 function dshNum(x){ return frDecimals(String(x==null?'':x).replace(/€/g,'').trim()); }
