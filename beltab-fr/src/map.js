@@ -134,7 +134,7 @@
     var pdj = hasPdj(r) ? '<div class="sheet-pdj"><span class="eyebrow">Plat du jour</span><span>' + esc(r.platDuJour.nom) + (r.platDuJour.prix ? ' \u00b7 ' + esc(r.platDuJour.prix) + ' \u20ac' : '') + '</span></div>' : '';
     var resa = '';
     if (r.reservation && r.reservation.type === 'beltab') resa = '<button type="button" class="act act-dark" id="act-book">' + ICON.cal + 'Réserver</button>';
-    else if (r.reservation) resa = '<a class="act act-dark" href="' + esc(r.reservation.url) + '" target="_blank" rel="noopener nofollow">' + ICON.cal + 'Réserver' + ICON.ext + '</a>';
+    else if (r.site) resa = '<a class="act" href="' + esc(r.site) + '" target="_blank" rel="noopener nofollow">Site web' + ICON.ext + '</a>';
     var acts = [resa,
       '<a class="act" href="' + esc(r.url) + '#carte">' + ICON.menu + 'Menu</a>',
       '<a class="act" href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(r.lat + ',' + r.lng) + '" target="_blank" rel="noopener nofollow">' + ICON.route + 'Itinéraire</a>'].filter(Boolean);

@@ -170,7 +170,7 @@ ${mdj.dessert ? `<div class="row"><span class="muted">Dessert</span><span>${esc(
   const resa = r.reservation || {};
   let resaBtn = '';
   if (paid && resa.type === 'beltab') resaBtn = `<a class="action action-dark" href="${esc(resa.url)}">${icon.cal}Réserver</a>`;
-  else if (resa.url) resaBtn = `<a class="action action-outline" href="${esc(resa.url)}" rel="nofollow"><span class="inline">Réserver${icon.ext}</span><small>via ${esc(resa.nom || 'le restaurant')}</small></a>`;
+  else if (r.site) resaBtn = `<a class="action" href="${esc(r.site)}" target="_blank" rel="noopener nofollow"><span class="inline">Site web${icon.ext}</span></a>`;
 
   const actions = `<div class="actions">
 ${r.telephone ? `<a class="action" href="tel:${esc(r.telephone.replace(/\s/g, ''))}">${icon.phone}Appeler</a>` : `<span class="action action-off">${icon.phone}Appeler</span>`}
@@ -343,6 +343,7 @@ const pub = restaurants.map((r) => {
     arrondissement: r.arrondissement, categories: r.categories, prix: r.prix, horaires: r.horaires,
     photo: paid ? r.photoPrincipale || '' : '',
     logo: r.logo || '',
+    site: r.site || '',
     reservation: r.reservation && r.reservation.url ? { type: paid && r.reservation.type === 'beltab' ? 'beltab' : 'externe', url: r.reservation.url, nom: r.reservation.nom || '' } : null,
     platDuJour: paid && r.platDuJour?.nom ? { date: r.platDuJour.date, nom: r.platDuJour.nom, prix: r.platDuJour.prix } : null,
   };

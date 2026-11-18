@@ -20,7 +20,7 @@ Site statique, sans dépendance. Les restaurants sont dans `data/restaurants.jso
 
 | niveau | Carte | Photos | Plat du jour | Voisins | Réservation |
 |---|---|---|---|---|---|
-| `gratuit` | 1 entrée, 1 plat, 1 dessert | aucune | image (`platDuJour.image`) | affichés | lien externe |
+| `gratuit` | 1 entrée, 1 plat, 1 dessert | aucune | image (`platDuJour.image`) | affichés | bouton « Site web » (champ `site`) |
 | `chef`, `local`, `starter` | complète | 3 | texte mis en page | masqués | Beltab |
 | `pro`, `master` | complète + formules | toutes | texte + menu du jour complet | masqués | Beltab |
 
