@@ -117,26 +117,54 @@
   }
 
   // ---------- fiche résumée ----------
+  var ICON = {
+    cal: '<svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4"/></svg>',
+    menu: '<svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15H6zM9 9h6M9 13h6M9 17h4"/></svg>',
+    route: '<svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg>',
+    ext: '<svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/></svg>',
+    badge: '<svg role="img" aria-label="Indépendant vérifié" width="18" height="18" viewBox="0 0 24 24"><title>Indépendant vérifié</title><polygon points="12.00,1.00 14.48,2.73 17.50,2.47 18.79,5.21 21.53,6.50 21.27,9.52 23.00,12.00 21.27,14.48 21.53,17.50 18.79,18.79 17.50,21.53 14.48,21.27 12.00,23.00 9.52,21.27 6.50,21.53 5.21,18.79 2.47,17.50 2.73,14.48 1.00,12.00 2.73,9.52 2.47,6.50 5.21,5.21 6.50,2.47 9.52,2.73" fill="#1F6B45" stroke="#1F6B45" stroke-width="1.6" stroke-linejoin="round"/><path d="M7.6 12.3l3 3 5.8-6.4" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  };
   function renderSheet() {
     var sheet = $('sheet');
     var r = state.selected && state.data.filter(function (x) { return x.slug === state.selected; })[0];
     if (!r) { sheet.hidden = true; sheet.innerHTML = ''; return; }
     var st = Beltab.status(r.horaires);
-    var pdj = hasPdj(r) ? '<div class="sheet-pdj"><span class="eyebrow">Plat du jour</span><span>' + esc(r.platDuJour.nom) + (r.platDuJour.prix ? ' · ' + esc(r.platDuJour.prix) + ' €' : '') + '</span></div>' : '';
+    var parts = st.label.split(' \u00b7 ');
+    var status = '<span class="st ' + (st.open ? 'st-open' : 'st-closed') + '"><strong>' + esc(parts[0]) + '</strong>' + (parts[1] ? ' \u00b7 ' + esc(parts[1]) : '') + '</span>';
+    var pdj = hasPdj(r) ? '<div class="sheet-pdj"><span class="eyebrow">Plat du jour</span><span>' + esc(r.platDuJour.nom) + (r.platDuJour.prix ? ' \u00b7 ' + esc(r.platDuJour.prix) + ' \u20ac' : '') + '</span></div>' : '';
+    var resa = '';
+    if (r.reservation && r.reservation.type === 'beltab') resa = '<button type="button" class="act act-dark" id="act-book">' + ICON.cal + 'Réserver</button>';
+    else if (r.reservation) resa = '<a class="act act-dark" href="' + esc(r.reservation.url) + '" target="_blank" rel="noopener nofollow">' + ICON.cal + 'Réserver' + ICON.ext + '</a>';
+    var acts = [resa,
+      '<a class="act" href="' + esc(r.url) + '#carte">' + ICON.menu + 'Menu</a>',
+      '<a class="act" href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(r.lat + ',' + r.lng) + '" target="_blank" rel="noopener nofollow">' + ICON.route + 'Itinéraire</a>'].filter(Boolean);
     sheet.innerHTML =
-      '<button type="button" class="sheet-close" id="sheet-close" aria-label="Fermer"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
-      '<div class="sheet-card">' +
-      (r.photo ? '<img class="sheet-photo" src="' + esc(r.photo) + '" alt="" onerror="this.remove()">' : '') +
-      '<div class="sheet-info">' +
-      '<span class="verified small">Indépendant vérifié</span>' +
-      '<strong class="sheet-name">' + esc(r.nom) + '</strong>' +
-      '<span class="muted">' + esc(catLabel(r)) + ' · ' + esc(r.arrondissement) + ' · <span class="nowrap">' + esc(r.prix) + '</span></span>' +
-      '<span class="chip ' + (st.open ? 'chip-open' : 'chip-closed') + '">' + esc(st.label) + '</span>' +
-      '</div></div>' + pdj +
-      '<div class="sheet-actions"><a class="btn" href="' + esc(r.url) + '">Voir la fiche</a>' +
-      '<a class="btn btn-light" href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(r.lat + ',' + r.lng) + '" rel="nofollow">Itinéraire</a></div>';
+      '<div class="rs-top">' +
+      (r.logo ? '<img class="rs-logo" src="' + esc(r.logo) + '" alt="" onerror="this.remove()">' : '') +
+      '<a class="rs-info" href="' + esc(r.url) + '">' +
+      '<span class="rs-name"><span class="rs-name-txt">' + esc(r.nom) + '</span>' + ICON.badge + '</span>' +
+      '<span class="rs-meta">' + esc(catLabel(r)) + ' \u00b7 <span class="nowrap">' + esc(r.prix) + '</span> \u00b7 ' + esc(r.arrondissement) + '</span>' +
+      status + '</a>' +
+      '<button type="button" class="sheet-close" id="sheet-close" aria-label="Fermer"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
+      '</div>' + pdj +
+      '<div class="rs-acts" style="grid-template-columns:repeat(' + acts.length + ',minmax(0,1fr))">' + acts.join('') + '</div>';
     sheet.hidden = false;
     $('sheet-close').addEventListener('click', function () { state.selected = null; render(); });
+    var bk = $('act-book');
+    if (bk) bk.addEventListener('click', function () { openBooking(r); });
+  }
+
+  // ---------- réservation Beltab en widget, sans quitter la carte ----------
+  function openBooking(r) {
+    $('booking-title').textContent = 'Réserver chez ' + r.nom;
+    $('booking-frame').src = r.reservation.url;
+    $('booking').hidden = false;
+    document.body.classList.add('no-scroll');
+  }
+  function closeBooking() {
+    $('booking').hidden = true;
+    $('booking-frame').src = 'about:blank';
+    document.body.classList.remove('no-scroll');
   }
 
   function select(slug) {
@@ -201,6 +229,8 @@
     if (state.selected) { state.selected = null; render(); }
   });
   $('outside').addEventListener('click', fitAll);
+  $('booking-close').addEventListener('click', closeBooking);
+  $('booking').addEventListener('click', function (e) { if (e.target === $('booking')) closeBooking(); });
   $('menu-btn').addEventListener('click', function () { toggle('menu'); });
   $('filter-btn').addEventListener('click', function () { toggle('filters'); });
   $('locate-btn').addEventListener('click', function () { geo.trigger(); });

@@ -204,7 +204,7 @@ ${hero ? `<div class="hero"><img src="${esc(hero)}" alt="${esc(r.nom)}" onerror=
 ${actions}
 ${pdjHtml}
 ${mdjHtml}
-<section class="card">
+<section class="card" id="carte">
 <div class="card-head"><h2>La carte</h2><span class="muted small">Mise à jour le ${esc(new Date(r.miseAJour).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }))}</span></div>
 ${formules}
 ${sectionsHtml}
@@ -272,6 +272,7 @@ ${demo ? '<p class="menu-note">Version de démonstration : certaines fiches sont
 </nav>
 <button type="button" class="outside" id="outside" hidden></button>
 <div class="sheet" id="sheet" aria-live="polite" hidden></div>
+<div class="booking" id="booking" hidden><div class="booking-panel" role="dialog" aria-modal="true" aria-label="Réserver"><div class="booking-head"><strong id="booking-title">Réserver</strong><button type="button" class="sheet-close" id="booking-close" aria-label="Fermer"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><iframe id="booking-frame" title="Réservation" loading="lazy"></iframe></div></div>
 </main>`;
   return layout({
     title: `Beltab · ${site.accroche}`,
@@ -341,6 +342,8 @@ const pub = restaurants.map((r) => {
     slug: r.slug, nom: r.nom, url: urlOf(r), paid, lat: r.lat, lng: r.lng, accroche: r.accroche,
     arrondissement: r.arrondissement, categories: r.categories, prix: r.prix, horaires: r.horaires,
     photo: paid ? r.photoPrincipale || '' : '',
+    logo: r.logo || '',
+    reservation: r.reservation && r.reservation.url ? { type: paid && r.reservation.type === 'beltab' ? 'beltab' : 'externe', url: r.reservation.url, nom: r.reservation.nom || '' } : null,
     platDuJour: paid && r.platDuJour?.nom ? { date: r.platDuJour.date, nom: r.platDuJour.nom, prix: r.platDuJour.prix } : null,
   };
 });
