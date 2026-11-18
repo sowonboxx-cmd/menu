@@ -660,6 +660,8 @@ function resultLocked(d) {
       ring.style.setProperty('--p', Math.max(0, 100 - e * 20) + '%'); sec.textContent = Math.max(0, Math.ceil(5 - e));
       if (e >= 5) { clearInterval(tk); r.classList.add('locked'); claim(); } }, 100); }
 }
+// Test : comme en vrai, seul le shot montre son code à l'écran ; les autres lots partent par email.
+const testMail = r => r === 'shot' ? { code: 'BOO-TEST' } : { code: null, by_email: true, email_hint: 'te•••@gmail.com' };
 function testDraw() {
   let res = { trio: 'trio', huitre: 'trio', gagne: 'trio', plateau: 'plateau', tshirt: 'tshirt', shot: 'shot', perdu: 'shot' }[TEST];
   if (TEST === 'demo') res = ['trio', 'plateau', 'tshirt', 'shot'][Math.floor(Math.random() * 4)];
@@ -670,7 +672,7 @@ async function play(body) {
   if (TEST) return testPlay(body);
   const r = await fetch(API + '/jeu/play', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ slug: JEU_SLUG, src: SRC, ...body }) });
   const d = await r.json();
-  if (d.t) { ME = { t: d.t, first: d.first, club: !!(d.club && d.club.code), plays_left: d.ok ? d.plays_left : 0, last: d.ok ? { result: d.result, prize: d.prize, code: d.code, expires_at: d.expires_at, redeemed: false } : null }; store.set(ME); }
+  if (d.t) { ME = { t: d.t, first: d.first, club: !!(d.club && d.club.code), plays_left: d.ok ? d.plays_left : 0, last: d.ok ? { result: d.result, prize: d.prize, code: d.code, by_email: !!d.by_email, email_hint: d.email_hint, expires_at: d.expires_at, redeemed: false } : null }; store.set(ME); }
   if (d.club && d.club.code) { try { const k = 'club_' + SITE_SLUG, old = JSON.parse(localStorage.getItem(k) || 'null'); if (!old || old.code !== d.club.code) localStorage.setItem(k, JSON.stringify({ at: Date.now(), code: d.club.code, no: d.club.no, first: d.club.first || d.first })); } catch (_) {} }
   if (!d.ok) {
     if (d.reset) { ME = null; store.set(null); $('#ferr').textContent = d.error; return null; }
@@ -692,6 +694,8 @@ const LOTS = {
 };
 const until = d => new Date(d).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 // Shot et T-shirt : au comptoir, sans réserver. Huîtres : en réservant une table.
+// Lot par email (contre les faux emails) : à l'écran, seulement l'adresse où le code est parti.
+const ticketMail = hint => `<div class="tick"><div class="c" style="font:700 17px Inter,sans-serif;letter-spacing:.02em">Code envoyé par email</div><small>à <b>${esc(hint || 'ton adresse')}</b> · pense aux spams. Sans cet email, le lot ne peut pas être remis.</small></div>`;
 const ticket = (code, exp, res) => `<div class="tick"><div class="c">${esc(code)}</div><small>${res === 'shot' ? 'Montre ce code au comptoir, sans réserver' : res === 'tshirt' ? 'Dis-nous quand tu passes et montre ce code au comptoir' : 'Réserve une table et montre ce code en arrivant'} · avant le <b>${until(exp)}</b></small></div>`;
 // Réservation : la page officielle du restaurant (le code du lot est noté dans la réservation)
 const BOOK = 'https://drevici.beltab.app/book';
@@ -702,15 +706,15 @@ function result(d) {
   const top = d.result === 'shot'
     ? `<div class="k">${L.k}</div><h1>Le shot <i>offert</i></h1><div class="shot"><div class="g"></div><div class="liq"></div></div>`
     : `<div class="k">${L.k}</div><h1>Gagné${first ? `, <i>${esc(first)}</i>` : ' !'}</h1><img class="lot" src="${L.img}" alt="${L.alt}">`;
-  $('#res').innerHTML = skyHTML + `<div class="res"><div class="sp" style="flex:.5"></div>${top}<div class="what">${L.what}</div>${ticket(d.code, d.expires_at, d.result)}${btns(d.code)}<div class="sp"></div><div class="brandb"><b>DREVICI OYSTER</b><i>8 Rue Biot, 75017 <em>Paris</em></i></div></div>`;
+  $('#res').innerHTML = skyHTML + `<div class="res"><div class="sp" style="flex:.5"></div>${top}<div class="what">${L.what}</div>${d.by_email ? ticketMail(d.email_hint) : ticket(d.code, d.expires_at, d.result)}${btns(d.code)}<div class="sp"></div><div class="brandb"><b>DREVICI OYSTER</b><i>8 Rue Biot, 75017 <em>Paris</em></i></div></div>`;
   $('#res').classList.add('on');
 }
 function doneScreen() {
-  const l = ME && ME.last, live = l && l.code && !l.redeemed && Date.parse(l.expires_at) > Date.now();
+  const l = ME && ME.last, live = l && (l.code || l.by_email) && l.result !== 'perdu' && !l.redeemed && Date.parse(l.expires_at) > Date.now();
   const L = l && (LOTS[l.result] || LOTS.shot);
   $('#res').innerHTML = skyHTML + `<div class="res"><div class="k">Trick or Huître</div><h1>Tu as déjà <i>joué</i></h1>
     <img class="mascs" src="jeu/halloween/mascotte.webp" alt="">
-    ${live ? `<div class="tx">Ton lot : <b>${esc(L.what.toLowerCase())}</b>.</div>${ticket(l.code, l.expires_at, l.result)}${btns(l.code)}`
+    ${live ? `<div class="tx">Ton lot : <b>${esc(L.what.toLowerCase())}</b>.</div>${l.by_email ? ticketMail(l.email_hint) : ticket(l.code, l.expires_at, l.result)}${btns(l.code)}`
            : `<div class="tx">Une partie par personne. ${l && l.redeemed ? 'Ton lot a bien été remis.' : 'Merci d\'avoir joué !'}</div><a class="btn2 o" href="${BOOK}">Réserver une table</a><a class="btn2" href="${INSTA}" target="_blank" rel="noopener">Suivre @drevicioysterbar</a>`}
     <div class="sp"></div><div class="brandb"><b>DREVICI OYSTER</b><i>8 Rue Biot, 75017 <em>Paris</em></i></div></div>`;
   $('#res').classList.add('on');
@@ -729,13 +733,13 @@ document.addEventListener('click', e => {
 
 // ═══ Mode test ═══
 function testPlay(body) {
-  if (DRAW) { ME = { t: '', first: body.first || 'Test', club: body.optin === true, plays_left: 0 }; return { ok: true, result: DRAW.result, code: 'BOO-TEST', expires_at: new Date(Date.now() + 7 * 864e5).toISOString(), plays_left: 0 }; }
+  if (DRAW) { ME = { t: '', first: body.first || 'Test', club: body.optin === true, plays_left: 0 }; return { ok: true, result: DRAW.result, ...testMail(DRAW.result), expires_at: new Date(Date.now() + 7 * 864e5).toISOString(), plays_left: 0 }; }
   let res = { trio: 'trio', huitre: 'trio', gagne: 'trio', plateau: 'plateau', tshirt: 'tshirt', shot: 'shot', perdu: 'shot' }[TEST];
   // démo : chaque lot a la même chance, pour montrer tous les écrans
   if (TEST === 'demo') res = ['trio', 'plateau', 'tshirt', 'shot'][Math.floor(Math.random() * 4)];
   if (!res) { const r = Math.random(); res = r < .01 ? 'tshirt' : r < .03 ? 'plateau' : r < .13 ? 'trio' : 'shot'; }
   ME = { t: '', first: body.first || 'Test', club: body.optin === true, plays_left: 0 };
-  return { ok: true, result: res, code: 'BOO-TEST', expires_at: new Date(Date.now() + 7 * 864e5).toISOString(), plays_left: 0 };
+  return { ok: true, result: res, ...testMail(res), expires_at: new Date(Date.now() + 7 * 864e5).toISOString(), plays_left: 0 };
 }
 if (TEST) {
   document.body.insertAdjacentHTML('beforeend', '<div style="position:fixed;right:10px;top:calc(env(safe-area-inset-top) + 6px);background:#f97316;color:#1b0f05;font:700 10.5px Inter;border-radius:999px;padding:4px 9px;z-index:30;opacity:.9;white-space:nowrap">' + (TEST === 'demo' ? 'Démo' : 'Mode test') + ' · rien n\'est enregistré</div>');

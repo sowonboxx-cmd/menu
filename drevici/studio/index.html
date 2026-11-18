@@ -330,6 +330,7 @@ button{cursor:pointer;background:none}
 .jtabs{display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap}.jtabs button{padding:7px 12px;border-radius:999px;background:var(--paper);font-weight:700;font-size:12.5px}.jtabs button.on{background:var(--ink);color:#fff}
 .jp{display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid #f0ebe0}.jp:first-child{border-top:0}
 .jp .who{flex:1;min-width:0}.jp .who b{display:block;font-size:15px}.jp .who small{display:block;font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jask{display:inline-flex;gap:6px;align-items:center}.jin{font:700 14px ui-monospace,Menlo,monospace;letter-spacing:.06em;text-transform:uppercase;width:150px;padding:9px 10px;border-radius:10px;border:0;background:var(--paper)}
 .jcode{font:700 12.5px ui-monospace,Menlo,monospace;background:var(--paper);border-radius:8px;padding:5px 8px;white-space:nowrap}
 .jst{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border-radius:999px;padding:4px 9px;white-space:nowrap}.jst.l{background:#f0ebe0;color:var(--mut)}.jst.w{background:#fbeccd;color:#8a6416}.jst.ok{background:#e3f1e7;color:#2e8b57}.jst.x{background:#f7dcd8;color:#9f2e1f}
 @media(max-width:700px){.jp{flex-wrap:wrap}.jp .who{flex-basis:62%}}.qt .qn,.qrl .qn{font-size:15px;font-weight:800;color:var(--ink)}
@@ -339,6 +340,9 @@ button{cursor:pointer;background:none}
 .whosel{appearance:none;-webkit-appearance:none;border:0;cursor:pointer;padding-right:28px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2310285e' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;font-family:inherit;color:inherit}
 #tdChips{flex-wrap:wrap;overflow:visible}
 textarea.tdesc{min-height:140px;resize:none;overflow:hidden}
+/* Compte staff : on cache ce qui n'est pas ouvert pour lui */
+html.st .hk-sim,html.st .hk-admin,html.st .hk-charte,html.st a[href^="#qr-new"],html.st a[href^="#qr-edit"],html.st a[href="#plat"],html.st a[href^="../plat-test"]{display:none!important}
+html.no-resa .x.resa,html.no-calendrier .x.cal,html.no-calendrier .hk-todo,html.no-campagnes .hk-camp,html.no-tshirts .hk-tee{display:none!important}
 </style>
 </head>
 <body>
@@ -1426,6 +1430,10 @@ function jState(y){ if(y.result==='perdu')return {k:'l',t:'Perdu'};
   if(y.redeemed_at)return {k:'ok',t:lot+' remis le '+new Date(y.redeemed_at).toLocaleDateString('fr-FR',{day:'numeric',month:'numeric'})};
   if(y.expires_at&&new Date(y.expires_at)<new Date())return {k:'x',t:lot+' · expiré',todo:1};
   return {k:'w',t:lot+(y.mode==='table'?' · ce repas':''),todo:1};}
+// Lots envoyés par email (les gros lots : plateau, 3 huîtres, T-shirt ; pas le shot, ni l'huître Free Oyster, ni les lots à table) : on ne remet QU'AVEC le code que le client
+// montre depuis son email. Le nom ne suffit pas (il a pu donner un faux email) : le code reste masqué ici.
+const jMail=y=>!!y&&!['perdu','shot','huitre','bonus'].includes(y.result)&&(y.mode||'rue')!=='table';
+const jNorm=c=>String(c||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
 function jRows(id){
   const st=JL[id],set=new Set(st.codes),qq=(st.q||'').trim().toLowerCase();
   const D=st.data||JEU;
@@ -1435,7 +1443,7 @@ function jRows(id){
   if(st.tab==='todo')ys=ys.filter(r=>r.s.todo);
   if(st.tab==='done')ys=ys.filter(r=>r.y.redeemed_at);
   const q0=c=>QRS.find(x=>x.code===c);
-  return ys.slice(0,200).map(({y,p,s})=>`<div class="jp"><div class="who"><b>${esc(jName(p))}</b><small>${st.camp?esc((q0(y.src)?qName(q0(y.src)):y.src)+' · '):''}${esc([p.email,jTel(p.phone)].filter(Boolean).join(' · '))} · ${ago(y.created_at)}</small></div>${y.code?`<span class="jcode">${esc(y.code)}</span>`:''}<span class="jst ${s.k}">${esc(s.t)}</span>${s.todo?`<button class="cbtn" type="button" data-jred="${esc(y.code)}" data-jl="${esc(id)}">Remettre</button>`:''}</div>`).join('')
+  return ys.slice(0,200).map(({y,p,s})=>`<div class="jp"><div class="who"><b>${esc(jName(p))}</b><small>${st.camp?esc((q0(y.src)?qName(q0(y.src)):y.src)+' · '):''}${esc([p.email,jTel(p.phone)].filter(Boolean).join(' · '))} · ${ago(y.created_at)}</small></div>${y.code?`<span class="jcode">${esc(jMail(y)&&!y.redeemed_at?y.code.split('-')[0]+'-••••':y.code)}</span>`:''}<span class="jst ${s.k}">${esc(s.t)}</span>${s.todo?(jMail(y)?`<button class="cbtn" type="button" data-jask="${esc(y.code)}" data-jl="${esc(id)}">Remettre</button>`:`<button class="cbtn" type="button" data-jred="${esc(y.code)}" data-jl="${esc(id)}">Remettre</button>`):''}</div>`).join('')
     ||`<p class="empty">${qq?'Personne ne correspond.':st.tab==='todo'?'Aucun lot à remettre.':'Pas encore de joueur.'}</p>`;}
 // Chiffres du jeu d'Halloween : joueurs, club, lots gagnés (avec le stock), lots remis
 function halStats(){
@@ -1469,7 +1477,16 @@ document.addEventListener('input',e=>{const t=e.target.closest&&e.target.closest
 document.addEventListener('click',async e=>{
   const t=e.target.closest&&e.target.closest('[data-jt]');
   if(t){const id=t.dataset.jl;JL[id].tab=t.dataset.jt;t.parentElement.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===t));document.getElementById('jl-'+id).innerHTML=jRows(id);return;}
-  const r=e.target.closest&&e.target.closest('[data-jred]');if(!r)return;
+  const ask=e.target.closest&&e.target.closest('[data-jask]');
+  if(ask){const c=ask.dataset.jask;ask.outerHTML=`<span class="jask"><input class="jin" placeholder="Code reçu par email" autocapitalize="characters" autocomplete="off" spellcheck="false"><button class="cbtn" type="button" data-jgo="${esc(c)}">Valider</button></span>`;
+    const i=document.querySelector('.jask .jin');if(i){i.focus();i.onkeydown=k=>{if(k.key==='Enter')i.nextElementSibling.click();};}return;}
+  let r=e.target.closest&&e.target.closest('[data-jred]');
+  const go=!r&&e.target.closest&&e.target.closest('[data-jgo]');
+  if(go){const want=go.dataset.jgo,inp=go.previousElementSibling,got=jNorm(inp&&inp.value),w=jNorm(want),pre=jNorm(want.split('-')[0]);
+    if(!got){toast('Tapez le code que le client vous montre');inp&&inp.focus();return;}
+    if(got!==w&&pre+got!==w){toast('Ce n’est pas le bon code : demandez celui reçu par email');inp&&inp.select();return;}
+    go.dataset.jred=want;r=go;}
+  if(!r)return;
   r.disabled=true;const code=r.dataset.jred;
   try{const res=await fetch('https://resa.beltab.app/jeu/redeem',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+(SESSION&&SESSION.access_token||'')},body:JSON.stringify({slug:JEU_SLUG,code})});
     const j=await res.json().catch(()=>({}));
@@ -1921,6 +1938,7 @@ document.addEventListener('change',e=>{ const t=e.target; if(!t.closest||!t.clos
 document.addEventListener('input',e=>{ const t=e.target; if(!t.matches||!t.matches('[data-ssrch]')) return; SIM_Q=t.value; clearTimeout(t._h); t._h=setTimeout(()=>{ renderSim().then(()=>{ const n=document.querySelector('[data-ssrch]'); if(n){ n.focus(); n.setSelectionRange(n.value.length,n.value.length); } }); },200); });
 function route(){
   const raw=(location.hash||'#home').slice(1), i=raw.indexOf('/'), view=i<0?raw:raw.slice(0,i), arg=i<0?'':decodeURIComponent(raw.slice(i+1));
+  if(STAFF&&!staffOk(view||'home')&&location.hash!=='#home'){location.hash='#home';return;}
   document.querySelectorAll('main').forEach(m=>m.hidden=true); closeSheet();
   if(view==='events'){
     if(arg){evSel=arg;const o=findOcc(arg);if(o){const d=dOf(o.date);curM=new Date(d.getFullYear(),d.getMonth(),1);}} else if(!matchMedia('(min-width:900px)').matches) evSel=null;
@@ -2176,8 +2194,23 @@ function ptSheet(d){
   };
 }
 
+/* ═══════════ Équipe : compte staff = seulement les zones cochées par l'admin ═══════════
+   (la base protège aussi les données : sql/equipe.sql). Admin ou service indisponible : tout s'affiche. */
+let STAFF=null;
+const STAFF_VIEW={home:1,events:'calendrier','event-new':'calendrier','event-edit':'calendrier',todo:'calendrier',
+  qr:'campagnes',qrc:'campagnes','qr-guide':'campagnes',horscarte:'campagnes',noel:'campagnes',tshirts:'tshirts'};
+const staffOk=v=>{const a=STAFF_VIEW[v];return a===1||(!!a&&STAFF.includes(a));};
+async function whoAmI(){
+  if(!SESSION)return;
+  try{const r=await fetch('https://resa.beltab.app/team/me',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+SESSION.access_token},body:JSON.stringify({slug:MENU_SLUG})});
+    const j=await r.json().catch(()=>({}));
+    if(r.ok&&j.ok&&j.role==='staff'){STAFF=j.perms||[];const h=document.documentElement;h.classList.add('st');
+      ['resa','calendrier','campagnes','tshirts'].forEach(a=>{if(!STAFF.includes(a))h.classList.add('no-'+a);});}
+  }catch(e){}
+}
 async function boot(){
   if(sb){const {data}=await sb.auth.getSession();SESSION=data.session||null;}
+  await whoAmI();
   renderAuth();
   const res=await Promise.allSettled([loadEvents(),loadTasks(),loadResa(),loadQR(),loadShop(),loadPlat()]);
   res.forEach((r,i)=>{if(r.status==='rejected'){RENDER_ERR.push(['Events','Tâches','Réservations','QR','T-shirts','Plat en test'][i]+' (chargement) : '+(r.reason&&r.reason.message||r.reason));console.error(r.reason);}});
