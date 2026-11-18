@@ -16,7 +16,21 @@
     style: 'https://tiles.openfreemap.org/styles/liberty',
     center: [2.3185, 48.8865],
     zoom: 14.2,
+    maxZoom: 17.5,
+    pitchWithRotate: false,
+    dragRotate: false,
     attributionControl: { compact: true }
+  });
+  map.touchZoomRotate.disableRotation();
+
+  // Carte « flat » : pas de bâtiments, pas de 3D, pas d'icônes de lieux ni de transports.
+  map.on('style.load', function () {
+    map.getStyle().layers.forEach(function (l) {
+      var id = l.id;
+      if (l.type === 'fill-extrusion' || /building|poi|transit|aerialway|airport|ferry|shield/.test(id)) {
+        map.setLayoutProperty(id, 'visibility', 'none');
+      }
+    });
   });
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-left');
   map.addControl(new maplibregl.GeolocateControl({ positionOptions: { enableHighAccuracy: true } }), 'bottom-right');
