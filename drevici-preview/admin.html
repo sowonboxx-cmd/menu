@@ -441,6 +441,7 @@ button.lk.red{color:var(--alert)}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:60;background:#16181d;color:#fff;border-radius:14px;padding:12px 16px;font-size:13.5px;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:min(92vw,520px)}
 
 /* connexion */
+.sthome .tiles{grid-template-columns:1fr!important}.sthome .tile small{display:block;color:var(--mut);font-size:12.5px;margin-top:2px}.acts2{flex-wrap:wrap}
 .tmrow{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:14px;font-weight:600}.tmrow .tgl{margin-left:auto;padding:0;background:none}.tmareas{margin:4px 0 6px}.tmhint{font-size:12.5px;color:var(--mut);margin:8px 0 0}.tmm{padding:12px 0;border-bottom:1px solid var(--line,rgba(0,0,0,.07))}.tmm:last-child{border-bottom:0}.tmh{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.tmh small{color:var(--mut);font-size:12px}
 .login{min-height:100vh;display:grid;place-items:center;padding:20px}
 .login .c{width:min(100%,380px);padding:28px}
@@ -1534,13 +1535,13 @@ const NEED={formules:'Pro',print:'Pro',tables:'Pro',tableBoost:'Master',floorpla
 const LOCK_TXT={formules:'Menus du jour, menus spéciaux et formules',print:'Impression du menu',tables:'Salle et tables',tableBoost:'Table Boost',
   stats:'Statistiques',campaigns:'Emails et SMS à vos clients',socialPublish:'Publication sur les réseaux',videos:'Vidéos des plats'};
 function lockOf(pg,arg){ arg=arg||'';
-  if(STAFF){ const ok=pg==='compte'||(pg==='resa'&&!arg&&STAFF.includes('resa')); if(!ok) return 'staff'; }
+  if(STAFF){ const ok=pg==='compte'||pg==='dash'||(pg==='resa'&&!arg&&STAFF.includes('resa')); if(!ok) return 'staff'; }
   if(pg==='equipe') return null;
   let k=LOCKS[pg+'/'+arg]||LOCKS[pg];
   if(pg==='comm'&&!arg&&!can('socialPublish')&&!can('campaigns')&&!can('tableBoost')) k='campaigns';
   return k&&!can(k)?k:null; }
 const navOk=n=>!lockOf(n[0],'');
-function lockedView(k){ if(k==='staff') return mtop('Accueil','dash')+ph('Réservé aux administrateurs','Votre accès staff ne comprend pas cette page','')+`<div class="c"><section class="list pc"><div class="pb"><p>Demandez à un administrateur de l'ouvrir pour vous (page Équipe).</p><a class="btn" href="#/${STAFF&&STAFF.includes('resa')?'resa':'compte'}">Retour</a></div></section></div>`;
+function lockedView(k){ if(k==='staff') return mtop('Accueil','dash')+ph('Réservé aux administrateurs','Votre accès staff ne comprend pas cette page','')+`<div class="c"><section class="list pc"><div class="pb"><p>Demandez à un administrateur de l'ouvrir pour vous (page Équipe).</p><a class="btn" href="#/dash">Retour</a></div></section></div>`;
   return mtop('Tableau de bord','dash')+ph(LOCK_TXT[k]||'Cette fonction','Pas incluse dans votre formule','')+
   `<div class="c"><section class="list pc"><div class="pb"><p>Cette fonction est incluse à partir de la formule <b>${NEED[k]||''}</b>. Pour l'ajouter, contactez Beltab.</p><a class="btn" href="#/dash">Retour au tableau de bord</a></div></section></div>`; }
 // Cache tous les liens vers une page coupée (raccourcis du tableau de bord, onglets, boutons).
@@ -1556,7 +1557,7 @@ const NAV_SITE=[...(ENTREE_ON?[['site/ecran','ecran','Page d\'entrée']]:[]),['s
 const PARENT={export:'carte',xprint:'carte',xgbiz:'carte',xinsta:'carte',xcol:'carte',mdj:'menus',formule:'menus',tuner:'menus'};
 const nv=([k,ic,l])=>{ const [pg,sub]=k.split('/'); const on=sub?(PG===pg&&(ARG===sub||(!ARG&&(pg==='etab'?'etab':'acc')===sub))):(PG===k||PARENT[PG]===k); const nb=k==='messages'?msgNew():0; return `<a class="nv${on?' on':''}" href="#/${k}">${I(ic)}${l}${nb?`<span class="nv-bd">${nb}</span>`:''}</a>`; };
 const STUDIO_AREAS=['calendrier','campagnes','tshirts'];
-const staffSide=()=>`<nav class="side"><a class="who" href="#/resa">${logoBox()}<b>${esc(DATA.restaurantName||'Mon restaurant')}</b></a>
+const staffSide=()=>`<nav class="side"><a class="who" href="#/dash">${logoBox()}<b>${esc(DATA.restaurantName||'Mon restaurant')}</b></a>
   ${NAV.filter(navOk).map(nv).join('')}<div class="gap"></div>${STAFF.some(a=>STUDIO_AREAS.includes(a))?`<a class="nv" href="${SITE_URL}studio/">${I('stats')}Studio</a>`:''}<a class="nv" href="${SITE_URL}" target="_blank" rel="noopener">${I('share')}Site ↗</a><a class="nv${PG==='compte'?' on':''}" href="#/compte">${I('compte')}Mon compte</a></nav>`;
 const side=()=>STAFF?staffSide():`<nav class="side"><a class="who" href="#/dash" title="Tableau de bord">${logoBox()}<b>${esc(DATA.restaurantName||'Mon restaurant')}</b></a>
   ${NAV.filter(navOk).map(nv).join('')}<div class="gap"></div><div class="mini">Mon établissement</div>${NAV_ETAB.map(nv).join('')}<div class="gap"></div><div class="mini">Mon site</div>${NAV_SITE.map(nv).join('')}<div class="gap"></div><div class="mini">Réglages</div>${NAVS.map(nv).join('')}
@@ -1600,7 +1601,19 @@ const liveTables=r=>(r.table_ids||[]).map(id=>TABLES.find(x=>String(x.id)===Stri
 const tableNames=r=>{ const ts=liveTables(r); if(!ts.length) return '<b class="warn">Non affectée</b>'; return ts.map(t=>esc(t.name||'Table')).join(', '); };
 
 // ══ Pages ══
+// Accueil d'un compte staff (surtout utile sur téléphone : accès à ses sections, à Mon compte et à la déconnexion)
+function staffHome(){
+  const t=(href,ico,l,sub,ext)=>`<a class="tile" href="${href}"${ext?' target="_blank" rel="noopener"':''}><span class="ico">${I(ico)}</span><div><b>${l}</b>${sub?`<small>${sub}</small>`:''}</div></a>`;
+  const who=esc((SESSION&&SESSION.user&&SESSION.user.email)||'');
+  return ph('Espace équipe',who,'')+`<div class="c sthome"><div class="set"><h4>Votre espace</h4><div class="tiles">
+    ${STAFF.includes('resa')?t('#/resa','resa','Réservations','Liste du jour, arrivées'):''}
+    ${STAFF.some(a=>STUDIO_AREAS.includes(a))?t(SITE_URL+'studio/','stats','Studio','Calendrier, campagnes, t-shirts'):''}
+    ${t(SITE_URL,'share','Site','Voir le site',1)}
+    ${t('#/compte','compte','Mon compte','Mot de passe, déconnexion')}
+  </div></div><div class="acts2" style="justify-content:flex-start;margin-top:14px"><button class="btn g" data-act="logout">${I('out')}Se déconnecter</button></div></div>`;
+}
 function dash(){
+  if(STAFF) return staffHome();
   const sp=jour(), svc=todayBySvc(), cap=capacity();
   const now=new Date().toTimeString().slice(0,5);
   // Les 3 prochaines arrivées (aujourd'hui puis les jours suivants), jamais celles déjà passées
@@ -2850,7 +2863,7 @@ function pageEquipe(){
     `<div class="pgrid g-1-1"><div>${card('Ajouter une personne','users',add)}</div><div>${card('Accès','sauv',list)}</div></div>`;
 }
 async function tmCall(path,body,ok){ try{ await napi(path,body); if(ok) toast(ok); loadTeam(true); }catch(e){ toast('⚠ '+e.message); } }
-function pageCompte(){ return mtop('Tableau de bord','dash')+ph('Mon compte','','')+`<div class="pgrid g-1-1"><div>${card('Mon compte','compte',row('Connecté',esc((SESSION&&SESSION.user&&SESSION.user.email)||'—'))+`<div class="acts2" style="justify-content:flex-start"><button class="btn g" data-act="pwChange">${I('sauv')}Changer mon mot de passe</button><button class="btn g" data-act="logout">${I('out')}Se déconnecter</button></div>`)}</div></div>`; }
+function pageCompte(){ return mtop(STAFF?'Accueil':'Tableau de bord','dash')+ph('Mon compte','','')+`<div class="pgrid g-1-1"><div>${card('Mon compte','compte',row('Connecté',esc((SESSION&&SESSION.user&&SESSION.user.email)||'—'))+`<div class="acts2" style="justify-content:flex-start"><button class="btn g" data-act="pwChange">${I('sauv')}Changer mon mot de passe</button><button class="btn g" data-act="logout">${I('out')}Se déconnecter</button></div>`)}</div></div>`; }
 const PAGES={equipe:pageEquipe,compte:pageCompte,messages:pageMessages,dash,resa:pageResa,carte:pageCarte,menus:pageMenus,mdj:pageMdj,formule:pageFormule,tuner:pageTuner,export:pageExport,xprint:pageXprint,xgbiz:pageXgbiz,xinsta:pageXinsta,xcol:pageXcol,comm:pageComm,stats:pageStats,etab:pageEtab,site:pageSite,app:pageApp,secu:pageSecu,clients:pageClients,emails:pageEmails};
 // Téléphone : même au premier niveau, fil d'Ariane « Accueil › Page » à la place du simple retour
 function levelOneCrumb(html){
@@ -2868,7 +2881,6 @@ function render(){
   if(!SESSION){ app.innerHTML=loginView(); return; }
   if(NOACCESS){ app.innerHTML=noAccessView(); return; }
   if(!DATA){ app.innerHTML=missingView(); return; }
-  if(STAFF&&PG==='dash') PG=STAFF.includes('resa')?'resa':'compte';
   setFav(DATA.restaurantLogo);
   const lk=lockOf(PG,ARG), fn=lk?()=>lockedView(lk):(PAGES[PG]||dash);
   const focus=document.activeElement&&document.activeElement.dataset?document.activeElement.dataset.bind:null;
@@ -3236,7 +3248,6 @@ async function whoAmI(){
 async function boot(){
   await whoAmI();
   if(NOACCESS){ render(); return; }
-  if(STAFF&&!location.hash) location.hash='#/'+(STAFF.includes('resa')?'resa':'compte');
   const r=await loadAll();
   if(r.err&&r.err!=='missing') toast(r.err);
   render();
