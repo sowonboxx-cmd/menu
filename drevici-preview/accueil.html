@@ -38,6 +38,15 @@ a{color:inherit;text-decoration:none}
 .where small{display:block;font-size:12.5px;font-weight:500;color:rgba(255,255,255,.88)}
 @media(min-width:900px){.sl{width:130px;height:130px}.k{font-size:17px}.name{font-size:56px}.tag{font-size:18px}.tag .pc{display:inline}.tag .mo{display:none}.cta{max-width:460px}.where{bottom:40px}.where b{font-size:22px}.where small{font-size:13.5px}}
 @media(max-height:640px){.where{position:relative;bottom:auto;margin-top:22px;padding:0}.lp{justify-content:flex-start;overflow-y:auto}}
+/* 18/11 (Will) : Surzur pas encore ouvert au public → petite fenêtre « Bientôt » au lieu du lien. */
+.soon{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(5,12,30,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.soon.open{display:flex}
+.soon .bx{position:relative;width:100%;max-width:360px;border-radius:20px;padding:30px 26px 26px;text-align:center;background:rgba(16,40,94,.72);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+.soon svg.ic{width:40px;height:40px;color:#ffc61a;margin-bottom:10px}
+.soon h2{font-family:'Playfair Display',serif;font-size:26px;margin:0 0 8px}
+.soon p{margin:0;font-size:15px;line-height:1.55;color:rgba(255,255,255,.88)}
+.soon .go{display:block;margin-top:20px;padding:14px;border-radius:14px;background:#fff;color:#10285E;font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:13px}
+.soon .x{position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:50%;border:0;background:rgba(255,255,255,.14);color:#fff;display:grid;place-items:center;cursor:pointer}
 </style></head><body>
 <!-- Page d'entrée des deux établissements. Les textes, le logo et l'assombrissement se règlent dans l'admin
      de Paris (Mon site → Page d'entrée, menu_data.data.entree) ; le fond est la vidéo de Paris, sauf si
@@ -58,7 +67,20 @@ a{color:inherit;text-decoration:none}
     <a id="eB1" href="https://drevici.beltab.app/"><b>Paris</b><small>8 rue Biot, 75017 Paris</small></a>
   </nav>
 </main>
+<div class="soon" id="soon" role="dialog" aria-modal="true" aria-labelledby="soonT"><div class="bx">
+  <button class="x" type="button" aria-label="Fermer" onclick="soon(false)"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+  <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V10l7-5 7 5v11"/><path d="M9 21v-6h6v6"/></svg>
+  <h2 id="soonT">Surzur, bientôt</h2>
+  <p>Le site de notre chantier de Pentès est en préparation. Il ouvre très vite, avec sa carte et la réservation.</p>
+  <a class="go" id="soonParis" href="https://drevici.beltab.app/">Découvrir Paris</a>
+</div></div>
 <script>
+// 18/11 (Will) : Surzur pas encore ouvert. Mettre SURZUR_OUVERT à true pour rétablir le lien.
+const SURZUR_OUVERT=false;
+function soon(on){ document.getElementById('soon').classList.toggle('open',on); }
+document.getElementById('soon').addEventListener('click',e=>{ if(e.target.id==='soon') soon(false); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') soon(false); });
+document.getElementById('eB2').addEventListener('click',e=>{ if(SURZUR_OUVERT) return; e.preventDefault(); document.getElementById('soonParis').href=document.getElementById('eB1').href; soon(true); });
 // Fond : vidéo de Drevici Oyster Paris (la même que la couverture du site de Paris).
 const PARIS_VIDEO='https://media.beltab.app/drevici/uploads/video-20261012213240-f5c5.mp4';
 function setVideo(src){
