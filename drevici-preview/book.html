@@ -753,6 +753,19 @@ function renderPlan() {
   host.innerHTML = svg + '<div class="sp-plan-hint">Touchez une table pour choisir son espace</div>';
   host.querySelectorAll('[data-sp]').forEach(g => g.addEventListener('click', () => { const n = g.getAttribute('data-sp'); const b = [...document.querySelectorAll('.space-btn')].find(x => x.textContent === n); if (b) pickSpace(n, b); }));
 }
+// Sièges selon le modèle (md.seat) : 'bench' bancs le long des grands côtés, 'bench3' bancs à gauche, à droite et devant,
+// 'bench4' bancs des 4 côtés (tonnelle), 'transat' 1 transat à gauche + les autres devant, 'dot' chaises rondes.
+function seatGeom(t, seatSides){ const o=[], g=6, th=11, st=t.seat; if(st==='none') return o;
+  if(st==='bench'||st==='bench3'||st==='bench4'){ const s=st==='bench'?seatSides(t):{t:st==='bench4'?1:0,b:1,l:1,r:1};
+    if(s.t) o.push({x:t.x,y:t.y-g-th,w:t.w,h:th,rx:3}); if(s.b) o.push({x:t.x+(st==='bench3'?t.w*.12:0),y:t.y+t.h+g,w:st==='bench3'?t.w*.76:t.w,h:th,rx:3});
+    if(s.l) o.push({x:t.x-g-th,y:t.y,w:th,h:t.h,rx:3}); if(s.r) o.push({x:t.x+t.w+g,y:t.y,w:th,h:t.h,rx:3}); return o; }
+  if(st==='transat'){ const r=9, n=Math.max(1,t.seats-1); o.push({x:t.x-g-2*r,y:t.y+t.h*.25-r,w:2*r,h:2*r,rx:r}); for(let i=0;i<n;i++) o.push({x:t.x+t.w*(i+.5)/n-r,y:t.y+t.h+g,w:2*r,h:2*r,rx:r}); return o; }
+  if(st==='dot'){ const r=8, s=seatSides(t), side=(n,hz,f)=>{ for(let i=0;i<n;i++){ const Ln=hz?t.w:t.h, p=(hz?t.x:t.y)+Ln*(i+.5)/n; o.push({x:(hz?p:f)-r,y:(hz?f:p)-r,w:2*r,h:2*r,rx:r}); } };
+    side(s.t,1,t.y-g-r); side(s.b,1,t.y+t.h+g+r); side(s.l,0,t.x-g-r); side(s.r,0,t.x+t.w+g+r); return o; }
+  return null; }
+// Forme « bateau » : pointe à gauche, encoche à droite (sens retourné si flip).
+function boatPath(x,y,w,h,flip){ const p=Math.min(h*.6,w*.25), n=Math.min(h*.45,w*.2);
+  return flip?`M${x} ${y}H${x+w-p}L${x+w} ${y+h/2}L${x+w-p} ${y+h}H${x}L${x+n} ${y+h/2}Z`:`M${x+p} ${y}H${x+w}L${x+w-n} ${y+h/2}L${x+w} ${y+h}H${x+p}L${x} ${y+h/2}Z`; }
 function planSvg() {
   const L = FLOOR; if (!L || !L.rooms || !L.rooms.length || !TABLES.length) return '';
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -764,13 +777,14 @@ function planSvg() {
   const shortSp = (nm, room) => { nm = String(nm || ''); const rn = String((room && room.name) || '').trim(); if (!rn) return nm; const lo = nm.toLowerCase(), rl = rn.toLowerCase(); if (lo === rl) return ''; let r = lo.startsWith(rl) ? nm.slice(rn.length) : nm; r = r.replace(/^[\s\-–·:]+/, '').replace(/^\((.*)\)$/, '$1').trim(); return r ? r.charAt(0).toUpperCase() + r.slice(1) : ''; };
   const its = [];
   TABLES.forEach(row => { const p = L.pos && L.pos[row.id]; if (!p) return; const md = p.model && MD(p.model), r4 = (((+p.rot || 0) % 4) + 4) % 4, rot = r4 % 2, sc = p.sc || 1;
-    const t = { id: row.id, seats: +row.seats || 1, sp: row.space_id, x: p.x, y: p.y, r4, rot, side: p.side, units: p.units || 1 };
+    const t = { id: row.id, name: row.name, seats: +row.seats || 1, sp: row.space_id, x: p.x, y: p.y, r4, rot, side: p.side, units: p.units || 1, flip: p.flip, seat: md && md.seat, shape: md && md.shape };
     if (md && md.round) { t.round = 1; t.w = t.h = md.w * sc; }
     else if (md) { const Ln = md.w * t.units * sc * (p.fx || 1), Hh = md.h * sc * (p.fy || 1); t.w = rot ? Hh : Ln; t.h = rot ? Ln : Hh; }
     else { t.w = p.w || 80; t.h = p.h || 56; }
     if (roomOf(t.x + t.w / 2, t.y + t.h / 2)) its.push(t); });
   if (!its.length) return '';
-  const chairs = t => { const o = [], cw = 20, ch = 12, g = 5;
+  const sides = t => { const hz = t.w > t.h || (t.w === t.h && !t.rot); if (t.side === 'one') { const k = ['t', 'r', 'b', 'l'][t.r4 || 0], s = { t: 0, b: 0, l: 0, r: 0 }; s[(hz && (k === 'l' || k === 'r')) ? 't' : (!hz && (k === 't' || k === 'b')) ? 'r' : k] = t.seats; return s; } const a = Math.ceil(t.seats / 2), b = Math.floor(t.seats / 2); return hz ? { t: a, b, l: 0, r: 0 } : { t: 0, b: 0, l: a, r: b }; };
+  const chairs = t => { if (t.seat) { const sg = seatGeom(t, sides); if (sg) return sg; } const o = [], cw = 20, ch = 12, g = 5;
     if (t.round) { const cx = t.x + t.w / 2, cy = t.y + t.h / 2, Rr = t.w / 2 + g + 7; for (let i = 0; i < t.seats; i++) { const a = -Math.PI / 2 + i * 2 * Math.PI / t.seats; o.push({ x: cx + Rr * Math.cos(a) - 7, y: cy + Rr * Math.sin(a) - 7, w: 14, h: 14, rx: 7 }); } return o; }
     const hz = t.w > t.h || (t.w === t.h && !t.rot); let s;
     if (t.side === 'one') { const k = ['t', 'r', 'b', 'l'][t.r4 || 0]; s = { t: 0, b: 0, l: 0, r: 0 }; s[(hz && (k === 'l' || k === 'r')) ? 't' : (!hz && (k === 't' || k === 'b')) ? 'r' : k] = t.seats; }
@@ -791,14 +805,16 @@ function planSvg() {
       const Fx = gx + a[0] * o.len, Fy = gy + a[1] * o.len;
       q = (o.type === 'pf' ? leaf(gx, gy, (gx + Fx) / 2, (gy + Fy) / 2, o.len / 2) + leaf(Fx, Fy, (gx + Fx) / 2, (gy + Fy) / 2, o.len / 2) : o.flip ? leaf(Fx, Fy, gx, gy, o.len) : leaf(gx, gy, Fx, Fy, o.len)) + q; }
     out += q; });
-  (L.deco || []).forEach(d => { if (d.kind !== 'stairs') return; const w = (d.rot % 2) ? d.h : d.w, h = (d.rot % 2) ? d.w : d.h, vt = h > w, n = Math.max(4, Math.round((vt ? h : w) / 14));
+  (L.deco || []).forEach(d => { if (d.kind === 'boat') { const w = (d.rot % 2) ? d.h : d.w, h = (d.rot % 2) ? d.w : d.h; out += `<path d="${boatPath(d.x, d.y, w, h, d.flip)}" fill="#1d4f9c"/>`; return; } if (d.kind !== 'stairs') return; const w = (d.rot % 2) ? d.h : d.w, h = (d.rot % 2) ? d.w : d.h, vt = h > w, n = Math.max(4, Math.round((vt ? h : w) / 14));
     out += R(d.x, d.y, w, h, 4, 'fill="#e9e1d2" stroke="#2f3437" stroke-width="2"');
     for (let i = 1; i < n; i++) { const f = i / n; out += vt ? `<line x1="${d.x}" y1="${d.y + h * f}" x2="${d.x + w}" y2="${d.y + h * f}" stroke="#2f3437" stroke-width="1.2" opacity=".5"/>` : `<line x1="${d.x + w * f}" y1="${d.y}" x2="${d.x + w * f}" y2="${d.y + h}" stroke="#2f3437" stroke-width="1.2" opacity=".5"/>`; } });
   const sel = S.space;
   its.forEach(t => { const nm = spName(t.sp), on = sel && nm === sel, dim = sel && !on, cx = t.x + t.w / 2, cy = t.y + t.h / 2, room = roomOf(cx, cy), lab = shortSp(nm, room);
     let g = ''; chairs(t).forEach(c => g += R(c.x, c.y, c.w, c.h, c.rx, `fill="${on ? '#10285E' : '#8fae7c'}"`));
-    g += t.round ? `<circle cx="${cx}" cy="${cy}" r="${t.w / 2}" fill="${on ? '#10285E' : '#e08a62'}"/>` : R(t.x, t.y, t.w, t.h, 8, `fill="${on ? '#10285E' : '#e08a62'}"`);
-    if (lab && t.h >= 44 && t.w >= 44) { g += T(cx, cy + 2, t.seats, 'text-anchor="middle" font-size="18" font-weight="800" fill="#fff"') + T(cx, cy + 17, esc(lab), 'text-anchor="middle" font-size="11" font-weight="600" fill="#fff" opacity=".92"'); }
+    const tf = on ? '#10285E' : t.shape === 'boat' ? '#1d4f9c' : '#e08a62';
+    g += t.round ? `<circle cx="${cx}" cy="${cy}" r="${t.w / 2}" fill="${tf}"/>` : t.shape === 'boat' ? `<path d="${boatPath(t.x, t.y, t.w, t.h, t.flip)}" fill="${tf}"/>` : R(t.x, t.y, t.w, t.h, 8, `fill="${tf}"`);
+    const lfs = lab ? Math.min(11, (t.w - 6) / (lab.length * .58)) : 0; // le nom rétrécit pour tenir dans la table, sinon on ne garde que le nombre de places
+    if (lab && t.h >= 44 && lfs >= 7) { g += T(cx, cy + 2, t.seats, 'text-anchor="middle" font-size="18" font-weight="800" fill="#fff"') + T(cx, cy + 17, esc(lab), `text-anchor="middle" font-size="${lfs.toFixed(1)}" font-weight="600" fill="#fff" opacity=".92"`); }
     else g += T(cx, cy + 6, t.seats, 'text-anchor="middle" font-size="18" font-weight="800" fill="#fff"');
     out += `<g data-sp="${esc(nm)}" style="cursor:pointer" opacity="${dim ? .35 : 1}">${R(t.x - 16, t.y - 16, t.w + 32, t.h + 32, 10, 'fill="transparent"')}${g}</g>`; });
   return `<svg class="sp-plan-svg" viewBox="${x1 - 12} ${y1 - 12} ${x2 - x1 + 24} ${y2 - y1 + 24}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Plan du restaurant">${out}</svg>`;

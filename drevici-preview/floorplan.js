@@ -127,7 +127,7 @@ function items(){ const out=[];
     if(t.kind==='chair'){ t.w=t.rot?14:20; t.h=t.rot?20:14; }
     else if(t.kind==='stool'){ t.w=t.h=20; }
     else if(t.kind==='bar'){ const bw=p.w||200, bh=p.h||44; t.w=t.rot?bh:bw; t.h=t.rot?bw:bh; }
-    else if(md){ const sc=p.sc||1; if(md.round){ t.kind='round'; t.w=t.h=md.w*sc; } else { const Ln=md.w*(t.units||1)*sc*(p.fx||1), Hh=md.h*sc*(p.fy||1); t.w=t.rot?Hh:Ln; t.h=t.rot?Ln:Hh; } }
+    else if(md){ const sc=p.sc||1; if(md.seat) t.seat=md.seat; if(md.shape) t.shape=md.shape; if(md.round){ t.kind='round'; t.w=t.h=md.w*sc; } else { const Ln=md.w*(t.units||1)*sc*(p.fx||1), Hh=md.h*sc*(p.fy||1); t.w=t.rot?Hh:Ln; t.h=t.rot?Ln:Hh; } }
     else { t.w=p.w||80; t.h=p.h||56; }
     out.push(t); });
   // Synchro liste → plan : si l'espace d'une table a changé ailleurs (liste, autre appareil), on la pose dans son nouvel espace.
@@ -203,13 +203,26 @@ function autoPos(row){ const n=+row.seats||2, model=n<=2?'car':n<=4?'rect':'lon'
   const free=(x,y)=>boxes.every(b=>x+md.w+30<b.x||x>b.x+b.w+30||y+md.h+30<b.y||y>b.y+b.h+30);
   for(let y=room.y+HDR+ZL+ZP+20;y+md.h<room.y+room.h-20;y+=24) for(let x=room.x+30;x+md.w<room.x+room.w-20;x+=24) if(free(x,y)) return {x:snap(x),y:snap(y),model};
   return {x:snap(room.x+room.w*.5),y:snap(room.y+room.h*.45),model}; }
+// Sièges selon le modèle (md.seat) : 'bench' bancs le long des grands côtés, 'bench3' bancs à gauche, à droite et devant,
+// 'bench4' bancs des 4 côtés (tonnelle), 'transat' 1 transat à gauche + les autres devant, 'dot' chaises rondes.
+function seatGeom(t, seatSides){ const o=[], g=6, th=11, st=t.seat; if(st==='none') return o;
+  if(st==='bench'||st==='bench3'||st==='bench4'){ const s=st==='bench'?seatSides(t):{t:st==='bench4'?1:0,b:1,l:1,r:1};
+    if(s.t) o.push({x:t.x,y:t.y-g-th,w:t.w,h:th,rx:3}); if(s.b) o.push({x:t.x+(st==='bench3'?t.w*.12:0),y:t.y+t.h+g,w:st==='bench3'?t.w*.76:t.w,h:th,rx:3});
+    if(s.l) o.push({x:t.x-g-th,y:t.y,w:th,h:t.h,rx:3}); if(s.r) o.push({x:t.x+t.w+g,y:t.y,w:th,h:t.h,rx:3}); return o; }
+  if(st==='transat'){ const r=9, n=Math.max(1,t.seats-1); o.push({x:t.x-g-2*r,y:t.y+t.h*.25-r,w:2*r,h:2*r,rx:r}); for(let i=0;i<n;i++) o.push({x:t.x+t.w*(i+.5)/n-r,y:t.y+t.h+g,w:2*r,h:2*r,rx:r}); return o; }
+  if(st==='dot'){ const r=8, s=seatSides(t), side=(n,hz,f)=>{ for(let i=0;i<n;i++){ const Ln=hz?t.w:t.h, p=(hz?t.x:t.y)+Ln*(i+.5)/n; o.push({x:(hz?p:f)-r,y:(hz?f:p)-r,w:2*r,h:2*r,rx:r}); } };
+    side(s.t,1,t.y-g-r); side(s.b,1,t.y+t.h+g+r); side(s.l,0,t.x-g-r); side(s.r,0,t.x+t.w+g+r); return o; }
+  return null; }
+// Forme « bateau » : pointe à gauche, encoche à droite (sens retourné si flip).
+function boatPath(x,y,w,h,flip){ const p=Math.min(h*.6,w*.25), n=Math.min(h*.45,w*.2);
+  return flip?`M${x} ${y}H${x+w-p}L${x+w} ${y+h/2}L${x+w-p} ${y+h}H${x}L${x+n} ${y+h/2}Z`:`M${x+p} ${y}H${x+w}L${x+w-n} ${y+h/2}L${x+w} ${y+h}H${x+p}L${x} ${y+h/2}Z`; }
 function seatSides(t){ const n=t.seats, hz=t.w>t.h||(t.w===t.h&&!t.rot); if(t.side==='one'){ const k=['t','r','b','l'][t.r4||0], o={t:0,b:0,l:0,r:0}; o[(hz&&(k==='l'||k==='r'))?'t':(!hz&&(k==='t'||k==='b'))?'r':k]=n; return o; } const a=Math.ceil(n/2), b=Math.floor(n/2); return hz?{t:a,b,l:0,r:0}:{t:0,b:0,l:a,r:b}; }
-function chairs(t){ const o=[], cw=20, ch=12, g=5; if(t.kind&&t.kind!=='round') return o;
+function chairs(t){ const o=[], cw=20, ch=12, g=5; if(t.kind&&t.kind!=='round') return o; if(t.seat){ const sg=seatGeom(t,seatSides); if(sg) return sg; }
   if(t.kind==='round'){ const n=t.seats, cx=t.x+t.w/2, cy=t.y+t.h/2, Rr=t.w/2+g+7; for(let i=0;i<n;i++){ const a=-Math.PI/2+i*2*Math.PI/n; o.push({x:cx+Rr*Math.cos(a)-7,y:cy+Rr*Math.sin(a)-7,w:14,h:14,rx:7}); } return o; }
   const s=seatSides(t), side=(n,hz,f)=>{ for(let i=0;i<n;i++){ const Ln=hz?t.w:t.h, p=(hz?t.x:t.y)+Ln*(i+.5)/n; o.push(hz?{x:p-cw/2,y:f,w:cw,h:ch,rx:5}:{x:f,y:p-cw/2,w:ch,h:cw,rx:5}); } };
   side(s.t,1,t.y-g-ch); side(s.b,1,t.y+t.h+g); side(s.l,0,t.x-g-ch); side(s.r,0,t.x+t.w+g); return o; }
 function seams(t){ let s=''; const u=t.units||1; for(let i=1;i<u;i++){ if(t.w>=t.h){ const x=t.x+t.w*i/u; s+=`<line x1="${x}" y1="${t.y}" x2="${x}" y2="${t.y+t.h}" stroke="${COL.floor}" stroke-width="3"/>`; } else { const y=t.y+t.h*i/u; s+=`<line x1="${t.x}" y1="${y}" x2="${t.x+t.w}" y2="${y}" stroke="${COL.floor}" stroke-width="3"/>`; } } return s; }
-const bbox=t=>t.kind==='stairs'?{x:t.x,y:t.y,w:(t.rot%2)?t.h:t.w,h:(t.rot%2)?t.w:t.h}:isDeco(t)?{x:t.x-t.r,y:t.y-t.r,w:t.r*2,h:t.r*2}:{x:t.x,y:t.y,w:t.w,h:t.h};
+const bbox=t=>(t.kind==='stairs'||t.kind==='boat')?{x:t.x,y:t.y,w:(t.rot%2)?t.h:t.w,h:(t.rot%2)?t.w:t.h}:isDeco(t)?{x:t.x-t.r,y:t.y-t.r,w:t.r*2,h:t.r*2}:{x:t.x,y:t.y,w:t.w,h:t.h};
 const roomOf=(x,y)=>L.rooms.slice().reverse().find(r=>x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h);
 function seg(o){ const r=L.rooms.find(x=>x.id===o.room); if(!r) return null; const Ln=(o.side==='t'||o.side==='b')?r.w:r.h; o.pos=Math.max(8,Math.min(Ln-o.len-8,o.pos));
   if(o.side==='t') return {x:r.x+o.pos,y:r.y,hz:1,r}; if(o.side==='b') return {x:r.x+o.pos,y:r.y+r.h,hz:1,r}; if(o.side==='l') return {x:r.x,y:r.y+o.pos,hz:0,r}; return {x:r.x+r.w,y:r.y+o.pos,hz:0,r}; }
@@ -252,6 +265,7 @@ function draw(){ const host=document.getElementById('fpHost'); if(!host||!L) ret
     s+=`<g data-fk="open" data-id="${o.id}" style="cursor:${ed?'grab':'default'}">${g.hz?R(g.x,g.y-12,o.len,24,0,'fill="transparent"'):R(g.x-12,g.y,24,o.len,0,'fill="transparent"')}${q}</g>`;
     if(on){ top+=g.hz?R(g.x-4,g.y-10,o.len+8,20,6,`fill="none" stroke="${COL.sel}" stroke-width="2" stroke-dasharray="4 4" pointer-events="none"`):R(g.x-10,g.y-4,20,o.len+8,6,`fill="none" stroke="${COL.sel}" stroke-width="2" stroke-dasharray="4 4" pointer-events="none"`); top+=handle(g.hz?g.x+o.len:g.x,g.hz?g.y:g.y+o.len,'open',o.id,'end'); } });
   L.deco.forEach(t=>{ const on=ed&&isSel('deco',t.id);
+    if(t.kind==='boat'){ const b=bbox(t); s+=`<g data-fk="deco" data-id="${t.id}" style="cursor:${ed?'grab':'default'}"><path d="${boatPath(b.x,b.y,b.w,b.h,t.flip)}" fill="#1d4f9c"/></g>`; if(on) top+=R(b.x-8,b.y-8,b.w+16,b.h+16,10,`fill="none" stroke="${COL.sel}" stroke-width="2" stroke-dasharray="5 4" pointer-events="none"`)+handle(b.x+b.w+8,b.y+b.h+8,'deco',t.id,'se'); return; }
     if(t.kind==='stairs'){ const b=bbox(t), vt=b.h>b.w, n=Math.max(4,Math.round((vt?b.h:b.w)/14)); let g=R(b.x,b.y,b.w,b.h,4,`fill="#e9e1d2" stroke="${COL.wall}" stroke-width="2"`);
       for(let i=1;i<n;i++){ const f=i/n; g+=vt?`<line x1="${b.x}" y1="${b.y+b.h*f}" x2="${b.x+b.w}" y2="${b.y+b.h*f}" stroke="${COL.wall}" stroke-width="1.2" opacity=".55"/>`:`<line x1="${b.x+b.w*f}" y1="${b.y}" x2="${b.x+b.w*f}" y2="${b.y+b.h}" stroke="${COL.wall}" stroke-width="1.2" opacity=".55"/>`; }
       const cx=b.x+b.w/2, cy=b.y+b.h/2, ang=[0,90,180,270][t.rot||0]; g+=`<g transform="rotate(${ang} ${cx} ${cy})"><line x1="${cx-22}" y1="${cy}" x2="${cx+18}" y2="${cy}" stroke="${COL.wall}" stroke-width="2.5"/><path d="M${cx+22} ${cy} l-10 -7 v14z" fill="${COL.wall}"/></g>`;
@@ -264,6 +278,7 @@ function draw(){ const host=document.getElementById('fpHost'); if(!host||!L) ret
     else { chairs(t).forEach(c=>g+=R(c.x,c.y,c.w,c.h,c.rx,`fill="${cc}"`));
       if(t.kind==='bar'){ const busy=r?Math.min(t.seats,r.cov):0, vb=t.h>t.w, rr=t.r4||0; g+=R(t.x,t.y,t.w,t.h,10,`fill="${COL.wall}"`); for(let j=0;j<t.seats;j++) g+=(vb?C(rr===1?t.x+t.w+19:t.x-19,t.y+t.h*(j+.5)/t.seats,10,''):C(t.x+t.w*(j+.5)/t.seats,rr===2?t.y+t.h+19:t.y-19,10,'')).replace('/>',` fill="${ed?COL.chair:j<busy?(r.k==='a'?ST.a:ST.r):ST.l}"/>`); if(ed) g+=T(t.x+t.w/2,t.y+t.h/2+4,'Bar',`text-anchor="middle" font-size="12" font-weight="800" fill="#fff"${vb?` transform="rotate(-90 ${t.x+t.w/2} ${t.y+t.h/2})"`:''}`); if(!ed&&r) g+=T(t.x+t.w/2,t.y+t.h/2+5,`${H(r.name)} · ${busy}/${t.seats}`,'text-anchor="middle" font-size="12" font-weight="700" fill="#fff"'); }
       else if(t.kind==='round') g+=C(t.x+t.w/2,t.y+t.h/2,t.w/2,`fill="${COL.table}"`);
+      else if(t.shape==='boat') g+=`<path d="${boatPath(t.x,t.y,t.w,t.h,t.flip)}" fill="#1d4f9c"/>`;
       else g+=R(t.x,t.y,t.w,t.h,8,`fill="${COL.table}"`)+seams(t);
       const cx=t.x+t.w/2, cy=t.y+t.h/2, vert=t.h>t.w*1.6;
       if(t.kind!=='bar'){ if(!ed&&r){ const lab=`${r.name} · ${r.cov}${r.k==='r'&&r.slot?' · '+r.slot:''}${r.n>1?' +'+(r.n-1):''}`, w=lab.length*6.6+16; g+=`<g ${vert?`transform="rotate(-90 ${cx} ${cy})"`:''}>${R(cx-w/2,cy-11,w,22,11,`fill="${ST[k]}"`)}${T(cx,cy+4,H(lab),'text-anchor="middle" font-size="11.5" font-weight="700" fill="#fff"')}</g>`; }
