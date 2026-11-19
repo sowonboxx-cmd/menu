@@ -4,7 +4,8 @@
 -- (le plan de salle, les horaires et le reste restent ceux du vrai site).
 -- ════════════════════════════════════════════════════════════════════
 update public.menu_data m
-set data = jsonb_set(jsonb_set(m.data, '{tabs}', t.data->'tabs'), '{pinnedDishes}', t.data->'pinnedDishes'), updated_at = now()
+-- Les photos ajoutées dans la préview (media/plats) passent à l'adresse du vrai site, publiée en même temps.
+set data = jsonb_set(jsonb_set(m.data, '{tabs}', replace((t.data->'tabs')::text, 'https://drevici-preview.beltab.app/media/', 'https://drevici.beltab.app/media/')::jsonb), '{pinnedDishes}', t.data->'pinnedDishes'), updated_at = now()
 from public.menu_data t
 where m.client_slug = 'drevici-surzur' and t.client_slug = 'drevici-surzur-test';
 select t->'label'->>'fr' as onglet from public.menu_data, jsonb_array_elements(data->'tabs') t where client_slug = 'drevici-surzur';
