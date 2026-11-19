@@ -559,6 +559,7 @@ const DAY_S   = ['Lun.','Mar.','Mer.','Jeu.','Ven.','Sam.','Dim.'];
    completed step never gets yanked away from you. */
 const SEG_IDS = { date: 'segDate', couverts: 'segCovers', espace: 'segEspace', horaire: 'segSlot', recap: 'segRecap' };
 function selectTab(name) {
+  if (name !== activeTab) clearTimeout(window._adv);
   activeTab = name;
   Object.keys(SEG_IDS).forEach(n => {
     document.getElementById(SEG_IDS[n]).classList.toggle('active', n === name);
@@ -589,7 +590,15 @@ function renderCoversPanel() {
   note.classList.toggle('hidden', !ready);
   if (!ready) custom.classList.remove('show');
 }
+// Après un choix, on laisse 3 secondes pour lire avant de passer à l'étape suivante (demande de Will, 19/11).
+// Si la personne change d'étape elle-même entre-temps, on ne bouge plus.
+const ADVANCE_DELAY = 3000;
 function autoAdvance(from) {
+  clearTimeout(window._adv);
+  const here = activeTab;
+  window._adv = setTimeout(() => { if (activeTab === here) advanceNow(from); }, ADVANCE_DELAY);
+}
+function advanceNow(from) {
   // 'recap' has no fill state of its own — it's always the fallback
   // destination once date/couverts/horaire are all set, which is
   // exactly what we want once the last of the three gets picked.
@@ -843,7 +852,7 @@ function pickSpace(name, el) {
   renderRecapPanel();
   renderSlots(); // la capacité restante dépend de l'espace choisi
   // Laisse le temps de lire le message avant de passer à l'horaire.
-  clearTimeout(window._spAdv); window._spAdv = setTimeout(() => { if (S.space === name) autoAdvance('espace'); }, 1800);
+  autoAdvance('espace');
 }
 function skipSpace() {
   S.space = null; clearTimeout(window._spAdv); setTimeout(renderPlan, 0);
