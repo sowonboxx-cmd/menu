@@ -1281,8 +1281,10 @@ input.in.hr{width:76px;text-align:center;padding:8px 10px;font-size:15px;font-we
 const SB_URL='https://fdbzzkzfipzabryfanun.supabase.co';
 const SB_KEY='sb_publishable_9PaqDuXnWV3aOCBPk9ImmQ_4YgYTU9n';
 const QS=new URLSearchParams(location.search);
-const SLUG=QS.get('slug')||'drevici-test';
-const RESA_SLUG='drevici-paris', STATS_SLUG='drevici';
+// Préview seulement : ?resto=surzur ouvre l'admin de Surzur (copie de la carte « drevici-surzur-test », vraies tables de Surzur). Retiré à la publication.
+const PV_SURZUR=QS.get('resto')==='surzur'&&!QS.get('slug');
+const SLUG=QS.get('slug')||(PV_SURZUR?'drevici-surzur-test':'drevici-test');
+const RESA_SLUG=PV_SURZUR?'drevici-surzur':'drevici-paris', STATS_SLUG=PV_SURZUR?'drevici-surzur':'drevici';
 const SITE_URL='https://drevici-preview.beltab.app/';
 const RESA_ADMIN_URL='https://drevici.beltab.app/reservations'; // ancien tableau : création des offres Table Boost
 const UPLOAD_URL='https://upload.beltab.app/upload';
@@ -1669,7 +1671,7 @@ function dash(){
 }
 const setBlock=(c,h,ts)=>`<div class="set ${c}"><h4>${h}</h4><div class="tiles">${ts.map(([k,l,p])=>`<a class="tile" href="#/${p}"><span class="ico">${I(k)}</span><div><b>${l}</b></div></a>`).join('')}</div></div>`;
 function appSeg(){ const m=applyAppearance(); return `<div class="seg">${[['clair','Clair','jour'],['sombre','Sombre','lune'],['systeme','Système','ecran']].map(([k,l,ic])=>`<button type="button" data-act="appearance" data-v="${k}" class="${m===k?'on':''}">${I(ic)}${l}</button>`).join('')}</div>`; }
-function header(){ return `<header class="hd"><a href="#/dash" class="hd-logo">${logoBox()}</a><div style="min-width:0"><h1><a href="#/dash">${esc(DATA.restaurantName||'Mon restaurant')}</a></h1></div><span class="hd-go"><span class="pill-test">Copie de test</span><a class="site" href="${SITE_URL}studio/">Studio</a><a class="site" href="${SITE_URL}" target="_blank" rel="noopener">Site ↗</a></span></header>`; }
+function header(){ return `<header class="hd"><a href="#/dash" class="hd-logo">${logoBox()}</a><div style="min-width:0"><h1><a href="#/dash">${esc(DATA.restaurantName||'Mon restaurant')}</a></h1></div><span class="hd-go"><span class="pill-test">${PV_SURZUR?'Surzur · copie de test':'Copie de test'}</span><a class="site" href="${SITE_URL}studio/">Studio</a><a class="site" href="${SITE_URL}" target="_blank" rel="noopener">Site ↗</a></span></header>`; }
 function openLine(){
   const days=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
   const d=(DATA.schedule||[]).find(x=>x.day===days[new Date().getDay()]);

@@ -71,10 +71,12 @@ P = {
    ("const WRITE_SLUG = 'drevici-test';", "const WRITE_SLUG = 'drevici-paris';"),
  ],
  'admin.html': [
-   ("const SLUG=QS.get('slug')||'drevici-test';", "const SLUG=QS.get('slug')||'drevici';"),
+   ("// Préview seulement : ?resto=surzur ouvre l'admin de Surzur (copie de la carte « drevici-surzur-test », vraies tables de Surzur). Retiré à la publication.\nconst PV_SURZUR=QS.get('resto')==='surzur'&&!QS.get('slug');\n", ""),
+   ("const SLUG=QS.get('slug')||(PV_SURZUR?'drevici-surzur-test':'drevici-test');", "const SLUG=QS.get('slug')||'drevici';"),
+   ("const RESA_SLUG=PV_SURZUR?'drevici-surzur':'drevici-paris', STATS_SLUG=PV_SURZUR?'drevici-surzur':'drevici';", "const RESA_SLUG='drevici-paris', STATS_SLUG='drevici';"),
+   ("<span class=\"pill-test\">${PV_SURZUR?'Surzur · copie de test':'Copie de test'}</span>", ""),
    ("const SITE_URL='https://drevici-preview.beltab.app/';", "const SITE_URL='https://drevici.beltab.app/';"),
    ("const CL_SLUG=SLUG;", "const CL_SLUG='drevici-paris';"),
-   ("<span class=\"pill-test\">Copie de test</span>", ""),
  ],
 }
 for f, pairs in P.items():

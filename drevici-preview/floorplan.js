@@ -570,7 +570,7 @@ function dropTarget(t,others){
     to=best?spId(best[0]):((spacesNow().find(s=>(s.name||'').toLowerCase()===(r.name||'').toLowerCase())||{}).id??null); }
   return to; }
 let NUMB=false;
-async function autoNumber(){ if(NUMB||typeof sb==='undefined'||!L||L.free) return;   // numéros du plan (101, 201…) gardés tels quels const ch=readingOrder(items()).map((t,i)=>[t,'Table '+(i+1)]).filter(([t,n])=>t.name!==n); if(!ch.length) return;
+async function autoNumber(){ if(NUMB||typeof sb==='undefined'||!L||L.free) return;   /* numéros du plan (101, 201…) gardés tels quels */ const ch=readingOrder(items()).map((t,i)=>[t,'Table '+(i+1)]).filter(([t,n])=>t.name!==n); if(!ch.length) return;
   NUMB=true; ch.forEach(([t,n])=>{ const r=tablesNow().find(x=>x.id===t.id); if(r) r.name=n; });
   try{ await Promise.all(ch.map(([t,n])=>db(sb.from('restaurant_tables').update({name:n}).eq('id',t.id)))); } finally { NUMB=false; } }
 // Renuméroter : Table 1, Table 2… dans l'ordre de lecture, après confirmation.
