@@ -442,6 +442,11 @@ const BT = (() => { const API = 'https://resa.beltab.app/t', q = new URLSearchPa
 // restaurant's name/logo/font for the header, so it stays in sync with
 // index.html's branding without duplicating it here by hand.
 const MENU_CLIENT_SLUG = 'drevici';
+// PRÉVIEW seulement : « ?resto=surzur » lit le plan, les espaces, les tables et les dispos de Surzur pour les voir avant
+// de publier. Les réservations de test restent écrites sous le slug de test. Sans effet en ligne (WRITE_SLUG n'y finit pas par -test).
+const PV_SURZUR = WRITE_SLUG.endsWith('-test') && new URLSearchParams(location.search).get('resto') === 'surzur';
+const READ_SLUG = PV_SURZUR ? 'drevici-surzur' : CLIENT_SLUG;
+const READ_MENU_SLUG = PV_SURZUR ? 'drevici-surzur' : MENU_CLIENT_SLUG;
 
 // Le logo ramene au menu du restaurant. Le href="./" ecrit dans le HTML
 // suffit dans la plupart des cas, mais il depend de la forme exacte de
@@ -470,7 +475,7 @@ async function loadHeaderBranding() {
     const { data: row, error } = await supabaseClient
       .from('menu_data')
       .select('data')
-      .eq('client_slug', MENU_CLIENT_SLUG)
+      .eq('client_slug', READ_MENU_SLUG)
       .maybeSingle();
     if (error) throw error;
     const d = row && row.data;
@@ -532,7 +537,7 @@ let BLOCKED_DATES = new Set();
 async function loadBlockedDates() {
   if (!supabaseClient) return;
   try {
-    const { data, error } = await supabaseClient.from('blocked_dates').select('date_iso').eq('client_slug', CLIENT_SLUG);
+    const { data, error } = await supabaseClient.from('blocked_dates').select('date_iso').eq('client_slug', READ_SLUG);
     if (error) throw error;
     BLOCKED_DATES = new Set((data || []).map(r => r.date_iso));
   } catch (e) {
@@ -668,7 +673,7 @@ async function loadSpaces() {
     const { data, error } = await supabaseClient
       .from('restaurant_spaces')
       .select('id,name')
-      .eq('client_slug', CLIENT_SLUG)
+      .eq('client_slug', READ_SLUG)
       .order('sort_order', { ascending: true });
     if (error) throw error;
     // A configured-but-empty list is a valid choice (a restaurant that
@@ -691,7 +696,7 @@ async function loadTables() {
     const { data, error } = await supabaseClient
       .from('restaurant_tables')
       .select('id,space_id,seats,name')
-      .eq('client_slug', CLIENT_SLUG);
+      .eq('client_slug', READ_SLUG);
     if (error) throw error;
     TABLES = data || [];
     renderEspacePanel();
@@ -705,7 +710,7 @@ async function loadServices() {
     const { data, error } = await supabaseClient
       .from('restaurant_services')
       .select('id,name,start_time,end_time')
-      .eq('client_slug', CLIENT_SLUG)
+      .eq('client_slug', READ_SLUG)
       .order('sort_order', { ascending: true });
     if (error) throw error;
     SERVICES = data || [];
@@ -916,7 +921,7 @@ async function computeFullSlotsForCurrentSelection() {
     let booked = 0;
     try {
       const { data, error } = await supabaseClient.rpc('get_service_covers', {
-        p_client_slug: CLIENT_SLUG, p_date_iso: dateIso, p_start_time: svc.start_time, p_end_time: svc.end_time,
+        p_client_slug: READ_SLUG, p_date_iso: dateIso, p_start_time: svc.start_time, p_end_time: svc.end_time,
       });
       if (error) throw error;
       booked = data || 0;
