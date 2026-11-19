@@ -8464,16 +8464,28 @@ const supabaseClient = (SUPABASE_URL !== 'COLLE_ICI_SUPABASE_URL' && window.supa
 // login/logout. Everywhere the old code did `if(!getToken())`, it now
 // checks `!supaSession`.
 let supaSession = null;
+// Une session ne suffit pas : sur drevicioyster.com, /paris et /surzur partagent la connexion, et un compte staff
+// (ou un admin d'un seul des deux restaurants) ne doit pas passer en mode édition ici — la base refuserait
+// d'enregistrer (« row-level security »). On demande au serveur si ce compte est admin de CE site.
+// Service injoignable : on garde le comportement d'avant (la base protège de toute façon).
+async function canEditHere(sess){
+  try{ const r=await fetch(CLUB_API+'/team/me',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+sess.access_token},body:JSON.stringify({slug:CLIENT_SLUG})});
+    const j=await r.json().catch(()=>({})); if(r.ok&&j.ok) return j.role==='admin'; }catch(e){}
+  return true;
+}
 async function checkAdminSession(){
   if(!supabaseClient) return;
   const { data } = await supabaseClient.auth.getSession();
   supaSession = data.session || null;
+  if(supaSession && !(await canEditHere(supaSession))) supaSession = null; // connecté, mais pas admin de ce restaurant : vue visiteur
   document.body.classList.toggle('is-admin', !!supaSession);
 }
 async function adminSignIn(email, password){
   if(!supabaseClient) return { error: { message: 'Configuration Supabase manquante' } };
   const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-  if(!error){ supaSession = data.session; document.body.classList.add('is-admin'); }
+  if(!error){
+    if(!(await canEditHere(data.session))) return { error: { message: "Ce compte n'a pas accès à l'administration de ce restaurant." } };
+    supaSession = data.session; document.body.classList.add('is-admin'); }
   return { error };
 }
 async function adminSignOut(){
