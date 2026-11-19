@@ -767,19 +767,30 @@ function renderPlan() {
   host.innerHTML = svg + '<div class="sp-plan-hint">Touchez une table pour choisir son espace</div>';
   host.querySelectorAll('[data-sp]').forEach(g => g.addEventListener('click', () => { const n = g.getAttribute('data-sp'); const b = [...document.querySelectorAll('.space-btn')].find(x => x.textContent === n); if (b) pickSpace(n, b); }));
 }
-// Sièges selon le modèle (md.seat) : 'bench' bancs le long des grands côtés, 'bench3' bancs à gauche, à droite et devant,
-// 'bench4' bancs des 4 côtés (tonnelle), 'transat' 1 transat à gauche + les autres devant, 'dot' chaises rondes.
+// Sièges selon le modèle (md.seat) : 'bench' bancs le long des grands côtés, 'bench3' petits bancs à gauche, à droite et devant,
+// 'bench4' bancs des 4 côtés (tonnelle), 'transat' 1 transat à gauche + les autres devant, 'dot' chaises rondes,
+// 'lb' une chaise à gauche et une devant (petite table), 'diag' 4 chaises en diagonale (ronde), 'none' rien (bateau).
 function seatGeom(t, seatSides){ const o=[], g=6, th=11, st=t.seat; if(st==='none') return o;
   if(st==='bench'||st==='bench3'||st==='bench4'){ const s=st==='bench'?seatSides(t):{t:st==='bench4'?1:0,b:1,l:1,r:1};
-    if(s.t) o.push({x:t.x,y:t.y-g-th,w:t.w,h:th,rx:3}); if(s.b) o.push({x:t.x+(st==='bench3'?t.w*.12:0),y:t.y+t.h+g,w:st==='bench3'?t.w*.76:t.w,h:th,rx:3});
-    if(s.l) o.push({x:t.x-g-th,y:t.y,w:th,h:t.h,rx:3}); if(s.r) o.push({x:t.x+t.w+g,y:t.y,w:th,h:t.h,rx:3}); return o; }
-  if(st==='transat'){ const r=9, n=Math.max(1,t.seats-1); o.push({x:t.x-g-2*r,y:t.y+t.h*.25-r,w:2*r,h:2*r,rx:r}); for(let i=0;i<n;i++) o.push({x:t.x+t.w*(i+.5)/n-r,y:t.y+t.h+g,w:2*r,h:2*r,rx:r}); return o; }
+    if(s.t) o.push({x:t.x,y:t.y-g-th,w:t.w,h:th,rx:4}); if(s.b) o.push({x:t.x+(st==='bench3'?t.w*.12:0),y:t.y+t.h+g,w:st==='bench3'?t.w*.76:t.w,h:th,rx:4});
+    if(s.l) o.push({x:t.x-g-th,y:t.y,w:th,h:t.h,rx:4}); if(s.r) o.push({x:t.x+t.w+g,y:t.y,w:th,h:t.h,rx:4}); return o; }
+  if(st==='transat'){ const n=Math.max(1,t.seats-1); o.push({x:t.x-g-26,y:t.y+t.h*.3-8,w:26,h:16,rx:8}); for(let i=0;i<n;i++) o.push({x:t.x+t.w*(i+.5)/n-8,y:t.y+t.h+g,w:16,h:26,rx:8}); return o; }
+  if(st==='lb'){ const r=9; o.push({x:t.x-g-2*r,y:t.y+t.h/2-r,w:2*r,h:2*r,rx:r}); o.push({x:t.x+t.w/2-r,y:t.y+t.h+g,w:2*r,h:2*r,rx:r}); return o; }
+  if(st==='diag'){ const r=11, cx=t.x+t.w/2, cy=t.y+t.h/2, d=t.w/2*.72+r*.9; [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>o.push({x:cx+a*d-r,y:cy+b*d-r,w:2*r,h:2*r,rx:r})); return o; }
   if(st==='dot'){ const r=8, s=seatSides(t), side=(n,hz,f)=>{ for(let i=0;i<n;i++){ const Ln=hz?t.w:t.h, p=(hz?t.x:t.y)+Ln*(i+.5)/n; o.push({x:(hz?p:f)-r,y:(hz?f:p)-r,w:2*r,h:2*r,rx:r}); } };
     side(s.t,1,t.y-g-r); side(s.b,1,t.y+t.h+g+r); side(s.l,0,t.x-g-r); side(s.r,0,t.x+t.w+g+r); return o; }
   return null; }
-// Forme « bateau » : pointe à gauche, encoche à droite (sens retourné si flip).
-function boatPath(x,y,w,h,flip){ const p=Math.min(h*.6,w*.25), n=Math.min(h*.45,w*.2);
-  return flip?`M${x} ${y}H${x+w-p}L${x+w} ${y+h/2}L${x+w-p} ${y+h}H${x}L${x+n} ${y+h/2}Z`:`M${x+p} ${y}H${x+w}L${x+w-n} ${y+h/2}L${x+w} ${y+h}H${x+p}L${x} ${y+h/2}Z`; }
+// Coque de bateau vue de dessus : proue arrondie à gauche, poupe droite à droite.
+function boatPath(x,y,w,h){ const b=Math.min(w*.3,h*1.1), r=Math.min(12,h*.15);
+  return `M${x+b} ${y}H${x+w-r}Q${x+w} ${y} ${x+w} ${y+r}V${y+h-r}Q${x+w} ${y+h} ${x+w-r} ${y+h}H${x+b}C${x+b*.45} ${y+h} ${x+b*.12} ${y+h*.82} ${x} ${y+h/2}C${x+b*.12} ${y+h*.18} ${x+b*.45} ${y} ${x+b} ${y}Z`; }
+// Dessin d'une coque (fond bleu transparent, contour bleu, mot « BATEAU », axe en pointillés).
+function boatHull(x,y,w,h,fs){ fs=fs||13; return `<path d="${boatPath(x,y,w,h)}" fill="rgba(47,95,196,.16)" stroke="#2f5fc4" stroke-width="3"/>`
+  +`<line x1="${x+w*.22}" y1="${y+h/2}" x2="${x+w-12}" y2="${y+h/2}" stroke="#2f5fc4" stroke-opacity=".35" stroke-width="1.5" stroke-dasharray="6 6"/>`
+  +`<text x="${x+w-12}" y="${y+fs+8}" text-anchor="end" font-family="Inter,system-ui,sans-serif" font-size="${fs}" font-weight="700" letter-spacing=".6" fill="#2f5fc4">BATEAU</text>`; }
+// Zones « jardin » (sol clair) et « eau » (bleu, vagues) ; étiquette en haut à gauche, sans pastille.
+function roomFill(r,id){ if(r.kind==='water') return `<defs><pattern id="${id}" width="36" height="18" patternUnits="userSpaceOnUse"><path d="M0 9 Q9 3 18 9 T36 9" fill="none" stroke="#a9bde3" stroke-width="2"/></pattern></defs><rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="18" fill="#e5ecf7"/><rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="18" fill="url(#${id})"/>`;
+  return `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="18" fill="#f8f3ea"/>`; }
+function roomCorner(r){ const c=r.kind==='water'?'#2f5fc4':'#9a8a70'; return `<text x="${r.x+24}" y="${r.y+34}" font-family="Inter,system-ui,sans-serif" font-size="15" font-weight="700" letter-spacing="1.6" fill="${c}">${String(r.name||'').toUpperCase().replace(/[&<>]/g,'')}</text>`; }
 function planSvg() {
   const L = FLOOR; if (!L || !L.rooms || !L.rooms.length || !TABLES.length) return '';
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -791,7 +802,7 @@ function planSvg() {
   const shortSp = (nm, room) => { nm = String(nm || ''); const rn = String((room && room.name) || '').trim(); if (!rn) return nm; const lo = nm.toLowerCase(), rl = rn.toLowerCase(); if (lo === rl) return ''; let r = lo.startsWith(rl) ? nm.slice(rn.length) : nm; r = r.replace(/^[\s\-–·:]+/, '').replace(/^\((.*)\)$/, '$1').trim(); return r ? r.charAt(0).toUpperCase() + r.slice(1) : ''; };
   const its = [];
   TABLES.forEach(row => { const p = L.pos && L.pos[row.id]; if (!p) return; const md = p.model && MD(p.model), r4 = (((+p.rot || 0) % 4) + 4) % 4, rot = r4 % 2, sc = p.sc || 1;
-    const t = { id: row.id, name: row.name, seats: +row.seats || 1, sp: row.space_id, x: p.x, y: p.y, r4, rot, side: p.side, units: p.units || 1, flip: p.flip, seat: md && md.seat, shape: md && md.shape };
+    const t = { id: row.id, name: row.name, seats: +row.seats || 1, sp: row.space_id, x: p.x, y: p.y, r4, rot, side: p.side, units: p.units || 1, flip: p.flip, seat: md && md.seat, shape: md && md.shape, color: md && md.color };
     if (md && md.round) { t.round = 1; t.w = t.h = md.w * sc; }
     else if (md) { const Ln = md.w * t.units * sc * (p.fx || 1), Hh = md.h * sc * (p.fy || 1); t.w = rot ? Hh : Ln; t.h = rot ? Ln : Hh; }
     else { t.w = p.w || 80; t.h = p.h || 56; }
@@ -807,7 +818,7 @@ function planSvg() {
     side(s.t, 1, t.y - g - ch); side(s.b, 1, t.y + t.h + g); side(s.l, 0, t.x - g - ch); side(s.r, 0, t.x + t.w + g); return o; };
   let x1 = 1e9, y1 = 1e9, x2 = -1e9, y2 = -1e9; L.rooms.forEach(r => { x1 = Math.min(x1, r.x); y1 = Math.min(y1, r.y); x2 = Math.max(x2, r.x + r.w); y2 = Math.max(y2, r.y + r.h); });
   let out = '';
-  L.rooms.forEach(r => { out += r.kind === 'terrace' ? R(r.x, r.y, r.w, r.h, 18, 'fill="#f1e8d8"') : R(r.x, r.y, r.w, r.h, 14, 'fill="#faf5ec" stroke="#2f3437" stroke-width="6"');
+  L.rooms.forEach((r, ri) => { if (r.kind === 'water' || r.kind === 'garden') { out += roomFill(r, 'bkw' + ri) + roomCorner(r); return; } out += r.kind === 'terrace' ? R(r.x, r.y, r.w, r.h, 18, 'fill="#f1e8d8"') : R(r.x, r.y, r.w, r.h, 14, 'fill="#faf5ec" stroke="#2f3437" stroke-width="6"');
     const nm = esc(String(r.name || '').toUpperCase()), w = nm.length * 10 + 40, cx = r.x + r.w / 2;
     out += R(cx - w / 2, r.y + 14, w, 34, 17, 'fill="#fff"') + T(cx, r.y + 37, nm, 'text-anchor="middle" font-size="15" font-weight="800" fill="#16181d" letter-spacing="1"'); });
   (L.opens || []).forEach(o => { const r = L.rooms.find(x => x.id === o.room); if (!r) return; const hzS = o.side === 't' || o.side === 'b', Ln = hzS ? r.w : r.h, pos = Math.max(8, Math.min(Ln - o.len - 8, o.pos));
@@ -819,14 +830,22 @@ function planSvg() {
       const Fx = gx + a[0] * o.len, Fy = gy + a[1] * o.len;
       q = (o.type === 'pf' ? leaf(gx, gy, (gx + Fx) / 2, (gy + Fy) / 2, o.len / 2) + leaf(Fx, Fy, (gx + Fx) / 2, (gy + Fy) / 2, o.len / 2) : o.flip ? leaf(Fx, Fy, gx, gy, o.len) : leaf(gx, gy, Fx, Fy, o.len)) + q; }
     out += q; });
-  (L.deco || []).forEach(d => { if (d.kind === 'boat') { const w = (d.rot % 2) ? d.h : d.w, h = (d.rot % 2) ? d.w : d.h; out += `<path d="${boatPath(d.x, d.y, w, h, d.flip)}" fill="#1d4f9c"/>`; return; } if (d.kind !== 'stairs') return; const w = (d.rot % 2) ? d.h : d.w, h = (d.rot % 2) ? d.w : d.h, vt = h > w, n = Math.max(4, Math.round((vt ? h : w) / 14));
+  (L.deco || []).forEach(d => { if (d.kind === 'boat') { out += boatHull(d.x, d.y, d.w, d.h); return; }
+    if (d.kind === 'zone') { out += R(d.x, d.y, d.w, d.h, 16, 'fill="#e8e3d8"') + `<text x="${d.x + d.w / 2}" y="${d.y + d.h / 2 + 14}" text-anchor="middle" font-family="Georgia,serif" font-size="40" fill="#6f6a60">${esc(d.label || '')}</text>`; return; } if (d.kind !== 'stairs') return; const w = (d.rot % 2) ? d.h : d.w, h = (d.rot % 2) ? d.w : d.h, vt = h > w, n = Math.max(4, Math.round((vt ? h : w) / 14));
     out += R(d.x, d.y, w, h, 4, 'fill="#e9e1d2" stroke="#2f3437" stroke-width="2"');
     for (let i = 1; i < n; i++) { const f = i / n; out += vt ? `<line x1="${d.x}" y1="${d.y + h * f}" x2="${d.x + w}" y2="${d.y + h * f}" stroke="#2f3437" stroke-width="1.2" opacity=".5"/>` : `<line x1="${d.x + w * f}" y1="${d.y}" x2="${d.x + w * f}" y2="${d.y + h}" stroke="#2f3437" stroke-width="1.2" opacity=".5"/>`; } });
   const sel = S.space;
   its.forEach(t => { const nm = spName(t.sp), on = sel && nm === sel, dim = sel && !on, cx = t.x + t.w / 2, cy = t.y + t.h / 2, room = roomOf(cx, cy), lab = shortSp(nm, room);
     let g = ''; chairs(t).forEach(c => g += R(c.x, c.y, c.w, c.h, c.rx, `fill="${on ? '#10285E' : '#8fae7c'}"`));
-    const tf = on ? '#10285E' : t.shape === 'boat' ? '#1d4f9c' : '#e08a62';
-    g += t.round ? `<circle cx="${cx}" cy="${cy}" r="${t.w / 2}" fill="${tf}"/>` : t.shape === 'boat' ? `<path d="${boatPath(t.x, t.y, t.w, t.h, t.flip)}" fill="${tf}"/>` : R(t.x, t.y, t.w, t.h, 8, `fill="${tf}"`);
+    const tf = on ? '#10285E' : (t.color || '#e08a62');
+    // Bateau-table (402) : la coque, puis une table et deux bancs dedans ; le texte va sur la table.
+    let bx = t.x, by = t.y, bw = t.w, bh = t.h;
+    if (t.shape === 'boat') { bw = t.w * .42; bh = t.h * .3; bx = t.x + t.w * .26; by = t.y + t.h / 2 - bh / 2;
+      g += boatHull(t.x, t.y, t.w, t.h) + R(bx, by - 17, bw, 11, 4, `fill="${on ? '#10285E' : '#8fae7c'}"`) + R(bx, by + bh + 6, bw, 11, 4, `fill="${on ? '#10285E' : '#8fae7c'}"`); }
+    g += t.round ? `<circle cx="${cx}" cy="${cy}" r="${t.w / 2}" fill="${tf}"/>` : R(bx, by, bw, bh, 8, `fill="${tf}"`);
+    if (t.shape === 'boat' || L.labels === 'name') { const lx = bx + bw / 2, ly = by + bh / 2, small = bw < 50;
+      g += T(lx, ly + (small ? 1 : 2), esc(t.name || t.seats), `text-anchor="middle" font-size="${small ? 15 : 19}" font-weight="800" fill="#fff"`) + T(lx, ly + (small ? 14 : 18), t.seats + ' pl.', `text-anchor="middle" font-size="${small ? 10 : 12}" font-weight="600" fill="#fff" opacity=".92"`);
+      out += `<g data-sp="${esc(nm)}" style="cursor:pointer" opacity="${dim ? .35 : 1}">${R(t.x - 16, t.y - 16, t.w + 32, t.h + 32, 10, 'fill="transparent"')}${g}</g>`; return; }
     const lfs = lab ? Math.min(11, (t.w - 6) / (lab.length * .58)) : 0; // le nom rétrécit pour tenir dans la table, sinon on ne garde que le nombre de places
     if (lab && t.h >= 44 && lfs >= 7) { g += T(cx, cy + 2, t.seats, 'text-anchor="middle" font-size="18" font-weight="800" fill="#fff"') + T(cx, cy + 17, esc(lab), `text-anchor="middle" font-size="${lfs.toFixed(1)}" font-weight="600" fill="#fff" opacity=".92"`); }
     else g += T(cx, cy + 6, t.seats, 'text-anchor="middle" font-size="18" font-weight="800" fill="#fff"');
