@@ -846,7 +846,9 @@ function planSvg() {
       g += boatHull(t.x, t.y, t.w, t.h) + R(bx, by - 17, bw, 11, 4, `fill="${on ? '#10285E' : '#8fae7c'}"`) + R(bx, by + bh + 6, bw, 11, 4, `fill="${on ? '#10285E' : '#8fae7c'}"`); }
     g += t.round ? `<circle cx="${cx}" cy="${cy}" r="${t.w / 2}" fill="${tf}"/>` : R(bx, by, bw, bh, 8, `fill="${tf}"`);
     if (t.shape === 'boat' || L.labels === 'name') { const lx = bx + bw / 2, ly = by + bh / 2, small = bw < 50;
-      g += T(lx, ly + (small ? 1 : 2), esc(t.name || t.seats), `text-anchor="middle" font-size="${small ? 15 : 19}" font-weight="800" fill="#fff"`) + T(lx, ly + (small ? 14 : 18), t.seats + ' pl.', `text-anchor="middle" font-size="${small ? 10 : 12}" font-weight="600" fill="#fff" opacity=".92"`);
+      // Nom court et taille ajustée à la table : « Table 12 » devient « TBL12 », et le texte ne déborde jamais.
+      const nm = String(t.name || t.seats).replace(/^table\s*/i, 'TBL'), fs = Math.max(9, Math.min(small ? 15 : 19, (bw - 8) / (nm.length * .62))), ps = Math.min(small ? 10 : 12, fs * .66);
+      g += T(lx, ly + fs * .12, esc(nm), `text-anchor="middle" font-size="${fs.toFixed(1)}" font-weight="800" fill="#fff"`) + T(lx, ly + fs * .12 + ps + 3, t.seats + ' pl.', `text-anchor="middle" font-size="${ps.toFixed(1)}" font-weight="600" fill="#fff" opacity=".92"`);
       out += `<g data-sp="${esc(nm)}" style="cursor:pointer" opacity="${dim ? .35 : 1}">${R(t.x - 16, t.y - 16, t.w + 32, t.h + 32, 10, 'fill="transparent"')}${g}</g>`; return; }
     const lfs = lab ? Math.min(11, (t.w - 6) / (lab.length * .58)) : 0; // le nom rétrécit pour tenir dans la table, sinon on ne garde que le nombre de places
     if (lab && t.h >= 44 && lfs >= 7) { g += T(cx, cy + 2, t.seats, 'text-anchor="middle" font-size="18" font-weight="800" fill="#fff"') + T(cx, cy + 17, esc(lab), `text-anchor="middle" font-size="${lfs.toFixed(1)}" font-weight="600" fill="#fff" opacity=".92"`); }

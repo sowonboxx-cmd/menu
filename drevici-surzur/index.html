@@ -477,6 +477,7 @@ body.hdr-light .hdr-sched .resto-badge-inline svg{color:rgba(20,35,70,.55)!impor
 #dsk .k-bk{display:block;text-align:center;background:var(--navy);color:#fff;text-decoration:none;font:600 14px Jost,sans-serif;letter-spacing:.14em;text-transform:uppercase;padding:18px}
 #dsk .k-bk:hover{filter:brightness(1.15)}
 #dsk .k-x{position:absolute;top:16px;right:16px;width:40px;height:40px;border-radius:50%;border:0;background:#fff;color:var(--navy);display:grid;place-items:center;cursor:pointer;z-index:3}
+#dsk .k-ed{top:64px}
 @media (max-width:767px){#dsk{display:none!important}}
 /* ═══ TÉLÉPHONE (17/11) : incontournables = mêmes cases carrées que la grille ═══
    Même forme que le menu en grille (case blanche, photo carrée), deux par
@@ -3444,6 +3445,8 @@ function closeEditPop(){
   document.body.style.overflow='';
   editCtx=null;
   if(typeof dshState!=='undefined' && dshState){ document.body.style.overflow='hidden'; try{ dshRender(false); }catch(e){} }
+  // Fiche ordinateur ouverte derrière : on la remet à jour avec ce qui vient d'être modifié.
+  if(typeof dskState!=='undefined' && dskState){ document.body.style.overflow='hidden'; try{ const n=dskItems(DATA.tabs[dskState.ti]).length; if(!n) dskClose(); else { dskState.i=Math.min(dskState.i,n-1); dskRender(); } }catch(e){} }
 }
 document.getElementById('editPop').addEventListener('click',e=>{ if(e.target===e.currentTarget) closeEditPop(); });
 
@@ -13207,7 +13210,7 @@ function dskRender(){
       if(e.target===el) return dskClose();
       const b=e.target.closest('[data-k]'); if(!b) return;
       const k=b.dataset.k;
-      if(k==='x') dskClose(); else if(k==='p') dskGo(dskState.i-1); else if(k==='n') dskGo(dskState.i+1); else if(k==='t') dskGo(+b.dataset.i);
+      if(k==='x') dskClose(); else if(k==='ed'){ const it=dskItems(DATA.tabs[dskState.ti])[dskState.i]; if(it) openEditDish(dskState.ti,it.ci,it.di); } else if(k==='p') dskGo(dskState.i-1); else if(k==='n') dskGo(dskState.i+1); else if(k==='t') dskGo(+b.dataset.i);
     });
     document.addEventListener('keydown',e=>{ if(!dskState) return; if(e.key==='Escape') dskClose(); else if(e.key==='ArrowLeft') dskGo(dskState.i-1); else if(e.key==='ArrowRight') dskGo(dskState.i+1); });
   }
@@ -13225,7 +13228,7 @@ function dskRender(){
       ${items.length>1?`<div class="k-th"><div class="k-grid">${items.map((x,i)=>`<button class="k-t${i===dskState.i?' on':''}" data-k="t" data-i="${i}"><div class="im" style="background-image:url('${escAttr(dishThumb(x.d))}')"></div><p>${t(x.d.short)||t(x.d.name)}</p></button>`).join('')}</div></div>`:''}
       <a class="k-bk" href="book">${lang==='en'?'Book a table':'Réserver une table'}</a>
     </div>
-    <button class="k-x" data-k="x" aria-label="${lang==='en'?'Close':'Fermer'}">${DSH_X}</button></div>`;
+    <button class="k-x" data-k="x" aria-label="${lang==='en'?'Close':'Fermer'}">${DSH_X}</button>${document.body.classList.contains('is-admin')?`<button class="k-x k-ed" data-k="ed" aria-label="Modifier" title="Modifier"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>`:''}</div>`;
   const v=el.querySelector('video'); if(v){ v.addEventListener('playing',()=>v.classList.add('on'),{once:true}); const pr=v.play(); if(pr&&pr.catch) pr.catch(()=>{}); }
   const on=el.querySelector('.k-t.on'); if(on) on.scrollIntoView({block:'nearest'});
 }
