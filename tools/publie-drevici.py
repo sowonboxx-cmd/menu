@@ -51,6 +51,7 @@ P = {
  ],
  'index.html': [
    ("const CLIENT_SLUG_RACINE = 'drevici-preview';", "const CLIENT_SLUG_RACINE = 'drevici';"),
+   ("// Préview seulement : ?resto=surzur montre la carte de Surzur en cours de préparation (copie « drevici-surzur-test »).\nconst CLIENT_SLUG = (IS_PREVIEW && new URLSearchParams(location.search).get('resto') === 'surzur') ? 'drevici-surzur-test' : _lastSegment.replace(/-preview$/, '');", "const CLIENT_SLUG = _lastSegment.replace(/-preview$/, '');"),
    ("const CLUB_ON = /preview|localhost|127\\.0\\.0\\.1|file:/.test(location.href);", "const CLUB_ON = true;"),
    ("const CLUB_SLUG = 'drevici-test';", "const CLUB_SLUG = 'drevici-paris';"),
  ],
