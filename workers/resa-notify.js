@@ -1173,6 +1173,8 @@ async function carteVoice(env, b) {
     catch (e) { console.error('carte/voice audio', e); return { ok: false, error: e.user || 'Je n\'ai pas pu écouter l\'enregistrement. Réessayez.' }; }
     if (!texte) return { ok: false, error: 'Je n\'ai rien entendu. Parlez un peu plus près du micro et réessayez.' };
   }
+  // 1re étape (voix) : on renvoie tout de suite ce qui a été compris, l'écran l'affiche pendant qu'on lit la carte.
+  if (b.etape === 'transcrire') return { ok: true, texte };
   if (!texte) return { ok: false, error: 'Je n\'ai rien entendu.' };
   const user = `La carte (référence | catégorie > sous-catégorie | nom | prix | état) :\n${carte}\n\nCe que dit le restaurateur : « ${texte} »`;
   let out;

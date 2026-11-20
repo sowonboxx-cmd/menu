@@ -2950,12 +2950,12 @@ function vzListen(){
       fr.onload=()=>{ const b64=String(fr.result).split(',')[1]||''; vzSend({audio:b64,mime:R.mime}); };
       fr.readAsDataURL(blob); };
     rec.start(250); VZ.state='audio'; vzSetState();
-    // Niveau du son : les barres bougent quand on parle ; 1,6 s de silence après avoir parlé = on envoie.
+    // Niveau du son : les barres bougent quand on parle ; 1,2 s de silence après avoir parlé = on envoie.
     if(ac){ try{ if(ac.state==='suspended') ac.resume(); const an=ac.createAnalyser(); an.fftSize=512; ac.createMediaStreamSource(stream).connect(an); const buf=new Uint8Array(an.fftSize);
       const tick=()=>{ if(vzRec!==R) return; an.getByteTimeDomainData(buf); let m=0; for(let i=0;i<buf.length;i++){ const v=Math.abs(buf[i]-128); if(v>m) m=v; }
         const lv=Math.min(1,m/40); const now=Date.now(); vzBars(lv);
         if(lv>0.22){ R.last=now; if(!VZ.heard){ VZ.heard=true; VZ.state='speech'; vzSetState(); } }
-        if(VZ.heard&&now-R.last>1600) return vzStopRec(true);
+        if(VZ.heard&&now-R.last>1200) return vzStopRec(true);
         if(!VZ.heard&&now-R.t0>8000) return vzStopRec(true);
         if(now-R.t0>30000) return vzStopRec(true);
         requestAnimationFrame(tick); }; requestAnimationFrame(tick); }catch(e){ VZ.heard=true; } }
@@ -2971,7 +2971,12 @@ async function vzSend(au){
   const ta=document.getElementById('vzTxt'); if(ta&&!au) VZ.text=ta.value; if((!au&&!VZ.text.trim())||VZ.busy) return;
   VZ.busy=true; VZ.err=''; vzDraw();
   try{
-    const r=await fetch(NOTIFY_URL+'/carte/voice',{method:'POST',headers:{'Authorization':'Bearer '+(SESSION&&SESSION.access_token||''),'Content-Type':'application/json'},body:JSON.stringify(au?{slug:SLUG,audio:au.audio,mime:au.mime,carte:vzCarte()}:{slug:SLUG,texte:VZ.text,carte:vzCarte()})});
+    const call=b=>fetch(NOTIFY_URL+'/carte/voice',{method:'POST',headers:{'Authorization':'Bearer '+(SESSION&&SESSION.access_token||''),'Content-Type':'application/json'},body:JSON.stringify({slug:SLUG,carte:vzCarte(),...b})});
+    if(au){ // 1. la voix → le texte, affiché tout de suite ; 2. le texte → les changements
+      const r1=await call({etape:'transcrire',audio:au.audio,mime:au.mime}); const j1=await r1.json().catch(()=>({}));
+      if(!r1.ok||!j1.ok){ VZ.err=j1.error||'Je n\'ai pas pu écouter. Réessayez.'; VZ.busy=false; vzDraw(); return; }
+      VZ.text=j1.texte||''; vzDraw(); }
+    const r=await call({texte:VZ.text});
     const j=await r.json().catch(()=>({}));
     if(!r.ok||!j.ok){ if(j.texte) VZ.text=j.texte; VZ.err=j.error||'Je n\'ai pas pu comprendre, réessayez.'; }
     else { if(j.texte) VZ.text=j.texte; const all=(j.changements||[]), flou=all.filter(vzFlou), ok=all.filter(c=>vzValid(c)&&!vzFlou(c)); VZ.res={dit:j.texte||'',refus:j.refus||'',ch:ok,flou:flou.map(c=>{const x=vzAt(c.ref);return x?vzT(x.it.name):'';}).filter(Boolean),lost:all.length-ok.length-flou.length}; }
@@ -3014,7 +3019,7 @@ function vzDraw(){
     body=`<div class="vz-h">Je vais faire ceci</div>`+(R.dit?`<p class="vz-dit">« ${vzE(R.dit)} »</p>`:'')+(R.ch.length?`<ul class="vz-l">${R.ch.map(c=>`<li><span class="vz-t vz-${c.action}">${VZ_LBL[c.action]}</span><span>${esc(c.resume||'')}</span></li>`).join('')}</ul>`:'')+
       (R.refus?`<p class="vz-p">${esc(R.refus)}</p>`:'')+(R.lost?`<p class="vz-p">${R.lost} demande${R.lost>1?'s':''} ignorée${R.lost>1?'s':''} : plat introuvable.</p>`:'')+((R.flou||[]).length?`<p class="vz-err">${vzE(R.flou.join(', '))} : précisez le format (le verre ou la bouteille ?).</p>`:'')+
       `<div class="vz-a">${R.ch.length?`<button class="btn" data-vz="ok">Valider</button>`:''}<button class="btn w" data-vz="again">Recommencer</button><button class="btn w" data-vz="close">Annuler</button></div>`; }
-  else body=`<div class="vz-h">Parlez à votre carte</div><p class="vz-p" id="vzState">${VZ.busy&&!VZ.text?'Je transcris et je regarde la carte…':VZ.listening?vzStateTxt():'Exemple : « Ajoute une tartinade Saint-Jacques à 11 €, le plat du jour est fini. »'}</p>
+  else body=`<div class="vz-h">Parlez à votre carte</div><p class="vz-p" id="vzState">${VZ.busy?(VZ.text?'Je regarde la carte…':'Je transcris…'):VZ.listening?vzStateTxt():'Exemple : « Ajoute une tartinade Saint-Jacques à 11 €, le plat du jour est fini. »'}</p>
     <button class="vz-mic${VZ.listening?' on':''}" data-vz="mic" aria-label="${VZ.listening?'Arrêter':'Parler'}"${VZ.busy?' disabled':''}>${VZ_MIC}</button>${VZ.listening?'<div class="vz-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>':''}
     <textarea id="vzTxt" class="in" rows="3" placeholder="Ou écrivez votre demande ici">${esc(VZ.text)}</textarea>
     ${VZ.err?`<p class="vz-err">${esc(VZ.err)}</p>`:''}
