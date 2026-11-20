@@ -107,6 +107,15 @@ export default {
       try { return json(await jeuAmi(env, String(url.searchParams.get('slug') || ''), String(url.searchParams.get('c') || '')), 200, cors); }
       catch (e) { return json({ ok: false }, 200, cors); }
     }
+    // ── Parlez à votre carte (Master) : une phrase → une liste de changements à valider dans l'admin ──
+    if (req.method === 'POST' && url.pathname === '/carte/voice') {
+      try {
+        const b = await req.json();
+        const who = await adminOf(env, req, String(b.slug || ''));
+        if (!who) return json({ ok: false, error: 'Accès refusé' }, 403, cors);
+        return json(await carteVoice(env, b), 200, cors);
+      } catch (e) { console.error('carte/voice', e); return json({ ok: false, error: 'Je n\'ai pas pu comprendre, réessayez.' }, 500, cors); }
+    }
     // ── Équipe : qui suis-je (admin / staff) et gestion des accès (admins seulement) ──
     if (req.method === 'POST' && url.pathname.startsWith('/team/')) {
       try { const b = await req.json(); return await team(env, req, url.pathname.slice(6), b, cors); }
@@ -1086,4 +1095,82 @@ async function platSave(env, slug, d) {
   const r = d.id ? await sb(env, `plat_test?id=eq.${parseInt(d.id, 10)}&client_slug=eq.${enc(slug)}`, { method: 'PATCH', body: row, prefer: 'return=representation' })
                  : await sb(env, 'plat_test', { method: 'POST', body: row, prefer: 'return=representation' });
   return { ok: true, dish: (r || [])[0] };
+}
+
+// ════════════════ Parlez à votre carte (Master) ════════════════
+// Le restaurateur dit ce qui change ; on renvoie une liste d'actions sur la carte, qu'il valide dans l'admin.
+// Rien n'est enregistré ici : l'admin applique les changements après validation (et garde de quoi annuler).
+// Clé : ANTHROPIC_API_KEY (Claude) ou, à défaut, OPENAI_API_KEY (ChatGPT). Secrets Cloudflare du Worker.
+const VOICE_ACTIONS = ['ajouter', 'modifier', 'masquer', 'afficher', 'supprimer', 'deplacer'];
+const VOICE_SCHEMA = {
+  type: 'object',
+  properties: {
+    refus: { type: 'string', description: "Si la demande ne concerne pas la carte, ou si elle est trop floue : une phrase courte et polie qui explique pourquoi, en français. Sinon vide." },
+    changements: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          action: { type: 'string', enum: VOICE_ACTIONS },
+          ref: { type: 'string', description: "Pour modifier, masquer, afficher, supprimer, déplacer : la référence exacte de l'élément dans la carte (ex. « 2.0.3 »)." },
+          onglet: { type: 'integer', description: "Pour ajouter ou déplacer : numéro de la catégorie (le premier nombre des références)." },
+          sous_categorie: { type: 'integer', description: "Pour ajouter ou déplacer : numéro de la sous-catégorie dans cette catégorie (le deuxième nombre). 0 par défaut." },
+          nom: { type: 'string', description: 'Nouveau nom (ajouter, ou modifier si le nom change).' },
+          description: { type: 'string', description: 'Nouvelle description, si elle est donnée ou change.' },
+          prix: { type: 'number', description: 'Prix en euros pour un plat (ex. 11 ou 12.5).' },
+          formats: { type: 'array', description: "Boissons : prix par format. Pour modifier, « index » = position du format existant ; pour ajouter, donner cl et format.", items: { type: 'object', properties: { index: { type: 'integer' }, cl: { type: 'number' }, format: { type: 'string', enum: ['', 'verre', 'bouteille', 'pinte', 'demi', 'carafe'] }, prix: { type: 'number' } }, required: ['prix'] } },
+          resume: { type: 'string', description: "Ce qui va changer, en une phrase courte en français, pour le restaurateur (ex. « Ajouter « Tartinade Saint-Jacques » à 11 € dans Tartinades »)." }
+        },
+        required: ['action', 'resume']
+      }
+    }
+  },
+  required: ['changements']
+};
+const VOICE_SYSTEM = `Tu aides un restaurateur à mettre à jour la carte de son site. Il parle (sa phrase vient d'une dictée, elle peut contenir des fautes).
+Tu ne fais QUE des changements sur la carte : ajouter, modifier (nom, description, prix), masquer, afficher, supprimer ou déplacer un plat ou une boisson.
+Pour tout le reste (questions, conversation, réservations, horaires, autre sujet), ne propose aucun changement et remplis « refus ».
+Règles :
+- Utilise uniquement les références de la carte fournie. Si un plat est ambigu ou introuvable, ne devine pas : remplis « refus » en demandant de préciser.
+- « Le plat est fini », « on n'en a plus », « retire-le pour ce soir » = masquer (pas supprimer). Supprimer seulement si on te dit de supprimer ou d'enlever définitivement.
+- Pour ajouter, choisis la catégorie la plus logique de la carte. N'invente pas de description si on ne t'en donne pas.
+- Les prix sont en euros. « Onze euros cinquante » = 11.5.
+- Un changement par élément ; plusieurs changements si la phrase en demande plusieurs.
+- « resume » : une phrase courte, au vouvoiement implicite (infinitif), avec les noms entre guillemets français.`;
+
+async function carteVoice(env, b) {
+  const texte = String(b.texte || '').slice(0, 1200).trim();
+  if (!texte) return { ok: false, error: 'Je n\'ai rien entendu.' };
+  const carte = String(b.carte || '').slice(0, 60000);
+  const user = `La carte (référence | catégorie > sous-catégorie | nom | prix | état) :\n${carte}\n\nCe que dit le restaurateur : « ${texte} »`;
+  let out;
+  if (env.ANTHROPIC_API_KEY) {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({ model: env.VOICE_MODEL || 'claude-haiku-4-5-20251001', max_tokens: 1500, system: VOICE_SYSTEM,
+        tools: [{ name: 'carte', description: 'Les changements à proposer sur la carte.', input_schema: VOICE_SCHEMA }],
+        tool_choice: { type: 'tool', name: 'carte' }, messages: [{ role: 'user', content: user }] })
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error('Anthropic ' + r.status + ' ' + JSON.stringify(j).slice(0, 300));
+    const tu = (j.content || []).find(c => c.type === 'tool_use');
+    out = tu && tu.input;
+  } else if (env.OPENAI_API_KEY) {
+    const r = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { authorization: 'Bearer ' + env.OPENAI_API_KEY, 'content-type': 'application/json' },
+      body: JSON.stringify({ model: env.VOICE_MODEL || 'gpt-4o-mini', messages: [{ role: 'system', content: VOICE_SYSTEM }, { role: 'user', content: user }],
+        tools: [{ type: 'function', function: { name: 'carte', description: 'Les changements à proposer sur la carte.', parameters: VOICE_SCHEMA } }],
+        tool_choice: { type: 'function', function: { name: 'carte' } } })
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error('OpenAI ' + r.status + ' ' + JSON.stringify(j).slice(0, 300));
+    const call = j.choices && j.choices[0] && j.choices[0].message && (j.choices[0].message.tool_calls || [])[0];
+    out = call && JSON.parse(call.function.arguments || '{}');
+  } else {
+    return { ok: false, error: 'La voix n\'est pas encore branchée (clé manquante).' };
+  }
+  const ch = (out && Array.isArray(out.changements) ? out.changements : []).filter(c => c && VOICE_ACTIONS.includes(c.action)).slice(0, 20);
+  return { ok: true, refus: String((out && out.refus) || ''), changements: ch };
 }
