@@ -1138,10 +1138,39 @@ Règles :
 - Un changement par élément ; plusieurs changements si la phrase en demande plusieurs.
 - « resume » : une phrase courte, au vouvoiement implicite (infinitif), avec les noms entre guillemets français.`;
 
+// La voix enregistrée sur le téléphone est transcrite ici (OpenAI), avec les noms des plats de la carte en indice :
+// plus fiable que la dictée du navigateur (Safari décroche), et « Saint-Jacques », « gratinées »… sont bien écrits.
+async function voiceTranscribe(env, b64, mime, carte) {
+  if (!env.OPENAI_API_KEY) throw Object.assign(new Error('no key'), { user: 'La voix n\'est pas encore branchée (clé manquante).' });
+  const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  if (bin.length < 1500) return '';
+  const m = String(mime || 'audio/webm');
+  const ext = m.includes('mp4') || m.includes('m4a') || m.includes('aac') ? 'm4a' : m.includes('ogg') ? 'ogg' : m.includes('wav') ? 'wav' : 'webm';
+  const noms = [...new Set(carte.split('\n').filter(l => /^\d+\.\d+\.\d+ \|/.test(l)).map(l => (l.split(' | ')[2] || '').trim()).filter(Boolean))].join(', ').slice(0, 900);
+  const send = async model => {
+    const fd = new FormData();
+    fd.append('file', new Blob([bin], { type: m.split(';')[0] }), 'voix.' + ext);
+    fd.append('model', model); fd.append('language', 'fr');
+    fd.append('prompt', 'Un restaurateur modifie sa carte (prix en euros). Plats et boissons de la carte : ' + noms);
+    return fetch('https://api.openai.com/v1/audio/transcriptions', { method: 'POST', headers: { authorization: 'Bearer ' + env.OPENAI_API_KEY }, body: fd });
+  };
+  let r = await send(env.TRANSCRIBE_MODEL || 'gpt-4o-mini-transcribe');
+  if (!r.ok && (r.status === 400 || r.status === 404)) r = await send('whisper-1');
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 401 || r.status === 403) throw Object.assign(new Error('OpenAI audio ' + r.status + ' ' + JSON.stringify(j).slice(0, 200)), { user: 'La clé OpenAI n\'a pas le droit « Audio ». Ajoutez-le dans ses permissions.' });
+  if (!r.ok) throw new Error('OpenAI audio ' + r.status + ' ' + JSON.stringify(j).slice(0, 300));
+  return String(j.text || '').trim();
+}
+
 async function carteVoice(env, b) {
-  const texte = String(b.texte || '').slice(0, 1200).trim();
-  if (!texte) return { ok: false, error: 'Je n\'ai rien entendu.' };
   const carte = String(b.carte || '').slice(0, 60000);
+  let texte = String(b.texte || '').slice(0, 1200).trim();
+  if (!texte && b.audio) {
+    try { texte = (await voiceTranscribe(env, String(b.audio), b.mime, carte)).slice(0, 1200); }
+    catch (e) { console.error('carte/voice audio', e); return { ok: false, error: e.user || 'Je n\'ai pas pu écouter l\'enregistrement. Réessayez.' }; }
+    if (!texte) return { ok: false, error: 'Je n\'ai rien entendu. Parlez un peu plus près du micro et réessayez.' };
+  }
+  if (!texte) return { ok: false, error: 'Je n\'ai rien entendu.' };
   const user = `La carte (référence | catégorie > sous-catégorie | nom | prix | état) :\n${carte}\n\nCe que dit le restaurateur : « ${texte} »`;
   let out;
   if (env.ANTHROPIC_API_KEY) {
@@ -1172,5 +1201,5 @@ async function carteVoice(env, b) {
     return { ok: false, error: 'La voix n\'est pas encore branchée (clé manquante).' };
   }
   const ch = (out && Array.isArray(out.changements) ? out.changements : []).filter(c => c && VOICE_ACTIONS.includes(c.action)).slice(0, 20);
-  return { ok: true, refus: String((out && out.refus) || ''), changements: ch };
+  return { ok: true, texte, refus: String((out && out.refus) || ''), changements: ch };
 }
