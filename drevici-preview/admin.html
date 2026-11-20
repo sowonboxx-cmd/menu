@@ -2929,15 +2929,26 @@ function vzValid(ch){ if(['ajouter'].includes(ch.action)){ const t=DATA.tabs[ch.
   if(!vzAt(ch.ref)) return false; if(ch.action==='deplacer'){ const t=DATA.tabs[ch.onglet]; return !!(t&&t.cards&&t.cards[ch.sous_categorie||0]); } return true; }
 function vzListen(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){ VZ.err='La dictée n\'est pas disponible sur ce navigateur : écrivez votre demande.'; vzDraw(); return; }
+  if(!SR){ VZ.err='La dictée n\'est pas disponible sur ce navigateur : écrivez votre demande, ou utilisez le micro du clavier.'; vzDraw(); return; }
   if(VZ.listening){ try{vzRec.stop();}catch(e){} return; }
-  vzRec=new SR(); vzRec.lang='fr-FR'; vzRec.interimResults=true; vzRec.continuous=true;
+  // Safari (iPhone, Mac) : le mode continu ne renvoie souvent rien. On écoute une phrase, et ça s'envoie quand vous vous arrêtez.
+  const safari=/iP(hone|ad|od)/.test(navigator.userAgent)||(/Safari/.test(navigator.userAgent)&&!/Chrome|CriOS|Chromium|Android|Edg/.test(navigator.userAgent));
+  // On ferme proprement l'écoute précédente : sur iPhone, une ancienne écoute restée ouverte bloque les suivantes.
+  if(vzRec){ try{ clearTimeout(vzRec._wd); vzRec.onend=vzRec.onerror=vzRec.onresult=null; vzRec.abort(); }catch(e){} }
+  vzRec=new SR(); vzRec.lang='fr-FR'; vzRec.interimResults=true; vzRec.continuous=!safari;
   const base=VZ.text?VZ.text.trim()+' ':''; let fin='';
-  vzRec.onresult=e=>{ let tmp=''; for(let i=e.resultIndex;i<e.results.length;i++){ const r=e.results[i]; if(r.isFinal) fin+=r[0].transcript; else tmp+=r[0].transcript; } VZ.text=(base+fin+tmp).trim(); const ta=document.getElementById('vzTxt'); if(ta) ta.value=VZ.text; };
-  vzRec.onerror=e=>{ VZ.listening=false; if(e.error!=='no-speech'&&e.error!=='aborted') VZ.err=e.error==='not-allowed'?'Autorisez le micro pour ce site, puis réessayez.':'La dictée s\'est arrêtée. Réessayez.'; vzDraw(); };
-  vzRec.onend=()=>{ VZ.listening=false; vzDraw(); if(VZ.text.trim()&&VZ.open&&!VZ.res) vzSend(); };
-  VZ.listening=true; VZ.err=''; vzDraw(); try{ vzRec.start(); }catch(e){ VZ.listening=false; vzDraw(); }
+  VZ.heard=false; VZ.state='start'; clearTimeout(vzRec._wd);
+  const st=t=>{ VZ.state=t; const p=document.getElementById('vzState'); if(p) p.textContent=vzStateTxt(); };
+  vzRec.onaudiostart=()=>st('audio');
+  vzRec.onspeechstart=()=>{ VZ.heard=true; st('speech'); };
+  vzRec.onresult=e=>{ VZ.heard=true; let tmp=''; for(let i=e.resultIndex;i<e.results.length;i++){ const r=e.results[i]; if(r.isFinal) fin+=r[0].transcript; else tmp+=r[0].transcript; } VZ.text=(base+fin+tmp).trim(); const ta=document.getElementById('vzTxt'); if(ta) ta.value=VZ.text; st('speech'); };
+  vzRec.onerror=e=>{ clearTimeout(vzRec._wd); VZ.listening=false; if(e.error==='no-speech') VZ.err='Je n\'ai rien entendu. Rapprochez-vous du micro et réessayez, ou écrivez votre demande.'; else if(e.error!=='aborted') VZ.err=e.error==='not-allowed'||e.error==='service-not-allowed'?'Autorisez le micro (et la dictée) pour ce site, puis réessayez.':'La dictée s\'est arrêtée. Réessayez, ou écrivez votre demande.'; vzDraw(); };
+  vzRec.onend=()=>{ clearTimeout(vzRec._wd); VZ.listening=false; if(!VZ.text.trim()&&!VZ.err&&VZ.open) VZ.err='Je n\'ai rien entendu. Réessayez, ou écrivez votre demande (le micro du clavier marche aussi).'; vzDraw(); if(VZ.text.trim()&&VZ.open&&!VZ.res) vzSend(); };
+  // Rien au bout de 8 secondes : on le dit au lieu de clignoter dans le vide.
+  vzRec._wd=setTimeout(()=>{ if(VZ.listening&&!VZ.heard){ try{vzRec.abort();}catch(e){} VZ.listening=false; VZ.err='Le micro ne m\'envoie rien. Vérifiez qu\'il est autorisé pour ce site, ou écrivez votre demande (le micro du clavier marche aussi).'; vzDraw(); } },8000);
+  VZ.listening=true; VZ.err=''; vzDraw(); try{ vzRec.start(); }catch(e){ VZ.listening=false; VZ.err='La dictée n\'a pas démarré. Réessayez.'; vzDraw(); }
 }
+function vzStateTxt(){ return VZ.state==='speech'?'Je vous entends… touchez le micro quand vous avez fini.':VZ.state==='audio'?'Micro ouvert, parlez maintenant.':'J\'ouvre le micro…'; }
 async function vzSend(){
   const ta=document.getElementById('vzTxt'); if(ta) VZ.text=ta.value; if(!VZ.text.trim()||VZ.busy) return;
   VZ.busy=true; VZ.err=''; vzDraw();
@@ -2985,9 +2996,9 @@ function vzDraw(){
     body=`<div class="vz-h">Je vais faire ceci</div>`+(R.ch.length?`<ul class="vz-l">${R.ch.map(c=>`<li><span class="vz-t vz-${c.action}">${VZ_LBL[c.action]}</span><span>${esc(c.resume||'')}</span></li>`).join('')}</ul>`:'')+
       (R.refus?`<p class="vz-p">${esc(R.refus)}</p>`:'')+(R.lost?`<p class="vz-p">${R.lost} demande${R.lost>1?'s':''} ignorée${R.lost>1?'s':''} : plat introuvable.</p>`:'')+
       `<div class="vz-a">${R.ch.length?`<button class="btn" data-vz="ok">Valider</button>`:''}<button class="btn w" data-vz="again">Recommencer</button><button class="btn w" data-vz="close">Annuler</button></div>`; }
-  else body=`<div class="vz-h">Parlez à votre carte</div><p class="vz-p">${VZ.listening?'Je vous écoute… touchez le micro quand vous avez fini.':'Exemple : « Ajoute une tartinade Saint-Jacques à 11 €, le plat du jour est fini. »'}</p>
+  else body=`<div class="vz-h">Parlez à votre carte</div><p class="vz-p" id="vzState">${VZ.listening?vzStateTxt():'Exemple : « Ajoute une tartinade Saint-Jacques à 11 €, le plat du jour est fini. »'}</p>
     <button class="vz-mic${VZ.listening?' on':''}" data-vz="mic" aria-label="${VZ.listening?'Arrêter':'Parler'}">${VZ_MIC}</button>
-    <textarea id="vzTxt" class="in" rows="3" placeholder="Ou écrivez votre demande ici">${esc(VZ.text)}</textarea>
+    <textarea id="vzTxt" class="in" rows="3" placeholder="${VZ.listening?'Ce que vous dites s\'affiche ici…':'Ou écrivez votre demande ici'}">${esc(VZ.text)}</textarea>
     ${VZ.err?`<p class="vz-err">${esc(VZ.err)}</p>`:''}
     <div class="vz-a"><button class="btn" data-vz="send"${VZ.busy?' disabled':''}>${VZ.busy?'Je réfléchis…':'Envoyer'}</button><button class="btn w" data-vz="close">Fermer</button></div>`;
   s.innerHTML=`<div class="vz-c">${body}</div>`;
