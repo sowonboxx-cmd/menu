@@ -2913,9 +2913,12 @@ function vzPlace(){
   const b=document.getElementById('vzBtn'); if(!b) return;
   let target=null;
   if(vzDesk.matches){
-    const home=document.querySelector('.home-cover-content .club-already');
-    if(home&&home.offsetParent) target=home;
-    else target=[...document.querySelectorAll('.social-links-bar')].find(e=>e.offsetParent)||null;
+    // Accueil (vidéo) affiché : sous « Déjà membre ? » ou, pour un membre, sous « Membre du club » ; jamais dans la carte cachée derrière.
+    if(document.body.classList.contains('home-cover-showing')){
+      const hc=document.querySelector('.home-cover-content');
+      const cands=hc?[...hc.querySelectorAll('.club-already,.club-link')].filter(e=>e.offsetParent):[];
+      target=cands.length?cands[cands.length-1]:null;
+    } else target=[...document.querySelectorAll('.social-links-bar')].find(e=>e.offsetParent)||null;
   }
   if(target){
     let slot=target.nextElementSibling;
