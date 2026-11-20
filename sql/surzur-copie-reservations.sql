@@ -1,29 +1,26 @@
 -- ════════════════════════════════════════════════════════════════════
--- Surzur : Floriane en copie des nouvelles réservations
--- À coller dans Supabase → SQL Editor → Run.
---
--- Qui reçoit l'email « Nouvelle réservation » : la colonne notify_email de resa_settings
--- (plusieurs adresses possibles, séparées par des virgules).
--- Ce script ajoute à Surzur les admins qui ne sont admins QUE de Surzur (donc Floriane, pas Will),
--- sans retirer les adresses déjà présentes. Le relancer ne crée pas de doublon.
+-- Surzur : qui reçoit l'email « Nouvelle réservation »
+-- Exactement deux adresses : Floriane + l'adresse Gmail déjà utilisée pour Drevici
+-- (reprise des réglages de Surzur ou de Paris, sans la retaper).
+-- À coller dans Supabase → SQL Editor → Run. Le relancer ne change rien de plus.
 -- ════════════════════════════════════════════════════════════════════
 
--- 1. Ajout (seulement si Surzur a déjà ses réglages de réservation)
-update public.resa_settings s
-set notify_email = (
-  select string_agg(distinct e, ', ')
-  from (
-    select trim(x) as e from unnest(string_to_array(coalesce(s.notify_email, ''), ',')) x where trim(x) <> ''
-    union
-    select lower(u.email) from public.restaurant_admins a join auth.users u on u.id = a.user_id
-    where a.client_slug = 'drevici-surzur'
-      and not exists (select 1 from public.restaurant_admins p where p.user_id = a.user_id and p.client_slug in ('drevici', 'drevici-paris'))
-  ) t
+with gmail as (
+  select string_agg(distinct lower(trim(x)), ', ') as e
+  from public.resa_settings s, unnest(string_to_array(coalesce(s.notify_email, '') || ',' || coalesce(s.reply_to, ''), ',')) x
+  where s.client_slug in ('drevici-surzur', 'drevici-paris') and lower(trim(x)) like '%@gmail.com'
+),
+dest as (
+  select 'floriane@oceanprosarl.com' || coalesce(', ' || (select e from gmail), '') as notify
 )
-where s.client_slug = 'drevici-surzur';
+-- Surzur a déjà ses réglages : on met les deux adresses.
+-- Surzur n'en a pas : on crée la ligne à partir de Paris (nom de Surzur, réponses des clients chez Floriane).
+insert into public.resa_settings (client_slug, restaurant_name, reply_to, notify_email, site_url)
+select 'drevici-surzur', 'Drevici Oyster Surzur', 'floriane@oceanprosarl.com', (select notify from dest), p.site_url
+from public.resa_settings p where p.client_slug = 'drevici-paris'
+on conflict (client_slug) do update set notify_email = (select notify from dest);
 
--- 2. Vérification : qui reçoit les réservations à Surzur et à Paris.
---    Aucune ligne « drevici-surzur » = Surzur n'a pas de réglages : personne n'est prévenu, dites-le à Claude.
-select client_slug, restaurant_name, notify_email, reply_to
+-- Vérification : Surzur doit montrer floriane@oceanprosarl.com et l'adresse Gmail.
+select client_slug, restaurant_name, notify_email, reply_to, address, phone
 from public.resa_settings
 where client_slug in ('drevici-surzur', 'drevici-paris');
