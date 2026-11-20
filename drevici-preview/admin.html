@@ -2918,7 +2918,7 @@ function vzCarte(){
       L.push(`## Sous-catégorie ${ti}.${ci} : ${tr(c.label)||'(sans titre)'} (${bev?'boissons':'plats'})`);
       itemsOf(c).forEach((it,ix)=>{
         const pr=bev?(it.sizes||[]).map((s,si)=>`[${si}] ${s.format||''}${s.cl?' '+s.cl+(s.unit||'cl'):''} ${s.price||'?'}€`).join(' ; ')||(it.price||''):(it.priceType==='dual'?`les ${it.qty1} ${it.p1}€ / les ${it.qty2} ${it.p2}€`:(it.price||''));
-        L.push(`${ti}.${ci}.${ix} | ${tr(t.label)} > ${tr(c.label)||'—'} | ${tr(it.name)||'(sans nom)'} | ${pr} | ${it.hidden?'masqué':'visible'}`);
+        L.push(`${ti}.${ci}.${ix} | ${tr(t.label)} > ${tr(c.label)||'—'} | ${tr(it.name)||'(sans nom)'} | ${pr} | ${it.hidden?'masqué':'visible'} | ${(vzT(it.desc)||'').replace(/\s+/g,' ').slice(0,220)}`);
       });
     });
   });
@@ -2929,29 +2929,74 @@ function vzAt(ref){ const m=String(ref||'').match(/^(\d+)\.(\d+)\.(\d+)$/); if(!
 function vzFlou(ch){ if(ch.action!=='modifier'||ch.prix==null||(ch.formats||[]).length) return false; const x=vzAt(ch.ref); return !!(x&&vzBev(x.c)&&(x.it.sizes||[]).length>1); }
 function vzValid(ch){ if(['ajouter'].includes(ch.action)){ const t=DATA.tabs[ch.onglet]; return !!(t&&t.cards&&t.cards[ch.sous_categorie||0]); }
   if(!vzAt(ch.ref)) return false; if(ch.action==='deplacer'){ const t=DATA.tabs[ch.onglet]; return !!(t&&t.cards&&t.cards[ch.sous_categorie||0]); } return true; }
-// Le micro enregistre la voix sur l'appareil, puis Beltab la transcrit (avec les noms des plats en indice) et la comprend.
-// Plus fiable que la dictée du navigateur (sur iPhone, elle décroche dès la 2e fois). Arrêt tout seul quand vous vous taisez.
+// Le micro : les mots s'écrivent pendant qu'on parle (transcription en direct, relayée par Beltab).
+// En parallèle, la voix est enregistrée : si le direct ne répond pas, on envoie l'enregistrement (transcription classique).
+// Arrêt tout seul quand vous vous taisez.
+function vzNoms(){ const S=new Set(); (DATA.tabs||[]).forEach(t=>(t.cards||[]).forEach(c=>vzItems(c).forEach(it=>{ const n=vzT(it.name); if(n) S.add(n); }))); return [...S].slice(0,80); }
+function vzLive(){
+  const L={ok:false,ready:false,dead:false,q:[],items:{},order:[],want:false,cid:null,final:null,waiters:[]};
+  const end=()=>{ const w=L.waiters; L.waiters=[]; w.forEach(f=>f()); };
+  try{ L.ws=new WebSocket(NOTIFY_URL.replace(/^http/,'ws')+'/carte/voice/live?slug='+encodeURIComponent(SLUG)+'&t='+encodeURIComponent(SESSION&&SESSION.access_token||'')); }catch(e){ L.dead=true; return L; }
+  const ws=L.ws;
+  ws.onopen=()=>{ try{ ws.send(JSON.stringify({type:'beltab.config',noms:vzNoms()})); }catch(e){} };
+  ws.onmessage=ev=>{ let m; try{ m=JSON.parse(ev.data); }catch(e){ return; }
+    if(m.type==='session.updated'||m.type==='transcription_session.updated'){ if(L.ready) return; L.ready=L.ok=true; L.q.forEach(x=>ws.send(x)); L.q=[]; if(L.want) ws.send('{"type":"input_audio_buffer.commit"}'); }
+    else if(m.type==='input_audio_buffer.committed'){ if(L.want&&!L.cid) L.cid=m.item_id; }
+    else if(m.type==='conversation.item.input_audio_transcription.delta'){ if(!(m.item_id in L.items)){ L.items[m.item_id]=''; L.order.push(m.item_id); } L.items[m.item_id]+=m.delta||''; vzLiveShow(L); }
+    else if(m.type==='conversation.item.input_audio_transcription.completed'){ if(!(m.item_id in L.items)) L.order.push(m.item_id); L.items[m.item_id]=m.transcript||''; vzLiveShow(L); if(L.want&&(!L.cid||m.item_id===L.cid)){ L.final=vzLiveTxt(L); end(); } }
+    else if(m.type==='error'||m.type==='conversation.item.input_audio_transcription.failed'){ L.dead=true; end(); }
+  };
+  ws.onerror=ws.onclose=()=>{ L.dead=true; end(); };
+  L.send=b64=>{ if(L.dead) return; const s='{"type":"input_audio_buffer.append","audio":"'+b64+'"}'; if(L.ready&&ws.readyState===1) ws.send(s); else if(L.q.length<600) L.q.push(s); };
+  // Fin de la phrase : on « valide » le son et on attend le texte final (3,5 s au plus, sinon on passe à l'enregistrement).
+  L.finish=()=>new Promise(res=>{ if(L.dead) return res(''); L.want=true; let t; const f=()=>{ clearTimeout(t); try{ ws.close(); }catch(e){} res(L.final||''); };
+    L.waiters.push(f); t=setTimeout(f,3500); if(L.ready&&ws.readyState===1) ws.send('{"type":"input_audio_buffer.commit"}'); });
+  L.abort=()=>{ L.dead=true; try{ ws.close(); }catch(e){} end(); };
+  return L;
+}
+function vzLiveTxt(L){ return L.order.map(k=>L.items[k]||'').join(' ').replace(/\s+/g,' ').trim(); }
+function vzLiveShow(L){ const t=vzLiveTxt(L); if(!t) return; if(vzRec&&vzRec.live===L) vzRec.last=Date.now(); VZ.text=t; const ta=document.getElementById('vzTxt'); if(ta){ ta.value=t; ta.scrollTop=ta.scrollHeight; } if(!VZ.heard){ VZ.heard=true; VZ.state='speech'; vzSetState(); } }
+// Son du micro → PCM 16 bits 24 kHz, par paquets de 100 ms, pour le direct.
+async function vzPcm(ac,src,L){
+  const out=24000, ratio=ac.sampleRate/out; let acc=[], n=0;
+  const push=f=>{ for(let i=0;i<f.length;i+=ratio){ const a=Math.floor(i), b=Math.min(f.length,Math.floor(i+ratio)); let s=0,c=0; for(let j=a;j<b;j++){ s+=f[j]; c++; } acc.push(c?s/c:f[a]||0); }
+    if(acc.length>=2400){ const pcm=new Int16Array(acc.length); for(let i=0;i<acc.length;i++){ const v=Math.max(-1,Math.min(1,acc[i])); pcm[i]=v<0?v*0x8000:v*0x7fff; } acc=[];
+      const u=new Uint8Array(pcm.buffer); let bin=''; for(let i=0;i<u.length;i+=0x8000) bin+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000)); L.send(btoa(bin)); } };
+  const mute=ac.createGain(); mute.gain.value=0; mute.connect(ac.destination);
+  if(ac.audioWorklet&&window.AudioWorkletNode){
+    const code="class P extends AudioWorkletProcessor{process(i){const c=i[0]&&i[0][0];if(c)this.port.postMessage(c.slice(0));return true}}registerProcessor('vz-pcm',P)";
+    await ac.audioWorklet.addModule(URL.createObjectURL(new Blob([code],{type:'application/javascript'})));
+    const node=new AudioWorkletNode(ac,'vz-pcm'); node.port.onmessage=e=>push(e.data); src.connect(node); node.connect(mute); return node;
+  }
+  const sp=ac.createScriptProcessor(4096,1,1); sp.onaudioprocess=e=>push(e.inputBuffer.getChannelData(0)); src.connect(sp); sp.connect(mute); return sp;
+}
 function vzListen(){
   if(VZ.listening){ vzStopRec(true); return; }
+  if(VZ.busy) return;
   if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.MediaRecorder)){ VZ.err='Le micro n\'est pas disponible sur ce navigateur : écrivez votre demande, ou utilisez le micro du clavier.'; vzDraw(); return; }
-  const AC=window.AudioContext||window.webkitAudioContext; let ac=null; try{ ac=AC?new AC():null; }catch(e){}
+  const AC=window.AudioContext||window.webkitAudioContext; let ac=null; try{ ac=AC?new AC():null; if(ac&&ac.state==='suspended') ac.resume(); }catch(e){}
   VZ.listening=true; VZ.heard=false; VZ.state='start'; VZ.err=''; VZ.text=''; vzDraw();
+  const L=ac?vzLive():null; // le direct démarre pendant que le micro s'ouvre
   navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}}).then(stream=>{
-    if(!VZ.listening||!VZ.open){ stream.getTracks().forEach(t=>t.stop()); if(ac) ac.close().catch(()=>{}); return; }
+    if(!VZ.listening||!VZ.open){ stream.getTracks().forEach(t=>t.stop()); if(ac) ac.close().catch(()=>{}); if(L) L.abort(); return; }
     const types=['audio/webm;codecs=opus','audio/mp4','audio/webm','audio/ogg;codecs=opus'];
     const mime=types.find(t=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t))||'';
     const rec=new MediaRecorder(stream,mime?{mimeType:mime}:undefined); const chunks=[];
-    const R=vzRec={rec,stream,ac,chunks,mime:rec.mimeType||mime||'audio/mp4',t0:Date.now(),last:0,send:true};
+    const R=vzRec={rec,stream,ac,chunks,live:L,mime:rec.mimeType||mime||'audio/mp4',t0:Date.now(),last:0,send:true};
     rec.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data); };
     rec.onstop=()=>{ vzFreeRec(R); if(vzRec===R) vzRec=null; VZ.listening=false;
-      if(!R.send||!VZ.open){ vzDraw(); return; }
-      if(!VZ.heard){ VZ.err='Je n\'ai rien entendu. Parlez un peu plus près du micro et réessayez, ou écrivez votre demande.'; vzDraw(); return; }
-      const blob=new Blob(chunks,{type:R.mime}); const fr=new FileReader();
-      fr.onload=()=>{ const b64=String(fr.result).split(',')[1]||''; vzSend({audio:b64,mime:R.mime}); };
-      fr.readAsDataURL(blob); };
+      if(!R.send||!VZ.open){ if(L) L.abort(); vzDraw(); return; }
+      if(!VZ.heard){ if(L) L.abort(); VZ.err='Je n\'ai rien entendu. Parlez un peu plus près du micro et réessayez, ou écrivez votre demande.'; vzDraw(); return; }
+      const byFile=()=>{ const blob=new Blob(chunks,{type:R.mime}); const fr=new FileReader(); fr.onload=()=>{ const b64=String(fr.result).split(',')[1]||''; vzSend({audio:b64,mime:R.mime}); }; fr.readAsDataURL(blob); };
+      if(!L||L.dead||!L.ok){ if(L) L.abort(); byFile(); return; }
+      VZ.busy=true; VZ.state='fin'; vzDraw();
+      L.finish().then(txt=>{ VZ.busy=false; VZ.state=''; if(!VZ.open) return; if(txt&&txt.trim()){ VZ.text=txt.trim(); vzSend(); } else byFile(); });
+    };
     rec.start(250); VZ.state='audio'; vzSetState();
-    // Niveau du son : les barres bougent quand on parle ; 1,2 s de silence après avoir parlé = on envoie.
-    if(ac){ try{ if(ac.state==='suspended') ac.resume(); const an=ac.createAnalyser(); an.fftSize=512; ac.createMediaStreamSource(stream).connect(an); const buf=new Uint8Array(an.fftSize);
+    if(ac){ try{ const src=ac.createMediaStreamSource(stream);
+      if(L) vzPcm(ac,src,L).catch(()=>L.abort());
+      // Niveau du son : les barres bougent quand on parle ; 1,2 s de silence après avoir parlé = on envoie.
+      const an=ac.createAnalyser(); an.fftSize=512; src.connect(an); const buf=new Uint8Array(an.fftSize);
       const tick=()=>{ if(vzRec!==R) return; an.getByteTimeDomainData(buf); let m=0; for(let i=0;i<buf.length;i++){ const v=Math.abs(buf[i]-128); if(v>m) m=v; }
         const lv=Math.min(1,m/40); const now=Date.now(); vzBars(lv);
         if(lv>0.22){ R.last=now; if(!VZ.heard){ VZ.heard=true; VZ.state='speech'; vzSetState(); } }
@@ -2960,7 +3005,7 @@ function vzListen(){
         if(now-R.t0>30000) return vzStopRec(true);
         requestAnimationFrame(tick); }; requestAnimationFrame(tick); }catch(e){ VZ.heard=true; } }
     else VZ.heard=true; // pas de mesure du son possible : on se fie au bouton
-  }).catch(e=>{ if(ac) ac.close().catch(()=>{}); VZ.listening=false; VZ.err=(e&&(e.name==='NotAllowedError'||e.name==='SecurityError'))?'Autorisez le micro pour ce site, puis réessayez.':'Le micro n\'a pas démarré. Réessayez, ou écrivez votre demande.'; vzDraw(); });
+  }).catch(e=>{ if(ac) ac.close().catch(()=>{}); if(L) L.abort(); VZ.listening=false; VZ.err=(e&&(e.name==='NotAllowedError'||e.name==='SecurityError'))?'Autorisez le micro pour ce site, puis réessayez.':'Le micro n\'a pas démarré. Réessayez, ou écrivez votre demande.'; vzDraw(); });
 }
 function vzStopRec(send){ const R=vzRec; if(!R){ VZ.listening=false; vzDraw(); return; } R.send=!!send; if(send) VZ.heard=VZ.heard||(Date.now()-R.t0>1200); try{ if(R.rec.state!=='inactive') R.rec.stop(); else R.rec.onstop(); }catch(e){ vzFreeRec(R); vzRec=null; VZ.listening=false; vzDraw(); } }
 function vzFreeRec(R){ try{ R.stream.getTracks().forEach(t=>t.stop()); }catch(e){} try{ if(R.ac) R.ac.close().catch(()=>{}); }catch(e){} }
@@ -3019,7 +3064,7 @@ function vzDraw(){
     body=`<div class="vz-h">Je vais faire ceci</div>`+(R.dit?`<p class="vz-dit">« ${vzE(R.dit)} »</p>`:'')+(R.ch.length?`<ul class="vz-l">${R.ch.map(c=>`<li><span class="vz-t vz-${c.action}">${VZ_LBL[c.action]}</span><span>${esc(c.resume||'')}</span></li>`).join('')}</ul>`:'')+
       (R.refus?`<p class="vz-p">${esc(R.refus)}</p>`:'')+(R.lost?`<p class="vz-p">${R.lost} demande${R.lost>1?'s':''} ignorée${R.lost>1?'s':''} : plat introuvable.</p>`:'')+((R.flou||[]).length?`<p class="vz-err">${vzE(R.flou.join(', '))} : précisez le format (le verre ou la bouteille ?).</p>`:'')+
       `<div class="vz-a">${R.ch.length?`<button class="btn" data-vz="ok">Valider</button>`:''}<button class="btn w" data-vz="again">Recommencer</button><button class="btn w" data-vz="close">Annuler</button></div>`; }
-  else body=`<div class="vz-h">Parlez à votre carte</div><p class="vz-p" id="vzState">${VZ.busy?(VZ.text?'Je regarde la carte…':'Je transcris…'):VZ.listening?vzStateTxt():'Exemple : « Ajoute une tartinade Saint-Jacques à 11 €, le plat du jour est fini. »'}</p>
+  else body=`<div class="vz-h">Parlez à votre carte</div><p class="vz-p" id="vzState">${VZ.state==='fin'&&VZ.busy?'Je termine la phrase…':VZ.busy?(VZ.text?'Je regarde la carte…':'Je transcris…'):VZ.listening?vzStateTxt():'Exemple : « Ajoute une tartinade Saint-Jacques à 11 €, le plat du jour est fini. »'}</p>
     <button class="vz-mic${VZ.listening?' on':''}" data-vz="mic" aria-label="${VZ.listening?'Arrêter':'Parler'}"${VZ.busy?' disabled':''}>${VZ_MIC}</button>${VZ.listening?'<div class="vz-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>':''}
     <textarea id="vzTxt" class="in" rows="3" placeholder="Ou écrivez votre demande ici">${esc(VZ.text)}</textarea>
     ${VZ.err?`<p class="vz-err">${esc(VZ.err)}</p>`:''}

@@ -107,6 +107,11 @@ export default {
       try { return json(await jeuAmi(env, String(url.searchParams.get('slug') || ''), String(url.searchParams.get('c') || '')), 200, cors); }
       catch (e) { return json({ ok: false }, 200, cors); }
     }
+    // ── Parlez à votre carte : les mots s'écrivent pendant qu'on parle (OpenAI Realtime, relayé ici pour garder la clé secrète) ──
+    if (url.pathname === '/carte/voice/live' && (req.headers.get('upgrade') || '').toLowerCase() === 'websocket') {
+      try { return await voiceLive(env, url); }
+      catch (e) { console.error('carte/voice/live', e); return new Response('live indisponible', { status: 502 }); }
+    }
     // ── Parlez à votre carte (Master) : une phrase → une liste de changements à valider dans l'admin ──
     if (req.method === 'POST' && url.pathname === '/carte/voice') {
       try {
@@ -1139,6 +1144,8 @@ Règles :
 - Si la boisson a plusieurs formats et que la phrase ne dit pas lequel (« le Chablis à 9 € »), ne devine pas : remplis « refus » en demandant « le verre ou la bouteille ? » (avec les vrais formats de cette boisson). Si un seul format existe, change-le.
 - « Le verre à 9 et la bouteille à 48 » = un seul changement avec deux formats.
 - Un changement par élément ; plusieurs changements si la phrase en demande plusieurs.
+- Orthographe (« corrige l'orthographe de… », « il y a une faute dans… », « corrige les fautes de la carte ») : action « modifier » avec le nom et/ou la description corrigés. Corrige SEULEMENT les vraies fautes en français (accents, s ou x du pluriel, accords, majuscules des noms propres, tirets comme Saint-Jacques). Ne change ni les mots, ni le style, ni la ponctuation voulue, ni les noms de marques, de domaines ou de cuvées. Pour toute la carte : un changement par plat qui a vraiment une faute, rien pour les autres. Dans « resume », montre la correction : « Corriger « ancien » en « nouveau » ».
+- Si le restaurateur dicte une écriture (« écris Saint-Jacques avec un tiret »), applique-la exactement.
 - « resume » : une phrase courte, au vouvoiement implicite (infinitif), avec les noms entre guillemets français.`;
 
 // La voix enregistrée sur le téléphone est transcrite ici (OpenAI), avec les noms des plats de la carte en indice :
@@ -1165,6 +1172,45 @@ async function voiceTranscribe(env, b64, mime, carte) {
   return String(j.text || '').trim();
 }
 
+// Le navigateur ne peut pas envoyer la clé OpenAI : il se connecte ici (session admin vérifiée), on relaie vers OpenAI.
+// Le navigateur n'a le droit d'envoyer que du son (append / commit / clear) ; on renvoie les morceaux de texte au fil de l'eau.
+async function voiceLive(env, url) {
+  const slug = String(url.searchParams.get('slug') || ''), t = String(url.searchParams.get('t') || '');
+  const who = await adminOf(env, new Request('https://x/', { headers: { authorization: 'Bearer ' + t } }), slug);
+  if (!who) return new Response('Accès refusé', { status: 403 });
+  if (!env.OPENAI_API_KEY) return new Response('clé manquante', { status: 503 });
+  const up = await fetch('https://api.openai.com/v1/realtime?intent=transcription', { headers: { Upgrade: 'websocket', Authorization: 'Bearer ' + env.OPENAI_API_KEY } });
+  const ows = up.webSocket;
+  if (!ows) { console.error('voice live upstream', up.status, (await up.text().catch(() => '')).slice(0, 300)); return new Response('OpenAI ' + up.status, { status: 502 }); }
+  ows.accept();
+  const pair = new WebSocketPair(); const client = pair[0], server = pair[1]; server.accept();
+  let open = true; const t0 = Date.now();
+  const close = () => { if (!open) return; open = false; try { server.close(1000, 'fin'); } catch (e) {} try { ows.close(1000, 'fin'); } catch (e) {} };
+  const kill = setTimeout(close, 90000); // une phrase, pas une conversation : 90 s maximum
+  const OK_FROM_CLIENT = ['input_audio_buffer.append', 'input_audio_buffer.commit', 'input_audio_buffer.clear'];
+  server.addEventListener('message', ev => {
+    if (!open) return; let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+    if (m.type === 'beltab.config') {
+      const noms = (Array.isArray(m.noms) ? m.noms : []).map(x => String(x).replace(/[<>\r\n]/g, ' ').trim().slice(0, 60)).filter(Boolean).slice(0, 80);
+      const tr = { model: env.LIVE_MODEL || 'gpt-live-transcribe', languages: ['fr'], delay: env.LIVE_DELAY || 'low',
+        prompt: 'Un restaurateur modifie la carte de son restaurant à voix haute : noms de plats et de boissons, prix en euros, formats (verre, bouteille).' };
+      if (noms.length) tr.keywords = noms;
+      ows.send(JSON.stringify({ type: 'session.update', session: { type: 'transcription', audio: { input: { format: { type: 'audio/pcm', rate: 24000 }, transcription: tr, turn_detection: null } } } }));
+      return;
+    }
+    if (OK_FROM_CLIENT.includes(m.type)) ows.send(ev.data);
+  });
+  ows.addEventListener('message', ev => {
+    if (!open) return; let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+    if (m.type === 'error') console.error('voice live openai', JSON.stringify(m).slice(0, 400));
+    if (/^(session\.updated|transcription_session\.updated|error|input_audio_buffer\.committed|conversation\.item\.input_audio_transcription\.(delta|completed|failed))$/.test(m.type)) server.send(ev.data);
+  });
+  server.addEventListener('close', () => { clearTimeout(kill); close(); });
+  ows.addEventListener('close', () => { clearTimeout(kill); close(); });
+  ows.addEventListener('error', () => { clearTimeout(kill); close(); });
+  return new Response(null, { status: 101, webSocket: client });
+}
+
 async function carteVoice(env, b) {
   const carte = String(b.carte || '').slice(0, 60000);
   let texte = String(b.texte || '').slice(0, 1200).trim();
@@ -1176,7 +1222,7 @@ async function carteVoice(env, b) {
   // 1re étape (voix) : on renvoie tout de suite ce qui a été compris, l'écran l'affiche pendant qu'on lit la carte.
   if (b.etape === 'transcrire') return { ok: true, texte };
   if (!texte) return { ok: false, error: 'Je n\'ai rien entendu.' };
-  const user = `La carte (référence | catégorie > sous-catégorie | nom | prix | état) :\n${carte}\n\nCe que dit le restaurateur : « ${texte} »`;
+  const user = `La carte (référence | catégorie > sous-catégorie | nom | prix | état | description) :\n${carte}\n\nCe que dit le restaurateur : « ${texte} »`;
   let out;
   if (env.ANTHROPIC_API_KEY) {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
