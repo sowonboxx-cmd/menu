@@ -2896,7 +2896,7 @@ const vzDual=d=>{ d.price=`Les ${d.qty1||'?'} — ${d.p1||'?'}€ · Les ${d.qty
 const vzCan=()=>{ const F=(window.BELTAB&&window.BELTAB.features)||{}; return F.voice!==false; };
 const VZ={open:false,listening:false,busy:false,text:'',res:null,err:'',done:null,hist:[]};
 const VZ_MIC='<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>';
-const VZ_LBL={ajouter:'Ajouter',modifier:'Modifier',masquer:'Masquer',afficher:'Afficher',supprimer:'Supprimer',deplacer:'Déplacer'};
+const VZ_LBL={ajouter:'Ajouter',modifier:'Modifier',masquer:'Masquer',afficher:'Afficher',supprimer:'Supprimer',deplacer:'Déplacer',renommer_section:'Renommer',modifier_menu:'Modifier'};
 let vzRec=null;
 function vzOk(){ return !!(typeof supaSession!=='undefined'&&supaSession&&DATA&&document.body.classList.contains('is-admin')); }
 function voiceSync(){
@@ -2951,7 +2951,8 @@ function vzCarte(){
 function vzAt(ref){ const m=String(ref||'').match(/^(\d+)\.(\d+)\.(\d+)$/); if(!m) return null; const ti=+m[1],ci=+m[2],ix=+m[3]; const c=DATA.tabs[ti]&&DATA.tabs[ti].cards&&DATA.tabs[ti].cards[ci]; const arr=c&&vzItems(c); return arr&&arr[ix]?{ti,ci,ix,c,arr,it:arr[ix]}:null; }
 // Boisson à plusieurs formats avec un prix « seul » : on ne sait pas lequel changer, on demande au lieu de ne rien faire.
 function vzFlou(ch){ if(ch.action!=='modifier'||ch.prix==null||(ch.formats||[]).length) return false; const x=vzAt(ch.ref); return !!(x&&vzBev(x.c)&&(x.it.sizes||[]).length>1); }
-function vzValid(ch){ if(['ajouter'].includes(ch.action)){ const t=DATA.tabs[ch.onglet]; return !!(t&&t.cards&&t.cards[ch.sous_categorie||0]); }
+function vzValid(ch){ if(ch.action==='renommer_section') return !!(DATA.tabs[ch.onglet]&&ch.nom); if(ch.action==='modifier_menu') return false;
+  if(['ajouter'].includes(ch.action)){ const t=DATA.tabs[ch.onglet]; return !!(t&&t.cards&&t.cards[ch.sous_categorie||0]); }
   if(!vzAt(ch.ref)) return false; if(ch.action==='deplacer'){ const t=DATA.tabs[ch.onglet]; return !!(t&&t.cards&&t.cards[ch.sous_categorie||0]); } return true; }
 // Le micro : les mots s'écrivent pendant qu'on parle (transcription en direct, relayée par Beltab).
 // En parallèle, la voix est enregistrée : si le direct ne répond pas, on envoie l'enregistrement (transcription classique).
@@ -3071,6 +3072,7 @@ function vzApply(){
   ch.filter(c=>c.action==='deplacer'||c.action==='supprimer').sort((a,b)=>key(b.ref)<key(a.ref)?-1:1).forEach(c=>{ const x=vzAt(c.ref); if(!x) return;
     if(c.action==='supprimer'){ if(x.it._pid) DATA.pinnedDishes=(DATA.pinnedDishes||[]).filter(q=>q.pid!==x.it._pid); x.arr.splice(x.ix,1); }
     else { const dest=DATA.tabs[c.onglet].cards[c.sous_categorie||0]; if(vzBev(dest)!==vzBev(x.c)) return; x.arr.splice(x.ix,1); vzItems(dest).push(x.it); } });
+  ch.filter(c=>c.action==='renommer_section').forEach(c=>{ const t=DATA.tabs[c.onglet]; if(t&&c.nom) t.label={...(t.label||{}),fr:c.nom}; });
   VZ.done={n:ch.length}; VZ.res=null; VZ.text=''; renderAll(); publishToSupabase(); vzDraw();
 }
 function vzUndo(){ const s=VZ.hist.pop(); if(!s) return; const o=JSON.parse(s); DATA.tabs=o.tabs; DATA.pinnedDishes=o.pins; VZ.done=null; renderAll(); publishToSupabase(); VZ.open=false; vzDraw(); showToast('Changements annulés'); }

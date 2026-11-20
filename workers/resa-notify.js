@@ -1106,7 +1106,7 @@ async function platSave(env, slug, d) {
 // Le restaurateur dit ce qui change ; on renvoie une liste d'actions sur la carte, qu'il valide dans l'admin.
 // Rien n'est enregistré ici : l'admin applique les changements après validation (et garde de quoi annuler).
 // Clé : ANTHROPIC_API_KEY (Claude) ou, à défaut, OPENAI_API_KEY (ChatGPT). Secrets Cloudflare du Worker.
-const VOICE_ACTIONS = ['ajouter', 'modifier', 'masquer', 'afficher', 'supprimer', 'deplacer'];
+const VOICE_ACTIONS = ['ajouter', 'modifier', 'masquer', 'afficher', 'supprimer', 'deplacer', 'renommer_section', 'modifier_menu'];
 const VOICE_SCHEMA = {
   type: 'object',
   properties: {
@@ -1120,7 +1120,9 @@ const VOICE_SCHEMA = {
           ref: { type: 'string', description: "Pour modifier, masquer, afficher, supprimer, déplacer : la référence exacte de l'élément dans la carte (ex. « 2.0.3 »)." },
           onglet: { type: 'integer', description: "Pour ajouter ou déplacer : numéro de la catégorie (le premier nombre des références)." },
           sous_categorie: { type: 'integer', description: "Pour ajouter ou déplacer : numéro de la sous-catégorie dans cette catégorie (le deuxième nombre). 0 par défaut." },
-          nom: { type: 'string', description: 'Nouveau nom (ajouter, ou modifier si le nom change).' },
+          nom: { type: 'string', description: 'Nouveau nom (ajouter, modifier si le nom change, ou renommer_section : le nouveau nom de la section / catégorie « onglet »).' },
+          titre: { type: 'string', description: 'modifier_menu : nouveau titre du menu personnalisé.' },
+          sous_titre: { type: 'string', description: 'modifier_menu : nouveau sous-titre du menu personnalisé (dates, jours, conditions). Texte complet.' },
           description: { type: 'string', description: 'Nouvelle description, si elle est donnée ou change.' },
           prix: { type: 'number', description: 'Prix en euros pour un plat (ex. 11 ou 12.5).' },
           formats: { type: 'array', description: "Boissons : prix par format. Pour modifier, « index » = position du format existant ; pour ajouter, donner cl et format.", items: { type: 'object', properties: { index: { type: 'integer' }, cl: { type: 'number' }, format: { type: 'string', enum: ['', 'verre', 'bouteille', 'pinte', 'demi', 'carafe'] }, prix: { type: 'number' } }, required: ['prix'] } },
@@ -1147,6 +1149,9 @@ Règles :
 - Un changement par élément ; plusieurs changements si la phrase en demande plusieurs.
 - Orthographe (« corrige l'orthographe de… », « il y a une faute dans… », « corrige les fautes de la carte ») : action « modifier » avec le nom et/ou la description corrigés. Corrige SEULEMENT les vraies fautes en français (accents, s ou x du pluriel, accords, majuscules des noms propres, tirets comme Saint-Jacques). Ne change ni les mots, ni le style, ni la ponctuation voulue, ni les noms de marques, de domaines ou de cuvées. Pour toute la carte : un changement par plat qui a vraiment une faute, rien pour les autres. Si tu ne trouves aucune faute, remplis « refus » avec « Je n'ai trouvé aucune faute sur la carte. ». Maximum 20 corrections : s'il y en a plus, fais les 20 premières et ajoute dans « refus » « Il en reste : redemandez pour la suite. ». Dans « resume », montre la correction : « Corriger « ancien » en « nouveau » ».
 - Si le restaurateur dicte une écriture (« écris Saint-Jacques avec un tiret »), applique-la exactement.
+- « renommer_section » (avec « onglet » et « nom ») : renommer une catégorie de la carte ou une section d'un menu. Dans un menu personnalisé, le prix d'une section est souvent dans son nom (« Entrée (10€) ») : pour le changer, renomme la section (« Entrée (11€) »).
+- « modifier_menu » (seulement pour un menu personnalisé) : changer son titre (« titre ») ou son sous-titre (« sous_titre » : dates, jours, conditions, ex. « Du 21 au 27 septembre »). Pour le sous-titre, renvoie le texte complet, en gardant ce qui ne change pas.
+- Dans un menu personnalisé, « Section » = catégorie : les références et « onglet » s'utilisent pareil. Les plats d'un menu ont souvent un prix vide (compris dans la formule) ou un supplément (« +3 ») : ne mets un prix que si on le demande.
 - « resume » : une phrase courte, au vouvoiement implicite (infinitif), avec les noms entre guillemets français.`;
 
 // La voix enregistrée sur le téléphone est transcrite ici (OpenAI), avec les noms des plats de la carte en indice :
@@ -1223,7 +1228,8 @@ async function carteVoice(env, b) {
   // 1re étape (voix) : on renvoie tout de suite ce qui a été compris, l'écran l'affiche pendant qu'on lit la carte.
   if (b.etape === 'transcrire') return { ok: true, texte };
   if (!texte) return { ok: false, error: 'Je n\'ai rien entendu.' };
-  const user = `La carte (référence | catégorie > sous-catégorie | nom | prix | état | description) :\n${carte}\n\nCe que dit le restaurateur : « ${texte} »`;
+  const cible = String(b.cible || 'carte').slice(0, 120);
+  const user = (cible !== 'carte' ? `Le restaurateur modifie son ${cible}, pas la carte : tous les changements portent sur ce menu.\n` : '') + `La carte (référence | catégorie > sous-catégorie | nom | prix | état | description) :\n${carte}\n\nCe que dit le restaurateur : « ${texte} »`;
   let out;
   if (env.ANTHROPIC_API_KEY) {
     const r = await fetch('https://api.anthropic.com/v1/messages', {

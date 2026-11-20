@@ -2900,8 +2900,11 @@ function levelOneCrumb(html){
 // Seulement des actions sur la carte : ajouter, modifier, masquer, afficher, supprimer, déplacer. Bouton Annuler après coup.
 const VZ={open:false,listening:false,busy:false,text:'',res:null,err:'',done:null,hist:[]};
 const VZ_MIC='<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>';
-const VZ_LBL={ajouter:'Ajouter',modifier:'Modifier',masquer:'Masquer',afficher:'Afficher',supprimer:'Supprimer',deplacer:'Déplacer'};
+const VZ_LBL={ajouter:'Ajouter',modifier:'Modifier',masquer:'Masquer',afficher:'Afficher',supprimer:'Supprimer',deplacer:'Déplacer',renommer_section:'Renommer',modifier_menu:'Modifier'};
 let vzRec=null;
+const vzT=x=>tr(x), vzE=x=>esc(x), vzBev=c=>isBevCard(c), vzItems=c=>itemsOf(c);
+// Ce que la voix modifie : la carte, ou le menu personnalisé ouvert (#/formule/…).
+function vzTgt(){ if(PG==='formule'&&ARG){ const f=findF(ARG); if(f){ if(!Array.isArray(f.tabs)) f.tabs=[]; return {kind:'menu',f,tabs:f.tabs,nom:f.title||f.name||'Menu'}; } } return {kind:'carte',tabs:DATA.tabs}; }
 function vzOk(){ return SESSION&&DATA&&!NOACCESS&&!PWSET&&!STAFF; }
 function voiceSync(){
   let b=document.getElementById('vzBtn');
@@ -2910,9 +2913,10 @@ function voiceSync(){
   { const lk=!can('voice'); if(b.classList.contains('lock')!==lk) b.classList.toggle('lock',lk); } if(!document.body.classList.contains('has-vz')) document.body.classList.add('has-vz');
 }
 function vzCarte(){
-  const L=[];
-  (DATA.tabs||[]).forEach((t,ti)=>{
-    L.push(`# Catégorie ${ti} : ${tr(t.label)||'(sans nom)'}${t.visible===false?' (masquée)':''}`);
+  const L=[], T=vzTgt();
+  if(T.kind==='menu') L.push(`# MENU PERSONNALISÉ « ${T.nom} » · titre : ${T.f.title||T.f.name||''} · sous-titre : ${(T.f.freeText||'').replace(/\s+/g,' ')}`);
+  (vzTgt().tabs||[]).forEach((t,ti)=>{
+    L.push(`# ${T.kind==='menu'?'Section':'Catégorie'} ${ti} : ${tr(t.label)||'(sans nom)'}${t.visible===false?' (masquée)':''}`);
     (t.cards||[]).forEach((c,ci)=>{
       const bev=isBevCard(c);
       L.push(`## Sous-catégorie ${ti}.${ci} : ${tr(c.label)||'(sans titre)'} (${bev?'boissons':'plats'})`);
@@ -2924,15 +2928,16 @@ function vzCarte(){
   });
   return L.join('\n');
 }
-function vzAt(ref){ const m=String(ref||'').match(/^(\d+)\.(\d+)\.(\d+)$/); if(!m) return null; const ti=+m[1],ci=+m[2],ix=+m[3]; const c=DATA.tabs[ti]&&DATA.tabs[ti].cards&&DATA.tabs[ti].cards[ci]; const arr=c&&itemsOf(c); return arr&&arr[ix]?{ti,ci,ix,c,arr,it:arr[ix]}:null; }
+function vzAt(ref){ const m=String(ref||'').match(/^(\d+)\.(\d+)\.(\d+)$/); if(!m) return null; const ti=+m[1],ci=+m[2],ix=+m[3]; const c=vzTgt().tabs[ti]&&vzTgt().tabs[ti].cards&&vzTgt().tabs[ti].cards[ci]; const arr=c&&itemsOf(c); return arr&&arr[ix]?{ti,ci,ix,c,arr,it:arr[ix]}:null; }
 // Boisson à plusieurs formats avec un prix « seul » : on ne sait pas lequel changer, on demande au lieu de ne rien faire.
 function vzFlou(ch){ if(ch.action!=='modifier'||ch.prix==null||(ch.formats||[]).length) return false; const x=vzAt(ch.ref); return !!(x&&vzBev(x.c)&&(x.it.sizes||[]).length>1); }
-function vzValid(ch){ if(['ajouter'].includes(ch.action)){ const t=DATA.tabs[ch.onglet]; return !!(t&&t.cards&&t.cards[ch.sous_categorie||0]); }
-  if(!vzAt(ch.ref)) return false; if(ch.action==='deplacer'){ const t=DATA.tabs[ch.onglet]; return !!(t&&t.cards&&t.cards[ch.sous_categorie||0]); } return true; }
+function vzValid(ch){ if(ch.action==='renommer_section') return !!(vzTgt().tabs[ch.onglet]&&ch.nom); if(ch.action==='modifier_menu') return vzTgt().kind==='menu'&&!!(ch.titre||ch.sous_titre!=null);
+  if(['ajouter'].includes(ch.action)){ const t=vzTgt().tabs[ch.onglet]; return !!(t&&t.cards&&t.cards[ch.sous_categorie||0]); }
+  if(!vzAt(ch.ref)) return false; if(ch.action==='deplacer'){ const t=vzTgt().tabs[ch.onglet]; return !!(t&&t.cards&&t.cards[ch.sous_categorie||0]); } return true; }
 // Le micro : les mots s'écrivent pendant qu'on parle (transcription en direct, relayée par Beltab).
 // En parallèle, la voix est enregistrée : si le direct ne répond pas, on envoie l'enregistrement (transcription classique).
 // Arrêt tout seul quand vous vous taisez.
-function vzNoms(){ const S=new Set(); (DATA.tabs||[]).forEach(t=>(t.cards||[]).forEach(c=>vzItems(c).forEach(it=>{ const n=vzT(it.name); if(n) S.add(n); }))); return [...S].slice(0,80); }
+function vzNoms(){ const S=new Set(); (vzTgt().tabs||[]).forEach(t=>(t.cards||[]).forEach(c=>vzItems(c).forEach(it=>{ const n=vzT(it.name); if(n) S.add(n); }))); return [...S].slice(0,80); }
 function vzLive(){
   const L={ok:false,ready:false,dead:false,q:[],items:{},order:[],want:false,cid:null,final:null,waiters:[]};
   const end=()=>{ const w=L.waiters; L.waiters=[]; w.forEach(f=>f()); };
@@ -3016,7 +3021,7 @@ async function vzSend(au){
   const ta=document.getElementById('vzTxt'); if(ta&&!au) VZ.text=ta.value; if((!au&&!VZ.text.trim())||VZ.busy) return;
   VZ.busy=true; VZ.err=''; vzDraw();
   try{
-    const call=b=>fetch(NOTIFY_URL+'/carte/voice',{method:'POST',headers:{'Authorization':'Bearer '+(SESSION&&SESSION.access_token||''),'Content-Type':'application/json'},body:JSON.stringify({slug:SLUG,carte:vzCarte(),...b})});
+    const call=b=>fetch(NOTIFY_URL+'/carte/voice',{method:'POST',headers:{'Authorization':'Bearer '+(SESSION&&SESSION.access_token||''),'Content-Type':'application/json'},body:JSON.stringify({slug:SLUG,carte:vzCarte(),cible:(t=>t.kind==='menu'?'menu « '+t.nom+' »':'carte')(vzTgt()),...b})});
     if(au){ // 1. la voix → le texte, affiché tout de suite ; 2. le texte → les changements
       const r1=await call({etape:'transcrire',audio:au.audio,mime:au.mime}); const j1=await r1.json().catch(()=>({}));
       if(!r1.ok||!j1.ok){ VZ.err=j1.error||'Je n\'ai pas pu écouter. Réessayez.'; VZ.busy=false; vzDraw(); return; }
@@ -3030,7 +3035,7 @@ async function vzSend(au){
 }
 function vzApply(){
   const ch=(VZ.res&&VZ.res.ch)||[]; if(!ch.length) return;
-  VZ.hist.push(JSON.stringify({tabs:DATA.tabs,pins:DATA.pinnedDishes||[]})); if(VZ.hist.length>10) VZ.hist.shift();
+  const T=vzTgt(); VZ.hist.push(JSON.stringify({kind:T.kind,id:T.f&&T.f.id,tabs:T.tabs,title:T.f&&T.f.title,freeText:T.f&&T.f.freeText,pins:DATA.pinnedDishes||[]})); if(VZ.hist.length>10) VZ.hist.shift();
   const eur=v=>fmtEur(v)?fmtEur(v)+'€':'';
   // 1. modifications, masquer, afficher (les références restent valables) ; 2. ajouts ; 3. déplacements et suppressions, de la fin vers le début
   ch.filter(c=>['modifier','masquer','afficher'].includes(c.action)).forEach(c=>{ const x=vzAt(c.ref); if(!x) return; const it=x.it;
@@ -3040,16 +3045,18 @@ function vzApply(){
       if(Array.isArray(c.formats)&&isBevCard(x.c)){ it.sizes=it.sizes||[]; c.formats.forEach(f=>{ if(f.index!=null&&it.sizes[f.index]) it.sizes[f.index].price=fmtEur(f.prix); else if(f.cl||f.format) it.sizes.push({cl:f.cl?String(f.cl):'',unit:'cl',price:fmtEur(f.prix),format:f.format||''}); }); }
       if(c.prix!=null&&isBevCard(x.c)&&!(c.formats||[]).length){ if((it.sizes||[]).length===1) it.sizes[0].price=fmtEur(c.prix); else if(!(it.sizes||[]).length) it.price=eur(c.prix); }
     } });
-  ch.filter(c=>c.action==='ajouter').forEach(c=>{ const card=DATA.tabs[c.onglet].cards[c.sous_categorie||0], arr=itemsOf(card);
+  ch.filter(c=>c.action==='ajouter').forEach(c=>{ const card=vzTgt().tabs[c.onglet].cards[c.sous_categorie||0], arr=itemsOf(card);
     arr.push(isBevCard(card)?{name:{fr:c.nom||''},desc:{fr:c.description||''},price:'',sizes:(c.formats||[]).map(f=>({cl:f.cl?String(f.cl):'',unit:'cl',price:fmtEur(f.prix),format:f.format||''})).concat(!(c.formats||[]).length&&c.prix!=null?[{cl:'',unit:'cl',price:fmtEur(c.prix),format:''}]:[]),img:'',gallery:[],caption:''}
       :{_pid:newPid(),name:{fr:c.nom||''},desc:{fr:c.description||''},price:c.prix!=null?eur(c.prix):'',img:'',gallery:[],caption:''}); });
   const key=r=>r.split('.').map(n=>String(n).padStart(4,'0')).join('.');
   ch.filter(c=>c.action==='deplacer'||c.action==='supprimer').sort((a,b)=>key(b.ref)<key(a.ref)?-1:1).forEach(c=>{ const x=vzAt(c.ref); if(!x) return;
     if(c.action==='supprimer'){ if(x.it._pid) DATA.pinnedDishes=(DATA.pinnedDishes||[]).filter(q=>q.pid!==x.it._pid); x.arr.splice(x.ix,1); }
-    else { const dest=DATA.tabs[c.onglet].cards[c.sous_categorie||0]; if(isBevCard(dest)!==isBevCard(x.c)) return; x.arr.splice(x.ix,1); itemsOf(dest).push(x.it); } });
+    else { const dest=vzTgt().tabs[c.onglet].cards[c.sous_categorie||0]; if(isBevCard(dest)!==isBevCard(x.c)) return; x.arr.splice(x.ix,1); itemsOf(dest).push(x.it); } });
+  ch.filter(c=>c.action==='renommer_section').forEach(c=>{ const t=T.tabs[c.onglet]; if(t&&c.nom) t.label={...(t.label||{}),fr:c.nom}; });
+  ch.filter(c=>c.action==='modifier_menu'&&T.kind==='menu').forEach(c=>{ if(c.titre){ T.f.title=c.titre; } if(c.sous_titre!=null) T.f.freeText=c.sous_titre; });
   VZ.done={n:ch.length}; VZ.res=null; VZ.text=''; touch(true); vzDraw();
 }
-function vzUndo(){ const s=VZ.hist.pop(); if(!s) return; const o=JSON.parse(s); DATA.tabs=o.tabs; DATA.pinnedDishes=o.pins; VZ.done=null; touch(true); VZ.open=false; vzDraw(); toast('Changements annulés'); }
+function vzUndo(){ const s=VZ.hist.pop(); if(!s) return; const o=JSON.parse(s); if(o.kind==='menu'){ const f=findF(o.id); if(f){ f.tabs=o.tabs; f.title=o.title; f.freeText=o.freeText; } } else DATA.tabs=o.tabs; DATA.pinnedDishes=o.pins; VZ.done=null; touch(true); VZ.open=false; vzDraw(); toast('Changements annulés'); }
 function vzClose(){ if(VZ.listening) vzStopRec(false); VZ.open=false; VZ.res=null; VZ.err=''; VZ.done=null; vzDraw(); }
 function vzDraw(){
   let s=document.getElementById('vzSheet');
@@ -3059,12 +3066,12 @@ function vzDraw(){
     s.addEventListener('input',e=>{ if(e.target.id==='vzTxt') VZ.text=e.target.value; }); document.body.appendChild(s); }
   let body;
   if(!can('voice')) body=`<div class="vz-h">Parlez à votre carte</div><p class="vz-p">« Ajoute une tartinade à 11 €, le plat du jour est fini. » Vous validez, c'est à jour partout.</p><p class="vz-lock">Disponible avec la formule <b>Master</b>. Pour l'ajouter, contactez Beltab.</p><div class="vz-a"><button class="btn w" data-vz="close">Fermer</button></div>`;
-  else if(VZ.done) body=`<div class="vz-h">C'est à jour</div><p class="vz-p">${VZ.done.n} changement${VZ.done.n>1?'s':''} enregistré${VZ.done.n>1?'s':''} sur votre carte.</p><div class="vz-a"><button class="btn w" data-vz="undo">Annuler</button><button class="btn w" data-vz="again">Autre chose</button><button class="btn" data-vz="close">Fermer</button></div>`;
+  else if(VZ.done) body=`<div class="vz-h">C'est à jour</div><p class="vz-p">${VZ.done.n} changement${VZ.done.n>1?'s':''} enregistré${VZ.done.n>1?'s':''} sur votre ${vzTgt().kind==='menu'?'menu':'carte'}.</p><div class="vz-a"><button class="btn w" data-vz="undo">Annuler</button><button class="btn w" data-vz="again">Autre chose</button><button class="btn" data-vz="close">Fermer</button></div>`;
   else if(VZ.res){ const R=VZ.res;
     body=`<div class="vz-h">Je vais faire ceci</div>`+(R.dit?`<p class="vz-dit">« ${vzE(R.dit)} »</p>`:'')+(R.ch.length?`<ul class="vz-l">${R.ch.map(c=>`<li><span class="vz-t vz-${c.action}">${VZ_LBL[c.action]}</span><span>${esc(c.resume||'')}</span></li>`).join('')}</ul>`:'')+
       (R.refus?`<p class="vz-p">${esc(R.refus)}</p>`:'')+(R.lost?`<p class="vz-p">${R.lost} demande${R.lost>1?'s':''} ignorée${R.lost>1?'s':''} : plat introuvable.</p>`:'')+((R.flou||[]).length?`<p class="vz-err">${vzE(R.flou.join(', '))} : précisez le format (le verre ou la bouteille ?).</p>`:'')+
       `<div class="vz-a">${R.ch.length?`<button class="btn" data-vz="ok">Valider</button>`:''}<button class="btn w" data-vz="again">Recommencer</button><button class="btn w" data-vz="close">Annuler</button></div>`; }
-  else body=`<div class="vz-h">Parlez à votre carte</div><p class="vz-p" id="vzState">${VZ.state==='fin'&&VZ.busy?'Je termine la phrase…':VZ.busy?(VZ.text?'Je regarde la carte…':'Je transcris…'):VZ.listening?vzStateTxt():'Exemple : « Ajoute une tartinade Saint-Jacques à 11 €, le plat du jour est fini. »'}</p>
+  else body=`<div class="vz-h">${vzTgt().kind==='menu'?'Parlez à votre menu':'Parlez à votre carte'}</div>${vzTgt().kind==='menu'?`<p class="vz-p"><b>${esc(vzTgt().nom)}</b></p>`:''}<p class="vz-p" id="vzState">${VZ.state==='fin'&&VZ.busy?'Je termine la phrase…':VZ.busy?(VZ.text?(vzTgt().kind==='menu'?'Je regarde le menu…':'Je regarde la carte…'):'Je transcris…'):VZ.listening?vzStateTxt():(vzTgt().kind==='menu'?'Exemple : « Passe l\'entrée à 11 €, change les dates du 23 au 29 novembre. »':'Exemple : « Ajoute une tartinade Saint-Jacques à 11 €, le plat du jour est fini. »')}</p>
     <button class="vz-mic${VZ.listening?' on':''}" data-vz="mic" aria-label="${VZ.listening?'Arrêter':'Parler'}"${VZ.busy?' disabled':''}>${VZ_MIC}</button>${VZ.listening?'<div class="vz-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>':''}
     <textarea id="vzTxt" class="in" rows="3" placeholder="Ou écrivez votre demande ici">${esc(VZ.text)}</textarea>
     ${VZ.err?`<p class="vz-err">${esc(VZ.err)}</p>`:''}
