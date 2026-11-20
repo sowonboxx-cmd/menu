@@ -106,6 +106,22 @@ body{background:var(--bg);font-family:'Jost',sans-serif;font-weight:400;font-siz
    séparée". */
 .header-top-right{display:flex;align-items:center;gap:6px;visibility:hidden}
 body.is-admin .header-top-right, body.admin-entry-visible .header-top-right{visibility:visible}
+/* Parlez à votre carte (admin connecté) */
+#vzBtn{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:9050;width:60px;height:60px;border-radius:50%;border:0;background:var(--navy,#10285E);color:#fff;display:grid;place-items:center;cursor:pointer;padding:0}
+#vzBtn.lock{background:#c9ccd3}
+#vzSheet{position:fixed;inset:0;z-index:9300;background:rgba(10,12,18,.42);display:flex;align-items:flex-end;justify-content:center;font-family:Inter,system-ui,sans-serif}
+#vzSheet .vz-c{background:#fff;color:#16181d;width:100%;max-width:560px;border-radius:24px 24px 0 0;padding:24px 22px calc(22px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px;max-height:86vh;overflow:auto;text-align:left}
+@media(min-width:700px){#vzSheet{align-items:center}#vzSheet .vz-c{border-radius:24px}}
+.vz-h{font-weight:800;font-size:20px}.vz-p{margin:0;color:#4b4f58;font-size:14.5px;line-height:1.45}.vz-err{margin:0;color:#c42323;font-weight:600;font-size:14px}.vz-lock{margin:0;font-size:14.5px}
+.vz-mic{align-self:center;width:84px;height:84px;border-radius:50%;border:0;background:var(--navy,#10285E);color:#fff;display:grid;place-items:center;cursor:pointer;margin:6px 0}
+.vz-mic svg{width:34px;height:34px}.vz-mic.on{background:#c42323;animation:vzp 1.3s ease-in-out infinite}
+@keyframes vzp{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+.vz-in{width:100%;box-sizing:border-box;resize:vertical;font:15px/1.4 Inter,system-ui,sans-serif;border:0;background:#f2f3f5;border-radius:14px;padding:12px 14px;color:#16181d}
+.vz-l{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}.vz-l li{display:flex;gap:10px;align-items:flex-start;background:#f4f5f7;border-radius:14px;padding:11px 12px;font-size:14.5px;line-height:1.4}
+.vz-t{flex:none;font-weight:800;font-size:11px;letter-spacing:.05em;text-transform:uppercase;border-radius:99px;padding:4px 9px;background:#e3ebf2;color:#1d4f7a;margin-top:1px}
+.vz-ajouter,.vz-afficher{background:#e2f4ea;color:#1c7a45}.vz-masquer,.vz-supprimer{background:#fbe6e6;color:#b42323}
+.vz-a{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.vz-b{flex:1;min-width:110px;border:0;border-radius:99px;padding:12px 16px;font:700 14.5px Inter,system-ui,sans-serif;background:var(--navy,#10285E);color:#fff;cursor:pointer}.vz-b.w{background:#f0f1f4;color:#16181d}.vz-b[disabled]{opacity:.6}
 
 .lang-wrap{position:relative}
 .lang-sel{display:flex;align-items:center;gap:3px;padding:5px 10px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;cursor:pointer;background:var(--navy);color:rgba(255,255,255,0.85);font-size:11px;font-family:'Jost',sans-serif;font-weight:500;letter-spacing:.06em;user-select:none}
@@ -2864,6 +2880,113 @@ let confirmCallback=null;
 // resolved by that id instead of by position, so reordering/deleting other
 // dishes can never make a pin point at the wrong one again.
 function genPid(){ return 'd_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+// ══ Parlez à votre carte, sur le site (formule Master) ══
+// Même chose que le micro de l'admin : visible seulement pour un administrateur connecté (body.is-admin).
+// Le Worker vérifie de nouveau que la personne est admin du restaurant avant de répondre.
+const vzT=o=>!o?'':(typeof o==='string'?o:(o.fr||''));
+const vzE=s=>(s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const vzBev=c=>c&&(c.type==='bevs'||Array.isArray(c.items));
+const vzItems=c=>vzBev(c)?(c.items||(c.items=[])):(c.dishes||(c.dishes=[]));
+const vzEur=v=>{ const n=parseFloat(String(v).replace(',','.')); return isNaN(n)?'':String(Math.round(n*100)/100); };
+const vzDual=d=>{ d.price=`Les ${d.qty1||'?'} — ${d.p1||'?'}€ · Les ${d.qty2||'?'} — ${d.p2||'?'}€`; };
+const vzCan=()=>{ const F=(window.BELTAB&&window.BELTAB.features)||{}; return F.voice!==false; };
+const VZ={open:false,listening:false,busy:false,text:'',res:null,err:'',done:null,hist:[]};
+const VZ_MIC='<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>';
+const VZ_LBL={ajouter:'Ajouter',modifier:'Modifier',masquer:'Masquer',afficher:'Afficher',supprimer:'Supprimer',deplacer:'Déplacer'};
+let vzRec=null;
+function vzOk(){ return !!(typeof supaSession!=='undefined'&&supaSession&&DATA&&document.body.classList.contains('is-admin')); }
+function voiceSync(){
+  let b=document.getElementById('vzBtn');
+  if(!vzOk()){ if(b) b.remove(); const s=document.getElementById('vzSheet'); if(s) s.remove(); if(document.body.classList.contains('has-vz')) document.body.classList.remove('has-vz'); return; }
+  if(!b){ b=document.createElement('button'); b.id='vzBtn'; b.type='button'; b.setAttribute('aria-label','Parlez à votre carte'); b.title='Parlez à votre carte'; b.innerHTML=VZ_MIC; b.onclick=()=>{ VZ.open=true; VZ.err=''; vzDraw(); if(vzCan()&&!VZ.res&&!VZ.done) vzListen(); }; document.body.appendChild(b); }
+  { const lk=!vzCan(); if(b.classList.contains('lock')!==lk) b.classList.toggle('lock',lk); } if(!document.body.classList.contains('has-vz')) document.body.classList.add('has-vz');
+}
+function vzCarte(){
+  const L=[];
+  (DATA.tabs||[]).forEach((t,ti)=>{
+    L.push(`# Catégorie ${ti} : ${vzT(t.label)||'(sans nom)'}${t.visible===false?' (masquée)':''}`);
+    (t.cards||[]).forEach((c,ci)=>{
+      const bev=vzBev(c);
+      L.push(`## Sous-catégorie ${ti}.${ci} : ${vzT(c.label)||'(sans titre)'} (${bev?'boissons':'plats'})`);
+      vzItems(c).forEach((it,ix)=>{
+        const pr=bev?(it.sizes||[]).map((s,si)=>`[${si}] ${s.format||''}${s.cl?' '+s.cl+(s.unit||'cl'):''} ${s.price||'?'}€`).join(' ; ')||(it.price||''):(it.priceType==='dual'?`les ${it.qty1} ${it.p1}€ / les ${it.qty2} ${it.p2}€`:(it.price||''));
+        L.push(`${ti}.${ci}.${ix} | ${vzT(t.label)} > ${vzT(c.label)||'—'} | ${vzT(it.name)||'(sans nom)'} | ${pr} | ${it.hidden?'masqué':'visible'}`);
+      });
+    });
+  });
+  return L.join('\n');
+}
+function vzAt(ref){ const m=String(ref||'').match(/^(\d+)\.(\d+)\.(\d+)$/); if(!m) return null; const ti=+m[1],ci=+m[2],ix=+m[3]; const c=DATA.tabs[ti]&&DATA.tabs[ti].cards&&DATA.tabs[ti].cards[ci]; const arr=c&&vzItems(c); return arr&&arr[ix]?{ti,ci,ix,c,arr,it:arr[ix]}:null; }
+function vzValid(ch){ if(['ajouter'].includes(ch.action)){ const t=DATA.tabs[ch.onglet]; return !!(t&&t.cards&&t.cards[ch.sous_categorie||0]); }
+  if(!vzAt(ch.ref)) return false; if(ch.action==='deplacer'){ const t=DATA.tabs[ch.onglet]; return !!(t&&t.cards&&t.cards[ch.sous_categorie||0]); } return true; }
+function vzListen(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){ VZ.err='La dictée n\'est pas disponible sur ce navigateur : écrivez votre demande.'; vzDraw(); return; }
+  if(VZ.listening){ try{vzRec.stop();}catch(e){} return; }
+  vzRec=new SR(); vzRec.lang='fr-FR'; vzRec.interimResults=true; vzRec.continuous=true;
+  const base=VZ.text?VZ.text.trim()+' ':''; let fin='';
+  vzRec.onresult=e=>{ let tmp=''; for(let i=e.resultIndex;i<e.results.length;i++){ const r=e.results[i]; if(r.isFinal) fin+=r[0].transcript; else tmp+=r[0].transcript; } VZ.text=(base+fin+tmp).trim(); const ta=document.getElementById('vzTxt'); if(ta) ta.value=VZ.text; };
+  vzRec.onerror=e=>{ VZ.listening=false; if(e.error!=='no-speech'&&e.error!=='aborted') VZ.err=e.error==='not-allowed'?'Autorisez le micro pour ce site, puis réessayez.':'La dictée s\'est arrêtée. Réessayez.'; vzDraw(); };
+  vzRec.onend=()=>{ VZ.listening=false; vzDraw(); if(VZ.text.trim()&&VZ.open&&!VZ.res) vzSend(); };
+  VZ.listening=true; VZ.err=''; vzDraw(); try{ vzRec.start(); }catch(e){ VZ.listening=false; vzDraw(); }
+}
+async function vzSend(){
+  const ta=document.getElementById('vzTxt'); if(ta) VZ.text=ta.value; if(!VZ.text.trim()||VZ.busy) return;
+  VZ.busy=true; VZ.err=''; vzDraw();
+  try{
+    const r=await fetch(CLUB_API+'/carte/voice',{method:'POST',headers:{'Authorization':'Bearer '+(supaSession&&supaSession.access_token||''),'Content-Type':'application/json'},body:JSON.stringify({slug:CLIENT_SLUG,texte:VZ.text,carte:vzCarte()})});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok||!j.ok){ VZ.err=j.error||'Je n\'ai pas pu comprendre, réessayez.'; }
+    else { const ok=(j.changements||[]).filter(vzValid); VZ.res={refus:j.refus||'',ch:ok,lost:(j.changements||[]).length-ok.length}; }
+  }catch(e){ VZ.err='Pas de connexion. Réessayez.'; }
+  VZ.busy=false; vzDraw();
+}
+function vzApply(){
+  const ch=(VZ.res&&VZ.res.ch)||[]; if(!ch.length) return;
+  VZ.hist.push(JSON.stringify({tabs:DATA.tabs,pins:DATA.pinnedDishes||[]})); if(VZ.hist.length>10) VZ.hist.shift();
+  const eur=v=>vzEur(v)?vzEur(v)+'€':'';
+  // 1. modifications, masquer, afficher (les références restent valables) ; 2. ajouts ; 3. déplacements et suppressions, de la fin vers le début
+  ch.filter(c=>['modifier','masquer','afficher'].includes(c.action)).forEach(c=>{ const x=vzAt(c.ref); if(!x) return; const it=x.it;
+    if(c.action==='masquer') it.hidden=true; else if(c.action==='afficher') delete it.hidden;
+    else { if(c.nom) it.name={...(it.name||{}),fr:c.nom}; if(c.description!=null&&c.description!=='') it.desc={...(it.desc||{}),fr:c.description};
+      if(c.prix!=null&&!vzBev(x.c)){ if(it.priceType==='dual'){ it.p1=vzEur(c.prix); vzDual(it); } else it.price=eur(c.prix); }
+      if(Array.isArray(c.formats)&&vzBev(x.c)){ it.sizes=it.sizes||[]; c.formats.forEach(f=>{ if(f.index!=null&&it.sizes[f.index]) it.sizes[f.index].price=vzEur(f.prix); else if(f.cl||f.format) it.sizes.push({cl:f.cl?String(f.cl):'',unit:'cl',price:vzEur(f.prix),format:f.format||''}); }); }
+      if(c.prix!=null&&vzBev(x.c)&&!(c.formats||[]).length){ if((it.sizes||[]).length===1) it.sizes[0].price=vzEur(c.prix); else if(!(it.sizes||[]).length) it.price=eur(c.prix); }
+    } });
+  ch.filter(c=>c.action==='ajouter').forEach(c=>{ const card=DATA.tabs[c.onglet].cards[c.sous_categorie||0], arr=vzItems(card);
+    arr.push(vzBev(card)?{name:{fr:c.nom||''},desc:{fr:c.description||''},price:'',sizes:(c.formats||[]).map(f=>({cl:f.cl?String(f.cl):'',unit:'cl',price:vzEur(f.prix),format:f.format||''})).concat(!(c.formats||[]).length&&c.prix!=null?[{cl:'',unit:'cl',price:vzEur(c.prix),format:''}]:[]),img:'',gallery:[],caption:''}
+      :{_pid:genPid(),name:{fr:c.nom||''},desc:{fr:c.description||''},price:c.prix!=null?eur(c.prix):'',img:'',gallery:[],caption:''}); });
+  const key=r=>r.split('.').map(n=>String(n).padStart(4,'0')).join('.');
+  ch.filter(c=>c.action==='deplacer'||c.action==='supprimer').sort((a,b)=>key(b.ref)<key(a.ref)?-1:1).forEach(c=>{ const x=vzAt(c.ref); if(!x) return;
+    if(c.action==='supprimer'){ if(x.it._pid) DATA.pinnedDishes=(DATA.pinnedDishes||[]).filter(q=>q.pid!==x.it._pid); x.arr.splice(x.ix,1); }
+    else { const dest=DATA.tabs[c.onglet].cards[c.sous_categorie||0]; if(vzBev(dest)!==vzBev(x.c)) return; x.arr.splice(x.ix,1); vzItems(dest).push(x.it); } });
+  VZ.done={n:ch.length}; VZ.res=null; VZ.text=''; renderAll(); publishToSupabase(); vzDraw();
+}
+function vzUndo(){ const s=VZ.hist.pop(); if(!s) return; const o=JSON.parse(s); DATA.tabs=o.tabs; DATA.pinnedDishes=o.pins; VZ.done=null; renderAll(); publishToSupabase(); VZ.open=false; vzDraw(); showToast('Changements annulés'); }
+function vzClose(){ if(VZ.listening){ try{vzRec.abort();}catch(e){} VZ.listening=false; } VZ.open=false; VZ.res=null; VZ.err=''; VZ.done=null; vzDraw(); }
+function vzDraw(){
+  let s=document.getElementById('vzSheet');
+  if(!VZ.open){ if(s) s.remove(); return; }
+  if(!s){ s=document.createElement('div'); s.id='vzSheet'; s.addEventListener('click',e=>{ if(e.target===s) vzClose(); const a=e.target.closest('[data-vz]'); if(!a) return; const k=a.dataset.vz;
+      if(k==='mic') vzListen(); else if(k==='send') vzSend(); else if(k==='ok') vzApply(); else if(k==='undo') vzUndo(); else if(k==='close') vzClose(); else if(k==='again'){ VZ.res=null; VZ.done=null; VZ.text=''; vzDraw(); vzListen(); } });
+    s.addEventListener('input',e=>{ if(e.target.id==='vzTxt') VZ.text=e.target.value; }); document.body.appendChild(s); }
+  let body;
+  if(!vzCan()) body=`<div class="vz-h">Parlez à votre carte</div><p class="vz-p">« Ajoute une tartinade à 11 €, le plat du jour est fini. » Vous validez, c'est à jour partout.</p><p class="vz-lock">Disponible avec la formule <b>Master</b>. Pour l'ajouter, contactez Beltab.</p><div class="vz-a"><button class="vz-b w" data-vz="close">Fermer</button></div>`;
+  else if(VZ.done) body=`<div class="vz-h">C'est à jour</div><p class="vz-p">${VZ.done.n} changement${VZ.done.n>1?'s':''} enregistré${VZ.done.n>1?'s':''} sur votre carte.</p><div class="vz-a"><button class="vz-b w" data-vz="undo">Annuler</button><button class="vz-b w" data-vz="again">Autre chose</button><button class="vz-b" data-vz="close">Fermer</button></div>`;
+  else if(VZ.res){ const R=VZ.res;
+    body=`<div class="vz-h">Je vais faire ceci</div>`+(R.ch.length?`<ul class="vz-l">${R.ch.map(c=>`<li><span class="vz-t vz-${c.action}">${VZ_LBL[c.action]}</span><span>${vzE(c.resume||'')}</span></li>`).join('')}</ul>`:'')+
+      (R.refus?`<p class="vz-p">${vzE(R.refus)}</p>`:'')+(R.lost?`<p class="vz-p">${R.lost} demande${R.lost>1?'s':''} ignorée${R.lost>1?'s':''} : plat introuvable.</p>`:'')+
+      `<div class="vz-a">${R.ch.length?`<button class="vz-b" data-vz="ok">Valider</button>`:''}<button class="vz-b w" data-vz="again">Recommencer</button><button class="vz-b w" data-vz="close">Annuler</button></div>`; }
+  else body=`<div class="vz-h">Parlez à votre carte</div><p class="vz-p">${VZ.listening?'Je vous écoute… touchez le micro quand vous avez fini.':'Exemple : « Ajoute une tartinade Saint-Jacques à 11 €, le plat du jour est fini. »'}</p>
+    <button class="vz-mic${VZ.listening?' on':''}" data-vz="mic" aria-label="${VZ.listening?'Arrêter':'Parler'}">${VZ_MIC}</button>
+    <textarea id="vzTxt" class="vz-in" rows="3" placeholder="Ou écrivez votre demande ici">${vzE(VZ.text)}</textarea>
+    ${VZ.err?`<p class="vz-err">${vzE(VZ.err)}</p>`:''}
+    <div class="vz-a"><button class="vz-b" data-vz="send"${VZ.busy?' disabled':''}>${VZ.busy?'Je réfléchis…':'Envoyer'}</button><button class="vz-b w" data-vz="close">Fermer</button></div>`;
+  s.innerHTML=`<div class="vz-c">${body}</div>`;
+}
+
+// Le micro apparaît / disparaît avec la connexion admin (classe is-admin du body).
+new MutationObserver(()=>{ try{ voiceSync(); }catch(e){} }).observe(document.body||document.documentElement,{attributes:true,attributeFilter:['class']});
 function ensureDishPid(d){ if(d && !d._pid) d._pid=genPid(); return d&&d._pid; }
 // Walk every dish in DATA and assign a stable id to any that doesn't have one yet.
 function ensureAllDishPids(){

@@ -2905,9 +2905,9 @@ let vzRec=null;
 function vzOk(){ return SESSION&&DATA&&!NOACCESS&&!PWSET&&!STAFF; }
 function voiceSync(){
   let b=document.getElementById('vzBtn');
-  if(!vzOk()){ if(b) b.remove(); const s=document.getElementById('vzSheet'); if(s) s.remove(); document.body.classList.remove('has-vz'); return; }
+  if(!vzOk()){ if(b) b.remove(); const s=document.getElementById('vzSheet'); if(s) s.remove(); if(document.body.classList.contains('has-vz')) document.body.classList.remove('has-vz'); return; }
   if(!b){ b=document.createElement('button'); b.id='vzBtn'; b.type='button'; b.setAttribute('aria-label','Parlez à votre carte'); b.title='Parlez à votre carte'; b.innerHTML=VZ_MIC; b.onclick=()=>{ VZ.open=true; VZ.err=''; vzDraw(); if(can('voice')&&!VZ.res&&!VZ.done) vzListen(); }; document.body.appendChild(b); }
-  b.classList.toggle('lock',!can('voice')); document.body.classList.add('has-vz');
+  { const lk=!can('voice'); if(b.classList.contains('lock')!==lk) b.classList.toggle('lock',lk); } if(!document.body.classList.contains('has-vz')) document.body.classList.add('has-vz');
 }
 function vzCarte(){
   const L=[];
