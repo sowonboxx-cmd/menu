@@ -2949,6 +2949,8 @@ function vzCarte(){
   return L.join('\n');
 }
 function vzAt(ref){ const m=String(ref||'').match(/^(\d+)\.(\d+)\.(\d+)$/); if(!m) return null; const ti=+m[1],ci=+m[2],ix=+m[3]; const c=DATA.tabs[ti]&&DATA.tabs[ti].cards&&DATA.tabs[ti].cards[ci]; const arr=c&&vzItems(c); return arr&&arr[ix]?{ti,ci,ix,c,arr,it:arr[ix]}:null; }
+// Boisson à plusieurs formats avec un prix « seul » : on ne sait pas lequel changer, on demande au lieu de ne rien faire.
+function vzFlou(ch){ if(ch.action!=='modifier'||ch.prix==null||(ch.formats||[]).length) return false; const x=vzAt(ch.ref); return !!(x&&vzBev(x.c)&&(x.it.sizes||[]).length>1); }
 function vzValid(ch){ if(['ajouter'].includes(ch.action)){ const t=DATA.tabs[ch.onglet]; return !!(t&&t.cards&&t.cards[ch.sous_categorie||0]); }
   if(!vzAt(ch.ref)) return false; if(ch.action==='deplacer'){ const t=DATA.tabs[ch.onglet]; return !!(t&&t.cards&&t.cards[ch.sous_categorie||0]); } return true; }
 // Le micro enregistre la voix sur l'appareil, puis Beltab la transcrit (avec les noms des plats en indice) et la comprend.
@@ -2996,7 +2998,7 @@ async function vzSend(au){
     const r=await fetch(CLUB_API+'/carte/voice',{method:'POST',headers:{'Authorization':'Bearer '+(supaSession&&supaSession.access_token||''),'Content-Type':'application/json'},body:JSON.stringify(au?{slug:CLIENT_SLUG,audio:au.audio,mime:au.mime,carte:vzCarte()}:{slug:CLIENT_SLUG,texte:VZ.text,carte:vzCarte()})});
     const j=await r.json().catch(()=>({}));
     if(!r.ok||!j.ok){ if(j.texte) VZ.text=j.texte; VZ.err=j.error||'Je n\'ai pas pu comprendre, réessayez.'; }
-    else { if(j.texte) VZ.text=j.texte; const ok=(j.changements||[]).filter(vzValid); VZ.res={dit:j.texte||'',refus:j.refus||'',ch:ok,lost:(j.changements||[]).length-ok.length}; }
+    else { if(j.texte) VZ.text=j.texte; const all=(j.changements||[]), flou=all.filter(vzFlou), ok=all.filter(c=>vzValid(c)&&!vzFlou(c)); VZ.res={dit:j.texte||'',refus:j.refus||'',ch:ok,flou:flou.map(c=>{const x=vzAt(c.ref);return x?vzT(x.it.name):'';}).filter(Boolean),lost:all.length-ok.length-flou.length}; }
   }catch(e){ VZ.err='Pas de connexion. Réessayez.'; }
   VZ.busy=false; vzDraw();
 }
@@ -3034,7 +3036,7 @@ function vzDraw(){
   else if(VZ.done) body=`<div class="vz-h">C'est à jour</div><p class="vz-p">${VZ.done.n} changement${VZ.done.n>1?'s':''} enregistré${VZ.done.n>1?'s':''} sur votre carte.</p><div class="vz-a"><button class="vz-b w" data-vz="undo">Annuler</button><button class="vz-b w" data-vz="again">Autre chose</button><button class="vz-b" data-vz="close">Fermer</button></div>`;
   else if(VZ.res){ const R=VZ.res;
     body=`<div class="vz-h">Je vais faire ceci</div>`+(R.dit?`<p class="vz-dit">« ${vzE(R.dit)} »</p>`:'')+(R.ch.length?`<ul class="vz-l">${R.ch.map(c=>`<li><span class="vz-t vz-${c.action}">${VZ_LBL[c.action]}</span><span>${vzE(c.resume||'')}</span></li>`).join('')}</ul>`:'')+
-      (R.refus?`<p class="vz-p">${vzE(R.refus)}</p>`:'')+(R.lost?`<p class="vz-p">${R.lost} demande${R.lost>1?'s':''} ignorée${R.lost>1?'s':''} : plat introuvable.</p>`:'')+
+      (R.refus?`<p class="vz-p">${vzE(R.refus)}</p>`:'')+(R.lost?`<p class="vz-p">${R.lost} demande${R.lost>1?'s':''} ignorée${R.lost>1?'s':''} : plat introuvable.</p>`:'')+((R.flou||[]).length?`<p class="vz-err">${vzE(R.flou.join(', '))} : précisez le format (le verre ou la bouteille ?).</p>`:'')+
       `<div class="vz-a">${R.ch.length?`<button class="vz-b" data-vz="ok">Valider</button>`:''}<button class="vz-b w" data-vz="again">Recommencer</button><button class="vz-b w" data-vz="close">Annuler</button></div>`; }
   else body=`<div class="vz-h">Parlez à votre carte</div><p class="vz-p" id="vzState">${VZ.busy&&!VZ.text?'Je transcris et je regarde la carte…':VZ.listening?vzStateTxt():'Exemple : « Ajoute une tartinade Saint-Jacques à 11 €, le plat du jour est fini. »'}</p>
     <button class="vz-mic${VZ.listening?' on':''}" data-vz="mic" aria-label="${VZ.listening?'Arrêter':'Parler'}"${VZ.busy?' disabled':''}>${VZ_MIC}</button>${VZ.listening?'<div class="vz-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>':''}
