@@ -2933,9 +2933,11 @@ function vzListen(){
   if(VZ.listening){ try{vzRec.stop();}catch(e){} return; }
   // Safari (iPhone, Mac) : le mode continu ne renvoie souvent rien. On écoute une phrase, et ça s'envoie quand vous vous arrêtez.
   const safari=/iP(hone|ad|od)/.test(navigator.userAgent)||(/Safari/.test(navigator.userAgent)&&!/Chrome|CriOS|Chromium|Android|Edg/.test(navigator.userAgent));
-  // On ferme proprement l'écoute précédente : sur iPhone, une ancienne écoute restée ouverte bloque les suivantes.
-  if(vzRec){ try{ clearTimeout(vzRec._wd); vzRec.onend=vzRec.onerror=vzRec.onresult=null; vzRec.abort(); }catch(e){} }
-  vzRec=new SR(); vzRec.lang='fr-FR'; vzRec.interimResults=true; vzRec.continuous=!safari;
+  // Safari (iPhone) ne sait écouter qu'avec UNE seule reconnaissance par page : on la garde et on la relance.
+  // Une nouvelle reconnaissance à chaque fois = micro allumé mais plus aucun mot reconnu.
+  if(safari){ if(!vzRec) vzRec=new SR(); else clearTimeout(vzRec._wd); }
+  else { if(vzRec){ try{ clearTimeout(vzRec._wd); vzRec.onend=vzRec.onerror=vzRec.onresult=null; vzRec.abort(); }catch(e){} } vzRec=new SR(); }
+  vzRec.lang='fr-FR'; vzRec.interimResults=true; vzRec.continuous=!safari;
   const base=VZ.text?VZ.text.trim()+' ':''; let fin='';
   VZ.heard=false; VZ.state='start'; clearTimeout(vzRec._wd);
   const st=t=>{ VZ.state=t; const p=document.getElementById('vzState'); if(p) p.textContent=vzStateTxt(); };
@@ -2943,10 +2945,13 @@ function vzListen(){
   vzRec.onspeechstart=()=>{ VZ.heard=true; st('speech'); };
   vzRec.onresult=e=>{ VZ.heard=true; let tmp=''; for(let i=e.resultIndex;i<e.results.length;i++){ const r=e.results[i]; if(r.isFinal) fin+=r[0].transcript; else tmp+=r[0].transcript; } VZ.text=(base+fin+tmp).trim(); const ta=document.getElementById('vzTxt'); if(ta) ta.value=VZ.text; st('speech'); };
   vzRec.onerror=e=>{ clearTimeout(vzRec._wd); VZ.listening=false; if(e.error==='no-speech') VZ.err='Je n\'ai rien entendu. Rapprochez-vous du micro et réessayez, ou écrivez votre demande.'; else if(e.error!=='aborted') VZ.err=e.error==='not-allowed'||e.error==='service-not-allowed'?'Autorisez le micro (et la dictée) pour ce site, puis réessayez.':'La dictée s\'est arrêtée. Réessayez, ou écrivez votre demande.'; vzDraw(); };
-  vzRec.onend=()=>{ clearTimeout(vzRec._wd); VZ.listening=false; if(!VZ.text.trim()&&!VZ.err&&VZ.open) VZ.err='Je n\'ai rien entendu. Réessayez, ou écrivez votre demande (le micro du clavier marche aussi).'; vzDraw(); if(VZ.text.trim()&&VZ.open&&!VZ.res) vzSend(); };
+  vzRec.onend=()=>{ vzRec._live=false; clearTimeout(vzRec._wd); VZ.listening=false; if(!VZ.text.trim()&&!VZ.err&&VZ.open) VZ.err='Je n\'ai rien entendu. Réessayez, ou écrivez votre demande (le micro du clavier marche aussi).'; vzDraw(); if(VZ.text.trim()&&VZ.open&&!VZ.res) vzSend(); };
   // Rien au bout de 8 secondes : on le dit au lieu de clignoter dans le vide.
-  vzRec._wd=setTimeout(()=>{ if(VZ.listening&&!VZ.heard){ try{vzRec.abort();}catch(e){} VZ.listening=false; VZ.err='Le micro ne m\'envoie rien. Vérifiez qu\'il est autorisé pour ce site, ou écrivez votre demande (le micro du clavier marche aussi).'; vzDraw(); } },8000);
-  VZ.listening=true; VZ.err=''; vzDraw(); try{ vzRec.start(); }catch(e){ VZ.listening=false; VZ.err='La dictée n\'a pas démarré. Réessayez.'; vzDraw(); }
+  vzRec._wd=setTimeout(()=>{ if(VZ.listening&&!VZ.heard){ const r=vzRec; vzRec=null; try{ r.onend=r.onerror=r.onresult=null; r.abort(); }catch(e){} VZ.listening=false; VZ.err='Le micro ne m\'envoie rien. Vérifiez qu\'il est autorisé pour ce site, ou écrivez votre demande (le micro du clavier marche aussi).'; vzDraw(); } },8000);
+  VZ.listening=true; VZ.err=''; vzDraw();
+  const go=()=>{ try{ vzRec.start(); vzRec._live=true; }catch(e){ VZ.listening=false; VZ.err='La dictée n\'a pas démarré. Réessayez.'; vzDraw(); } };
+  if(vzRec._live){ const r=vzRec, h=r.onend; r.onend=()=>{ r._live=false; r.onend=h; go(); }; try{ r.stop(); }catch(e){ r._live=false; r.onend=h; go(); } }
+  else go();
 }
 function vzStateTxt(){ return VZ.state==='speech'?'Je vous entends… touchez le micro quand vous avez fini.':VZ.state==='audio'?'Micro ouvert, parlez maintenant.':'J\'ouvre le micro…'; }
 async function vzSend(){
