@@ -1134,7 +1134,8 @@ const VOICE_SCHEMA = {
 };
 const VOICE_SYSTEM = `Tu aides un restaurateur à mettre à jour la carte de son site. Il parle (sa phrase vient d'une dictée, elle peut contenir des fautes).
 Tu ne fais QUE des changements sur la carte : ajouter, modifier (nom, description, prix), masquer, afficher, supprimer ou déplacer un plat ou une boisson.
-Pour tout le reste (questions, conversation, réservations, horaires, autre sujet), ne propose aucun changement et remplis « refus ».
+Pour tout le reste (questions sans demande de changement, conversation, réservations, horaires, autre sujet), ne propose aucun changement et remplis « refus ».
+Une demande polie posée comme une question (« est-ce que tu peux… », « tu pourrais regarder la carte et corriger les fautes ? ») EST une demande de changement : fais-la.
 Règles :
 - Utilise uniquement les références de la carte fournie. Si un plat est ambigu ou introuvable, ne devine pas : remplis « refus » en demandant de préciser.
 - « Le plat est fini », « on n'en a plus », « retire-le pour ce soir » = masquer (pas supprimer). Supprimer seulement si on te dit de supprimer ou d'enlever définitivement.
@@ -1144,7 +1145,7 @@ Règles :
 - Si la boisson a plusieurs formats et que la phrase ne dit pas lequel (« le Chablis à 9 € »), ne devine pas : remplis « refus » en demandant « le verre ou la bouteille ? » (avec les vrais formats de cette boisson). Si un seul format existe, change-le.
 - « Le verre à 9 et la bouteille à 48 » = un seul changement avec deux formats.
 - Un changement par élément ; plusieurs changements si la phrase en demande plusieurs.
-- Orthographe (« corrige l'orthographe de… », « il y a une faute dans… », « corrige les fautes de la carte ») : action « modifier » avec le nom et/ou la description corrigés. Corrige SEULEMENT les vraies fautes en français (accents, s ou x du pluriel, accords, majuscules des noms propres, tirets comme Saint-Jacques). Ne change ni les mots, ni le style, ni la ponctuation voulue, ni les noms de marques, de domaines ou de cuvées. Pour toute la carte : un changement par plat qui a vraiment une faute, rien pour les autres. Dans « resume », montre la correction : « Corriger « ancien » en « nouveau » ».
+- Orthographe (« corrige l'orthographe de… », « il y a une faute dans… », « corrige les fautes de la carte ») : action « modifier » avec le nom et/ou la description corrigés. Corrige SEULEMENT les vraies fautes en français (accents, s ou x du pluriel, accords, majuscules des noms propres, tirets comme Saint-Jacques). Ne change ni les mots, ni le style, ni la ponctuation voulue, ni les noms de marques, de domaines ou de cuvées. Pour toute la carte : un changement par plat qui a vraiment une faute, rien pour les autres. Si tu ne trouves aucune faute, remplis « refus » avec « Je n'ai trouvé aucune faute sur la carte. ». Maximum 20 corrections : s'il y en a plus, fais les 20 premières et ajoute dans « refus » « Il en reste : redemandez pour la suite. ». Dans « resume », montre la correction : « Corriger « ancien » en « nouveau » ».
 - Si le restaurateur dicte une écriture (« écris Saint-Jacques avec un tiret »), applique-la exactement.
 - « resume » : une phrase courte, au vouvoiement implicite (infinitif), avec les noms entre guillemets français.`;
 
