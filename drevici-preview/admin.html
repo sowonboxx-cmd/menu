@@ -1321,8 +1321,9 @@ body.fv-on #vzBtn{display:none}
 .fv-b.voix.lock{background:var(--card,#fff);color:inherit;border-style:dashed}.fv-b.voix.lock .ic{background:rgba(16,40,94,.07);color:var(--mut)}.fv-b.voix.lock small{color:var(--mut)}
 .fv-b em{position:absolute;top:10px;right:12px;font-style:normal;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:#f3e6c4;color:#7a5a12;border-radius:999px;padding:3px 9px}
 .fv-ex{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0 0;font-size:13.5px}.fv-ex span{color:var(--mut);font-weight:600}.fv-ex i{font-style:normal;background:var(--card,#fff);border:1px solid var(--line,#e6e2da);border-radius:999px;padding:6px 12px}
+.fv-onl{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600}
 .fv-up{margin:14px 2px 0;font-size:13.5px;color:var(--mut)}
-@media(max-width:899px){.fv-h h2{font-size:22px}.fv-tabs{display:flex;width:100%}.fv-tabs button{flex:1;padding:8px 6px;font-size:13px}.fv{--fvh:min(58vh,540px)}.fv-track{gap:16px}.fv-ar{display:none}.fv-act{grid-template-columns:1fr}}
+@media(max-width:899px){.fv-h{flex-wrap:wrap;align-items:center}.fv-h h2{font-size:22px}.fv-onl .onl{white-space:nowrap}.fv-tabs{display:flex;width:100%}.fv-tabs button{flex:1;padding:8px 6px;font-size:13px}.fv{--fvh:min(58vh,540px)}.fv-track{gap:16px}.fv-ar{display:none}.fv-act{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -1599,7 +1600,7 @@ const NAVS=[['equipe','users','Équipe'],['app','lune','Apparence'],['secu','sau
 // onglets ; ouverte par son adresse, elle affiche « pas incluse dans votre formule ».
 const FEAT=(window.BELTAB&&window.BELTAB.features)||{};
 const can=k=>FEAT[k]!==false;
-const LOCKS={menus:'formules',mdj:'formules',formule:'formules',fedit:'formules',tuner:'formules',xprint:'print',emails:'campaigns',stats:'stats',
+const LOCKS={menus:'formules',mdj:'formules',mdjedit:'formules',formule:'formules',fedit:'formules',tuner:'formules',xprint:'print',emails:'campaigns',stats:'stats',
   'resa/boost':'tableBoost','resa/esp':'tables','resa/stats':'stats','comm/social':'socialPublish','comm/email':'campaigns','comm/boost':'tableBoost'};
 const NEED={formules:'Pro',print:'Pro',tables:'Pro',tableBoost:'Master',floorplan:'Master',stats:'Master',campaigns:'Master',socialPublish:'Master',videos:'Master'};
 const LOCK_TXT={formules:'Menus du jour, menus spéciaux et formules',print:'Impression du menu',tables:'Salle et tables',tableBoost:'Table Boost',
@@ -1624,7 +1625,7 @@ const NAV_ETAB=[['etab/etab','etab','Informations'],['etab/logo','logo','Logo'],
 // Page d'entrée commune Paris / Surzur : réglée seulement depuis l'admin de Paris (et sa copie de test).
 const ENTREE_ON=/^drevici(-test)?$/.test(SLUG);
 const NAV_SITE=[...(ENTREE_ON?[['site/ecran','ecran','Page d\'entrée']]:[]),['site/acc','acc','Accueil'],['site/plats','plats','Menu'],['site/pres','pres','Présentation'],['site/coul','coul','Couleurs']];
-const PARENT={evolution:'carte',export:'carte',xprint:'carte',xgbiz:'carte',xinsta:'carte',xcol:'carte',mdj:'menus',formule:'menus',fedit:'menus',tuner:'menus'};
+const PARENT={evolution:'carte',export:'carte',xprint:'carte',xgbiz:'carte',xinsta:'carte',xcol:'carte',mdj:'menus',mdjedit:'menus',formule:'menus',fedit:'menus',tuner:'menus'};
 const nv=([k,ic,l])=>{ const [pg,sub]=k.split('/'); const on=sub?(PG===pg&&(ARG===sub||(!ARG&&(pg==='etab'?'etab':'acc')===sub))):(PG===k||PARENT[PG]===k); const nb=k==='messages'?msgNew():0; return `<a class="nv${on?' on':''}" href="#/${k}">${I(ic)}${l}${nb?`<span class="nv-bd">${nb}</span>`:''}</a>`; };
 const STUDIO_AREAS=['calendrier','campagnes','tshirts'];
 const staffSide=()=>`<nav class="side"><a class="who" href="#/dash">${logoBox()}<b>${esc(DATA.restaurantName||'Mon restaurant')}</b></a>
@@ -1765,9 +1766,15 @@ function jourAsFormule(sp){
   return Object.assign({catCase:'upper',nameCase:'upper',descCase:'lower'},st,{id:'__mdj',name:tr(sp.title)||'Menu du jour',title:tr(sp.title)||'Menu du jour',freeText:[sp.date,sp.formule,sp.price].filter(Boolean).join(' · '),tabs:groups});
 }
 function pageMdj(){
+  const sp=jour(); if(!Array.isArray(sp.items)) return pageMdjEdit();
+  return mtop('Mes menus','menus')+crumb([['Mes menus','menus'],['Menu du jour']])+fvView({f:jourAsFormule(sp),nm:'Menu du jour',sub:'',
+    right:`<span class="fv-onl">${tgl(sp.active,'mdjToggle')}<span class="onl" style="color:${sp.active?'var(--ok)':'var(--mut)'}">${sp.active?'En ligne':'Hors ligne'}</span></span>`,
+    edit:'#/mdjedit',exp:'#/tuner/mdj',ex:['Aujourd’hui en plat : un bœuf bourguignon','Le dessert, c’est une tarte aux pommes','Mets la date de demain']});
+}
+function pageMdjEdit(){
   const sp=jour(); if(!Array.isArray(sp.items)){ const old=stripHtml(tr(sp.desc)).split(/\s*(?:•|·|\n)\s*/).map(x=>x.trim()).filter(Boolean); sp.items=old.length?old.map(n=>({s:'',n,d:''})):[{s:'Entrée',n:'',d:''},{s:'Plat',n:'',d:''},{s:'Dessert',n:'',d:''}]; }
   const f=jourAsFormule(sp);
-  return mtop('Mes menus','menus')+crumb([['Mes menus','menus'],['Menu du jour']])+ph('Menu du jour',sp.active?'En ligne sur votre site':'Hors ligne · activez-le pour l\'afficher sur le site',`${tgl(sp.active,'mdjToggle')}<span class="onl" style="color:${sp.active?'var(--ok)':'var(--mut)'}">${sp.active?'En ligne':'Hors ligne'}</span>`)+
+  return mtop('Menu du jour','mdj')+crumb([['Mes menus','menus'],['Menu du jour','mdj'],['Modifier à la main']])+ph('Menu du jour',sp.active?'En ligne sur votre site':'Hors ligne · activez-le pour l\'afficher sur le site',`${tgl(sp.active,'mdjToggle')}<span class="onl" style="color:${sp.active?'var(--ok)':'var(--mut)'}">${sp.active?'En ligne':'Hors ligne'}</span>`)+
   `<div class="xsplit f"><div class="fcol">${card('Le menu du jour','jour',`<div class="frm">${fin('Titre',tr(sp.title),'jour.title')}${fin('Date ou jour','' ,'jour.date').replace('value=""',`value="${esc(sp.date||'')}"`)}${fin('Prix',sp.price||'','jour.price')}${fin('Formule',sp.formule||'','jour.formule').replace('<input','<input placeholder="Entrée + plat + dessert"')}</div>`)}
    ${card('Composition','plats',sp.items.map((it,i)=>`<div class="fsec"><div class="fsh"><input class="in" style="flex:0 0 140px;font-weight:800" value="${esc(it.s)}" data-bind="jour.items.${i}.s" placeholder="Entrée"><span style="flex:1"></span><button class="mv" data-act="jourMove" data-i="${i}" data-d="-1" title="Monter">↑</button><button class="mv" data-act="jourMove" data-i="${i}" data-d="1" title="Descendre">↓</button><button class="trash" data-act="jourDel" data-i="${i}" title="Retirer">✕</button></div><div class="fdi"><input class="in" value="${esc(it.n)}" data-bind="jour.items.${i}.n" placeholder="Nom du plat"></div><div class="fdi"><input class="in" value="${esc(it.d||'')}" data-bind="jour.items.${i}.d" placeholder="Description (optionnel)"></div></div>`).join('')+
      `<div class="fadd"><select class="in sel" data-act="jourImport"><option value="">Importer un plat de la carte…</option>${dishOptions()}</select><button class="lk" data-act="jourAdd">＋ Ajouter une ligne</button></div>`)}
@@ -1794,11 +1801,15 @@ const FSLIDES=[['a4','A4 · A5','pv-a4','794/1123'],['post','Post Instagram','pv
 function pageFormule(){
   if(!ARG) return pageMenus(); // lien « Mes formules » sans menu précis : la liste
   const f=findF(ARG); if(!f) return mtop('Mes menus','menus')+'<div class="empty">Ce menu n\'existe plus. <a class="lk" href="#/menus">Retour</a></div>';
-  const id=encodeURIComponent(f.id), nm=esc(f.name||f.title||'(sans nom)'), voix=can('voice'), cur=UI.fSlide||0;
+  const id=encodeURIComponent(f.id);
+  return mtop('Mes menus','menus')+crumb([['Mes menus','menus'],[esc(f.name||f.title||'(sans nom)')]])+fvView({f,nm:esc(f.name||f.title||'(sans nom)'),sub:'Menu personnalisé',edit:'#/fedit/'+id,exp:'#/tuner/'+id,
+    ex:['Passe l’entrée à 11 €','Change les dates : du 23 au 29 novembre','Remplace le dessert par une tarte aux pommes']});
+}
+function fvView(o){
+  const f=o.f, nm=o.nm, voix=can('voice'), cur=UI.fSlide||0;
   const slides=FSLIDES.map(([v,l,c,r],i)=>`<div class="fv-sl" data-i="${i}"><div class="fv-doc" style="aspect-ratio:${r}">${pvFrame('formule',0,c,{f,variant:v}).replace('class="pv-frame','style="width:100%;height:100%" class="pv-frame')}</div></div>`).join('');
-  const ex=['Passe l’entrée à 11 €','Change les dates : du 23 au 29 novembre','Remplace le dessert par une tarte aux pommes'];
-  return mtop('Mes menus','menus')+crumb([['Mes menus','menus'],[nm]])+
-  `<div class="fv"><div class="fv-h"><h2>${nm}</h2><small>Menu personnalisé</small></div>
+  const ex=o.ex;
+  return `<div class="fv"><div class="fv-h"><h2>${nm}</h2><small>${o.sub}</small>${o.right||''}</div>
    <div class="fv-tabs" role="tablist">${FSLIDES.map(([v,l],i)=>`<button type="button" data-act="fvGo" data-i="${i}" class="${i===cur?'on':''}">${l}</button>`).join('')}</div>
    <div class="fv-car"><button type="button" class="fv-ar l" data-act="fvGo" data-d="-1" aria-label="Précédent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
      <div class="fv-track" id="fvTrack">${slides}</div>
@@ -1806,8 +1817,8 @@ function pageFormule(){
    <div class="fv-dots">${FSLIDES.map((x,i)=>`<i class="${i===cur?'on':''}"></i>`).join('')}</div>
    <div class="fv-act">
      <button type="button" class="fv-b voix${voix?'':' lock'}" data-act="fvVoice"><span class="ic">${VZ_MIC}</span><span class="tx"><b>Modifier avec la voix</b><small>${voix?'Dites ce qui change, c’est fait. Rien à taper.':'Avec la formule Master : vous parlez, le menu change.'}</small></span>${voix?'':'<em>Master</em>'}</button>
-     <a class="fv-b main" href="#/fedit/${id}"><span class="ic">${I('edit')}</span><span class="tx"><b>Modifier à la main</b><small>Titre, sections, plats et prix, ligne par ligne</small></span></a>
-     <a class="fv-b exp" href="#/tuner/${id}"><span class="ic">${I('share')}</span><span class="tx"><b>Exporter et partager</b><small>A4 pour imprimer, Post et Story pour Instagram</small></span></a>
+     <a class="fv-b main" href="${o.edit}"><span class="ic">${I('edit')}</span><span class="tx"><b>Modifier à la main</b><small>Titre, sections, plats et prix, ligne par ligne</small></span></a>
+     <a class="fv-b exp" href="${o.exp}"><span class="ic">${I('share')}</span><span class="tx"><b>Exporter et partager</b><small>A4 pour imprimer, Post et Story pour Instagram</small></span></a>
    </div>
    ${voix?`<div class="fv-ex"><span>Par exemple</span>${ex.map(x=>`<i>« ${x} »</i>`).join('')}</div>`:`<p class="fv-up">À la main, chaque changement passe par le formulaire, plat par plat. Avec Master, vous dites simplement « passe l’entrée à 11 € » et le menu est à jour.</p>`}
   </div>`;
@@ -2977,7 +2988,7 @@ async function saveMyName(v){ v=String(v||'').trim().slice(0,40); if(v===myPreno
   catch(e){ toast('⚠ '+(e.message||e)); } }
 async function tmCall(path,body,ok){ try{ await napi(path,body); if(ok) toast(ok); loadTeam(true); }catch(e){ toast('⚠ '+e.message); } }
 function pageCompte(){ return mtop(STAFF?'Accueil':'Tableau de bord','dash')+ph('Mon compte','','')+`<div class="pgrid g-1-1"><div>${card('Mon compte','compte',row('Connecté',esc((SESSION&&SESSION.user&&SESSION.user.email)||'—'))+`<label class="fd" style="margin:12px 0 4px"><span>Mon prénom</span><input class="in" type="text" id="mePrenom" value="${esc(myPrenom())}" placeholder="Votre prénom" maxlength="40" autocomplete="given-name"></label><p class="tmhint">Il apparaît dans l’historique des prix, pour que l’équipe voie qui a changé quoi.</p>`+`<div class="acts2" style="justify-content:flex-start"><button class="btn g" data-act="pwChange">${I('sauv')}Changer mon mot de passe</button><button class="btn g" data-act="logout">${I('out')}Se déconnecter</button></div>`)}</div></div>`; }
-const PAGES={fedit:pageFormuleEdit,evolution:pageEvolution,equipe:pageEquipe,compte:pageCompte,messages:pageMessages,dash,resa:pageResa,carte:pageCarte,menus:pageMenus,mdj:pageMdj,formule:pageFormule,tuner:pageTuner,export:pageExport,xprint:pageXprint,xgbiz:pageXgbiz,xinsta:pageXinsta,xcol:pageXcol,comm:pageComm,stats:pageStats,etab:pageEtab,site:pageSite,app:pageApp,secu:pageSecu,clients:pageClients,emails:pageEmails};
+const PAGES={fedit:pageFormuleEdit,mdjedit:pageMdjEdit,evolution:pageEvolution,equipe:pageEquipe,compte:pageCompte,messages:pageMessages,dash,resa:pageResa,carte:pageCarte,menus:pageMenus,mdj:pageMdj,formule:pageFormule,tuner:pageTuner,export:pageExport,xprint:pageXprint,xgbiz:pageXgbiz,xinsta:pageXinsta,xcol:pageXcol,comm:pageComm,stats:pageStats,etab:pageEtab,site:pageSite,app:pageApp,secu:pageSecu,clients:pageClients,emails:pageEmails};
 // Téléphone : même au premier niveau, fil d'Ariane « Accueil › Page » à la place du simple retour
 function levelOneCrumb(html){
   if(html.indexOf('class="crb"')>=0) return html;
@@ -3111,7 +3122,11 @@ const VZ_LBL={ajouter:'Ajouter',modifier:'Modifier',masquer:'Masquer',afficher:'
 let vzRec=null;
 const vzT=x=>tr(x), vzE=x=>esc(x), vzBev=c=>isBevCard(c), vzItems=c=>itemsOf(c);
 // Ce que la voix modifie : la carte, ou le menu personnalisé ouvert (#/formule/…).
-function vzTgt(){ /* la page du menu, ou son atelier de mise en forme */ if((PG==='formule'||PG==='fedit'||PG==='tuner')&&ARG&&ARG!=='mdj'){ const f=findF(ARG); if(f){ if(!Array.isArray(f.tabs)) f.tabs=[]; return {kind:'menu',f,tabs:f.tabs,nom:f.title||f.name||'Menu'}; } } return {kind:'carte',tabs:DATA.tabs}; }
+let VZ_MDJ=null;
+function mdjToF(sp){ const g=[]; jourItems(sp).forEach(it=>{ let t=g.find(x=>x.label.fr===(it.s||'')); if(!t){ t={label:{fr:it.s||''},cards:[{label:{fr:''},dishes:[]}]}; g.push(t); } t.cards[0].dishes.push({name:{fr:it.n},desc:{fr:it.d||''},price:''}); }); return {id:'__mdj',title:tr(sp.title)||'Menu du jour',freeText:sp.date||'',tabs:g}; }
+function mdjFromF(sp,F){ sp.items=[]; F.tabs.forEach(t=>(t.cards||[]).forEach(c=>(c.dishes||[]).forEach(d=>{ if(d.hidden) return; const n=tr(d.name); if(n) sp.items.push({s:tr(t.label)||'',n,d:tr(d.desc)||''}); }))); if(F.title) sp.title=setTr(sp.title,F.title); sp.date=F.freeText||''; jourSync(sp); }
+function vzTgt(){ /* la page du menu, ou son atelier de mise en forme */ if(PG==='mdj'||PG==='mdjedit'||(PG==='tuner'&&ARG==='mdj')){ const sp=jour(); if(!VZ_MDJ) VZ_MDJ=mdjToF(sp); return {kind:'menu',mdj:true,f:VZ_MDJ,tabs:VZ_MDJ.tabs,nom:'Menu du jour'}; }
+  if((PG==='formule'||PG==='fedit'||PG==='tuner')&&ARG&&ARG!=='mdj'){ const f=findF(ARG); if(f){ if(!Array.isArray(f.tabs)) f.tabs=[]; return {kind:'menu',f,tabs:f.tabs,nom:f.title||f.name||'Menu'}; } } return {kind:'carte',tabs:DATA.tabs}; }
 function vzOk(){ return SESSION&&DATA&&!NOACCESS&&!PWSET&&!STAFF; }
 function voiceSync(){
   let b=document.getElementById('vzBtn');
@@ -3120,7 +3135,7 @@ function voiceSync(){
   { const lk=!can('voice'); if(b.classList.contains('lock')!==lk) b.classList.toggle('lock',lk); } if(!document.body.classList.contains('has-vz')) document.body.classList.add('has-vz');
 }
 function vzCarte(){
-  const L=[], T=vzTgt();
+  VZ_MDJ=null; const L=[], T=vzTgt();
   if(T.kind==='menu') L.push(`# MENU PERSONNALISÉ « ${T.nom} » · titre : ${T.f.title||T.f.name||''} · sous-titre : ${(T.f.freeText||'').replace(/\s+/g,' ')}`);
   (vzTgt().tabs||[]).forEach((t,ti)=>{
     L.push(`# ${T.kind==='menu'?'Section':'Catégorie'} ${ti} : ${tr(t.label)||'(sans nom)'}${t.visible===false?' (masquée)':''}`);
@@ -3276,7 +3291,7 @@ async function vzVoir(v,dit){
 }
 function vzApply(){
   const ch=(VZ.res&&VZ.res.ch)||[]; if(!ch.length) return;
-  const T=vzTgt(); VZ.hist.push(JSON.stringify({kind:T.kind,id:T.f&&T.f.id,tabs:T.tabs,title:T.f&&T.f.title,freeText:T.f&&T.f.freeText,pins:DATA.pinnedDishes||[]})); if(VZ.hist.length>10) VZ.hist.shift();
+  const T=vzTgt(); VZ.hist.push(JSON.stringify({mdj:T.mdj?JSON.parse(JSON.stringify({items:jour().items,title:jour().title,date:jour().date||'',desc:jour().desc})):null,kind:T.kind,id:T.f&&T.f.id,tabs:T.tabs,title:T.f&&T.f.title,freeText:T.f&&T.f.freeText,pins:DATA.pinnedDishes||[]})); if(VZ.hist.length>10) VZ.hist.shift();
   const eur=v=>fmtEur(v)?fmtEur(v)+'€':'';
   // 1. modifications, masquer, afficher (les références restent valables) ; 2. ajouts ; 3. déplacements et suppressions, de la fin vers le début
   ch.filter(c=>['modifier','masquer','afficher'].includes(c.action)).forEach(c=>{ const x=vzAt(c.ref); if(!x) return; const it=x.it;
@@ -3295,9 +3310,10 @@ function vzApply(){
     else { const dest=vzTgt().tabs[c.onglet].cards[c.sous_categorie||0]; if(isBevCard(dest)!==isBevCard(x.c)) return; x.arr.splice(x.ix,1); itemsOf(dest).push(x.it); } });
   ch.filter(c=>c.action==='renommer_section').forEach(c=>{ const t=T.tabs[c.onglet]; if(t&&c.nom) t.label={...(t.label||{}),fr:c.nom}; });
   ch.filter(c=>c.action==='modifier_menu'&&T.kind==='menu').forEach(c=>{ if(c.titre){ T.f.title=c.titre; } if(c.sous_titre!=null) T.f.freeText=c.sous_titre; });
+  if(T.mdj) mdjFromF(jour(),T.f);
   VZ.done={n:ch.length}; VZ.res=null; VZ.text=''; VZ_VIA=true; touch(true); vzDraw();
 }
-function vzUndo(){ const s=VZ.hist.pop(); if(!s) return; const o=JSON.parse(s); if(o.kind==='menu'){ const f=findF(o.id); if(f){ f.tabs=o.tabs; f.title=o.title; f.freeText=o.freeText; } } else DATA.tabs=o.tabs; DATA.pinnedDishes=o.pins; VZ.done=null; touch(true); VZ.open=false; vzDraw(); toast('Changements annulés'); }
+function vzUndo(){ const s=VZ.hist.pop(); if(!s) return; const o=JSON.parse(s); if(o.mdj){ Object.assign(jour(),o.mdj); VZ_MDJ=null; } else if(o.kind==='menu'){ const f=findF(o.id); if(f){ f.tabs=o.tabs; f.title=o.title; f.freeText=o.freeText; } } else DATA.tabs=o.tabs; DATA.pinnedDishes=o.pins; VZ.done=null; touch(true); VZ.open=false; vzDraw(); toast('Changements annulés'); }
 function vzClose(){ if(VZ.listening) vzStopRec(false); VZ.open=false; VZ.res=null; VZ.err=''; VZ.done=null; vzDraw(); }
 function vzDraw(){
   let s=document.getElementById('vzSheet');
@@ -3353,7 +3369,7 @@ function render(){
     if(focus){ const el=app.querySelector(`[data-bind="${focus}"]`); if(el){ el.focus(); try{ const l=el.value.length; el.setSelectionRange(l,l);}catch(e){} } }
     scrollTo(0,y);
   }
-  refreshPreviews(); hideLocked(); fvCenter(); document.body.classList.toggle('fv-on',PG==='formule'&&!!ARG);
+  refreshPreviews(); hideLocked(); fvCenter(); document.body.classList.toggle('fv-on',(PG==='formule'&&!!ARG)||PG==='mdj');
   if(window.FP&&PG==='resa'&&ARG==='esp'&&can('floorplan')) FP.sync();
   if(UI.tbw&&UI.tbw.step===4&&PG==='resa'&&ARG==='boost'){ const cv=document.getElementById('tbCanvas'), W=UI.tbw, k=[W.photo,W.title,W.detail,W.date,W.deadline,W.sv].join('|'); if(cv&&cv.dataset.k!==k){ cv.dataset.k=k; tbDraw(); } }
 }
