@@ -508,7 +508,7 @@ body.has-vz .toast{bottom:96px}
 .gal-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .gal-h button{background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:50%;width:38px;height:38px;font-size:16px;cursor:pointer}
 .gal img{width:100%;border-radius:10px;display:block}
-.gal-save{display:block;width:100%;border:0;border-radius:999px;background:#fff;color:#0b0b0f;font:800 16px Inter,sans-serif;padding:15px;cursor:pointer;margin:4px 0 8px}.gal-save:disabled{opacity:.5}
+.gal-save{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border:0;border-radius:999px;background:#fff;color:#0b0b0f;font:800 16px Inter,sans-serif;padding:15px;cursor:pointer;margin:4px 0 8px}.gal-save:disabled{opacity:.5}
 .gal-tip{opacity:.75;font-size:13px;text-align:center;margin:0 0 18px}
 .gal .gi{margin-bottom:22px;text-align:center}.gal .gi a{display:inline-block;margin-top:8px;color:#fff;font-weight:800;font-size:13px;text-decoration:underline}
 
@@ -1509,24 +1509,27 @@ async function doPrint(){
   const go=()=>{ try{ win.focus(); win.print(); }catch(e){} };
   if(win.document.fonts&&win.document.fonts.ready) Promise.race([win.document.fonts.ready,sleep(3000)]).then(()=>setTimeout(go,150)); else setTimeout(go,1200);
 }
-async function doGbiz(){ toast('Génération des images Google Business…'); const w=await eng(); await w.exportGbizImage({...w.pdfCfg(),format:'gbiz'}); } // même format que l'aperçu : sans lui, pdfCfg() retombe sur 'a4' (style impression)
+// Ce que la galerie va montrer : des images Instagram (bouton « Partager sur Instagram ») ou autre chose (« Enregistrer dans Photos »).
+let GAL_KIND='';
+async function doGbiz(){ GAL_KIND=''; toast('Génération des images Google Business…'); const w=await eng(); await w.exportGbizImage({...w.pdfCfg(),format:'gbiz'}); } // même format que l'aperçu : sans lui, pdfCfg() retombe sur 'a4' (style impression)
 function igOver(v){ const p=(DATA.pdfStyle||{}); if(v!=='post') return {}; const o={}; ['instaTitleSize','instaMenuSize','instaDescSize'].forEach(k=>{ const pk=k.replace('insta','instaPost'); if(p[pk]) o[k]=p[pk]; }); return o; }
-async function doInsta(v){ toast('Génération des images Instagram…'); const w=await eng(); const cfg=Object.assign({...w.pdfCfg(),format:'insta'},igOver(v)); await w.exportInstaImages(cfg,v); }
-async function doFormule(obj,v){ toast('Génération en cours…'); const w=await eng(); const cfg=w.formule_buildCfg(obj,v); await w.exportInstaImages(cfg,v); }
+async function doInsta(v){ GAL_KIND='ig'; toast('Génération des images Instagram…'); const w=await eng(); const cfg=Object.assign({...w.pdfCfg(),format:'insta'},igOver(v)); await w.exportInstaImages(cfg,v); }
+async function doFormule(obj,v){ GAL_KIND=v==='a4'?'':'ig'; toast('Génération en cours…'); const w=await eng(); const cfg=w.formule_buildCfg(obj,v); await w.exportInstaImages(cfg,v); }
 function showGallery(imgs){
   const old=$('.gal'); if(old) old.remove();
   const g=document.createElement('div'); g.className='gal';
   const list=[...imgs].sort((a,b)=>(a.pageIndex??0)-(b.pageIndex??0));
-  const mob=isMob()||/iPhone|iPad|iPod|Android/i.test(navigator.userAgent||'');
+  const mob=isMob()||/iPhone|iPad|iPod|Android/i.test(navigator.userAgent||''), ig=GAL_KIND==='ig'; GAL_KIND='';
   g.innerHTML=`<div class="gal-in"><div class="gal-h"><b>Vos images</b><button type="button" class="gal-x" aria-label="Fermer">✕</button></div>
-    ${mob?`<button type="button" class="gal-save" disabled>Enregistrer dans Photos</button><p class="gal-tip">Puis « Enregistrer ${list.length>1?list.length+' images':'l’image'} ». Ou appui long sur une image.</p>`:''}
+    ${mob?(ig?`<button type="button" class="gal-save" disabled>${TB_IG}Partager sur Instagram</button><p class="gal-tip">Dans le menu : Instagram, puis Story ou Publication. « Enregistrer ${list.length>1?'les images':'l’image'} » est aussi dans ce menu.</p>`:`<button type="button" class="gal-save" disabled>Enregistrer dans Photos</button><p class="gal-tip">Puis « Enregistrer ${list.length>1?list.length+' images':'l’image'} ». Ou appui long sur une image.</p>`):''}
     ${list.map((im,i)=>`<div class="gi"><img src="${im.url}" alt=""><a href="${im.url}" download="${esc(im.name)}">Télécharger ${list.length>1?'· '+(i+1)+'/'+list.length:''}</a></div>`).join('')}</div>`;
   g.querySelector('.gal-x').onclick=()=>g.remove();
   document.body.appendChild(g);
   // Mobile : on prépare les fichiers tout de suite, pour que le partage parte directement au tap
   // (iOS refuse navigator.share s'il y a une attente entre le tap et l'appel).
   const sv=g.querySelector('.gal-save'); if(!sv) return;
-  Promise.all(list.map(im=>fetch(im.url).then(r=>r.blob()).then(b=>new File([b],im.name||'menu.png',{type:b.type||'image/png'})))).then(files=>{
+  const toJpg=b=>new Promise(ok=>{ const u=URL.createObjectURL(b), i=new Image(); i.onload=()=>{ const c=document.createElement('canvas'); c.width=i.naturalWidth; c.height=i.naturalHeight; const x=c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,c.width,c.height); x.drawImage(i,0,0); URL.revokeObjectURL(u); c.toBlob(j=>ok(j||b),'image/jpeg',0.92); }; i.onerror=()=>{ URL.revokeObjectURL(u); ok(b); }; i.src=u; });
+  Promise.all(list.map(im=>fetch(im.url).then(r=>r.blob()).then(b=>ig?toJpg(b):b).then(b=>new File([b],(im.name||'menu.png').replace(/\.png$/i,b.type==='image/jpeg'?'.jpg':'.png'),{type:b.type||'image/png'})))).then(files=>{
     if(!(navigator.canShare&&navigator.canShare({files}))){ sv.remove(); g.querySelector('.gal-tip').textContent='Appui long sur une image, puis « Enregistrer dans Photos ».'; return; }
     sv.disabled=false;
     sv.onclick=async()=>{ try{ await navigator.share({files}); }catch(e){ if(!e||e.name!=='AbortError') toast('Appui long sur une image, puis « Enregistrer dans Photos »'); } };
@@ -1764,7 +1767,7 @@ function pageTuner(){
   const pct=o[fld[1]]??100, stepI=Math.max(0,STEPS.indexOf(STEPS.reduce((b,s)=>Math.abs(s-pct)<Math.abs(b-pct)?s:b,100)));
   const fonts=(ENGFONTS||[]).map(x=>`<option ${x===(o.instaFont||'')?'selected':''}>${esc(x)}</option>`).join('');
   return `<div class="tun"><div class="tun-top"><a class="x" href="#/${T.back}" aria-label="Fermer">✕</a><b>${esc(T.label)} · ${T.verb.toLowerCase()}</b><div class="seg">${[['a4','A4'],['post','Post'],['story','Story']].map(([k,l])=>`<button type="button" data-act="tunerV" data-v="${k}" class="${v===k?'on':''}">${l}</button>`).join('')}</div><span class="sp"></span>
-    ${btn('Télécharger A4','share','w','data-act="tunerDl" data-v="a4"')}${btn('Télécharger Post','share','w','data-act="tunerDl" data-v="post"')}${btn('Télécharger Story','share','','data-act="tunerDl" data-v="story"')}</div>
+    ${btn('Télécharger A4','share','w','data-act="tunerDl" data-v="a4"')}${btn(tbMobShare()?'Partager le post':'Télécharger Post','share','w','data-act="tunerDl" data-v="post"')}${btn(tbMobShare()?'Partager la story':'Télécharger Story','share','','data-act="tunerDl" data-v="story"')}</div>
    <div class="tun-body"><div class="tun-stage"><div class="side-prev">${pvFrame('formule',0,cls(others[0]),{f:T.f,variant:others[0]})}<small>${others[0]==='a4'?'A4':others[0]==='post'?'Post':'Story'}</small></div>
      <div class="main-prev" style="aspect-ratio:${v==='a4'?'794/1123':v==='post'?'3/4':'9/16'};transform:scale(${UI.zoom/100});transform-origin:center">${pvFrame('formule',0,cls(v),{f:T.f,variant:v}).replace('class="pv-frame','style="width:100%;height:100%;background:#fff" class="pv-frame')}<div class="zoom"><button type="button" data-act="zoom" data-d="-10">−</button><span>${UI.zoom} %</span><button type="button" data-act="zoom" data-d="10">＋</button></div></div>
      <div class="side-prev">${pvFrame('formule',0,cls(others[1]),{f:T.f,variant:others[1]})}<small>${others[1]==='a4'?'A4':others[1]==='post'?'Post':'Story'}</small></div></div>
@@ -3387,7 +3390,7 @@ document.addEventListener('click',async e=>{
     case 'tunerGap': tunerTarget().obj.dishGapPct=+d.v; touch(true); break;
     case 'tunerLogo': { const o=tunerTarget().obj; if(d.v==='none') o.showLogo=false; else { o.showLogo=true; o.logoSize=d.v; } touch(true); break; }
     case 'tunerCase': tunerTarget().obj[d.k]=d.v; touch(true); break;
-    case 'tunerDl': { const T=tunerTarget(); if(ARG==='mdj') await doFormule(jourAsFormule(sp),d.v); else { const w=await eng(); toast('Génération en cours…'); w.formule_exportInsta(T.f.id,d.v); } break; }
+    case 'tunerDl': { const T=tunerTarget(); GAL_KIND=d.v==='a4'?'':'ig'; if(ARG==='mdj') await doFormule(jourAsFormule(sp),d.v); else { const w=await eng(); toast('Génération en cours…'); w.formule_exportInsta(T.f.id,d.v); } break; }
     case 'print': doPrint(); break;
     case 'gbiz': doGbiz(); break;
     case 'insta': doInsta(d.v); break;
