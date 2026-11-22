@@ -1358,6 +1358,16 @@ body.fv-on #vzBtn{display:none}
 .mdl{display:flex;flex-direction:column}.mdr{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line,#eeeae3)}.mdr:first-child{border-top:0}.mdr small{color:var(--mut);font-size:12.5px}.mdr .sp{flex:1}
 .tun-nm{max-width:240px;background:rgba(255,255,255,.08)!important;color:#fff!important;border:1px solid rgba(255,255,255,.2)!important;font-weight:700}
 @media(max-width:899px){.fv-exp-b.two{grid-template-columns:1fr}.mdg{grid-template-columns:1fr 1fr;gap:10px}.mdr{flex-wrap:wrap}}
+.tun-top{flex-wrap:nowrap!important}.tun-top .tun-nm{flex:1 1 auto;min-width:0;max-width:340px}.tun-top .sp{display:block!important;flex:1}.tun-top .btn{flex:none;white-space:nowrap}
+.tun-stage{flex-direction:column;justify-content:center;gap:10px;padding:18px 0 14px!important;min-width:0;overflow:hidden;--tvh:calc(100vh - 160px)}
+.tun-track{display:flex;gap:34px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;width:100%;padding:4px calc(50% - var(--tvh) * .3535) 4px;padding-right:calc(50% - var(--tvh) * .28125);box-sizing:border-box;align-items:center}
+.tun-track::-webkit-scrollbar{display:none}
+.tun-sl{flex:none;scroll-snap-align:center;display:flex;flex-direction:column;align-items:center;gap:10px}.tun-sl small{font-size:12px;font-weight:700;color:#b9bcc6;letter-spacing:.03em}
+.tun-doc{height:var(--tvh);border-radius:4px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.5)}
+.tun-dots{display:flex;gap:8px;justify-content:center}.tun-dots i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.25);cursor:pointer}.tun-dots i.on{background:#fff;width:22px;border-radius:4px}
+body.vz-off #vzBtn{display:none!important}
+@media(max-width:899px){.tun-body{grid-auto-rows:max-content}.tun-stage{--tvh:52vh;overflow:visible}.tun-track{gap:16px}.tun-top{padding:10px 12px!important;gap:8px!important}.tun-top .x{flex:none}}
+.mdr-a{font:inherit;flex:1;display:flex;align-items:center;gap:12px;background:none;border:0;padding:0;color:inherit;text-decoration:none;cursor:pointer;text-align:left;min-width:0}.mdr-a .tx{display:flex;flex-direction:column;min-width:0}.mdr-a .go{margin-left:auto;font-size:13.5px;font-weight:600;color:var(--brand-text,#10285e);display:flex;gap:6px;align-items:center}
 </style>
 </head>
 <body>
@@ -1882,7 +1892,9 @@ function fvView(o){
 let FVPRE={key:'',file:null,busy:false};
 function fvPrefetch(){ if(!(PG==='formule'||PG==='mdj')||!tbMobShare()) return; clearTimeout(fvPrefetch._t); fvPrefetch._t=setTimeout(async()=>{ const f=fvTarget(); if(!f) return; const key=JSON.stringify(f); if(FVPRE.key===key||FVPRE.busy) return; FVPRE.busy=true;
   try{ const w=await eng(); const r=await w.formule_renderBlobs(w.formule_buildCfg(f,'post'),'post'); if(r&&r[0]) FVPRE={key,file:new File([r[0].blob],(r[0].name||'menu-post.png').replace(/\.png$/,'')+'.png',{type:r[0].blob.type||'image/png'}),busy:false}; else FVPRE.busy=false; }catch(e){ FVPRE.busy=false; } },1500); }
-function fvCenter(){ fvPrefetch(); const tk=document.getElementById('fvTrack'); if(!tk||tk._done) return; tk._done=1; const sl=tk.children[UI.fSlide||0]; if(sl) tk.scrollLeft=sl.offsetLeft-tk.offsetLeft-(tk.clientWidth-sl.clientWidth)/2; }
+function tunCenter(){ const tk=document.getElementById('tunTrack'); if(!tk||tk._done) return; tk._done=1; const sl=tk.children[UI.tunI||0]; if(sl) tk.scrollLeft=sl.offsetLeft-tk.offsetLeft-(tk.clientWidth-sl.clientWidth)/2; }
+document.addEventListener('scroll',e=>{ const tk=e.target; if(!tk||tk.id!=='tunTrack') return; clearTimeout(tk._t); tk._t=setTimeout(()=>{ const mid=tk.scrollLeft+tk.clientWidth/2; let best=0,bd=1e9; [...tk.children].forEach((c,k)=>{ const dd=Math.abs(c.offsetLeft-tk.offsetLeft+c.clientWidth/2-mid); if(dd<bd){bd=dd;best=k;} }); UI.tunI=best; UI.tunerV=['a4','post','story'][best]; document.querySelectorAll('.tun-dots i').forEach((x,k)=>x.classList.toggle('on',k===best)); },80); },true);
+function fvCenter(){ fvPrefetch(); tunCenter(); const tk=document.getElementById('fvTrack'); if(!tk||tk._done) return; tk._done=1; const sl=tk.children[UI.fSlide||0]; if(sl) tk.scrollLeft=sl.offsetLeft-tk.offsetLeft-(tk.clientWidth-sl.clientWidth)/2; }
 function fvMark(){ const i=UI.fSlide||0; document.querySelectorAll('.fv-tabs button').forEach((b,k)=>b.classList.toggle('on',k===i)); document.querySelectorAll('.fv-dots i').forEach((b,k)=>b.classList.toggle('on',k===i)); }
 // en faisant glisser : l'onglet suit l'image du milieu
 document.addEventListener('scroll',e=>{ const tk=e.target; if(!tk||tk.id!=='fvTrack') return; clearTimeout(tk._t); tk._t=setTimeout(()=>{ const mid=tk.scrollLeft+tk.clientWidth/2; let best=0,bd=1e9; [...tk.children].forEach((c,k)=>{ const cm=c.offsetLeft-tk.offsetLeft+c.clientWidth/2, dd=Math.abs(cm-mid); if(dd<bd){bd=dd;best=k;} }); if(best!==(UI.fSlide||0)){ UI.fSlide=best; fvMark(); } },80); },true);
@@ -1902,7 +1914,7 @@ function pageFmod(){
   return mtop(nm,back)+crumb([['Mes menus','menus'],[nm,back],['Modèle']])+`<div class="mdg">${cards}</div>${save}<p class="note" style="text-align:center"><a class="lk" href="#/modeles">Créer ou modifier mes modèles</a></p>`;
 }
 function pageModeles(){
-  const rows=allModels().map(m=>`<div class="mdr"><span class="sw">${modSwatch(m)}</span><b>${esc(m.name)}</b><small>${m.std?'Modèle Beltab':'Mon modèle'}</small><span class="sp"></span>${m.std?`<button class="btn g" data-act="modDup" data-m="${esc(m.id)}">Dupliquer</button>`:`<a class="btn g" href="#/tuner/m:${encodeURIComponent(m.id)}">Modifier</a><button class="trash" data-act="modDel" data-m="${esc(m.id)}" title="Supprimer">✕</button>`}</div>`).join('');
+  const rows=allModels().map(m=>`<div class="mdr">${m.std?`<button type="button" class="mdr-a" data-act="modDup" data-m="${esc(m.id)}">`:`<a class="mdr-a" href="#/tuner/m:${encodeURIComponent(m.id)}">`}<span class="sw">${modSwatch(m)}</span><span class="tx"><b>${esc(m.name)}</b><small>${m.std?'Modèle Beltab':'Mon modèle'}</small></span><span class="go">Modifier<span class="chev">›</span></span>${m.std?'</button>':'</a>'}${m.std?'':`<button class="trash" data-act="modDel" data-m="${esc(m.id)}" title="Supprimer">✕</button>`}</div>`).join('');
   return mtop('Mes menus','menus')+crumb([['Mes menus','menus'],['Mes modèles']])+`<div class="fe">${card('Mes modèles','coul',`<div class="mdl">${rows}</div><button class="lk add" data-act="modNew">＋ Nouveau modèle</button><p class="note">Un modèle garde les couleurs, la police, les tailles et le logo. Chaque menu choisit le sien ; si vous modifiez un modèle, tous les menus qui l'utilisent changent avec lui.</p>`)}</div>`;
 }
 function pageFormuleEdit(){
@@ -1942,11 +1954,10 @@ function pageTuner(){
   const cls=x=>x==='a4'?'pv-a4':x==='post'?'pv-po':'pv-st';
   const pct=o[fld[1]]??100, stepI=Math.max(0,STEPS.indexOf(STEPS.reduce((b,s)=>Math.abs(s-pct)<Math.abs(b-pct)?s:b,100)));
   const fonts=(ENGFONTS||[]).map(x=>`<option ${x===(o.instaFont||'')?'selected':''}>${esc(x)}</option>`).join('');
-  return `<div class="tun"><div class="tun-top"><a class="x" href="#/${T.back}" aria-label="Fermer">✕</a>${T.model?`<input class="in tun-nm" value="${esc(T.model.name)}" data-act="modName" aria-label="Nom du modèle">`:`<b>${esc(T.label)} · réglages précis</b>`}<div class="seg">${[['a4','A4'],['post','Post'],['story','Story']].map(([k,l])=>`<button type="button" data-act="tunerV" data-v="${k}" class="${v===k?'on':''}">${l}</button>`).join('')}</div><span class="sp"></span>
+  return `<div class="tun"><div class="tun-top"><a class="x" href="#/${T.back}" aria-label="Fermer">✕</a>${T.model?`<input class="in tun-nm" value="${esc(T.model.name)}" data-act="modName" aria-label="Nom du modèle">`:`<b>${esc(T.label)} · réglages précis</b>`}<span class="sp"></span>
     ${T.model?`<a class="btn" href="#/modeles">Terminé</a>`:`${btn('Télécharger A4','share','w','data-act="tunerDl" data-v="a4"')}${btn(tbMobShare()?'Partager le post':'Télécharger Post','share','w','data-act="tunerDl" data-v="post"')}${btn(tbMobShare()?'Partager la story':'Télécharger Story','share','','data-act="tunerDl" data-v="story"')}`}</div>
-   <div class="tun-body"><div class="tun-stage"><div class="side-prev">${pvFrame('formule',0,cls(others[0]),{f:T.f,variant:others[0]})}<small>${others[0]==='a4'?'A4':others[0]==='post'?'Post':'Story'}</small></div>
-     <div class="main-prev" style="aspect-ratio:${v==='a4'?'794/1123':v==='post'?'3/4':'9/16'};transform:scale(${UI.zoom/100});transform-origin:center">${pvFrame('formule',0,cls(v),{f:T.f,variant:v}).replace('class="pv-frame','style="width:100%;height:100%;background:#fff" class="pv-frame')}<div class="zoom"><button type="button" data-act="zoom" data-d="-10">−</button><span>${UI.zoom} %</span><button type="button" data-act="zoom" data-d="10">＋</button></div></div>
-     <div class="side-prev">${pvFrame('formule',0,cls(others[1]),{f:T.f,variant:others[1]})}<small>${others[1]==='a4'?'A4':others[1]==='post'?'Post':'Story'}</small></div></div>
+   <div class="tun-body"><div class="tun-stage"><div class="tun-track" id="tunTrack">${[['a4','A4 · A5','pv-a4','794/1123'],['post','Post Instagram','pv-po','3/4'],['story','Story Instagram','pv-st','9/16']].map(([k,l,c,r])=>`<div class="tun-sl"><div class="tun-doc" style="aspect-ratio:${r}">${pvFrame('formule',0,c,{f:T.f,variant:k}).replace('class="pv-frame','style="width:100%;height:100%;background:#fff" class="pv-frame')}</div><small>${l}</small></div>`).join('')}</div>
+     <div class="tun-dots">${['a4','post','story'].map((k,i)=>`<i data-act="tunGo" data-i="${i}" class="${(UI.tunI||0)===i?'on':''}"></i>`).join('')}</div></div>
    <aside class="tun-tools"><div class="tt-h">Je règle</div><div class="chips">${TUNER_FIELDS.map(x=>`<span role="button" data-act="tunerEl" data-v="${x[1]||x[0]}" class="${x===fld?'on':''}">${x[2]}</span>`).join('')}</div>
     ${fld[1]?`<div class="tt-h">Taille · ${fld[2]}</div><div class="sld"><button type="button" data-act="tunerSize" data-d="-1">−</button><div class="tr"><i style="width:${stepI/4*100}%"></i><em style="left:${stepI/4*100}%"></em></div><button type="button" data-act="tunerSize" data-d="1">＋</button></div><div class="steps">${STEPS.map((s,i)=>i===stepI?`<b>${s}</b>`:`<span>${s}</span>`).join('')}</div>`:''}
     ${T.model?`<div class="tt-h">Couleur · ${fld[2]}</div><div class="colorpick"><input type="color" value="${esc(o[fld[0]]||'#16181d')}" data-act="tunerColor" data-k="${fld[0]}"><button class="lk" style="color:#cfd3db" data-act="tunerColorReset" data-k="${fld[0]}">Couleur par défaut</button></div><div class="tt-h">Couleur · Arrière-plan</div><div class="colorpick"><input type="color" value="${esc(o.instaBgColor||'#ffffff')}" data-act="tunerColor" data-k="instaBgColor"><button class="lk" style="color:#cfd3db" data-act="tunerColorReset" data-k="instaBgColor">Par défaut</button></div>`:''}
@@ -3460,7 +3471,7 @@ function render(){
     if(focus){ const el=app.querySelector(`[data-bind="${focus}"]`); if(el){ el.focus(); try{ const l=el.value.length; el.setSelectionRange(l,l);}catch(e){} } }
     scrollTo(0,y);
   }
-  refreshPreviews(); hideLocked(); fvCenter(); document.body.classList.toggle('fv-on',(PG==='formule'&&!!ARG)||PG==='mdj');
+  refreshPreviews(); hideLocked(); fvCenter(); document.body.classList.toggle('fv-on',(PG==='formule'&&!!ARG)||PG==='mdj'); document.body.classList.toggle('vz-off',['fedit','fsec','mdjedit','tuner','modeles','fmod'].includes(PG));
   if(window.FP&&PG==='resa'&&ARG==='esp'&&can('floorplan')) FP.sync();
   if(UI.tbw&&UI.tbw.step===4&&PG==='resa'&&ARG==='boost'){ const cv=document.getElementById('tbCanvas'), W=UI.tbw, k=[W.photo,W.title,W.detail,W.date,W.deadline,W.sv].join('|'); if(cv&&cv.dataset.k!==k){ cv.dataset.k=k; tbDraw(); } }
 }
@@ -3606,7 +3617,7 @@ document.addEventListener('click',async e=>{
   if(a==='modSaveCur'){ e.preventDefault(); const own=ARG==='mdj'?(jour().style||(jour().style={})):findF(ARG); if(!own) return; const m={id:'mod-'+Date.now(),name:'Mon style',style:curStyle(own)}; myModels().push(m); own.model=m.id; touch(false); render(); toast('Modèle « Mon style » créé'); return; }
   if(a==='modPick'&&d.m==='__actuel'){ e.preventDefault(); go(ARG==='mdj'?'mdj':'formule/'+encodeURIComponent(ARG)); return; }
   if(a==='modPick'){ e.preventDefault(); const m=findModel(d.m); if(ARG==='mdj'){ const sp=jour(); if(!sp.style) sp.style={}; applyModel(sp.style,m); touch(false); go('mdj'); } else { const f=findF(ARG); if(!f) return; applyModel(f,m); touch(false); go('formule/'+encodeURIComponent(f.id)); } toast('Modèle « '+m.name+' » choisi'); return; }
-  if(a==='modNew'||a==='modDup'){ e.preventDefault(); const src=a==='modDup'?findModel(d.m):MODELS_STD[0]; const m={id:'mod-'+Date.now(),name:a==='modDup'?src.name+' (copie)':'Mon modèle',style:JSON.parse(JSON.stringify(src.style||{}))}; myModels().push(m); touch(false); go('tuner/m:'+m.id); return; }
+  if(a==='modNew'||a==='modDup'){ e.preventDefault(); const src=a==='modDup'?findModel(d.m):MODELS_STD[0]; const m={id:'mod-'+Date.now(),name:a==='modDup'?'Mon '+src.name.toLowerCase():'Mon modèle',style:JSON.parse(JSON.stringify(src.style||{}))}; myModels().push(m); touch(false); go('tuner/m:'+m.id); return; }
   if(a==='modDel'){ e.preventDefault(); DATA.menuModels=myModels().filter(x=>x.id!==d.m); DATA.formules.forEach(f=>{ if(f.model===d.m) f.model='std-classique'; }); const st=jour().style; if(st&&st.model===d.m) st.model='std-classique'; touch(true); return; }
   if(a==='fvPrint'){ e.preventDefault(); const f=fvTarget(); if(!f) return; const win=window.open('','_blank'); if(win) win.document.write('<p style="font-family:sans-serif;padding:20px">Préparation du menu…</p>');
     try{ const w=await eng(); const r=await w.formule_renderBlobs(w.formule_buildCfg(f,'a4'),'a4'); const b=r&&r[0]&&r[0].blob; if(!b) throw new Error('image');
@@ -3621,6 +3632,7 @@ document.addEventListener('click',async e=>{
     toast('Génération en cours…'); try{ const w=await eng(); for(const v of ['post','story']){ const r=await w.formule_renderBlobs(w.formule_buildCfg(f,v),v); if(r&&r[0]){ const a2=document.createElement('a'); a2.href=URL.createObjectURL(r[0].blob); a2.download=r[0].name||('menu-'+v+'.png'); a2.click(); } } toast('Post et story téléchargés'); }catch(err){ toast('⚠ Génération impossible'); }
     return; }
   if(a==='fvDl'){ e.preventDefault(); GAL_KIND=d.v==='a4'?'':'ig'; if(PG==='mdj') await doFormule(jourAsFormule(jour()),d.v); else { const f=curF(); if(!f) return; const w=await eng(); toast('Génération en cours…'); w.formule_exportInsta(f.id,d.v); } return; }
+  if(a==='tunGo'){ e.preventDefault(); const tk=document.getElementById('tunTrack'), sl=tk&&tk.children[+d.i]; if(sl) tk.scrollTo({left:sl.offsetLeft-tk.offsetLeft-(tk.clientWidth-sl.clientWidth)/2,behavior:'smooth'}); return; }
   if(a==='fvVoice'){ e.preventDefault(); VZ.open=true; VZ.err=''; vzDraw(); if(can('voice')&&!VZ.res&&!VZ.done) vzListen(); return; }
   if(a==='stPer'){ e.preventDefault(); UI.stp=/^\d+$/.test(d.v)?+d.v:d.v; render(); loadStats(UI.stp); return; }
   if(el.tagName==='A'||(el.tagName==='BUTTON'&&el.closest('a'))) e.preventDefault();
