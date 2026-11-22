@@ -10,9 +10,9 @@ Référence des prix pour tous les devis et factures. **À relire avant chaque p
 
 ## 1. Formules mensuelles
 
-Chaque formule comprend la précédente (à partir de Starter ; Chef et Local sont des formules d'entrée à part). **Toutes les formules (Local, Starter, Pro, Master) incluent Chef** : un restaurant qui passe à une formule ne paie plus Chef. Les frais de mise en service se paient **en une fois au démarrage, ou étalés sur les 12 mois d'engagement, sans frais**, dans toutes les formules (Will, 22/11) : montants ronds, le 12e mois ajuste le total (Will, 22/11) :
+Chaque formule comprend la précédente (à partir de Starter ; Chef et Local sont des formules d'entrée à part). **Toutes les formules (Local, Starter, Pro, Master) incluent Chef** : un restaurant qui passe à une formule ne paie plus Chef. Les frais de mise en service se paient **en une fois au démarrage, ou étalés sur les 12 mois d'engagement, sans frais**, dans toutes les formules (Will, 22/11), en montants ronds : le 12e mois ajuste le total.
 
-| Formule | Mise en service | Mois 1 à 11 | Mois 12 | Par mois avec l'abonnement (1re année) |
+| Formule | Mise en service | Mois 1 à 11 | Mois 12 | Avec l'abonnement, mois 1 à 11 |
 |---|---|---|---|---|
 | Local | 299 € | 25 € | 24 € | 74 € |
 | Starter | 799 € | 67 € | 62 € | 196 € |
