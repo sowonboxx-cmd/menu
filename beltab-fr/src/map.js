@@ -167,7 +167,7 @@
     }).join('') + '</div></section>' : '';
     var carte = (r.apercu || []).length ? '<section class="dp-sec"><h3>' + (r.paid ? 'La carte' : 'Aperçu de la carte') + (maj ? ' <small>mise à jour le ' + esc(maj) + '</small>' : '') + '</h3>' +
       r.apercu.map(function (sec) { return '<span class="dp-cat">' + esc(sec.section) + '</span>' + sec.plats.map(function (p) { return '<div class="dp-dish"><span>' + esc(p.nom) + '</span><b>' + esc(p.prix) + '</b></div>'; }).join(''); }).join('') +
-      '<a class="dp-link" href="' + esc(r.paid && r.site ? r.site : r.url + '#carte') + '"' + (r.paid && r.site ? ' target="_blank" rel="noopener"' : '') + '>' + (r.paid ? (r.site ? 'Toutes les photos et la carte sur le site du restaurant' : 'Toute la carte') : 'La carte complète est chez le restaurant') + ' ›</a></section>' : '';
+      '<a class="dp-link" href="' + esc(r.paid && r.site ? r.site : r.url + '#carte') + '"' + (r.paid && r.site ? ' target="_blank" rel="noopener"' : '') + '>' + (r.paid ? (r.site ? 'Le site du restaurant' : 'Toute la carte') : 'La carte complète est chez le restaurant') + ' ›</a></section>' : '';
     var today = JOURS_ORD[(new Date().getDay() + 6) % 7];
     var hor = '<section class="dp-sec"><h3>Horaires</h3>' + JOURS_ORD.map(function (j) {
       var sl = (r.horaires && r.horaires[j]) || [];
