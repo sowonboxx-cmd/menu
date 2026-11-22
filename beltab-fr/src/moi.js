@@ -119,7 +119,7 @@
       '<div class="cl-switch"><button type="button" data-scope="potes" aria-pressed="' + (scope === 'potes') + '">Entre potes</button><button type="button" data-scope="france" aria-pressed="' + (scope === 'france') + '">France</button></div>' +
       '<p class="cl-demo">Exemple : les autres noms sont fictifs, en attendant les comptes et les invitations.</p>' +
       rows.map(function (x, i) {
-        return '<div class="cl-row' + (x.me ? ' is-me' : '') + '"><span class="cl-rank">' + (i + 1) + '</span><span class="cl-av' + (x.me ? '' : ' is-ex') + '">' + esc(x.n[0].toUpperCase()) + '</span><span class="cl-name">' + esc(x.n) + (x.me ? '' : ' <em>exemple</em>') + '<small>' + x.c + ' cuisines · ' + x.r + ' restaurants</small></span><b>' + x.c + '</b></div>';
+        return '<div class="cl-row' + (x.me ? ' is-me' : '') + '"><span class="cl-rank">' + (i + 1) + '</span><span class="cl-av' + (x.me ? '' : ' is-ex') + '">' + esc(x.n[0].toUpperCase()) + '</span><span class="cl-name"><span>' + esc(x.n) + (x.me ? '' : ' <em>exemple</em>') + '</span><small>' + x.c + ' cuisines · ' + x.r + ' restaurants</small></span><b>' + x.c + '</b></div>';
       }).join('') +
       '<div class="empty"><strong>' + (scope === 'potes' ? 'Invitez vos potes : ça arrive avec les comptes' : 'Le vrai classement France arrive avec les comptes') + '</strong>' +
       '<p class="muted">On compte les cuisines goûtées. Seuls les repas vérifiés compteront : réservation Beltab honorée, QR de la vitrine scanné sur place, ou ticket de caisse.</p></div>';
