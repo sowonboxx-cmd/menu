@@ -296,7 +296,7 @@ ${demo ? '<p class="menu-note">Version de démonstration : certaines fiches sont
     title: `Beltab · ${site.accroche}`,
     description: 'La carte des restaurants indépendants, authentiques et familiaux à Paris. Pas de chaîne, pas de groupe : que des indépendants.',
     canonical: '/', body, bodyClass: 'is-map',
-    scripts: ['https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js', '/src/jeu.js', '/src/map.js'],
+    scripts: ['https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js', '/src/jeu.js', '/src/partage.js', '/src/map.js'],
   }).replace('<link rel="stylesheet" href="/src/styles.css">', '<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">\n<link rel="stylesheet" href="/src/styles.css">');
 }
 
@@ -429,6 +429,13 @@ const pub = restaurants.map((r) => {
     arrondissement: r.arrondissement, categories: r.categories, cuisine: r.cuisine || '', specialites: r.specialites || [], prix: r.prix, horaires: r.horaires,
     photo: r.photoPrincipale || '',
     logo: r.logo || '',
+    adresse: r.adresse || '', telephone: r.telephone || '', miseAJour: r.miseAJour || '',
+    // galerie selon le niveau : gratuit = la photo de présentation, Chef/Starter = 3, Pro/Master = toutes
+    photos: [r.photoPrincipale, ...(r.carte || []).flatMap((x) => x.plats.map((pl) => pl.photo))].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).slice(0, PHOTO_LIMIT[tierOf(r.niveau)] === Infinity ? 99 : PHOTO_LIMIT[tierOf(r.niveau)]),
+    // aperçu de la carte pour la colonne de gauche : gratuit = 3 plats, payant = les premières rubriques
+    apercu: paid
+      ? (r.carte || []).filter((x) => !/boisson/i.test(x.section)).slice(0, 3).map((x) => ({ section: x.section, plats: x.plats.slice(0, 4).map((pl) => ({ nom: pl.nom, prix: pl.prix || '' })) }))
+      : ['entree', 'plat', 'dessert'].map((t) => (r.carte || []).find((x) => x.type === t)).filter(Boolean).map((x) => ({ section: x.section, plats: x.plats.slice(0, 1).map((pl) => ({ nom: pl.nom, prix: pl.prix || '' })) })),
     site: r.site || '',
     reservation: r.reservation && r.reservation.url ? { type: paid && r.reservation.type === 'beltab' ? 'beltab' : 'externe', url: r.reservation.url, nom: r.reservation.nom || '' } : null,
     platDuJour: paid && r.platDuJour?.nom ? { date: r.platDuJour.date, nom: r.platDuJour.nom, prix: r.platDuJour.prix } : null,

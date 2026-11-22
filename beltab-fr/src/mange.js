@@ -120,4 +120,5 @@
   }
 
   renderBand();
+  if (location.hash === '#mange') { history.replaceState(null, '', location.pathname); open(); }
 })();
