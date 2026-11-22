@@ -8475,6 +8475,8 @@ function formule_buildCfg(f, variant){
   cfg.formuleVariant = variant || 'story';
   cfg.formuleLogoSize = FORMULE_LOGO_PCT[f.logoSize] ? f.logoSize : 'moyen';
   cfg.formulePreamble = formule_buildPreamble(f, cfg);
+  // Ligne libre en bas de l'A4 seulement (« Prix TTC, service compris », « Produits frais de Normandie »), au style du sous-titre.
+  cfg.formuleFoot = (variant==='a4' && String(f.footNote||'').trim()) ? `<div class="formule-freetext formule-foot" style="margin-top:1.6em;font-size:.86em;opacity:.9">${String(f.footNote).trim().split('\n').map(x=>escHtml(x)).join('<br>')}</div>` : '';
   return cfg;
 }
 function formule_exportInsta(fid, variant){
@@ -10167,9 +10169,9 @@ function buildFormulePage(cfg, ratio){
     const measureEl = holder.querySelector('#__instaMeasure');
 
     const { contentBlocks } = buildPdfBlocks(scaledCfg);
-    if(!contentBlocks.length){ finalHtml = cfg.formulePreamble || ''; finalCss = css; break; }
+    if(!contentBlocks.length){ finalHtml = (cfg.formulePreamble || '') + (cfg.formuleFoot || ''); finalCss = css; break; }
     const fixedBlocks = contentBlocks.map(b=>({ ...b, html: fitInstaOneLiners(b.html, holder, scaledCfg) }));
-    const wholeHtml = (cfg.formulePreamble || '') + fixedBlocks.map(b=>b.html).join('');
+    const wholeHtml = (cfg.formulePreamble || '') + fixedBlocks.map(b=>b.html).join('') + (cfg.formuleFoot || '');
 
     for(const scale of COMPRESS_STEPS){
       measureEl.style.setProperty('--space-scale', scale);
@@ -10189,7 +10191,7 @@ function buildFormulePage(cfg, ratio){
     finalCss = buildInstaCSS(scaledCfg, ratio);
     const { contentBlocks } = buildPdfBlocks(scaledCfg);
     const fixedBlocks = contentBlocks.map(b=>({ ...b, html: fitInstaOneLiners(b.html, holder, scaledCfg) }));
-    finalHtml = (cfg.formulePreamble || '') + fixedBlocks.map(b=>b.html).join('');
+    finalHtml = (cfg.formulePreamble || '') + fixedBlocks.map(b=>b.html).join('') + (cfg.formuleFoot || '');
     finalScale = 0.34;
     finalFontScale = 0.54;
   }
@@ -11023,14 +11025,15 @@ function instaBandPreviewDoc(doc, W, Hp, color){
 async function exportInstaImages(cfg, variant){
   return withExportLogo(()=>_exportInstaImages(cfg, variant));
 }
-async function _exportInstaImages(cfg, variant){
+async function formule_renderBlobs(cfg, variant){ return withExportLogo(()=>_exportInstaImages(cfg, variant, true)); }
+async function _exportInstaImages(cfg, variant, silent){
   variant = variant || 'story';
   const fullRatio = variant === 'post' ? INSTA_POST_RATIO : variant === 'a4' ? INSTA_A4_RATIO : INSTA_RATIO;
   const band = instaBandOn(cfg, variant);
   const ratio = fullRatio; // découpage et mise en page : ceux de la story normale
   const targetW = variant === 'a4' ? 1600 : 1080; // A4 : un peu plus de résolution pour l'impression
   if(typeof html2canvas === 'undefined'){ showToast('⚠ html2canvas non chargé'); return; }
-  showToast('Génération des images en cours…');
+  if(!silent) showToast('Génération des images en cours…');
   // Menus et Formules (cfg.tabsSource) : toujours une seule page,
   // jamais le découpage multi-pages du vrai menu — voir
   // buildFormulePage.
@@ -11066,6 +11069,7 @@ async function _exportInstaImages(cfg, variant){
     catch(err){ console.error(err); showToast('⚠ Page de garde introuvable : export sans elle'); }
   }
   if(!blobs.length) return;
+  if(silent) return blobs;
 
   const urls = blobs.map(b=>({ url: URL.createObjectURL(b.blob), name: b.name, pageIndex: b.pageIndex, totalPages: blobs.length }));
 

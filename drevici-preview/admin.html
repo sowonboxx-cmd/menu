@@ -1347,6 +1347,17 @@ body.fv-on #vzBtn{display:none}
 .fv-del{margin:22px 0 8px;display:flex;justify-content:center}
 .fv-delb{font:inherit;font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:8px;border:0;background:none;color:#c4605b;cursor:pointer;padding:10px 14px;border-radius:12px}.fv-delb:hover{background:rgba(196,96,91,.08)}.fv-delb svg{width:17px;height:17px}
 .fv-delc{width:100%;border:1.5px solid rgba(196,96,91,.45);background:rgba(196,96,91,.06);border-radius:18px;padding:16px 18px;display:flex;flex-direction:column;gap:6px}.fv-delc span{color:var(--mut);font-size:13.5px}.fv-delc div{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.fv-top{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin:-4px 0 8px;font-size:14px;font-weight:600}
+.fv-mod{display:flex;align-items:center;gap:14px;margin:14px 0 0;padding:12px 16px;border-radius:16px;border:1.5px solid var(--line,#e6e2da);background:var(--card,#fff);color:inherit;text-decoration:none}
+.fv-mod .tx{display:flex;flex-direction:column}.fv-mod .tx small{font-size:12px;color:var(--mut)}.fv-mod .tx b{font-size:15px}.fv-mod .go{margin-left:auto;font-size:13.5px;font-weight:600;color:var(--brand-text,#10285e);display:flex;align-items:center;gap:6px}
+.sw i{display:flex;gap:3px;align-items:flex-end;width:34px;height:34px;border-radius:9px;border:1px solid var(--line,#e2ddd4);padding:6px;box-sizing:border-box}.sw i b{flex:1;border-radius:3px;height:60%}.sw i b:first-child{height:100%}
+.fv-exp-b.two{grid-template-columns:1fr 1fr;margin-top:12px}.fv-exp-b.two button{padding:14px 16px}
+.mdg{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;max-width:1000px;margin:6px auto 14px}
+.mdc{font:inherit;border:2px solid transparent;background:none;border-radius:16px;padding:8px;cursor:pointer;display:flex;flex-direction:column;gap:8px;color:inherit}.mdc.on{border-color:var(--brand-text,#10285e);background:var(--card,#fff)}
+.mdc-d iframe{pointer-events:none}.mdc-d{aspect-ratio:794/1123;background:#fff;border-radius:4px;overflow:hidden;box-shadow:0 8px 22px rgba(16,24,40,.14)}.mdc span{display:flex;align-items:center;justify-content:center;gap:8px}.mdc em{font-style:normal;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;background:var(--brand-text,#10285e);color:#fff;border-radius:999px;padding:2px 8px}
+.mdl{display:flex;flex-direction:column}.mdr{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line,#eeeae3)}.mdr:first-child{border-top:0}.mdr small{color:var(--mut);font-size:12.5px}.mdr .sp{flex:1}
+.tun-nm{max-width:240px;background:rgba(255,255,255,.08)!important;color:#fff!important;border:1px solid rgba(255,255,255,.2)!important;font-weight:700}
+@media(max-width:899px){.fv-exp-b.two{grid-template-columns:1fr}.mdg{grid-template-columns:1fr 1fr;gap:10px}.mdr{flex-wrap:wrap}}
 </style>
 </head>
 <body>
@@ -1623,7 +1634,7 @@ const NAVS=[['equipe','users','Équipe'],['app','lune','Apparence'],['secu','sau
 // onglets ; ouverte par son adresse, elle affiche « pas incluse dans votre formule ».
 const FEAT=(window.BELTAB&&window.BELTAB.features)||{};
 const can=k=>FEAT[k]!==false;
-const LOCKS={menus:'formules',mdj:'formules',mdjedit:'formules',formule:'formules',fedit:'formules',fsec:'formules',tuner:'formules',xprint:'print',emails:'campaigns',stats:'stats',
+const LOCKS={menus:'formules',mdj:'formules',mdjedit:'formules',formule:'formules',fedit:'formules',fsec:'formules',fmod:'formules',modeles:'formules',tuner:'formules',xprint:'print',emails:'campaigns',stats:'stats',
   'resa/boost':'tableBoost','resa/esp':'tables','resa/stats':'stats','comm/social':'socialPublish','comm/email':'campaigns','comm/boost':'tableBoost'};
 const NEED={formules:'Pro',print:'Pro',tables:'Pro',tableBoost:'Master',floorplan:'Master',stats:'Master',campaigns:'Master',socialPublish:'Master',videos:'Master'};
 const LOCK_TXT={formules:'Menus du jour, menus spéciaux et formules',print:'Impression du menu',tables:'Salle et tables',tableBoost:'Table Boost',
@@ -1648,7 +1659,7 @@ const NAV_ETAB=[['etab/etab','etab','Informations'],['etab/logo','logo','Logo'],
 // Page d'entrée commune Paris / Surzur : réglée seulement depuis l'admin de Paris (et sa copie de test).
 const ENTREE_ON=/^drevici(-test)?$/.test(SLUG);
 const NAV_SITE=[...(ENTREE_ON?[['site/ecran','ecran','Page d\'entrée']]:[]),['site/acc','acc','Accueil'],['site/plats','plats','Menu'],['site/pres','pres','Présentation'],['site/coul','coul','Couleurs']];
-const PARENT={evolution:'carte',export:'carte',xprint:'carte',xgbiz:'carte',xinsta:'carte',xcol:'carte',mdj:'menus',mdjedit:'menus',formule:'menus',fedit:'menus',fsec:'menus',tuner:'menus'};
+const PARENT={evolution:'carte',export:'carte',xprint:'carte',xgbiz:'carte',xinsta:'carte',xcol:'carte',mdj:'menus',mdjedit:'menus',formule:'menus',fedit:'menus',fsec:'menus',fmod:'menus',modeles:'menus',tuner:'menus'};
 const nv=([k,ic,l])=>{ const [pg,sub]=k.split('/'); const on=sub?(PG===pg&&(ARG===sub||(!ARG&&(pg==='etab'?'etab':'acc')===sub))):(PG===k||PARENT[PG]===k); const nb=k==='messages'?msgNew():0; return `<a class="nv${on?' on':''}" href="#/${k}">${I(ic)}${l}${nb?`<span class="nv-bd">${nb}</span>`:''}</a>`; };
 const STUDIO_AREAS=['calendrier','campagnes','tshirts'];
 const staffSide=()=>`<nav class="side"><a class="who" href="#/dash">${logoBox()}<b>${esc(DATA.restaurantName||'Mon restaurant')}</b></a>
@@ -1786,20 +1797,21 @@ function jourSync(sp){
 function jourAsFormule(sp){
   const groups=[]; jourItems(sp).forEach(it=>{ let g=groups.find(x=>x.label.fr===it.s); if(!g){ g={id:'mdj-'+groups.length,label:{fr:it.s||''},cards:[{label:{fr:''},dishes:[]}]}; groups.push(g);} g.cards[0].dishes.push({name:{fr:it.n},desc:{fr:it.d||''},price:''}); });
   const st=sp.style||{};
-  return Object.assign({catCase:'upper',nameCase:'upper',descCase:'lower'},st,{id:'__mdj',name:tr(sp.title)||'Menu du jour',title:tr(sp.title)||'Menu du jour',freeText:[sp.date,sp.formule,sp.price].filter(Boolean).join(' · '),tabs:groups});
+  return Object.assign({catCase:'upper',nameCase:'upper',descCase:'lower'},st,{id:'__mdj',name:tr(sp.title)||'Menu du jour',title:tr(sp.title)||'Menu du jour',freeText:[sp.date,sp.formule,sp.price].filter(Boolean).join(' · '),footNote:sp.footNote||'',tabs:groups});
 }
 function pageMdj(){
   const sp=jour(); if(!Array.isArray(sp.items)) return pageMdjEdit();
-  return mtop('Mes menus','menus')+crumb([['Mes menus','menus'],['Menu du jour']])+fvView({f:jourAsFormule(sp),nm:'Menu du jour',sub:'',
+  if(!sp.style) sp.style={}; modelSync(sp.style);
+  return mtop('Mes menus','menus')+crumb([['Mes menus','menus'],['Menu du jour']])+fvView({f:jourAsFormule(sp),nm:'Menu du jour',model:modelOf(sp.style),mod:'#/fmod/mdj',
     right:`<span class="fv-onl">${tgl(sp.active,'mdjToggle')}<span class="onl" style="color:${sp.active?'var(--ok)':'var(--mut)'}">${sp.active?'En ligne':'Hors ligne'}</span></span>`,
     del:UI.delc==='mdj'?`<div class="fv-delc"><b>Supprimer le menu du jour ?</b><span>Les plats, la date et le prix sont effacés et il passe hors ligne. Vous pourrez en refaire un quand vous voulez.</span><div><button class="btn g" data-act="fDelNo">Non, le garder</button><button class="btn red" data-act="mdjDelYes">Oui, supprimer</button></div></div>`:`<button type="button" class="fv-delb" data-act="mdjDelAsk">${I('trash')}Supprimer le menu du jour</button>`,
-    edit:'#/mdjedit',exp:'#/tuner/mdj',ex:['Aujourd’hui en plat : un bœuf bourguignon','Le dessert, c’est une tarte aux pommes','Mets la date de demain']});
+    edit:'#/mdjedit',ex:['Aujourd’hui en plat : un bœuf bourguignon','Le dessert, c’est une tarte aux pommes','Mets la date de demain']});
 }
 function pageMdjEdit(){
   const sp=jour(); if(!Array.isArray(sp.items)){ const old=stripHtml(tr(sp.desc)).split(/\s*(?:•|·|\n)\s*/).map(x=>x.trim()).filter(Boolean); sp.items=old.length?old.map(n=>({s:'',n,d:''})):[{s:'Entrée',n:'',d:''},{s:'Plat',n:'',d:''},{s:'Dessert',n:'',d:''}]; }
   const f=jourAsFormule(sp);
-  return mtop('Menu du jour','mdj')+crumb([['Mes menus','menus'],['Menu du jour','mdj'],['Modifier à la main']])+ph('Menu du jour',sp.active?'En ligne sur votre site':'Hors ligne · activez-le pour l\'afficher sur le site',`${tgl(sp.active,'mdjToggle')}<span class="onl" style="color:${sp.active?'var(--ok)':'var(--mut)'}">${sp.active?'En ligne':'Hors ligne'}</span>`)+
-  `<div class="xsplit f"><div class="fcol">${card('Le menu du jour','jour',`<div class="frm">${fin('Titre',tr(sp.title),'jour.title')}${fin('Date ou jour','' ,'jour.date').replace('value=""',`value="${esc(sp.date||'')}"`)}${fin('Prix',sp.price||'','jour.price')}${fin('Formule',sp.formule||'','jour.formule').replace('<input','<input placeholder="Entrée + plat + dessert"')}</div>`)}
+  return mtop('Menu du jour','mdj')+crumb([['Mes menus','menus'],['Menu du jour','mdj'],['Modifier à la main']])+`<div class="fv-top">${tgl(sp.active,'mdjToggle')}<span class="onl" style="color:${sp.active?'var(--ok)':'var(--mut)'}">${sp.active?'En ligne':'Hors ligne'}</span></div>`+
+  `<div class="xsplit f"><div class="fcol">${card('Le menu du jour','jour',`<div class="frm">${fin('Titre',tr(sp.title),'jour.title')}${fin('Date ou jour','' ,'jour.date').replace('value=""',`value="${esc(sp.date||'')}"`)}${fin('Prix',sp.price||'','jour.price')}${fin('Formule',sp.formule||'','jour.formule').replace('<input','<input placeholder="Entrée + plat + dessert"')}${fin('Ligne en bas de l’A4',sp.footNote||'','jour.footNote','w').replace('<input','<input placeholder="Prix TTC, service compris"')}</div>`)}
    ${card('Composition','plats',sp.items.map((it,i)=>`<div class="fsec"><div class="fsh"><input class="in" style="flex:0 0 140px;font-weight:800" value="${esc(it.s)}" data-bind="jour.items.${i}.s" placeholder="Entrée"><span style="flex:1"></span><button class="mv" data-act="jourMove" data-i="${i}" data-d="-1" title="Monter">↑</button><button class="mv" data-act="jourMove" data-i="${i}" data-d="1" title="Descendre">↓</button><button class="trash" data-act="jourDel" data-i="${i}" title="Retirer">✕</button></div><div class="fdi"><input class="in" value="${esc(it.n)}" data-bind="jour.items.${i}.n" placeholder="Nom du plat"></div></div>`).join('')+
      `<div class="fadd"><select class="in sel" data-act="jourImport"><option value="">Importer un plat de la carte…</option>${dishOptions()}</select><button class="lk" data-act="jourAdd">＋ Ajouter une ligne</button></div>`)}
    ${card('Sur le site','acc',opt('Afficher en grand sur l\'accueil',sp.showHome!==false,'jourFlag','data-k="showHome"')+opt('Afficher en premier dans la carte',!!sp.showFirst,'jourFlag','data-k="showFirst"')+opt('Le reprendre demain',!!sp.keep,'jourFlag','data-k="keep"','Garder le même menu le jour suivant'))}
@@ -1814,29 +1826,43 @@ function dishOptions(){ return (DATA.tabs||[]).map(t=>(t.cards||[]).map(c=>(c.di
 function pageMenus(){
   const sp=jour(), fs=DATA.formules;
   const ln=(href,name,extra='')=>`<a class="mrow" href="${href}"><b>${name}</b>${extra}<span class="chev">›</span></a>`;
-  return mtop('Tableau de bord','dash')+ph('Mes menus','Menu du jour et menus personnalisés, affichés sur votre site et exportables',btn('Nouveau menu personnalisé','plus','','data-act="fAdd"'))+
+  return mtop('Tableau de bord','dash')+crumb([['Mes menus']])+
   `<div class="pgrid g-1-1"><div>${card('Menu du jour','jour',ln('#/mdj','Menu du jour',sp.active?'<span class="pill ok">En ligne</span>':'<span class="pill off">Hors ligne</span>'))}</div>
-   <div>${card('Menus personnalisés','spe',(fs.length?fs.map(f=>ln('#/formule/'+encodeURIComponent(f.id),esc(f.name||f.title||'(sans nom)'))).join(''):'<div class="empty">Aucun menu personnalisé pour l\'instant.</div>')+
-     `<button class="lk add" data-act="fAdd">＋ Ajouter un menu personnalisé</button>${fs.length>=10?'<p class="note">La limite de 10 est atteinte : en ajouter un nouveau remplacera le plus ancien.</p>':''}`)}</div></div>`;
+   <div>${card('Menus','spe',(fs.length?fs.map(f=>ln('#/formule/'+encodeURIComponent(f.id),esc(f.name||f.title||'(sans nom)'))).join(''):'<div class="empty">Aucun menu personnalisé pour l\'instant.</div>')+
+     `<button class="lk add" data-act="fAdd">＋ Nouveau menu</button><a class="mrow" href="#/modeles"><b>Mes modèles</b><small style="color:var(--mut);margin-left:8px">couleurs, police, logo</small><span class="chev">›</span></a>${fs.length>=10?'<p class="note">La limite de 10 est atteinte : en ajouter un nouveau remplacera le plus ancien.</p>':''}`)}</div></div>`;
 }
 function findF(id){ return DATA.formules.find(f=>f.id===id); }
 // ── un menu personnalisé : on voit d'abord le menu en grand, puis on le modifie à la voix ou à la main ──
 const FV_PRINT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg>';
 const FV_IG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>';
+// ══ Modèles : le style d'un menu (couleurs, police, tailles, logo), choisi en un geste ══
+const MSTYLE_KEYS=['formuleTitleColor','formuleTitlePct','formuleSubColor','formuleSubPct','instaTitleColor','titleSizePct','instaMenuColor','menuSizePct','instaDescColor','descSizePct','instaBgColor','instaFont','alignContentLeft','dishGapPct','showLogo','logoSize'];
+const MODELS_STD=[{id:'std-classique',name:'Classique',std:1,style:{}},
+  {id:'std-printemps',name:'Printemps',std:1,style:{formuleTitleColor:'#3f7d4e',formuleSubColor:'#5f8a55',instaTitleColor:'#3f7d4e',instaBgColor:'#f6f9ef'}},
+  {id:'std-automne',name:'Automne',std:1,style:{formuleTitleColor:'#9c4520',formuleSubColor:'#8a5a3c',instaTitleColor:'#9c4520',instaBgColor:'#fbf4ea'}}];
+function myModels(){ if(!Array.isArray(DATA.menuModels)) DATA.menuModels=[]; return DATA.menuModels; }
+function allModels(){ return MODELS_STD.concat(myModels()); }
+function findModel(id){ return allModels().find(m=>m.id===id)||MODELS_STD[0]; }
+function applyModel(o,m){ MSTYLE_KEYS.forEach(k=>{ if(m.style[k]!==undefined) o[k]=m.style[k]; else delete o[k]; }); o.model=m.id; }
+function curStyle(o){ const st={}; MSTYLE_KEYS.forEach(k=>{ if(o&&o[k]!==undefined) st[k]=o[k]; }); return st; }
+// un menu réglé avant les modèles garde son style : il apparaît comme « Style actuel »
+function modelOf(o){ if(o&&o.model) return findModel(o.model); const st=curStyle(o); return Object.keys(st).length?{id:'__actuel',name:'Style actuel',style:st}:MODELS_STD[0]; }
+function modelSync(o){ if(o&&o.model){ const m=allModels().find(x=>x.id===o.model); if(m) applyModel(o,m); } }
+const modSwatch=m=>{ const st=m.style||{}; return `<i style="background:${st.instaBgColor||'#fff'}"><b style="background:${st.formuleTitleColor||st.instaTitleColor||'var(--brand-text,#10285e)'}"></b><b style="background:${st.instaMenuColor||'#333'}"></b></i>`; };
 const FSLIDES=[['a4','A4 · A5','pv-a4','794/1123'],['post','Post Instagram','pv-po','3/4'],['story','Story Instagram','pv-st','9/16']];
 function pageFormule(){
   if(!ARG) return pageMenus(); // lien « Mes formules » sans menu précis : la liste
   const f=findF(ARG); if(!f) return mtop('Mes menus','menus')+'<div class="empty">Ce menu n\'existe plus. <a class="lk" href="#/menus">Retour</a></div>';
-  const id=encodeURIComponent(f.id);
+  const id=encodeURIComponent(f.id); modelSync(f);
   const del=UI.delc===f.id?`<div class="fv-delc"><b>Supprimer « ${esc(f.name||f.title||'ce menu')} » ?</b><span>Il disparaît du site et de vos menus. Ça ne peut pas être annulé.</span><div><button class="btn g" data-act="fDelNo">Non, le garder</button><button class="btn red" data-act="fDelYes">Oui, supprimer</button></div></div>`:`<button type="button" class="fv-delb" data-act="fDelAsk">${I('trash')}Supprimer ce menu</button>`;
-  return mtop('Mes menus','menus')+crumb([['Mes menus','menus'],[esc(f.name||f.title||'(sans nom)')]])+fvView({f,del,nm:esc(f.name||f.title||'(sans nom)'),sub:'Menu personnalisé',edit:'#/fedit/'+id,exp:'#/tuner/'+id,
+  return mtop('Mes menus','menus')+crumb([['Mes menus','menus'],[esc(f.name||f.title||'(sans nom)')]])+fvView({f,del,nm:esc(f.name||f.title||'(sans nom)'),model:modelOf(f),mod:'#/fmod/'+id,edit:'#/fedit/'+id,
     ex:['Passe l’entrée à 11 €','Change les dates : du 23 au 29 novembre','Remplace le dessert par une tarte aux pommes']});
 }
 function fvView(o){
   const f=o.f, nm=o.nm, voix=can('voice'), cur=UI.fSlide||0;
   const slides=FSLIDES.map(([v,l,c,r],i)=>`<div class="fv-sl" data-i="${i}"><div class="fv-doc" style="aspect-ratio:${r}">${pvFrame('formule',0,c,{f,variant:v}).replace('class="pv-frame','style="width:100%;height:100%" class="pv-frame')}</div></div>`).join('');
   const ex=o.ex;
-  return `<div class="fv"><div class="fv-h"><h2>${nm}</h2><small>${o.sub}</small>${o.right||''}</div>
+  return `<div class="fv">${o.right?`<div class="fv-top">${o.right}</div>`:''}
    <div class="fv-tabs" role="tablist">${FSLIDES.map(([v,l],i)=>`<button type="button" data-act="fvGo" data-i="${i}" class="${i===cur?'on':''}">${l}</button>`).join('')}</div>
    <div class="fv-car"><button type="button" class="fv-ar l" data-act="fvGo" data-d="-1" aria-label="Précédent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
      <div class="fv-track" id="fvTrack">${slides}</div>
@@ -1847,28 +1873,44 @@ function fvView(o){
      <a class="fv-b main" href="${o.edit}"><span class="ic">${I('edit')}</span><span class="tx"><b>Modifier à la main</b><small>Titre, sections, plats et prix, ligne par ligne</small></span></a>
    </div>
    ${voix?`<div class="fv-ex"><span>Par exemple</span>${ex.map(x=>`<i>« ${x} »</i>`).join('')}</div>`:`<p class="fv-up">À la main, chaque changement passe par le formulaire, plat par plat. Avec Master, vous dites simplement « passe l’entrée à 11 € » et le menu est à jour.</p>`}
-   <div class="fv-exp"><div class="fv-exp-h"><b>Exporter et partager</b><a href="${o.exp}">${I('edit')}Réglages précis</a></div>
-     <div class="fv-exp-b"><button type="button" data-act="fvDl" data-v="a4"><span class="ic">${FV_PRINT}</span><span><b>A4</b><small>Imprimer · A5 aussi</small></span></button>
-       <button type="button" data-act="fvDl" data-v="post"><span class="ic ig">${FV_IG}</span><span><b>Post</b><small>${tbMobShare()?'Partager sur Instagram':'Télécharger pour Instagram'}</small></span></button>
-       <button type="button" data-act="fvDl" data-v="story"><span class="ic ig">${FV_IG}</span><span><b>Story</b><small>${tbMobShare()?'Partager sur Instagram':'Télécharger pour Instagram'}</small></span></button></div></div>
+   <a class="fv-mod" href="${o.mod}"><span class="sw">${modSwatch(o.model)}</span><span class="tx"><small>Modèle</small><b>${esc(o.model.name)}</b></span><span class="go">Changer<span class="chev">›</span></span></a>
+   <div class="fv-exp-b two"><button type="button" data-act="fvPrint"><span class="ic">${FV_PRINT}</span><span><b>Imprimer</b><small>A4 · A5</small></span></button>
+     <button type="button" data-act="fvIg"><span class="ic ig">${FV_IG}</span><span><b>${tbMobShare()?'Partager sur Instagram':'Pour Instagram'}</b><small>${tbMobShare()?'Post, story ou reel : vous choisissez dans Instagram':'Télécharge le post et la story'}</small></span></button></div>
    ${o.del?`<div class="fv-del">${o.del}</div>`:''}
   </div>`;
 }
-function fvCenter(){ const tk=document.getElementById('fvTrack'); if(!tk||tk._done) return; tk._done=1; const sl=tk.children[UI.fSlide||0]; if(sl) tk.scrollLeft=sl.offsetLeft-tk.offsetLeft-(tk.clientWidth-sl.clientWidth)/2; }
+let FVPRE={key:'',file:null,busy:false};
+function fvPrefetch(){ if(!(PG==='formule'||PG==='mdj')||!tbMobShare()) return; clearTimeout(fvPrefetch._t); fvPrefetch._t=setTimeout(async()=>{ const f=fvTarget(); if(!f) return; const key=JSON.stringify(f); if(FVPRE.key===key||FVPRE.busy) return; FVPRE.busy=true;
+  try{ const w=await eng(); const r=await w.formule_renderBlobs(w.formule_buildCfg(f,'post'),'post'); if(r&&r[0]) FVPRE={key,file:new File([r[0].blob],(r[0].name||'menu-post.png').replace(/\.png$/,'')+'.png',{type:r[0].blob.type||'image/png'}),busy:false}; else FVPRE.busy=false; }catch(e){ FVPRE.busy=false; } },1500); }
+function fvCenter(){ fvPrefetch(); const tk=document.getElementById('fvTrack'); if(!tk||tk._done) return; tk._done=1; const sl=tk.children[UI.fSlide||0]; if(sl) tk.scrollLeft=sl.offsetLeft-tk.offsetLeft-(tk.clientWidth-sl.clientWidth)/2; }
 function fvMark(){ const i=UI.fSlide||0; document.querySelectorAll('.fv-tabs button').forEach((b,k)=>b.classList.toggle('on',k===i)); document.querySelectorAll('.fv-dots i').forEach((b,k)=>b.classList.toggle('on',k===i)); }
 // en faisant glisser : l'onglet suit l'image du milieu
 document.addEventListener('scroll',e=>{ const tk=e.target; if(!tk||tk.id!=='fvTrack') return; clearTimeout(tk._t); tk._t=setTimeout(()=>{ const mid=tk.scrollLeft+tk.clientWidth/2; let best=0,bd=1e9; [...tk.children].forEach((c,k)=>{ const cm=c.offsetLeft-tk.offsetLeft+c.clientWidth/2, dd=Math.abs(cm-mid); if(dd<bd){bd=dd;best=k;} }); if(best!==(UI.fSlide||0)){ UI.fSlide=best; fvMark(); } },80); },true);
 function fCurId(){ return PG==='fsec'?ARG.slice(0,ARG.lastIndexOf('/')):ARG; }
+function fvTarget(){ /* le menu affiché, prêt à exporter */ if(PG==='mdj'||ARG==='mdj'){ const sp=jour(); if(!sp.style) sp.style={}; modelSync(sp.style); return jourAsFormule(sp); } const f=curF(); if(f) modelSync(f); return f; }
 function curF(){ return findF(fCurId()); }
 // petits aperçus A4 · Post · Story au-dessus du formulaire, mis à jour à chaque frappe
 const fvMini=f=>`<div class="fvm">${FSLIDES.map(([v,l,c,r])=>`<div class="fvm-i"><div class="fvm-d" style="aspect-ratio:${r}">${pvFrame('formule',0,c,{f,variant:v}).replace('class="pv-frame','style="width:100%;height:100%" class="pv-frame')}</div><small>${l}</small></div>`).join('')}</div>`;
 const nPlats=t=>((t.cards&&t.cards[0]&&t.cards[0].dishes)||[]).filter(d=>tr(d.name)).length;
+function pageFmod(){
+  const isJ=ARG==='mdj', f=isJ?jourAsFormule(jour()):findF(ARG); if(!f) return mtop('Mes menus','menus')+'<div class="empty">Menu introuvable.</div>';
+  const cur=isJ?((jour().style||{}).model):f.model, back=isJ?'mdj':'formule/'+encodeURIComponent(f.id), nm=isJ?'Menu du jour':esc(f.name||f.title||'Menu');
+  const own=isJ?jour().style:f, act=modelOf(own), list=(act.id==='__actuel'?[act]:[]).concat(allModels());
+  const cards=list.map(m=>{ const pf=Object.assign({},f); MSTYLE_KEYS.forEach(k=>delete pf[k]); Object.assign(pf,m.style); const on=act.id===m.id;
+    return `<button type="button" class="mdc${on?' on':''}" data-act="modPick" data-m="${esc(m.id)}"><div class="mdc-d">${pvFrame('formule',0,'pv-a4',{f:pf,variant:'a4'}).replace('class="pv-frame','style="width:100%;height:100%" class="pv-frame')}</div><span><b>${esc(m.name)}</b>${on?'<em>Choisi</em>':''}</span></button>`; }).join('')+(act.id==='__actuel'?'':'');
+  const save=act.id==='__actuel'?`<p class="note" style="text-align:center"><button class="lk" data-act="modSaveCur">Garder le style actuel comme modèle</button></p>`:'';
+  return mtop(nm,back)+crumb([['Mes menus','menus'],[nm,back],['Modèle']])+`<div class="mdg">${cards}</div>${save}<p class="note" style="text-align:center"><a class="lk" href="#/modeles">Créer ou modifier mes modèles</a></p>`;
+}
+function pageModeles(){
+  const rows=allModels().map(m=>`<div class="mdr"><span class="sw">${modSwatch(m)}</span><b>${esc(m.name)}</b><small>${m.std?'Modèle Beltab':'Mon modèle'}</small><span class="sp"></span>${m.std?`<button class="btn g" data-act="modDup" data-m="${esc(m.id)}">Dupliquer</button>`:`<a class="btn g" href="#/tuner/m:${encodeURIComponent(m.id)}">Modifier</a><button class="trash" data-act="modDel" data-m="${esc(m.id)}" title="Supprimer">✕</button>`}</div>`).join('');
+  return mtop('Mes menus','menus')+crumb([['Mes menus','menus'],['Mes modèles']])+`<div class="fe">${card('Mes modèles','coul',`<div class="mdl">${rows}</div><button class="lk add" data-act="modNew">＋ Nouveau modèle</button><p class="note">Un modèle garde les couleurs, la police, les tailles et le logo. Chaque menu choisit le sien ; si vous modifiez un modèle, tous les menus qui l'utilisent changent avec lui.</p>`)}</div>`;
+}
 function pageFormuleEdit(){
   const f=findF(ARG); if(!f) return mtop('Mes menus','menus')+'<div class="empty">Ce menu n\'existe plus. <a class="lk" href="#/menus">Retour</a></div>';
   const fi=DATA.formules.indexOf(f), id=encodeURIComponent(f.id), nm=esc(f.name||f.title||'(sans nom)');
   const del=UI.delc===f.id?`<span class="delc">Supprimer ce menu ?<button class="btn g" data-act="fDelNo">Annuler</button><button class="btn red" data-act="fDelYes">Oui, supprimer</button></span>`:btn('Supprimer le menu','','g','data-act="fDelAsk"');
-  return mtop(nm,'formule/'+id)+crumb([['Mes menus','menus'],[nm,'formule/'+id],['Modifier à la main']])+ph('Modifier à la main',nm,'')+fvMini(f)+
-  `<div class="fe">${card('Le menu','spe',`<div class="frm">${fin('Titre du menu',f.title||f.name||'',`f.${fi}.title`,'w')}${fin('Sous-titre',f.freeText||'',`f.${fi}.freeText`,'w').replace('<input','<input placeholder="Entrée, plat, dessert · 40 €"')}</div>`)}
+  return mtop(nm,'formule/'+id)+crumb([['Mes menus','menus'],[nm,'formule/'+id],['Modifier à la main']])+fvMini(f)+
+  `<div class="fe">${card('Le menu','spe',`<div class="frm">${fin('Titre du menu',f.title||f.name||'',`f.${fi}.title`,'w')}${fta('Sous-titre',f.freeText||'',`f.${fi}.freeText`,'w').replace('<textarea','<textarea rows="2" placeholder="Entrée + plat 20 € · Plat + dessert 20 €"')}${fta('Ligne en bas de l’A4',f.footNote||'',`f.${fi}.footNote`,'w').replace('<textarea','<textarea rows="2" placeholder="Prix TTC, service compris · Produits frais de Normandie"')}</div>`)}
    ${card('Les sections','plats',`<div class="fsl">${(f.tabs||[]).map((t,si)=>{ const n=nPlats(t); return `<div class="fsr"><a href="#/fsec/${id}/${si}"><b>${esc(tr(t.label))||'<i>Sans nom</i>'}</b><small>${n?n+' plat'+(n>1?'s':''):'vide'}</small><span class="chev">›</span></a><button class="mv" data-act="secMove" data-si="${si}" data-d="-1" title="Monter">↑</button><button class="mv" data-act="secMove" data-si="${si}" data-d="1" title="Descendre">↓</button></div>`; }).join('')}</div>
      <div class="fsq">${['Apéro','Entrée','Plat','Dessert','Boisson'].filter(x=>!(f.tabs||[]).some(t=>tr(t.label).toLowerCase().startsWith(x.toLowerCase()))).map(x=>`<button type="button" class="chip" data-act="secAdd" data-n="${x}">＋ ${x}</button>`).join('')}<button type="button" class="chip" data-act="secAdd" data-n="">＋ Autre section</button></div>`)}
    ${card('Majuscules et minuscules','edit',[['Nom des sections','catCase',f.catCase==='lower'?'lower':'upper'],['Nom des plats','nameCase',f.nameCase==='lower'?'lower':'upper']].map(([l,k,v])=>`<div class="op"><b>${l}</b>${segb([['upper','Majuscule'],['lower','Minuscule']],v,'fCase',`data-k="${k}"`)}</div>`).join(''))}
@@ -1890,7 +1932,9 @@ function pageFormuleSec(){
 // ── éditeur d'export (formules et menu du jour) ──
 const TUNER_FIELDS=[['formuleTitleColor','formuleTitlePct','Titre'],['formuleSubColor','formuleSubPct','Sous-titre'],['instaTitleColor','titleSizePct','Sections'],['instaMenuColor','menuSizePct','Plats'],['instaDescColor','descSizePct','Description']];
 const STEPS=[70,85,100,120,140];
-function tunerTarget(){ if(ARG==='mdj'){ const sp=jour(); if(!sp.style) sp.style={}; return {obj:sp.style, f:jourAsFormule(sp), label:'Menu du jour', back:'mdj', verb:'Partager'}; } const f=findF(ARG); return f?{obj:f,f,label:f.name||f.title||'Menu',back:'formule/'+encodeURIComponent(f.id),verb:'Exporter'}:null; }
+function tunerTarget(){ if(ARG.startsWith('m:')){ const m=myModels().find(x=>x.id===ARG.slice(2)); if(!m) return null; const s0=DATA.formules[0]||{title:'Menu',freeText:'Entrée + plat + dessert · 25 €',tabs:[{label:{fr:'Entrée'},cards:[{label:{fr:''},dishes:[{name:{fr:'Velouté de saison'},price:''}]}]},{label:{fr:'Plat'},cards:[{label:{fr:''},dishes:[{name:{fr:'Filet de bar, beurre blanc'},price:''}]}]}]};
+    const pf=Object.assign({},s0); MSTYLE_KEYS.forEach(k=>delete pf[k]); Object.assign(pf,m.style); return {obj:m.style,f:pf,label:m.name,back:'modeles',verb:'Modèle',model:m}; }
+  if(ARG==='mdj'){ const sp=jour(); if(!sp.style) sp.style={}; return {obj:sp.style, f:jourAsFormule(sp), label:'Menu du jour', back:'mdj', verb:'Partager'}; } const f=findF(ARG); return f?{obj:f,f,label:f.name||f.title||'Menu',back:'formule/'+encodeURIComponent(f.id),verb:'Exporter'}:null; }
 function pageTuner(){
   const T=tunerTarget(); if(!T) return '<div class="empty">Menu introuvable.</div>';
   const o=T.obj, fld=TUNER_FIELDS.find(x=>x[1]===UI.tunerEl||x[0]===UI.tunerEl)||TUNER_FIELDS[3];
@@ -1898,18 +1942,19 @@ function pageTuner(){
   const cls=x=>x==='a4'?'pv-a4':x==='post'?'pv-po':'pv-st';
   const pct=o[fld[1]]??100, stepI=Math.max(0,STEPS.indexOf(STEPS.reduce((b,s)=>Math.abs(s-pct)<Math.abs(b-pct)?s:b,100)));
   const fonts=(ENGFONTS||[]).map(x=>`<option ${x===(o.instaFont||'')?'selected':''}>${esc(x)}</option>`).join('');
-  return `<div class="tun"><div class="tun-top"><a class="x" href="#/${T.back}" aria-label="Fermer">✕</a><b>${esc(T.label)} · réglages précis</b><div class="seg">${[['a4','A4'],['post','Post'],['story','Story']].map(([k,l])=>`<button type="button" data-act="tunerV" data-v="${k}" class="${v===k?'on':''}">${l}</button>`).join('')}</div><span class="sp"></span>
-    ${btn('Télécharger A4','share','w','data-act="tunerDl" data-v="a4"')}${btn(tbMobShare()?'Partager le post':'Télécharger Post','share','w','data-act="tunerDl" data-v="post"')}${btn(tbMobShare()?'Partager la story':'Télécharger Story','share','','data-act="tunerDl" data-v="story"')}</div>
+  return `<div class="tun"><div class="tun-top"><a class="x" href="#/${T.back}" aria-label="Fermer">✕</a>${T.model?`<input class="in tun-nm" value="${esc(T.model.name)}" data-act="modName" aria-label="Nom du modèle">`:`<b>${esc(T.label)} · réglages précis</b>`}<div class="seg">${[['a4','A4'],['post','Post'],['story','Story']].map(([k,l])=>`<button type="button" data-act="tunerV" data-v="${k}" class="${v===k?'on':''}">${l}</button>`).join('')}</div><span class="sp"></span>
+    ${T.model?`<a class="btn" href="#/modeles">Terminé</a>`:`${btn('Télécharger A4','share','w','data-act="tunerDl" data-v="a4"')}${btn(tbMobShare()?'Partager le post':'Télécharger Post','share','w','data-act="tunerDl" data-v="post"')}${btn(tbMobShare()?'Partager la story':'Télécharger Story','share','','data-act="tunerDl" data-v="story"')}`}</div>
    <div class="tun-body"><div class="tun-stage"><div class="side-prev">${pvFrame('formule',0,cls(others[0]),{f:T.f,variant:others[0]})}<small>${others[0]==='a4'?'A4':others[0]==='post'?'Post':'Story'}</small></div>
      <div class="main-prev" style="aspect-ratio:${v==='a4'?'794/1123':v==='post'?'3/4':'9/16'};transform:scale(${UI.zoom/100});transform-origin:center">${pvFrame('formule',0,cls(v),{f:T.f,variant:v}).replace('class="pv-frame','style="width:100%;height:100%;background:#fff" class="pv-frame')}<div class="zoom"><button type="button" data-act="zoom" data-d="-10">−</button><span>${UI.zoom} %</span><button type="button" data-act="zoom" data-d="10">＋</button></div></div>
      <div class="side-prev">${pvFrame('formule',0,cls(others[1]),{f:T.f,variant:others[1]})}<small>${others[1]==='a4'?'A4':others[1]==='post'?'Post':'Story'}</small></div></div>
    <aside class="tun-tools"><div class="tt-h">Je règle</div><div class="chips">${TUNER_FIELDS.map(x=>`<span role="button" data-act="tunerEl" data-v="${x[1]||x[0]}" class="${x===fld?'on':''}">${x[2]}</span>`).join('')}</div>
     ${fld[1]?`<div class="tt-h">Taille · ${fld[2]}</div><div class="sld"><button type="button" data-act="tunerSize" data-d="-1">−</button><div class="tr"><i style="width:${stepI/4*100}%"></i><em style="left:${stepI/4*100}%"></em></div><button type="button" data-act="tunerSize" data-d="1">＋</button></div><div class="steps">${STEPS.map((s,i)=>i===stepI?`<b>${s}</b>`:`<span>${s}</span>`).join('')}</div>`:''}
+    ${T.model?`<div class="tt-h">Couleur · ${fld[2]}</div><div class="colorpick"><input type="color" value="${esc(o[fld[0]]||'#16181d')}" data-act="tunerColor" data-k="${fld[0]}"><button class="lk" style="color:#cfd3db" data-act="tunerColorReset" data-k="${fld[0]}">Couleur par défaut</button></div><div class="tt-h">Couleur · Arrière-plan</div><div class="colorpick"><input type="color" value="${esc(o.instaBgColor||'#ffffff')}" data-act="tunerColor" data-k="instaBgColor"><button class="lk" style="color:#cfd3db" data-act="tunerColorReset" data-k="instaBgColor">Par défaut</button></div>`:''}
     <div class="tt-h">Police</div><select class="in" data-act="tunerFont"><option value="">Police par défaut</option>${fonts}</select>
     <div class="tt-h">Alignement</div>${segb([['0','Centré'],['1','À gauche']],o.alignContentLeft?'1':'0','tunerAlign')}
     <div class="tt-h">Espace entre les plats</div>${segb([[85,'Serré'],[100,'Normal'],[120,'Aéré'],[140,'Très aéré']],o.dishGapPct??100,'tunerGap')}
     <div class="tt-h">Logo <small>(A4 et Story)</small></div>${segb([['none','Aucun'],['petit','Petit'],['moyen','Moyen'],['grand','Grand']],o.showLogo===false?'none':(o.logoSize||'moyen'),'tunerLogo')}
-    <div class="tt-h">Majuscules et minuscules</div>${[['Sections','catCase',o.catCase==='lower'?'lower':'upper'],['Plats','nameCase',o.nameCase==='lower'?'lower':'upper'],['Description','descCase',o.descCase==='upper'?'upper':'lower']].map(([l,k,val])=>`<div style="display:flex;align-items:center;justify-content:space-between;margin:6px 0"><span style="font-size:13px;color:#cfd3db">${l}</span>${segb([['upper','MAJ'],['lower','min']],val,'tunerCase',`data-k="${k}"`)}</div>`).join('')}
+    ${T.model?'':`    <div class="tt-h">Majuscules et minuscules</div>${[['Sections','catCase',o.catCase==='lower'?'lower':'upper'],['Plats','nameCase',o.nameCase==='lower'?'lower':'upper'],['Description','descCase',o.descCase==='upper'?'upper':'lower']].map(([l,k,val])=>`<div style="display:flex;align-items:center;justify-content:space-between;margin:6px 0"><span style="font-size:13px;color:#cfd3db">${l}</span>${segb([['upper','MAJ'],['lower','min']],val,'tunerCase',`data-k="${k}"`)}</div>`).join('')}`}
    </aside></div></div>`;
 }
 let ENGFONTS=null;
@@ -3034,7 +3079,7 @@ async function saveMyName(v){ v=String(v||'').trim().slice(0,40); if(v===myPreno
   catch(e){ toast('⚠ '+(e.message||e)); } }
 async function tmCall(path,body,ok){ try{ await napi(path,body); if(ok) toast(ok); loadTeam(true); }catch(e){ toast('⚠ '+e.message); } }
 function pageCompte(){ return mtop(STAFF?'Accueil':'Tableau de bord','dash')+ph('Mon compte','','')+`<div class="pgrid g-1-1"><div>${card('Mon compte','compte',row('Connecté',esc((SESSION&&SESSION.user&&SESSION.user.email)||'—'))+`<label class="fd" style="margin:12px 0 4px"><span>Mon prénom</span><input class="in" type="text" id="mePrenom" value="${esc(myPrenom())}" placeholder="Votre prénom" maxlength="40" autocomplete="given-name"></label><p class="tmhint">Il apparaît dans l’historique des prix, pour que l’équipe voie qui a changé quoi.</p>`+`<div class="acts2" style="justify-content:flex-start"><button class="btn g" data-act="pwChange">${I('sauv')}Changer mon mot de passe</button><button class="btn g" data-act="logout">${I('out')}Se déconnecter</button></div>`)}</div></div>`; }
-const PAGES={fedit:pageFormuleEdit,fsec:pageFormuleSec,mdjedit:pageMdjEdit,evolution:pageEvolution,equipe:pageEquipe,compte:pageCompte,messages:pageMessages,dash,resa:pageResa,carte:pageCarte,menus:pageMenus,mdj:pageMdj,formule:pageFormule,tuner:pageTuner,export:pageExport,xprint:pageXprint,xgbiz:pageXgbiz,xinsta:pageXinsta,xcol:pageXcol,comm:pageComm,stats:pageStats,etab:pageEtab,site:pageSite,app:pageApp,secu:pageSecu,clients:pageClients,emails:pageEmails};
+const PAGES={fmod:pageFmod,modeles:pageModeles,fedit:pageFormuleEdit,fsec:pageFormuleSec,mdjedit:pageMdjEdit,evolution:pageEvolution,equipe:pageEquipe,compte:pageCompte,messages:pageMessages,dash,resa:pageResa,carte:pageCarte,menus:pageMenus,mdj:pageMdj,formule:pageFormule,tuner:pageTuner,export:pageExport,xprint:pageXprint,xgbiz:pageXgbiz,xinsta:pageXinsta,xcol:pageXcol,comm:pageComm,stats:pageStats,etab:pageEtab,site:pageSite,app:pageApp,secu:pageSecu,clients:pageClients,emails:pageEmails};
 // Téléphone : même au premier niveau, fil d'Ariane « Accueil › Page » à la place du simple retour
 function levelOneCrumb(html){
   if(html.indexOf('class="crb"')>=0) return html;
@@ -3169,8 +3214,8 @@ let vzRec=null;
 const vzT=x=>tr(x), vzE=x=>esc(x), vzBev=c=>isBevCard(c), vzItems=c=>itemsOf(c);
 // Ce que la voix modifie : la carte, ou le menu personnalisé ouvert (#/formule/…).
 let VZ_MDJ=null;
-function mdjToF(sp){ const g=[]; jourItems(sp).forEach(it=>{ let t=g.find(x=>x.label.fr===(it.s||'')); if(!t){ t={label:{fr:it.s||''},cards:[{label:{fr:''},dishes:[]}]}; g.push(t); } t.cards[0].dishes.push({name:{fr:it.n},desc:{fr:it.d||''},price:''}); }); return {id:'__mdj',title:tr(sp.title)||'Menu du jour',freeText:sp.date||'',tabs:g}; }
-function mdjFromF(sp,F){ sp.items=[]; F.tabs.forEach(t=>(t.cards||[]).forEach(c=>(c.dishes||[]).forEach(d=>{ if(d.hidden) return; const n=tr(d.name); if(n) sp.items.push({s:tr(t.label)||'',n,d:tr(d.desc)||''}); }))); if(F.title) sp.title=setTr(sp.title,F.title); sp.date=F.freeText||''; jourSync(sp); }
+function mdjToF(sp){ const g=[]; jourItems(sp).forEach(it=>{ let t=g.find(x=>x.label.fr===(it.s||'')); if(!t){ t={label:{fr:it.s||''},cards:[{label:{fr:''},dishes:[]}]}; g.push(t); } t.cards[0].dishes.push({name:{fr:it.n},desc:{fr:it.d||''},price:''}); }); return {id:'__mdj',title:tr(sp.title)||'Menu du jour',freeText:sp.date||'',footNote:sp.footNote||'',tabs:g}; }
+function mdjFromF(sp,F){ sp.items=[]; F.tabs.forEach(t=>(t.cards||[]).forEach(c=>(c.dishes||[]).forEach(d=>{ if(d.hidden) return; const n=tr(d.name); if(n) sp.items.push({s:tr(t.label)||'',n,d:tr(d.desc)||''}); }))); if(F.title) sp.title=setTr(sp.title,F.title); sp.date=F.freeText||''; sp.footNote=F.footNote||''; jourSync(sp); }
 function vzTgt(){ /* la page du menu, ou son atelier de mise en forme */ if(PG==='mdj'||PG==='mdjedit'||(PG==='tuner'&&ARG==='mdj')){ const sp=jour(); if(!VZ_MDJ) VZ_MDJ=mdjToF(sp); return {kind:'menu',mdj:true,f:VZ_MDJ,tabs:VZ_MDJ.tabs,nom:'Menu du jour'}; }
   if((PG==='formule'||PG==='fedit'||PG==='fsec'||PG==='tuner')&&ARG&&ARG!=='mdj'){ const f=curF(); if(f){ if(!Array.isArray(f.tabs)) f.tabs=[]; return {kind:'menu',f,tabs:f.tabs,nom:f.title||f.name||'Menu'}; } } return {kind:'carte',tabs:DATA.tabs}; }
 function vzOk(){ return SESSION&&DATA&&!NOACCESS&&!PWSET&&!STAFF; }
@@ -3182,7 +3227,7 @@ function voiceSync(){
 }
 function vzCarte(){
   VZ_MDJ=null; const L=[], T=vzTgt();
-  if(T.kind==='menu') L.push(`# MENU PERSONNALISÉ « ${T.nom} »\n# TITRE DU MENU (le grand titre en haut) : ${T.f.title||T.f.name||''}\n# SOUS-TITRE DU MENU (la ligne sous le titre : prix, dates, conditions) : ${(T.f.freeText||'').replace(/\s+/g,' ')||'(vide)'}\n# Dans un menu, les plats n'ont pas de description : ne jamais en écrire.`);
+  if(T.kind==='menu') L.push(`# MENU PERSONNALISÉ « ${T.nom} »\n# TITRE DU MENU (le grand titre en haut) : ${T.f.title||T.f.name||''}\n# SOUS-TITRE DU MENU (sous le titre : formules et prix, dates, conditions) : ${(T.f.freeText||'').replace(/\n/g,' / ').replace(/\s+/g,' ')||'(vide)'}\n# LIGNE DU BAS DE L'A4 : ${(T.f.footNote||'').replace(/\s+/g,' ')||'(vide)'}\n# Dans un menu, les plats n'ont pas de description : ne jamais en écrire.`);
   (vzTgt().tabs||[]).forEach((t,ti)=>{
     L.push(`# ${T.kind==='menu'?'Section':'Catégorie'} ${ti} : ${tr(t.label)||'(sans nom)'}${t.visible===false?' (masquée)':''}`);
     (t.cards||[]).forEach((c,ci)=>{
@@ -3337,7 +3382,7 @@ async function vzVoir(v,dit){
 }
 function vzApply(){
   const ch=(VZ.res&&VZ.res.ch)||[]; if(!ch.length) return;
-  const T=vzTgt(); VZ.hist.push(JSON.stringify({mdj:T.mdj?JSON.parse(JSON.stringify({items:jour().items,title:jour().title,date:jour().date||'',desc:jour().desc})):null,kind:T.kind,id:T.f&&T.f.id,tabs:T.tabs,title:T.f&&T.f.title,freeText:T.f&&T.f.freeText,pins:DATA.pinnedDishes||[]})); if(VZ.hist.length>10) VZ.hist.shift();
+  const T=vzTgt(); VZ.hist.push(JSON.stringify({mdj:T.mdj?JSON.parse(JSON.stringify({items:jour().items,title:jour().title,date:jour().date||'',footNote:jour().footNote||'',desc:jour().desc})):null,kind:T.kind,id:T.f&&T.f.id,tabs:T.tabs,title:T.f&&T.f.title,freeText:T.f&&T.f.freeText,footNote:T.f&&T.f.footNote,pins:DATA.pinnedDishes||[]})); if(VZ.hist.length>10) VZ.hist.shift();
   const eur=v=>fmtEur(v)?fmtEur(v)+'€':'';
   // 1. modifications, masquer, afficher (les références restent valables) ; 2. ajouts ; 3. déplacements et suppressions, de la fin vers le début
   ch.filter(c=>['modifier','masquer','afficher'].includes(c.action)).forEach(c=>{ const x=vzAt(c.ref); if(!x) return; const it=x.it;
@@ -3355,11 +3400,11 @@ function vzApply(){
     if(c.action==='supprimer'){ if(x.it._pid) DATA.pinnedDishes=(DATA.pinnedDishes||[]).filter(q=>q.pid!==x.it._pid); x.arr.splice(x.ix,1); }
     else { const dest=vzTgt().tabs[c.onglet].cards[c.sous_categorie||0]; if(isBevCard(dest)!==isBevCard(x.c)) return; x.arr.splice(x.ix,1); itemsOf(dest).push(x.it); } });
   ch.filter(c=>c.action==='renommer_section').forEach(c=>{ const t=T.tabs[c.onglet]; if(t&&c.nom) t.label={...(t.label||{}),fr:c.nom}; });
-  ch.filter(c=>c.action==='modifier_menu'&&T.kind==='menu').forEach(c=>{ if(c.titre){ T.f.title=c.titre; } if(c.sous_titre!=null) T.f.freeText=c.sous_titre; });
+  ch.filter(c=>c.action==='modifier_menu'&&T.kind==='menu').forEach(c=>{ if(c.titre){ T.f.title=c.titre; } if(c.sous_titre!=null) T.f.freeText=c.sous_titre; if(c.note!=null) T.f.footNote=c.note; });
   if(T.mdj) mdjFromF(jour(),T.f);
   VZ.done={n:ch.length}; VZ.res=null; VZ.text=''; VZ_VIA=true; touch(true); vzDraw();
 }
-function vzUndo(){ const s=VZ.hist.pop(); if(!s) return; const o=JSON.parse(s); if(o.mdj){ Object.assign(jour(),o.mdj); VZ_MDJ=null; } else if(o.kind==='menu'){ const f=findF(o.id); if(f){ f.tabs=o.tabs; f.title=o.title; f.freeText=o.freeText; } } else DATA.tabs=o.tabs; DATA.pinnedDishes=o.pins; VZ.done=null; touch(true); VZ.open=false; vzDraw(); toast('Changements annulés'); }
+function vzUndo(){ const s=VZ.hist.pop(); if(!s) return; const o=JSON.parse(s); if(o.mdj){ Object.assign(jour(),o.mdj); VZ_MDJ=null; } else if(o.kind==='menu'){ const f=findF(o.id); if(f){ f.tabs=o.tabs; f.title=o.title; f.freeText=o.freeText; f.footNote=o.footNote; } } else DATA.tabs=o.tabs; DATA.pinnedDishes=o.pins; VZ.done=null; touch(true); VZ.open=false; vzDraw(); toast('Changements annulés'); }
 function vzClose(){ if(VZ.listening) vzStopRec(false); VZ.open=false; VZ.res=null; VZ.err=''; VZ.done=null; vzDraw(); }
 function vzDraw(){
   let s=document.getElementById('vzSheet');
@@ -3436,7 +3481,7 @@ const badgeRow=(d,ti,ci,di)=>`<div class="bdg">${BADGES.map(([k,l,e])=>`<button 
 function setByBind(path,val){
   const p=path.split('.');
   if(p[0]==='jour'){ const sp=jour(); if(p[1]==='items'){ sp.items[+p[2]][p[3]]=val; jourSync(sp); } else if(p[1]==='title'){ sp.title=setTr(sp.title,val); } else sp[p[1]]=val; return; }
-  if(p[0]==='f'){ const f=DATA.formules[+p[1]]; if(p[2]==='title'){ f.title=val; f.name=val; return; } if(p[2]==='freeText'){ f.freeText=val; return; }
+  if(p[0]==='f'){ const f=DATA.formules[+p[1]]; if(p[2]==='title'){ f.title=val; f.name=val; return; } if(p[2]==='freeText'){ f.freeText=val; return; } if(p[2]==='footNote'){ f.footNote=val; return; }
     if(p[2]==='tabs'){ const s=f.tabs[+p[3]]; if(p[4]==='label'){ s.label=setTr(s.label,val); return; } if(p[4]==='d'){ const d=s.cards[0].dishes[+p[5]]; if(p[6]==='price') d.price=val; else d[p[6]]=setTr(d[p[6]],val); } } return; }
   if(p[0]==='tab'){ const t=DATA.tabs[+p[1]]; if(p[2]==='label'){ t.label=setTr(t.label,val); return; } const c=t.cards[+p[3]]; if(p[4]==='label'){ c.label=setTr(c.label,val); return; } const d=c.dishes[+p[5]]; if(p[6]==='price') d.price=val;
     else if(p[6]==='priceNum') d.price=val===''?'':fmtEur(val)+'€';
@@ -3487,6 +3532,7 @@ function refreshPreviewsTuner(){ // l'objet formule utilisé par les aperçus es
 document.addEventListener('change',async e=>{
   { const t=e.target, ds=t.dataset||{};
     if(ds.clsort){ UI.clsort=t.value; render(); return; }
+    if(t.dataset.act==='modName'){ const m=myModels().find(x=>x.id===ARG.slice(2)); if(m){ m.name=t.value.trim()||'Mon modèle'; touch(false); } return; }
     if(ds.tmname){ const m=(TEAM||[]).find(x=>x.user_id===ds.tmname), v=t.value.trim(); if(m&&(m.prenom||'')!==v){ m.prenom=v; if(m.me&&SESSION) SESSION.user.user_metadata={...(SESSION.user.user_metadata||{}),prenom:v}; await tmCall('/team/name',{user_id:m.user_id,prenom:v},v?'Prénom enregistré : '+v:'Prénom retiré'); } return; }
     if(t.id==='mePrenom'){ await saveMyName(t.value); return; }
     if(ds.rtab){ if(t.value==='__m') return; await resaUpd(ds.rtab,{table_ids:t.value?[isNaN(+t.value)?t.value:+t.value]:[]},t.value?'Table attribuée':'Table retirée'); return; }
@@ -3557,6 +3603,23 @@ document.addEventListener('click',async e=>{
   if(/^rc[A-Z]/.test(a)){ e.preventDefault(); return rcAct(a,d); }
   if(/^ph[A-Z]/.test(a)){ e.preventDefault(); return phAct(a,d); }
   if(a==='fvGo'){ e.preventDefault(); const tk=document.getElementById('fvTrack'); if(!tk) return; const n=FSLIDES.length; let i=d.i!=null?+d.i:Math.max(0,Math.min(n-1,(UI.fSlide||0)+(+d.d))); UI.fSlide=i; const sl=tk.children[i]; if(sl) tk.scrollTo({left:sl.offsetLeft-tk.offsetLeft-(tk.clientWidth-sl.clientWidth)/2,behavior:'smooth'}); fvMark(); return; }
+  if(a==='modSaveCur'){ e.preventDefault(); const own=ARG==='mdj'?(jour().style||(jour().style={})):findF(ARG); if(!own) return; const m={id:'mod-'+Date.now(),name:'Mon style',style:curStyle(own)}; myModels().push(m); own.model=m.id; touch(false); render(); toast('Modèle « Mon style » créé'); return; }
+  if(a==='modPick'&&d.m==='__actuel'){ e.preventDefault(); go(ARG==='mdj'?'mdj':'formule/'+encodeURIComponent(ARG)); return; }
+  if(a==='modPick'){ e.preventDefault(); const m=findModel(d.m); if(ARG==='mdj'){ const sp=jour(); if(!sp.style) sp.style={}; applyModel(sp.style,m); touch(false); go('mdj'); } else { const f=findF(ARG); if(!f) return; applyModel(f,m); touch(false); go('formule/'+encodeURIComponent(f.id)); } toast('Modèle « '+m.name+' » choisi'); return; }
+  if(a==='modNew'||a==='modDup'){ e.preventDefault(); const src=a==='modDup'?findModel(d.m):MODELS_STD[0]; const m={id:'mod-'+Date.now(),name:a==='modDup'?src.name+' (copie)':'Mon modèle',style:JSON.parse(JSON.stringify(src.style||{}))}; myModels().push(m); touch(false); go('tuner/m:'+m.id); return; }
+  if(a==='modDel'){ e.preventDefault(); DATA.menuModels=myModels().filter(x=>x.id!==d.m); DATA.formules.forEach(f=>{ if(f.model===d.m) f.model='std-classique'; }); const st=jour().style; if(st&&st.model===d.m) st.model='std-classique'; touch(true); return; }
+  if(a==='fvPrint'){ e.preventDefault(); const f=fvTarget(); if(!f) return; const win=window.open('','_blank'); if(win) win.document.write('<p style="font-family:sans-serif;padding:20px">Préparation du menu…</p>');
+    try{ const w=await eng(); const r=await w.formule_renderBlobs(w.formule_buildCfg(f,'a4'),'a4'); const b=r&&r[0]&&r[0].blob; if(!b) throw new Error('image');
+      const url=await new Promise(res=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.readAsDataURL(b); });
+      if(win){ win.document.open(); win.document.write(`<!doctype html><title>Menu</title><style>@page{size:A4;margin:0}html,body{margin:0}img{width:100%;display:block}</style><img src="${url}" onload="setTimeout(()=>{focus();print()},200)">`); win.document.close(); }
+      else { const a2=document.createElement('a'); a2.href=url; a2.download='menu-a4.png'; a2.click(); } }
+    catch(err){ if(win) win.close(); toast('⚠ Impression impossible'); }
+    return; }
+  if(a==='fvIg'){ e.preventDefault(); const f=fvTarget(); if(!f) return; const key=JSON.stringify(f);
+    if(tbMobShare()&&FVPRE.key===key&&FVPRE.file){ try{ navigator.clipboard&&navigator.clipboard.writeText(SITE_URL+'book'); }catch(_){} navigator.share({files:[FVPRE.file]}).catch(()=>{}); return; }
+    if(tbMobShare()){ GAL_KIND='ig'; await doFormule(f,'post'); return; }
+    toast('Génération en cours…'); try{ const w=await eng(); for(const v of ['post','story']){ const r=await w.formule_renderBlobs(w.formule_buildCfg(f,v),v); if(r&&r[0]){ const a2=document.createElement('a'); a2.href=URL.createObjectURL(r[0].blob); a2.download=r[0].name||('menu-'+v+'.png'); a2.click(); } } toast('Post et story téléchargés'); }catch(err){ toast('⚠ Génération impossible'); }
+    return; }
   if(a==='fvDl'){ e.preventDefault(); GAL_KIND=d.v==='a4'?'':'ig'; if(PG==='mdj') await doFormule(jourAsFormule(jour()),d.v); else { const f=curF(); if(!f) return; const w=await eng(); toast('Génération en cours…'); w.formule_exportInsta(f.id,d.v); } return; }
   if(a==='fvVoice'){ e.preventDefault(); VZ.open=true; VZ.err=''; vzDraw(); if(can('voice')&&!VZ.res&&!VZ.done) vzListen(); return; }
   if(a==='stPer'){ e.preventDefault(); UI.stp=/^\d+$/.test(d.v)?+d.v:d.v; render(); loadStats(UI.stp); return; }
