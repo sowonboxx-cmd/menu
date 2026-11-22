@@ -1521,7 +1521,7 @@ function showGallery(imgs){
   const list=[...imgs].sort((a,b)=>(a.pageIndex??0)-(b.pageIndex??0));
   const mob=isMob()||/iPhone|iPad|iPod|Android/i.test(navigator.userAgent||''), ig=GAL_KIND==='ig'; GAL_KIND='';
   g.innerHTML=`<div class="gal-in"><div class="gal-h"><b>Vos images</b><button type="button" class="gal-x" aria-label="Fermer">✕</button></div>
-    ${mob?(ig?`<button type="button" class="gal-save" disabled>${TB_IG}Partager sur Instagram</button><p class="gal-tip">Dans le menu : Instagram, puis Story ou Publication. « Enregistrer ${list.length>1?'les images':'l’image'} » est aussi dans ce menu.</p>`:`<button type="button" class="gal-save" disabled>Enregistrer dans Photos</button><p class="gal-tip">Puis « Enregistrer ${list.length>1?list.length+' images':'l’image'} ». Ou appui long sur une image.</p>`):''}
+    ${mob?(ig?`<button type="button" class="gal-save" disabled>${TB_IG}Partager sur Instagram</button><p class="gal-tip">Dans le menu : Instagram, puis Story ou Publication. <b>Le lien de réservation est copié en même temps</b> : dans la story, sticker « Lien », puis Coller.</p>`:`<button type="button" class="gal-save" disabled>Enregistrer dans Photos</button><p class="gal-tip">Puis « Enregistrer ${list.length>1?list.length+' images':'l’image'} ». Ou appui long sur une image.</p>`):''}
     ${list.map((im,i)=>`<div class="gi"><img src="${im.url}" alt=""><a href="${im.url}" download="${esc(im.name)}">Télécharger ${list.length>1?'· '+(i+1)+'/'+list.length:''}</a></div>`).join('')}</div>`;
   g.querySelector('.gal-x').onclick=()=>g.remove();
   document.body.appendChild(g);
@@ -1532,7 +1532,10 @@ function showGallery(imgs){
   Promise.all(list.map(im=>fetch(im.url).then(r=>r.blob()).then(b=>ig?toJpg(b):b).then(b=>new File([b],(im.name||'menu.png').replace(/\.png$/i,b.type==='image/jpeg'?'.jpg':'.png'),{type:b.type||'image/png'})))).then(files=>{
     if(!(navigator.canShare&&navigator.canShare({files}))){ sv.remove(); g.querySelector('.gal-tip').textContent='Appui long sur une image, puis « Enregistrer dans Photos ».'; return; }
     sv.disabled=false;
-    sv.onclick=async()=>{ try{ await navigator.share({files}); }catch(e){ if(!e||e.name!=='AbortError') toast('Appui long sur une image, puis « Enregistrer dans Photos »'); } };
+    sv.onclick=async()=>{
+      // Instagram : le lien de réservation part dans le presse-papier dans le même geste (toujours un lien dans une story).
+      if(ig){ try{ navigator.clipboard&&navigator.clipboard.writeText(SITE_URL+'book').catch(()=>{}); }catch(e){} }
+      try{ await navigator.share({files}); if(ig) toast('Lien de réservation copié : sticker « Lien », puis Coller'); }catch(e){ if(!e||e.name!=='AbortError') toast('Appui long sur une image, puis « Enregistrer dans Photos »'); } };
   }).catch(()=>{ sv.remove(); });
 }
 // ══ Navigation ══
