@@ -108,10 +108,20 @@
   function classement() {
     var st = Jeu.stats(C, RESTOS);
     var me = Jeu.prenom() || 'Vous';
+    // Exemple tant que les comptes n'existent pas : pour voir à quoi ressemblera le classement
+    var EX = scope === 'potes'
+      ? [['Léa', 14, 31], ['Karim', 11, 22], ['Inès', 7, 12]]
+      : [['Camille', 38, 120], ['Yanis', 33, 96], ['Sofia', 29, 81], ['Thomas', 26, 70]];
+    var rows = EX.map(function (x) { return { n: x[0], c: x[1], r: x[2], me: false }; });
+    rows.push({ n: me, c: st.nbCuisines, r: st.restaurants, me: true });
+    rows.sort(function (a, b) { return b.c - a.c || b.r - a.r; });
     $('tab-classement').innerHTML =
       '<div class="cl-switch"><button type="button" data-scope="potes" aria-pressed="' + (scope === 'potes') + '">Entre potes</button><button type="button" data-scope="france" aria-pressed="' + (scope === 'france') + '">France</button></div>' +
-      '<div class="cl-row is-me"><span class="cl-rank">–</span><span class="cl-av">' + esc(me[0].toUpperCase()) + '</span><span class="cl-name">' + esc(me) + '<small>' + st.nbCuisines + ' cuisines · ' + st.restaurants + ' restaurants</small></span><b>' + st.nbCuisines + '</b></div>' +
-      '<div class="empty"><strong>' + (scope === 'potes' ? 'Le classement entre potes arrive avec les comptes' : 'Le classement France arrive avec les comptes') + '</strong>' +
+      '<p class="cl-demo">Exemple : les autres noms sont fictifs, en attendant les comptes et les invitations.</p>' +
+      rows.map(function (x, i) {
+        return '<div class="cl-row' + (x.me ? ' is-me' : '') + '"><span class="cl-rank">' + (i + 1) + '</span><span class="cl-av' + (x.me ? '' : ' is-ex') + '">' + esc(x.n[0].toUpperCase()) + '</span><span class="cl-name">' + esc(x.n) + (x.me ? '' : ' <em>exemple</em>') + '<small>' + x.c + ' cuisines · ' + x.r + ' restaurants</small></span><b>' + x.c + '</b></div>';
+      }).join('') +
+      '<div class="empty"><strong>' + (scope === 'potes' ? 'Invitez vos potes : ça arrive avec les comptes' : 'Le vrai classement France arrive avec les comptes') + '</strong>' +
       '<p class="muted">On compte les cuisines goûtées. Seuls les repas vérifiés compteront : réservation Beltab honorée, QR de la vitrine scanné sur place, ou ticket de caisse.</p></div>';
     $('tab-classement').querySelectorAll('[data-scope]').forEach(function (b) {
       b.addEventListener('click', function () { scope = b.getAttribute('data-scope'); classement(); });

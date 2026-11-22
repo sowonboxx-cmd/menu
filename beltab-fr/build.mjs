@@ -109,7 +109,14 @@ function header() {
 <a href="/regles/">Les règles</a>
 <a href="${esc(site.espaceRestaurateur)}">Vous êtes restaurateur ?</a>
 </nav>
+<button type="button" class="hdr-burger" aria-label="Menu" aria-expanded="false" onclick="var p=document.getElementById('hdr-panel');p.hidden=!p.hidden;this.setAttribute('aria-expanded',String(!p.hidden))"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
 </div>
+<nav class="hdr-panel" id="hdr-panel" aria-label="Menu" hidden>
+<a href="/moi/#journal">Mon journal</a>
+<a href="/moi/#listes">À tester et favoris</a>
+<a href="/regles/">Les règles de Beltab</a>
+<a href="${esc(site.espaceRestaurateur)}">Vous êtes restaurateur ?</a>
+</nav>
 </header>`;
 }
 
@@ -301,9 +308,11 @@ function renderCarte() {
 <button type="button" class="round-btn locate" id="locate-btn" aria-label="Me localiser">${ico.locate}</button>
 </div>
 <nav class="menu-panel" id="menu" aria-label="Menu" hidden>
-<a href="/">La carte</a>
-<a href="/moi/">Mon passeport</a>
-<a href="/cuisines/">Les cuisines du monde</a>
+<a class="m-desk" href="/">La carte</a>
+<a class="m-desk" href="/moi/">Mon passeport</a>
+<a class="m-desk" href="/cuisines/">Les cuisines du monde</a>
+<a class="m-mob" href="/moi/#journal">Mon journal</a>
+<a class="m-mob" href="/moi/#listes">À tester et favoris</a>
 <a href="/regles/">Les règles</a>
 <a href="${esc(site.espaceRestaurateur)}">Vous êtes restaurateur ?</a>
 ${demo ? '<p class="menu-note">Version de démonstration : certaines fiches sont des exemples.</p>' : ''}
