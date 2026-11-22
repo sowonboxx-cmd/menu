@@ -186,6 +186,13 @@
     return pages;
   }
   var DRINK = /boisson|vin|cocktail|bi[eè]re|soft|cidre|ap[eé]ritif|digestif|caf[eé]|th[eé]s?\b|spiritueux|champagne/i;
+  function menuRow(r, d, si, di, drink) {
+    var full = !!r.full;
+    var th = full && !drink ? (d.photo ? '<img class="fx-th" src="' + esc(d.photo) + '" alt="" loading="lazy">' : '<span class="fx-th"></span>') : '';
+    var tag = full ? 'button type="button" data-dish="' + si + '.' + di + '"' : 'div';
+    var pr = d.prix ? '<b>' + esc(d.prix).split(' · ').map(function (x) { var p = x.split(' — '); return '<span>' + (p[1] ? '<i>' + p[0].toLowerCase() + '</i> ' + p[1] : p[0]) + '</span>'; }).join('') + '</b>' : '';
+    return '<' + tag + ' class="fx-mrow">' + th + '<span class="fx-tx"><strong>' + esc(d.nom) + '</strong>' + (d.desc ? '<small>' + esc(d.desc) + '</small>' : '') + '</span>' + pr + '</' + tag.split(' ')[0] + '>';
+  }
   function cartePop(r, start) {
     var pages = cartePages(r), full = !!r.full;
     var maj = r.miseAJour ? new Date(r.miseAJour).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '';
@@ -194,11 +201,7 @@
       return '<div class="fx-mp" data-pg="' + pi + '">' + p.secs.map(function (o) {
         var x = o.s;
         return (p.secs.length > 1 || x.section !== p.nom ? '<div class="fx-cat"><span>' + esc(x.section) + '</span>' + (x.prix ? '<b>' + esc(x.prix) + '</b>' : '') + '</div>' : (x.prix ? '<div class="fx-cat"><span></span><b>' + esc(x.prix) + '</b></div>' : '')) +
-          x.plats.map(function (d, di) {
-            var th = full && !drink ? (d.photo ? '<img class="fx-th" src="' + esc(d.photo) + '" alt="" loading="lazy">' : '<span class="fx-th"></span>') : '';
-            var tag = full ? 'button type="button" data-dish="' + o.si + '.' + di + '"' : 'div';
-            return '<' + tag + ' class="fx-mrow">' + th + '<span class="fx-tx"><strong>' + esc(d.nom) + '</strong>' + (d.desc ? '<small>' + esc(d.desc) + '</small>' : '') + '</span>' + (d.prix ? '<b>' + esc(d.prix).split(' · ').map(function (x) { var p = x.split(' — '); return '<span>' + (p[1] ? '<i>' + p[0].toLowerCase() + '</i> ' + p[1] : p[0]) + '</span>'; }).join('') + '</b>' : '') + '</' + tag.split(' ')[0] + '>';
-          }).join('');
+          x.plats.map(function (d, di) { return menuRow(r, d, o.si, di, drink); }).join('');
       }).join('') + (!full && pi === pages.length - 1 ? '<p class="fx-note fx-mnote">La carte complète est chez le restaurant.</p>' : '') + '</div>';
     }).join('');
     var s = bottomSheet('<div class="fx-mh"><div><h4>La carte</h4>' + (maj ? '<small>' + esc(r.nom) + ' · mise à jour le ' + esc(maj) + '</small>' : '') + '</div>' + XB() + '</div>' +
@@ -251,7 +254,7 @@
       (tags.length ? '<div class="fx-tags">' + tags.map(function (x) { return '<span>' + esc(x) + '</span>'; }).join('') + '</div>' : '') +
       (desc ? '<button type="button" class="fx-desc" id="fx-desc"><p>' + esc(desc) + '</p>' + (desc.length > 90 ? '<span>Lire la suite' + IC(P.chev, 14) + '</span>' : '') + '</button>' : '') +
       '<div class="fx-acts">' + (beltabResa ? '<button type="button" class="fx-btn is-dark" id="fx-book">' + IC(P.cal, 16) + 'Réserver</button>' : (r.site ? '<a class="fx-btn is-dark" href="' + esc(r.site) + '" target="_blank" rel="noopener nofollow">' + IC(P.globe, 16) + 'Site web</a>' : '')) +
-      '<button type="button" class="fx-btn" id="fx-menu">' + IC(P.menu, 16) + 'La carte</button>' +
+      '<button type="button" class="fx-btn is-line" id="fx-menu">' + IC(P.menu, 16) + 'La carte</button>' +
       '<button type="button" class="fx-btn fx-todo' + (todo ? ' is-on' : '') + '" id="fx-todo">' + IC(P.flag, 16) + '<span>' + (todo ? 'Prévu' : 'À tester') + '</span></button></div></section>';
 
     // ma visite : note et mot privés
@@ -268,22 +271,23 @@
     // la carte : une carte courte sur la fiche (les rubriques) ; tout s'ouvre en pop-up, rubrique par rubrique
     var pages = cartePages(r);
     var maj = r.miseAJour ? new Date(r.miseAJour).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '';
-    var carte = pages.length ? '<section class="fx-card fx-carte" id="fx-carte"><h3>' + (r.full ? 'La carte' : 'Aperçu de la carte') + (maj ? '<small><i></i>Mise à jour le ' + esc(maj) + '</small>' : '') + '</h3>' +
-      '<div class="fx-pills">' + pages.map(function (p, i) { return '<button type="button" data-page="' + i + '">' + esc(p.nom) + '</button>'; }).join('') + '</div>' +
-      (!r.full ? '<p class="fx-note">La carte complète, les prix à jour et les formules sont chez le restaurant.</p>' : '') + '</section>' : '';
+    var carte = '';
+    if (pages.length) {
+      var p0 = pages[0], n0 = 0;
+      carte = '<section class="fx-card fx-carte" id="fx-carte"><h3>' + (r.full ? 'La carte' : 'Aperçu de la carte') + (maj ? '<small><i></i>Mise à jour le ' + esc(maj) + '</small>' : '') + '</h3>' +
+        '<div class="fx-pills">' + pages.map(function (p, i) { return '<button type="button" data-page="' + i + '"' + (i ? '' : ' class="is-on"') + '>' + esc(p.nom) + '</button>'; }).join('') + '</div><div class="fx-mlist">' +
+        p0.secs.map(function (o) { return o.s.plats.map(function (d, di) { if (n0++ >= 4) return ''; return menuRow(r, d, o.si, di, DRINK.test(p0.nom)); }).join(''); }).join('') + '</div>' +
+        '<button type="button" class="fx-more" data-page="0">Voir toute la carte' + IC(P.chev, 16) + '</button>' +
+        (!r.full ? '<p class="fx-note">La carte complète, les prix à jour et les formules sont chez le restaurant.</p>' : '') + '</section>';
+    }
     var resa = '';
     if (beltabResa) {
 
     }
-    var today = JOURS_ORD[(new Date().getDay() + 6) % 7];
-    var hor = '<section class="fx-card" id="fx-horaires"><h3>Horaires<span class="fx-st ' + (st.open ? 'is-open' : 'is-closed') + '"><i></i><strong>' + esc(parts[0]) + '</strong></span></h3><div class="fx-hours">' + JOURS_ORD.map(function (j) {
-      var v = hoursOf(r, j);
-      return '<div class="' + (j === today ? 'is-today' : '') + '"><span>' + j[0].toUpperCase() + j.slice(1) + (j === today ? ' · aujourd’hui' : '') + '</span><span' + (v === 'Fermé' ? ' class="is-off"' : '') + '>' + v + '</span></div>';
-    }).join('') + '</div></section>';
-    var adr = r.adresse ? '<section class="fx-card"><h3>Adresse</h3><p class="fx-addr">' + esc(r.adresse) + '</p><div class="fx-row3">' +
-      '<a class="fx-btn is-dark" href="' + route + '" target="_blank" rel="noopener nofollow">' + IC(P.route, 16) + 'Itinéraire</a>' +
-      (r.telephone ? '<a class="fx-btn" href="tel:' + esc(r.telephone.replace(/\s/g, '')) + '">' + IC(P.phone, 16) + 'Appeler</a>' : '') +
-      '<button type="button" class="fx-btn" id="fx-copy">' + IC(P.copy, 16) + 'Copier</button></div></section>' : '';
+    var adr = r.adresse ? '<section class="fx-card fx-adr"><h3>Adresse</h3><button type="button" class="fx-minimap" id="fx-adrmap" aria-label="Voir l’adresse en détail"></button>' +
+      '<button type="button" class="fx-pop-addr" id="fx-adrtxt"><strong>' + esc(r.adresse) + '</strong>' + (r.acces ? '<span>' + esc(r.acces) + '</span>' : '') + '</button>' +
+      '<div class="fx-row3"><a class="fx-btn is-dark" href="https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(r.nom + ' ' + r.adresse) + '" target="_blank" rel="noopener nofollow">' + IC(P.route, 16) + 'Google Maps</a>' +
+      '<button type="button" class="fx-btn" id="fx-copy">' + IC(P.copy, 16) + '<span>Copier</span></button></div></section>' : '';
     var equipe = (r.equipe || []).length || r.histoire ? '<section class="fx-card"><h3>Qui est derrière</h3>' + (r.equipe || []).map(function (p) {
       return '<div class="fx-person">' + (p.photo ? '<img src="' + esc(p.photo) + '" alt="">' : '<span>' + esc((p.nom || '?')[0]) + '</span>') + '<div><strong>' + esc(p.nom) + '</strong>' + (p.role ? '<small>' + esc(p.role) + '</small>' : '') + '</div></div>';
     }).join('') + (r.histoire ? '<p class="fx-note">' + esc(r.histoire) + '</p>' : '') + (r.site ? '<a class="fx-btn" href="' + esc(r.site) + '" target="_blank" rel="noopener">' + IC(P.globe, 15) + 'Leur histoire sur leur site' + IC(P.ext, 13) + '</a>' : '') + '</section>' : '';
@@ -293,7 +297,7 @@
       var ns = state.data.filter(function (o) { return o.slug !== r.slug; }).sort(function (a, b) { return d(a) - d(b); }).slice(0, 2);
       if (ns.length) near = '<section class="fx-card"><h3>Autres indépendants à côté</h3><div class="dp-near">' + ns.map(function (o) { return '<button type="button" data-go="' + o.slug + '"><strong>' + esc(o.nom) + '</strong><small>' + esc(catLabel(o)) + ' · ' + Math.max(1, Math.round(d(o) * 111000 / 80)) + ' min à pied</small></button>'; }).join('') + '</div></section>';
     }
-    return '<div class="fx">' + top + gal + '<div class="fx-stack">' + ident + visite + phares + carte + resa + hor + adr + equipe + near + '</div></div><div class="dp-resize" id="dp-resize" title="Glisser pour élargir" aria-hidden="true"></div>';
+    return '<div class="fx">' + top + gal + '<div class="fx-stack">' + ident + visite + phares + carte + resa + adr + equipe + near + '</div></div><div class="dp-resize" id="dp-resize" title="Glisser pour élargir" aria-hidden="true"></div>';
   }
 
   // ---------- pop-ups qui montent du bas ----------
@@ -383,6 +387,13 @@
     if (window.BeltabResa && r.reservation && r.reservation.slug) BeltabResa.mount(rz, r.reservation);
     else rz.innerHTML = '<a class="fx-btn is-dark" href="' + esc(r.reservation.url) + '" target="_blank" rel="noopener">Réserver sur leur site</a>';
   }
+  function miniMap(box, r) {
+    try {
+      var mm = new maplibregl.Map({ container: box, style: 'https://tiles.openfreemap.org/styles/liberty', center: [r.lng, r.lat], zoom: 15.6, interactive: false, attributionControl: false });
+      mm.on('style.load', function () { flatStyle(mm); });
+      var pin = document.createElement('div'); pin.innerHTML = PIN; new maplibregl.Marker({ element: pin, anchor: 'bottom' }).setLngLat([r.lng, r.lat]).addTo(mm);
+    } catch (e) {}
+  }
   function adressePop(r) {
     var q = encodeURIComponent(r.nom + ' ' + (r.adresse || ''));
     var s = bottomSheet(XB() + '<h4 class="fx-pop-h">' + IC(P.pin, 18) + 'Adresse</h4>' +
@@ -394,12 +405,7 @@
       (r.telephone ? '<a class="fx-btn" href="tel:' + esc(r.telephone.replace(/\s/g, '')) + '">' + IC(P.phone, 16) + 'Appeler le restaurant</a>' : ''));
     var c = s.el.querySelector('#fx-copy2');
     c.addEventListener('click', function () { try { navigator.clipboard.writeText(r.adresse || ''); c.lastChild.textContent = 'Copiée'; } catch (e) {} });
-    // petite carte du quartier, avec le point du restaurant
-    try {
-      var mm = new maplibregl.Map({ container: s.el.querySelector('#fx-minimap'), style: 'https://tiles.openfreemap.org/styles/liberty', center: [r.lng, r.lat], zoom: 15.6, interactive: false, attributionControl: false });
-      mm.on('style.load', function () { flatStyle(mm); });
-      var pin = document.createElement('div'); pin.innerHTML = PIN; new maplibregl.Marker({ element: pin, anchor: 'bottom' }).setLngLat([r.lng, r.lat]).addTo(mm);
-    } catch (e) {}
+    miniMap(s.el.querySelector('#fx-minimap'), r);
     // à combien de minutes à pied de vous (seulement si la position est déjà autorisée)
     if (navigator.permissions && navigator.geolocation) navigator.permissions.query({ name: 'geolocation' }).then(function (p) {
       if (p.state !== 'granted') return;
@@ -437,6 +443,8 @@
     var cp = $('fx-copy'); if (cp) cp.addEventListener('click', function () {
       try { navigator.clipboard.writeText(r.adresse); cp.lastChild.textContent = 'Copiée'; setTimeout(function () { cp.lastChild.textContent = 'Copier'; }, 1600); } catch (e) {}
     });
+    var am = $('fx-adrmap'); if (am) { miniMap(am, r); am.addEventListener('click', function () { adressePop(r); }); $('fx-adrtxt').addEventListener('click', function () { adressePop(r); }); }
+    sheet.querySelectorAll('.fx-carte [data-dish]').forEach(function (b) { b.addEventListener('click', function () { var k = b.getAttribute('data-dish').split('.'); dishPop(r, +k[0], +k[1]); }); });
     sheet.querySelectorAll('[data-page]').forEach(function (b) { b.addEventListener('click', function () { cartePop(r, +b.getAttribute('data-page')); }); });
     sheet.querySelectorAll('[data-jump]').forEach(function (a) {
       a.addEventListener('click', function (e) {
