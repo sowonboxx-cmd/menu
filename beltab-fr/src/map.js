@@ -315,36 +315,50 @@
   }
   var XB = function () { return '<button type="button" class="fx-ib fx-px" data-x aria-label="Fermer">' + IC(P.close, 17) + '</button>'; };
 
+  // fiche d'un plat (Pro et Master) : fond noir, photo carrée arrondie (floutée autour si elle n'est pas carrée),
+  // fiche sombre en dessous avec les autres plats de la rubrique. On glisse sur la photo pour passer au plat suivant.
   function dishPop(r, si, pi) {
-    var secs = r.carte;
-    var s = bottomSheet('<div class="fx-dish" id="fx-dish"></div>', 'is-tall');
-    function draw(a, b) {
-      var sec = secs[a], p = sec.plats[b];
-      var box = s.el.querySelector('#fx-dish');
-      box.innerHTML = XB() + '<div class="fx-dish-ph">' + (p.photo ? '<img src="' + esc(p.photo) + '" alt="' + esc(p.nom) + '">' : '<span>' + IC(P.menu, 40) + '</span>') + '</div>' +
-        '<div class="fx-dish-tx"><div><h4>' + esc(p.nom) + '</h4>' + (p.desc ? '<p>' + esc(p.desc) + '</p>' : '') + '</div><b>' + esc(p.prix) + '</b></div>' +
-        '<div class="fx-dish-tabs">' + secs.map(function (x, i) { return '<button type="button" data-t="' + i + '"' + (i === a ? ' aria-selected="true"' : '') + '>' + esc(x.section) + '</button>'; }).join('') + '</div>' +
-        '<div class="fx-dish-th">' + sec.plats.map(function (x, i) { return '<button type="button" data-p="' + i + '"' + (i === b ? ' aria-current="true"' : '') + '>' + (x.photo ? '<img src="' + esc(x.photo) + '" alt="">' : '<span></span>') + '<small>' + esc(x.nom) + '</small></button>'; }).join('') + '</div>';
-      box.querySelector('[data-x]').addEventListener('click', s.close);
-      box.querySelectorAll('[data-t]').forEach(function (t) { t.addEventListener('click', function () { draw(+t.getAttribute('data-t'), 0); }); });
-      box.querySelectorAll('[data-p]').forEach(function (t) { t.addEventListener('click', function () { draw(a, +t.getAttribute('data-p')); }); });
-      var cur = box.querySelector('[aria-current]'); if (cur) cur.scrollIntoView({ inline: 'center', block: 'nearest' });
-      var ct = box.querySelector('[aria-selected]'); if (ct) ct.scrollIntoView({ inline: 'center', block: 'nearest' });
-      // glisser sur la photo : plat suivant / précédent
-      var x0 = null, phe = box.querySelector('.fx-dish-ph');
-      phe.addEventListener('touchstart', function (e) { x0 = e.touches[0].clientX; }, { passive: true });
-      phe.addEventListener('touchend', function (e) {
-        if (x0 == null) return; var dx = e.changedTouches[0].clientX - x0; x0 = null;
-        if (Math.abs(dx) < 40) return;
-        var na = a, nb = b + (dx < 0 ? 1 : -1);
-        if (nb >= sec.plats.length) { na = (a + 1) % secs.length; nb = 0; }
-        if (nb < 0) { na = (a - 1 + secs.length) % secs.length; nb = secs[na].plats.length - 1; }
-        draw(na, nb);
-      });
+    var secs = r.carte, maj = r.miseAJour ? new Date(r.miseAJour).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '';
+    var w = document.createElement('div'); w.className = 'fx-dp'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true');
+    document.body.appendChild(w);
+    var close = function () { w.classList.remove('is-in'); setTimeout(function () { w.remove(); }, 200); document.removeEventListener('keydown', key); };
+    var key = function (e) { if (e.key === 'Escape') close(); if (e.key === 'ArrowRight') step(1); if (e.key === 'ArrowLeft') step(-1); };
+    document.addEventListener('keydown', key);
+    var a = si, b = pi;
+    function step(d) {
+      var nb = b + d, na = a;
+      if (nb >= secs[a].plats.length) { na = (a + 1) % secs.length; nb = 0; }
+      if (nb < 0) { na = (a - 1 + secs.length) % secs.length; nb = secs[na].plats.length - 1; }
+      a = na; b = nb; draw();
     }
-    draw(si, pi);
+    function prix(p) {
+      return esc(p).split(' · ').map(function (x) { var q = x.split(' — '); return '<span>' + (q[1] ? '<i>' + q[0].toLowerCase() + '</i> <b>' + q[1] + '</b>' : '<b>' + q[0] + '</b>') + '</span>'; }).join('');
+    }
+    function draw() {
+      var sec = secs[a], p = sec.plats[b], drink = DRINK.test(sec.section);
+      var ph = p.photo ? '<img class="fx-dp-blur" src="' + esc(p.photo) + '" alt=""><img class="fx-dp-img" src="' + esc(p.photo) + '" alt="' + esc(p.nom) + '">' : '<span class="fx-dp-none">' + IC(P.menu, 44) + '</span>';
+      var th = !drink && sec.plats.length > 1 ? '<div class="fx-dp-th">' + sec.plats.map(function (x, i) {
+        return '<button type="button" data-p="' + i + '"' + (i === b ? ' aria-current="true"' : '') + ' aria-label="' + esc(x.nom) + '">' + (x.photo ? '<img src="' + esc(x.photo) + '" alt="">' : '<span></span>') + '</button>';
+      }).join('') + '</div>' : '';
+      w.innerHTML = '<div class="fx-dp-in"><div class="fx-dp-top"><span>' + esc(sec.section.split(' · ')[0]) + ' · ' + (b + 1) + ' / ' + sec.plats.length + '</span>' +
+        '<button type="button" class="fx-dp-x" aria-label="Fermer">' + IC(P.close, 19) + '</button></div>' +
+        (drink && !p.photo ? '' : '<div class="fx-dp-ph">' + ph + '</div>') +
+        '<div class="fx-dp-card"><div class="fx-dp-h"><h4>' + esc(p.nom) + '</h4>' + (p.prix ? '<div class="fx-dp-pr">' + prix(p.prix) + '</div>' : '') + '</div>' +
+        (p.desc ? '<p>' + esc(p.desc) + '</p>' : '') + th +
+        '<div class="fx-dp-resto">' + (r.logo ? '<img src="' + esc(r.logo) + '" alt="">' : '<span>' + esc(r.nom[0]) + '</span>') + '<div><strong>' + esc(r.nom) + '</strong>' + (maj ? '<small>Mis à jour le ' + esc(maj) + '</small>' : '') + '</div></div></div></div>';
+      w.querySelector('.fx-dp-x').addEventListener('click', close);
+      w.querySelectorAll('[data-p]').forEach(function (t) { t.addEventListener('click', function () { b = +t.getAttribute('data-p'); draw(); }); });
+      var cur = w.querySelector('[aria-current]'); if (cur) cur.scrollIntoView({ inline: 'center', block: 'nearest' });
+      var x0 = null, box = w.querySelector('.fx-dp-ph');
+      if (box) {
+        box.addEventListener('touchstart', function (e) { x0 = e.touches[0].clientX; }, { passive: true });
+        box.addEventListener('touchend', function (e) { if (x0 == null) return; var dx = e.changedTouches[0].clientX - x0; x0 = null; if (Math.abs(dx) > 40) step(dx < 0 ? 1 : -1); });
+      }
+    }
+    draw();
+    w.addEventListener('click', function (e) { if (e.target === w) close(); });
+    requestAnimationFrame(function () { w.classList.add('is-in'); });
   }
-
   function todoPop(r, btn) {
     var lists = lread(LKEY, { fav: {}, todo: {} }), cur = lists.todo[r.slug];
     var s = bottomSheet(XB() + '<h4 class="fx-pop-h">' + IC(P.flag, 18) + 'À tester</h4><p class="fx-pop-p">Quand voulez-vous y aller ? Le restaurant rejoint votre liste « À tester » sur la page Moi.</p>' +
