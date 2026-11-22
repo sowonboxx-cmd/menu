@@ -3233,6 +3233,9 @@ function mdjToF(sp){ const g=[]; jourItems(sp).forEach(it=>{ let t=g.find(x=>x.l
 function mdjFromF(sp,F){ sp.items=[]; F.tabs.forEach(t=>(t.cards||[]).forEach(c=>(c.dishes||[]).forEach(d=>{ if(d.hidden) return; const n=tr(d.name); if(n) sp.items.push({s:tr(t.label)||'',n,d:tr(d.desc)||''}); }))); if(F.title) sp.title=setTr(sp.title,F.title); sp.date=F.freeText||''; sp.footNote=F.footNote||''; jourSync(sp); }
 function vzTgt(){ /* la page du menu, ou son atelier de mise en forme */ if(PG==='mdj'||PG==='mdjedit'||(PG==='tuner'&&ARG==='mdj')){ const sp=jour(); if(!VZ_MDJ) VZ_MDJ=mdjToF(sp); return {kind:'menu',mdj:true,f:VZ_MDJ,tabs:VZ_MDJ.tabs,nom:'Menu du jour'}; }
   if((PG==='formule'||PG==='fedit'||PG==='fsec'||PG==='tuner')&&ARG&&ARG!=='mdj'){ const f=curF(); if(f){ if(!Array.isArray(f.tabs)) f.tabs=[]; return {kind:'menu',f,tabs:f.tabs,nom:f.title||f.name||'Menu'}; } } return {kind:'carte',tabs:DATA.tabs}; }
+// Le micro ne s'affiche que là où on peut s'en servir : accueil, carte (et ses plats), réservations, page d'un menu.
+const VZ_PAGES=['dash','carte','resa','formule','mdj'];
+function vzHere(){ if(!VZ_PAGES.includes(PG)) return false; if(PG==='resa'&&ARG) return false; if(PG==='formule'&&!ARG) return false; return true; }
 function vzOk(){ return SESSION&&DATA&&!NOACCESS&&!PWSET&&!STAFF; }
 function voiceSync(){
   let b=document.getElementById('vzBtn');
@@ -3475,7 +3478,7 @@ function render(){
     if(focus){ const el=app.querySelector(`[data-bind="${focus}"]`); if(el){ el.focus(); try{ const l=el.value.length; el.setSelectionRange(l,l);}catch(e){} } }
     scrollTo(0,y);
   }
-  refreshPreviews(); hideLocked(); fvCenter(); document.body.classList.toggle('fv-on',(PG==='formule'&&!!ARG)||PG==='mdj'); document.body.classList.toggle('vz-off',['fedit','fsec','mdjedit','tuner','modeles','fmod'].includes(PG));
+  refreshPreviews(); hideLocked(); fvCenter(); document.body.classList.toggle('fv-on',(PG==='formule'&&!!ARG)||PG==='mdj'); document.body.classList.toggle('vz-off',!vzHere());
   if(window.FP&&PG==='resa'&&ARG==='esp'&&can('floorplan')) FP.sync();
   if(UI.tbw&&UI.tbw.step===4&&PG==='resa'&&ARG==='boost'){ const cv=document.getElementById('tbCanvas'), W=UI.tbw, k=[W.photo,W.title,W.detail,W.date,W.deadline,W.sv].join('|'); if(cv&&cv.dataset.k!==k){ cv.dataset.k=k; tbDraw(); } }
 }
