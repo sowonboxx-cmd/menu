@@ -594,11 +594,15 @@ async function team(env, req, action, b, cors) {
     const staff = await sb(env, `restaurant_staff?client_slug=eq.${enc(familyOf(slug)[0])}&select=user_id,email,perms,created_at`) || [];
     const out = [];
     for (const a of admins) {
-      let email = '';
-      try { const u = await authAdmin(env, `users/${a.user_id}`); email = u.email || ''; } catch (e) {}
-      out.push({ user_id: a.user_id, email, role: 'admin', me: a.user_id === me.id, locked: !!a.locked });
+      let email = '', prenom = '';
+      try { const u = await authAdmin(env, `users/${a.user_id}`); email = u.email || ''; prenom = (u.user_metadata && u.user_metadata.prenom) || ''; } catch (e) {}
+      out.push({ user_id: a.user_id, email, prenom, role: 'admin', me: a.user_id === me.id, locked: !!a.locked });
     }
-    for (const s of staff) out.push({ user_id: s.user_id, email: s.email, role: 'staff', perms: s.perms || [], created_at: s.created_at });
+    for (const s of staff) {
+      let prenom = '';
+      try { const u = await authAdmin(env, `users/${s.user_id}`); prenom = (u.user_metadata && u.user_metadata.prenom) || ''; } catch (e) {}
+      out.push({ user_id: s.user_id, email: s.email, prenom, role: 'staff', perms: s.perms || [], created_at: s.created_at });
+    }
     return json({ ok: true, members: out, areas: STAFF_AREAS.map(k => ({ k, label: TEAM_LABEL[k] })) }, 200, cors);
   }
   const perms = (Array.isArray(b.perms) ? b.perms : []).filter(p => STAFF_AREAS.includes(p));
@@ -607,7 +611,9 @@ async function team(env, req, action, b, cors) {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json({ ok: false, error: 'Email invalide' }, 400, cors);
     const role = b.role === 'admin' ? 'admin' : 'staff';
     let user = await findUserByEmail(env, email), created = false;
-    if (!user) { user = await authAdmin(env, 'users', { method: 'POST', body: { email, email_confirm: true } }); created = true; }
+    const prenomNew = String(b.prenom || '').trim().slice(0, 40);
+    if (!user) { user = await authAdmin(env, 'users', { method: 'POST', body: { email, email_confirm: true, user_metadata: prenomNew ? { prenom: prenomNew } : {} } }); created = true; }
+    else if (prenomNew && !(user.user_metadata && user.user_metadata.prenom)) await authAdmin(env, `users/${user.id}`, { method: 'PUT', body: { user_metadata: { ...(user.user_metadata || {}), prenom: prenomNew } } }).catch(() => {});
     if (role === 'admin') {
       for (const s of mine) await sb(env, 'restaurant_admins?on_conflict=user_id,client_slug', { method: 'POST', body: { user_id: user.id, client_slug: s }, prefer: 'resolution=ignore-duplicates' }).catch(async () => {
         const ex = await sb(env, `restaurant_admins?user_id=eq.${enc(user.id)}&client_slug=eq.${enc(s)}&select=user_id`);
@@ -638,6 +644,15 @@ async function team(env, req, action, b, cors) {
   }
   const uid = String(b.user_id || '');
   if (!/^[0-9a-f-]{36}$/.test(uid)) return json({ ok: false, error: 'Compte inconnu' }, 400, cors);
+  if (action === 'name') {
+    const prenom = String(b.prenom || '').trim().slice(0, 40);
+    const isAdm = await sb(env, `restaurant_admins?user_id=eq.${enc(uid)}&client_slug=eq.${enc(slug)}&select=user_id`);
+    const isStf = await sb(env, `restaurant_staff?user_id=eq.${enc(uid)}&client_slug=eq.${enc(fam[0])}&select=user_id`);
+    if (!(isAdm && isAdm.length) && !(isStf && isStf.length)) return json({ ok: false, error: 'Cette personne ne fait pas partie de votre équipe' }, 403, cors);
+    const u = await authAdmin(env, `users/${uid}`);
+    await authAdmin(env, `users/${uid}`, { method: 'PUT', body: { user_metadata: { ...((u && u.user_metadata) || {}), prenom } } });
+    return json({ ok: true, prenom }, 200, cors);
+  }
   if (action === 'update') {
     await sb(env, `restaurant_staff?user_id=eq.${enc(uid)}&client_slug=eq.${enc(fam[0])}`, { method: 'PATCH', body: { perms } });
     return json({ ok: true }, 200, cors);
