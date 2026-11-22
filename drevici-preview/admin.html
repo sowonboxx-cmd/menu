@@ -3461,7 +3461,9 @@ function render(){
   if(NOACCESS){ app.innerHTML=noAccessView(); return; }
   if(!DATA){ app.innerHTML=missingView(); return; }
   setFav(DATA.restaurantLogo);
-  const lk=lockOf(PG,ARG), fn=lk?()=>lockedView(lk):(PAGES[PG]||dash);
+  const lk=lockOf(PG,ARG), fn0=lk?()=>lockedView(lk):(PAGES[PG]||dash);
+  // Filet de sécurité : si une page plante, on affiche un message au lieu d'un écran blanc.
+  const fn=()=>{ try{ return fn0(); }catch(err){ console.error(err); return `<div class="c" style="padding:40px 16px;text-align:center"><p style="font-weight:700;font-size:17px">Un souci d’affichage sur cette page.</p><p style="color:var(--mut)">Vos changements sont enregistrés.</p><button class="btn" onclick="location.reload()">Recharger</button><p style="color:var(--mut);font-size:12px;margin-top:18px">${esc(String(err&&err.message||err)).slice(0,160)}</p></div>`; } };
   const focus=document.activeElement&&document.activeElement.dataset?document.activeElement.dataset.bind:null;
   const y=scrollY;
   let html=PG==='tuner'?`<div class="v2">${fn()}</div>`:`<div class="v2"><div class="shell">${side()}<div class="main">${trialBar()}${fn()}</div></div></div>`;
