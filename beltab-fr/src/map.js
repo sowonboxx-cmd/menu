@@ -628,6 +628,8 @@
   $('booking-close').addEventListener('click', closeBooking);
   $('booking').addEventListener('click', function (e) { if (e.target === $('booking')) closeBooking(); });
   $('menu-btn').addEventListener('click', function () { toggle('menu'); });
+  $('avatar-btn').addEventListener('click', function () { toggle('menu'); });
+  if (!DESK.matches) $('q').placeholder = 'Rechercher sur Beltab';
   $('filter-btn').addEventListener('click', function () { toggle('filters'); });
   $('locate-btn').addEventListener('click', function () { geo.trigger(); });
   $('q').addEventListener('input', function (e) { state.q = e.target.value.trim(); $('q-clear').hidden = !e.target.value; renderResults(); });
@@ -639,7 +641,7 @@
     var chip = $('progress-chip');
     var n = d.restaurants.filter(done).length;
     chip.innerHTML = '<span class="pc-bar"><span style="width:' + Math.round(n / Math.max(1, d.restaurants.length) * 100) + '%"></span></span>' +
-      (n ? 'Vous avez découvert ' + Math.round(n / d.restaurants.length * 100) + ' % de la carte' : 'Votre tour du monde commence ici') + ' ›';
+      (n ? '<span class="pc-long">Vous avez découvert ' + Math.round(n / d.restaurants.length * 100) + ' % de la carte ›</span><span class="pc-short">' + Math.round(n / d.restaurants.length * 100) + ' % de la carte découverte ›</span>' : 'Votre tour du monde commence ici ›');
     chip.hidden = false;
     state.cats = d.categories || {};
     render();
