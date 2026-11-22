@@ -144,7 +144,20 @@
     check: 'M5 12.5l4.5 4.5L19 7.5', plus: 'M12 5v14M5 12h14', close: 'M6 6l12 12M18 6L6 18'
   };
   function hh(t) { return t.replace(/^0(\d)/, '$1').replace(':00', 'h').replace(':', 'h'); }
-  var deskTab = 'apercu', deskWide = false;
+  // Largeur de la colonne : un tiers de l'écran par défaut, réglable à la souris jusqu'à la moitié (comme Google Maps).
+  var PW_KEY = 'beltab.colonne';
+  function panelW() {
+    var f = 1 / 3;
+    try { var v = parseFloat(localStorage.getItem(PW_KEY)); if (v > 0.2 && v <= 0.5) f = v; } catch (e) {}
+    return Math.round(Math.min(window.innerWidth * 0.5, Math.max(380, window.innerWidth * f)));
+  }
+  function applyW(w) {
+    var sheet = $('sheet'), top = document.querySelector('.map-top');
+    sheet.style.width = w + 'px';
+    if (top) top.style.width = w + 'px';
+    document.documentElement.style.setProperty('--pw', w + 'px');
+  }
+
   function deskPanel(r) {
     var st = Beltab.status(r.horaires);
     var ph = r.photos && r.photos.length ? r.photos : (r.photo ? [r.photo] : []);
@@ -154,24 +167,45 @@
       ph.slice(3).map(function (x) { return '<img src="' + esc(x) + '" alt="' + esc(r.nom) + '" data-zoom hidden>'; }).join('') + '</div>';
     else if (ph.length) gal = '<div class="dp-hero" data-zoom-group>' + ph.map(function (x, i) { return '<img src="' + esc(x) + '" alt="' + esc(r.nom) + '" data-zoom' + (i ? ' hidden' : '') + '>'; }).join('') + '</div>';
     var beltabResa = r.reservation && r.reservation.type === 'beltab';
-    var btn = function (icon, label, attrs, dark) { return '<a class="dp-act' + (dark ? ' is-dark' : '') + '" ' + attrs + '><span>' + IC(P[icon]) + '</span>' + label + '</a>'; };
-    var acts = (beltabResa ? btn('cal', 'Réserver', 'href="#" data-tab="resa"', true) : (r.site ? btn('globe', 'Site web', 'href="' + esc(r.site) + '" target="_blank" rel="noopener nofollow"') : '')) +
-      btn('menu', 'Menu', 'href="#" data-tab="menu"') +
+    var btn = function (icon, label, attrs, dark) { return '<a class="dp-act' + (dark ? ' is-dark' : '') + '" ' + attrs + '>' + IC(P[icon], 17) + label + '</a>'; };
+    var acts = (beltabResa ? btn('cal', 'Réserver', 'href="#dp-resa" data-jump', true) : (r.site ? btn('globe', 'Site web', 'href="' + esc(r.site) + '" target="_blank" rel="noopener nofollow"') : '')) +
       btn('route', 'Itinéraire', 'href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(r.nom + ' ' + (r.adresse || '')) + '" target="_blank" rel="noopener nofollow"') +
-      btn('share', 'Partager', 'href="#" id="dp-share"');
-    var tabs = [['apercu', 'Aperçu'], ['menu', 'Menu']].concat(beltabResa ? [['resa', 'Réserver']] : []);
-    if (!beltabResa && deskTab === 'resa') deskTab = 'apercu';
-    var tabBar = '<div class="dp-tabs" role="tablist">' + tabs.map(function (t) { return '<button type="button" role="tab" data-tab="' + t[0] + '" aria-selected="' + (deskTab === t[0]) + '">' + t[1] + '</button>'; }).join('') + '</div>';
+      btn('share', 'Partager', 'href="#" id="dp-share"') +
+      btn('plus', 'J’ai mangé ici', 'href="' + esc(r.url) + '#mange"');
 
-    // --- onglet Aperçu
+    // sommaire, comme sur une page de site
+    var toc = [];
     var n = jeu.slugs[r.slug] || 0;
-    var band = '<div class="dp-jeu"><span>' + (n ? '<b class="dp-done">' + IC(P.check, 15) + 'Déjà fait ' + (n > 1 ? n + ' fois' : '') + '</b>' : '<b>Vous y êtes allé ?</b><small>Ajoutez-le à votre passeport.</small>') + '</span>' +
-      '<a class="dp-jeu-btn" href="' + esc(r.url) + '#mange">' + IC(P.plus, 16) + 'J’ai mangé ici</a></div>';
-    var phares = (r.phares || []).length ? '<section class="dp-sec"><h3>Les plats phares</h3><div class="dp-phares" data-zoom-group>' + r.phares.map(function (p) {
-      return '<div>' + (p.photo ? z(p.photo, p.nom) : '<span></span>') + '<strong>' + esc(p.nom) + '</strong><small>' + esc(p.prix) + '</small></div>';
-    }).join('') + '</div></section>' : '';
+    var band = n ? '<div class="dp-jeu"><b class="dp-done">' + IC(P.check, 15) + 'Déjà fait ' + (n > 1 ? n + ' fois' : '') + '</b><a href="/moi/#journal">Mon journal ›</a></div>' : '';
+    var phares = '';
+    if ((r.phares || []).length) {
+      toc.push(['dp-phares', 'Plats phares']);
+      phares = '<section class="dp-sec" id="dp-phares"><h3>Les plats phares</h3><div class="dp-phares" data-zoom-group>' + r.phares.map(function (p) {
+        return '<div>' + (p.photo ? z(p.photo, p.nom) : '<span></span>') + '<strong>' + esc(p.nom) + '</strong><small>' + esc(p.prix) + '</small></div>';
+      }).join('') + '</div></section>';
+    }
+    var maj = r.miseAJour ? new Date(r.miseAJour).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '';
+    var secs = r.paid && r.carte && r.carte.length ? r.carte : (r.apercu || []);
+    toc.push(['dp-carte', 'La carte']);
+    var seen = {};
+    var chips = secs.length > 2 ? '<div class="dp-chips">' + secs.map(function (x, i) { var l = x.section.split(' · ')[0]; if (seen[l]) return ''; seen[l] = 1; return '<a href="#dp-s' + i + '" data-jump>' + esc(l) + '</a>'; }).join('') + '</div>' : '';
+    var carte = '<section class="dp-sec dp-menu" id="dp-carte"><div class="dp-menu-head"><h3>' + (r.paid ? 'La carte' : 'Aperçu de la carte') + '</h3>' + (maj ? '<small>Mise à jour le ' + esc(maj) + '</small>' : '') + '</div>' + chips +
+      secs.map(function (x, i) {
+        return '<div class="dp-cat" id="dp-s' + i + '"><span>' + esc(x.section) + '</span>' + (x.prix ? '<b>' + esc(x.prix) + '</b>' : '') + '</div>' + x.plats.map(function (p) {
+          return '<div class="dp-row"><div><strong>' + esc(p.nom) + '</strong>' + (p.desc ? '<small>' + esc(p.desc) + '</small>' : '') + '</div><b>' + esc(p.prix) + '</b></div>';
+        }).join('');
+      }).join('') +
+      (!r.paid ? '<p class="dp-note">La carte complète, les prix à jour et les formules sont chez le restaurant.</p>' : '') +
+      (r.paid && r.site ? '<a class="dp-link" href="' + esc(r.site) + '" target="_blank" rel="noopener">Le site du restaurant ›</a>' : '') + '</section>';
+    var resa = '';
+    if (beltabResa) {
+      toc.push(['dp-resa', 'Réserver']);
+      var url = r.reservation.url + (r.reservation.url.indexOf('?') >= 0 ? '&' : '?') + 'beltab=1';
+      resa = '<section class="dp-sec dp-resa" id="dp-resa"><h3>Réserver une table <small>sans quitter la carte</small></h3><iframe class="dp-frame" src="' + esc(url) + '" title="Réserver chez ' + esc(r.nom) + '" loading="lazy"></iframe></section>';
+    }
+    toc.push(['dp-horaires', 'Horaires']);
     var today = JOURS_ORD[(new Date().getDay() + 6) % 7];
-    var hor = '<section class="dp-sec"><h3>Horaires</h3>' + JOURS_ORD.map(function (j) {
+    var hor = '<section class="dp-sec" id="dp-horaires"><h3>Horaires et adresse</h3>' + JOURS_ORD.map(function (j) {
       var sl = (r.horaires && r.horaires[j]) || [];
       return '<div class="dp-h' + (j === today ? ' is-today' : '') + '"><span>' + j[0].toUpperCase() + j.slice(1) + '</span><span>' + (sl.length ? sl.map(function (x) { return hh(x[0]) + ' – ' + hh(x[1]); }).join(' · ') : 'Fermé') + '</span></div>';
     }).join('') + (r.adresse ? '<p class="dp-addr">' + esc(r.adresse) + '</p>' : '') + '</section>';
@@ -181,57 +215,53 @@
       var ns = state.data.filter(function (o) { return o.slug !== r.slug; }).sort(function (a, b) { return d(a) - d(b); }).slice(0, 2);
       if (ns.length) near = '<section class="dp-sec"><h3>Autres indépendants à côté</h3><div class="dp-near">' + ns.map(function (o) { return '<button type="button" data-go="' + o.slug + '"><strong>' + esc(o.nom) + '</strong><small>' + esc(catLabel(o)) + ' · ' + Math.max(1, Math.round(d(o) * 111000 / 80)) + ' min à pied</small></button>'; }).join('') + '</div></section>';
     }
-    var apercu = band + phares + hor + near;
+    if (ph.length) toc.push(['photos', 'Photos']);
+    var tocHtml = '<nav class="dp-toc" aria-label="Sommaire">' + toc.map(function (t) { return t[0] === 'photos' ? '<a href="#" id="dp-photos">' + t[1] + '</a>' : '<a href="#' + t[0] + '" data-jump>' + t[1] + '</a>'; }).join('') + '</nav>';
 
-    // --- onglet Menu : la carte en tableau, sans quitter la colonne
-    var maj = r.miseAJour ? new Date(r.miseAJour).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '';
-    var secs = r.paid && r.carte && r.carte.length ? r.carte : (r.apercu || []);
-    var menu = '<section class="dp-sec dp-menu"><div class="dp-menu-head"><h3>' + (r.paid ? 'La carte' : 'Aperçu de la carte') + '</h3>' + (maj ? '<small>Mise à jour le ' + esc(maj) + '</small>' : '') + '</div>' +
-      (secs.length > 2 ? '<div class="dp-chips">' + (function () { var seen = {}; return secs.map(function (x, i) { var l = x.section.split(' · ')[0]; if (seen[l]) return ''; seen[l] = 1; return '<a href="#dp-s' + i + '">' + esc(l) + '</a>'; }).join(''); })() + '</div>' : '') +
-      secs.map(function (x, i) {
-        return '<div class="dp-cat" id="dp-s' + i + '"><span>' + esc(x.section) + '</span>' + (x.prix ? '<b>' + esc(x.prix) + '</b>' : '') + '</div>' + x.plats.map(function (p) {
-          return '<div class="dp-row"><div><strong>' + esc(p.nom) + '</strong>' + (p.desc ? '<small>' + esc(p.desc) + '</small>' : '') + '</div><b>' + esc(p.prix) + '</b></div>';
-        }).join('');
-      }).join('') +
-      (!r.paid ? '<p class="dp-note">La carte complète, les prix à jour et les formules sont chez le restaurant.</p>' : '') +
-      (r.paid && r.site ? '<a class="dp-link" href="' + esc(r.site) + '" target="_blank" rel="noopener">Le site du restaurant ›</a>' : '') + '</section>';
-
-    // --- onglet Réserver : l'outil Beltab, sans le bandeau du restaurant
-    var resaUrl = beltabResa ? r.reservation.url + (r.reservation.url.indexOf('?') >= 0 ? '&' : '?') + 'beltab=1' : '';
-    var resa = beltabResa ? '<section class="dp-sec dp-resa"><iframe class="dp-frame" src="' + esc(resaUrl) + '" title="Réserver chez ' + esc(r.nom) + '"></iframe></section>' : '';
-
-    var body = deskTab === 'menu' ? menu : deskTab === 'resa' ? resa : apercu;
-    return '<div class="dp-tools"><button type="button" class="dp-tool" id="dp-wide" aria-label="' + (deskWide ? 'Réduire' : 'Agrandir') + '" title="' + (deskWide ? 'Réduire' : 'Agrandir') + '">' +
-      IC(deskWide ? 'M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5' : 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5', 16) + '</button>' +
-      '<button type="button" class="dp-tool" id="sheet-close" aria-label="Fermer">' + IC(P.close, 16) + '</button></div>' + gal +
+    return '<div class="dp-tools"><button type="button" class="dp-tool" id="sheet-close" aria-label="Fermer">' + IC(P.close, 16) + '</button></div>' + gal +
       '<div class="dp-head"><div class="dp-id">' + (r.logo ? '<img class="rs-logo" src="' + esc(r.logo) + '" alt="">' : '') + '<div><span class="rs-name"><span class="rs-name-txt">' + esc(r.nom) + '</span>' + ICON.badge + '</span>' +
       '<span class="rs-meta">' + esc(catLabel(r)) + ' · ' + esc(r.prix) + ' · ' + esc(r.arrondissement) + '</span></div></div>' +
       '<span class="st ' + (st.open ? 'st-open' : 'st-closed') + '"><strong>' + esc(st.label.split(' · ')[0]) + '</strong>' + (st.label.split(' · ')[1] ? ' · ' + esc(st.label.split(' · ')[1]) : '') + '</span>' +
-      (r.accroche ? '<p class="dp-acc">' + esc(r.accroche) + '</p>' : '') + '<div class="dp-acts">' + acts + '</div></div>' + tabBar + '<div class="dp-body">' + body + '</div>';
+      (r.accroche ? '<p class="dp-acc">' + esc(r.accroche) + '</p>' : '') + '<div class="dp-acts">' + acts + '</div>' + band + '</div>' + tocHtml +
+      phares + carte + resa + hor + near + '<div class="dp-resize" id="dp-resize" title="Glisser pour élargir" aria-hidden="true"></div>';
   }
   function wireDesk(r) {
     var sheet = $('sheet');
-    $('sheet-close').addEventListener('click', function () { state.selected = null; deskTab = 'apercu'; render(); });
-    $('dp-wide').addEventListener('click', function () { deskWide = !deskWide; sheet.classList.toggle('is-wide', deskWide); sheet.innerHTML = deskPanel(r); wireDesk(r); });
+    $('sheet-close').addEventListener('click', function () { state.selected = null; render(); });
     $('dp-share').addEventListener('click', function (e) { e.preventDefault(); if (window.Partage) Partage.link({ url: location.origin + r.url, title: r.nom + ' · Beltab' }); });
-    sheet.querySelectorAll('[data-tab]').forEach(function (b) {
-      b.addEventListener('click', function (e) { e.preventDefault(); deskTab = b.getAttribute('data-tab'); sheet.innerHTML = deskPanel(r); wireDesk(r); var t = sheet.querySelector('.dp-tabs'); if (t) sheet.scrollTop = Math.max(0, t.offsetTop - 8); });
+    var pb = $('dp-photos'); if (pb) pb.addEventListener('click', function (e) { e.preventDefault(); var i = sheet.querySelector('.dp-gal img, .dp-hero img'); if (i && window.Lightbox) Lightbox.open(i); });
+    sheet.querySelectorAll('[data-jump]').forEach(function (a) {
+      a.addEventListener('click', function (e) {
+        e.preventDefault();
+        var el = sheet.querySelector(a.getAttribute('href'));
+        var toc = sheet.querySelector('.dp-toc');
+        if (el) sheet.scrollTo({ top: el.offsetTop - (toc ? toc.offsetHeight : 0) - 6, behavior: 'smooth' });
+      });
     });
-    sheet.querySelectorAll('.dp-chips a').forEach(function (a) {
-      a.addEventListener('click', function (e) { e.preventDefault(); var el = sheet.querySelector(a.getAttribute('href')); if (el) sheet.scrollTop = el.offsetTop - 60; });
+    sheet.querySelectorAll('[data-go]').forEach(function (b) { b.addEventListener('click', function () { select(b.getAttribute('data-go')); }); });
+    // poignée sur le bord droit : on tire pour élargir (jusqu'à la moitié de l'écran)
+    var h = $('dp-resize');
+    h.addEventListener('pointerdown', function (e) {
+      e.preventDefault(); h.setPointerCapture(e.pointerId); document.body.classList.add('is-resizing');
+      var move = function (ev) { applyW(Math.min(window.innerWidth * 0.5, Math.max(380, ev.clientX))); };
+      var up = function () {
+        h.removeEventListener('pointermove', move); h.removeEventListener('pointerup', up); document.body.classList.remove('is-resizing');
+        try { localStorage.setItem(PW_KEY, String(sheet.offsetWidth / window.innerWidth)); } catch (x) {}
+        map.resize();
+      };
+      h.addEventListener('pointermove', move); h.addEventListener('pointerup', up);
     });
-    sheet.querySelectorAll('[data-go]').forEach(function (b) { b.addEventListener('click', function () { deskTab = 'apercu'; select(b.getAttribute('data-go')); }); });
   }
 
   function renderSheet() {
     var sheet = $('sheet');
     var r = state.selected && state.data.filter(function (x) { return x.slug === state.selected; })[0];
     document.body.classList.toggle('side-open', !!(r && DESK.matches));
-    if (!r) { sheet.hidden = true; sheet.innerHTML = ''; sheet.classList.remove('is-side'); return; }
+    if (!r) { sheet.hidden = true; sheet.innerHTML = ''; sheet.classList.remove('is-side'); sheet.style.width = ''; var mt0 = document.querySelector('.map-top'); if (mt0) mt0.style.width = ''; return; }
     if (DESK.matches) {
       sheet.classList.add('is-side');
       sheet.style.top = (document.querySelector('.map-top').offsetHeight) + 'px';
-      sheet.classList.toggle('is-wide', deskWide);
+      applyW(panelW());
       sheet.innerHTML = deskPanel(r);
       sheet.hidden = false;
       sheet.scrollTop = 0;
@@ -239,7 +269,7 @@
       return;
     }
     sheet.classList.remove('is-side');
-    sheet.style.top = '';
+    sheet.style.top = ''; sheet.style.width = ''; var mt = document.querySelector('.map-top'); if (mt) mt.style.width = '';
     var st = Beltab.status(r.horaires);
     var parts = st.label.split(' \u00b7 ');
     var status = '<span class="st ' + (st.open ? 'st-open' : 'st-closed') + '"><strong>' + esc(parts[0]) + '</strong>' + (parts[1] ? ' \u00b7 ' + esc(parts[1]) : '') + '</span>';
@@ -280,11 +310,10 @@
   }
 
   function select(slug) {
-    if (slug !== state.selected) deskTab = 'apercu';
     state.selected = slug;
     var r = state.data.filter(function (x) { return x.slug === slug; })[0];
     if (navigator.vibrate) { try { navigator.vibrate(12); } catch (e) {} }
-    if (r) map.easeTo({ center: [r.lng, r.lat], zoom: Math.max(map.getZoom(), 15), offset: WIDE ? [220, 0] : [0, -90] });
+    if (r) map.easeTo({ center: [r.lng, r.lat], zoom: Math.max(map.getZoom(), 15), offset: DESK.matches ? [Math.round(panelW() / 2), 0] : [0, -90] });
     render();
   }
 
@@ -333,7 +362,7 @@
     if (!state.list.length) return;
     var bounds = new maplibregl.LngLatBounds();
     state.list.forEach(function (r) { bounds.extend([r.lng, r.lat]); });
-    map.fitBounds(bounds, { padding: WIDE ? { top: 60, bottom: 60, left: 480, right: 60 } : { top: 190, bottom: 60, left: 50, right: 50 }, maxZoom: 14 });
+    map.fitBounds(bounds, { padding: WIDE ? { top: 60, bottom: 60, left: (DESK.matches && state.selected ? panelW() : 440) + 40, right: 60 } : { top: 190, bottom: 60, left: 50, right: 50 }, maxZoom: 14 });
   }
 
   // ---------- événements ----------
