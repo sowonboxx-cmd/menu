@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const ROOT = path.dirname(new URL(import.meta.url).pathname);
+const V = Date.now().toString(36); // version des fichiers /src, change à chaque build
 const DIST = path.join(ROOT, 'dist');
 const data = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/restaurants.json'), 'utf8'));
 const { site, restaurants, demo } = data;
@@ -74,13 +75,13 @@ ${ogImage ? `<meta property="og:image" content="${esc(ogImage)}">` : ''}
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/src/styles.css">
+<link rel="stylesheet" href="/src/styles.css?v=${V}">
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld)}</script>` : ''}
 </head>
 <body class="${bodyClass}">
 ${body}
-<script src="/src/common.js"></script>
-${scripts.map((s) => `<script src="${s}"></script>`).join('\n')}
+<script src="/src/common.js?v=${V}"></script>
+${scripts.map((s) => `<script src="${s.startsWith('/src/') ? s + '?v=' + V : s}"></script>`).join('\n')}
 </body>
 </html>`;
 }
@@ -301,7 +302,7 @@ ${demo ? '<p class="menu-note">Version de démonstration : certaines fiches sont
     description: 'La carte des restaurants indépendants, authentiques et familiaux à Paris. Pas de chaîne, pas de groupe : que des indépendants.',
     canonical: '/', body, bodyClass: 'is-map',
     scripts: ['https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js', '/src/jeu.js', '/src/partage.js', '/src/lightbox.js', '/src/map.js'],
-  }).replace('<link rel="stylesheet" href="/src/styles.css">', '<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">\n<link rel="stylesheet" href="/src/styles.css">');
+  }).replace(`<link rel="stylesheet" href="/src/styles.css?v=${V}">`, `<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">\n<link rel="stylesheet" href="/src/styles.css?v=${V}">`);
 }
 
 // ---------- page des règles ----------

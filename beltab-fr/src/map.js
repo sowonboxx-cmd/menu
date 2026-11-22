@@ -134,7 +134,7 @@
     badge: '<svg role="img" aria-label="Indépendant vérifié" width="18" height="18" viewBox="0 0 24 24"><title>Indépendant vérifié</title><polygon points="12.00,1.00 14.48,2.73 17.50,2.47 18.79,5.21 21.53,6.50 21.27,9.52 23.00,12.00 21.27,14.48 21.53,17.50 18.79,18.79 17.50,21.53 14.48,21.27 12.00,23.00 9.52,21.27 6.50,21.53 5.21,18.79 2.47,17.50 2.73,14.48 1.00,12.00 2.73,9.52 2.47,6.50 5.21,5.21 6.50,2.47 9.52,2.73" fill="#1F6B45" stroke="#1F6B45" stroke-width="1.6" stroke-linejoin="round"/><path d="M7.6 12.3l3 3 5.8-6.4" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
   };
   // ---------- colonne de gauche (ordinateur, comme Google Maps) ----------
-  var DESK = window.matchMedia('(min-width: 900px)');
+  var DESK = window.matchMedia('(min-width: 640px)'); // tablette et ordinateur : la fiche dans la colonne de gauche
   var JOURS_ORD = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
   var IC = function (d, w) { return '<svg aria-hidden="true" width="' + (w || 19) + '" height="' + (w || 19) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="' + d + '"/></svg>'; };
   var P = {
