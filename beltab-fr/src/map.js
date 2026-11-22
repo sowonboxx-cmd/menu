@@ -528,14 +528,14 @@
     if (r.reservation && r.reservation.type === 'beltab') resa = '<button type="button" class="act act-dark" id="act-book">' + ICON.cal + 'Réserver</button>';
     else if (r.site) resa = '<a class="act" href="' + esc(r.site) + '" target="_blank" rel="noopener nofollow">Site web' + ICON.ext + '</a>';
     var acts = [resa,
-      '<a class="act" id="act-menu" href="' + esc(r.url) + '#carte">' + ICON.menu + 'Menu</a>',
-      '<a class="act" href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(r.lat + ',' + r.lng) + '" target="_blank" rel="noopener nofollow">' + ICON.route + 'Itinéraire</a>'].filter(Boolean);
+      '<a class="act" id="act-menu" href="' + esc(r.url) + '#carte">' + ICON.menu + 'La carte</a>',
+      '<button type="button" class="act" id="act-adr">' + IC(P.pin, 18) + 'Adresse</button>'].filter(Boolean);
     sheet.innerHTML =
       '<div class="rs-top">' +
       (r.logo ? '<img class="rs-logo" src="' + esc(r.logo) + '" alt="" onerror="this.remove()">' : '') +
       '<a class="rs-info" href="' + esc(r.url) + '">' +
       '<span class="rs-name"><span class="rs-name-txt">' + esc(r.nom) + '</span>' + ICON.badge + '</span>' +
-      '<span class="rs-meta">' + esc(catLabel(r)) + ' \u00b7 <span class="nowrap">' + esc(r.prix) + '</span> \u00b7 ' + esc(r.arrondissement) + '</span>' +
+      '<span class="rs-meta">' + esc(catLabel(r)) + ' \u00b7 ' + esc(r.arrondissement) + '</span>' +
       status + (done(r) ? '<span class="rs-done"><svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Déjà fait · ' + jeu.slugs[r.slug] + ' fois</span>' : '') + '</a>' +
       '<button type="button" class="sheet-close" id="sheet-close" aria-label="Fermer"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
       '</div>' + pdj +
@@ -544,6 +544,7 @@
     $('sheet-close').addEventListener('click', function () { state.selected = null; render(); });
     sheet.querySelector('.rs-info').addEventListener('click', function (e) { e.preventDefault(); openFull(r); });
     var mn = $('act-menu'); if (mn) mn.addEventListener('click', function (e) { e.preventDefault(); openFull(r); cartePop(r, 0); });
+    var ad = $('act-adr'); if (ad) ad.addEventListener('click', function () { adressePop(r); });
     var bk = $('act-book');
     if (bk) bk.addEventListener('click', function () { openFull(r); resaPop(r); });
   }
