@@ -2331,7 +2331,7 @@ async function tbSave(){ const W=UI.tbw; if(!W.title.trim()){ toast('Écrivez ou
 async function loadBoost(){ const q=async p=>{ try{ const r=await p; return r.error?[]:(r.data||[]); }catch(e){ return []; } };
   [BOOSTS,BRESA,MRESA]=await Promise.all([
     q(sb.from('boost_offers').select('*').eq('client_slug',RESA_SLUG).gte('date_iso',iso(Date.now()-90*864e5)).order('date_iso',{ascending:false}).order('created_at',{ascending:false})),
-    q(sb.from('restaurant_reservations').select('ref,covers,date_iso,offer_code,offer_label,created_at,status').not('offer_code','is',null).gte('created_at',new Date(Date.now()-90*864e5).toISOString())).then(a=>a.filter(r=>r.offer_code)),
+    q(sb.from('restaurant_reservations').select('ref,covers,date_iso,offer_code,offer_label,created_at,status').eq('client_slug',RESA_SLUG).not('offer_code','is',null).gte('created_at',new Date(Date.now()-90*864e5).toISOString())).then(a=>a.filter(r=>r.offer_code)),
     q(sb.from('restaurant_reservations').select('*').eq('client_slug',RESA_SLUG).gte('date_iso',todayIso()).lte('date_iso',iso(Date.now()+42*864e5)))]); }
 async function tbAct(a,d){ const W=UI.tbw;
   switch(a){
