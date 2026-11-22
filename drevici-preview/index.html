@@ -9590,7 +9590,9 @@ function buildPdfMenuHTML(cfg){
 function applyTextCase(text, mode){
   if(!text) return text;
   if(mode === 'upper') return text.toUpperCase();
-  if(mode === 'lower') return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+  // « Minuscules » = majuscule au début, le reste tel qu'il a été écrit : les noms propres gardent leurs majuscules
+  // (Bretagne, Louis XVI, Richelieu). Seul un texte tapé tout en capitales est remis en minuscules.
+  if(mode === 'lower'){ const t = /\p{Ll}/u.test(text) ? text : text.toLowerCase(); return t.charAt(0).toUpperCase() + t.slice(1); }
   return text;
 }
 function buildPdfBlocks(cfg){
