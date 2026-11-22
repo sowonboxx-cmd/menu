@@ -1344,6 +1344,9 @@ body.fv-on #vzBtn{display:none}
 .fe .fadd{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.fe .fadd .sel{flex:1;min-width:200px}
 .fe-ft,.fe-del{display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap}
 @media(max-width:899px){.fv-act{grid-template-columns:1fr}.fv-exp-b{grid-template-columns:1fr}.fvm{justify-content:flex-start}.fvm-d{height:220px}.fpr{flex-wrap:wrap;padding:10px;border-radius:16px;background:rgba(16,40,94,.03)}.fpr .in:not(.pr){flex:1 1 100%}.fpr .in.pr{flex:0 0 110px;margin-right:auto}}
+.fv-del{margin:22px 0 8px;display:flex;justify-content:center}
+.fv-delb{font:inherit;font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:8px;border:0;background:none;color:#c4605b;cursor:pointer;padding:10px 14px;border-radius:12px}.fv-delb:hover{background:rgba(196,96,91,.08)}.fv-delb svg{width:17px;height:17px}
+.fv-delc{width:100%;border:1.5px solid rgba(196,96,91,.45);background:rgba(196,96,91,.06);border-radius:18px;padding:16px 18px;display:flex;flex-direction:column;gap:6px}.fv-delc span{color:var(--mut);font-size:13.5px}.fv-delc div{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
 </style>
 </head>
 <body>
@@ -1789,6 +1792,7 @@ function pageMdj(){
   const sp=jour(); if(!Array.isArray(sp.items)) return pageMdjEdit();
   return mtop('Mes menus','menus')+crumb([['Mes menus','menus'],['Menu du jour']])+fvView({f:jourAsFormule(sp),nm:'Menu du jour',sub:'',
     right:`<span class="fv-onl">${tgl(sp.active,'mdjToggle')}<span class="onl" style="color:${sp.active?'var(--ok)':'var(--mut)'}">${sp.active?'En ligne':'Hors ligne'}</span></span>`,
+    del:UI.delc==='mdj'?`<div class="fv-delc"><b>Supprimer le menu du jour ?</b><span>Les plats, la date et le prix sont effacés et il passe hors ligne. Vous pourrez en refaire un quand vous voulez.</span><div><button class="btn g" data-act="fDelNo">Non, le garder</button><button class="btn red" data-act="mdjDelYes">Oui, supprimer</button></div></div>`:`<button type="button" class="fv-delb" data-act="mdjDelAsk">${I('trash')}Supprimer le menu du jour</button>`,
     edit:'#/mdjedit',exp:'#/tuner/mdj',ex:['Aujourd’hui en plat : un bœuf bourguignon','Le dessert, c’est une tarte aux pommes','Mets la date de demain']});
 }
 function pageMdjEdit(){
@@ -1824,7 +1828,8 @@ function pageFormule(){
   if(!ARG) return pageMenus(); // lien « Mes formules » sans menu précis : la liste
   const f=findF(ARG); if(!f) return mtop('Mes menus','menus')+'<div class="empty">Ce menu n\'existe plus. <a class="lk" href="#/menus">Retour</a></div>';
   const id=encodeURIComponent(f.id);
-  return mtop('Mes menus','menus')+crumb([['Mes menus','menus'],[esc(f.name||f.title||'(sans nom)')]])+fvView({f,nm:esc(f.name||f.title||'(sans nom)'),sub:'Menu personnalisé',edit:'#/fedit/'+id,exp:'#/tuner/'+id,
+  const del=UI.delc===f.id?`<div class="fv-delc"><b>Supprimer « ${esc(f.name||f.title||'ce menu')} » ?</b><span>Il disparaît du site et de vos menus. Ça ne peut pas être annulé.</span><div><button class="btn g" data-act="fDelNo">Non, le garder</button><button class="btn red" data-act="fDelYes">Oui, supprimer</button></div></div>`:`<button type="button" class="fv-delb" data-act="fDelAsk">${I('trash')}Supprimer ce menu</button>`;
+  return mtop('Mes menus','menus')+crumb([['Mes menus','menus'],[esc(f.name||f.title||'(sans nom)')]])+fvView({f,del,nm:esc(f.name||f.title||'(sans nom)'),sub:'Menu personnalisé',edit:'#/fedit/'+id,exp:'#/tuner/'+id,
     ex:['Passe l’entrée à 11 €','Change les dates : du 23 au 29 novembre','Remplace le dessert par une tarte aux pommes']});
 }
 function fvView(o){
@@ -1846,6 +1851,7 @@ function fvView(o){
      <div class="fv-exp-b"><button type="button" data-act="fvDl" data-v="a4"><span class="ic">${FV_PRINT}</span><span><b>A4</b><small>Imprimer · A5 aussi</small></span></button>
        <button type="button" data-act="fvDl" data-v="post"><span class="ic ig">${FV_IG}</span><span><b>Post</b><small>${tbMobShare()?'Partager sur Instagram':'Télécharger pour Instagram'}</small></span></button>
        <button type="button" data-act="fvDl" data-v="story"><span class="ic ig">${FV_IG}</span><span><b>Story</b><small>${tbMobShare()?'Partager sur Instagram':'Télécharger pour Instagram'}</small></span></button></div></div>
+   ${o.del?`<div class="fv-del">${o.del}</div>`:''}
   </div>`;
 }
 function fvCenter(){ const tk=document.getElementById('fvTrack'); if(!tk||tk._done) return; tk._done=1; const sl=tk.children[UI.fSlide||0]; if(sl) tk.scrollLeft=sl.offsetLeft-tk.offsetLeft-(tk.clientWidth-sl.clientWidth)/2; }
@@ -3666,9 +3672,11 @@ document.addEventListener('click',async e=>{
     case 'jourDel': sp.items.splice(+d.i,1); jourSync(sp); touch(true); break;
     case 'jourMove': { const i=+d.i, j=i+(+d.d); if(j>=0&&j<sp.items.length){ [sp.items[i],sp.items[j]]=[sp.items[j],sp.items[i]]; jourSync(sp); touch(true);} break; }
     case 'fAdd': { if(DATA.formules.length>=10) DATA.formules.shift(); const id='formule-'+Date.now(); DATA.formules.push({id,name:'Nouveau menu',title:'Nouveau menu',freeText:'',catCase:'upper',nameCase:'upper',descCase:'lower',tabs:['Entrée','Plat','Dessert'].map((n,k)=>({id:id+'-cat'+(k+1),label:{fr:n},cards:[{label:{fr:''},dishes:[]}]}))}); touch(false); go('fedit/'+encodeURIComponent(id)); break; }
-    case 'fDelAsk': UI.delc=ARG; render(); break;
+    case 'fDelAsk': UI.delc=ARG; render(); setTimeout(()=>{ const x=document.querySelector('.fv-delc'); if(x) x.scrollIntoView({block:'center',behavior:'smooth'}); },60); break;
+    case 'mdjDelAsk': UI.delc='mdj'; render(); setTimeout(()=>{ const x=document.querySelector('.fv-delc'); if(x) x.scrollIntoView({block:'center',behavior:'smooth'}); },60); break;
+    case 'mdjDelYes': { const sp=jour(); sp.items=[{s:'Entrée',n:'',d:''},{s:'Plat',n:'',d:''},{s:'Dessert',n:'',d:''}]; sp.title=setTr(sp.title,'Menu du jour'); sp.date=''; sp.price=''; sp.formule=''; sp.desc=setTr(sp.desc,''); sp.active=false; UI.delc=null; touch(false); await save(); toast('Menu du jour supprimé'); render(); break; }
     case 'fDelNo': UI.delc=null; render(); break;
-    case 'fDelYes': DATA.formules=DATA.formules.filter(f=>f.id!==ARG); UI.delc=null; touch(false); await save(); go('menus'); break;
+    case 'fDelYes': { const did=fCurId(); DATA.formules=DATA.formules.filter(f=>f.id!==did); UI.delc=null; touch(false); await save(); toast('Menu supprimé'); go('menus'); break; }
     case 'fCase': curF()[d.k]=d.v; touch(true); break;
     case 'secAdd': { const f=curF(); f.tabs.push({id:f.id+'-cat'+Date.now(),label:{fr:d.n||''},cards:[{label:{fr:''},dishes:[]}]}); touch(false); go('fsec/'+encodeURIComponent(f.id)+'/'+(f.tabs.length-1)); break; }
     case 'secDel': { const f=curF(); f.tabs.splice(+d.si,1); UI.delc=null; touch(true); if(PG==='fsec') go('fedit/'+encodeURIComponent(f.id)); break; }
