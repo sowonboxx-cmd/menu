@@ -158,9 +158,12 @@ body.has-admin-sticky .wrap{padding-bottom:88px}
 .s-title{font-family:var(--restoFont),serif;font-size:26px;font-weight:700;color:var(--text);margin-bottom:10px}
 .s-sub{font-size:14px;color:var(--text2);line-height:1.65;margin-bottom:20px}
 .s-ref{font-size:11px;color:var(--text3);letter-spacing:.12em;text-transform:uppercase;margin-top:8px}
+/* Ouverte dans la colonne de beltab.com (?beltab=1) : pas de bandeau, la colonne montre déjà le restaurant */
+html.beltab .header,html.beltab .admin-sticky{display:none!important}
 </style>
 </head>
 <body>
+<script>if (new URLSearchParams(location.search).get('beltab') === '1') document.documentElement.classList.add('beltab');</script>
 
 <!-- ── Header — logo if uploaded on index.html, else styled text in
      the site's own chosen font, same as index.html's own header. ── -->
@@ -414,9 +417,10 @@ const WRITE_SLUG = 'drevici-surzur';
 const RESA_NOTIFY_URL = 'https://resa.beltab.app/notify';
 // ── Statistiques du site (même compteur que l'accueil ; voir la notice « codes de suivi ») ──
 const BT = (() => { const API = 'https://resa.beltab.app/t', q = new URLSearchParams(location.search);
-  const off = (window.top !== window && q.get('embed') !== '1') || q.get('admin') === '1' || /localhost|127\.0\.0\.1|file:/.test(location.href);
+  const off = (window.top !== window && q.get('embed') !== '1' && q.get('beltab') !== '1') || q.get('admin') === '1' || /localhost|127\.0\.0\.1|file:/.test(location.href);
   let sid = ''; try { sid = sessionStorage.getItem('bt_sid') || ''; if (!sid) { sid = Math.random().toString(36).slice(2, 10) + Date.now().toString(36); sessionStorage.setItem('bt_sid', sid); } } catch (e) { sid = Math.random().toString(36).slice(2, 12); }
   const from = () => { const o = q.get('o'), c = q.get('src');
+    if (q.get('beltab') === '1') return 'BELTAB';
     if (o && /^[A-Za-z0-9]{2,12}$/.test(o)) return 'OFFRE:' + o.toUpperCase();
     if (c && /^[A-Za-z0-9-]{2,40}$/.test(c)) return 'QR:' + c.toUpperCase();
     let h = ''; try { h = new URL(document.referrer).hostname.replace(/^www\./, ''); } catch (e) {}
