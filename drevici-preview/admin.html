@@ -1345,6 +1345,12 @@ body.fv-on #vzBtn{display:none}
 .fe-ft,.fe-del{display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap}
 @media(max-width:899px){.fv-act{grid-template-columns:1fr}.fv-exp-b{grid-template-columns:1fr}.fvm{justify-content:flex-start}.fvm-d{height:220px}.fpr{flex-wrap:wrap;padding:10px;border-radius:16px;background:rgba(16,40,94,.03)}.fpr .in:not(.pr){flex:1 1 100%}.fpr .in.pr{flex:0 0 110px;margin-right:auto}}
 .fv-del{margin:22px 0 8px;display:flex;justify-content:center}
+.lex{margin-top:14px;background:var(--card,#fff);border-radius:16px;padding:0 16px;font-size:14px}
+.lex summary{list-style:none;cursor:pointer;font-weight:700;padding:14px 0;display:flex;align-items:center;justify-content:space-between;color:var(--brand-text,#16285e)}
+.lex summary::-webkit-details-marker{display:none}.lex summary::after{content:'›';font-size:20px;line-height:1;transform:rotate(90deg);transition:transform .2s;color:var(--mut)}.lex[open] summary::after{transform:rotate(-90deg)}
+.lex dl{margin:0;display:flex;flex-direction:column;gap:12px}.lex dt{font-weight:700;margin-bottom:2px}.lex dd{margin:0;color:var(--mut,#6b7080);line-height:1.4}
+.lex dd em{display:block;font-style:normal;color:var(--tx,#16181d);margin-top:3px;font-size:13.5px}.lex-tip{margin:14px 0 16px;color:var(--mut,#6b7080);font-size:13px;line-height:1.4}
+.lex-vz{background:#f3f4f6;margin-top:10px}
 .fv-delb{font:inherit;font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:8px;border:0;background:none;color:#c4605b;cursor:pointer;padding:10px 14px;border-radius:12px}.fv-delb:hover{background:rgba(196,96,91,.08)}.fv-delb svg{width:17px;height:17px}
 .fv-delc{width:100%;border:1.5px solid rgba(196,96,91,.45);background:rgba(196,96,91,.06);border-radius:18px;padding:16px 18px;display:flex;flex-direction:column;gap:6px}.fv-delc span{color:var(--mut);font-size:13.5px}.fv-delc div{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
 .fv-top{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin:-4px 0 8px;font-size:14px;font-weight:600}
@@ -1902,6 +1908,7 @@ function fvView(o){
    ${UI.igPick?(o.eph?`<div class="fv-x"><button type="button" class="pr" data-act="igCancel">Annuler</button><button type="button" class="ig" data-act="igSend" data-v="story" ${FVF.story?'':'disabled'}>${FVF.story?FV_IG+'Partager la story':'<i class="spin"></i>Préparation…'}</button></div>`
      :`<div class="fv-x fv-pick"><button type="button" class="ig fv-wide" data-act="igSend" data-v="story" ${FVF.story?'':'disabled'}>${FVF.story?FV_IG+'Story':'<i class="spin"></i>Story…'}</button><button type="button" class="pr" data-act="igSend" data-v="post" ${FVF.post?'':'disabled'}>${FVF.post?'Post 4:5':'<i class="spin"></i>Post 4:5…'}</button><button type="button" class="pr" data-act="igSend" data-v="post34" ${FVF.post34?'':'disabled'}>${FVF.post34?'Post 3:4':'<i class="spin"></i>Post 3:4…'}</button></div><p class="fv-pk"><span>${FVF.story&&FVF.post&&FVF.post34?'Story et post 4:5 : touchez Instagram. Post 3:4 : « Enregistrer l’image », puis publiez-le depuis Instagram.':'Préparation des images…'}</span><button type="button" class="lk" data-act="igCancel">Annuler</button></p>`)
      :`<div class="fv-x"><button type="button" class="pr" data-act="fvPrint">${FV_PRINT}Imprimer</button><button type="button" class="ig" data-act="fvIg">${FV_IG}${tbMobShare()?'Partager sur Instagram':'Pour Instagram'}</button></div>`}
+   ${vzLexique('menu','lex-fv')}
    ${o.del?`<div class="fv-del">${o.del}</div>`:''}
   </div>`;
 }
@@ -3238,6 +3245,21 @@ function pageEvolution(){
 const VZ={open:false,listening:false,busy:false,text:'',res:null,err:'',done:null,hist:[]};
 const VZ_MIC='<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>';
 // Ce que la fiche affiche pour chaque changement : on montre toujours le nouveau texte du menu (titre, sous-titre, ligne du bas), même si la réponse ne l'a pas résumé.
+// Lexique de la voix : les mots exacts à employer, pour que le restaurateur vise juste.
+const VZ_LEX={menu:[['Le titre','Le grand nom en haut du menu','« Appelle le menu Le Truffaut » · « Le titre plus petit »'],
+  ['Le sous-titre','La ligne sous le titre : formules, prix, dates','« Change le sous-titre : entrée, plat, dessert 42 € »'],
+  ['Les sections','Les rubriques du menu : À partager, Entrée, Plats, Desserts (on peut dire « catégories »)','« Renomme la section À partager en Apéritif » · « Les sections en bleu marine »'],
+  ['Les plats','Les noms des plats, ligne par ligne','« Remplace les falafels par une pizza » · « Les plats un peu plus petits »'],
+  ['Les prix','Le prix d’un plat, ou un supplément « +3 »','« Tarte au chocolat plus 4 » · « Les prix en noir »'],
+  ['La ligne du bas','La petite phrase en bas du menu imprimé (A5)','« En bas, écris Prix TTC, service compris »'],
+  ['Tout le menu','L’alignement de l’ensemble','« Aligne tout à gauche » · « Centre tout »']],
+ carte:[['Les catégories','Les grands onglets de la carte : Huîtres, Tartinades, Vins…','« Renomme la catégorie Tartinades en Rillettes »'],
+  ['Les sous-catégories','Les groupes dans une catégorie : Rillettes de poissons, Tartares d’algues…','« Ajoute un plat dans Tartares d’algues »'],
+  ['Les plats','Le nom de chaque plat ou boisson','« Ajoute une tartinade Saint-Jacques à 11 € » · « Masque le homard »'],
+  ['Les descriptions','Le petit texte sous le nom du plat','« La description du homard : chair tendre, 30 % de homard »'],
+  ['Les prix','Le prix d’un plat ; pour les vins, le verre ou la bouteille','« Le Muscadet passe à 8 € le verre »']]};
+const VZ_LEX_TIPS='Dites le nom du plat tel qu’il est écrit (un ou deux mots suffisent). Tailles : « un peu plus » (+10 %), « plus » (+20 %), « beaucoup plus » (+35 %), gros ou petit.';
+function vzLexique(kind,cls){ const L=VZ_LEX[kind==='menu'?'menu':'carte']; return `<details class="lex ${cls||''}"><summary>Lexique : les mots à utiliser</summary><dl>${L.map(([t,d,e])=>`<div><dt>${t}</dt><dd>${d}<em>${e.split(' · ').join('<br>')}</em></dd></div>`).join('')}</dl><p class="lex-tip">${VZ_LEX_TIPS}</p></details>`; }
 function vzResume(c){
   if(c.action==='modifier_menu'){ const p=[]; if(c.titre) p.push('Titre : « '+c.titre+' »'); if(c.sous_titre!=null) p.push('Sous-titre : « '+String(c.sous_titre).replace(/\n/g,' · ')+' »'); if(c.note!=null) p.push(c.note?'Ligne du bas : « '+c.note+' »':'Ligne du bas retirée'); return p.join(' — ')||c.resume||''; }
   if(c.action==='renommer_section'){ const t=vzTgt().tabs[c.onglet]; return (t?'« '+(tr(t.label)||'Section')+' » → ':'')+'« '+(c.nom||'')+' »'; }
@@ -3484,7 +3506,7 @@ function vzDraw(){
     body=`<div class="vz-h">Je vais faire ceci</div>`+(R.dit?`<p class="vz-dit">« ${vzE(R.dit)} »</p>`:'')+(R.ch.length?`<ul class="vz-l">${R.ch.map(c=>`<li><span class="vz-t vz-${c.action}">${VZ_LBL[c.action]}</span><span>${esc(vzResume(c))}</span></li>`).join('')}</ul>`:'')+
       (R.refus&&!R.ch.length?`<p class="vz-p">${esc(R.refus)}</p>`:'')+(R.lost?`<p class="vz-p">${R.lost} demande${R.lost>1?'s':''} ignorée${R.lost>1?'s':''} : plat introuvable.</p>`:'')+((R.flou||[]).length?`<p class="vz-err">${vzE(R.flou.join(', '))} : précisez le format (le verre ou la bouteille ?).</p>`:'')+
       `<div class="vz-a">${R.ch.length?`<button class="btn" data-vz="ok">Valider</button>`:''}<button class="btn w" data-vz="again">Recommencer</button><button class="btn w" data-vz="close">Annuler</button></div>`; }
-  else body=`<div class="vz-h">${vzTgt().kind==='menu'?'Parlez à votre menu':'Parlez à votre carte'}</div>${vzTgt().kind==='menu'?`<p class="vz-p"><b>${esc(vzTgt().nom)}</b></p>`:''}<p class="vz-p" id="vzState">${VZ.state==='fin'&&VZ.busy?'Je termine la phrase…':VZ.busy?(VZ.text?(vzTgt().kind==='menu'?'Je regarde le menu…':'Je regarde la carte…'):'Je transcris…'):VZ.listening?vzStateTxt():(vzTgt().kind==='menu'?'Exemple : « Passe l\'entrée à 11 €, change les dates du 23 au 29 novembre. »':'Exemple : « Ajoute une tartinade Saint-Jacques à 11 €, le plat du jour est fini. »')}</p>
+  else body=`<div class="vz-h">${vzTgt().kind==='menu'?'Parlez à votre menu':'Parlez à votre carte'}</div>${vzTgt().kind==='menu'?`<p class="vz-p"><b>${esc(vzTgt().nom)}</b></p>`:''}<p class="vz-p" id="vzState">${VZ.state==='fin'&&VZ.busy?'Je termine la phrase…':VZ.busy?(VZ.text?(vzTgt().kind==='menu'?'Je regarde le menu…':'Je regarde la carte…'):'Je transcris…'):VZ.listening?vzStateTxt():(vzTgt().kind==='menu'?'Exemple : « Passe l\'entrée à 11 €, change les dates du 23 au 29 novembre. »':'Exemple : « Ajoute une tartinade Saint-Jacques à 11 €, le plat du jour est fini. »')}</p>${!VZ.busy&&!VZ.listening?vzLexique(vzTgt().kind,'lex-vz'):''}
     <button class="vz-mic${VZ.listening?' on':''}" data-vz="mic" aria-label="${VZ.listening?'Arrêter':'Parler'}"${VZ.busy?' disabled':''}>${VZ_MIC}</button>${VZ.listening?'<div class="vz-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>':''}
     <textarea id="vzTxt" class="in" rows="3" placeholder="Ou écrivez votre demande ici">${esc(VZ.text)}</textarea>
     ${VZ.err?`<p class="vz-err">${esc(VZ.err)}</p>`:''}
