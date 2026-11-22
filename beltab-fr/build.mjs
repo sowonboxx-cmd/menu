@@ -145,7 +145,7 @@ function renderFiche(r, niveau, { variant } = {}) {
 ${s.plats.map((p) => {
     const ph = full ? usePhoto(p.photo) : '';
     const longPrice = p.prix && p.prix.length > 9;
-    return `<div class="dish">${ph ? `<img src="${esc(ph)}" alt="${esc(p.nom)}" loading="lazy" width="80" height="80" onerror="this.remove()">` : ''}<span class="dish-name">${esc(p.nom)}${p.description ? `<small class="dish-desc">${esc(p.description)}</small>` : ''}${longPrice ? `<small class="dish-price-line">${esc(p.prix)}</small>` : ''}</span>${p.prix && !longPrice ? `<span class="dish-price">${esc(p.prix)}</span>` : ''}</div>`;
+    return `<div class="dish">${ph ? `<img src="${esc(ph)}" alt="${esc(p.nom)}" loading="lazy" width="80" height="80" data-zoom onerror="this.remove()">` : ''}<span class="dish-name">${esc(p.nom)}${p.description ? `<small class="dish-desc">${esc(p.description)}</small>` : ''}${longPrice ? `<small class="dish-price-line">${esc(p.prix)}</small>` : ''}</span>${p.prix && !longPrice ? `<span class="dish-price">${esc(p.prix)}</span>` : ''}</div>`;
   }).join('')}
 </div>`).join('');
 
@@ -204,8 +204,8 @@ ${resaBtn}
 
   const body = `${header()}
 ${demoSwitch}
-<main class="fiche ${paid ? 'is-paid' : 'is-free'}">
-${hero ? `<div class="hero"><img src="${esc(hero)}" alt="${esc(r.nom)}" onerror="this.parentNode.remove()"></div>` : ''}
+<main class="fiche ${paid ? 'is-paid' : 'is-free'}" data-zoom-group>
+${hero ? `<div class="hero"><img src="${esc(hero)}" alt="${esc(r.nom)}" data-zoom onerror="this.parentNode.remove()"></div>` : ''}
 <div class="wrap fiche-grid">
 <div class="fiche-main">
 <div class="fiche-title">
@@ -218,7 +218,7 @@ ${actions}
 <div class="jeu-band" id="jeu-band"></div>
 ${pdjHtml}
 ${mdjHtml}
-${paid && pharesOf(r).length ? `<section class="phares"><h2>Les plats phares</h2><div class="phares-grid">${pharesOf(r).map((pl) => `<div class="phare">${pl.photo ? `<img src="${esc(pl.photo)}" alt="${esc(pl.nom)}" loading="lazy" onerror="this.remove()">` : '<span class="phare-ph"></span>'}<strong>${esc(pl.nom)}</strong>${pl.prix ? `<span>${esc(pl.prix)}</span>` : ''}</div>`).join('')}</div></section>` : ''}
+${paid && pharesOf(r).length ? `<section class="phares"><h2>Les plats phares</h2><div class="phares-grid">${pharesOf(r).map((pl) => `<div class="phare">${pl.photo ? `<img src="${esc(pl.photo)}" alt="${esc(pl.nom)}" loading="lazy" data-zoom onerror="this.remove()">` : '<span class="phare-ph"></span>'}<strong>${esc(pl.nom)}</strong>${pl.prix ? `<span>${esc(pl.prix)}</span>` : ''}</div>`).join('')}</div></section>` : ''}
 <section class="card" id="carte">
 <div class="card-head"><h2>La carte</h2><span class="muted small">Mise à jour le ${esc(new Date(r.miseAJour).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }))}</span></div>
 ${formules}
@@ -254,7 +254,7 @@ ${footer()}
     title: `${r.nom} · restaurant indépendant · ${r.arrondissement} | Beltab`,
     description: `${r.nom}, restaurant indépendant ${r.arrondissement}. ${r.accroche} Carte, horaires et réservation.`,
     canonical: urlOf(r), image: hero || '', noindex: variant === 'gratuit', jsonld,
-    scripts: ['/src/fiche.js', '/src/jeu.js', '/src/partage.js', '/src/mange.js'], body,
+    scripts: ['/src/fiche.js', '/src/jeu.js', '/src/partage.js', '/src/lightbox.js', '/src/mange.js'], body,
   });
 }
 
@@ -300,7 +300,7 @@ ${demo ? '<p class="menu-note">Version de démonstration : certaines fiches sont
     title: `Beltab · ${site.accroche}`,
     description: 'La carte des restaurants indépendants, authentiques et familiaux à Paris. Pas de chaîne, pas de groupe : que des indépendants.',
     canonical: '/', body, bodyClass: 'is-map',
-    scripts: ['https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js', '/src/jeu.js', '/src/partage.js', '/src/map.js'],
+    scripts: ['https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js', '/src/jeu.js', '/src/partage.js', '/src/lightbox.js', '/src/map.js'],
   }).replace('<link rel="stylesheet" href="/src/styles.css">', '<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">\n<link rel="stylesheet" href="/src/styles.css">');
 }
 
@@ -328,6 +328,7 @@ function renderRegles() {
 <li><strong>Pas de notes publiques.</strong> Vous pouvez noter vos restaurants pour vous-même ; personne d'autre ne voit vos notes.</li>
 <li><strong>Des cartes datées.</strong> Chaque fiche affiche la date de sa dernière mise à jour.</li>
 <li><strong>Des fiches tenues par les restaurateurs.</strong> Les prix, les horaires et les plats viennent du restaurant lui-même.</li>
+<li><strong>Des photos soignées.</strong> Chaque photo est validée par Beltab avant d'apparaître : nette, belle, sans personne autour. Pas besoin d'un photographe, mais pas de photo floue ou prise à la va-vite. Sinon, nous proposons un photographe.</li>
 <li><strong>Les mêmes règles pour tous.</strong> Mêmes catégories, même mise en page : toutes les cartes se lisent de la même façon.</li>
 </ul>
 
@@ -436,6 +437,8 @@ const pub = restaurants.map((r) => {
     adresse: r.adresse || '', telephone: r.telephone || '', miseAJour: r.miseAJour || '',
     // galerie selon le niveau : gratuit = la photo de présentation, Chef/Starter = 3, Pro/Master = toutes
     photos: [r.photoPrincipale, ...(paid ? pharesOf(r).map((pl) => pl.photo) : []), ...(tierOf(r.niveau) >= 2 ? (r.carte || []).flatMap((x) => x.plats.map((pl) => pl.photo)) : [])].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i),
+    // la carte entière pour l'onglet Menu de la colonne (payant) ; en gratuit, l'aperçu suffit
+    carte: paid ? (r.carte || []).map((x) => ({ section: x.section, prix: x.prix || '', plats: x.plats.map((pl) => ({ nom: pl.nom, prix: pl.prix || '', desc: pl.description || '' })) })) : [],
     phares: paid ? pharesOf(r).map((pl) => ({ nom: pl.nom, prix: pl.prix || '', photo: pl.photo || '' })) : [],
     // aperçu de la carte pour la colonne de gauche : gratuit = 3 plats, payant = les premières rubriques
     apercu: paid
