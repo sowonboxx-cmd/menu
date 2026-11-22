@@ -3194,26 +3194,27 @@ async function vzSend(au){
 // ── « Montre les réservations de demain » : l'IA ne renvoie qu'une période ; les réservations sont lues et résumées ici,
 // sur l'appareil (aucun nom ni téléphone de client n'est envoyé à l'IA), puis l'écran Réservations s'ouvre au bon endroit.
 async function vzVoir(v,dit){
-  const {data,error}=await sb.from('restaurant_reservations').select('ref,date_iso,slot,covers,from_name,status,offer_code').eq('client_slug',RESA_SLUG).gte('date_iso',v.du).lte('date_iso',v.au).order('date_iso').order('slot').limit(2000);
+  const {data,error}=await sb.from('restaurant_reservations').select('ref,date_iso,slot,covers,from_name,status,offer_code,attended').eq('client_slug',RESA_SLUG).gte('date_iso',v.du).lte('date_iso',v.au).order('date_iso').order('slot').limit(2000);
   if(error){ VZ.err='Réservations illisibles : '+error.message; return; }
   const hm=r=>String(r.slot||'').slice(0,5), hh=r=>+hm(r).slice(0,2)||0;
-  let rs=(data||[]).filter(r=>(r.status||'confirmed')==='confirmed');
+  let rs=(data||[]).filter(r=>(r.status||'confirmed')==='confirmed'); const nsAll=(data||[]).filter(r=>r.status==='noshow');
   if(v.moment==='midi') rs=rs.filter(r=>hh(r)<16); else if(v.moment==='soir') rs=rs.filter(r=>hh(r)>=16);
   if(v.heure){ const h=v.heure.padStart(5,'0').slice(0,2); rs=rs.filter(r=>hm(r).slice(0,2)===h); }
   const cov=a=>a.reduce((x,r)=>x+(+r.covers||0),0), pl=(n,w)=>n+' '+w+(n>1?'s':'');
   const t=todayIso(), tm=iso(Date.now()+864e5), lab=d=>d===t?'Aujourd’hui':d===tm?'Demain':(x=>x.charAt(0).toUpperCase()+x.slice(1))(new Date(d+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}));
   const days=[]; for(let d=new Date(v.du+'T12:00:00');iso(d)<=v.au&&days.length<31;d.setDate(d.getDate()+1)) days.push(iso(d));
   const one=days.length===1, quand=one?lab(days[0]):`Du ${lab(days[0]).toLowerCase()} au ${lab(days[days.length-1]).toLowerCase()}`;
-  const lines=[], tb=rs.filter(r=>r.offer_code).length;
+  const lines=[], tb=rs.filter(r=>r.offer_code).length, past=v.au<t;
   if(one){
     if(dayClosed(days[0])&&!rs.length) lines.push('Fermé ce jour-là (Horaires).');
     else if(!rs.length) lines.push('Aucune réservation'+(v.moment?' ce '+v.moment:'')+(v.heure?' à '+v.heure.replace(':','h'):'')+'.');
     else { const by={}; rs.forEach(r=>{ const k=hm(r).slice(0,2); by[k]=(by[k]||0)+(+r.covers||0); }); const top=Object.entries(by).sort((a,b)=>b[1]-a[1])[0];
       if(Object.keys(by).length>1&&!v.heure) lines.push(`Le plus chargé : ${+top[0]} h (${pl(top[1],'couvert')}).`);
       const big=rs.filter(r=>(+r.covers||0)>=6); if(big.length) lines.push('Grandes tables : '+big.map(r=>`${+r.covers} pers. à ${hm(r).replace(':','h')}`).join(', ')+'.');
-      if(v.heure||rs.length<=8) lines.push(...rs.map(r=>`${hm(r).replace(':','h')} · ${r.from_name||'—'} · ${+r.covers||0} pers.`)); }
+      lines.push(...rs.slice(0,40).map(r=>`${hm(r).replace(':','h')} · ${r.from_name||'—'} · ${+r.covers||0} pers.${r.offer_code?' · Table Boost':''}${r.date_iso<t&&r.attended?' · venu':''}`)); if(rs.length>40) lines.push(`… et ${rs.length-40} autres.`); }
   } else days.forEach(d=>{ const x=rs.filter(r=>r.date_iso===d); lines.push(`${lab(d)} : ${dayClosed(d)&&!x.length?'fermé':x.length?pl(x.length,'résa')+' · '+pl(cov(x),'couvert'):'aucune réservation'}`); });
   if(tb) lines.push(`Dont ${pl(tb,'réservation')} venue${tb>1?'s':''} de Table Boost.`);
+  if(past&&nsAll.length) lines.push(`No-show : ${nsAll.map(r=>(r.from_name||'—')+' ('+(+r.covers||0)+' pers.)').join(', ')}.`);
   VZ.res={resa:true,dit:dit||'',titre:quand+(v.moment?' · '+v.moment:'')+(v.heure?' · '+v.heure.replace(':','h'):''),total:`${pl(rs.length,'réservation')} · ${pl(cov(rs),'couvert')}`,lines,ch:[]};
   // l'écran derrière : la liste « À venir » (14 jours) pour un jour proche, sinon la semaine ou le mois
   const d0=new Date(v.du+'T12:00:00'), n=new Date(); n.setHours(12,0,0,0), ahead=Math.round((d0-n)/864e5);

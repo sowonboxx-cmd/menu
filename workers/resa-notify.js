@@ -1128,7 +1128,7 @@ const VOICE_SCHEMA = {
     refus: { type: 'string', description: "Si la demande ne concerne pas la carte, ou si elle est trop floue : une phrase courte et polie qui explique pourquoi, en français. Sinon vide." },
     reservations: {
       type: 'object',
-      description: "Seulement si le restaurateur demande à VOIR ou CONNAÎTRE ses réservations (« montre les réservations de demain », « qui vient ce soir ? », « les 7 prochains jours ») : la période à afficher. Sinon, ne pas remplir.",
+      description: "Seulement si le restaurateur demande à VOIR ou CONNAÎTRE ses réservations, à venir ou passées (« montre les réservations de demain », « qui vient ce soir ? », « qui est venu vendredi 20 ? », « les 7 prochains jours ») : la période à afficher. Sinon, ne pas remplir.",
       properties: {
         du: { type: 'string', description: 'Premier jour, au format AAAA-MM-JJ.' },
         au: { type: 'string', description: 'Dernier jour inclus, au format AAAA-MM-JJ (le même que « du » pour un seul jour).' },
@@ -1162,7 +1162,7 @@ const VOICE_SCHEMA = {
 };
 const VOICE_SYSTEM = `Tu aides un restaurateur à mettre à jour la carte de son site. Il parle (sa phrase vient d'une dictée, elle peut contenir des fautes).
 Tu ne fais QUE des changements sur la carte : ajouter, modifier (nom, description, prix), masquer, afficher, supprimer ou déplacer un plat ou une boisson.
-Le restaurateur peut aussi demander à VOIR ses réservations (aujourd'hui, demain, après-demain, ce soir, ce midi, vendredi, ce week-end, cette semaine, les 7 prochains jours, qui vient à 20 h…) : dans ce cas, ne propose aucun changement et remplis seulement « reservations » (du, au, moment, heure), en partant de la date du jour donnée plus bas. « Cette semaine » = d'aujourd'hui à dimanche ; « les 7 prochains jours » = aujourd'hui + 6 jours ; « le week-end » = samedi et dimanche qui viennent.
+Le restaurateur peut aussi demander à VOIR ses réservations (aujourd'hui, demain, après-demain, ce soir, ce midi, vendredi, ce week-end, cette semaine, les 7 prochains jours, qui vient à 20 h…) : dans ce cas, ne propose aucun changement et remplis seulement « reservations » (du, au, moment, heure), en partant de la date du jour donnée plus bas. Ça marche aussi pour le PASSÉ : « qui est venu hier ? », « qui est venu le vendredi 20 ? », « les réservations de la semaine dernière », « combien de couverts samedi dernier ? » → les dates passées correspondantes. Un jour de la semaine sans date, avec un verbe au passé (« qui est venu vendredi ? »), c'est le dernier passé ; au présent ou au futur (« qui vient vendredi ? »), c'est le prochain. Une date précise (« le 20 ») sans mois : le mois en cours si ce jour est déjà passé ou aujourd'hui, sinon le mois dernier, sauf si la phrase parle du futur. « Cette semaine » = d'aujourd'hui à dimanche ; « les 7 prochains jours » = aujourd'hui + 6 jours ; « le week-end » = samedi et dimanche qui viennent.
 Pour tout le reste (questions sans demande de changement, conversation, horaires, autre sujet), ne propose aucun changement et remplis « refus ».
 Une demande polie posée comme une question (« est-ce que tu peux… », « tu pourrais regarder la carte et corriger les fautes ? ») EST une demande de changement : fais-la.
 Règles :
