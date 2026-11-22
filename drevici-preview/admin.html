@@ -1212,7 +1212,7 @@ input.in.hr{width:76px;text-align:center;padding:8px 10px;font-size:15px;font-we
 .tb-f{display:block;margin-bottom:10px}.tb-f span{display:block;font:600 12px Inter,sans-serif;color:var(--mut);margin-bottom:4px}.tb-f input,.tb-f select{width:100%;border:0;background:#f6f4f0!important;border-radius:12px;padding:11px 12px;font:500 15px Inter,sans-serif;background:#fff;color:var(--ink)}.tb-f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .tb-pics{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;max-height:560px;overflow:auto;padding:4px;margin:-4px}.tb-pics button{position:relative;aspect-ratio:1;border:0;border-radius:14px;background:#eee center/cover;cursor:pointer}.tb-pics button.on{outline:3px solid #10285e;outline-offset:3px}.tb-pics button span{position:absolute;left:6px;bottom:6px;background:rgba(0,0,0,.6);color:#fff;font:700 10.5px Inter,sans-serif;padding:3px 7px;border-radius:999px}.tb-pics .tb-np{background:#10285e;color:#fff;font:700 13px Inter,sans-serif}
 .tb-nav{display:flex;justify-content:space-between;gap:10px;margin-top:20px}
-.tb-fin{display:grid;grid-template-columns:260px 1fr;gap:24px}.tb-fin>div{min-width:0}.tb-wz{min-width:0;overflow:hidden}.tb-story canvas{width:100%;height:auto;border-radius:18px;display:block;background:#10285e}
+.tb-ig{display:inline-flex;align-items:center;justify-content:center;gap:8px}.tb-mini{display:block;font-size:13px;color:var(--mut,#6b7280);margin:8px 0 10px;line-height:1.4}.tb-fin{display:grid;grid-template-columns:260px 1fr;gap:24px}.tb-fin>div{min-width:0}.tb-wz{min-width:0;overflow:hidden}.tb-story canvas{width:100%;height:auto;border-radius:18px;display:block;background:#10285e}
 .tb-do{display:flex;gap:12px;margin-bottom:16px}.tb-do>i{font-style:normal;flex:none;display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#10285e;color:#fff;font:800 13px Inter,sans-serif}.tb-do>div{flex:1;min-width:0}.tb-do b{display:block;font-size:15px;margin:3px 0 8px}.tb-do .tb-btn{padding:11px 16px;font-size:14px}
 .tb-lk{display:flex;align-items:center;gap:8px;background:#f6f4f0;border-radius:12px;padding:8px 8px 8px 12px;font:600 13px Inter,sans-serif}.tb-lk span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#4b5563}.tb-lk button{border:0;background:#10285e;color:#fff;border-radius:9px;padding:8px 12px;font:700 13px Inter,sans-serif;cursor:pointer}
 .tb-tip{background:#fff7e6;border-radius:12px;padding:10px 12px;font-size:12.8px;line-height:1.5;color:#5b4a26;margin-top:8px}.tb-tip b{display:inline;font-size:12.8px;margin:0}
@@ -2146,6 +2146,9 @@ function tbStat(d,lbl){
 const tbDays=n=>Array.from({length:n},(_,i)=>iso(Date.now()+i*864e5));
 const tbDayName=d=>new Date(d+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'short'}).replace('.','');
 const tbCap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+// « Partager sur Instagram » : seulement sur téléphone, là où le menu de partage sait envoyer une image à Instagram.
+const tbMobShare=()=>/iPhone|iPad|iPod|Android/i.test(navigator.userAgent||'')&&!!navigator.canShare;
+const TB_IG='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>';
 // Offres et résultats
 function tbOffStat(o){ const rs=BRESA.filter(r=>r.offer_code===o.code&&(r.status||'confirmed')==='confirmed'); const cov=rs.reduce((a,r)=>a+(+r.covers||0),0); return {n:rs.length,cov,eur:cov*tbTicket()}; }
 function tbOffState(o){ if(o.status==='cancelled') return ['Annulée','p-off']; if(new Date(o.deadline)<new Date()) return ['Terminée','p-off']; if(o.status!=='published') return ['À publier','p-wait']; return ['En cours','p-on']; }
@@ -2277,7 +2280,7 @@ function tbWizard(){ const W=UI.tbw, S=tbStat(W.date,W.sv), dd=tbDishes();
   const link=tbLink(W.code);
   return mtop('Table Boost','resa/boost')+head+`<h2>C’est prêt !</h2><p class="tb-s">3 gestes et votre offre est en ligne · code <b>${esc(W.code)}</b></p>
     <div class="tb-fin"><div class="tb-story"><canvas id="tbCanvas" width="1080" height="1920"></canvas></div><div>
-    <div class="tb-do"><i>1</i><div><b>Téléchargez l’image</b><button type="button" class="tb-btn" data-act="tbDl">Télécharger l’image</button></div></div>
+    ${tbMobShare()?`<div class="tb-do"><i>1</i><div><b>Partagez l’image en story</b><button type="button" class="tb-btn tb-ig" data-act="tbShare">${TB_IG}Partager sur Instagram</button><small class="tb-mini">Le lien de l’étape 2 est copié en même temps : dans la story, sticker « Lien », puis Coller.</small><button type="button" class="tb-btn w" data-act="tbDl">Télécharger l’image</button></div></div>`:`<div class="tb-do"><i>1</i><div><b>Téléchargez l’image</b><button type="button" class="tb-btn" data-act="tbDl">Télécharger l’image</button></div></div>`}
     <div class="tb-do"><i>2</i><div><b>Ajoutez le lien dans votre story</b><div class="tb-lk"><span>${esc(link)}</span><button type="button" data-act="tbCopy" data-v="${esc(link)}">Copier</button></div>
       <div class="tb-tip"><b>Instagram, Facebook :</b> touchez l’icône sticker, puis « Lien », et collez. Posez-le en bas, bien visible.<br><b>TikTok :</b> les liens ne sont pas cliquables, le <b>code ${esc(W.code)}</b> écrit sur la vidéo ou en légende suffit.<br><b>Ce lien, seulement en story.</b> Votre bio garde votre lien de réservation habituel. En post, le code est dans la légende : le client le tape en réservant, la réservation est comptée.</div></div></div>
     <div class="tb-do"><i>3</i><div><b>Copiez la légende</b><textarea class="tb-cap" rows="6" data-tbf="caption">${esc(W.caption)}</textarea><button type="button" class="tb-btn w" data-act="tbCopy" data-cap="1">Copier la légende</button></div></div></div></div>`+
@@ -2310,6 +2313,7 @@ async function tbDraw(){ const W=UI.tbw, cv=document.getElementById('tbCanvas');
   let ty=y-70-(lines.length-1)*108; lines.forEach((l,k)=>x.fillText(l,80,ty+k*108));
   // nom du restaurant, discret, juste au-dessus du titre (le haut de la story reste libre pour les icônes du réseau)
   x.font='700 34px Inter, system-ui, sans-serif'; x.letterSpacing='7px'; x.fillStyle='rgba(255,255,255,.85)'; x.fillText((DATA.restaurantName||'').toUpperCase(),84,ty-125); x.letterSpacing='0px';
+  W._file=null; cv.toBlob(b=>{ if(b&&UI.tbw===W) W._file=new File([b],'table-boost-'+W.code+'.png',{type:'image/png'}); },'image/png');
 }
 async function tbSave(){ const W=UI.tbw; if(!W.title.trim()){ toast('Écrivez ou choisissez une offre'); return; }
   const sv=tbSvcOf(W.sv), row={client_slug:RESA_SLUG,title:W.title.trim(),detail:W.detail.trim()||null,emoji:W.emoji||null,kind:W.kind||'perso',date_iso:W.date,service:sv.label,slot_from:sv.start,slot_to:sv.end,min_covers:Math.max(1,+W.min||1),max_tables:+W.maxT||null,deadline:new Date(W.deadline).toISOString(),photo:W.photo||null};
@@ -2346,6 +2350,12 @@ async function tbAct(a,d){ const W=UI.tbw;
       UI.tbw={step:4,date:o.date_iso,sv:o.service||tbSvcs().slice(-1)[0].label,kind:o.kind,title:o.title,detail:o.detail||'',emoji:o.emoji||'',dish:'',min:o.min_covers,deadline:dl.getFullYear()+'-'+pad(dl.getMonth()+1)+'-'+pad(dl.getDate())+'T'+pad(dl.getHours())+':'+pad(dl.getMinutes()),maxT:o.max_tables||'',photo:o.photo||'',code:o.code,id:o.id,caption:o.caption||''};
       if(!UI.tbw.caption) UI.tbw.caption=tbCaption(UI.tbw); render(); window.scrollTo(0,0); return; }
     case 'tbCopy': { const v=d.cap?(document.querySelector('.tb-cap')||{}).value||W.caption:d.v; try{ await navigator.clipboard.writeText(v); toast(d.cap?'Légende copiée':'Lien copié'); }catch(e){ toast('Copie impossible : sélectionnez le texte'); } return; }
+    case 'tbShare': { const f=W._file, link=tbLink(W.code);
+      if(!(f&&navigator.canShare&&navigator.canShare({files:[f]}))){ toast(f?'Partage impossible sur cet appareil : téléchargez l’image':'L’image se prépare, réessayez dans une seconde'); return; }
+      // Tout part dans le même geste : la copie du lien, puis le menu de partage (Instagram → Story).
+      try{ navigator.clipboard&&navigator.clipboard.writeText(link).catch(()=>{}); }catch(e){}
+      try{ await navigator.share({files:[f]}); toast('Lien copié : dans la story, sticker « Lien », puis Coller'); }catch(e){ if(!e||e.name!=='AbortError') toast('Partage impossible : téléchargez l’image'); }
+      return; }
     case 'tbDl': { const cv=document.getElementById('tbCanvas'); if(!cv) return; cv.toBlob(async b=>{ const name='table-boost-'+W.code+'.png'; const f=new File([b],name,{type:'image/png'});
         if(isMob()&&navigator.canShare&&navigator.canShare({files:[f]})){ try{ await navigator.share({files:[f]}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
         const u=URL.createObjectURL(b), l=document.createElement('a'); l.href=u; l.download=name; document.body.appendChild(l); l.click(); l.remove(); setTimeout(()=>URL.revokeObjectURL(u),4000); },'image/png'); return; }
