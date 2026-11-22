@@ -163,7 +163,10 @@
     var ph = r.photos && r.photos.length ? r.photos : (r.photo ? [r.photo] : []);
     var z = function (src, alt) { return '<img src="' + esc(src) + '" alt="' + esc(alt || r.nom) + '" data-zoom>'; };
     var gal = '';
-    if (ph.length >= 3) gal = '<div class="dp-gal" data-zoom-group>' + z(ph[0]) + z(ph[1]) + '<span class="dp-more">' + z(ph[2]) + (ph.length > 3 ? '<b>+ ' + (ph.length - 3) + ' photos</b>' : '') + '</span>' +
+    if (!DESK.matches && ph.length) {
+      gal = '<div class="dp-slide-wrap"><div class="dp-slider" data-zoom-group>' + ph.map(function (x) { return '<img src="' + esc(x) + '" alt="' + esc(r.nom) + '" data-zoom loading="lazy">'; }).join('') + '</div>' +
+        (ph.length > 1 ? '<span class="dp-count">1 / ' + ph.length + '</span><button type="button" class="dp-allphotos" id="dp-all">Voir les ' + ph.length + ' photos</button>' : '') + '</div>';
+    } else if (ph.length >= 3) gal = '<div class="dp-gal" data-zoom-group>' + z(ph[0]) + z(ph[1]) + '<span class="dp-more">' + z(ph[2]) + (ph.length > 3 ? '<b>+ ' + (ph.length - 3) + ' photos</b>' : '') + '</span>' +
       ph.slice(3).map(function (x) { return '<img src="' + esc(x) + '" alt="' + esc(r.nom) + '" data-zoom hidden>'; }).join('') + '</div>';
     else if (ph.length) gal = '<div class="dp-hero" data-zoom-group>' + ph.map(function (x, i) { return '<img src="' + esc(x) + '" alt="' + esc(r.nom) + '" data-zoom' + (i ? ' hidden' : '') + '>'; }).join('') + '</div>';
     var beltabResa = r.reservation && r.reservation.type === 'beltab';
@@ -227,8 +230,14 @@
   }
   function wireDesk(r) {
     var sheet = $('sheet');
-    $('sheet-close').addEventListener('click', function () { state.selected = null; render(); });
+    $('sheet-close').addEventListener('click', function () {
+      if (!DESK.matches) { closeFull(); return; }
+      state.selected = null; render();
+    });
     $('dp-share').addEventListener('click', function (e) { e.preventDefault(); if (window.Partage) Partage.link({ url: location.origin + r.url, title: r.nom + ' · Beltab' }); });
+    var sl = sheet.querySelector('.dp-slider'), cnt = sheet.querySelector('.dp-count');
+    if (sl && cnt) sl.addEventListener('scroll', function () { cnt.textContent = (Math.round(sl.scrollLeft / sl.clientWidth) + 1) + ' / ' + sl.children.length; }, { passive: true });
+    var all = $('dp-all'); if (all) all.addEventListener('click', function () { var i = sl.children[Math.round(sl.scrollLeft / sl.clientWidth)]; if (i && window.Lightbox) Lightbox.open(i); });
     var pb = $('dp-photos'); if (pb) pb.addEventListener('click', function (e) { e.preventDefault(); var i = sheet.querySelector('.dp-gal img, .dp-hero img'); if (i && window.Lightbox) Lightbox.open(i); });
     sheet.querySelectorAll('[data-jump]').forEach(function (a) {
       a.addEventListener('click', function (e) {
@@ -252,6 +261,27 @@
       h.addEventListener('pointermove', move); h.addEventListener('pointerup', up);
     });
   }
+
+  // ---------- téléphone : la fiche complète s'ouvre par-dessus la carte, avec une croix ----------
+  function openFull(r, jump) {
+    var sheet = $('sheet');
+    sheet.classList.add('is-full');
+    document.body.classList.add('full-open');
+    sheet.innerHTML = deskPanel(r);
+    sheet.scrollTop = 0;
+    wireDesk(r);
+    if (jump) { var el = sheet.querySelector(jump); if (el) setTimeout(function () { sheet.scrollTo({ top: el.offsetTop - 50, behavior: 'smooth' }); }, 250); }
+    if (history.pushState) history.pushState({ beltabFull: r.slug }, '', r.url);
+  }
+  function closeFull(fromPop) {
+    var sheet = $('sheet');
+    if (!sheet.classList.contains('is-full')) return;
+    sheet.classList.remove('is-full');
+    document.body.classList.remove('full-open');
+    if (!fromPop && history.state && history.state.beltabFull) history.back();
+    render();
+  }
+  window.addEventListener('popstate', function () { closeFull(true); });
 
   function renderSheet() {
     var sheet = $('sheet');
@@ -278,7 +308,7 @@
     if (r.reservation && r.reservation.type === 'beltab') resa = '<button type="button" class="act act-dark" id="act-book">' + ICON.cal + 'Réserver</button>';
     else if (r.site) resa = '<a class="act" href="' + esc(r.site) + '" target="_blank" rel="noopener nofollow">Site web' + ICON.ext + '</a>';
     var acts = [resa,
-      '<a class="act" href="' + esc(r.url) + '#carte">' + ICON.menu + 'Menu</a>',
+      '<a class="act" id="act-menu" href="' + esc(r.url) + '#carte">' + ICON.menu + 'Menu</a>',
       '<a class="act" href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(r.lat + ',' + r.lng) + '" target="_blank" rel="noopener nofollow">' + ICON.route + 'Itinéraire</a>'].filter(Boolean);
     sheet.innerHTML =
       '<div class="rs-top">' +
@@ -292,6 +322,8 @@
       '<div class="rs-acts" style="grid-template-columns:repeat(' + acts.length + ',minmax(0,1fr))">' + acts.join('') + '</div>';
     sheet.hidden = false;
     $('sheet-close').addEventListener('click', function () { state.selected = null; render(); });
+    sheet.querySelector('.rs-info').addEventListener('click', function (e) { e.preventDefault(); openFull(r); });
+    var mn = $('act-menu'); if (mn) mn.addEventListener('click', function (e) { e.preventDefault(); openFull(r, '#dp-carte'); });
     var bk = $('act-book');
     if (bk) bk.addEventListener('click', function () { openBooking(r); });
   }

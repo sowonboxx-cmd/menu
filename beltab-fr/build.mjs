@@ -51,6 +51,18 @@ const icon = {
 };
 
 // ---------- gabarit commun ----------
+// Barre d'onglets du téléphone, en verre dépoli (style « liquid glass ») : Carte, Cuisines, Passeport, Potes.
+function tabbar(path) {
+  const I = (d) => `<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
+  const tabs = [
+    ['/', 'Carte', 'M9 4L3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5zM9 4v13.5M15 6.5V20', (p) => p === '/' || /^\/paris/.test(p)],
+    ['/cuisines/', 'Cuisines', 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3 12h18M12 3c2.5 2.5 3.5 5.5 3.5 9s-1 6.5-3.5 9c-2.5-2.5-3.5-5.5-3.5-9s1-6.5 3.5-9', (p) => p.startsWith('/cuisines')],
+    ['/moi/', 'Passeport', 'M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5zM5 19.5A1.5 1.5 0 0 0 6.5 21H19v-3M12 7.5a3 3 0 1 0 0 6 3 3 0 0 0 0-6z', (p) => p === '/moi/'],
+    ['/moi/#classement', 'Potes', 'M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 6.5M18 14a6 6 0 0 1 3.5 6', () => false],
+  ];
+  return `<nav class="tabbar" aria-label="Navigation">${tabs.map(([href, label, d, on]) => `<a href="${href}"${on(path) ? ' class="is-on" aria-current="page"' : ''}>${I(d)}<span>${label}</span></a>`).join('')}</nav>`;
+}
+
 function layout({ title, description, body, canonical, image, noindex, jsonld, scripts = [], bodyClass = '' }) {
   const robots = (demo || noindex) ? '<meta name="robots" content="noindex, nofollow">' : '';
   const ogImage = image ? `${site.url}${image}` : '';
@@ -78,8 +90,9 @@ ${ogImage ? `<meta property="og:image" content="${esc(ogImage)}">` : ''}
 <link rel="stylesheet" href="/src/styles.css?v=${V}">
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld)}</script>` : ''}
 </head>
-<body class="${bodyClass}">
+<body class="${bodyClass} has-tabbar">
 ${body}
+${tabbar(canonical || '')}
 <script src="/src/common.js?v=${V}"></script>
 ${scripts.map((s) => `<script src="${s.startsWith('/src/') ? s + '?v=' + V : s}"></script>`).join('\n')}
 </body>
@@ -190,6 +203,7 @@ ${resaBtn}
   const voisins = !paid ? `<section class="voisins"><h2>Autres indépendants à côté</h2><div class="grid-near">${nearest(r).map(({ o, min }) =>
     `<a class="near" href="${urlOf(o)}"><strong>${esc(o.nom)}</strong><span class="muted">${esc((o.categories || []).map((c) => CATEGORIES[c] || c).join(', '))} · ${min} min à pied</span></a>`).join('')}</div></section>` : '';
 
+  const nbPhotos = [r.photoPrincipale, ...(paid ? pharesOf(r).map((pl) => pl.photo) : []), ...(tierOf(r.niveau) >= 2 ? (r.carte || []).flatMap((x) => x.plats.map((pl) => pl.photo)) : [])].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).length;
   const cu = CUISINE[r.cuisine];
   const cats = (cu ? `<a class="chip chip-link" href="/cuisines/${cu.id}/">${esc(cu.nom)}${(r.specialites || []).map((x) => ' · ' + esc(specNom(r.cuisine, x))).join('')}</a>` : '') +
     (r.categories || []).map((c) => `<span class="chip">${esc(CATEGORIES[c] || c)}</span>`).join('');
@@ -206,7 +220,7 @@ ${resaBtn}
   const body = `${header()}
 ${demoSwitch}
 <main class="fiche ${paid ? 'is-paid' : 'is-free'}" data-zoom-group>
-${hero ? `<div class="hero"><img src="${esc(hero)}" alt="${esc(r.nom)}" data-zoom onerror="this.parentNode.remove()"></div>` : ''}
+${hero ? `<div class="hero"><img src="${esc(hero)}" alt="${esc(r.nom)}" data-zoom onerror="this.parentNode.remove()">${nbPhotos > 1 ? `<button type="button" class="hero-more" onclick="Lightbox.open(this.previousElementSibling)">Voir les ${nbPhotos} photos</button>` : ''}</div>` : ''}
 <div class="wrap fiche-grid">
 <div class="fiche-main">
 <div class="fiche-title">
