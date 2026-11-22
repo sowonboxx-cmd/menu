@@ -447,7 +447,7 @@ body.has-vz .toast{bottom:96px}
 @media(min-width:700px){#vzSheet{align-items:center}#vzSheet .vz-c{border-radius:24px}}
 .vz-h{font-weight:800;font-size:20px}.vz-p{margin:0;color:#4b4f58;font-size:14.5px;line-height:1.45}.vz-err{margin:0;color:#c42323;font-weight:600;font-size:14px}.vz-lock{margin:0;font-size:14.5px}
 .vz-mic{align-self:center;width:84px;height:84px;border-radius:50%;border:0;background:var(--brand);color:var(--on-brand);display:grid;place-items:center;cursor:pointer;margin:6px 0}
-.vz-bars{align-self:center;display:flex;gap:5px;height:28px;align-items:center;margin:-2px 0 2px}.vz-bars i{display:block;width:6px;height:28px;border-radius:3px;background:#c42323;transform:scaleY(.15);transition:transform .08s linear}.vz-dit{margin:0;font-size:14px;color:#6b7280;font-style:italic;line-height:1.4}.vz-mic svg{width:34px;height:34px}.vz-mic.on{background:#c42323;animation:vzp 1.3s ease-in-out infinite}
+.vz-bars{align-self:center;display:flex;gap:5px;height:28px;align-items:center;margin:-2px 0 2px}.vz-bars i{display:block;width:6px;height:28px;border-radius:3px;background:#c42323;transform:scaleY(.15);transition:transform .08s linear}.vz-big{margin:2px 0 8px;font-size:22px;font-weight:700;color:var(--brand-text,#10285e)}.vz-rl{list-style:none;margin:0 0 6px;padding:0;max-height:42vh;overflow:auto}.vz-rl li{padding:8px 0;border-bottom:1px solid var(--line,#eceae6);font-size:15px}.vz-dit{margin:0;font-size:14px;color:#6b7280;font-style:italic;line-height:1.4}.vz-mic svg{width:34px;height:34px}.vz-mic.on{background:#c42323;animation:vzp 1.3s ease-in-out infinite}
 @keyframes vzp{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
 #vzTxt{width:100%;resize:vertical;font-size:15px}
 .vz-l{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}.vz-l li{display:flex;gap:10px;align-items:flex-start;background:#f4f5f7;border-radius:14px;padding:11px 12px;font-size:14.5px;line-height:1.4}
@@ -2047,7 +2047,7 @@ function pageResa(){
   const sel=UI.rsel&&list.find(r=>r.ref===UI.rsel);
   const tm=iso(Date.now()+864e5), dlab=d=>d===t?'Aujourd\u2019hui':d===tm?'Demain':(x=>x.charAt(0).toUpperCase()+x.slice(1))(fmtDay(d));
   const body=days.length?days.map(d=>{ const its=list.filter(r=>r.date_iso===d); const cov=its.reduce((a,r)=>a+(+r.covers||0),0);
-    return `<div class="jg"><div class="jl"><b>${dlab(d)}</b><small>${its.length} résa${its.length>1?'s':''} · ${cov} couverts</small></div>${its.map(r=>resaRow(r,sel===r)).join('')}</div>`; }).join(''):`<div class="jg"><div class="empty">Aucune réservation dans les 14 prochains jours.</div></div>`;
+    return `<div class="jg" id="jg-${d}"><div class="jl"><b>${dlab(d)}</b><small>${its.length} résa${its.length>1?'s':''} · ${cov} couverts</small></div>${its.map(r=>resaRow(r,sel===r)).join('')}</div>`; }).join(''):`<div class="jg"><div class="empty">Aucune réservation dans les 14 prochains jours.</div></div>`;
   return mtop('Tableau de bord','dash')+ph('Réservations',`${list.filter(r=>r.date_iso===t).length} aujourd'hui · ${list.length} sur 14 jours`,'')+
   resaTabs()+`<div class="pgrid g-3-1"><div>${(()=>{ const v=UI.rview||'av', rg=rcRange(), ok=RC.key===rg[0]+'_'+rg[1]; const n=k=>k==='av'?list.length:(v===k&&ok?RC.rows.length:RCN[k]);
     return `<nav class="st">${[['av','À venir'],['wk','Semaine'],['mo','Mois']].map(([k,l])=>`<a href="#/resa" data-act="rcView" data-v="${k}" class="${v===k?'on':''}">${l}${n(k)!==''?`<em>${n(k)}</em>`:''}</a>`).join('')}</nav>`; })()}<div class="jw">${(UI.rview||'av')==='av'?body:rcView()}</div></div>
@@ -3045,9 +3045,42 @@ async function vzSend(au){
     const r=await call({texte:VZ.text});
     const j=await r.json().catch(()=>({}));
     if(!r.ok||!j.ok){ if(j.texte) VZ.text=j.texte; VZ.err=j.error||'Je n\'ai pas pu comprendre, réessayez.'; }
+    else if(j.voir){ if(j.texte) VZ.text=j.texte; await vzVoir(j.voir,j.texte||VZ.text); }
     else { if(j.texte) VZ.text=j.texte; const all=(j.changements||[]), flou=all.filter(vzFlou), ok=all.filter(c=>vzValid(c)&&!vzFlou(c)); VZ.res={dit:j.texte||'',refus:j.refus||'',ch:ok,flou:flou.map(c=>{const x=vzAt(c.ref);return x?vzT(x.it.name):'';}).filter(Boolean),lost:all.length-ok.length-flou.length}; }
   }catch(e){ VZ.err='Pas de connexion. Réessayez.'; }
   VZ.busy=false; vzDraw();
+}
+// ── « Montre les réservations de demain » : l'IA ne renvoie qu'une période ; les réservations sont lues et résumées ici,
+// sur l'appareil (aucun nom ni téléphone de client n'est envoyé à l'IA), puis l'écran Réservations s'ouvre au bon endroit.
+async function vzVoir(v,dit){
+  const {data,error}=await sb.from('restaurant_reservations').select('ref,date_iso,slot,covers,from_name,status,offer_code').eq('client_slug',RESA_SLUG).gte('date_iso',v.du).lte('date_iso',v.au).order('date_iso').order('slot').limit(2000);
+  if(error){ VZ.err='Réservations illisibles : '+error.message; return; }
+  const hm=r=>String(r.slot||'').slice(0,5), hh=r=>+hm(r).slice(0,2)||0;
+  let rs=(data||[]).filter(r=>(r.status||'confirmed')==='confirmed');
+  if(v.moment==='midi') rs=rs.filter(r=>hh(r)<16); else if(v.moment==='soir') rs=rs.filter(r=>hh(r)>=16);
+  if(v.heure){ const h=v.heure.padStart(5,'0').slice(0,2); rs=rs.filter(r=>hm(r).slice(0,2)===h); }
+  const cov=a=>a.reduce((x,r)=>x+(+r.covers||0),0), pl=(n,w)=>n+' '+w+(n>1?'s':'');
+  const t=todayIso(), tm=iso(Date.now()+864e5), lab=d=>d===t?'Aujourd’hui':d===tm?'Demain':(x=>x.charAt(0).toUpperCase()+x.slice(1))(new Date(d+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}));
+  const days=[]; for(let d=new Date(v.du+'T12:00:00');iso(d)<=v.au&&days.length<31;d.setDate(d.getDate()+1)) days.push(iso(d));
+  const one=days.length===1, quand=one?lab(days[0]):`Du ${lab(days[0]).toLowerCase()} au ${lab(days[days.length-1]).toLowerCase()}`;
+  const lines=[], tb=rs.filter(r=>r.offer_code).length;
+  if(one){
+    if(dayClosed(days[0])&&!rs.length) lines.push('Fermé ce jour-là (Horaires).');
+    else if(!rs.length) lines.push('Aucune réservation'+(v.moment?' ce '+v.moment:'')+(v.heure?' à '+v.heure.replace(':','h'):'')+'.');
+    else { const by={}; rs.forEach(r=>{ const k=hm(r).slice(0,2); by[k]=(by[k]||0)+(+r.covers||0); }); const top=Object.entries(by).sort((a,b)=>b[1]-a[1])[0];
+      if(Object.keys(by).length>1&&!v.heure) lines.push(`Le plus chargé : ${+top[0]} h (${pl(top[1],'couvert')}).`);
+      const big=rs.filter(r=>(+r.covers||0)>=6); if(big.length) lines.push('Grandes tables : '+big.map(r=>`${+r.covers} pers. à ${hm(r).replace(':','h')}`).join(', ')+'.');
+      if(v.heure||rs.length<=8) lines.push(...rs.map(r=>`${hm(r).replace(':','h')} · ${r.from_name||'—'} · ${+r.covers||0} pers.`)); }
+  } else days.forEach(d=>{ const x=rs.filter(r=>r.date_iso===d); lines.push(`${lab(d)} : ${dayClosed(d)&&!x.length?'fermé':x.length?pl(x.length,'résa')+' · '+pl(cov(x),'couvert'):'aucune réservation'}`); });
+  if(tb) lines.push(`Dont ${pl(tb,'réservation')} venue${tb>1?'s':''} de Table Boost.`);
+  VZ.res={resa:true,dit:dit||'',titre:quand+(v.moment?' · '+v.moment:'')+(v.heure?' · '+v.heure.replace(':','h'):''),total:`${pl(rs.length,'réservation')} · ${pl(cov(rs),'couvert')}`,lines,ch:[]};
+  // l'écran derrière : la liste « À venir » (14 jours) pour un jour proche, sinon la semaine ou le mois
+  const d0=new Date(v.du+'T12:00:00'), n=new Date(); n.setHours(12,0,0,0), ahead=Math.round((d0-n)/864e5);
+  if(one&&ahead>=0&&ahead<14){ UI.rview='av'; UI.vzDay=v.du; }
+  else if(days.length<=7){ const mon=x=>{ const a=new Date(x); a.setDate(a.getDate()-((a.getDay()+6)%7)); return a; }; UI.rview='wk'; UI.rwk=Math.round((mon(d0)-mon(n))/(7*864e5)); }
+  else { UI.rview='mo'; UI.rmo=(d0.getFullYear()-n.getFullYear())*12+d0.getMonth()-n.getMonth(); UI.rday=v.du; }
+  if(PG!=='resa'||ARG) go('resa'); else render(); rcLoad();
+  setTimeout(()=>{ const el=UI.vzDay&&document.getElementById('jg-'+UI.vzDay); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); UI.vzDay=null; },400);
 }
 function vzApply(){
   const ch=(VZ.res&&VZ.res.ch)||[]; if(!ch.length) return;
@@ -3083,6 +3116,9 @@ function vzDraw(){
   let body;
   if(!can('voice')) body=`<div class="vz-h">Parlez à votre carte</div><p class="vz-p">« Ajoute une tartinade à 11 €, le plat du jour est fini. » Vous validez, c'est à jour partout.</p><p class="vz-lock">Disponible avec la formule <b>Master</b>. Pour l'ajouter, contactez Beltab.</p><div class="vz-a"><button class="btn w" data-vz="close">Fermer</button></div>`;
   else if(VZ.done) body=`<div class="vz-h">C'est à jour</div><p class="vz-p">${VZ.done.n} changement${VZ.done.n>1?'s':''} enregistré${VZ.done.n>1?'s':''} sur votre ${vzTgt().kind==='menu'?'menu':'carte'}.</p><div class="vz-a"><button class="btn w" data-vz="undo">Annuler</button><button class="btn w" data-vz="again">Autre chose</button><button class="btn" data-vz="close">Fermer</button></div>`;
+  else if(VZ.res&&VZ.res.resa){ const R=VZ.res;
+    body=`<div class="vz-h">${esc(R.titre)}</div>`+(R.dit?`<p class="vz-dit">« ${vzE(R.dit)} »</p>`:'')+`<p class="vz-big">${esc(R.total)}</p>`+(R.lines.length?`<ul class="vz-rl">${R.lines.map(l=>`<li>${esc(l)}</li>`).join('')}</ul>`:'')+
+      `<div class="vz-a"><button class="btn" data-vz="again">Autre chose</button><button class="btn w" data-vz="close">Fermer</button></div>`; }
   else if(VZ.res){ const R=VZ.res;
     body=`<div class="vz-h">Je vais faire ceci</div>`+(R.dit?`<p class="vz-dit">« ${vzE(R.dit)} »</p>`:'')+(R.ch.length?`<ul class="vz-l">${R.ch.map(c=>`<li><span class="vz-t vz-${c.action}">${VZ_LBL[c.action]}</span><span>${esc(c.resume||'')}</span></li>`).join('')}</ul>`:'')+
       (R.refus?`<p class="vz-p">${esc(R.refus)}</p>`:'')+(R.lost?`<p class="vz-p">${R.lost} demande${R.lost>1?'s':''} ignorée${R.lost>1?'s':''} : plat introuvable.</p>`:'')+((R.flou||[]).length?`<p class="vz-err">${vzE(R.flou.join(', '))} : précisez le format (le verre ou la bouteille ?).</p>`:'')+

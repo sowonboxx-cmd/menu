@@ -1111,6 +1111,17 @@ const VOICE_SCHEMA = {
   type: 'object',
   properties: {
     refus: { type: 'string', description: "Si la demande ne concerne pas la carte, ou si elle est trop floue : une phrase courte et polie qui explique pourquoi, en français. Sinon vide." },
+    reservations: {
+      type: 'object',
+      description: "Seulement si le restaurateur demande à VOIR ou CONNAÎTRE ses réservations (« montre les réservations de demain », « qui vient ce soir ? », « les 7 prochains jours ») : la période à afficher. Sinon, ne pas remplir.",
+      properties: {
+        du: { type: 'string', description: 'Premier jour, au format AAAA-MM-JJ.' },
+        au: { type: 'string', description: 'Dernier jour inclus, au format AAAA-MM-JJ (le même que « du » pour un seul jour).' },
+        moment: { type: 'string', enum: ['', 'midi', 'soir'], description: '« midi » ou « soir » si précisé, sinon vide.' },
+        heure: { type: 'string', description: "Une heure précise si demandée (« qui vient à 20 h ? » → « 20:00 »), sinon vide." }
+      },
+      required: ['du', 'au']
+    },
     changements: {
       type: 'array',
       items: {
@@ -1136,7 +1147,8 @@ const VOICE_SCHEMA = {
 };
 const VOICE_SYSTEM = `Tu aides un restaurateur à mettre à jour la carte de son site. Il parle (sa phrase vient d'une dictée, elle peut contenir des fautes).
 Tu ne fais QUE des changements sur la carte : ajouter, modifier (nom, description, prix), masquer, afficher, supprimer ou déplacer un plat ou une boisson.
-Pour tout le reste (questions sans demande de changement, conversation, réservations, horaires, autre sujet), ne propose aucun changement et remplis « refus ».
+Le restaurateur peut aussi demander à VOIR ses réservations (aujourd'hui, demain, après-demain, ce soir, ce midi, vendredi, ce week-end, cette semaine, les 7 prochains jours, qui vient à 20 h…) : dans ce cas, ne propose aucun changement et remplis seulement « reservations » (du, au, moment, heure), en partant de la date du jour donnée plus bas. « Cette semaine » = d'aujourd'hui à dimanche ; « les 7 prochains jours » = aujourd'hui + 6 jours ; « le week-end » = samedi et dimanche qui viennent.
+Pour tout le reste (questions sans demande de changement, conversation, horaires, autre sujet), ne propose aucun changement et remplis « refus ».
 Une demande polie posée comme une question (« est-ce que tu peux… », « tu pourrais regarder la carte et corriger les fautes ? ») EST une demande de changement : fais-la.
 Règles :
 - Utilise uniquement les références de la carte fournie. Si un plat est ambigu ou introuvable, ne devine pas : remplis « refus » en demandant de préciser.
@@ -1230,7 +1242,8 @@ async function carteVoice(env, b) {
   if (b.etape === 'transcrire') return { ok: true, texte };
   if (!texte) return { ok: false, error: 'Je n\'ai rien entendu.' };
   const cible = String(b.cible || 'carte').slice(0, 120);
-  const user = (cible !== 'carte' ? `Le restaurateur modifie son ${cible}, pas la carte : tous les changements portent sur ce menu.\n` : '') + `La carte (référence | catégorie > sous-catégorie | nom | prix | état | description) :\n${carte}\n\nCe que dit le restaurateur : « ${texte} »`;
+  const now = new Date(), jour = now.toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }), isoJ = now.toLocaleDateString('en-CA', { timeZone: 'Europe/Paris' });
+  const user = `Date du jour : ${jour} (${isoJ}).\n` + (cible !== 'carte' ? `Le restaurateur modifie son ${cible}, pas la carte : tous les changements portent sur ce menu.\n` : '') + `La carte (référence | catégorie > sous-catégorie | nom | prix | état | description) :\n${carte}\n\nCe que dit le restaurateur : « ${texte} »`;
   let out;
   if (env.ANTHROPIC_API_KEY) {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1260,5 +1273,7 @@ async function carteVoice(env, b) {
     return { ok: false, error: 'La voix n\'est pas encore branchée (clé manquante).' };
   }
   const ch = (out && Array.isArray(out.changements) ? out.changements : []).filter(c => c && VOICE_ACTIONS.includes(c.action)).slice(0, 20);
-  return { ok: true, texte, refus: String((out && out.refus) || ''), changements: ch };
+  const R = out && out.reservations, okD = d => /^\d{4}-\d{2}-\d{2}$/.test(String(d || ''));
+  const voir = R && okD(R.du) ? { du: R.du, au: okD(R.au) && R.au >= R.du ? R.au : R.du, moment: ['midi', 'soir'].includes(R.moment) ? R.moment : '', heure: /^\d{1,2}:\d{2}$/.test(String(R.heure || '')) ? R.heure : '' } : null;
+  return { ok: true, texte, refus: voir ? '' : String((out && out.refus) || ''), changements: voir ? [] : ch, voir };
 }

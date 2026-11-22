@@ -3049,6 +3049,7 @@ async function vzSend(au){
     const r=await call({texte:VZ.text});
     const j=await r.json().catch(()=>({}));
     if(!r.ok||!j.ok){ if(j.texte) VZ.text=j.texte; VZ.err=j.error||'Je n\'ai pas pu comprendre, réessayez.'; }
+    else if(j.voir){ if(j.texte) VZ.text=j.texte; VZ.res={dit:j.texte||'',refus:'Pour voir vos réservations à la voix, ouvrez l’admin (le micro y est aussi) : l’écran Réservations s’ouvrira directement au bon jour.',ch:[],flou:[],lost:0}; }
     else { if(j.texte) VZ.text=j.texte; const all=(j.changements||[]), flou=all.filter(vzFlou), ok=all.filter(c=>vzValid(c)&&!vzFlou(c)); VZ.res={dit:j.texte||'',refus:j.refus||'',ch:ok,flou:flou.map(c=>{const x=vzAt(c.ref);return x?vzT(x.it.name):'';}).filter(Boolean),lost:all.length-ok.length-flou.length}; }
   }catch(e){ VZ.err='Pas de connexion. Réessayez.'; }
   VZ.busy=false; vzDraw();
