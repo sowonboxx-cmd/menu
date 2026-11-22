@@ -10986,7 +10986,8 @@ async function renderInstaPageToBlob(css, pages, i, restName, bg, ratio, variant
 // est simplement mise en page un peu plus large, puis ramenée à 1080 px, donc ~9 % plus petite.
 // Réglages : pdfStyle.instaBand=false pour l'enlever, pdfStyle.instaBandColor pour forcer une couleur.
 const INSTA_BAND_FRAC = 170/1920;
-function instaBandOn(cfg, variant){ return variant === 'story' && cfg.instaBand !== false; }
+// Les menus (formules, menu du jour) sortent comme leur aperçu : pas de bandeau ajouté en haut de la story.
+function instaBandOn(cfg, variant){ return variant === 'story' && cfg.instaBand !== false && !cfg.tabsSource; }
 function instaBandColor(cfg){ return cfg.instaBandColor || (DATA.brandColors && DATA.brandColors.primary) || cfg.titleColor || '#10285E'; }
 async function addInstaBand(blob, color, ratio){
   const img = await createImageBitmap(blob);
@@ -11028,6 +11029,8 @@ async function exportInstaImages(cfg, variant){
 async function formule_renderBlobs(cfg, variant){ return withExportLogo(()=>_exportInstaImages(cfg, variant, true)); }
 async function _exportInstaImages(cfg, variant, silent){
   variant = variant || 'story';
+  // Le logo du menu a été posé avec son adresse d'origine : html2canvas ne peut pas le dessiner. On met la copie intégrée.
+  if(cfg.formulePreamble && _exportLogoOverride){ const raw = rawLogoUrl(); if(raw && raw !== _exportLogoOverride) cfg = { ...cfg, formulePreamble: cfg.formulePreamble.split(escAttr(raw)).join(escAttr(_exportLogoOverride)) }; }
   const fullRatio = variant === 'post' ? INSTA_POST_RATIO : variant === 'a4' ? INSTA_A4_RATIO : INSTA_RATIO;
   const band = instaBandOn(cfg, variant);
   const ratio = fullRatio; // découpage et mise en page : ceux de la story normale

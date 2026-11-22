@@ -1378,6 +1378,10 @@ body.vz-off #vzBtn{display:none!important}
 .fv-x .pr{background:var(--card,#fff);color:var(--brand-text,#16285e)}
 .fv-x .ig{background:var(--brand-text,#16285e);color:#fff}
 @media(max-width:400px){.fv-x button{font-size:13px;gap:6px;padding:0 6px}}
+.fv-x button:disabled{opacity:.75;cursor:default}
+.fv-pk{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 2px 0;font-size:13px;color:var(--mut)}
+.spin{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;animation:fvsp .8s linear infinite;display:inline-block}
+@keyframes fvsp{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -1642,7 +1646,7 @@ function showGallery(imgs){
 function go(p){ location.hash='#/'+p; }
 function parseHash(){ const h=(location.hash||'').replace(/^#\/?/,''); const [p,...rest]=h.split('/'); PG=p||'dash'; ARG=decodeURIComponent(rest.join('/')||''); }
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&UI.info){ UI.info=null; render(); } });
-window.addEventListener('hashchange',()=>{ parseHash(); UI.delc=null; UI.info=null; render(); scrollTo(0,0); jumpToBlock(); });
+window.addEventListener('hashchange',()=>{ parseHash(); UI.delc=null; UI.info=null; UI.igPick=false; render(); scrollTo(0,0); jumpToBlock(); });
 function jumpToBlock(){ if(!(PG==='etab'||PG==='site')||!ARG) return; if(PG==='etab'&&matchMedia('(max-width:899px)').matches) return; const el=document.getElementById('b-'+ARG); if(!el) return; el.scrollIntoView({block:'start',behavior:'smooth'}); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
 
 const NAV=[['dash','stats','Tableau de bord'],['resa','resa','Réservations'],['clients','users','Clients'],['messages','chat','Messages'],['emails','mail','Emails'],['carte','carte','Ma carte'],['menus','spe','Mes menus'],['stats','vue','Statistiques']];
@@ -1894,16 +1898,17 @@ function fvView(o){
    </div>
    ${voix?'':`<p class="fv-up">À la main, chaque changement passe par le formulaire, plat par plat. Avec Master, vous le dites et le menu est à jour.</p>`}
    <a class="fv-mod" href="${o.mod}"><span class="sw">${modSwatch(o.model)}</span><span class="tx"><small>Modèle</small><b>${esc(o.model.name)}</b></span><span class="go">Changer<span class="chev">›</span></span></a>
-   <div class="fv-x"><button type="button" class="pr" data-act="fvPrint">${FV_PRINT}Imprimer</button><button type="button" class="ig" data-act="fvIg">${FV_IG}${tbMobShare()?'Partager sur Instagram':'Pour Instagram'}</button></div>
+   ${UI.igPick?`<div class="fv-x fv-pick"><button type="button" class="ig" data-act="igSend" data-v="story" ${FVF.story?'':'disabled'}>${FVF.story?FV_IG+'Story':'<i class="spin"></i>Story…'}</button><button type="button" class="ig" data-act="igSend" data-v="post" ${FVF.post?'':'disabled'}>${FVF.post?FV_IG+'Post':'<i class="spin"></i>Post…'}</button></div><p class="fv-pk"><span>${FVF.story&&FVF.post?'Choisissez le format : Instagram s’ouvre directement.':'Préparation des images…'}</span><button type="button" class="lk" data-act="igCancel">Annuler</button></p>`
+     :`<div class="fv-x"><button type="button" class="pr" data-act="fvPrint">${FV_PRINT}Imprimer</button><button type="button" class="ig" data-act="fvIg">${FV_IG}${tbMobShare()?'Partager sur Instagram':'Pour Instagram'}</button></div>`}
    ${o.del?`<div class="fv-del">${o.del}</div>`:''}
   </div>`;
 }
-let FVPRE={key:'',file:null,busy:false};
+let FVPRE={key:'',file:null,busy:false}, FVF={key:'',story:null,post:null};
 function fvPrefetch(){ if(!(PG==='formule'||PG==='mdj')||!tbMobShare()) return; clearTimeout(fvPrefetch._t); fvPrefetch._t=setTimeout(async()=>{ if(VZ.open||document.hidden||!(PG==='formule'||PG==='mdj')) return fvPrefetch(); const f=fvTarget(); if(!f) return; const key=JSON.stringify(f); if(FVPRE.key===key||FVPRE.busy) return; FVPRE.busy=true;
   try{ const w=await eng(); const r=await w.formule_renderBlobs(w.formule_buildCfg(f,'post'),'post'); if(r&&r[0]) FVPRE={key,file:new File([r[0].blob],(r[0].name||'menu-post.png').replace(/\.png$/,'')+'.png',{type:r[0].blob.type||'image/png'}),busy:false}; else FVPRE.busy=false; }catch(e){ FVPRE.busy=false; } fillPreviews(); },3000); }
 function tunCenter(){ const tk=document.getElementById('tunTrack'); if(!tk||tk._done) return; tk._done=1; const sl=tk.children[UI.tunI||0]; if(sl) tk.scrollLeft=sl.offsetLeft-tk.offsetLeft-(tk.clientWidth-sl.clientWidth)/2; }
 document.addEventListener('scroll',e=>{ const tk=e.target; if(!tk||tk.id!=='tunTrack') return; clearTimeout(tk._t); tk._t=setTimeout(()=>{ const mid=tk.scrollLeft+tk.clientWidth/2; let best=0,bd=1e9; [...tk.children].forEach((c,k)=>{ const dd=Math.abs(c.offsetLeft-tk.offsetLeft+c.clientWidth/2-mid); if(dd<bd){bd=dd;best=k;} }); UI.tunI=best; UI.tunerV=['a4','post','story'][best]; document.querySelectorAll('.tun-dots i').forEach((x,k)=>x.classList.toggle('on',k===best)); },80); },true);
-function fvCenter(){ fvPrefetch(); tunCenter(); const tk=document.getElementById('fvTrack'); if(!tk||tk._done) return; tk._done=1; const sl=tk.children[UI.fSlide||0]; if(sl) tk.scrollLeft=sl.offsetLeft-tk.offsetLeft-(tk.clientWidth-sl.clientWidth)/2; }
+function fvCenter(){ tunCenter(); const tk=document.getElementById('fvTrack'); if(!tk||tk._done) return; tk._done=1; const sl=tk.children[UI.fSlide||0]; if(sl) tk.scrollLeft=sl.offsetLeft-tk.offsetLeft-(tk.clientWidth-sl.clientWidth)/2; }
 function fvMark(){ const i=UI.fSlide||0; document.querySelectorAll('.fv-tabs button').forEach((b,k)=>b.classList.toggle('on',k===i)); document.querySelectorAll('.fv-dots i').forEach((b,k)=>b.classList.toggle('on',k===i)); }
 // en faisant glisser : l'onglet suit l'image du milieu
 document.addEventListener('scroll',e=>{ const tk=e.target; if(!tk||tk.id!=='fvTrack') return; clearTimeout(tk._t); tk._t=setTimeout(()=>{ const mid=tk.scrollLeft+tk.clientWidth/2; let best=0,bd=1e9; [...tk.children].forEach((c,k)=>{ const cm=c.offsetLeft-tk.offsetLeft+c.clientWidth/2, dd=Math.abs(cm-mid); if(dd<bd){bd=dd;best=k;} }); if(best!==(UI.fSlide||0)){ UI.fSlide=best; fvMark(); } },80); },true);
@@ -3645,9 +3650,14 @@ document.addEventListener('click',async e=>{
       else { const a2=document.createElement('a'); a2.href=url; a2.download='menu-a4.png'; a2.click(); } }
     catch(err){ if(win) win.close(); toast('⚠ Impression impossible'); }
     return; }
+  if(a==='igSend'){ e.preventDefault(); const file=FVF[d.v]; if(!file) return; try{ navigator.clipboard&&navigator.clipboard.writeText(SITE_URL+'book').catch(()=>{}); }catch(_){} navigator.share({files:[file]}).catch(()=>{}); return; }
+  if(a==='igCancel'){ e.preventDefault(); UI.igPick=false; render(); return; }
   if(a==='fvIg'){ e.preventDefault(); const f=fvTarget(); if(!f) return; const key=JSON.stringify(f);
-    if(tbMobShare()&&FVPRE.key===key&&FVPRE.file){ try{ navigator.clipboard&&navigator.clipboard.writeText(SITE_URL+'book'); }catch(_){} navigator.share({files:[FVPRE.file]}).catch(()=>{}); return; }
-    if(tbMobShare()){ GAL_KIND='ig'; await doFormule(f,'post'); return; }
+    if(tbMobShare()){ UI.igPick=true; if(FVF.key!==key){ FVF={key,story:null,post:null}; render();
+        try{ const w=await eng(); for(const v of ['story','post']){ const r=await w.formule_renderBlobs(w.formule_buildCfg(f,v),v); if(FVF.key!==key) return; if(r&&r[0]) FVF[v]=new File([r[0].blob],'menu-'+v+'.png',{type:r[0].blob.type||'image/png'}); render(); } }
+        catch(err){ UI.igPick=false; FVF.key=''; toast('⚠ Préparation impossible'); render(); } }
+      else render();
+      return; }
     toast('Génération en cours…'); try{ const w=await eng(); for(const v of ['post','story']){ const r=await w.formule_renderBlobs(w.formule_buildCfg(f,v),v); if(r&&r[0]){ const a2=document.createElement('a'); a2.href=URL.createObjectURL(r[0].blob); a2.download=r[0].name||('menu-'+v+'.png'); a2.click(); } } toast('Post et story téléchargés'); }catch(err){ toast('⚠ Génération impossible'); }
     return; }
   if(a==='fvDl'){ e.preventDefault(); GAL_KIND=d.v==='a4'?'':'ig'; if(PG==='mdj') await doFormule(jourAsFormule(jour()),d.v); else { const f=curF(); if(!f) return; const w=await eng(); toast('Génération en cours…'); w.formule_exportInsta(f.id,d.v); } return; }
