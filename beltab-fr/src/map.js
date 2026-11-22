@@ -194,21 +194,20 @@
     var fav = !!lists.fav[r.slug], todo = lists.todo[r.slug];
     var route = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(r.nom + ' ' + (r.adresse || ''));
     var top = '<div class="fx-top"><button type="button" class="fx-back" id="sheet-close" aria-label="Retour à la carte">' + IC(P.back, 20) + '<span>Beltab</span></button>' +
-      '<div><button type="button" class="fx-ib" id="fx-share" aria-label="Partager">' + IC(P.share, 17) + '</button>' +
+      '<div><button type="button" class="fx-ib" id="fx-route" aria-label="Itinéraire et adresse">' + IC(P.route, 17) + '</button><button type="button" class="fx-ib" id="fx-share" aria-label="Partager">' + IC(P.share, 17) + '</button>' +
       '<button type="button" class="fx-ib" id="fx-close" aria-label="Fermer">' + IC(P.close, 17) + '</button></div></div>';
     var desc = r.description || r.accroche || '';
     var tags = (r.tags || []).slice(0, 3);
     var ident = '<section class="fx-card fx-ident">' +
       '<div class="fx-idrow">' + (r.logo ? '<img class="rs-logo" src="' + esc(r.logo) + '" alt="">' : '') + '<div><span class="rs-name"><span class="rs-name-txt">' + esc(r.nom) + '</span>' + ICON.badge + '</span>' +
       '<span class="rs-meta">' + esc([catLabel(r), r.arrondissement].filter(Boolean).join(' · ')) + '</span></div></div>' +
-      '<div class="fx-strow"><a class="fx-st ' + (st.open ? 'is-open' : 'is-closed') + '" href="#fx-horaires" data-jump><i></i><strong>' + esc(parts[0]) + '</strong>' + (parts[1] ? '<span>· ' + esc(parts[1]) + '</span>' : '') + IC(P.down, 13) + '</a>' +
-      '<a class="fx-ib" href="' + route + '" target="_blank" rel="noopener nofollow" aria-label="Itinéraire">' + IC(P.route, 17) + '</a>' +
+      '<div class="fx-strow"><button type="button" class="fx-st ' + (st.open ? 'is-open' : 'is-closed') + '" id="fx-hours"><i></i><strong>' + esc(parts[0]) + '</strong>' + (parts[1] ? '<span>· ' + esc(parts[1]) + '</span>' : '') + IC(P.down, 13) + '</button>' +
       '<button type="button" class="fx-ib fx-fav' + (fav ? ' is-on' : '') + '" id="fx-fav" aria-pressed="' + fav + '" aria-label="Favori">' + IC(P.heart, 17) + '</button></div>' +
       (tags.length ? '<div class="fx-tags">' + tags.map(function (x) { return '<span>' + esc(x) + '</span>'; }).join('') + '</div>' : '') +
       (desc ? '<button type="button" class="fx-desc" id="fx-desc"><p>' + esc(desc) + '</p>' + (desc.length > 90 ? '<span>Lire la suite' + IC(P.chev, 14) + '</span>' : '') + '</button>' : '') +
       '<div class="fx-acts">' + (beltabResa ? '<a class="fx-btn is-dark" href="#fx-resa" data-jump>' + IC(P.cal, 16) + 'Réserver</a>' : (r.site ? '<a class="fx-btn is-dark" href="' + esc(r.site) + '" target="_blank" rel="noopener nofollow">' + IC(P.globe, 16) + 'Site web</a>' : '')) +
       '<a class="fx-btn" href="#fx-carte" data-jump>' + IC(P.menu, 16) + 'La carte</a>' +
-      '<button type="button" class="fx-sq' + (todo ? ' is-on' : '') + '" id="fx-todo" aria-label="À tester">' + IC(P.flag, 17) + '<span>' + (todo ? 'Prévu' : 'À tester') + '</span></button></div></section>';
+      '<button type="button" class="fx-btn fx-todo' + (todo ? ' is-on' : '') + '" id="fx-todo">' + IC(P.flag, 16) + '<span>' + (todo ? 'Prévu' : 'À tester') + '</span></button></div></section>';
 
     // ma visite : note et mot privés
     var n = jeu.slugs[r.slug] || 0, av = lread(AKEY, {})[r.slug];
@@ -231,8 +230,8 @@
       return '<div class="fx-cat" id="fx-s' + si + '"><span>' + esc(x.section) + '</span>' + (x.prix ? '<b>' + esc(x.prix) + '</b>' : '') + '</div>' + x.plats.map(function (p, pi) {
         count++;
         var tag = full ? 'button type="button" data-dish="' + si + '.' + pi + '"' : 'div';
-        var long = (p.prix || '').length > 9;
-        return '<' + tag + ' class="fx-row' + (full && count > 5 ? ' is-more' : '') + '"><span><strong>' + esc(p.nom) + '</strong>' + (p.desc ? '<small>' + esc(p.desc) + '</small>' : '') + (long ? '<em>' + esc(p.prix) + '</em>' : '') + '</span><b>' + (long ? '' : esc(p.prix)) + (full ? IC(P.chev, 14) : '') + '</b></' + tag.split(' ')[0] + '>';
+        var th = full ? (p.photo ? '<img class="fx-th" src="' + esc(p.photo) + '" alt="" loading="lazy">' : '<span class="fx-th"></span>') : '';
+        return '<' + tag + ' class="fx-row' + (full && count > 5 ? ' is-more' : '') + '">' + th + '<span class="fx-tx"><strong>' + esc(p.nom) + '</strong>' + (p.desc ? '<small>' + esc(p.desc) + '</small>' : '') + (p.prix ? '<em>' + esc(p.prix) + '</em>' : '') + '</span>' + (full ? '<i class="fx-chev">' + IC(P.chev, 16) + '</i>' : '') + '</' + tag.split(' ')[0] + '>';
       }).join('');
     }).join('');
     var carte = '<section class="fx-card fx-carte' + (full ? ' is-folded' : '') + '" id="fx-carte"><h3>' + (full ? 'La carte' : 'Aperçu de la carte') + (maj ? '<small><i></i>Mise à jour le ' + esc(maj) + '</small>' : '') + '</h3>' + chips + '<div class="fx-rows">' + rows + '</div>' +
@@ -241,8 +240,7 @@
 
     var resa = '';
     if (beltabResa) {
-      var url = r.reservation.url + (r.reservation.url.indexOf('?') >= 0 ? '&' : '?') + 'beltab=1';
-      resa = '<section class="fx-card fx-resa" id="fx-resa"><h3>Réserver une table<small>Directement ici</small></h3><iframe class="fx-frame" id="fx-frame" src="' + esc(url) + '" title="Réserver chez ' + esc(r.nom) + '"></iframe></section>';
+      resa = '<section class="fx-card fx-resa" id="fx-resa"><h3>Réserver une table</h3><div id="fx-rz"></div></section>';
     }
     var today = JOURS_ORD[(new Date().getDay() + 6) % 7];
     var hor = '<section class="fx-card" id="fx-horaires"><h3>Horaires<span class="fx-st ' + (st.open ? 'is-open' : 'is-closed') + '"><i></i><strong>' + esc(parts[0]) + '</strong></span></h3><div class="fx-hours">' + JOURS_ORD.map(function (j) {
@@ -343,6 +341,22 @@
       s.close(); refresh(r);
     });
   }
+  function horairesPop(r) {
+    var st = Beltab.status(r.horaires), today = JOURS_ORD[(new Date().getDay() + 6) % 7];
+    bottomSheet(XB() + '<h4 class="fx-pop-h">Horaires<span class="fx-st ' + (st.open ? 'is-open' : 'is-closed') + '"><i></i><strong>' + esc(st.label) + '</strong></span></h4>' +
+      '<div class="fx-hours">' + JOURS_ORD.map(function (j) { var v = hoursOf(r, j); return '<div class="' + (j === today ? 'is-today' : '') + '"><span>' + j[0].toUpperCase() + j.slice(1) + (j === today ? ' · aujourd’hui' : '') + '</span><span' + (v === 'Fermé' ? ' class="is-off"' : '') + '>' + v + '</span></div>'; }).join('') + '</div>');
+  }
+  function adressePop(r) {
+    var q = encodeURIComponent(r.nom + ' ' + (r.adresse || ''));
+    var s = bottomSheet(XB() + '<h4 class="fx-pop-h">' + IC(P.route, 18) + 'Itinéraire</h4>' +
+      '<div class="fx-pop-addr"><strong>' + esc(r.nom) + '</strong><span>' + esc(r.adresse || r.arrondissement || '') + '</span></div>' +
+      '<a class="fx-btn is-dark" href="https://www.google.com/maps/dir/?api=1&destination=' + q + '" target="_blank" rel="noopener nofollow">' + IC(P.route, 16) + 'Y aller avec Google Maps</a>' +
+      '<div class="fx-row3"><a class="fx-btn" href="https://maps.apple.com/?daddr=' + q + '" target="_blank" rel="noopener nofollow">Plans</a><a class="fx-btn" href="https://waze.com/ul?q=' + q + '" target="_blank" rel="noopener nofollow">Waze</a>' +
+      '<button type="button" class="fx-btn" id="fx-copy2">' + IC(P.copy, 16) + '<span>Copier</span></button></div>' +
+      (r.telephone ? '<a class="fx-btn" href="tel:' + esc(r.telephone.replace(/\s/g, '')) + '">' + IC(P.phone, 16) + 'Appeler le restaurant</a>' : ''));
+    var c = s.el.querySelector('#fx-copy2');
+    c.addEventListener('click', function () { try { navigator.clipboard.writeText(r.adresse || ''); c.lastChild.textContent = 'Copiée'; } catch (e) {} });
+  }
   function refresh(r) { var sh = $('sheet'), y = sh.scrollTop; sh.innerHTML = deskPanel(r); wireDesk(r); sh.scrollTop = y; }
 
   function wireDesk(r) {
@@ -351,6 +365,11 @@
     $('sheet-close').addEventListener('click', close);
     $('fx-close').addEventListener('click', close);
     $('fx-share').addEventListener('click', function () { if (window.Partage) Partage.link({ url: location.origin + r.url, title: r.nom + ' · Beltab' }); });
+    $('fx-route').addEventListener('click', function () { adressePop(r); });
+    $('fx-hours').addEventListener('click', function () { horairesPop(r); });
+    var rz = $('fx-rz');
+    if (rz && window.BeltabResa && r.reservation && r.reservation.slug) BeltabResa.mount(rz, r.reservation);
+    else if (rz) rz.innerHTML = '<a class="fx-btn is-dark" href="' + esc(r.reservation.url) + '" target="_blank" rel="noopener">Réserver</a>';
     var fv = $('fx-fav');
     fv.addEventListener('click', function () {
       var l = lread(LKEY, { fav: {}, todo: {} }); if (l.fav[r.slug]) delete l.fav[r.slug]; else l.fav[r.slug] = Date.now(); lsave(LKEY, l);
@@ -403,11 +422,6 @@
       h.addEventListener('pointermove', move); h.addEventListener('pointerup', up);
     });
   }
-  // le module de réservation peut donner sa hauteur : plus de double défilement
-  window.addEventListener('message', function (e) {
-    var f = $('fx-frame');
-    if (f && e.data && e.data.beltabHeight && e.source === f.contentWindow) f.style.height = Math.max(420, Math.min(1400, +e.data.beltabHeight)) + 'px';
-  });
 
   // ---------- téléphone : la fiche complète s'ouvre par-dessus la carte, avec une croix ----------
   function openFull(r, jump) {
