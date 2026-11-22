@@ -33,7 +33,7 @@ const urlOf = (r) => `/${r.zone}/${r.slug}/`;
 // Niveaux : 0 = gratuit, 1 = Chef (et Local, Starter), 2 = Pro (et Master)
 const TIER = { gratuit: 0, chef: 1, local: 1, starter: 1, pro: 2, master: 2 };
 const tierOf = (n) => TIER[n] ?? 0;
-const PHOTO_LIMIT = [1, 4, Infinity]; // gratuit : la photo de présentation ; Chef, Local, Starter : + 3 plats phares ; Pro et Master : toutes les photos.
+const PHOTO_LIMIT = [1, 4, 15]; // gratuit : la photo de présentation ; Chef, Local, Starter : + 3 plats phares ; Pro et Master : 15 au plus (pas de fatigue du choix).
 // Les 3 plats phares choisis par le restaurant (n'importe quelle rubrique), avec leur photo.
 const pharesOf = (r) => (r.phares || []).map((n) => (r.carte || []).flatMap((x) => x.plats).find((pl) => pl.nom === n)).filter(Boolean).slice(0, 3);
 
@@ -374,10 +374,12 @@ function renderMoi() {
 <div class="moi-tabs" role="tablist">
 <button type="button" role="tab" data-tab="passeport" aria-selected="true">Passeport</button>
 <button type="button" role="tab" data-tab="journal" aria-selected="false">Journal</button>
+<button type="button" role="tab" data-tab="listes" aria-selected="false">Listes</button>
 <button type="button" role="tab" data-tab="classement" aria-selected="false">Classement</button>
 </div>
 <section id="tab-passeport" class="moi-tab"></section>
 <section id="tab-journal" class="moi-tab" hidden></section>
+<section id="tab-listes" class="moi-tab" hidden></section>
 <section id="tab-classement" class="moi-tab" hidden></section>
 <p class="muted small moi-local">Pour l'instant, votre passeport est gardé sur ce téléphone. Les comptes Beltab permettront bientôt de le retrouver partout et de suivre vos potes.</p>
 </main>
@@ -452,9 +454,13 @@ const pub = restaurants.map((r) => {
     logo: r.logo || '',
     adresse: r.adresse || '', telephone: r.telephone || '', miseAJour: r.miseAJour || '',
     // galerie selon le niveau : gratuit = la photo de présentation, Chef/Starter = 3, Pro/Master = toutes
-    photos: [r.photoPrincipale, ...(paid ? pharesOf(r).map((pl) => pl.photo) : []), ...(tierOf(r.niveau) >= 2 ? (r.carte || []).flatMap((x) => x.plats.map((pl) => pl.photo)) : [])].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i),
+    photos: [r.photoPrincipale, ...(paid ? pharesOf(r).map((pl) => pl.photo) : []), ...(tierOf(r.niveau) >= 2 ? (r.carte || []).flatMap((x) => x.plats.map((pl) => pl.photo)) : [])].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).slice(0, PHOTO_LIMIT[tierOf(r.niveau)]),
     // la carte entière pour l'onglet Menu de la colonne (payant) ; en gratuit, l'aperçu suffit
-    carte: paid ? (r.carte || []).map((x) => ({ section: x.section, prix: x.prix || '', plats: x.plats.map((pl) => ({ nom: pl.nom, prix: pl.prix || '', desc: pl.description || '' })) })) : [],
+    // Pro et Master : toute la carte dépliable dans la fiche, avec les photos des plats (pop-up)
+    full: tierOf(r.niveau) >= 2,
+    carte: tierOf(r.niveau) >= 2 ? (r.carte || []).map((x) => ({ section: x.section, prix: x.prix || '', plats: x.plats.map((pl) => ({ nom: pl.nom, prix: pl.prix || '', desc: pl.description || '', photo: pl.photo || '' })) })) : [],
+    description: r.description || '', histoire: r.histoire || '', equipe: paid ? (r.equipe || []) : [],
+    tags: (r.tags || [...(r.specialites || []).map((id) => specNom(r.cuisine, id)), CUISINE[r.cuisine]?.nom].filter(Boolean)).filter((v, i, a) => a.indexOf(v) === i).slice(0, 3),
     phares: paid ? pharesOf(r).map((pl) => ({ nom: pl.nom, prix: pl.prix || '', photo: pl.photo || '' })) : [],
     // aperçu de la carte pour la colonne de gauche : gratuit = 3 plats, payant = les premières rubriques
     apercu: paid

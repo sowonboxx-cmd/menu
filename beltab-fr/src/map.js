@@ -158,93 +158,235 @@
     document.documentElement.style.setProperty('--pw', w + 'px');
   }
 
-  function deskPanel(r) {
-    var st = Beltab.status(r.horaires);
-    var ph = r.photos && r.photos.length ? r.photos : (r.photo ? [r.photo] : []);
-    var z = function (src, alt) { return '<img src="' + esc(src) + '" alt="' + esc(alt || r.nom) + '" data-zoom>'; };
-    var gal = '';
-    if (!DESK.matches && ph.length) {
-      gal = '<div class="dp-slide-wrap"><div class="dp-slider" data-zoom-group>' + ph.map(function (x) { return '<img src="' + esc(x) + '" alt="' + esc(r.nom) + '" data-zoom loading="lazy">'; }).join('') + '</div>' +
-        (ph.length > 1 ? '<span class="dp-count">1 / ' + ph.length + '</span><button type="button" class="dp-allphotos" id="dp-all">Voir les ' + ph.length + ' photos</button>' : '') + '</div>';
-    } else if (ph.length >= 3) gal = '<div class="dp-gal" data-zoom-group>' + z(ph[0]) + z(ph[1]) + '<span class="dp-more">' + z(ph[2]) + (ph.length > 3 ? '<b>+ ' + (ph.length - 3) + ' photos</b>' : '') + '</span>' +
-      ph.slice(3).map(function (x) { return '<img src="' + esc(x) + '" alt="' + esc(r.nom) + '" data-zoom hidden>'; }).join('') + '</div>';
-    else if (ph.length) gal = '<div class="dp-hero" data-zoom-group>' + ph.map(function (x, i) { return '<img src="' + esc(x) + '" alt="' + esc(r.nom) + '" data-zoom' + (i ? ' hidden' : '') + '>'; }).join('') + '</div>';
-    var beltabResa = r.reservation && r.reservation.type === 'beltab';
-    var btn = function (icon, label, attrs, dark) { return '<a class="dp-act' + (dark ? ' is-dark' : '') + '" ' + attrs + '>' + IC(P[icon], 17) + label + '</a>'; };
-    var acts = (beltabResa ? btn('cal', 'Réserver', 'href="#dp-resa" data-jump', true) : (r.site ? btn('globe', 'Site web', 'href="' + esc(r.site) + '" target="_blank" rel="noopener nofollow"') : '')) +
-      btn('route', 'Itinéraire', 'href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(r.nom + ' ' + (r.adresse || '')) + '" target="_blank" rel="noopener nofollow"') +
-      btn('share', 'Partager', 'href="#" id="dp-share"') +
-      btn('plus', 'J’ai mangé ici', 'href="' + esc(r.url) + '#mange"');
+  // ---------- la fiche complète (colonne sur ordinateur, plein écran sur téléphone) : tout en cartes ----------
+  var LKEY = 'beltab.listes.v1', AKEY = 'beltab.avis.v1';
+  function lread(k, d) { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } }
+  function lsave(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  var PRIO = { haute: 'Le plus vite possible', moyenne: 'Bientôt', basse: 'Un jour' };
+  P.back = 'M15 6l-6 6 6 6'; P.heart = 'M12 20s-7-4.4-9.2-9A5 5 0 0 1 12 6a5 5 0 0 1 9.2 5c-2.2 4.6-9.2 9-9.2 9z';
+  P.flag = 'M5 21V4M5 4h11l-2 4 2 4H5'; P.down = 'M6 9l6 6 6-6'; P.chev = 'M9 6l6 6-6 6'; P.edit = 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4';
+  P.copy = 'M8 8h12v12H8zM4 16V4h12'; P.ext = 'M14 4h6v6M20 4l-9 9M18 14v6H4V6h6'; P.lock = 'M6 11h12v10H6zM9 11V8a3 3 0 0 1 6 0v3';
+  P.star = 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z';
+  function stars(n, s) {
+    var o = ''; for (var i = 1; i <= 5; i++) o += '<svg aria-hidden="true" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="' + (i <= n ? '#E8A317' : 'none') + '" stroke="' + (i <= n ? '#E8A317' : '#CFCDC5') + '" stroke-width="1.8" stroke-linejoin="round"><path d="' + P.star + '"/></svg>';
+    return '<span class="fx-stars" role="img" aria-label="' + n + ' sur 5">' + o + '</span>';
+  }
+  function hoursOf(r, j) { var sl = (r.horaires && r.horaires[j]) || []; return sl.length ? sl.map(function (x) { return hh(x[0]) + ' – ' + hh(x[1]); }).join(' · ') : 'Fermé'; }
 
-    // sommaire, comme sur une page de site
-    var toc = [];
-    var n = jeu.slugs[r.slug] || 0;
-    var band = n ? '<div class="dp-jeu"><b class="dp-done">' + IC(P.check, 15) + 'Déjà fait ' + (n > 1 ? n + ' fois' : '') + '</b><a href="/moi/#journal">Mon journal ›</a></div>' : '';
-    var phares = '';
-    if ((r.phares || []).length) {
-      toc.push(['dp-phares', 'Plats phares']);
-      phares = '<section class="dp-sec" id="dp-phares"><h3>Les plats phares</h3><div class="dp-phares" data-zoom-group>' + r.phares.map(function (p) {
-        return '<div>' + (p.photo ? z(p.photo, p.nom) : '<span></span>') + '<strong>' + esc(p.nom) + '</strong><small>' + esc(p.prix) + '</small></div>';
-      }).join('') + '</div></section>';
+  function deskPanel(r) {
+    var st = Beltab.status(r.horaires), parts = st.label.split(' · ');
+    var ph = r.photos && r.photos.length ? r.photos : (r.photo ? [r.photo] : []);
+    var img = function (src, cls) { return '<img class="' + cls + '" src="' + esc(src) + '" alt="' + esc(r.nom) + '" data-zoom loading="lazy">'; };
+    // photos façon Google : une grande, deux petites l'une sur l'autre, une grande…
+    var gal = '';
+    if (ph.length === 1) gal = '<div class="fx-gal is-one" data-zoom-group>' + img(ph[0], 'fx-big') + '</div>';
+    else if (ph.length) {
+      var t = '', i = 0, big = true;
+      while (i < ph.length) {
+        if (big || i === ph.length - 1) { t += img(ph[i], 'fx-big'); i++; }
+        else { t += '<span class="fx-pair">' + img(ph[i], 'fx-sm') + img(ph[i + 1], 'fx-sm') + '</span>'; i += 2; }
+        big = !big;
+      }
+      gal = '<div class="fx-gal" data-zoom-group>' + t + '</div>';
     }
+    var beltabResa = r.reservation && r.reservation.type === 'beltab';
+    var lists = lread(LKEY, { fav: {}, todo: {} });
+    var fav = !!lists.fav[r.slug], todo = lists.todo[r.slug];
+    var route = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(r.nom + ' ' + (r.adresse || ''));
+    var top = '<div class="fx-top"><button type="button" class="fx-back" id="sheet-close" aria-label="Retour à la carte">' + IC(P.back, 20) + '<span>Beltab</span></button>' +
+      '<div><button type="button" class="fx-ib" id="fx-share" aria-label="Partager">' + IC(P.share, 17) + '</button>' +
+      '<button type="button" class="fx-ib" id="fx-close" aria-label="Fermer">' + IC(P.close, 17) + '</button></div></div>';
+    var desc = r.description || r.accroche || '';
+    var tags = (r.tags || []).slice(0, 3);
+    var ident = '<section class="fx-card fx-ident">' +
+      '<div class="fx-idrow">' + (r.logo ? '<img class="rs-logo" src="' + esc(r.logo) + '" alt="">' : '') + '<div><span class="rs-name"><span class="rs-name-txt">' + esc(r.nom) + '</span>' + ICON.badge + '</span>' +
+      '<span class="rs-meta">' + esc([catLabel(r), r.arrondissement].filter(Boolean).join(' · ')) + '</span></div></div>' +
+      '<div class="fx-strow"><a class="fx-st ' + (st.open ? 'is-open' : 'is-closed') + '" href="#fx-horaires" data-jump><i></i><strong>' + esc(parts[0]) + '</strong>' + (parts[1] ? '<span>· ' + esc(parts[1]) + '</span>' : '') + IC(P.down, 13) + '</a>' +
+      '<a class="fx-ib" href="' + route + '" target="_blank" rel="noopener nofollow" aria-label="Itinéraire">' + IC(P.route, 17) + '</a>' +
+      '<button type="button" class="fx-ib fx-fav' + (fav ? ' is-on' : '') + '" id="fx-fav" aria-pressed="' + fav + '" aria-label="Favori">' + IC(P.heart, 17) + '</button></div>' +
+      (tags.length ? '<div class="fx-tags">' + tags.map(function (x) { return '<span>' + esc(x) + '</span>'; }).join('') + '</div>' : '') +
+      (desc ? '<button type="button" class="fx-desc" id="fx-desc"><p>' + esc(desc) + '</p>' + (desc.length > 90 ? '<span>Lire la suite' + IC(P.chev, 14) + '</span>' : '') + '</button>' : '') +
+      '<div class="fx-acts">' + (beltabResa ? '<a class="fx-btn is-dark" href="#fx-resa" data-jump>' + IC(P.cal, 16) + 'Réserver</a>' : (r.site ? '<a class="fx-btn is-dark" href="' + esc(r.site) + '" target="_blank" rel="noopener nofollow">' + IC(P.globe, 16) + 'Site web</a>' : '')) +
+      '<a class="fx-btn" href="#fx-carte" data-jump>' + IC(P.menu, 16) + 'La carte</a>' +
+      '<button type="button" class="fx-sq' + (todo ? ' is-on' : '') + '" id="fx-todo" aria-label="À tester">' + IC(P.flag, 17) + '<span>' + (todo ? 'Prévu' : 'À tester') + '</span></button></div></section>';
+
+    // ma visite : note et mot privés
+    var n = jeu.slugs[r.slug] || 0, av = lread(AKEY, {})[r.slug];
+    var visite = '';
+    if (av && av.note) visite = '<button type="button" class="fx-card fx-visite" id="fx-avis"><i class="fx-ok">' + IC(P.check, 14) + '</i>' + stars(av.note, 15) + '<span>' + esc(av.mot || (n ? 'Mangé ici ' + n + ' fois' : 'Ma note')) + '</span>' + IC(P.edit, 16) + '</button>';
+    else if (n) visite = '<button type="button" class="fx-card fx-visite" id="fx-avis"><i class="fx-ok">' + IC(P.check, 14) + '</i><span><b>Vous y avez mangé' + (n > 1 ? ' ' + n + ' fois' : '') + '</b> · notez-le</span>' + stars(0, 15) + '</button>';
+    else visite = '<div class="fx-card fx-visite is-new"><span><b>Déjà venu ?</b><small>Pour votre passeport. Note et mot privés.</small></span><a class="fx-mange" href="' + esc(r.url) + '#mange">' + IC(P.check, 15) + 'J’ai mangé ici</a></div>';
+
+    var phares = (r.phares || []).length ? '<section class="fx-card"><h3>Les plats phares</h3><div class="dp-phares" data-zoom-group>' + r.phares.map(function (p) {
+      return '<div>' + (p.photo ? '<img src="' + esc(p.photo) + '" alt="' + esc(p.nom) + '" data-zoom loading="lazy">' : '<span></span>') + '<strong>' + esc(p.nom) + '</strong><small>' + esc(p.prix) + '</small></div>';
+    }).join('') + '</div></section>' : '';
+
+    // la carte : Pro et Master = toute la carte dépliable + pop-up des plats ; sinon l'aperçu
+    var full = !!r.full && (r.carte || []).length;
+    var secs = full ? r.carte : (r.apercu || []);
     var maj = r.miseAJour ? new Date(r.miseAJour).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '';
-    var secs = r.paid && r.carte && r.carte.length ? r.carte : (r.apercu || []);
-    toc.push(['dp-carte', 'La carte']);
-    var seen = {};
-    var chips = secs.length > 2 ? '<div class="dp-chips">' + secs.map(function (x, i) { var l = x.section.split(' · ')[0]; if (seen[l]) return ''; seen[l] = 1; return '<a href="#dp-s' + i + '" data-jump>' + esc(l) + '</a>'; }).join('') + '</div>' : '';
-    var carte = '<section class="dp-sec dp-menu" id="dp-carte"><div class="dp-menu-head"><h3>' + (r.paid ? 'La carte' : 'Aperçu de la carte') + '</h3>' + (maj ? '<small>Mise à jour le ' + esc(maj) + '</small>' : '') + '</div>' + chips +
-      secs.map(function (x, i) {
-        return '<div class="dp-cat" id="dp-s' + i + '"><span>' + esc(x.section) + '</span>' + (x.prix ? '<b>' + esc(x.prix) + '</b>' : '') + '</div>' + x.plats.map(function (p) {
-          return '<div class="dp-row"><div><strong>' + esc(p.nom) + '</strong>' + (p.desc ? '<small>' + esc(p.desc) + '</small>' : '') + '</div><b>' + esc(p.prix) + '</b></div>';
-        }).join('');
-      }).join('') +
-      (!r.paid ? '<p class="dp-note">La carte complète, les prix à jour et les formules sont chez le restaurant.</p>' : '') +
-      (r.paid && r.site ? '<a class="dp-link" href="' + esc(r.site) + '" target="_blank" rel="noopener">Le site du restaurant ›</a>' : '') + '</section>';
+    var seen = {}, chips = full && secs.length > 2 ? '<div class="fx-chips">' + secs.map(function (x, i) { var l = x.section.split(' · ')[0]; if (seen[l]) return ''; seen[l] = 1; return '<a href="#fx-s' + i + '" data-sec="' + i + '">' + esc(l) + '</a>'; }).join('') + '</div>' : '';
+    var count = 0;
+    var rows = secs.map(function (x, si) {
+      return '<div class="fx-cat" id="fx-s' + si + '"><span>' + esc(x.section) + '</span>' + (x.prix ? '<b>' + esc(x.prix) + '</b>' : '') + '</div>' + x.plats.map(function (p, pi) {
+        count++;
+        var tag = full ? 'button type="button" data-dish="' + si + '.' + pi + '"' : 'div';
+        var long = (p.prix || '').length > 9;
+        return '<' + tag + ' class="fx-row' + (full && count > 5 ? ' is-more' : '') + '"><span><strong>' + esc(p.nom) + '</strong>' + (p.desc ? '<small>' + esc(p.desc) + '</small>' : '') + (long ? '<em>' + esc(p.prix) + '</em>' : '') + '</span><b>' + (long ? '' : esc(p.prix)) + (full ? IC(P.chev, 14) : '') + '</b></' + tag.split(' ')[0] + '>';
+      }).join('');
+    }).join('');
+    var carte = '<section class="fx-card fx-carte' + (full ? ' is-folded' : '') + '" id="fx-carte"><h3>' + (full ? 'La carte' : 'Aperçu de la carte') + (maj ? '<small><i></i>Mise à jour le ' + esc(maj) + '</small>' : '') + '</h3>' + chips + '<div class="fx-rows">' + rows + '</div>' +
+      (full && count > 5 ? '<button type="button" class="fx-more" id="fx-more">Toute la carte' + IC(P.down, 16) + '</button>' : '') +
+      (!full ? '<p class="fx-note">La carte complète, les prix à jour et les formules sont chez le restaurant.</p>' + (r.site ? '<a class="fx-link" href="' + esc(r.site) + '" target="_blank" rel="noopener">Le site du restaurant' + IC(P.ext, 13) + '</a>' : '') : '') + '</section>';
+
     var resa = '';
     if (beltabResa) {
-      toc.push(['dp-resa', 'Réserver']);
       var url = r.reservation.url + (r.reservation.url.indexOf('?') >= 0 ? '&' : '?') + 'beltab=1';
-      resa = '<section class="dp-sec dp-resa" id="dp-resa"><h3>Réserver une table <small>sans quitter la carte</small></h3><iframe class="dp-frame" src="' + esc(url) + '" title="Réserver chez ' + esc(r.nom) + '" loading="lazy"></iframe></section>';
+      resa = '<section class="fx-card fx-resa" id="fx-resa"><h3>Réserver une table<small>Directement ici</small></h3><iframe class="fx-frame" id="fx-frame" src="' + esc(url) + '" title="Réserver chez ' + esc(r.nom) + '"></iframe></section>';
     }
-    toc.push(['dp-horaires', 'Horaires']);
     var today = JOURS_ORD[(new Date().getDay() + 6) % 7];
-    var hor = '<section class="dp-sec" id="dp-horaires"><h3>Horaires et adresse</h3>' + JOURS_ORD.map(function (j) {
-      var sl = (r.horaires && r.horaires[j]) || [];
-      return '<div class="dp-h' + (j === today ? ' is-today' : '') + '"><span>' + j[0].toUpperCase() + j.slice(1) + '</span><span>' + (sl.length ? sl.map(function (x) { return hh(x[0]) + ' – ' + hh(x[1]); }).join(' · ') : 'Fermé') + '</span></div>';
-    }).join('') + (r.adresse ? '<p class="dp-addr">' + esc(r.adresse) + '</p>' : '') + '</section>';
+    var hor = '<section class="fx-card" id="fx-horaires"><h3>Horaires<span class="fx-st ' + (st.open ? 'is-open' : 'is-closed') + '"><i></i><strong>' + esc(parts[0]) + '</strong></span></h3><div class="fx-hours">' + JOURS_ORD.map(function (j) {
+      var v = hoursOf(r, j);
+      return '<div class="' + (j === today ? 'is-today' : '') + '"><span>' + j[0].toUpperCase() + j.slice(1) + (j === today ? ' · aujourd’hui' : '') + '</span><span' + (v === 'Fermé' ? ' class="is-off"' : '') + '>' + v + '</span></div>';
+    }).join('') + '</div></section>';
+    var adr = r.adresse ? '<section class="fx-card"><h3>Adresse</h3><p class="fx-addr">' + esc(r.adresse) + '</p><div class="fx-row3">' +
+      '<a class="fx-btn is-dark" href="' + route + '" target="_blank" rel="noopener nofollow">' + IC(P.route, 16) + 'Itinéraire</a>' +
+      (r.telephone ? '<a class="fx-btn" href="tel:' + esc(r.telephone.replace(/\s/g, '')) + '">' + IC(P.phone, 16) + 'Appeler</a>' : '') +
+      '<button type="button" class="fx-btn" id="fx-copy">' + IC(P.copy, 16) + 'Copier</button></div></section>' : '';
+    var equipe = (r.equipe || []).length || r.histoire ? '<section class="fx-card"><h3>Qui est derrière</h3>' + (r.equipe || []).map(function (p) {
+      return '<div class="fx-person">' + (p.photo ? '<img src="' + esc(p.photo) + '" alt="">' : '<span>' + esc((p.nom || '?')[0]) + '</span>') + '<div><strong>' + esc(p.nom) + '</strong>' + (p.role ? '<small>' + esc(p.role) + '</small>' : '') + '</div></div>';
+    }).join('') + (r.histoire ? '<p class="fx-note">' + esc(r.histoire) + '</p>' : '') + (r.site ? '<a class="fx-btn" href="' + esc(r.site) + '" target="_blank" rel="noopener">' + IC(P.globe, 15) + 'Leur histoire sur leur site' + IC(P.ext, 13) + '</a>' : '') + '</section>' : '';
     var near = '';
     if (!r.paid) {
       var d = function (a) { return Math.hypot(a.lat - r.lat, (a.lng - r.lng) * Math.cos(r.lat * Math.PI / 180)); };
       var ns = state.data.filter(function (o) { return o.slug !== r.slug; }).sort(function (a, b) { return d(a) - d(b); }).slice(0, 2);
-      if (ns.length) near = '<section class="dp-sec"><h3>Autres indépendants à côté</h3><div class="dp-near">' + ns.map(function (o) { return '<button type="button" data-go="' + o.slug + '"><strong>' + esc(o.nom) + '</strong><small>' + esc(catLabel(o)) + ' · ' + Math.max(1, Math.round(d(o) * 111000 / 80)) + ' min à pied</small></button>'; }).join('') + '</div></section>';
+      if (ns.length) near = '<section class="fx-card"><h3>Autres indépendants à côté</h3><div class="dp-near">' + ns.map(function (o) { return '<button type="button" data-go="' + o.slug + '"><strong>' + esc(o.nom) + '</strong><small>' + esc(catLabel(o)) + ' · ' + Math.max(1, Math.round(d(o) * 111000 / 80)) + ' min à pied</small></button>'; }).join('') + '</div></section>';
     }
-    if (ph.length) toc.push(['photos', 'Photos']);
-    var tocHtml = '<nav class="dp-toc" aria-label="Sommaire">' + toc.map(function (t) { return t[0] === 'photos' ? '<a href="#" id="dp-photos">' + t[1] + '</a>' : '<a href="#' + t[0] + '" data-jump>' + t[1] + '</a>'; }).join('') + '</nav>';
-
-    return '<div class="dp-tools"><button type="button" class="dp-tool" id="sheet-close" aria-label="Fermer">' + IC(P.close, 16) + '</button></div>' + gal +
-      '<div class="dp-head"><div class="dp-id">' + (r.logo ? '<img class="rs-logo" src="' + esc(r.logo) + '" alt="">' : '') + '<div><span class="rs-name"><span class="rs-name-txt">' + esc(r.nom) + '</span>' + ICON.badge + '</span>' +
-      '<span class="rs-meta">' + esc(catLabel(r)) + ' · ' + esc(r.prix) + ' · ' + esc(r.arrondissement) + '</span></div></div>' +
-      '<span class="st ' + (st.open ? 'st-open' : 'st-closed') + '"><strong>' + esc(st.label.split(' · ')[0]) + '</strong>' + (st.label.split(' · ')[1] ? ' · ' + esc(st.label.split(' · ')[1]) : '') + '</span>' +
-      (r.accroche ? '<p class="dp-acc">' + esc(r.accroche) + '</p>' : '') + '<div class="dp-acts">' + acts + '</div>' + band + '</div>' + tocHtml +
-      phares + carte + resa + hor + near + '<div class="dp-resize" id="dp-resize" title="Glisser pour élargir" aria-hidden="true"></div>';
+    return '<div class="fx">' + top + gal + '<div class="fx-stack">' + ident + visite + phares + carte + resa + hor + adr + equipe + near + '</div></div><div class="dp-resize" id="dp-resize" title="Glisser pour élargir" aria-hidden="true"></div>';
   }
+
+  // ---------- pop-ups qui montent du bas ----------
+  function bottomSheet(html, cls) {
+    var old = $('fx-pop'); if (old) old.remove();
+    var w = document.createElement('div');
+    w.id = 'fx-pop'; w.className = 'fx-pop ' + (cls || '');
+    w.innerHTML = '<div class="fx-pop-bg"></div><div class="fx-pop-card" role="dialog" aria-modal="true"><span class="fx-grip"></span>' + html + '</div>';
+    document.body.appendChild(w);
+    var close = function () { w.classList.remove('is-in'); setTimeout(function () { w.remove(); }, 220); document.removeEventListener('keydown', esc1); };
+    var esc1 = function (e) { if (e.key === 'Escape') close(); };
+    document.addEventListener('keydown', esc1);
+    w.querySelector('.fx-pop-bg').addEventListener('click', close);
+    w.querySelectorAll('[data-x]').forEach(function (b) { b.addEventListener('click', close); });
+    requestAnimationFrame(function () { w.classList.add('is-in'); });
+    return { el: w, close: close };
+  }
+  var XB = function () { return '<button type="button" class="fx-ib fx-px" data-x aria-label="Fermer">' + IC(P.close, 17) + '</button>'; };
+
+  function dishPop(r, si, pi) {
+    var secs = r.carte;
+    var s = bottomSheet('<div class="fx-dish" id="fx-dish"></div>', 'is-tall');
+    function draw(a, b) {
+      var sec = secs[a], p = sec.plats[b];
+      var box = s.el.querySelector('#fx-dish');
+      box.innerHTML = XB() + '<div class="fx-dish-ph">' + (p.photo ? '<img src="' + esc(p.photo) + '" alt="' + esc(p.nom) + '">' : '<span>' + IC(P.menu, 40) + '</span>') + '</div>' +
+        '<div class="fx-dish-tx"><div><h4>' + esc(p.nom) + '</h4>' + (p.desc ? '<p>' + esc(p.desc) + '</p>' : '') + '</div><b>' + esc(p.prix) + '</b></div>' +
+        '<div class="fx-dish-tabs">' + secs.map(function (x, i) { return '<button type="button" data-t="' + i + '"' + (i === a ? ' aria-selected="true"' : '') + '>' + esc(x.section) + '</button>'; }).join('') + '</div>' +
+        '<div class="fx-dish-th">' + sec.plats.map(function (x, i) { return '<button type="button" data-p="' + i + '"' + (i === b ? ' aria-current="true"' : '') + '>' + (x.photo ? '<img src="' + esc(x.photo) + '" alt="">' : '<span></span>') + '<small>' + esc(x.nom) + '</small></button>'; }).join('') + '</div>';
+      box.querySelector('[data-x]').addEventListener('click', s.close);
+      box.querySelectorAll('[data-t]').forEach(function (t) { t.addEventListener('click', function () { draw(+t.getAttribute('data-t'), 0); }); });
+      box.querySelectorAll('[data-p]').forEach(function (t) { t.addEventListener('click', function () { draw(a, +t.getAttribute('data-p')); }); });
+      var cur = box.querySelector('[aria-current]'); if (cur) cur.scrollIntoView({ inline: 'center', block: 'nearest' });
+      var ct = box.querySelector('[aria-selected]'); if (ct) ct.scrollIntoView({ inline: 'center', block: 'nearest' });
+      // glisser sur la photo : plat suivant / précédent
+      var x0 = null, phe = box.querySelector('.fx-dish-ph');
+      phe.addEventListener('touchstart', function (e) { x0 = e.touches[0].clientX; }, { passive: true });
+      phe.addEventListener('touchend', function (e) {
+        if (x0 == null) return; var dx = e.changedTouches[0].clientX - x0; x0 = null;
+        if (Math.abs(dx) < 40) return;
+        var na = a, nb = b + (dx < 0 ? 1 : -1);
+        if (nb >= sec.plats.length) { na = (a + 1) % secs.length; nb = 0; }
+        if (nb < 0) { na = (a - 1 + secs.length) % secs.length; nb = secs[na].plats.length - 1; }
+        draw(na, nb);
+      });
+    }
+    draw(si, pi);
+  }
+
+  function todoPop(r, btn) {
+    var lists = lread(LKEY, { fav: {}, todo: {} }), cur = lists.todo[r.slug];
+    var s = bottomSheet(XB() + '<h4 class="fx-pop-h">' + IC(P.flag, 18) + 'À tester</h4><p class="fx-pop-p">Quand voulez-vous y aller ? Le restaurant rejoint votre liste « À tester » sur la page Moi.</p>' +
+      '<div class="fx-prio">' + Object.keys(PRIO).map(function (k) { return '<button type="button" data-k="' + k + '"' + (cur === k ? ' aria-pressed="true"' : '') + '><i class="p-' + k + '"></i>' + PRIO[k] + '</button>'; }).join('') + '</div>' +
+      (cur ? '<button type="button" class="fx-link fx-rm" data-k="">Retirer de la liste</button>' : ''));
+    s.el.querySelectorAll('[data-k]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var l = lread(LKEY, { fav: {}, todo: {} }), k = b.getAttribute('data-k');
+        if (k) l.todo[r.slug] = k; else delete l.todo[r.slug];
+        lsave(LKEY, l);
+        btn.classList.toggle('is-on', !!k); btn.querySelector('span').textContent = k ? 'Prévu' : 'À tester';
+        s.close();
+      });
+    });
+  }
+
+  function avisPop(r) {
+    var all = lread(AKEY, {}), av = all[r.slug] || { note: 0, mot: '' }, note = av.note;
+    var s = bottomSheet(XB() + '<h4 class="fx-pop-h">Ma note sur ' + esc(r.nom) + '</h4>' +
+      '<div class="fx-rate" id="fx-rate">' + [1, 2, 3, 4, 5].map(function (i) { return '<button type="button" data-n="' + i + '" aria-label="' + i + ' sur 5"></button>'; }).join('') + '</div>' +
+      '<textarea id="fx-mot" rows="4" placeholder="Ce que vous avez pris, ce qu’il faudra reprendre…">' + esc(av.mot) + '</textarea>' +
+      '<p class="fx-pop-p fx-priv">' + IC(P.lock, 13) + 'Visible par vous seul. Rien n’est publié.</p>' +
+      '<button type="button" class="fx-btn is-dark" id="fx-save">Enregistrer</button>');
+    function paint() { s.el.querySelectorAll('[data-n]').forEach(function (b) { var on = +b.getAttribute('data-n') <= note; b.innerHTML = '<svg aria-hidden="true" width="32" height="32" viewBox="0 0 24 24" fill="' + (on ? '#E8A317' : 'none') + '" stroke="' + (on ? '#E8A317' : '#CFCDC5') + '" stroke-width="1.6" stroke-linejoin="round"><path d="' + P.star + '"/></svg>'; }); }
+    paint();
+    s.el.querySelectorAll('[data-n]').forEach(function (b) { b.addEventListener('click', function () { note = +b.getAttribute('data-n'); paint(); }); });
+    $('fx-save').addEventListener('click', function () {
+      var a = lread(AKEY, {}); a[r.slug] = { note: note, mot: $('fx-mot').value.trim(), t: Date.now() }; lsave(AKEY, a);
+      s.close(); refresh(r);
+    });
+  }
+  function refresh(r) { var sh = $('sheet'), y = sh.scrollTop; sh.innerHTML = deskPanel(r); wireDesk(r); sh.scrollTop = y; }
+
   function wireDesk(r) {
     var sheet = $('sheet');
-    $('sheet-close').addEventListener('click', function () {
-      if (!DESK.matches) { closeFull(); return; }
-      state.selected = null; render();
+    var close = function () { if (!DESK.matches) { closeFull(); return; } state.selected = null; render(); };
+    $('sheet-close').addEventListener('click', close);
+    $('fx-close').addEventListener('click', close);
+    $('fx-share').addEventListener('click', function () { if (window.Partage) Partage.link({ url: location.origin + r.url, title: r.nom + ' · Beltab' }); });
+    var fv = $('fx-fav');
+    fv.addEventListener('click', function () {
+      var l = lread(LKEY, { fav: {}, todo: {} }); if (l.fav[r.slug]) delete l.fav[r.slug]; else l.fav[r.slug] = Date.now(); lsave(LKEY, l);
+      fv.classList.toggle('is-on', !!l.fav[r.slug]); fv.setAttribute('aria-pressed', String(!!l.fav[r.slug]));
+      if (navigator.vibrate) { try { navigator.vibrate(10); } catch (e) {} }
     });
-    $('dp-share').addEventListener('click', function (e) { e.preventDefault(); if (window.Partage) Partage.link({ url: location.origin + r.url, title: r.nom + ' · Beltab' }); });
-    var sl = sheet.querySelector('.dp-slider'), cnt = sheet.querySelector('.dp-count');
-    if (sl && cnt) sl.addEventListener('scroll', function () { cnt.textContent = (Math.round(sl.scrollLeft / sl.clientWidth) + 1) + ' / ' + sl.children.length; }, { passive: true });
-    var all = $('dp-all'); if (all) all.addEventListener('click', function () { var i = sl.children[Math.round(sl.scrollLeft / sl.clientWidth)]; if (i && window.Lightbox) Lightbox.open(i); });
-    var pb = $('dp-photos'); if (pb) pb.addEventListener('click', function (e) { e.preventDefault(); var i = sheet.querySelector('.dp-gal img, .dp-hero img'); if (i && window.Lightbox) Lightbox.open(i); });
+    var td = $('fx-todo'); td.addEventListener('click', function () { todoPop(r, td); });
+    var av = $('fx-avis'); if (av) av.addEventListener('click', function () { avisPop(r); });
+    var ds = $('fx-desc'); if (ds) ds.addEventListener('click', function () {
+      bottomSheet(XB() + '<div class="fx-pop-id">' + (r.logo ? '<img class="rs-logo" src="' + esc(r.logo) + '" alt="">' : '') + '<h4>' + esc(r.nom) + '</h4></div>' +
+        '<p class="fx-pop-txt">' + esc(r.description || r.accroche) + '</p>' + ((r.tags || []).length ? '<div class="fx-tags">' + r.tags.slice(0, 3).map(function (x) { return '<span>' + esc(x) + '</span>'; }).join('') + '</div>' : '') +
+        '<p class="fx-pop-p">Texte écrit par le restaurant</p>');
+    });
+    var cp = $('fx-copy'); if (cp) cp.addEventListener('click', function () {
+      try { navigator.clipboard.writeText(r.adresse); cp.lastChild.textContent = 'Copiée'; setTimeout(function () { cp.lastChild.textContent = 'Copier'; }, 1600); } catch (e) {}
+    });
+    var more = $('fx-more'), cc = sheet.querySelector('.fx-carte');
+    if (more) more.addEventListener('click', function () {
+      var folded = cc.classList.toggle('is-folded');
+      more.firstChild.textContent = folded ? 'Toute la carte' : 'Réduire';
+      if (folded) sheet.scrollTo({ top: cc.offsetTop - 8, behavior: 'smooth' });
+    });
+    sheet.querySelectorAll('[data-sec]').forEach(function (a) {
+      a.addEventListener('click', function (e) {
+        e.preventDefault(); cc.classList.remove('is-folded'); if (more) more.firstChild.textContent = 'Réduire';
+        var el = $('fx-s' + a.getAttribute('data-sec')); if (el) sheet.scrollTo({ top: el.offsetTop - 60, behavior: 'smooth' });
+      });
+    });
+    sheet.querySelectorAll('[data-dish]').forEach(function (b) {
+      b.addEventListener('click', function () { var k = b.getAttribute('data-dish').split('.'); dishPop(r, +k[0], +k[1]); });
+    });
     sheet.querySelectorAll('[data-jump]').forEach(function (a) {
       a.addEventListener('click', function (e) {
         e.preventDefault();
         var el = sheet.querySelector(a.getAttribute('href'));
-        var toc = sheet.querySelector('.dp-toc');
-        if (el) sheet.scrollTo({ top: el.offsetTop - (toc ? toc.offsetHeight : 0) - 6, behavior: 'smooth' });
+        if (el) sheet.scrollTo({ top: el.offsetTop - 10, behavior: 'smooth' });
       });
     });
     sheet.querySelectorAll('[data-go]').forEach(function (b) { b.addEventListener('click', function () { select(b.getAttribute('data-go')); }); });
@@ -261,6 +403,11 @@
       h.addEventListener('pointermove', move); h.addEventListener('pointerup', up);
     });
   }
+  // le module de réservation peut donner sa hauteur : plus de double défilement
+  window.addEventListener('message', function (e) {
+    var f = $('fx-frame');
+    if (f && e.data && e.data.beltabHeight && e.source === f.contentWindow) f.style.height = Math.max(420, Math.min(1400, +e.data.beltabHeight)) + 'px';
+  });
 
   // ---------- téléphone : la fiche complète s'ouvre par-dessus la carte, avec une croix ----------
   function openFull(r, jump) {
@@ -270,7 +417,7 @@
     sheet.innerHTML = deskPanel(r);
     sheet.scrollTop = 0;
     wireDesk(r);
-    if (jump) { var el = sheet.querySelector(jump); if (el) setTimeout(function () { sheet.scrollTo({ top: el.offsetTop - 50, behavior: 'smooth' }); }, 250); }
+    if (jump) { var el = sheet.querySelector(jump); if (el) setTimeout(function () { sheet.scrollTo({ top: el.offsetTop - 10, behavior: 'smooth' }); }, 250); }
     if (history.pushState) history.pushState({ beltabFull: r.slug }, '', r.url);
   }
   function closeFull(fromPop) {
@@ -323,9 +470,9 @@
     sheet.hidden = false;
     $('sheet-close').addEventListener('click', function () { state.selected = null; render(); });
     sheet.querySelector('.rs-info').addEventListener('click', function (e) { e.preventDefault(); openFull(r); });
-    var mn = $('act-menu'); if (mn) mn.addEventListener('click', function (e) { e.preventDefault(); openFull(r, '#dp-carte'); });
+    var mn = $('act-menu'); if (mn) mn.addEventListener('click', function (e) { e.preventDefault(); openFull(r, '#fx-carte'); });
     var bk = $('act-book');
-    if (bk) bk.addEventListener('click', function () { openBooking(r); });
+    if (bk) bk.addEventListener('click', function () { openFull(r, '#fx-resa'); });
   }
 
   // ---------- réservation Beltab en widget, sans quitter la carte ----------

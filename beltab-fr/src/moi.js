@@ -19,7 +19,7 @@
   var tabs = document.querySelectorAll('.moi-tabs [data-tab]');
   function show(name) {
     tabs.forEach(function (t) { t.setAttribute('aria-selected', t.getAttribute('data-tab') === name ? 'true' : 'false'); });
-    ['passeport', 'journal', 'classement'].forEach(function (n) { $('tab-' + n).hidden = n !== name; });
+    ['passeport', 'journal', 'listes', 'classement'].forEach(function (n) { $('tab-' + n).hidden = n !== name; });
     if (history.replaceState) history.replaceState(null, '', '#' + name);
   }
   tabs.forEach(function (t) { t.addEventListener('click', function () { show(t.getAttribute('data-tab')); }); });
@@ -118,12 +118,30 @@
     });
   }
 
-  function refresh() { passeport(); journal(); classement(); }
+  // ---------- listes : À tester (avec priorité) et Favoris ----------
+  var FLAG = '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>';
+  var HEART = '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="#D23B3B" stroke="#D23B3B" stroke-width="2" stroke-linejoin="round"><path d="M12 20s-7-4.4-9.2-9A5 5 0 0 1 12 6a5 5 0 0 1 9.2 5c-2.2 4.6-9.2 9-9.2 9z"/></svg>';
+  var PRIO = [['haute', 'Le plus vite possible'], ['moyenne', 'Bientôt'], ['basse', 'Un jour']];
+  function listes() {
+    var l; try { l = JSON.parse(localStorage.getItem('beltab.listes.v1')) || {}; } catch (e) { l = {}; }
+    var todo = l.todo || {}, fav = l.fav || {};
+    var by = function (s) { return RESTOS.filter(function (r) { return r.slug === s; })[0]; };
+    var row = function (r, right) { return '<a class="li-row" href="' + esc(r.url) + '">' + (r.photo ? '<img src="' + esc(r.photo) + '" alt="">' : '<span class="li-ph"></span>') + '<span><strong>' + esc(r.nom) + '</strong><small>' + esc(r.arrondissement || '') + '</small></span>' + right + '</a>'; };
+    var t = PRIO.map(function (p) {
+      var rs = Object.keys(todo).filter(function (s) { return todo[s] === p[0]; }).map(by).filter(Boolean);
+      return rs.length ? '<h4 class="li-prio"><i class="p-' + p[0] + '"></i>' + p[1] + '</h4>' + rs.map(function (r) { return row(r, FLAG); }).join('') : '';
+    }).join('');
+    var f = Object.keys(fav).sort(function (a, b) { return fav[b] - fav[a]; }).map(by).filter(Boolean).map(function (r) { return row(r, HEART); }).join('');
+    $('tab-listes').innerHTML = '<section class="li-card"><h3>' + FLAG + 'À tester</h3>' + (t || '<p class="muted small">Le drapeau sur la fiche d’un restaurant le range ici, avec votre priorité.</p>') + '</section>' +
+      '<section class="li-card"><h3>' + HEART + 'Mes favoris</h3>' + (f || '<p class="muted small">Le cœur sur la fiche d’un restaurant le range ici.</p>') + '</section>';
+  }
+
+  function refresh() { passeport(); journal(); listes(); classement(); }
 
   Promise.all([fetch('/cuisines.json').then(function (r) { return r.json(); }), fetch('/restaurants.json').then(function (r) { return r.json(); })]).then(function (res) {
     C = res[0]; RESTOS = res[1].restaurants;
     refresh();
     var h = location.hash.replace('#', '');
-    if (['passeport', 'journal', 'classement'].indexOf(h) >= 0) show(h);
+    if (['passeport', 'journal', 'listes', 'classement'].indexOf(h) >= 0) show(h);
   });
 })();
