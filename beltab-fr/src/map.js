@@ -35,7 +35,7 @@
   map.addControl(geo, 'top-right'); // bouton caché, déclenché par notre bouton rond
 
   // Carte « flat » : pas de bâtiments, pas de 3D, pas d'icônes de lieux, de transports ni de panneaux.
-  map.on('style.load', function () {
+  function flatStyle(map) {
     var paint = function (id, prop, val) { try { map.setPaintProperty(id, prop, val); } catch (e) {} };
     map.getStyle().layers.forEach(function (l) {
       var id = l.id;
@@ -49,7 +49,8 @@
       if (/park|grass|wood|forest|landcover|cemetery|pitch/.test(id) && l.type === 'fill') { paint(id, 'fill-color', '#B5E3A0'); paint(id, 'fill-opacity', 1); paint(id, 'fill-outline-color', 'rgba(0,0,0,0)'); }
       if (/landuse/.test(id) && l.type === 'fill' && !/park|grass|wood|cemetery|pitch/.test(id)) map.setLayoutProperty(id, 'visibility', 'none');
     });
-  });
+  }
+  map.on('style.load', function () { flatStyle(map); });
   map.on('load', function () {
     var a = document.querySelector('.maplibregl-ctrl-attrib');
     if (a) a.classList.remove('maplibregl-compact-show');
@@ -174,6 +175,49 @@
   }
   function hoursOf(r, j) { var sl = (r.horaires && r.horaires[j]) || []; return sl.length ? sl.map(function (x) { return hh(x[0]) + ' – ' + hh(x[1]); }).join(' · ') : 'Fermé'; }
 
+  // rubriques de la carte : les sections qui commencent pareil (« Plateaux · … ») vont sur la même page
+  function cartePages(r) {
+    var secs = r.full && (r.carte || []).length ? r.carte : (r.apercu || []), pages = [], idx = {};
+    secs.forEach(function (x, si) {
+      var nom = x.section.split(' · ')[0];
+      if (!(nom in idx)) { idx[nom] = pages.length; pages.push({ nom: nom, secs: [] }); }
+      pages[idx[nom]].secs.push({ s: x, si: si });
+    });
+    return pages;
+  }
+  var DRINK = /boisson|vin|cocktail|bi[eè]re|soft|cidre|ap[eé]ritif|digestif|caf[eé]|th[eé]s?\b|spiritueux|champagne/i;
+  function cartePop(r, start) {
+    var pages = cartePages(r), full = !!r.full;
+    var maj = r.miseAJour ? new Date(r.miseAJour).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '';
+    var body = pages.map(function (p, pi) {
+      var drink = DRINK.test(p.nom);
+      return '<div class="fx-mp" data-pg="' + pi + '">' + p.secs.map(function (o) {
+        var x = o.s;
+        return (p.secs.length > 1 || x.section !== p.nom ? '<div class="fx-cat"><span>' + esc(x.section) + '</span>' + (x.prix ? '<b>' + esc(x.prix) + '</b>' : '') + '</div>' : (x.prix ? '<div class="fx-cat"><span></span><b>' + esc(x.prix) + '</b></div>' : '')) +
+          x.plats.map(function (d, di) {
+            var th = full && !drink ? (d.photo ? '<img class="fx-th" src="' + esc(d.photo) + '" alt="" loading="lazy">' : '<span class="fx-th"></span>') : '';
+            var tag = full ? 'button type="button" data-dish="' + o.si + '.' + di + '"' : 'div';
+            return '<' + tag + ' class="fx-mrow">' + th + '<span class="fx-tx"><strong>' + esc(d.nom) + '</strong>' + (d.desc ? '<small>' + esc(d.desc) + '</small>' : '') + '</span>' + (d.prix ? '<b>' + esc(d.prix).split(' · ').map(function (x) { var p = x.split(' — '); return '<span>' + (p[1] ? '<i>' + p[0].toLowerCase() + '</i> ' + p[1] : p[0]) + '</span>'; }).join('') + '</b>' : '') + '</' + tag.split(' ')[0] + '>';
+          }).join('');
+      }).join('') + (!full && pi === pages.length - 1 ? '<p class="fx-note fx-mnote">La carte complète est chez le restaurant.</p>' : '') + '</div>';
+    }).join('');
+    var s = bottomSheet('<div class="fx-mh"><div><h4>La carte</h4>' + (maj ? '<small>' + esc(r.nom) + ' · mise à jour le ' + esc(maj) + '</small>' : '') + '</div>' + XB() + '</div>' +
+      '<div class="fx-pills fx-mpills">' + pages.map(function (p, i) { return '<button type="button" data-go-pg="' + i + '">' + esc(p.nom) + '</button>'; }).join('') + '</div>' +
+      '<div class="fx-mtrack">' + body + '</div>', 'is-tall is-menu');
+    s.el.querySelector('[data-x]').addEventListener('click', s.close);
+    var track = s.el.querySelector('.fx-mtrack'), pills = s.el.querySelectorAll('[data-go-pg]');
+    function mark(i) {
+      pills.forEach(function (b, k) { b.classList.toggle('is-on', k === i); });
+      if (pills[i]) pills[i].scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+    }
+    function go(i, smooth) { track.scrollTo({ left: i * track.clientWidth, behavior: smooth ? 'smooth' : 'auto' }); mark(i); }
+    pills.forEach(function (b) { b.addEventListener('click', function () { go(+b.getAttribute('data-go-pg'), true); }); });
+    var t = null;
+    track.addEventListener('scroll', function () { clearTimeout(t); t = setTimeout(function () { mark(Math.round(track.scrollLeft / track.clientWidth)); }, 60); }, { passive: true });
+    s.el.querySelectorAll('[data-dish]').forEach(function (b) { b.addEventListener('click', function () { var k = b.getAttribute('data-dish').split('.'); dishPop(r, +k[0], +k[1]); }); });
+    requestAnimationFrame(function () { go(start || 0, false); });
+  }
+
   function deskPanel(r) {
     var st = Beltab.status(r.horaires), parts = st.label.split(' · ');
     var ph = r.photos && r.photos.length ? r.photos : (r.photo ? [r.photo] : []);
@@ -207,7 +251,7 @@
       (tags.length ? '<div class="fx-tags">' + tags.map(function (x) { return '<span>' + esc(x) + '</span>'; }).join('') + '</div>' : '') +
       (desc ? '<button type="button" class="fx-desc" id="fx-desc"><p>' + esc(desc) + '</p>' + (desc.length > 90 ? '<span>Lire la suite' + IC(P.chev, 14) + '</span>' : '') + '</button>' : '') +
       '<div class="fx-acts">' + (beltabResa ? '<button type="button" class="fx-btn is-dark" id="fx-book">' + IC(P.cal, 16) + 'Réserver</button>' : (r.site ? '<a class="fx-btn is-dark" href="' + esc(r.site) + '" target="_blank" rel="noopener nofollow">' + IC(P.globe, 16) + 'Site web</a>' : '')) +
-      '<a class="fx-btn" href="#fx-carte" data-jump>' + IC(P.menu, 16) + 'La carte</a>' +
+      '<button type="button" class="fx-btn" id="fx-menu">' + IC(P.menu, 16) + 'La carte</button>' +
       '<button type="button" class="fx-btn fx-todo' + (todo ? ' is-on' : '') + '" id="fx-todo">' + IC(P.flag, 16) + '<span>' + (todo ? 'Prévu' : 'À tester') + '</span></button></div></section>';
 
     // ma visite : note et mot privés
@@ -221,24 +265,12 @@
       return '<div>' + (p.photo ? '<img src="' + esc(p.photo) + '" alt="' + esc(p.nom) + '" data-zoom loading="lazy">' : '<span></span>') + '<strong>' + esc(p.nom) + '</strong><small>' + esc(p.prix) + '</small></div>';
     }).join('') + '</div></section>' : '';
 
-    // la carte : Pro et Master = toute la carte dépliable + pop-up des plats ; sinon l'aperçu
-    var full = !!r.full && (r.carte || []).length;
-    var secs = full ? r.carte : (r.apercu || []);
+    // la carte : une carte courte sur la fiche (les rubriques) ; tout s'ouvre en pop-up, rubrique par rubrique
+    var pages = cartePages(r);
     var maj = r.miseAJour ? new Date(r.miseAJour).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '';
-    var seen = {}, chips = full && secs.length > 2 ? '<div class="fx-chips">' + secs.map(function (x, i) { var l = x.section.split(' · ')[0]; if (seen[l]) return ''; seen[l] = 1; return '<a href="#fx-s' + i + '" data-sec="' + i + '">' + esc(l) + '</a>'; }).join('') + '</div>' : '';
-    var count = 0;
-    var rows = secs.map(function (x, si) {
-      return '<div class="fx-cat" id="fx-s' + si + '"><span>' + esc(x.section) + '</span>' + (x.prix ? '<b>' + esc(x.prix) + '</b>' : '') + '</div>' + x.plats.map(function (p, pi) {
-        count++;
-        var tag = full ? 'button type="button" data-dish="' + si + '.' + pi + '"' : 'div';
-        var th = full ? (p.photo ? '<img class="fx-th" src="' + esc(p.photo) + '" alt="" loading="lazy">' : '<span class="fx-th"></span>') : '';
-        return '<' + tag + ' class="fx-row' + (full && count > 5 ? ' is-more' : '') + '">' + th + '<span class="fx-tx"><strong>' + esc(p.nom) + '</strong>' + (p.desc ? '<small>' + esc(p.desc) + '</small>' : '') + (p.prix ? '<em>' + esc(p.prix) + '</em>' : '') + '</span>' + (full ? '<i class="fx-chev">' + IC(P.chev, 16) + '</i>' : '') + '</' + tag.split(' ')[0] + '>';
-      }).join('');
-    }).join('');
-    var carte = '<section class="fx-card fx-carte' + (full ? ' is-folded' : '') + '" id="fx-carte"><h3>' + (full ? 'La carte' : 'Aperçu de la carte') + (maj ? '<small><i></i>Mise à jour le ' + esc(maj) + '</small>' : '') + '</h3>' + chips + '<div class="fx-rows">' + rows + '</div>' +
-      (full && count > 5 ? '<button type="button" class="fx-more" id="fx-more">Toute la carte' + IC(P.down, 16) + '</button>' : '') +
-      (!full ? '<p class="fx-note">La carte complète, les prix à jour et les formules sont chez le restaurant.</p>' + (r.site ? '<a class="fx-link" href="' + esc(r.site) + '" target="_blank" rel="noopener">Le site du restaurant' + IC(P.ext, 13) + '</a>' : '') : '') + '</section>';
-
+    var carte = pages.length ? '<section class="fx-card fx-carte" id="fx-carte"><h3>' + (r.full ? 'La carte' : 'Aperçu de la carte') + (maj ? '<small><i></i>Mise à jour le ' + esc(maj) + '</small>' : '') + '</h3>' +
+      '<div class="fx-pills">' + pages.map(function (p, i) { return '<button type="button" data-page="' + i + '">' + esc(p.nom) + '</button>'; }).join('') + '</div>' +
+      (!r.full ? '<p class="fx-note">La carte complète, les prix à jour et les formules sont chez le restaurant.</p>' : '') + '</section>' : '';
     var resa = '';
     if (beltabResa) {
 
@@ -266,13 +298,11 @@
 
   // ---------- pop-ups qui montent du bas ----------
   function bottomSheet(html, cls) {
-    var old = $('fx-pop'); if (old) old.remove();
-    var w = document.createElement('div');
-    w.id = 'fx-pop'; w.className = 'fx-pop ' + (cls || '');
+    var w = document.createElement('div'); w.className = 'fx-pop ' + (cls || '');
     w.innerHTML = '<div class="fx-pop-bg"></div><div class="fx-pop-card" role="dialog" aria-modal="true"><span class="fx-grip"></span>' + html + '</div>';
     document.body.appendChild(w);
     var close = function () { w.classList.remove('is-in'); setTimeout(function () { w.remove(); }, 220); document.removeEventListener('keydown', esc1); };
-    var esc1 = function (e) { if (e.key === 'Escape') close(); };
+    var esc1 = function (e) { if (e.key === 'Escape' && w === [].slice.call(document.querySelectorAll('.fx-pop')).pop()) close(); };
     document.addEventListener('keydown', esc1);
     w.querySelector('.fx-pop-bg').addEventListener('click', close);
     w.querySelectorAll('[data-x]').forEach(function (b) { b.addEventListener('click', close); });
@@ -367,6 +397,7 @@
     // petite carte du quartier, avec le point du restaurant
     try {
       var mm = new maplibregl.Map({ container: s.el.querySelector('#fx-minimap'), style: 'https://tiles.openfreemap.org/styles/liberty', center: [r.lng, r.lat], zoom: 15.6, interactive: false, attributionControl: false });
+      mm.on('style.load', function () { flatStyle(mm); });
       var pin = document.createElement('div'); pin.innerHTML = PIN; new maplibregl.Marker({ element: pin, anchor: 'bottom' }).setLngLat([r.lng, r.lat]).addTo(mm);
     } catch (e) {}
     // à combien de minutes à pied de vous (seulement si la position est déjà autorisée)
@@ -389,6 +420,7 @@
     $('fx-route').addEventListener('click', function () { adressePop(r); });
     $('fx-hours').addEventListener('click', function () { horairesPop(r); });
     var bk = $('fx-book'); if (bk) bk.addEventListener('click', function () { resaPop(r); });
+    $('fx-menu').addEventListener('click', function () { cartePop(r, 0); });
     var fv = $('fx-fav');
     fv.addEventListener('click', function () {
       var l = lread(LKEY, { fav: {}, todo: {} }); if (l.fav[r.slug]) delete l.fav[r.slug]; else l.fav[r.slug] = Date.now(); lsave(LKEY, l);
@@ -405,21 +437,7 @@
     var cp = $('fx-copy'); if (cp) cp.addEventListener('click', function () {
       try { navigator.clipboard.writeText(r.adresse); cp.lastChild.textContent = 'Copiée'; setTimeout(function () { cp.lastChild.textContent = 'Copier'; }, 1600); } catch (e) {}
     });
-    var more = $('fx-more'), cc = sheet.querySelector('.fx-carte');
-    if (more) more.addEventListener('click', function () {
-      var folded = cc.classList.toggle('is-folded');
-      more.firstChild.textContent = folded ? 'Toute la carte' : 'Réduire';
-      if (folded) sheet.scrollTo({ top: cc.offsetTop - 8, behavior: 'smooth' });
-    });
-    sheet.querySelectorAll('[data-sec]').forEach(function (a) {
-      a.addEventListener('click', function (e) {
-        e.preventDefault(); cc.classList.remove('is-folded'); if (more) more.firstChild.textContent = 'Réduire';
-        var el = $('fx-s' + a.getAttribute('data-sec')); if (el) sheet.scrollTo({ top: el.offsetTop - 60, behavior: 'smooth' });
-      });
-    });
-    sheet.querySelectorAll('[data-dish]').forEach(function (b) {
-      b.addEventListener('click', function () { var k = b.getAttribute('data-dish').split('.'); dishPop(r, +k[0], +k[1]); });
-    });
+    sheet.querySelectorAll('[data-page]').forEach(function (b) { b.addEventListener('click', function () { cartePop(r, +b.getAttribute('data-page')); }); });
     sheet.querySelectorAll('[data-jump]').forEach(function (a) {
       a.addEventListener('click', function (e) {
         e.preventDefault();
@@ -503,7 +521,7 @@
     sheet.hidden = false;
     $('sheet-close').addEventListener('click', function () { state.selected = null; render(); });
     sheet.querySelector('.rs-info').addEventListener('click', function (e) { e.preventDefault(); openFull(r); });
-    var mn = $('act-menu'); if (mn) mn.addEventListener('click', function (e) { e.preventDefault(); openFull(r, '#fx-carte'); });
+    var mn = $('act-menu'); if (mn) mn.addEventListener('click', function (e) { e.preventDefault(); openFull(r); cartePop(r, 0); });
     var bk = $('act-book');
     if (bk) bk.addEventListener('click', function () { openFull(r); resaPop(r); });
   }
