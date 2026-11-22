@@ -32,7 +32,9 @@ const urlOf = (r) => `/${r.zone}/${r.slug}/`;
 // Niveaux : 0 = gratuit, 1 = Chef (et Local, Starter), 2 = Pro (et Master)
 const TIER = { gratuit: 0, chef: 1, local: 1, starter: 1, pro: 2, master: 2 };
 const tierOf = (n) => TIER[n] ?? 0;
-const PHOTO_LIMIT = [1, 3, Infinity]; // gratuit : la seule photo de présentation
+const PHOTO_LIMIT = [1, 4, 4]; // gratuit : la photo de présentation ; payant : + 3 plats phares. Toutes les photos : sur le site du restaurant.
+// Les 3 plats phares choisis par le restaurant (n'importe quelle rubrique), avec leur photo.
+const pharesOf = (r) => (r.phares || []).map((n) => (r.carte || []).flatMap((x) => x.plats).find((pl) => pl.nom === n)).filter(Boolean).slice(0, 3);
 
 const CATEGORIES = { 'bistronomie': 'Bistronomie', 'cuisine-familiale': 'Cuisine familiale', 'bistrot': 'Bistrot', 'bar-a-huitres': 'Bar à huîtres' };
 const JOURS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
@@ -141,7 +143,7 @@ function renderFiche(r, niveau, { variant } = {}) {
 <div class="menu-section">
 <div class="menu-head"><h3>${esc(s.section)}</h3>${s.prix && paid ? `<span class="strong">${esc(s.prix)}</span>` : ''}</div>
 ${s.plats.map((p) => {
-    const ph = paid ? usePhoto(p.photo) : '';
+    const ph = '';
     const longPrice = p.prix && p.prix.length > 9;
     return `<div class="dish">${ph ? `<img src="${esc(ph)}" alt="${esc(p.nom)}" loading="lazy" width="80" height="80" onerror="this.remove()">` : ''}<span class="dish-name">${esc(p.nom)}${p.description ? `<small class="dish-desc">${esc(p.description)}</small>` : ''}${longPrice ? `<small class="dish-price-line">${esc(p.prix)}</small>` : ''}</span>${p.prix && !longPrice ? `<span class="dish-price">${esc(p.prix)}</span>` : ''}</div>`;
   }).join('')}
@@ -216,11 +218,13 @@ ${actions}
 <div class="jeu-band" id="jeu-band"></div>
 ${pdjHtml}
 ${mdjHtml}
+${paid && pharesOf(r).length ? `<section class="phares"><h2>Les plats phares</h2><div class="phares-grid">${pharesOf(r).map((pl) => `<div class="phare">${pl.photo ? `<img src="${esc(pl.photo)}" alt="${esc(pl.nom)}" loading="lazy" onerror="this.remove()">` : '<span class="phare-ph"></span>'}<strong>${esc(pl.nom)}</strong>${pl.prix ? `<span>${esc(pl.prix)}</span>` : ''}</div>`).join('')}</div></section>` : ''}
 <section class="card" id="carte">
 <div class="card-head"><h2>La carte</h2><span class="muted small">Mise à jour le ${esc(new Date(r.miseAJour).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }))}</span></div>
 ${formules}
 ${sectionsHtml}
 ${!paid ? '<p class="muted small">Aperçu de la carte : le restaurant présente un plat par catégorie.</p>' : ''}
+${paid && r.site ? `<a class="site-more" href="${esc(r.site)}" target="_blank" rel="noopener">Toutes les photos et la carte complète sur le site du restaurant ›</a>` : ''}
 </section>
 ${r.histoire ? `<section class="card"><h2>Qui est derrière</h2><p>${esc(r.histoire)}</p></section>` : ''}
 ${voisins}
@@ -431,7 +435,8 @@ const pub = restaurants.map((r) => {
     logo: r.logo || '',
     adresse: r.adresse || '', telephone: r.telephone || '', miseAJour: r.miseAJour || '',
     // galerie selon le niveau : gratuit = la photo de présentation, Chef/Starter = 3, Pro/Master = toutes
-    photos: [r.photoPrincipale, ...(r.carte || []).flatMap((x) => x.plats.map((pl) => pl.photo))].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).slice(0, PHOTO_LIMIT[tierOf(r.niveau)] === Infinity ? 99 : PHOTO_LIMIT[tierOf(r.niveau)]),
+    photos: [r.photoPrincipale, ...(paid ? pharesOf(r).map((pl) => pl.photo) : [])].filter(Boolean),
+    phares: paid ? pharesOf(r).map((pl) => ({ nom: pl.nom, prix: pl.prix || '', photo: pl.photo || '' })) : [],
     // aperçu de la carte pour la colonne de gauche : gratuit = 3 plats, payant = les premières rubriques
     apercu: paid
       ? (r.carte || []).filter((x) => !/boisson/i.test(x.section)).slice(0, 3).map((x) => ({ section: x.section, plats: x.plats.slice(0, 4).map((pl) => ({ nom: pl.nom, prix: pl.prix || '' })) }))

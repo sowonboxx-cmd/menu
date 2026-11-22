@@ -162,9 +162,12 @@
       '<a class="dp-jeu-btn" href="' + esc(r.url) + '#mange">' + IC(P.plus, 16) + 'J’ai mangé ici</a></div>';
     var resa = beltabResa ? '<section class="dp-sec" id="dp-resa"><h3>Réserver une table <small>sans quitter la carte</small></h3><iframe class="dp-frame" src="' + esc(r.reservation.url) + '" title="Réserver chez ' + esc(r.nom) + '" loading="lazy"></iframe></section>' : '';
     var maj = r.miseAJour ? new Date(r.miseAJour).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '';
+    var phares = (r.phares || []).length ? '<section class="dp-sec"><h3>Les plats phares</h3><div class="dp-phares">' + r.phares.map(function (p) {
+      return '<div>' + (p.photo ? '<img src="' + esc(p.photo) + '" alt="' + esc(p.nom) + '">' : '<span></span>') + '<strong>' + esc(p.nom) + '</strong><small>' + esc(p.prix) + '</small></div>';
+    }).join('') + '</div></section>' : '';
     var carte = (r.apercu || []).length ? '<section class="dp-sec"><h3>' + (r.paid ? 'La carte' : 'Aperçu de la carte') + (maj ? ' <small>mise à jour le ' + esc(maj) + '</small>' : '') + '</h3>' +
       r.apercu.map(function (sec) { return '<span class="dp-cat">' + esc(sec.section) + '</span>' + sec.plats.map(function (p) { return '<div class="dp-dish"><span>' + esc(p.nom) + '</span><b>' + esc(p.prix) + '</b></div>'; }).join(''); }).join('') +
-      '<a class="dp-link" href="' + esc(r.url) + '#carte">' + (r.paid ? 'Toute la carte' : 'La carte complète est chez le restaurant') + ' ›</a></section>' : '';
+      '<a class="dp-link" href="' + esc(r.paid && r.site ? r.site : r.url + '#carte') + '"' + (r.paid && r.site ? ' target="_blank" rel="noopener"' : '') + '>' + (r.paid ? (r.site ? 'Toutes les photos et la carte sur le site du restaurant' : 'Toute la carte') : 'La carte complète est chez le restaurant') + ' ›</a></section>' : '';
     var today = JOURS_ORD[(new Date().getDay() + 6) % 7];
     var hor = '<section class="dp-sec"><h3>Horaires</h3>' + JOURS_ORD.map(function (j) {
       var sl = (r.horaires && r.horaires[j]) || [];
@@ -180,7 +183,7 @@
       '<div class="dp-head"><div class="dp-id">' + (r.logo ? '<img class="rs-logo" src="' + esc(r.logo) + '" alt="">' : '') + '<div><span class="rs-name"><span class="rs-name-txt">' + esc(r.nom) + '</span>' + ICON.badge + '</span>' +
       '<span class="rs-meta">' + esc(catLabel(r)) + ' · ' + esc(r.prix) + ' · ' + esc(r.arrondissement) + '</span></div></div>' +
       '<span class="st ' + (st.open ? 'st-open' : 'st-closed') + '"><strong>' + esc(st.label.split(' · ')[0]) + '</strong>' + (st.label.split(' · ')[1] ? ' · ' + esc(st.label.split(' · ')[1]) : '') + '</span>' +
-      (r.accroche ? '<p class="dp-acc">' + esc(r.accroche) + '</p>' : '') + '<div class="dp-acts">' + acts + '</div></div>' + band + resa + carte + hor + near;
+      (r.accroche ? '<p class="dp-acc">' + esc(r.accroche) + '</p>' : '') + '<div class="dp-acts">' + acts + '</div></div>' + band + phares + resa + carte + hor + near;
   }
 
   function renderSheet() {
