@@ -330,6 +330,7 @@ function renderRegles() {
 <li><strong>Des cartes datées.</strong> Chaque fiche affiche la date de sa dernière mise à jour.</li>
 <li><strong>Des fiches tenues par les restaurateurs.</strong> Les prix, les horaires et les plats viennent du restaurant lui-même.</li>
 <li><strong>Des photos soignées.</strong> Chaque photo est validée par Beltab avant d'apparaître : nette, belle, sans personne autour. Pas besoin d'un photographe, mais pas de photo floue ou prise à la va-vite. Sinon, nous proposons un photographe.</li>
+<li><strong>De vraies photos, pas d'images inventées.</strong> Les photos générées entièrement par une intelligence artificielle sont interdites : elles ne ressemblent jamais à ce qui arrive dans l'assiette. Retoucher une vraie photo (lumière, couleurs, cadrage), y compris avec un outil d'IA, est autorisé.</li>
 <li><strong>Les mêmes règles pour tous.</strong> Mêmes catégories, même mise en page : toutes les cartes se lisent de la même façon.</li>
 </ul>
 
