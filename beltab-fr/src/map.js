@@ -3,6 +3,8 @@
   var FILTERS = [
     { id: 'tous', label: 'Tous' },
     { id: 'ouvert', label: 'Ouvert maintenant' },
+    { id: 'jamais', label: 'Jamais goûté' },
+    { id: 'deja', label: 'Déjà fait' },
     { id: 'menu-du-jour', label: 'Plat du jour' },
     { id: 'bistronomie', label: 'Bistronomie' },
     { id: 'cuisine-familiale', label: 'Cuisine familiale' },
@@ -57,8 +59,13 @@
   function hasPdj(r) { return r.platDuJour && Beltab.isToday(r.platDuJour.date); }
   function catLabel(r) { return (r.categories || []).map(function (c) { return state.cats[c] || c; }).join(', '); }
 
+  // Le jeu : restaurants déjà faits (journal gardé sur l'appareil).
+  var jeu = window.Jeu ? Jeu.stats(null, null) : { slugs: {} };
+  function done(r) { return !!jeu.slugs[r.slug]; }
   function matches(r) {
     var f = state.filter;
+    if (f === 'jamais' && done(r)) return false;
+    if (f === 'deja' && !done(r)) return false;
     if (f === 'ouvert' && !Beltab.status(r.horaires).open) return false;
     if (f === 'menu-du-jour' && !hasPdj(r)) return false;
     if (CAT_FILTERS.indexOf(f) >= 0 && (r.categories || []).indexOf(f) < 0) return false;
@@ -146,7 +153,7 @@
       '<a class="rs-info" href="' + esc(r.url) + '">' +
       '<span class="rs-name"><span class="rs-name-txt">' + esc(r.nom) + '</span>' + ICON.badge + '</span>' +
       '<span class="rs-meta">' + esc(catLabel(r)) + ' \u00b7 <span class="nowrap">' + esc(r.prix) + '</span> \u00b7 ' + esc(r.arrondissement) + '</span>' +
-      status + '</a>' +
+      status + (done(r) ? '<span class="rs-done"><svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Déjà fait · ' + jeu.slugs[r.slug] + ' fois</span>' : '') + '</a>' +
       '<button type="button" class="sheet-close" id="sheet-close" aria-label="Fermer"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
       '</div>' + pdj +
       '<div class="rs-acts" style="grid-template-columns:repeat(' + acts.length + ',minmax(0,1fr))">' + acts.join('') + '</div>';
@@ -196,7 +203,8 @@
         el.className = 'pin-on';
         el.innerHTML = PIN;
       } else {
-        el.className = 'dot' + (r.paid ? ' is-paid' : '');
+        el.className = 'dot' + (r.paid ? ' is-paid' : '') + (done(r) ? ' is-done' : '');
+        if (done(r)) el.innerHTML = '<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
       }
       el.addEventListener('click', function (e) { e.stopPropagation(); select(r.slug); });
       wrap.appendChild(el);
@@ -241,6 +249,11 @@
 
   fetch('/restaurants.json').then(function (r) { return r.json(); }).then(function (d) {
     state.data = d.restaurants;
+    var chip = $('progress-chip');
+    var n = d.restaurants.filter(done).length;
+    chip.innerHTML = '<span class="pc-bar"><span style="width:' + Math.round(n / Math.max(1, d.restaurants.length) * 100) + '%"></span></span>' +
+      (n ? 'Vous avez découvert ' + Math.round(n / d.restaurants.length * 100) + ' % de la carte' : 'Votre tour du monde commence ici') + ' ›';
+    chip.hidden = false;
     state.cats = d.categories || {};
     render();
     fitAll();

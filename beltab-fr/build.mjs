@@ -7,6 +7,10 @@ const ROOT = path.dirname(new URL(import.meta.url).pathname);
 const DIST = path.join(ROOT, 'dist');
 const data = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/restaurants.json'), 'utf8'));
 const { site, restaurants, demo } = data;
+const CUISINES = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/cuisines.json'), 'utf8'));
+const CUISINE = Object.fromEntries(CUISINES.cuisines.map((c) => [c.id, c]));
+const REGION = Object.fromEntries(CUISINES.regions.map((x) => [x.id, x]));
+const specNom = (c, id) => (CUISINE[c]?.specialites.find((x) => x.id === id) || {}).nom || id;
 
 // ---------- outils ----------
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -84,6 +88,7 @@ function header() {
 <a class="brand" href="/"><span class="brand-name">Beltab</span><span class="brand-sub">Restaurants indépendants</span></a>
 <nav aria-label="Navigation principale" class="nav">
 <a class="nav-pill" href="/">${icon.map}La carte</a>
+<a href="/moi/">Mon passeport</a>
 <a href="/regles/">Les règles</a>
 <a href="${esc(site.espaceRestaurateur)}">Vous êtes restaurateur ?</a>
 </nav>
@@ -181,7 +186,12 @@ ${resaBtn}
   const voisins = !paid ? `<section class="voisins"><h2>Autres indépendants à côté</h2><div class="grid-near">${nearest(r).map(({ o, min }) =>
     `<a class="near" href="${urlOf(o)}"><strong>${esc(o.nom)}</strong><span class="muted">${esc((o.categories || []).map((c) => CATEGORIES[c] || c).join(', '))} · ${min} min à pied</span></a>`).join('')}</div></section>` : '';
 
-  const cats = (r.categories || []).map((c) => `<span class="chip">${esc(CATEGORIES[c] || c)}</span>`).join('');
+  const cu = CUISINE[r.cuisine];
+  const cats = (cu ? `<a class="chip chip-link" href="/cuisines/${cu.id}/">${esc(cu.nom)}${(r.specialites || []).map((x) => ' · ' + esc(specNom(r.cuisine, x))).join('')}</a>` : '') +
+    (r.categories || []).map((c) => `<span class="chip">${esc(CATEGORIES[c] || c)}</span>`).join('');
+  const rData = { slug: r.slug, nom: r.nom, url: urlOf(r), logo: r.logo || '', cuisine: r.cuisine || '', cuisineNom: cu ? cu.nom : '', specialites: r.specialites || [],
+    // les boissons ne comptent pas dans le journal (pas de jeu autour de l'alcool)
+    carte: sections.filter((x) => !/boisson/i.test(x.section)).map((x) => ({ section: x.section, plats: x.plats.map((pl) => pl.nom) })) };
 
   const demoSwitch = demo ? `<div class="demo-switch" role="group" aria-label="Voir la fiche en version">
 <span>Voir la fiche :</span>
@@ -202,6 +212,7 @@ ${hero ? `<div class="hero"><img src="${esc(hero)}" alt="${esc(r.nom)}" onerror=
 <div class="chips"><span class="chip chip-open" data-hours='${esc(JSON.stringify(r.horaires))}'>Horaires</span><span class="chip">${esc(r.prix)}</span>${cats}${paid && (pdj.nom || mdj.plat) ? '<span class="chip">Plat du jour</span>' : ''}</div>
 </div>
 ${actions}
+<div class="jeu-band" id="jeu-band"></div>
 ${pdjHtml}
 ${mdjHtml}
 <section class="card" id="carte">
@@ -220,7 +231,8 @@ ${voisins}
 </aside>
 </div>
 </main>
-${footer()}`;
+${footer()}
+<script type="application/json" id="r-data">${JSON.stringify(rData).replace(/</g, '\\u003c')}</script>`;
 
   const shownMenu = sections.flatMap((s) => s.plats.map((p) => ({ '@type': 'MenuItem', name: p.nom, ...(p.prix && /^\d/.test(p.prix) ? { offers: { '@type': 'Offer', price: p.prix.replace(/[^\d,.]/g, '').replace(',', '.'), priceCurrency: 'EUR' } } : {}) })));
   const jsonld = {
@@ -237,7 +249,7 @@ ${footer()}`;
     title: `${r.nom} · restaurant indépendant · ${r.arrondissement} | Beltab`,
     description: `${r.nom}, restaurant indépendant ${r.arrondissement}. ${r.accroche} Carte, horaires et réservation.`,
     canonical: urlOf(r), image: hero || '', noindex: variant === 'gratuit', jsonld,
-    scripts: ['/src/fiche.js'], body,
+    scripts: ['/src/fiche.js', '/src/jeu.js', '/src/mange.js'], body,
   });
 }
 
@@ -247,6 +259,7 @@ function renderCarte() {
     menu: '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
     filter: '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>',
     locate: '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>',
+    user: '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
     search: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B6B6B" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>',
   };
   const body = `<main class="map-page">
@@ -254,18 +267,22 @@ function renderCarte() {
 <div class="map-top">
 <div class="map-bar">
 <a class="map-brand" href="/"><span class="map-eyebrow">Paris · 100 % indépendants</span><span class="map-name">Beltab</span></a>
-<button type="button" class="round-btn" id="menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="menu">${ico.menu}</button>
+<div class="map-bar-btns"><a class="round-btn me-btn" id="me-btn" href="/moi/" aria-label="Mon passeport">${ico.user}</a>
+<button type="button" class="round-btn" id="menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="menu">${ico.menu}</button></div>
 </div>
 <div class="search-row">
 <label class="search">${ico.search}<input id="q" type="search" placeholder="Un quartier, une cuisine, un restaurant" aria-label="Rechercher" autocomplete="off"></label>
 <button type="button" class="round-btn" id="filter-btn" aria-label="Filtres" aria-expanded="false" aria-controls="filters">${ico.filter}<span class="badge" id="filter-badge" hidden></span></button>
 </div>
+<a class="progress-chip" id="progress-chip" href="/moi/" hidden></a>
 <ul class="results" id="results" hidden></ul>
 <div class="filters" id="filters" role="group" aria-label="Filtres" hidden></div>
 <button type="button" class="round-btn locate" id="locate-btn" aria-label="Me localiser">${ico.locate}</button>
 </div>
 <nav class="menu-panel" id="menu" aria-label="Menu" hidden>
 <a href="/">La carte</a>
+<a href="/moi/">Mon passeport</a>
+<a href="/cuisines/">Les cuisines du monde</a>
 <a href="/regles/">Les règles</a>
 <a href="${esc(site.espaceRestaurateur)}">Vous êtes restaurateur ?</a>
 ${demo ? '<p class="menu-note">Version de démonstration : certaines fiches sont des exemples.</p>' : ''}
@@ -278,7 +295,7 @@ ${demo ? '<p class="menu-note">Version de démonstration : certaines fiches sont
     title: `Beltab · ${site.accroche}`,
     description: 'La carte des restaurants indépendants, authentiques et familiaux à Paris. Pas de chaîne, pas de groupe : que des indépendants.',
     canonical: '/', body, bodyClass: 'is-map',
-    scripts: ['https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js', '/src/map.js'],
+    scripts: ['https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js', '/src/jeu.js', '/src/map.js'],
   }).replace('<link rel="stylesheet" href="/src/styles.css">', '<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">\n<link rel="stylesheet" href="/src/styles.css">');
 }
 
@@ -294,6 +311,7 @@ function renderRegles() {
 <li><strong>Indépendant.</strong> Pas de chaîne, pas de franchise, pas de groupe ni de fonds d'investissement au capital.</li>
 <li><strong>Présent sur place.</strong> Le patron ou la famille travaille dans le restaurant.</li>
 <li><strong>À taille humaine.</strong> 3 établissements au maximum.</li>
+<li><strong>Une vraie cuisine.</strong> Chaque restaurant a sa cuisine et ses spécialités. Pas de buffets « à volonté ».</li>
 <li><strong>Déclaré et vérifié.</strong> Le restaurateur le déclare à l'inscription, et Beltab le vérifie avec les données publiques des entreprises.</li>
 </ol>
 
@@ -323,6 +341,69 @@ ${footer()}`;
   });
 }
 
+// ---------- jeu : mon passeport ----------
+function renderMoi() {
+  const body = `${header()}
+<main class="wrap moi">
+<div class="moi-head">
+<div class="moi-avatar" id="moi-avatar">?</div>
+<div class="moi-id"><input id="moi-prenom" class="moi-prenom" placeholder="Votre prénom" maxlength="24" aria-label="Votre prénom"><span class="muted small">Explorateur des indépendants</span></div>
+</div>
+<div class="moi-tabs" role="tablist">
+<button type="button" role="tab" data-tab="passeport" aria-selected="true">Passeport</button>
+<button type="button" role="tab" data-tab="journal" aria-selected="false">Journal</button>
+<button type="button" role="tab" data-tab="classement" aria-selected="false">Classement</button>
+</div>
+<section id="tab-passeport" class="moi-tab"></section>
+<section id="tab-journal" class="moi-tab" hidden></section>
+<section id="tab-classement" class="moi-tab" hidden></section>
+<p class="muted small moi-local">Pour l'instant, votre passeport est gardé sur ce téléphone. Les comptes Beltab permettront bientôt de le retrouver partout et de suivre vos potes.</p>
+</main>
+${footer()}`;
+  return layout({ title: 'Mon passeport | Beltab', description: 'Votre tour du monde des restaurants indépendants : cuisines goûtées, journal et classement.', canonical: '/moi/', noindex: true, body, scripts: ['/src/jeu.js', '/src/moi.js'] });
+}
+
+// ---------- jeu : cuisines du monde ----------
+function renderCuisines() {
+  const regions = CUISINES.regions.map((rg) => {
+    const list = CUISINES.cuisines.filter((c) => c.region === rg.id);
+    return `<section class="cu-region"><h2>${esc(rg.nom)}</h2><div class="cu-grid">${list.map((c) => {
+      const n = restaurants.filter((r) => r.cuisine === c.id).length;
+      return `<a class="cu-tile" href="/cuisines/${c.id}/" data-cuisine="${c.id}" style="--c:${rg.couleur}"><span class="cu-ico">${esc(c.nom.slice(0, 2).toUpperCase())}</span><span class="cu-txt"><strong>${esc(c.nom)}</strong><small>${c.specialites.length ? c.specialites.length + ' spécialités · ' : ''}${n} restaurant${n > 1 ? 's' : ''}</small></span><span class="cu-state" aria-hidden="true"></span></a>`;
+    }).join('')}</div></section>`;
+  }).join('');
+  const body = `${header()}
+<main class="wrap cu">
+<h1>Les cuisines du monde</h1>
+<p class="lead">Faites le tour du monde sans quitter Paris, chez des restaurants indépendants. Chaque cuisine se découpe en spécialités : chacune est une case de votre passeport.</p>
+<div class="cu-progress" id="cu-progress"></div>
+${regions}
+</main>
+${footer()}`;
+  return layout({ title: 'Les cuisines du monde | Beltab', description: 'Japonaise, coréenne, géorgienne, bretonne… les cuisines et spécialités des restaurants indépendants de Paris.', canonical: '/cuisines/', body, scripts: ['/src/jeu.js', '/src/cuisines.js'] });
+}
+
+function renderCuisine(c) {
+  const rg = REGION[c.region];
+  const restos = restaurants.filter((r) => r.cuisine === c.id);
+  const card = (r) => `<a class="cu-resto" href="${urlOf(r)}" data-slug="${r.slug}">${r.logo ? `<img src="${esc(r.logo)}" alt="" loading="lazy">` : `<span class="cu-resto-ph"></span>`}<span><strong>${esc(r.nom)}</strong><small>${esc(r.arrondissement)} · ${esc(r.prix)}</small></span><span class="cu-done" hidden>Fait</span></a>`;
+  const specs = c.specialites.length ? c.specialites.map((sp) => {
+    const rs = restos.filter((r) => (r.specialites || []).includes(sp.id));
+    return `<section class="cu-spec" data-spec="${sp.id}"><div class="cu-spec-head"><span class="cu-state" aria-hidden="true"></span><div><h2>${esc(sp.nom)}</h2><span class="muted small">${esc(sp.desc)}</span></div></div>
+${rs.length ? `<div class="cu-restos">${rs.map(card).join('')}</div>` : `<p class="muted small cu-empty">Pas encore de restaurant indépendant sur la carte. Vous en connaissez un ? <a href="${esc(site.espaceRestaurateur)}">Dites-le-nous</a>.</p>`}</section>`;
+  }).join('') : (restos.length ? `<div class="cu-restos">${restos.map(card).join('')}</div>` : `<p class="muted cu-empty">Pas encore de restaurant ${esc(c.nom.toLowerCase())} indépendant sur la carte.</p>`);
+  const body = `${header()}
+<main class="wrap cu" data-cuisine="${c.id}">
+<a class="cu-back" href="/cuisines/">${esc(rg.nom)}</a>
+<h1>${esc(c.nom)}</h1>
+<p class="lead">${restos.length} restaurant${restos.length > 1 ? 's' : ''} indépendant${restos.length > 1 ? 's' : ''}${c.specialites.length ? ` · ${c.specialites.length} spécialités` : ''}. Que des restaurants spécialisés : pas de buffets « à volonté ».</p>
+<div class="cu-progress" id="cu-progress"></div>
+<div class="cu-specs">${specs}</div>
+</main>
+${footer()}`;
+  return layout({ title: `Cuisine ${c.nom.toLowerCase()} : restaurants indépendants à Paris | Beltab`, description: `Les restaurants indépendants de cuisine ${c.nom.toLowerCase()} à Paris${c.specialites.length ? ' : ' + c.specialites.map((x) => x.nom).join(', ') : ''}.`, canonical: `/cuisines/${c.id}/`, body, scripts: ['/src/jeu.js', '/src/cuisines.js'] });
+}
+
 // ---------- génération ----------
 fs.rmSync(DIST, { recursive: true, force: true });
 copyDir(path.join(ROOT, 'src'), path.join(DIST, 'src'));
@@ -330,6 +411,10 @@ copyDir(path.join(ROOT, 'assets'), path.join(DIST, 'assets'));
 
 write('index.html', renderCarte());
 write('regles/index.html', renderRegles());
+write('moi/index.html', renderMoi());
+write('cuisines/index.html', renderCuisines());
+for (const c of CUISINES.cuisines) write(`cuisines/${c.id}/index.html`, renderCuisine(c));
+write('cuisines.json', JSON.stringify({ regions: CUISINES.regions, cuisines: CUISINES.cuisines }));
 for (const r of restaurants) {
   write(`${r.zone}/${r.slug}/index.html`, renderFiche(r, r.niveau, {}));
   if (demo && tierOf(r.niveau) >= 1) write(`${r.zone}/${r.slug}/gratuit/index.html`, renderFiche(r, 'gratuit', { variant: 'gratuit' }));
@@ -340,7 +425,7 @@ const pub = restaurants.map((r) => {
   const paid = tierOf(r.niveau) >= 1;
   return {
     slug: r.slug, nom: r.nom, url: urlOf(r), paid, lat: r.lat, lng: r.lng, accroche: r.accroche,
-    arrondissement: r.arrondissement, categories: r.categories, prix: r.prix, horaires: r.horaires,
+    arrondissement: r.arrondissement, categories: r.categories, cuisine: r.cuisine || '', specialites: r.specialites || [], prix: r.prix, horaires: r.horaires,
     photo: r.photoPrincipale || '',
     logo: r.logo || '',
     site: r.site || '',
@@ -354,6 +439,6 @@ write('404.html', layout({ title: 'Page introuvable | Beltab', description: 'Pag
 if (!demo) write('robots.txt', `User-agent: *\nAllow: /\nSitemap: ${site.url}/sitemap.xml\n`);
 else write('robots.txt', 'User-agent: *\nDisallow: /\n');
 write('manifest.webmanifest', JSON.stringify({ name: 'Beltab', short_name: 'Beltab', start_url: '/', display: 'standalone', background_color: '#F3F2EC', theme_color: '#F3F2EC', lang: 'fr' }));
-write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${['/', '/regles/', ...restaurants.map(urlOf)].map((u) => `<url><loc>${site.url}${u}</loc></url>`).join('\n')}\n</urlset>\n`);
+write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${['/', '/regles/', '/cuisines/', ...CUISINES.cuisines.map((c) => `/cuisines/${c.id}/`), ...restaurants.map(urlOf)].map((u) => `<url><loc>${site.url}${u}</loc></url>`).join('\n')}\n</urlset>\n`);
 
 console.log(`OK : ${restaurants.length} restaurants, site généré dans dist/${demo ? ' (mode démo : non indexé)' : ''}`);
