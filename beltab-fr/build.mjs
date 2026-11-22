@@ -459,7 +459,7 @@ const pub = restaurants.map((r) => {
     // Pro et Master : toute la carte dépliable dans la fiche, avec les photos des plats (pop-up)
     full: tierOf(r.niveau) >= 2,
     carte: tierOf(r.niveau) >= 2 ? (r.carte || []).map((x) => ({ section: x.section, prix: x.prix || '', plats: x.plats.map((pl) => ({ nom: pl.nom, prix: pl.prix || '', desc: pl.description || '', photo: pl.photo || '' })) })) : [],
-    description: r.description || '', histoire: r.histoire || '', equipe: paid ? (r.equipe || []) : [],
+    acces: r.acces || '', description: r.description || '', histoire: r.histoire || '', equipe: paid ? (r.equipe || []) : [],
     tags: (r.tags || [...(r.specialites || []).map((id) => specNom(r.cuisine, id)), CUISINE[r.cuisine]?.nom].filter(Boolean)).filter((v, i, a) => a.indexOf(v) === i).slice(0, 3),
     phares: paid ? pharesOf(r).map((pl) => ({ nom: pl.nom, prix: pl.prix || '', photo: pl.photo || '' })) : [],
     // aperçu de la carte pour la colonne de gauche : gratuit = 3 plats, payant = les premières rubriques

@@ -165,6 +165,7 @@
   var PRIO = { haute: 'Le plus vite possible', moyenne: 'Bientôt', basse: 'Un jour' };
   P.back = 'M15 6l-6 6 6 6'; P.heart = 'M12 20s-7-4.4-9.2-9A5 5 0 0 1 12 6a5 5 0 0 1 9.2 5c-2.2 4.6-9.2 9-9.2 9z';
   P.flag = 'M5 21V4M5 4h11l-2 4 2 4H5'; P.down = 'M6 9l6 6 6-6'; P.chev = 'M9 6l6 6-6 6'; P.edit = 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4';
+ P.pin = 'M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12zM12 11.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5';
   P.copy = 'M8 8h12v12H8zM4 16V4h12'; P.ext = 'M14 4h6v6M20 4l-9 9M18 14v6H4V6h6'; P.lock = 'M6 11h12v10H6zM9 11V8a3 3 0 0 1 6 0v3';
   P.star = 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z';
   function stars(n, s) {
@@ -194,7 +195,7 @@
     var fav = !!lists.fav[r.slug], todo = lists.todo[r.slug];
     var route = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(r.nom + ' ' + (r.adresse || ''));
     var top = '<div class="fx-top"><button type="button" class="fx-back" id="sheet-close" aria-label="Retour à la carte">' + IC(P.back, 20) + '<span>Beltab</span></button>' +
-      '<div><button type="button" class="fx-ib" id="fx-route" aria-label="Itinéraire et adresse">' + IC(P.route, 17) + '</button><button type="button" class="fx-ib" id="fx-share" aria-label="Partager">' + IC(P.share, 17) + '</button>' +
+      '<div><button type="button" class="fx-ib" id="fx-route" aria-label="Adresse">' + IC(P.pin, 18) + '</button><button type="button" class="fx-ib" id="fx-share" aria-label="Partager">' + IC(P.share, 17) + '</button>' +
       '<button type="button" class="fx-ib" id="fx-close" aria-label="Fermer">' + IC(P.close, 17) + '</button></div></div>';
     var desc = r.description || r.accroche || '';
     var tags = (r.tags || []).slice(0, 3);
@@ -205,7 +206,7 @@
       '<button type="button" class="fx-ib fx-fav' + (fav ? ' is-on' : '') + '" id="fx-fav" aria-pressed="' + fav + '" aria-label="Favori">' + IC(P.heart, 17) + '</button></div>' +
       (tags.length ? '<div class="fx-tags">' + tags.map(function (x) { return '<span>' + esc(x) + '</span>'; }).join('') + '</div>' : '') +
       (desc ? '<button type="button" class="fx-desc" id="fx-desc"><p>' + esc(desc) + '</p>' + (desc.length > 90 ? '<span>Lire la suite' + IC(P.chev, 14) + '</span>' : '') + '</button>' : '') +
-      '<div class="fx-acts">' + (beltabResa ? '<a class="fx-btn is-dark" href="#fx-resa" data-jump>' + IC(P.cal, 16) + 'Réserver</a>' : (r.site ? '<a class="fx-btn is-dark" href="' + esc(r.site) + '" target="_blank" rel="noopener nofollow">' + IC(P.globe, 16) + 'Site web</a>' : '')) +
+      '<div class="fx-acts">' + (beltabResa ? '<button type="button" class="fx-btn is-dark" id="fx-book">' + IC(P.cal, 16) + 'Réserver</button>' : (r.site ? '<a class="fx-btn is-dark" href="' + esc(r.site) + '" target="_blank" rel="noopener nofollow">' + IC(P.globe, 16) + 'Site web</a>' : '')) +
       '<a class="fx-btn" href="#fx-carte" data-jump>' + IC(P.menu, 16) + 'La carte</a>' +
       '<button type="button" class="fx-btn fx-todo' + (todo ? ' is-on' : '') + '" id="fx-todo">' + IC(P.flag, 16) + '<span>' + (todo ? 'Prévu' : 'À tester') + '</span></button></div></section>';
 
@@ -240,7 +241,7 @@
 
     var resa = '';
     if (beltabResa) {
-      resa = '<section class="fx-card fx-resa" id="fx-resa"><h3>Réserver une table</h3><div id="fx-rz"></div></section>';
+
     }
     var today = JOURS_ORD[(new Date().getDay() + 6) % 7];
     var hor = '<section class="fx-card" id="fx-horaires"><h3>Horaires<span class="fx-st ' + (st.open ? 'is-open' : 'is-closed') + '"><i></i><strong>' + esc(parts[0]) + '</strong></span></h3><div class="fx-hours">' + JOURS_ORD.map(function (j) {
@@ -346,16 +347,36 @@
     bottomSheet(XB() + '<h4 class="fx-pop-h">Horaires<span class="fx-st ' + (st.open ? 'is-open' : 'is-closed') + '"><i></i><strong>' + esc(st.label) + '</strong></span></h4>' +
       '<div class="fx-hours">' + JOURS_ORD.map(function (j) { var v = hoursOf(r, j); return '<div class="' + (j === today ? 'is-today' : '') + '"><span>' + j[0].toUpperCase() + j.slice(1) + (j === today ? ' · aujourd’hui' : '') + '</span><span' + (v === 'Fermé' ? ' class="is-off"' : '') + '>' + v + '</span></div>'; }).join('') + '</div>');
   }
+  function resaPop(r) {
+    var s = bottomSheet(XB() + '<h4 class="fx-pop-h">' + IC(P.cal, 18) + 'Réserver une table</h4><div id="fx-rz"></div>', 'is-resa');
+    var rz = s.el.querySelector('#fx-rz');
+    if (window.BeltabResa && r.reservation && r.reservation.slug) BeltabResa.mount(rz, r.reservation);
+    else rz.innerHTML = '<a class="fx-btn is-dark" href="' + esc(r.reservation.url) + '" target="_blank" rel="noopener">Réserver sur leur site</a>';
+  }
   function adressePop(r) {
     var q = encodeURIComponent(r.nom + ' ' + (r.adresse || ''));
-    var s = bottomSheet(XB() + '<h4 class="fx-pop-h">' + IC(P.route, 18) + 'Itinéraire</h4>' +
-      '<div class="fx-pop-addr"><strong>' + esc(r.nom) + '</strong><span>' + esc(r.adresse || r.arrondissement || '') + '</span></div>' +
+    var s = bottomSheet(XB() + '<h4 class="fx-pop-h">' + IC(P.pin, 18) + 'Adresse</h4>' +
+      '<div class="fx-minimap" id="fx-minimap"></div>' +
+      '<div class="fx-pop-addr"><strong>' + esc(r.adresse || r.arrondissement || '') + '</strong>' + (r.acces ? '<span>' + esc(r.acces) + '</span>' : '') + '<span id="fx-dist"></span></div>' +
       '<a class="fx-btn is-dark" href="https://www.google.com/maps/dir/?api=1&destination=' + q + '" target="_blank" rel="noopener nofollow">' + IC(P.route, 16) + 'Y aller avec Google Maps</a>' +
       '<div class="fx-row3"><a class="fx-btn" href="https://maps.apple.com/?daddr=' + q + '" target="_blank" rel="noopener nofollow">Plans</a><a class="fx-btn" href="https://waze.com/ul?q=' + q + '" target="_blank" rel="noopener nofollow">Waze</a>' +
       '<button type="button" class="fx-btn" id="fx-copy2">' + IC(P.copy, 16) + '<span>Copier</span></button></div>' +
       (r.telephone ? '<a class="fx-btn" href="tel:' + esc(r.telephone.replace(/\s/g, '')) + '">' + IC(P.phone, 16) + 'Appeler le restaurant</a>' : ''));
     var c = s.el.querySelector('#fx-copy2');
     c.addEventListener('click', function () { try { navigator.clipboard.writeText(r.adresse || ''); c.lastChild.textContent = 'Copiée'; } catch (e) {} });
+    // petite carte du quartier, avec le point du restaurant
+    try {
+      var mm = new maplibregl.Map({ container: s.el.querySelector('#fx-minimap'), style: 'https://tiles.openfreemap.org/styles/liberty', center: [r.lng, r.lat], zoom: 15.6, interactive: false, attributionControl: false });
+      var pin = document.createElement('div'); pin.innerHTML = PIN; new maplibregl.Marker({ element: pin, anchor: 'bottom' }).setLngLat([r.lng, r.lat]).addTo(mm);
+    } catch (e) {}
+    // à combien de minutes à pied de vous (seulement si la position est déjà autorisée)
+    if (navigator.permissions && navigator.geolocation) navigator.permissions.query({ name: 'geolocation' }).then(function (p) {
+      if (p.state !== 'granted') return;
+      navigator.geolocation.getCurrentPosition(function (pos) {
+        var dx = (pos.coords.longitude - r.lng) * Math.cos(r.lat * Math.PI / 180), dy = pos.coords.latitude - r.lat, m = Math.hypot(dx, dy) * 111000 * 1.25;
+        var el = s.el.querySelector('#fx-dist'); if (el && m < 20000) el.textContent = m < 2500 ? 'À ' + Math.max(1, Math.round(m / 80)) + ' min à pied de vous' : 'À ' + (m / 1000).toFixed(1).replace('.', ',') + ' km de vous';
+      });
+    }).catch(function () {});
   }
   function refresh(r) { var sh = $('sheet'), y = sh.scrollTop; sh.innerHTML = deskPanel(r); wireDesk(r); sh.scrollTop = y; }
 
@@ -367,9 +388,7 @@
     $('fx-share').addEventListener('click', function () { if (window.Partage) Partage.link({ url: location.origin + r.url, title: r.nom + ' · Beltab' }); });
     $('fx-route').addEventListener('click', function () { adressePop(r); });
     $('fx-hours').addEventListener('click', function () { horairesPop(r); });
-    var rz = $('fx-rz');
-    if (rz && window.BeltabResa && r.reservation && r.reservation.slug) BeltabResa.mount(rz, r.reservation);
-    else if (rz) rz.innerHTML = '<a class="fx-btn is-dark" href="' + esc(r.reservation.url) + '" target="_blank" rel="noopener">Réserver</a>';
+    var bk = $('fx-book'); if (bk) bk.addEventListener('click', function () { resaPop(r); });
     var fv = $('fx-fav');
     fv.addEventListener('click', function () {
       var l = lread(LKEY, { fav: {}, todo: {} }); if (l.fav[r.slug]) delete l.fav[r.slug]; else l.fav[r.slug] = Date.now(); lsave(LKEY, l);
@@ -486,7 +505,7 @@
     sheet.querySelector('.rs-info').addEventListener('click', function (e) { e.preventDefault(); openFull(r); });
     var mn = $('act-menu'); if (mn) mn.addEventListener('click', function (e) { e.preventDefault(); openFull(r, '#fx-carte'); });
     var bk = $('act-book');
-    if (bk) bk.addEventListener('click', function () { openFull(r, '#fx-resa'); });
+    if (bk) bk.addEventListener('click', function () { openFull(r); resaPop(r); });
   }
 
   // ---------- réservation Beltab en widget, sans quitter la carte ----------
