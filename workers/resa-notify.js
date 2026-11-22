@@ -1276,13 +1276,17 @@ async function carteVoice(env, b) {
   const user = `Date du jour : ${jour} (${isoJ}).\n` + (cible !== 'carte' ? `Le restaurateur est dans son ${cible} (un MENU), pas la carte : tous les changements portent sur ce menu, et tout ce menu se modifie (titre, sous-titre, ligne du bas, sections, plats).\n` : '') + `La carte (référence | catégorie > sous-catégorie | nom | prix | état | description) :\n${carte}\n\nCe que dit le restaurateur : « ${texte} »`;
   let out;
   if (env.ANTHROPIC_API_KEY) {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
+    // Compréhension : Sonnet 5.5 (bien plus fiable que Haiku sur les dictées rapides ou approximatives).
+    // Si le modèle est indisponible, on retombe sur Haiku plutôt que d'échouer.
+    const ask = model => fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: env.VOICE_MODEL || 'claude-haiku-4-5-20251001', max_tokens: 1500, system: VOICE_SYSTEM,
+      body: JSON.stringify({ model, max_tokens: 2000, system: VOICE_SYSTEM,
         tools: [{ name: 'carte', description: 'Les changements à proposer sur la carte.', input_schema: VOICE_SCHEMA }],
         tool_choice: { type: 'tool', name: 'carte' }, messages: [{ role: 'user', content: user }] })
     });
+    let r = await ask(env.VOICE_MODEL || 'claude-sonnet-5-5');
+    if (!r.ok && r.status !== 429) { console.error('voice model', r.status); r = await ask('claude-haiku-4-5-20251001'); }
     const j = await r.json();
     if (!r.ok) throw new Error('Anthropic ' + r.status + ' ' + JSON.stringify(j).slice(0, 300));
     const tu = (j.content || []).find(c => c.type === 'tool_use');
