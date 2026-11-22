@@ -1292,13 +1292,16 @@ async function carteVoice(env, b) {
     const tu = (j.content || []).find(c => c.type === 'tool_use');
     out = tu && tu.input;
   } else if (env.OPENAI_API_KEY) {
-    const r = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Compréhension côté OpenAI : GPT-4.1 (bien plus fiable que 4o-mini pour retrouver le bon plat), repli sur 4o-mini.
+    const ask = model => fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { authorization: 'Bearer ' + env.OPENAI_API_KEY, 'content-type': 'application/json' },
-      body: JSON.stringify({ model: env.VOICE_MODEL || 'gpt-4o-mini', messages: [{ role: 'system', content: VOICE_SYSTEM }, { role: 'user', content: user }],
+      body: JSON.stringify({ model, messages: [{ role: 'system', content: VOICE_SYSTEM }, { role: 'user', content: user }],
         tools: [{ type: 'function', function: { name: 'carte', description: 'Les changements à proposer sur la carte.', parameters: VOICE_SCHEMA } }],
         tool_choice: { type: 'function', function: { name: 'carte' } } })
     });
+    let r = await ask(env.VOICE_MODEL || 'gpt-4.1');
+    if (!r.ok && r.status !== 429) { console.error('voice model', r.status); r = await ask('gpt-4o-mini'); }
     const j = await r.json();
     if (!r.ok) throw new Error('OpenAI ' + r.status + ' ' + JSON.stringify(j).slice(0, 300));
     const call = j.choices && j.choices[0] && j.choices[0].message && (j.choices[0].message.tool_calls || [])[0];
