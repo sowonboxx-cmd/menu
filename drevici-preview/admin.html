@@ -2920,7 +2920,7 @@ const VZ_LBL={ajouter:'Ajouter',modifier:'Modifier',masquer:'Masquer',afficher:'
 let vzRec=null;
 const vzT=x=>tr(x), vzE=x=>esc(x), vzBev=c=>isBevCard(c), vzItems=c=>itemsOf(c);
 // Ce que la voix modifie : la carte, ou le menu personnalisé ouvert (#/formule/…).
-function vzTgt(){ if(PG==='formule'&&ARG){ const f=findF(ARG); if(f){ if(!Array.isArray(f.tabs)) f.tabs=[]; return {kind:'menu',f,tabs:f.tabs,nom:f.title||f.name||'Menu'}; } } return {kind:'carte',tabs:DATA.tabs}; }
+function vzTgt(){ /* la page du menu, ou son atelier de mise en forme */ if((PG==='formule'||PG==='tuner')&&ARG&&ARG!=='mdj'){ const f=findF(ARG); if(f){ if(!Array.isArray(f.tabs)) f.tabs=[]; return {kind:'menu',f,tabs:f.tabs,nom:f.title||f.name||'Menu'}; } } return {kind:'carte',tabs:DATA.tabs}; }
 function vzOk(){ return SESSION&&DATA&&!NOACCESS&&!PWSET&&!STAFF; }
 function voiceSync(){
   let b=document.getElementById('vzBtn');
@@ -3057,7 +3057,7 @@ function vzApply(){
   ch.filter(c=>['modifier','masquer','afficher'].includes(c.action)).forEach(c=>{ const x=vzAt(c.ref); if(!x) return; const it=x.it;
     if(c.action==='masquer') it.hidden=true; else if(c.action==='afficher') delete it.hidden;
     else { if(c.nom) it.name={...(it.name||{}),fr:c.nom}; if(c.description!=null&&c.description!=='') it.desc={...(it.desc||{}),fr:c.description};
-      if(c.prix!=null&&!isBevCard(x.c)){ if(it.priceType==='dual'){ it.p1=fmtEur(c.prix); dualSync(it); } else it.price=eur(c.prix); }
+      if(c.prix!=null&&!isBevCard(x.c)){ if(it.priceType==='dual'){ it.p1=fmtEur(c.prix); dualSync(it); } else it.price=/^\s*\+/.test(String(it.price||''))?'+'+fmtEur(c.prix):eur(c.prix); } // un supplément (« +2 ») reste un supplément (« +5 »)
       if(Array.isArray(c.formats)&&isBevCard(x.c)){ it.sizes=it.sizes||[]; c.formats.forEach(f=>{ if(f.index!=null&&it.sizes[f.index]) it.sizes[f.index].price=fmtEur(f.prix); else if(f.cl||f.format) it.sizes.push({cl:f.cl?String(f.cl):'',unit:'cl',price:fmtEur(f.prix),format:f.format||''}); }); }
       if(c.prix!=null&&isBevCard(x.c)&&!(c.formats||[]).length){ if((it.sizes||[]).length===1) it.sizes[0].price=fmtEur(c.prix); else if(!(it.sizes||[]).length) it.price=eur(c.prix); }
     } });

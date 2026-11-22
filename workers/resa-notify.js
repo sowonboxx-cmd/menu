@@ -1143,6 +1143,7 @@ Règles :
 - « Le plat est fini », « on n'en a plus », « retire-le pour ce soir » = masquer (pas supprimer). Supprimer seulement si on te dit de supprimer ou d'enlever définitivement.
 - Pour ajouter, choisis la catégorie la plus logique de la carte. N'invente pas de description si on ne t'en donne pas.
 - Les prix sont en euros. « Onze euros cinquante » = 11.5.
+- Un supplément (prix affiché « +2 », souvent dans un menu) : « passe le supplément à 5 € » = action « modifier » avec « prix » 5 (le + est gardé tout seul).
 - Boissons à plusieurs formats (ex. « [0] 12cl 8€ ; [1] 75cl 46€ ») : pour changer un prix, utilise TOUJOURS « formats » avec l'« index » du format, jamais « prix » seul. Le verre = le plus petit format (12 à 20 cl) ; la bouteille = 75 cl ; le pot ou la fillette = 37,5 à 50 cl ; la pinte = 50 cl ; le demi = 25 cl. Si une contenance est dite (« le 50 cl »), prends ce format.
 - Si la boisson a plusieurs formats et que la phrase ne dit pas lequel (« le Chablis à 9 € »), ne devine pas : remplis « refus » en demandant « le verre ou la bouteille ? » (avec les vrais formats de cette boisson). Si un seul format existe, change-le.
 - « Le verre à 9 et la bouteille à 48 » = un seul changement avec deux formats.
