@@ -119,7 +119,7 @@
     }).join('') : '<li class="results-empty">Aucun restaurant trouvé</li>';
     ul.querySelectorAll('[data-s]').forEach(function (b) {
       b.addEventListener('click', function () {
-        $('q').value = ''; state.q = ''; renderResults();
+        $('q').value = ''; state.q = ''; $('q-clear').hidden = true; renderResults();
         $('q').blur();
         select(b.getAttribute('data-s'));
       });
@@ -629,7 +629,8 @@
   $('menu-btn').addEventListener('click', function () { toggle('menu'); });
   $('filter-btn').addEventListener('click', function () { toggle('filters'); });
   $('locate-btn').addEventListener('click', function () { geo.trigger(); });
-  $('q').addEventListener('input', function (e) { state.q = e.target.value.trim(); renderResults(); });
+  $('q').addEventListener('input', function (e) { state.q = e.target.value.trim(); $('q-clear').hidden = !e.target.value; renderResults(); });
+  $('q-clear').addEventListener('click', function (e) { e.preventDefault(); $('q').value = ''; state.q = ''; $('q-clear').hidden = true; renderResults(); $('q').focus(); });
   $('q').addEventListener('focus', function () { toggle('menu', false); toggle('filters', false); });
 
   fetch('/restaurants.json').then(function (r) { return r.json(); }).then(function (d) {

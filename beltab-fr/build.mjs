@@ -291,7 +291,7 @@ function renderCarte() {
 <button type="button" class="round-btn" id="menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="menu">${ico.menu}</button></div>
 </div>
 <div class="search-row">
-<label class="search">${ico.search}<input id="q" type="search" placeholder="Un quartier, une cuisine, un restaurant" aria-label="Rechercher" autocomplete="off"></label>
+<label class="search">${ico.search}<input id="q" type="search" placeholder="Un quartier, une cuisine, un restaurant" aria-label="Rechercher" autocomplete="off"><button type="button" class="q-clear" id="q-clear" aria-label="Effacer la recherche" hidden><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></label>
 <button type="button" class="round-btn" id="filter-btn" aria-label="Filtres" aria-expanded="false" aria-controls="filters">${ico.filter}<span class="badge" id="filter-badge" hidden></span></button>
 </div>
 <a class="progress-chip" id="progress-chip" href="/moi/" hidden></a>
