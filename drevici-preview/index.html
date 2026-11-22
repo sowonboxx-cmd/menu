@@ -111,6 +111,9 @@ body.is-admin .header-top-right, body.admin-entry-visible .header-top-right{visi
 #vzBtn.lock{background:#c9ccd3}
 .vz-slot{display:flex;justify-content:center;margin:16px 0 4px}
 #vzBtn.inl{position:static;transform:none;right:auto;bottom:auto}
+#dsk.vzon{padding-bottom:76px}
+@media(min-width:641px){#dsk.vzon .k-m{height:min(680px,calc(100vh / 1.1 - 120px))}}
+#vzBtn.ovl{position:fixed;left:50%;right:auto;bottom:16px;transform:translateX(-50%);z-index:9150;box-shadow:0 6px 20px rgba(0,0,0,.28)}
 .home-cover-content .vz-slot #vzBtn{background:#fff;color:var(--navy,#10285E)}
 .home-cover-content .vz-slot #vzBtn.lock{background:rgba(255,255,255,.55)}
 #vzSheet{position:fixed;inset:0;z-index:9300;background:rgba(10,12,18,.42);display:flex;align-items:flex-end;justify-content:center;font-family:Inter,system-ui,sans-serif}
@@ -2919,7 +2922,10 @@ const vzDesk=window.matchMedia('(min-width: 900px)');
 function vzPlace(){
   const b=document.getElementById('vzBtn'); if(!b) return;
   let target=null;
-  if(vzDesk.matches){
+  // Ordinateur, fiche d'un plat ouverte : le micro descend en bas de l'écran, au centre, sous la fiche (jamais dessus).
+  const ovl=vzDesk.matches&&[...document.querySelectorAll('#dsk.open,#lb.open')].some(e=>e.offsetParent!==null||getComputedStyle(e).display!=='none');
+  b.classList.toggle('ovl',!!ovl); const dk=document.getElementById('dsk'); if(dk) dk.classList.toggle('vzon',!!ovl);
+  if(vzDesk.matches&&!ovl){
     // Accueil (vidéo) affiché : sous « Déjà membre ? » ou, pour un membre, sous « Membre du club » ; jamais dans la carte cachée derrière.
     if(document.body.classList.contains('home-cover-showing')){
       const hc=document.querySelector('.home-cover-content');
@@ -2940,6 +2946,8 @@ function vzPlace(){
 }
 setInterval(()=>{ try{ if(document.getElementById('vzBtn')||vzOk()) voiceSync(); }catch(e){} },800);
 vzDesk.addEventListener&&vzDesk.addEventListener('change',()=>{ try{ vzPlace(); }catch(e){} });
+// La fiche d'un plat s'ouvre ou se ferme : le micro change de place tout de suite.
+try{ const mo=new MutationObserver(()=>{ try{ vzPlace(); }catch(e){} }); ['dsk','lb'].forEach(id=>{ const el=document.getElementById(id); if(el) mo.observe(el,{attributes:true,attributeFilter:['class']}); }); }catch(e){}
 function vzCarte(){
   const L=[];
   (DATA.tabs||[]).forEach((t,ti)=>{
@@ -13452,10 +13460,10 @@ function dskOpenFromEl(el){
   const items=dskItems(tab); const i=items.findIndex(x=>x.ci===ci&&x.di===di);
   if(i<0) return false;
   dskState={ti,i}; dskRender();
-  document.getElementById('dsk').classList.add('open'); document.body.style.overflow='hidden';
+  document.getElementById('dsk').classList.add('open'); document.body.style.overflow='hidden'; try{ vzPlace(); }catch(e){}
   return true;
 }
-function dskClose(){ const el=document.getElementById('dsk'); if(!el) return; el.classList.remove('open'); const v=el.querySelector('video'); if(v) v.pause(); document.body.style.overflow=''; dskState=null; }
+function dskClose(){ const el=document.getElementById('dsk'); if(!el) return; el.classList.remove('open'); try{ vzPlace(); }catch(e){} const v=el.querySelector('video'); if(v) v.pause(); document.body.style.overflow=''; dskState=null; }
 function dskGo(n){ if(!dskState) return; const items=dskItems(DATA.tabs[dskState.ti]); dskState.i=(n+items.length)%items.length; dskRender(); }
 function dskRender(){
   let el=document.getElementById('dsk');
