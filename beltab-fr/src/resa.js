@@ -148,7 +148,7 @@
       q('[data-back]').forEach(function (b) { b.addEventListener('click', function () { S.step = 'pick'; draw(); }); });
       var nx = el.querySelector('#rz-next');
       if (nx) nx.addEventListener('click', function () {
-        if (S.step === 'pick') { S.step = D.spaces.length ? 'space' : 'form'; if (!D.spaces.length) S.space = null; }
+        if (S.step === 'pick') { var sp = cfg.espaces && D.spaces.length; S.step = sp ? 'space' : 'form'; if (!sp) S.space = null; }
         else if (S.step === 'space') S.step = 'form';
         draw();
         el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });

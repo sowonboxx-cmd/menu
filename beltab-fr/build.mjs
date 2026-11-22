@@ -477,7 +477,7 @@ const pub = restaurants.map((r) => {
       ? (r.carte || []).filter((x) => !/boisson/i.test(x.section)).slice(0, 3).map((x) => ({ section: x.section, plats: x.plats.slice(0, 4).map((pl) => ({ nom: pl.nom, prix: pl.prix || '' })) }))
       : ['entree', 'plat', 'dessert'].map((t) => (r.carte || []).find((x) => x.type === t)).filter(Boolean).map((x) => ({ section: x.section, plats: x.plats.slice(0, 1).map((pl) => ({ nom: pl.nom, prix: pl.prix || '' })) })),
     site: r.site || '',
-    reservation: r.reservation && r.reservation.url ? { type: paid && r.reservation.type === 'beltab' ? 'beltab' : 'externe', url: r.reservation.url, nom: r.reservation.nom || '', slug: r.reservation.slug || '', menu: r.reservation.menu || '', lieu: r.reservation.lieu || '', prefix: r.reservation.prefix || '' } : null,
+    reservation: r.reservation && r.reservation.url ? { type: paid && r.reservation.type === 'beltab' ? 'beltab' : 'externe', url: r.reservation.url, nom: r.reservation.nom || '', slug: r.reservation.slug || '', menu: r.reservation.menu || '', lieu: r.reservation.lieu || '', prefix: r.reservation.prefix || '', espaces: tierOf(r.niveau) >= 2 } : null,
     platDuJour: paid && r.platDuJour?.nom ? { date: r.platDuJour.date, nom: r.platDuJour.nom, prix: r.platDuJour.prix } : null,
   };
 });
