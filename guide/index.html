@@ -932,6 +932,18 @@ table.matrix tr:hover td{background:#fafaf7}
 @keyframes skShimmer{to{transform:translateX(100%)}}
 @media (max-width:760px){.sk-nav{display:none}}
 @media (prefers-reduced-motion:reduce){.sk::after{animation:none}}
+.info-modal-lbl{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:600;color:var(--text2)}
+.feat-cat{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin-top:-6px}
+#infoModal .info-modal-title{font-size:20px;letter-spacing:-.01em}
+#infoModal .info-modal-desc-view{font-size:15px;color:var(--text);line-height:1.6;min-height:0}
+.feat-ex-t{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text3)}
+.feat-ex{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.feat-ex li{background:rgba(15,42,61,.05);border-radius:12px;padding:10px 14px;font-size:14.5px;color:var(--text);line-height:1.4}
+.feat-demo{width:100%;border-radius:12px;background:#000;display:block;max-height:52vh;object-fit:cover}
+.feat-yt{position:relative;aspect-ratio:16/9}.feat-yt iframe{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:12px}
+.feat-demo-link{display:inline-flex;align-self:flex-start;font-weight:600;font-size:14px;color:#fff;background:var(--navy);border-radius:999px;padding:9px 16px;text-decoration:none}
+#infoModal .info-modal-box{max-height:88vh;overflow-y:auto}
+body:not(.edit-mode) .matrix-name-underline{border-bottom:1.5px dashed var(--text3);cursor:pointer}body:not(.edit-mode) .matrix-name-underline:hover{color:var(--navy);border-bottom-color:var(--navy)}
 </style>
 </head>
 <body>
@@ -3697,18 +3709,38 @@ let infoModalTarget = null; // {ci, ii}
 
 function openInfoModal(e, ci, ii){
   e.stopPropagation();
+  if(!editMode) return openFeatPop(e, ci, ii);
   const item = DATA.categories[ci].items[ii];
   infoModalTarget = {ci, ii};
   document.getElementById('infoModalTitle').textContent = item.name;
   const content = document.getElementById('infoModalContent');
   const saveBtn = document.getElementById('infoModalSaveBtn');
   if(editMode){
-    content.innerHTML = `<textarea class="info-modal-textarea" id="infoModalTextarea" placeholder="Description détaillée, cas d'usage, notes internes…">${esc(item.desc||'')}</textarea>`;
+    content.innerHTML = `<textarea class="info-modal-textarea" id="infoModalTextarea" placeholder="Description détaillée, cas d'usage, notes internes…">${esc(item.desc||'')}</textarea>
+      <label class="info-modal-lbl">Ce qu'on peut demander (une phrase par ligne)<textarea class="info-modal-textarea" id="infoModalEx" style="min-height:70px">${esc((item.examples||[]).join('\n'))}</textarea></label>
+      <label class="info-modal-lbl">Vidéo de démo (lien MP4, YouTube ou Instagram)<input class="info-modal-textarea" id="infoModalDemo" style="min-height:0" value="${esc(item.demo||'')}" placeholder="https://…"></label>`;
     saveBtn.style.display = 'flex';
   } else {
     content.innerHTML = `<div class="info-modal-desc-view">${item.desc ? esc(item.desc).replace(/\n/g,'<br>') : '<span style="color:var(--text3);font-style:italic">Aucune description. Activez le mode édition pour en ajouter une.</span>'}</div>`;
     saveBtn.style.display = 'none';
   }
+  document.getElementById('infoModal').classList.add('open');
+}
+// Visiteur : une fonctionnalité soulignée s'ouvre en fiche (explication, phrases d'exemple, démo vidéo).
+function openFeatPop(e, ci, ii){
+  e.stopPropagation();
+  const item = DATA.categories[ci].items[ii];
+  infoModalTarget = null;
+  document.getElementById('infoModalTitle').textContent = item.name;
+  const ex = (item.examples||[]).filter(Boolean), dm = String(item.demo||'').trim();
+  let demo = '';
+  if(dm){
+    if(/\.(mp4|webm|mov)(\?|$)/i.test(dm)) demo = `<video class="feat-demo" src="${esc(dm)}" autoplay muted loop playsinline controls></video>`;
+    else { const yt = dm.match(/(?:youtu\.be\/|v=|shorts\/)([\w-]{6,})/); demo = yt ? `<div class="feat-demo feat-yt"><iframe src="https://www.youtube-nocookie.com/embed/${yt[1]}" allow="autoplay; encrypted-media" allowfullscreen></iframe></div>` : `<a class="feat-demo-link" href="${esc(dm)}" target="_blank" rel="noopener">Voir la démo</a>`; }
+  }
+  const cat = DATA.categories[ci].name;
+  document.getElementById('infoModalContent').innerHTML = `<div class="feat-cat">${esc(cat)}</div>${demo}<div class="info-modal-desc-view">${formatPointText(item.desc||'')}</div>${ex.length?`<div class="feat-ex-t">Ce que vous pouvez demander</div><ul class="feat-ex">${ex.map(x=>`<li>« ${esc(x)} »</li>`).join('')}</ul>`:''}`;
+  document.getElementById('infoModalSaveBtn').style.display = 'none';
   document.getElementById('infoModal').classList.add('open');
 }
 function closeInfoModal(){
@@ -3720,6 +3752,9 @@ function saveInfoModal(){
   const val = document.getElementById('infoModalTextarea')?.value || '';
   const {ci, ii} = infoModalTarget;
   DATA.categories[ci].items[ii].desc = val;
+  const ex = document.getElementById('infoModalEx'), dm = document.getElementById('infoModalDemo');
+  if(ex) DATA.categories[ci].items[ii].examples = ex.value.split('\n').map(x=>x.trim()).filter(Boolean);
+  if(dm) DATA.categories[ci].items[ii].demo = dm.value.trim();
   save();
   closeInfoModal();
   renderFeatures();
@@ -5407,7 +5442,7 @@ function renderMatrix(){
         const nameHtml = editMode
           ? `<input class="feature-name-input" style="padding:2px 0;width:100%" value="${esc(item.name)}" onchange="DATA.categories[${ci}].items[${ii}].name=this.value;save();renderMatrix()">`
           : (item.desc
-              ? `<span class="matrix-name-underline" onclick="toggleMatrixNameTooltip(event,this)"><span class="matrix-name-text">${esc(item.name)}</span><span class="matrix-name-tooltip">${formatPointText(item.desc)}</span></span>`
+              ? `<span class="matrix-name-underline" onclick="openFeatPop(event,${ci},${ii})"><span class="matrix-name-text">${esc(item.name)}</span></span>`
               : `<span class="matrix-name-text">${esc(item.name)}</span>`);
         html += `<tr class="matrix-item-row" data-ci="${ci}" data-ii="${ii}" ${editMode?'draggable="true" ondragstart="matrixItemDragStart(event,'+ci+','+ii+')" ondragover="event.preventDefault()" ondrop="matrixItemDrop(event,'+ci+','+ii+')"':''}><td>
           <div class="matrix-item-name-cell">
