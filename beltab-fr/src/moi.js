@@ -44,9 +44,15 @@
       '<div class="pp-stats"><div><b>' + st.restaurants + '</b><span>restaurant' + (st.restaurants > 1 ? 's' : '') + '</span></div>' +
       '<div><b>' + st.nbCuisines + '</b><span>cuisine' + (st.nbCuisines > 1 ? 's' : '') + '</span></div>' +
       '<div><b>' + st.pctCarte + ' %</b><span>de la carte</span></div></div>' +
+      '<button type="button" class="share-wide" id="share-pass">Partager mon passeport</button>' +
       '<div class="pp-world"><div class="pp-world-head"><h2>Tour du monde</h2><span>' + st.nbCuisines + ' / ' + st.totalCuisines + ' cuisines</span></div>' + bar(pct) +
       '<span class="muted small">' + (st.nbCuisines ? 'Encore ' + (st.totalCuisines - st.nbCuisines) + ' cuisines à découvrir.' : 'Votre premier repas ouvrira votre passeport : sur une fiche, touchez « J’ai mangé ici ».') + '</span></div>' +
       regions;
+    $('share-pass').addEventListener('click', function () {
+      Partage.card({ eyebrow: 'Mon tour du monde', title: st.nbCuisines + ' cuisine' + (st.nbCuisines > 1 ? 's' : '') + ' goûtée' + (st.nbCuisines > 1 ? 's' : ''),
+        lines: [st.restaurants + ' restaurant' + (st.restaurants > 1 ? 's' : '') + ' indépendant' + (st.restaurants > 1 ? 's' : '') + ' · ' + st.pctCarte + ' % de la carte', 'Et vous, combien de cuisines du monde ?'],
+        filename: 'beltab-passeport' });
+    });
   }
 
   // ---------- journal ----------
@@ -62,12 +68,24 @@
         '<div class="jr-body"><div class="jr-top"><a href="' + esc(e.url) + '"><strong>' + esc(e.nom) + '</strong></a><span class="tag">Déclaré</span></div>' +
         (e.plats && e.plats.length ? '<span class="jr-plats">' + esc(e.plats.join(', ')) + '</span>' : '') +
         '<span class="jr-meta">' + esc(Jeu.fmtDate(e.date)) + (cu ? ' · ' + esc(cu.nom) : '') + (e.avec && e.avec.length ? ' · avec ' + esc(e.avec.join(', ')) : '') + '</span>' +
-        '<button type="button" class="jr-del" data-del="' + e.id + '">Supprimer</button></div></article>';
+        '<span class="jr-btns"><button type="button" class="jr-share" data-share="' + e.id + '">Partager</button><button type="button" class="jr-del" data-del="' + e.id + '">Supprimer</button></span></div></article>';
     }).join('');
     $('tab-journal').querySelectorAll('[data-photo]').forEach(function (el) {
       var id = el.getAttribute('data-photo');
       if (!id) return;
       Jeu.photoUrl(id).then(function (u) { if (u) { el.style.backgroundImage = 'url(' + u + ')'; el.classList.add('has-photo'); } });
+    });
+    $('tab-journal').querySelectorAll('[data-share]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var e = list.filter(function (x) { return x.id === b.getAttribute('data-share'); })[0];
+        var r = RESTOS.filter(function (x) { return x.slug === e.slug; })[0] || {};
+        var cu = C.cuisines.filter(function (c) { return c.id === e.cuisine; })[0];
+        (e.photo ? Jeu.photoUrl(e.id) : Promise.resolve('')).then(function (u) {
+          Partage.card({ eyebrow: 'J’ai mangé chez un indépendant', rosette: true, title: e.nom, photo: u || r.photo,
+            lines: [e.plats && e.plats.length ? e.plats.slice(0, 3).join(', ') : '', (cu ? cu.nom + ' · ' : '') + (r.arrondissement || '') + (e.avec && e.avec.length ? ' · avec ' + e.avec.join(', ') : '')],
+            badge: e.preuve === 'verifie' ? 'Vérifié' : 'Déclaré', filename: 'beltab-' + e.slug });
+        });
+      });
     });
     $('tab-journal').querySelectorAll('[data-del]').forEach(function (b) {
       b.addEventListener('click', function () {

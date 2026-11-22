@@ -69,10 +69,10 @@
       var btn = form.querySelector('.m-save');
       btn.disabled = true; btn.textContent = 'Ajout…';
       Jeu.add({ slug: R.slug, nom: R.nom, url: R.url, cuisine: R.cuisine, specialites: R.specialites, plats: chosen, avec: avec, date: form.date.value || today },
-        file.files[0]).then(function () {
+        file.files[0]).then(function (entry) {
         close();
         renderBand();
-        toast('Ajouté à votre journal');
+        done(entry);
       });
     });
   }
@@ -81,6 +81,34 @@
     modal = null;
     document.body.classList.remove('no-scroll');
   }
+  // Après l'ajout : partager en story, ou voir le passeport.
+  function done(entry) {
+    var st = Jeu.stats(null, null);
+    var box = document.createElement('div');
+    box.className = 'mange';
+    box.innerHTML = '<div class="mange-panel done-panel" role="dialog" aria-modal="true" aria-label="Ajouté">' +
+      '<div class="done-check">' + ICON_CHECK + '</div><strong>Ajouté à votre journal</strong>' +
+      '<span class="muted">' + st.restaurants + ' restaurant' + (st.restaurants > 1 ? 's' : '') + ' · ' + st.nbCuisines + ' cuisine' + (st.nbCuisines > 1 ? 's' : '') + ' dans votre passeport</span>' +
+      '<button type="button" class="m-save" id="done-share">Partager en story</button>' +
+      '<a class="done-link" href="/moi/">Voir mon passeport</a><button type="button" class="m-cancel done-close">Fermer</button></div>';
+    document.body.appendChild(box);
+    var shut = function () { box.remove(); };
+    box.querySelector('.done-close').addEventListener('click', shut);
+    box.addEventListener('click', function (e) { if (e.target === box) shut(); });
+    box.querySelector('#done-share').addEventListener('click', function () { shareEntry(entry); });
+  }
+  function shareEntry(entry) {
+    (entry.photo ? Jeu.photoUrl(entry.id) : Promise.resolve('')).then(function (u) {
+      return Partage.card({
+        eyebrow: 'J’ai mangé chez un indépendant', rosette: true, title: R.nom, photo: u || R.photo,
+        lines: [entry.plats && entry.plats.length ? entry.plats.slice(0, 3).join(', ') : '', (R.cuisineNom ? R.cuisineNom + ' · ' : '') + R.quartier + (entry.avec && entry.avec.length ? ' · avec ' + entry.avec.join(', ') : '')],
+        badge: entry.preuve === 'verifie' ? 'Vérifié' : 'Déclaré', filename: 'beltab-' + R.slug
+      });
+    });
+  }
+  var sh = document.getElementById('share-fiche');
+  if (sh) sh.addEventListener('click', function () { Partage.link({ title: R.nom + ' · Beltab', text: R.nom + ', restaurant indépendant à découvrir sur Beltab' }); });
+
   function toast(t) {
     var el = document.createElement('a');
     el.className = 'jeu-toast';

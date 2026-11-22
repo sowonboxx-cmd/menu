@@ -43,6 +43,7 @@ const icon = {
   cal: '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
   ext: '<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/></svg>',
   check: '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>',
+  share: '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5M5 13v8h14v-8"/></svg>',
   map: '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg>',
 };
 
@@ -189,7 +190,7 @@ ${resaBtn}
   const cu = CUISINE[r.cuisine];
   const cats = (cu ? `<a class="chip chip-link" href="/cuisines/${cu.id}/">${esc(cu.nom)}${(r.specialites || []).map((x) => ' · ' + esc(specNom(r.cuisine, x))).join('')}</a>` : '') +
     (r.categories || []).map((c) => `<span class="chip">${esc(CATEGORIES[c] || c)}</span>`).join('');
-  const rData = { slug: r.slug, nom: r.nom, url: urlOf(r), logo: r.logo || '', cuisine: r.cuisine || '', cuisineNom: cu ? cu.nom : '', specialites: r.specialites || [],
+  const rData = { slug: r.slug, nom: r.nom, url: urlOf(r), logo: r.logo || '', photo: hero || '', quartier: r.arrondissement || '', cuisine: r.cuisine || '', cuisineNom: cu ? cu.nom : '', specialites: r.specialites || [],
     // les boissons ne comptent pas dans le journal (pas de jeu autour de l'alcool)
     carte: sections.filter((x) => !/boisson/i.test(x.section)).map((x) => ({ section: x.section, plats: x.plats.map((pl) => pl.nom) })) };
 
@@ -206,7 +207,7 @@ ${hero ? `<div class="hero"><img src="${esc(hero)}" alt="${esc(r.nom)}" onerror=
 <div class="wrap fiche-grid">
 <div class="fiche-main">
 <div class="fiche-title">
-<span class="verified">${icon.check}Restaurant indépendant vérifié</span>
+<div class="title-row"><span class="verified">${icon.check}Restaurant indépendant vérifié</span><button type="button" class="share-btn" id="share-fiche" aria-label="Partager">${icon.share}Partager</button></div>
 <h1>${esc(r.nom)}</h1>
 <p class="lead">${esc(r.accroche)} ${esc(r.arrondissement)}.</p>
 <div class="chips"><span class="chip chip-open" data-hours='${esc(JSON.stringify(r.horaires))}'>Horaires</span><span class="chip">${esc(r.prix)}</span>${cats}${paid && (pdj.nom || mdj.plat) ? '<span class="chip">Plat du jour</span>' : ''}</div>
@@ -249,7 +250,7 @@ ${footer()}
     title: `${r.nom} · restaurant indépendant · ${r.arrondissement} | Beltab`,
     description: `${r.nom}, restaurant indépendant ${r.arrondissement}. ${r.accroche} Carte, horaires et réservation.`,
     canonical: urlOf(r), image: hero || '', noindex: variant === 'gratuit', jsonld,
-    scripts: ['/src/fiche.js', '/src/jeu.js', '/src/mange.js'], body,
+    scripts: ['/src/fiche.js', '/src/jeu.js', '/src/partage.js', '/src/mange.js'], body,
   });
 }
 
@@ -360,7 +361,7 @@ function renderMoi() {
 <p class="muted small moi-local">Pour l'instant, votre passeport est gardé sur ce téléphone. Les comptes Beltab permettront bientôt de le retrouver partout et de suivre vos potes.</p>
 </main>
 ${footer()}`;
-  return layout({ title: 'Mon passeport | Beltab', description: 'Votre tour du monde des restaurants indépendants : cuisines goûtées, journal et classement.', canonical: '/moi/', noindex: true, body, scripts: ['/src/jeu.js', '/src/moi.js'] });
+  return layout({ title: 'Mon passeport | Beltab', description: 'Votre tour du monde des restaurants indépendants : cuisines goûtées, journal et classement.', canonical: '/moi/', noindex: true, body, scripts: ['/src/jeu.js', '/src/partage.js', '/src/moi.js'] });
 }
 
 // ---------- jeu : cuisines du monde ----------
