@@ -8462,6 +8462,7 @@ function formule_buildCfg(f, variant){
     instaTitleSize: Math.round(base.instaTitleSize||45),
     instaMenuSize: Math.round(base.instaMenuSize||21),
     instaDescSize: Math.round((base.instaDescSize||19) * 1.10),
+    instaPriceColor: f.instaPriceColor, pricePct: f.priceSizePct ?? 100,
     fmtPct: { title: f.titleSizePct ?? 100, menu: f.menuSizePct ?? 100, desc: f.descSizePct ?? 100 },
     dishGapPct: f.dishGapPct ?? 100,
     // BUG FIX : le titre et le sous-titre se calculaient à partir des
@@ -9420,7 +9421,8 @@ const LOGO_W_RATIO = 3.2;
 // Formules : en fraction de la largeur de page, pour que l'aperçu et
 // l'export final donnent exactement le meme rendu.
 const FORMULE_LOGO_PCT = { petit: 0.075, moyen: 0.11, grand: 0.155 };
-const FORMULE_LOGO_FORMATS = ['a4','story'];
+// Story : plus de logo dans la page — la bande en haut porte l'avatar Instagram du restaurant, le titre du menu reste visible.
+const FORMULE_LOGO_FORMATS = ['a4'];
 // Sans logo IMAGE enregistre, cocher « Afficher le logo » fait retomber
 // l'en-tete sur le NOM du restaurant, en petit. Le reglage pilote donc
 // les deux : sinon la case parait ne rien faire chez un client qui n'a
@@ -9874,7 +9876,7 @@ function buildInstaCSS(cfg, ratio){
   // formule (A4/Story/Post confondus) — demande explicite de Will :
   // pour une formule, le titre doit toujours être remonté au même
   // niveau sur les 3 formats, pour garder la place gagnée en bas.
-  const padTop = (ratio === INSTA_POST_RATIO || cfg.tabsSource) ? 50 : 100, padSide = 36;
+  const padTop = cfg.tabsSource ? (cfg.formuleVariant === 'story' ? 84 : 62) : ratio === INSTA_POST_RATIO ? 50 : 100, padSide = 36;
   // Police propre à Instagram (cfg.instaFont) — voir INSTA_FONT_OPTIONS
   // pour la liste proposée dans l'admin. Une seule police pour tout
   // (titre, nom de plat, prix, description), à différents poids/styles
@@ -9905,7 +9907,7 @@ function buildInstaCSS(cfg, ratio){
   .pdf-dish-line-cont{margin-top:2px}
   .pdf-dish-name{font-family:'${font}',serif;font-weight:800;font-size:${menuSize}px;text-transform:${cfg.tabsSource?'none':'uppercase'};letter-spacing:.01em;color:${menuColor}}
   .pdf-dots,.pdf-dots-off{display:none}
-  .pdf-dish-price{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${cfg.tabsSource?Math.max(10,menuSize-1):Math.max(14,menuSize-1)}px;line-height:inherit;color:${menuColor}}
+  .pdf-dish-price{font-family:'${font}',serif;font-style:italic;font-weight:${cfg.tabsSource?700:500};font-size:${cfg.tabsSource?Math.max(11,Math.round(menuSize*1.18*(cfg.pricePct||100)/100)):Math.max(14,menuSize-1)}px;line-height:inherit;color:${cfg.tabsSource?(cfg.instaPriceColor||(/^#?[0-9a-f]{6}$/i.test(gold)?darkenHex(gold,0.1):gold)):menuColor}}
   .pdf-dish-desc{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${descSize}px;line-height:1.35;color:${descColor};margin-top:6px;max-width:76%;margin-left:auto;margin-right:auto;text-wrap:balance}
   .pdf-footer{display:none}
   /* Menus et Formules uniquement — titre + texte libre optionnels,
@@ -9917,7 +9919,7 @@ function buildInstaCSS(cfg, ratio){
      bandeau et un logo carre pesent pareil. */
   .formule-logo{display:block;margin:0 auto ${Math.round(INSTA_RENDER_W*0.028)}px;max-height:${Math.round(INSTA_RENDER_W*(FORMULE_LOGO_PCT[cfg.formuleLogoSize]||FORMULE_LOGO_PCT.moyen))}px;max-width:${Math.round(INSTA_RENDER_W*(FORMULE_LOGO_PCT[cfg.formuleLogoSize]||FORMULE_LOGO_PCT.moyen)*3.2)}px;object-fit:contain}
   .formule-title{font-family:'${font}',serif;font-weight:800;font-size:${Math.round((cfg.formuleTitleBase ?? formuleTitleSize)*((cfg.formuleTitlePct ?? 100)/100))}px;line-height:1.15;text-transform:uppercase;letter-spacing:.01em;color:${cfg.formuleTitleColor||titleColor};margin-bottom:9px;text-align:center}
-  .formule-freetext{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${Math.round((cfg.formuleSubBase ?? Math.round(descSize*0.85))*((cfg.formuleSubPct ?? 100)/100))}px;line-height:1.4;color:${cfg.formuleSubColor||descColor};white-space:pre-wrap;text-align:center;margin-bottom:34px;max-width:82%;margin-left:auto;margin-right:auto}
+  .formule-freetext{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${Math.round((cfg.formuleSubBase ?? Math.round(descSize*0.85))*((cfg.formuleSubPct ?? 100)/100))}px;line-height:1.4;color:${cfg.formuleSubColor||descColor};white-space:pre-wrap;text-align:center;margin-bottom:${cfg.tabsSource?54:34}px;max-width:82%;margin-left:auto;margin-right:auto}
   /* Deux options d'alignement indépendantes, demandées séparément par
      Will : le contenu (catégories/plats) d'un côté, le titre + texte
      libre de l'autre — chacun peut être aligné à gauche ou rester
@@ -10142,7 +10144,8 @@ function fitInstaOneLiners(html, holder, cfg){
 // à la ligne) restent inchangées à chaque palier.
 function buildFormulePage(cfg, ratio){
   ratio = ratio || INSTA_A4_RATIO;
-  const pageH = Math.round(INSTA_RENDER_W*ratio);
+  // Story : le bas (~20 %) reste libre pour l'autocollant « Réserver » d'Instagram — le menu tient au-dessus.
+  const pageH = Math.round(INSTA_RENDER_W*ratio*(cfg.formuleVariant === 'story' ? 0.8 : 1));
   const baseTitleSize = cfg.instaTitleSize || 45;
   const baseMenuSize = cfg.instaMenuSize || 21;
   const baseDescSize = cfg.instaDescSize || 19;
@@ -10250,16 +10253,7 @@ function buildFormulePage(cfg, ratio){
       if(measure.offsetHeight <= pageH){ finalScale = sc; break; }
       finalScale = sc; // même au plancher, on garde le plus serré
     }
-    // Centré verticalement, quel que soit le nombre de plats : un menu court ne reste plus collé en haut.
-    // Story : on garde au moins ~7 % libres en haut, la place du nom du compte Instagram.
-    measure.style.setProperty('--space-scale', finalScale);
-    measure.innerHTML = finalHtml;
-    const h = measure.offsetHeight, free = pageH - h;
-    if(free > 4){
-      let top = free/2;
-      if(cfg.formuleVariant === 'story') top = Math.min(free, Math.max(top, pageH*0.07));
-      finalHtml = `<div class="formule-vpad" style="height:${Math.round(top)}px"></div>` + finalHtml;
-    }
+    // Toujours calé en haut (choix de Will) : un menu court laisse du vide en bas, tant pis.
   }catch(e){}
 
   document.body.removeChild(holder);
@@ -10667,6 +10661,7 @@ const INSTA_RATIO = 16/9; // height / width
 // seule ligne, même découpage équilibré multi-pages, juste plus
 // susceptible de se déclencher puisqu'il y a moins de hauteur
 // disponible.
+const INSTA_POST34_RATIO = 4/3; // 1080×1440 (3:4) : remplit la grille du profil, à enregistrer puis publier depuis Instagram
 const INSTA_POST_RATIO = 5/4; // height / width — 1080×1350 (4:5) : le plus haut qu'Instagram accepte sans recadrer quand on partage depuis une autre appli
 // "Menus et Formules" — format A4, mais avec l'habillage visuel
 // d'Instagram (centré, épuré) plutôt que celui de l'impression
@@ -10999,7 +10994,8 @@ async function renderInstaPageToBlob(css, pages, i, restName, bg, ratio, variant
 // Réglages : pdfStyle.instaBand=false pour l'enlever, pdfStyle.instaBandColor pour forcer une couleur.
 const INSTA_BAND_FRAC = 170/1920;
 // Les menus (formules, menu du jour) sortent comme leur aperçu : pas de bandeau ajouté en haut de la story.
-function instaBandOn(cfg, variant){ return variant === 'story' && cfg.instaBand !== false && !cfg.tabsSource; }
+// Menus (formules, menu du jour) : la story a aussi sa bande, mais la page est mise en page dans la hauteur restante (même largeur) — voir _exportInstaImages.
+function instaBandOn(cfg, variant){ return variant === 'story' && cfg.instaBand !== false; }
 function instaBandColor(cfg){ return cfg.instaBandColor || (DATA.brandColors && DATA.brandColors.primary) || cfg.titleColor || '#10285E'; }
 async function addInstaBand(blob, color, ratio){
   const img = await createImageBitmap(blob);
@@ -11043,9 +11039,11 @@ async function _exportInstaImages(cfg, variant, silent){
   variant = variant || 'story';
   // Le logo du menu a été posé avec son adresse d'origine : html2canvas ne peut pas le dessiner. On met la copie intégrée.
   if(cfg.formulePreamble && _exportLogoOverride){ const raw = rawLogoUrl(); if(raw && raw !== _exportLogoOverride) cfg = { ...cfg, formulePreamble: cfg.formulePreamble.split(escAttr(raw)).join(escAttr(_exportLogoOverride)) }; }
-  const fullRatio = variant === 'post' ? INSTA_POST_RATIO : variant === 'a4' ? INSTA_A4_RATIO : INSTA_RATIO;
+  const fullRatio = variant === 'post' ? INSTA_POST_RATIO : variant === 'post34' ? INSTA_POST34_RATIO : variant === 'a4' ? INSTA_A4_RATIO : INSTA_RATIO;
   const band = instaBandOn(cfg, variant);
-  const ratio = fullRatio; // découpage et mise en page : ceux de la story normale
+  // Menu en story : page pleine largeur, dans la hauteur sous la bande.
+  const menuBand = band && !!cfg.tabsSource;
+  const ratio = menuBand ? fullRatio * (1 - INSTA_BAND_FRAC) : fullRatio; // découpage et mise en page : ceux de la story normale
   const targetW = variant === 'a4' ? 1600 : 1080; // A4 : un peu plus de résolution pour l'impression
   if(typeof html2canvas === 'undefined'){ showToast('⚠ html2canvas non chargé'); return; }
   if(!silent) showToast('Génération des images en cours…');
@@ -11066,7 +11064,9 @@ async function _exportInstaImages(cfg, variant, silent){
   const blobs = [];
   for(let i=0;i<pages.length;i++){
     try{
-      const result = band
+      const result = menuBand
+        ? await renderInstaPageToBlob(css, pages, i, restName, bg, ratio, variant, targetW)
+        : band
         ? await renderInstaPageToBlob(css, pages, i, restName, bg, fullRatio * (1 - INSTA_BAND_FRAC), variant, targetW, instaBandW())
         : await renderInstaPageToBlob(css, pages, i, restName, bg, ratio, variant, targetW);
       if(band) result.blob = await addInstaBand(result.blob, instaBandColor(cfg), fullRatio);
