@@ -1906,6 +1906,13 @@ body.ig-admin-light .ig-subpage-old-content select.ig-hm-select{background-image
   --border:var(--ig-sep); --bg:var(--ig-bg)}
 .edit-pop, .edit-pop input, .edit-pop textarea, .edit-pop select, .edit-pop button{font-family:'Inter',sans-serif}
 .edit-pop-box{background:var(--ig-bg);border-radius:16px;max-width:560px;max-height:92vh;box-shadow:0 24px 60px rgba(0,0,0,.45)}
+/* iPad / iPhone : 92vh dépasse l'écran visible (barres de Safari, clavier ouvert),
+   le bouton Publier sortait de l'écran et la fiche ne défilait plus.
+   On cale la fenêtre sur la zone réellement visible et le défilement reste dans la fiche. */
+.edit-pop{height:var(--ep-h,100dvh);top:var(--ep-top,0);bottom:auto;padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom))}
+.edit-pop-box{max-height:100%;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+/* Au-delà de 640 px le site entier est zoomé à 110 % (html{zoom:1.1}) : sans correction, la fenêtre faisait 110 % de l'écran. */
+@media(min-width:641px){ .edit-pop{height:var(--ep-h,calc(100dvh / 1.1))} }
 .edit-pop-hdr{background:var(--ig-bg);border-bottom:1px solid var(--ig-sep);border-radius:16px 16px 0 0;padding:15px 16px}
 .edit-pop-title{font-family:'Inter',sans-serif;font-size:17px;font-weight:600;letter-spacing:0;color:var(--ig-text)}
 .edit-pop-close{width:30px;height:30px;border-radius:50%;background:var(--ig-card);color:var(--ig-text-dim);font-size:13px}
@@ -3675,6 +3682,7 @@ function openEditElement(el){
 function showEditPop(title){
   document.getElementById('editPopTitle').textContent=title;
   document.getElementById('editPop').classList.add('open');
+  epFit(); const bx=document.querySelector('#editPop .edit-pop-box'); if(bx) bx.scrollTop=0;
   document.body.style.overflow='hidden';
 }
 function closeEditPop(){
@@ -3686,6 +3694,14 @@ function closeEditPop(){
   if(typeof dskState!=='undefined' && dskState){ document.body.style.overflow='hidden'; try{ const n=dskItems(DATA.tabs[dskState.ti]).length; if(!n) dskClose(); else { dskState.i=Math.min(dskState.i,n-1); dskRender(); } }catch(e){} }
 }
 document.getElementById('editPop').addEventListener('click',e=>{ if(e.target===e.currentTarget) closeEditPop(); });
+// La fiche suit la zone vraiment visible (barres de Safari, clavier de l'iPad) : le bouton Publier reste atteignable.
+function epFit(){ const ep=document.getElementById('editPop'), vv=window.visualViewport; if(!ep||!vv) return;
+  const z=parseFloat(getComputedStyle(document.documentElement).zoom)||1;
+  ep.style.setProperty('--ep-h',(vv.height/z)+'px'); ep.style.setProperty('--ep-top',(vv.offsetTop/z)+'px'); }
+if(window.visualViewport){ visualViewport.addEventListener('resize',epFit); visualViewport.addEventListener('scroll',epFit); }
+window.addEventListener('orientationchange',()=>setTimeout(epFit,300));
+// Champ touché près du bas : on le remonte dans la fiche, au-dessus du clavier.
+document.getElementById('editPop').addEventListener('focusin',e=>{ const t=e.target; if(!t.matches('input,textarea,select')) return; setTimeout(()=>{ epFit(); try{ t.scrollIntoView({block:'center',behavior:'smooth'}); }catch(_){} },350); });
 
 // ---- Bloc de prix : simple, ou deux couples quantite/prix ----
 function efPriceBlockHtml(d){
@@ -5923,7 +5939,8 @@ function renderInfoBanner(ib){
     if(!swipeAllowed) return;
     if(document.getElementById('adminPanel')?.classList.contains('open')) return;
     // Don't intercept touches on nav-bar, lightbox, admin, inputs
-    if(e.target.closest('.nav-bar,.rail,.lb,.admin-panel,input,textarea,select,button')) return;
+    if(e.target.closest('.nav-bar,.rail,.lb,.admin-panel,.edit-pop,input,textarea,select,button')) return;
+    if(document.getElementById('editPop')?.classList.contains('open')) { swipeAllowed=false; return; }
     tsX=e.touches[0].clientX;
     tsY=e.touches[0].clientY;
     isDragging=false;
