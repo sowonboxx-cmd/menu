@@ -3254,6 +3254,7 @@ const VZ_LEX={menu:[['Le titre','Le grand nom en haut du menu','« Appelle le me
   ['Les plats','Les noms des plats, ligne par ligne','« Remplace les falafels par une pizza » · « Les plats un peu plus petits »'],
   ['Les prix','Le prix d’un plat, ou un supplément « +3 »','« Tarte au chocolat plus 4 » · « Retire le supplément de la tarte » · « Les prix en noir »'],
   ['La ligne du bas','La petite phrase en bas du menu imprimé (A5)','« En bas, écris Prix TTC, service compris »'],
+  ['Passer à la ligne','Couper le nom d’un plat là où vous voulez (dans le format affiché)','« Passe à la ligne après échalotes dans le sashimi » · « Remets le sashimi sur une seule ligne »'],
   ['L’espace','Entre les sections, ou entre les plats','« Plus d’espace entre les sections » · « Resserre les plats »'],
   ['Le format','Tailles, espaces et alignement ne changent que le format affiché à l’écran (A5, post ou story). Pour un autre format, nommez-le ; pour tous, dites « partout ». Les couleurs changent partout.','« Plus d’espace entre les sections » (sur la story affichée) · « Le titre plus petit dans l’A5 » · « Les plats plus petits, partout »'],
   ['Tout le menu','L’alignement de l’ensemble','« Aligne tout à gauche » · « Centre tout »']],
@@ -3273,9 +3274,10 @@ function vzResume(c){
     if(c.sans_prix===true) p.push('prix retiré');
     else if(c.prix!=null&&!(c.formats||[]).length){ const sup=c.supplement===true||(c.supplement!==false&&/^\s*\+/.test(String(x.it.price||''))); p.push(sup?'supplément +'+fmtEur(c.prix):fmtEur(c.prix)+' €'); }
     return p.length>1||c.nom?p.join(', '):(c.resume||p[0]); }
+  if(c.action==='couper'&&x){ const fk=vzCutFk(c), F={all:'tous les formats',story:'story seulement',post:'post seulement',a4:'A5 seulement'}[fk]; if(!c.apres) return '« '+old+' » sur une seule ligne ('+F+')'; const pre=vzCutPrefix(old,c.apres); return pre?'« '+pre+' » / « '+old.slice(pre.length).trim()+' » ('+F+')':'« '+old+' » : mot « '+c.apres+' » introuvable'; }
   if(c.action==='mise_en_page'){ const L=({titre:'Titre',sous_titre:'Sous-titre',sections:'Sections',plats:'Plats',prix:'Prix',espace_sections:'Espace entre les sections',espace_plats:'Espace entre les plats',tout:'Menu'}[c.element]||'')+(c.format==='tous'?' (tous les formats)':({story:' (story seulement)',post:' (post seulement)',a5:' (A5 seulement)',a4:' (A5 seulement)'}[c.format||(c.element==='tout'||+c.taille?c._fmt:'')]||(+c.taille||c.alignement?' (tous les formats)':''))); const p=[]; if(+c.taille) p.push((c.element||'').startsWith('espace')?(+c.taille>0?'plus d’espace (+'+c.taille+' %)':'moins d’espace ('+c.taille+' %)'):+c.taille>0?'plus grand (+'+c.taille+' %)':'plus petit ('+c.taille+' %)'); if(c.couleur) p.push('couleur '+c.couleur); if(c.alignement) p.push(c.alignement==='gauche'?'aligné à gauche':'centré'); return L+' : '+p.join(', '); }
   return c.resume||''; }
-const VZ_LBL={ajouter:'Ajouter',modifier:'Modifier',masquer:'Masquer',afficher:'Afficher',supprimer:'Supprimer',deplacer:'Déplacer',renommer_section:'Renommer',modifier_menu:'Modifier',mise_en_page:'Mise en page'};
+const VZ_LBL={ajouter:'Ajouter',modifier:'Modifier',masquer:'Masquer',afficher:'Afficher',supprimer:'Supprimer',deplacer:'Déplacer',renommer_section:'Renommer',modifier_menu:'Modifier',mise_en_page:'Mise en page',couper:'Retour à la ligne'};
 let vzRec=null;
 const vzT=x=>tr(x), vzE=x=>esc(x), vzBev=c=>isBevCard(c), vzItems=c=>itemsOf(c);
 // Ce que la voix modifie : la carte, ou le menu personnalisé ouvert (#/formule/…).
@@ -3318,11 +3320,12 @@ const vzNorm=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u
 const vzStem=w=>w.replace(/(es|s|x)$/,'');
 function vzLev(a,b){ const m=a.length,n=b.length; if(Math.abs(m-n)>2) return 9; let p=[...Array(n+1).keys()]; for(let i=1;i<=m;i++){ const c=[i]; for(let j=1;j<=n;j++) c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1)); p=c; } return p[n]; }
 function vzScore(a,b){ const A=vzNorm(a).split(' ').filter(w=>w.length>2).map(vzStem), B=new Set(vzNorm(b).split(' ').filter(w=>w.length>2).map(vzStem)); if(!A.length) return 0; let n=0; A.forEach(w=>{ if(B.has(w)) n++; else if(w.length>3&&[...B].some(x=>x.length>3&&(x.startsWith(w.slice(0,5))||w.startsWith(x.slice(0,5))||vzLev(w,x)<=(w.length>6?2:1)))) n+=.7; }); return n/A.length; }
-function vzFix(ch){ if(!['modifier','masquer','afficher','supprimer','deplacer'].includes(ch.action)||!ch.cible) return;
+function vzFix(ch){ if(!['modifier','masquer','afficher','supprimer','deplacer','couper'].includes(ch.action)||!ch.cible) return;
   const cur=vzAt(ch.ref), curS=cur?vzScore(ch.cible,vzT(cur.it.name)):0; if(curS>=.99) return;
   let best=null,bs=0,second=0; (vzTgt().tabs||[]).forEach((t,ti)=>(t.cards||[]).forEach((c,ci)=>(itemsOf(c)||[]).forEach((it,ix)=>{ const sc=vzScore(ch.cible,vzT(it.name)); if(sc>bs){ second=bs; bs=sc; best=ti+'.'+ci+'.'+ix; } else if(sc>second) second=sc; })));
   if(best&&bs>=.5&&bs>curS&&bs>second) ch.ref=best; }
 function vzValid(ch){ vzFix(ch); if(ch.action==='renommer_section') return !!(vzTgt().tabs[ch.onglet]&&ch.nom); if(ch.action==='modifier_menu') return vzTgt().kind==='menu'&&!!(ch.titre||ch.sous_titre!=null||ch.note!=null);
+  if(ch.action==='couper'){ const x=vzAt(ch.ref); return vzTgt().kind==='menu'&&!!x&&(!ch.apres||!!vzCutPrefix(vzT(x.it.name),ch.apres)); }
   if(ch.action==='mise_en_page') return vzTgt().kind==='menu'&&!!VZ_STY[ch.element]&&!!(+ch.taille||ch.couleur||ch.alignement);
   if(['ajouter'].includes(ch.action)){ const t=vzTgt().tabs[ch.onglet]; return !!(t&&t.cards&&t.cards[ch.sous_categorie||0]); }
   if(!vzAt(ch.ref)) return false; if(ch.action==='deplacer'){ const t=vzTgt().tabs[ch.onglet]; return !!(t&&t.cards&&t.cards[ch.sous_categorie||0]); } return true; }
@@ -3468,6 +3471,11 @@ function fmtOf(o,fk){ return Object.assign({},o||{},(o&&o.byFmt&&o.byFmt[fk])||{
 function fmtSet(o,fk,k,v){ const b=o.byFmt=JSON.parse(JSON.stringify(o.byFmt||{})); (b[fk]||(b[fk]={}))[k]=v; }
 // Format montré à l'écran (page d'un menu, ou atelier) — c'est lui que la voix règle si on ne précise rien.
 function curFmt(){ if(PG==='tuner') return FMT_KEYS[UI.tunI||0]; if(PG==='formule'||PG==='mdj'){ const f=PG==='mdj'?null:curF(); const eph=PG==='mdj'||(f&&f.ephemere); const SL=eph?FSLIDES.filter(x=>x[0]!=='post'):FSLIDES; return (SL[Math.min(UI.fSlide||0,SL.length-1)]||SL[0])[0]; } return ''; }
+// Retour à la ligne choisi : le début du nom jusqu'au mot « apres » (dernier mot dit), par format.
+function vzCutPrefix(name,apres){ const W=String(name||'').trim().split(/\s+/), A=vzNorm(apres).split(' ').filter(Boolean); if(!A.length) return ''; const last=A[A.length-1];
+  let best=-1,bs=-1; W.forEach((w,i)=>{ if(vzNorm(w)!==last&&vzStem(vzNorm(w))!==vzStem(last)) return; let sc=0; for(let k=1;k<A.length&&i-k>=0;k++) if(vzNorm(W[i-k])===A[A.length-1-k]) sc++; if(sc>bs){bs=sc;best=i;} });
+  if(!(best>=0&&best<W.length-1)) return ''; const re=/\S+/g, src=String(name||''); let m, n=0; while((m=re.exec(src))){ if(n++===best) return src.slice(0,m.index+m[0].length); } return ''; }
+function vzCutFk(c){ return c.format==='tous'?'all':({story:'story',post:'post',a5:'a4'}[c.format]||c._fmt||'all'); }
 function vzStyleHost(T){ return T.mdj?(jour().style||(jour().style={})):(T.f&&T.f.id?findF(T.f.id)||T.f:T.f); }
 // Le style d'un menu vient de son modèle. Modèle à soi : on le modifie (tous les menus qui l'utilisent suivent).
 // Modèle standard : le menu garde son propre style (« Style actuel »).
@@ -3492,6 +3500,10 @@ function vzApply(){
   ch.filter(c=>c.action==='deplacer'||c.action==='supprimer').sort((a,b)=>key(b.ref)<key(a.ref)?-1:1).forEach(c=>{ const x=vzAt(c.ref); if(!x) return;
     if(c.action==='supprimer'){ if(x.it._pid) DATA.pinnedDishes=(DATA.pinnedDishes||[]).filter(q=>q.pid!==x.it._pid); x.arr.splice(x.ix,1); }
     else { const dest=vzTgt().tabs[c.onglet].cards[c.sous_categorie||0]; if(isBevCard(dest)!==isBevCard(x.c)) return; x.arr.splice(x.ix,1); itemsOf(dest).push(x.it); } });
+  ch.filter(c=>c.action==='couper').forEach(c=>{ const x=vzAt(c.ref); if(!x) return; const it=x.it, fk=vzCutFk(c), b=Object.assign({},it.brk||{});
+    if(c.apres){ const pre=vzCutPrefix(vzT(it.name),c.apres); if(!pre) return; if(fk==='all'){ Object.keys(b).forEach(k=>delete b[k]); } b[fk]=pre; }
+    else { if(fk==='all') Object.keys(b).forEach(k=>delete b[k]); else { delete b[fk]; delete b.all; } }
+    if(Object.keys(b).length) it.brk=b; else delete it.brk; });
   ch.filter(c=>c.action==='renommer_section').forEach(c=>{ const t=T.tabs[c.onglet]; if(t&&c.nom) t.label={...(t.label||{}),fr:c.nom}; });
   ch.filter(c=>c.action==='modifier_menu'&&T.kind==='menu').forEach(c=>{ if(c.titre){ T.f.title=c.titre; } if(c.sous_titre!=null) T.f.freeText=c.sous_titre; if(c.note!=null) T.f.footNote=c.note; });
   ch.filter(c=>c.action==='mise_en_page'&&T.kind==='menu').forEach(c=>{ const o=vzStyleObj(T), k=VZ_STY[c.element]; if(!k) return;

@@ -9682,7 +9682,11 @@ function buildPdfBlocks(cfg){
     tb.cards.forEach(card=>{
       let pendingSubcat = (t(card.label) && tb.cards.length>1) ? `<h3 class="pdf-subcat">${t(card.label)}</h3>` : '';
       const items = card.dishes ? card.dishes.filter(d=>!d.hidden).map(d=>{
-          const dName = cfg.tabsSource ? applyTextCase(t(d.name)||'', cfg.nameCase==='lower'?'lower':'upper') : (t(d.name)||'');
+          // Coupure choisie par le restaurateur (d.brk[format] = le début du nom, jusqu'à la coupure) : marquée par \u2028.
+          const rawName = t(d.name)||'', fkB = cfg.formuleVariant==='post34' ? 'post' : (cfg.formuleVariant||'story');
+          const brk = cfg.tabsSource && d.brk ? (d.brk[fkB] ?? d.brk.all) : '';
+          const nameB = brk && rawName.startsWith(brk) && rawName.length > brk.length ? brk.trimEnd() + '\u2028' + rawName.slice(brk.length).trimStart() : rawName;
+          const dName = cfg.tabsSource ? applyTextCase(nameB, cfg.nameCase==='lower'?'lower':'upper') : rawName;
           const dDesc = cfg.tabsSource ? applyTextCase(t(d.desc), cfg.descCase==='upper'?'upper':'lower') : t(d.desc);
           return `<div class="pdf-dish${soloCls}"><div class="pdf-dish-line"><span class="pdf-dish-name">${dName}</span>${dots}<span class="pdf-dish-price">${priceText(d)}</span></div>${dDesc?`<div class="pdf-dish-desc">${dDesc}</div>`:''}</div>`;
         })
@@ -10101,6 +10105,15 @@ function fitInstaOneLiners(html, holder, cfg){
   }
   out = out.replace(/<div class="pdf-dish-line"><span class="pdf-dish-name">([\s\S]*?)<\/span>((?:<span class="pdf-dots(?:-off)?"><\/span>)?)<span class="pdf-dish-price">([\s\S]*?)<\/span><\/div>/g,
     (m, nameInner, dotsInner, priceInner)=>{
+      if(nameInner.includes('\u2028')){ // coupure imposée : chaque morceau sur sa ligne, réduit seulement s'il dépasse
+        const [l1, l2] = nameInner.split('\u2028');
+        const pW = priceInner.trim() ? widthOfName(priceInner, menuSize*1.25) + 14 : 0;
+        let s1 = menuSize, s2 = menuSize;
+        while(widthOfName(l1,s1) > availM && s1>10) s1 -= 1;
+        while(widthOfName(l2,s2) + pW > availM && s2>10) s2 -= 1;
+        const sz = Math.min(s1, s2);
+        return `<div class="pdf-dish-line-group"><div class="pdf-dish-line"><span class="pdf-dish-name" style="font-size:${sz}px;white-space:nowrap">${l1}</span></div><div class="pdf-dish-line pdf-dish-line-cont"><span class="pdf-dish-name" style="font-size:${sz}px;white-space:nowrap">${l2}</span>${dotsInner}<span class="pdf-dish-price">${priceInner}</span></div></div>`;
+      }
       const fullW = widthOfName(nameInner, menuSize);
       // le prix compte aussi : nom + écart + prix doivent tenir dans la ligne
       const priceW0 = priceInner.trim() ? widthOfName(priceInner, menuSize*1.25) + 14 : 0;
