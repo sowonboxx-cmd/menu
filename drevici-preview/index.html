@@ -9889,7 +9889,27 @@ function instaSizesFor(cfg){
 // calqué sur la référence fournie par Will (mood Drevici, mise en
 // forme différente). Une image = une seule catégorie, jamais de
 // chevauchement entre catégories.
-function buildInstaCSS(cfg, ratio){
+// Images Instagram, A4 et formules : chaque graisse demandée par le style doit exister dans la police chargée (@import ci-dessous :
+// droit 400/600/700, italique 400/600). Sinon l'aperçu (navigateur) prend la graisse voisine, mais html2canvas, surtout sur
+// iPhone, dessine une graisse « fabriquée » plus grasse et plus large : lettres épaissies, mots collés (story du Truffaut, 23/11).
+// On remplace donc chaque graisse par celle que le navigateur choisit déjà dans l'aperçu : rendu identique, à l'écran comme dans l'image.
+function instaPickWeight(w, avail){
+  if(avail.includes(w)) return w;
+  const up=avail.filter(x=>x>w).sort((a,b)=>a-b), down=avail.filter(x=>x<w).sort((a,b)=>b-a);
+  if(w>=400 && w<=500){ const u=up.filter(x=>x<=500); return u[0] ?? down[0] ?? up[0] ?? w; }
+  if(w<400) return down[0] ?? up[0] ?? w;
+  return up[0] ?? down[0] ?? w;
+}
+function instaFixWeights(css){
+  return String(css).replace(/\{([^{}]*)\}/g, (all, body)=>{
+    if(!/font-weight\s*:/.test(body)) return all;
+    const ital = /font-style\s*:\s*italic/.test(body);
+    const avail = ital ? [400,600] : [400,600,700];
+    return '{'+body.replace(/font-weight\s*:\s*(\d{3})/g, (m, w)=>'font-weight:'+instaPickWeight(+w, avail))+'}';
+  });
+}
+function buildInstaCSS(cfg, ratio){ return instaFixWeights(_buildInstaCSS(cfg, ratio)); }
+function _buildInstaCSS(cfg, ratio){
   ratio = ratio || INSTA_RATIO;
   const navy = cfg.titleColor || '#10285E';
   const gold = cfg.accentColor || '#C6A24A';
