@@ -8388,6 +8388,19 @@ function formule_importDish(fid, catId, selectEl){
 // Titre + texte libre optionnels, injectés en préambule de la
 // première page — voir buildInstaPages (cfg.formulePreamble). Comptent
 // dans le calcul "tout tenir sur une page", comme le reste.
+// Déco sur mesure (offre payante) : les pictos du restaurant (media/cta/*.svg), recolorés, autour du menu.
+// cfg.deco = { orn:'oyster', corners:['anchor','seashell'], color:'#b8912f' }
+const DECO_SVG = {};
+(function(){ ['oyster','seashell','anchor','waves','phare','lancette'].forEach(n=>{ try{ fetch('media/cta/'+n+'.svg').then(r=>r.ok?r.text():'').then(t=>{ if(t) DECO_SVG[n]=t; }).catch(()=>{}); }catch(e){} }); })();
+function decoUri(n, color){ const t=DECO_SVG[n]; if(!t) return ''; return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(t.replace(/fill="#000(000)?"/g,'fill="'+(color||'#b8912f')+'"')); }
+function formule_decoHtml(cfg){
+  const d = cfg && cfg.deco; if(!d) return { orn:'', corners:'' };
+  const c = d.color || '#b8912f', story = cfg.formuleVariant === 'story';
+  const o = d.orn && decoUri(d.orn, c);
+  const orn = o ? `<div class="formule-orn" style="display:flex;justify-content:center;gap:14px;margin:4px 0 calc(22px * var(--space-scale))">${[0,1,2].map(i=>`<img src="${o}" style="height:${i===1?30:20}px;opacity:${i===1?1:.55};margin-top:${i===1?0:6}px">`).join('')}</div>` : '';
+  const cs = (d.corners||[]).map((n,i)=>{ const u=decoUri(n,c); if(!u) return ''; return `<img src="${u}" style="position:absolute;${i?'right':'left'}:36px;bottom:34px;height:${story?48:54}px;opacity:.5;transform:${i?'scaleX(-1)':'none'}">`; }).join('');
+  return { orn, corners: cs };
+}
 function formule_buildPreamble(f, cfg){
   const title = f.title || f.name || '';
   if(!title && !f.freeText) return '';
@@ -8421,7 +8434,8 @@ function formule_buildPreamble(f, cfg){
   // ensemble disaient la meme chose deux fois. Le sous-titre, lui,
   // reste : c'est la seule ligne qui decrit la formule.
   const showTitle = title && !logoHtml;
-  return `${logoHtml}${showTitle?`<div class="formule-title">${noOrphan(title)}</div>`:''}${f.freeText?`<div class="formule-freetext">${subHtml}</div>`:''}`;
+  const deco = formule_decoHtml(cfg);
+  return `${logoHtml}${showTitle?`<div class="formule-title">${noOrphan(title)}</div>`:''}${f.freeText?`<div class="formule-freetext"${deco.orn?' style="margin-bottom:14px"':''}>${subHtml}</div>`:''}${deco.orn}${deco.corners}`;
 }
 // Config Instagram/Formule partagée entre l'export et l'aperçu — un
 // seul endroit où les couleurs, la police, l'alignement, la casse ET
@@ -8467,7 +8481,7 @@ function formule_buildCfg(f, variant){
     instaTitleSize: Math.round(base.instaTitleSize||45),
     instaMenuSize: Math.round(base.instaMenuSize||21),
     instaDescSize: Math.round((base.instaDescSize||19) * 1.10),
-    instaPriceColor: f.instaPriceColor, pricePct: f.priceSizePct ?? 100,
+    instaPriceColor: f.instaPriceColor, pricePct: f.priceSizePct ?? 100, deco: f.deco,
     fmtPct: { title: f.titleSizePct ?? 100, menu: f.menuSizePct ?? 100, desc: f.descSizePct ?? 100 },
     dishGapPct: f.dishGapPct ?? 100, secGapPct: f.secGapPct ?? 100,
     // BUG FIX : le titre et le sous-titre se calculaient à partir des
@@ -8483,6 +8497,8 @@ function formule_buildCfg(f, variant){
   cfg.formulePreamble = formule_buildPreamble(f, cfg);
   // Ligne libre en bas de l'A4 seulement (« Prix TTC, service compris », « Produits frais de Normandie »), au style du sous-titre.
   cfg.formuleFoot = (variant==='a4' && String(f.footNote||'').trim()) ? `<div class="formule-freetext formule-foot" style="margin-top:1.6em;font-size:.86em;opacity:.9">${String(f.footNote).trim().split('\n').map(x=>escHtml(x)).join('<br>')}</div>` : '';
+  // la déco des coins occupe le bas de la page : on lui garde sa place, le texte ne passe jamais dessus
+  if(f.deco && (f.deco.corners||[]).length && variant!=='story') cfg.formuleFoot += '<div class="formule-deco-pad" style="height:44px;flex:none"></div>';
   return cfg;
 }
 function formule_exportInsta(fid, variant){
@@ -9887,7 +9903,7 @@ function buildInstaCSS(cfg, ratio){
   // formule (A4/Story/Post confondus) — demande explicite de Will :
   // pour une formule, le titre doit toujours être remonté au même
   // niveau sur les 3 formats, pour garder la place gagnée en bas.
-  const padTop = cfg.tabsSource ? (cfg.formuleVariant === 'story' ? 84 : 62) : ratio === INSTA_POST_RATIO ? 50 : 100, padSide = 36;
+  const padTop = cfg.tabsSource ? (cfg.formuleVariant === 'story' ? 60 : (cfg.formuleVariant === 'a4' ? 62 : 46)) : ratio === INSTA_POST_RATIO ? 50 : 100, padSide = 36;
   // Police propre à Instagram (cfg.instaFont) — voir INSTA_FONT_OPTIONS
   // pour la liste proposée dans l'admin. Une seule police pour tout
   // (titre, nom de plat, prix, description), à différents poids/styles
@@ -9928,7 +9944,7 @@ function buildInstaCSS(cfg, ratio){
      valeur fixe aurait donne deux rendus differents. La largeur vaut
      3,2 fois la hauteur, comme a l'impression, pour qu'un logo en
      bandeau et un logo carre pesent pareil. */
-  .formule-logo{display:block;margin:0 auto ${Math.round(INSTA_RENDER_W*0.028)}px;max-height:${Math.round(INSTA_RENDER_W*(FORMULE_LOGO_PCT[cfg.formuleLogoSize]||FORMULE_LOGO_PCT.moyen))}px;max-width:${Math.round(INSTA_RENDER_W*(FORMULE_LOGO_PCT[cfg.formuleLogoSize]||FORMULE_LOGO_PCT.moyen)*3.2)}px;object-fit:contain}
+  .formule-logo{display:block;margin:0 auto ${Math.round(INSTA_RENDER_W*0.028)}px;height:${Math.round(INSTA_RENDER_W*(FORMULE_LOGO_PCT[cfg.formuleLogoSize]||FORMULE_LOGO_PCT.moyen))}px;width:auto;max-height:${Math.round(INSTA_RENDER_W*(FORMULE_LOGO_PCT[cfg.formuleLogoSize]||FORMULE_LOGO_PCT.moyen))}px;max-width:${Math.round(INSTA_RENDER_W*(FORMULE_LOGO_PCT[cfg.formuleLogoSize]||FORMULE_LOGO_PCT.moyen)*3.2)}px;object-fit:contain}
   .formule-title{font-family:'${font}',serif;font-weight:800;font-size:${Math.round((cfg.formuleTitleBase ?? formuleTitleSize)*((cfg.formuleTitlePct ?? 100)/100))}px;line-height:1.15;text-transform:uppercase;letter-spacing:.01em;color:${cfg.formuleTitleColor||titleColor};margin-bottom:9px;text-align:center}
   .formule-freetext{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${Math.round((cfg.formuleSubBase ?? Math.round(descSize*0.85))*((cfg.formuleSubPct ?? 100)/100))}px;line-height:1.4;color:${cfg.formuleSubColor||descColor};white-space:pre-wrap;text-align:center;margin-bottom:${cfg.tabsSource?54:34}px;max-width:82%;margin-left:auto;margin-right:auto}
   /* Deux options d'alignement indépendantes, demandées séparément par
@@ -10177,10 +10193,12 @@ function buildFormulePage(cfg, ratio){
   ratio = ratio || INSTA_A4_RATIO;
   // Story : le bas (~20 %) reste libre pour l'autocollant « Réserver » d'Instagram — le menu tient au-dessus.
   // (la marge basse de la page, 84 px, est comptée dans la hauteur mesurée : elle tombe dans la zone réservée)
-  const pageH = cfg.formuleVariant === 'story' ? Math.round(INSTA_RENDER_W*ratio*0.84 + 84) : Math.round(INSTA_RENDER_W*ratio);
-  const baseTitleSize = cfg.instaTitleSize || 45;
-  const baseMenuSize = cfg.instaMenuSize || 21;
-  const baseDescSize = cfg.instaDescSize || 19;
+  const pageH = cfg.formuleVariant === 'story' ? Math.round(INSTA_RENDER_W*ratio*0.88 + 60) : Math.round(INSTA_RENDER_W*ratio);
+  // Réseaux sociaux : on écrit plus gros (lisible sur un téléphone) ; l'ajustement réduit si le menu est chargé.
+  const kIG = (cfg.tabsSource && /^(story|post|post34)$/.test(cfg.formuleVariant||'')) ? 1.3 : 1;
+  const baseTitleSize = Math.round((cfg.instaTitleSize || 45)*kIG);
+  const baseMenuSize = Math.round((cfg.instaMenuSize || 21)*kIG);
+  const baseDescSize = Math.round((cfg.instaDescSize || 19)*kIG);
   // Bien plus bas que le plancher habituel (-30%) — ici on préfère un
   // espacement très resserré à un découpage en plusieurs images.
   const COMPRESS_STEPS = [1, 0.94, 0.88, 0.82, 0.76, 0.7, 0.62, 0.54, 0.46, 0.4, 0.34];

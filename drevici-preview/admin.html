@@ -1363,6 +1363,11 @@ body.fv-on #vzBtn{display:none}
 .mnr-c{width:34px;height:34px;flex:0 0 34px;border-radius:50%;border:0;background:#eef0f4;color:transparent;display:grid;place-items:center;cursor:pointer;padding:0}
 .mnr-c svg{width:18px;height:18px}.mnr-c.on{background:var(--ok,#1f9d55);color:#fff}
 .mnr-mod{background:var(--card,#fff);border-radius:16px}
+.fv-full{display:flex;justify-content:center;margin:-4px 0 6px}.fv-full button,.tun-full{border:0;background:none;font:inherit;font-size:13.5px;font-weight:700;color:var(--brand-text,#10285e);display:inline-flex;align-items:center;gap:6px;cursor:pointer;padding:6px 10px}
+.fv-full svg,.tun-full svg{width:17px;height:17px}.tun-full{color:#cfd3db;margin-left:10px;padding:0 4px}
+.bigv{position:fixed;inset:0;z-index:200;background:#0c0d10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom))}
+.bigv-d{background:#fff;overflow:hidden}.bigv-d iframe{pointer-events:none}
+.bigv small{color:#9a9eaa;font-size:12.5px}.bigv-x{position:absolute;top:max(12px,env(safe-area-inset-top));right:12px;width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.12);color:#fff;font-size:16px;cursor:pointer;z-index:2}
 .mdh{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px}.mdh p{margin:0;flex:1}
 .mdt{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:14px 2px 8px}
 .mdc em{font-style:normal;font-size:12px;color:var(--mut);margin-left:6px}
@@ -1914,6 +1919,9 @@ function pageFnew(){
 }
 function findF(id){ return DATA.formules.find(f=>f.id===id); }
 // ── un menu personnalisé : on voit d'abord le menu en grand, puis on le modifie à la voix ou à la main ──
+const FV_FULL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';
+// Plein écran : le format affiché, aussi grand que l'écran le permet
+function bigView(f,i){ const sl=(FSLIDES[i]||FSLIDES[0]); return `<div class="bigv" data-act="bigClose"><button type="button" class="bigv-x" data-act="bigClose" aria-label="Fermer">✕</button><div class="bigv-d" style="aspect-ratio:${sl[3]};width:min(calc(100vw - 24px),calc((100dvh - 70px) * ${(([w,h])=>(w/h).toFixed(4))(sl[3].split('/').map(Number))}))">${pvFrame('formule',0,sl[2],{f,variant:sl[0]}).replace('class="pv-frame','style="width:100%;height:100%" class="pv-frame')}</div><small>${sl[1]} · touchez pour fermer</small></div>`; }
 const FV_PRINT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg>';
 const FV_IG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>';
 // ══ Modèles : le style d'un menu (couleurs, police, tailles, logo), choisi en un geste ══
@@ -1957,6 +1965,8 @@ function fvView(o){
      <div class="fv-track" id="fvTrack">${slides}</div>
      <button type="button" class="fv-ar r" data-act="fvGo" data-d="1" aria-label="Suivant"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button></div>
    <div class="fv-dots">${SL.map((x,i)=>`<i class="${i===cur?'on':''}"></i>`).join('')}</div>
+   <div class="fv-full"><button type="button" data-act="bigOpen">${FV_FULL}Agrandir</button></div>
+   ${UI.big?bigView(f,FSLIDES.findIndex(x=>x[0]===SL[cur][0])):''}
    <div class="fv-act">
      <button type="button" class="fv-b voix${voix?'':' lock'}" data-act="fvVoice"><span class="ic">${VZ_MIC}</span><span class="tx"><b>Modifier avec la voix</b><small>${voix?'Dites ce qui change, c’est fait. Rien à taper.':'Avec la formule Master : vous parlez, le menu change.'}</small></span>${voix?'':'<em>Master</em>'}</button>
      <a class="fv-b main" href="${o.edit}"><span class="ic">${I('edit')}</span><span class="tx"><b>Modifier à la main</b><small>Titre, sections, plats et prix, ligne par ligne</small></span></a>
@@ -2017,6 +2027,7 @@ function pageModele(){
    <div class="fv-tabs">${FSLIDES.map(([v,l],i)=>`<button type="button" data-act="fvGo" data-i="${i}" class="${i===cur?'on':''}">${l}</button>`).join('')}</div>
    <div class="fv-car"><div class="fv-track" id="fvTrack">${slides}</div></div>
    <div class="fv-dots">${FSLIDES.map((x,i)=>`<i class="${i===cur?'on':''}"></i>`).join('')}</div>
+   <div class="fv-full"><button type="button" data-act="bigOpen">${FV_FULL}Agrandir</button></div>${UI.big?bigView(f,cur):''}
    <p class="note" style="text-align:center">${m.std?'Modèle Beltab':'Mon modèle'}${n?` · utilisé par ${n} menu${n>1?'s':''}`:''}</p>
    <div class="fv-x">${m.std?`<button type="button" class="pr" data-act="modDup" data-m="${esc(m.id)}">${I('edit')}Dupliquer et modifier</button>`:`<a class="pr" href="#/tuner/m:${encodeURIComponent(m.id)}">${I('edit')}Modifier</a><button type="button" class="pr" data-act="modDup" data-m="${esc(m.id)}">Dupliquer</button>`}</div>
    ${m.std?'':`<div class="fv-del"><button type="button" class="fv-delb" data-act="modDel" data-m="${esc(m.id)}">${I('trash')}Supprimer ce modèle</button></div>`}</div>`;
@@ -2063,7 +2074,7 @@ function pageTuner(){
   return `<div class="tun"><div class="tun-top"><a class="x" href="#/${T.back}" aria-label="Fermer">✕</a>${T.model?`<input class="in tun-nm" value="${esc(T.model.name)}" data-act="modName" aria-label="Nom du modèle">`:`<b>${esc(T.label)} · réglages précis</b>`}<span class="sp"></span>
     ${T.model?`<a class="btn" href="#/modele/${encodeURIComponent(T.model.id)}">Terminé</a>`:`${btn('Télécharger A4','share','w','data-act="tunerDl" data-v="a4"')}${btn(tbMobShare()?'Partager le post':'Télécharger Post','share','w','data-act="tunerDl" data-v="post"')}${btn(tbMobShare()?'Partager la story':'Télécharger Story','share','','data-act="tunerDl" data-v="story"')}`}</div>
    <div class="tun-body"><div class="tun-stage"><div class="tun-track" id="tunTrack">${[['a4','A5','pv-a4','794/1123'],['post','Post Instagram','pv-po','4/5'],['story','Story Instagram','pv-st','9/16']].map(([k,l,c,r])=>`<div class="tun-sl"><div class="tun-doc" style="aspect-ratio:${r}">${pvFrame('formule',0,c,{f:T.f,variant:k}).replace('class="pv-frame','style="width:100%;height:100%;background:#fff" class="pv-frame')}</div><small>${l}</small></div>`).join('')}</div>
-     <div class="tun-dots">${['a4','post','story'].map((k,i)=>`<i data-act="tunGo" data-i="${i}" class="${(UI.tunI||0)===i?'on':''}"></i>`).join('')}</div></div>
+     <div class="tun-dots">${['a4','post','story'].map((k,i)=>`<i data-act="tunGo" data-i="${i}" class="${(UI.tunI||0)===i?'on':''}"></i>`).join('')}<button type="button" class="tun-full" data-act="bigOpen">${FV_FULL}Agrandir</button></div></div>${UI.big?bigView(T.f,UI.tunI||0):''}
    <aside class="tun-tools">${tunTools(T,o,fonts)}   </aside></div></div>`;
 }
 let ENGFONTS=null;
@@ -3808,6 +3819,8 @@ document.addEventListener('click',async e=>{
   if(/^msg[A-Z]/.test(a)){ e.preventDefault(); return msgAct(a,d); }
   if(/^rc[A-Z]/.test(a)){ e.preventDefault(); return rcAct(a,d); }
   if(/^ph[A-Z]/.test(a)){ e.preventDefault(); return phAct(a,d); }
+  if(a==='bigOpen'){ e.preventDefault(); UI.big=1; render(); return; }
+  if(a==='bigClose'){ e.preventDefault(); UI.big=0; render(); return; }
   if(a==='fvGo'){ e.preventDefault(); const tk=document.getElementById('fvTrack'); if(!tk) return; const n=tk.children.length; let i=d.i!=null?+d.i:Math.max(0,Math.min(n-1,(UI.fSlide||0)+(+d.d))); UI.fSlide=i; const sl=tk.children[i]; if(sl) tk.scrollTo({left:sl.offsetLeft-tk.offsetLeft-(tk.clientWidth-sl.clientWidth)/2,behavior:'smooth'}); fvMark(); return; }
   if(a==='modSaveCur'){ e.preventDefault(); const own=ARG==='mdj'?(jour().style||(jour().style={})):findF(ARG); if(!own) return; const m={id:'mod-'+Date.now(),name:'Mon style',style:curStyle(own)}; myModels().push(m); own.model=m.id; touch(false); render(); toast('Modèle « Mon style » créé'); return; }
   if(a==='modPick'&&d.m==='__actuel'){ e.preventDefault(); go(ARG==='mdj'?'mdj':'formule/'+encodeURIComponent(ARG)); return; }
