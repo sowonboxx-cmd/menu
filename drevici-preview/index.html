@@ -8431,6 +8431,9 @@ function formule_buildPreamble(f, cfg){
 // la config etait identique pour les trois et il aurait fallu le
 // masquer en CSS — donc l'embarquer dans une story pour rien.
 function formule_buildCfg(f, variant){
+  // Réglages propres à un format (« espace entre les sections, seulement dans la story ») : f.byFmt.story / .post / .a4.
+  const fk = variant === 'post34' ? 'post' : (variant || 'story');
+  if(f && f.byFmt && f.byFmt[fk]) f = { ...f, ...f.byFmt[fk] };
   const base = pdfCfg();
   const cfg = {
     ...base, format:'insta', tabsSource: f.tabs,
@@ -8464,7 +8467,7 @@ function formule_buildCfg(f, variant){
     instaDescSize: Math.round((base.instaDescSize||19) * 1.10),
     instaPriceColor: f.instaPriceColor, pricePct: f.priceSizePct ?? 100,
     fmtPct: { title: f.titleSizePct ?? 100, menu: f.menuSizePct ?? 100, desc: f.descSizePct ?? 100 },
-    dishGapPct: f.dishGapPct ?? 100,
+    dishGapPct: f.dishGapPct ?? 100, secGapPct: f.secGapPct ?? 100,
     // BUG FIX : le titre et le sous-titre se calculaient à partir des
     // tailles ci-dessus, donc "Sections" déplaçait aussi le titre et
     // "Description" déplaçait aussi le sous-titre. On repart des
@@ -9895,7 +9898,7 @@ function buildInstaCSS(cfg, ratio){
   .pdf-cat{font-family:'${font}',serif;font-weight:800;font-size:${catTitleSize}px;line-height:1.1;text-transform:${cfg.tabsSource?'none':'uppercase'};letter-spacing:.01em;color:${titleColor};margin-bottom:${cfg.tabsSource?'calc(13.2px * var(--space-scale))':'44px'};border:none}
   .pdf-cat:has(+ .pdf-subcat){margin-bottom:22px}
   .pdf-cat + .pdf-subcat{margin-top:15px}
-  ${cfg.tabsSource ? '.pdf-dish + .pdf-cat{margin-top:calc(34px * var(--space-scale))}' : ''}
+  ${cfg.tabsSource ? `.pdf-dish + .pdf-cat{margin-top:calc(${(34*((cfg.secGapPct ?? 100)/100)).toFixed(1)}px * var(--space-scale))}` : ''}
   .pdf-subcat{font-family:'${font}',serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.06em;color:${cfg.menuFrameColor||gold};margin:30px 0 18px}
   .pdf-dish{margin-bottom:calc(${cfg.tabsSource?(7.05*((cfg.dishGapPct ?? 100)/100)).toFixed(2):30}px * var(--space-scale));width:100%}
   ${cfg.tabsSource ? '' : `.pdf-dish + .pdf-dish::before{content:'';display:block;width:64px;height:1px;background:${cfg.menuInstaSepColor||gold};margin:0 auto calc(26px * var(--space-scale));opacity:.8}`}
@@ -10147,7 +10150,8 @@ function fitInstaOneLiners(html, holder, cfg){
 function buildFormulePage(cfg, ratio){
   ratio = ratio || INSTA_A4_RATIO;
   // Story : le bas (~20 %) reste libre pour l'autocollant « Réserver » d'Instagram — le menu tient au-dessus.
-  const pageH = Math.round(INSTA_RENDER_W*ratio*(cfg.formuleVariant === 'story' ? 0.8 : 1));
+  // (la marge basse de la page, 84 px, est comptée dans la hauteur mesurée : elle tombe dans la zone réservée)
+  const pageH = cfg.formuleVariant === 'story' ? Math.round(INSTA_RENDER_W*ratio*0.84 + 84) : Math.round(INSTA_RENDER_W*ratio);
   const baseTitleSize = cfg.instaTitleSize || 45;
   const baseMenuSize = cfg.instaMenuSize || 21;
   const baseDescSize = cfg.instaDescSize || 19;
@@ -10162,7 +10166,10 @@ function buildFormulePage(cfg, ratio){
   document.body.appendChild(holder);
 
   let finalHtml = null, finalScale = 1, finalCss = null, finalFontScale = 1;
+  // 1er passage : on garde de l'air (espacement ≥ 70 %), quitte à réduire un peu le texte — les sections ne se collent plus.
+  // 2e passage seulement si rien ne tient : toute la compression est permise.
   outer:
+  for(const minSpace of [0.7, 0])
   for(const fontScale of FONT_SCALE_STEPS){
     const scaledCfg = {
       ...cfg,
@@ -10180,6 +10187,7 @@ function buildFormulePage(cfg, ratio){
     const wholeHtml = (cfg.formulePreamble || '') + fixedBlocks.map(b=>b.html).join('') + (cfg.formuleFoot || '');
 
     for(const scale of COMPRESS_STEPS){
+      if(scale < minSpace) break;
       measureEl.style.setProperty('--space-scale', scale);
       measureEl.innerHTML = wholeHtml;
       if(fontScale > 1 && (scale !== 1 || measureEl.offsetHeight > pageH*0.7)) break;

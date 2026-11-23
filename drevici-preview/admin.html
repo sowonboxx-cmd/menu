@@ -1867,7 +1867,7 @@ function findF(id){ return DATA.formules.find(f=>f.id===id); }
 const FV_PRINT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg>';
 const FV_IG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>';
 // ══ Modèles : le style d'un menu (couleurs, police, tailles, logo), choisi en un geste ══
-const MSTYLE_KEYS=['instaPriceColor','priceSizePct','alignTitleLeft','formuleTitleColor','formuleTitlePct','formuleSubColor','formuleSubPct','instaTitleColor','titleSizePct','instaMenuColor','menuSizePct','instaDescColor','descSizePct','instaBgColor','instaFont','alignContentLeft','dishGapPct','showLogo','logoSize'];
+const MSTYLE_KEYS=['byFmt','secGapPct','instaPriceColor','priceSizePct','alignTitleLeft','formuleTitleColor','formuleTitlePct','formuleSubColor','formuleSubPct','instaTitleColor','titleSizePct','instaMenuColor','menuSizePct','instaDescColor','descSizePct','instaBgColor','instaFont','alignContentLeft','dishGapPct','showLogo','logoSize'];
 const MODELS_STD=[{id:'std-classique',name:'Classique',std:1,style:{}},
   {id:'std-printemps',name:'Printemps',std:1,style:{formuleTitleColor:'#3f7d4e',formuleSubColor:'#5f8a55',instaTitleColor:'#3f7d4e',instaBgColor:'#f6f9ef'}},
   {id:'std-automne',name:'Automne',std:1,style:{formuleTitleColor:'#9c4520',formuleSubColor:'#8a5a3c',instaTitleColor:'#9c4520',instaBgColor:'#fbf4ea'}}];
@@ -3250,8 +3250,10 @@ const VZ_LEX={menu:[['Le titre','Le grand nom en haut du menu','« Appelle le me
   ['Le sous-titre','La ligne sous le titre : formules, prix, dates','« Change le sous-titre : entrée, plat, dessert 42 € »'],
   ['Les sections','Les rubriques du menu : À partager, Entrée, Plats, Desserts (on peut dire « catégories »)','« Renomme la section À partager en Apéritif » · « Les sections en bleu marine »'],
   ['Les plats','Les noms des plats, ligne par ligne','« Remplace les falafels par une pizza » · « Les plats un peu plus petits »'],
-  ['Les prix','Le prix d’un plat, ou un supplément « +3 »','« Tarte au chocolat plus 4 » · « Les prix en noir »'],
+  ['Les prix','Le prix d’un plat, ou un supplément « +3 »','« Tarte au chocolat plus 4 » · « Retire le supplément de la tarte » · « Les prix en noir »'],
   ['La ligne du bas','La petite phrase en bas du menu imprimé (A5)','« En bas, écris Prix TTC, service compris »'],
+  ['L’espace','Entre les sections, ou entre les plats','« Plus d’espace entre les sections » · « Resserre les plats »'],
+  ['Un seul format','Ajoutez « dans la story », « dans le post » ou « dans l’A5 » : le reste ne bouge pas','« Plus d’espace entre les sections, seulement dans la story »'],
   ['Tout le menu','L’alignement de l’ensemble','« Aligne tout à gauche » · « Centre tout »']],
  carte:[['Les catégories','Les grands onglets de la carte : Huîtres, Tartinades, Vins…','« Renomme la catégorie Tartinades en Rillettes »'],
   ['Les sous-catégories','Les groupes dans une catégorie : Rillettes de poissons, Tartares d’algues…','« Ajoute un plat dans Tartares d’algues »'],
@@ -3266,9 +3268,10 @@ function vzResume(c){
   // Le résumé est écrit d'après ce qui va vraiment changer, pas d'après le texte du modèle (qui peut se tromper).
   const x=c.ref&&vzAt(c.ref), old=x?vzT(x.it.name):'';
   if(x&&c.action==='modifier'){ const p=[]; if(c.nom&&c.nom!==old) p.push('« '+old+' » devient « '+c.nom+' »'); else p.push('« '+old+' »');
-    if(c.prix!=null&&!(c.formats||[]).length){ const sup=c.supplement===true||(c.supplement!==false&&/^\s*\+/.test(String(x.it.price||''))); p.push(sup?'supplément +'+fmtEur(c.prix):fmtEur(c.prix)+' €'); }
+    if(c.sans_prix===true) p.push('prix retiré');
+    else if(c.prix!=null&&!(c.formats||[]).length){ const sup=c.supplement===true||(c.supplement!==false&&/^\s*\+/.test(String(x.it.price||''))); p.push(sup?'supplément +'+fmtEur(c.prix):fmtEur(c.prix)+' €'); }
     return p.length>1||c.nom?p.join(', '):(c.resume||p[0]); }
-  if(c.action==='mise_en_page'){ const L={titre:'Titre',sous_titre:'Sous-titre',sections:'Sections',plats:'Plats',prix:'Prix',tout:'Menu'}[c.element]||''; const p=[]; if(+c.taille) p.push(+c.taille>0?'plus grand ('+'+'+c.taille+' %)':'plus petit ('+c.taille+' %)'); if(c.couleur) p.push('couleur '+c.couleur); if(c.alignement) p.push(c.alignement==='gauche'?'aligné à gauche':'centré'); return L+' : '+p.join(', '); }
+  if(c.action==='mise_en_page'){ const L=({titre:'Titre',sous_titre:'Sous-titre',sections:'Sections',plats:'Plats',prix:'Prix',espace_sections:'Espace entre les sections',espace_plats:'Espace entre les plats',tout:'Menu'}[c.element]||'')+({story:' (story seulement)',post:' (post seulement)',a5:' (A5 seulement)'}[c.format]||''); const p=[]; if(+c.taille) p.push((c.element||'').startsWith('espace')?(+c.taille>0?'plus d’espace (+'+c.taille+' %)':'moins d’espace ('+c.taille+' %)'):+c.taille>0?'plus grand (+'+c.taille+' %)':'plus petit ('+c.taille+' %)'); if(c.couleur) p.push('couleur '+c.couleur); if(c.alignement) p.push(c.alignement==='gauche'?'aligné à gauche':'centré'); return L+' : '+p.join(', '); }
   return c.resume||''; }
 const VZ_LBL={ajouter:'Ajouter',modifier:'Modifier',masquer:'Masquer',afficher:'Afficher',supprimer:'Supprimer',deplacer:'Déplacer',renommer_section:'Renommer',modifier_menu:'Modifier',mise_en_page:'Mise en page'};
 let vzRec=null;
@@ -3455,7 +3458,7 @@ async function vzVoir(v,dit){
   setTimeout(()=>{ const el=UI.vzDay&&document.getElementById('jg-'+UI.vzDay); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); UI.vzDay=null; },400);
 }
 // Mise en page à la voix : élément → [clé de taille (%), clé de couleur].
-const VZ_STY={titre:['formuleTitlePct','formuleTitleColor'],sous_titre:['formuleSubPct','formuleSubColor'],sections:['titleSizePct','instaTitleColor'],plats:['menuSizePct','instaMenuColor'],prix:['priceSizePct','instaPriceColor'],tout:[null,null]};
+const VZ_STY={titre:['formuleTitlePct','formuleTitleColor'],sous_titre:['formuleSubPct','formuleSubColor'],sections:['titleSizePct','instaTitleColor'],plats:['menuSizePct','instaMenuColor'],prix:['priceSizePct','instaPriceColor'],espace_sections:['secGapPct',null],espace_plats:['dishGapPct',null],tout:[null,null]};
 function vzStyleHost(T){ return T.mdj?(jour().style||(jour().style={})):(T.f&&T.f.id?findF(T.f.id)||T.f:T.f); }
 // Le style d'un menu vient de son modèle. Modèle à soi : on le modifie (tous les menus qui l'utilisent suivent).
 // Modèle standard : le menu garde son propre style (« Style actuel »).
@@ -3468,7 +3471,8 @@ function vzApply(){
   ch.filter(c=>['modifier','masquer','afficher'].includes(c.action)).forEach(c=>{ const x=vzAt(c.ref); if(!x) return; const it=x.it;
     if(c.action==='masquer') it.hidden=true; else if(c.action==='afficher') delete it.hidden;
     else { if(c.nom) it.name={...(it.name||{}),fr:c.nom}; if(c.description!=null&&c.description!=='') it.desc={...(it.desc||{}),fr:c.description};
-      if(c.prix!=null&&!isBevCard(x.c)){ if(it.priceType==='dual'){ it.p1=fmtEur(c.prix); dualSync(it); } else it.price=(c.supplement===true||(c.supplement!==false&&/^\s*\+/.test(String(it.price||''))))?'+'+fmtEur(c.prix):eur(c.prix); } // « plus 14 » = supplément (« +14 ») ; un supplément (« +2 ») reste un supplément (« +5 »)
+      if(c.sans_prix===true&&!isBevCard(x.c)){ it.price=''; delete it.priceType; }
+      else if(c.prix!=null&&!isBevCard(x.c)){ if(it.priceType==='dual'){ it.p1=fmtEur(c.prix); dualSync(it); } else it.price=(c.supplement===true||(c.supplement!==false&&/^\s*\+/.test(String(it.price||''))))?'+'+fmtEur(c.prix):eur(c.prix); } // « plus 14 » = supplément (« +14 ») ; un supplément (« +2 ») reste un supplément (« +5 »)
       if(Array.isArray(c.formats)&&isBevCard(x.c)){ it.sizes=it.sizes||[]; c.formats.forEach(f=>{ if(f.index!=null&&it.sizes[f.index]) it.sizes[f.index].price=fmtEur(f.prix); else if(f.cl||f.format) it.sizes.push({cl:f.cl?String(f.cl):'',unit:'cl',price:fmtEur(f.prix),format:f.format||''}); }); }
       if(c.prix!=null&&isBevCard(x.c)&&!(c.formats||[]).length){ if((it.sizes||[]).length===1) it.sizes[0].price=fmtEur(c.prix); else if(!(it.sizes||[]).length) it.price=eur(c.prix); }
     } });
@@ -3482,9 +3486,12 @@ function vzApply(){
   ch.filter(c=>c.action==='renommer_section').forEach(c=>{ const t=T.tabs[c.onglet]; if(t&&c.nom) t.label={...(t.label||{}),fr:c.nom}; });
   ch.filter(c=>c.action==='modifier_menu'&&T.kind==='menu').forEach(c=>{ if(c.titre){ T.f.title=c.titre; } if(c.sous_titre!=null) T.f.freeText=c.sous_titre; if(c.note!=null) T.f.footNote=c.note; });
   ch.filter(c=>c.action==='mise_en_page'&&T.kind==='menu').forEach(c=>{ const o=vzStyleObj(T), k=VZ_STY[c.element]; if(!k) return;
-    if(k[0]&&+c.taille){ const v=Math.round((o[k[0]]??100)*(1+(+c.taille)/100)); o[k[0]]=Math.max(50,Math.min(200,v)); }
-    if(k[1]&&/^#[0-9a-f]{6}$/i.test(c.couleur||'')) o[k[1]]=c.couleur;
-    if(c.alignement){ o.alignContentLeft=c.alignement==='gauche'; o.alignTitleLeft=c.alignement==='gauche'; } });
+    // « seulement dans la story / le post / l'A5 » : le réglage va dans byFmt[format], sinon partout
+    const fk={story:'story',post:'post',a5:'a4'}[c.format]; let t=o; if(fk){ const b=o.byFmt=JSON.parse(JSON.stringify(o.byFmt||{})); t=b[fk]||(b[fk]={}); }
+    const gap=c.element&&c.element.startsWith('espace');
+    if(k[0]&&+c.taille){ const v=Math.round((t[k[0]]??o[k[0]]??100)*(1+(+c.taille)/100)); t[k[0]]=Math.max(gap?30:50,Math.min(gap?400:200,v)); }
+    if(k[1]&&/^#[0-9a-f]{6}$/i.test(c.couleur||'')) t[k[1]]=c.couleur;
+    if(c.alignement){ t.alignContentLeft=c.alignement==='gauche'; t.alignTitleLeft=c.alignement==='gauche'; } });
   if(T.mdj) mdjFromF(jour(),T.f);
   VZ.done={n:ch.length}; VZ.res=null; VZ.text=''; VZ_VIA=true; touch(true); vzDraw();
 }
