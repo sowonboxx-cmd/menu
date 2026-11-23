@@ -9987,9 +9987,17 @@ function fitInstaOneLiners(html, holder, cfg){
   const availableW = cfg.tabsSource
     ? (cfg.alignContentLeft ? INSTA_RENDER_W - padSide*2 : INSTA_RENDER_W * 0.70)
     : INSTA_RENDER_W - padSide*2 - 16;
+  // Les tailles « + / − » de l'utilisateur (fmtPct) sont appliquées APRÈS ce calcul : on mesure donc
+  // contre une largeur réduite d'autant, sinon un texte agrandi dépasse et touche le cadre à droite.
+  // Petite marge de sécurité (6 px) : la marge droite reste égale à la gauche.
+  const kT = cfg.tabsSource ? ((cfg.fmtPct && cfg.fmtPct.title) || 100)/100 : 1;
+  const kM = cfg.tabsSource ? ((cfg.fmtPct && cfg.fmtPct.menu) || 100)/100 : 1;
+  const availC = cfg.tabsSource ? (availableW - 6)/kT : availableW;
+  const availM = cfg.tabsSource ? (availableW - 6)/kM : availableW;
   const { catTitleSize, menuSize } = instaSizesFor(cfg);
 
-  function fitOne(text, tag, className, baseSize, minSize){
+  function fitOne(text, tag, className, baseSize, minSize, limit){
+    limit = limit || availableW;
     const test = document.createElement(tag);
     test.className = className;
     test.style.whiteSpace = 'nowrap';
@@ -10007,11 +10015,11 @@ function fitInstaOneLiners(html, holder, cfg){
     test.innerHTML = text;
     measureEl.appendChild(test);
     let size = baseSize;
-    while(test.scrollWidth > availableW && size > minSize){
+    while(test.scrollWidth > limit && size > minSize){
       size -= 1;
       test.style.fontSize = size+'px';
     }
-    const fits = test.scrollWidth <= availableW;
+    const fits = test.scrollWidth <= limit;
     measureEl.removeChild(test);
     return { size, fits };
   }
@@ -10033,7 +10041,7 @@ function fitInstaOneLiners(html, holder, cfg){
     return parts.slice(0, -2).join(' ') + (parts.length>2?' ':'') + parts.slice(-2).join('\u00A0');
   };
   let out = html.replace(/<h2 class="pdf-cat"([^>]*)>([\s\S]*?)<\/h2>/, (m, attrs, inner)=>{
-    const fit = fitOne(inner, 'h2', 'pdf-cat', catTitleSize, Math.min(13, catTitleSize));
+    const fit = fitOne(inner, 'h2', 'pdf-cat', catTitleSize, Math.min(13, catTitleSize), availC);
     const text = fit.fits ? inner : bindOrphan(inner);
     return `<h2 class="pdf-cat"${attrs} style="font-size:${fit.size}px;${wrapStyle(fit)}">${text}</h2>`;
   });
@@ -10094,15 +10102,17 @@ function fitInstaOneLiners(html, holder, cfg){
   out = out.replace(/<div class="pdf-dish-line"><span class="pdf-dish-name">([\s\S]*?)<\/span>((?:<span class="pdf-dots(?:-off)?"><\/span>)?)<span class="pdf-dish-price">([\s\S]*?)<\/span><\/div>/g,
     (m, nameInner, dotsInner, priceInner)=>{
       const fullW = widthOfName(nameInner, menuSize);
-      if(fullW <= availableW){
+      // le prix compte aussi : nom + écart + prix doivent tenir dans la ligne
+      const priceW0 = priceInner.trim() ? widthOfName(priceInner, menuSize*1.25) + 14 : 0;
+      if(fullW + priceW0 <= availM){
         return `<div class="pdf-dish-line"><span class="pdf-dish-name" style="font-size:${menuSize}px;white-space:nowrap">${nameInner}</span>${dotsInner}<span class="pdf-dish-price">${priceInner}</span></div>`;
       }
-      const priceW = widthOfName(priceInner, menuSize);
+      const priceW = widthOfName(priceInner, menuSize*1.25);
       const gap = 14;
-      const words = nameInner.split(' ');
+      const words = nameInner.trim().split(/\s+/);
       let splitIdx = 0;
       for(let i=words.length-1;i>=1;i--){
-        if(widthOfName(words.slice(0,i).join(' '), menuSize) <= availableW - priceW - gap){ splitIdx = i; break; }
+        if(widthOfName(words.slice(0,i).join(' '), menuSize) <= availM && widthOfName(words.slice(i).join(' '), menuSize) + (priceInner.trim()?priceW+gap:0) <= availM){ splitIdx = i; break; }
       }
       // RÈGLE DE BASE (Will) : jamais un seul mot orphelin sur la
       // deuxième ligne. La boucle ci-dessus remplit la première ligne
@@ -10121,7 +10131,7 @@ function fitInstaOneLiners(html, holder, cfg){
         // plutôt que de la couper au milieu d'un mot. On vise la place
         // réellement libre, prix compris, pour que le prix reste aligné
         // à droite au lieu d'être repoussé hors du cadre.
-        const room = Math.max(60, availableW - priceW - gap);
+        const room = Math.max(60, availM - priceW - gap);
         let size = menuSize;
         while(widthOfName(nameInner,size) > room && size>10) size -= 1;
         return `<div class="pdf-dish-line"><span class="pdf-dish-name" style="font-size:${size}px;white-space:nowrap">${nameInner}</span>${dotsInner}<span class="pdf-dish-price">${priceInner}</span></div>`;
@@ -10129,8 +10139,9 @@ function fitInstaOneLiners(html, holder, cfg){
       const line1 = words.slice(0,splitIdx).join(' ');
       const line2 = words.slice(splitIdx).join(' ');
       let size2 = menuSize;
-      while(widthOfName(line2,size2) > availableW && size2>10) size2 -= 1;
-      return `<div class="pdf-dish-line-group"><div class="pdf-dish-line"><span class="pdf-dish-name" style="font-size:${menuSize}px;white-space:nowrap">${line1}</span>${dotsInner}<span class="pdf-dish-price">${priceInner}</span></div><div class="pdf-dish-line pdf-dish-line-cont"><span class="pdf-dish-name" style="font-size:${size2}px;white-space:nowrap">${line2}</span></div></div>`;
+      while(widthOfName(line2,size2) + (priceInner.trim()?priceW+gap:0) > availM && size2>10) size2 -= 1;
+      // Le prix suit la fin du nom (2e ligne), jamais le milieu de la phrase.
+      return `<div class="pdf-dish-line-group"><div class="pdf-dish-line"><span class="pdf-dish-name" style="font-size:${menuSize}px;white-space:nowrap">${line1}</span></div><div class="pdf-dish-line pdf-dish-line-cont"><span class="pdf-dish-name" style="font-size:${size2}px;white-space:nowrap">${line2}</span>${dotsInner}<span class="pdf-dish-price">${priceInner}</span></div></div>`;
     });
   return out;
 }
