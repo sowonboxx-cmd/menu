@@ -2490,6 +2490,7 @@ body.hdr-light .adm-b-hdr{color:var(--navy)}
 .bk-x:hover{background:rgba(255,255,255,.28)}.bk-x svg{width:14px;height:14px}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" defer></script>
 </head>
 <body>
 <div id="pageSkeleton" aria-hidden="true">
@@ -8401,6 +8402,7 @@ function formule_decoHtml(cfg){
   const cs = (d.corners||[]).map((n,i)=>{ const u=decoUri(n,c); if(!u) return ''; return `<img src="${u}" style="position:absolute;${i?'right':'left'}:36px;bottom:34px;height:${story?48:54}px;opacity:.5;transform:${i?'scaleX(-1)':'none'}">`; }).join('');
   return { orn, corners: cs };
 }
+function formule_qrUri(text){ try{ if(typeof qrcode!=='function') return ''; const q=qrcode(0,'M'); q.addData(text); q.make(); return q.createDataURL(6,2); }catch(e){ return ''; } }
 function formule_buildPreamble(f, cfg){
   const title = f.title || f.name || '';
   if(!title && !f.freeText) return '';
@@ -8481,7 +8483,7 @@ function formule_buildCfg(f, variant){
     instaTitleSize: Math.round(base.instaTitleSize||45),
     instaMenuSize: Math.round(base.instaMenuSize||21),
     instaDescSize: Math.round((base.instaDescSize||19) * 1.10),
-    instaPriceColor: f.instaPriceColor, pricePct: f.priceSizePct ?? 100, deco: f.deco,
+    instaPriceColor: f.instaPriceColor, pricePct: f.priceSizePct ?? 100, deco: f.deco, formuleFrame: f.frame || f.frameStyle || 'simple',
     fmtPct: { title: f.titleSizePct ?? 100, menu: f.menuSizePct ?? 100, desc: f.descSizePct ?? 100 },
     dishGapPct: f.dishGapPct ?? 100, secGapPct: f.secGapPct ?? 100,
     // BUG FIX : le titre et le sous-titre se calculaient à partir des
@@ -8498,6 +8500,9 @@ function formule_buildCfg(f, variant){
   // Ligne libre en bas de l'A4 seulement (« Prix TTC, service compris », « Produits frais de Normandie »), au style du sous-titre.
   cfg.formuleFoot = (variant==='a4' && String(f.footNote||'').trim()) ? `<div class="formule-freetext formule-foot" style="margin-top:1.6em;font-size:.86em;opacity:.9">${String(f.footNote).trim().split('\n').map(x=>escHtml(x)).join('<br>')}</div>` : '';
   // la déco des coins occupe le bas de la page : on lui garde sa place, le texte ne passe jamais dessus
+  // QR « Voir les plats en image » (A5 seulement) : renvoie vers la carte en photos du site
+  if(variant==='a4' && f.qrPhotos){ const q=formule_qrUri(f.qrUrl || (location.origin + location.pathname.replace(/[^/]*$/,'') + '?src=MENUA5'));
+    if(q) cfg.formuleFoot += `<div class="formule-qr" style="display:flex;align-items:center;justify-content:${f.alignContentLeft?'flex-start':'center'};gap:16px;margin-top:calc(30px * var(--space-scale));flex:none;width:100%"><img src="${q}" style="width:84px;height:84px;display:block"><span style="font-weight:700;font-size:19px;line-height:1.25;text-align:left;color:${f.instaTitleColor||'inherit'}">Voir les plats<br>en image</span></div>`; }
   if(f.deco && (f.deco.corners||[]).length && variant!=='story') cfg.formuleFoot += '<div class="formule-deco-pad" style="height:44px;flex:none"></div>';
   return cfg;
 }
@@ -9916,7 +9921,14 @@ function buildInstaCSS(cfg, ratio){
   html,body{margin:0;padding:0;background:${bg}}
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
   .pdf-page{--space-scale:1;font-family:'${font}',serif;color:${titleColor};background:${bg};width:${INSTA_RENDER_W}px;height:${Math.round(INSTA_RENDER_W*ratio)}px;padding:${padTop}px ${padSide}px;margin:0 auto;position:relative;overflow:hidden;text-align:center;display:flex;flex-direction:column;align-items:center}
-  .pdf-page::before{content:'';position:absolute;inset:20px;border:1.5px solid ${gold};pointer-events:none}
+  ${(()=>{ // Cadre : simple, double, pointillé, coins, ou aucun — toujours de la couleur des titres de sections
+    const fr = cfg.formuleFrame || 'simple', fc = cfg.tabsSource ? (cfg.instaTitleColor || gold) : gold;
+    if(!cfg.tabsSource || fr==='simple') return `.pdf-page::before{content:'';position:absolute;inset:20px;border:1.5px solid ${fc};pointer-events:none}`;
+    if(fr==='aucun') return '';
+    if(fr==='double') return `.pdf-page::before{content:'';position:absolute;inset:16px;border:1.5px solid ${fc};pointer-events:none}.pdf-page::after{content:'';position:absolute;inset:22px;border:1px solid ${fc};pointer-events:none}`;
+    if(fr==='pointille') return `.pdf-page::before{content:'';position:absolute;inset:20px;border:2px dashed ${fc};pointer-events:none}`;
+    if(fr==='coins') return `.pdf-page::before{content:'';position:absolute;inset:18px;pointer-events:none;background:linear-gradient(${fc},${fc}) left top/56px 2px no-repeat,linear-gradient(${fc},${fc}) left top/2px 56px no-repeat,linear-gradient(${fc},${fc}) right top/56px 2px no-repeat,linear-gradient(${fc},${fc}) right top/2px 56px no-repeat,linear-gradient(${fc},${fc}) left bottom/56px 2px no-repeat,linear-gradient(${fc},${fc}) left bottom/2px 56px no-repeat,linear-gradient(${fc},${fc}) right bottom/56px 2px no-repeat,linear-gradient(${fc},${fc}) right bottom/2px 56px no-repeat}`;
+    return `.pdf-page::before{content:'';position:absolute;inset:20px;border:1.5px solid ${fc};pointer-events:none}`; })()}
   .pdf-cat{font-family:'${font}',serif;font-weight:800;font-size:${catTitleSize}px;line-height:1.1;text-transform:${cfg.tabsSource?'none':'uppercase'};letter-spacing:.01em;color:${titleColor};margin-bottom:${cfg.tabsSource?'calc(13.2px * var(--space-scale))':'44px'};border:none}
   .pdf-cat:has(+ .pdf-subcat){margin-bottom:22px}
   .pdf-cat + .pdf-subcat{margin-top:15px}
