@@ -2488,8 +2488,34 @@ body.hdr-light .adm-b-hdr{color:var(--navy)}
 .bk-box iframe{display:block;width:100%;height:100%;border:0;background:transparent}
 .bk-x{position:absolute;top:12px;right:12px;z-index:2;width:32px;height:32px;border:0;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .bk-x:hover{background:rgba(255,255,255,.28)}.bk-x svg{width:14px;height:14px}
+
+/* Menu du jour sur l'accueil (maquette C, 24/11/2026) */
+.mdj-card{display:flex;align-items:center;gap:11px;margin:14px auto 0;max-width:calc(100% - 32px);background:#f8f2e8;color:#2a1d14;border:0;border-radius:14px;padding:7px 12px 7px 7px;cursor:pointer;text-align:left;font:inherit;-webkit-tap-highlight-color:transparent}
+.mdj-th{flex:none;width:34px;aspect-ratio:794/1123;border-radius:4px;overflow:hidden;position:relative;border:1px solid #e4d6bf;background:#fff}
+.mdj-th iframe{position:absolute;left:0;top:0;width:608px;height:860px;border:0;transform:scale(.0559);transform-origin:0 0;pointer-events:none}
+.mdj-tx{display:block;min-width:0}.mdj-tx b{display:block;font:700 16.5px/1.15 'Playfair Display',serif;color:#8f3f1f}
+.mdj-tx em{display:block;font:italic 500 13px/1.3 'Playfair Display',serif;color:#8a7a5c;margin-top:1px}
+.mdj-px{display:flex;flex-direction:column;align-items:center;justify-content:center;align-self:center;margin-left:8px;padding-left:12px;border-left:1px solid #e4d6bf;text-align:center}
+.mdj-px small{font:italic 500 11.5px/1 'Playfair Display',serif;color:#8a7a5c;margin-bottom:3px}
+.mdj-px strong{font:700 19px/1 'Playfair Display',serif;color:#8f3f1f;white-space:nowrap}
+.mdj-ch{flex:none;width:17px;height:17px;color:#8f3f1f}
+.mdj-sheet{position:fixed;inset:0;z-index:9999;background:#0e0d0c;display:flex;flex-direction:column;animation:mdjIn .25s ease}
+@keyframes mdjIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.mdj-sh{display:flex;align-items:center;justify-content:space-between;padding:calc(14px + env(safe-area-inset-top)) 18px 12px;color:#fff;font-family:'Jost',sans-serif}
+.mdj-sh b{display:block;font-weight:600;font-size:17px;letter-spacing:.07em}.mdj-sh small{display:block;color:#b9b2a7;font-size:13.5px}
+.mdj-x{width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.14);color:#fff;display:grid;place-items:center;cursor:pointer}.mdj-x svg{width:17px;height:17px}
+.mdj-body{flex:1;overflow:auto;padding:0 12px;-webkit-overflow-scrolling:touch}
+.mdj-page{position:relative;width:100%;max-width:560px;margin:0 auto;border-radius:8px;overflow:hidden;background:#fff}
+.mdj-page iframe{position:absolute;left:0;top:0;width:608px;height:860px;border:0;transform-origin:0 0}
+.mdj-bar{padding:12px 18px calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:10px;font-family:'Jost',sans-serif}
+.mdj-res{display:grid;place-items:center;width:100%;max-width:560px;height:50px;border-radius:14px;background:#fff;color:#000;font-weight:700;font-size:17px;letter-spacing:.07em;text-decoration:none}
+.mdj-all{background:none;border:0;color:#e9e2d8;font:400 15px 'Jost',sans-serif;text-decoration:underline;text-underline-offset:4px;cursor:pointer}
+.club-already{margin-top:14px}
+.club-mine{display:inline-flex;align-items:center;gap:7px;margin:14px auto 0;color:#efe7da;font:500 13.5px 'Jost',sans-serif;background:rgba(0,0,0,.35);border:1px solid rgba(230,211,163,.6);border-radius:999px;padding:6px 13px;cursor:pointer}
+.club-mine svg{width:15px;height:15px;color:#e6d3a3}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" defer></script>
 </head>
 <body>
 <div id="pageSkeleton" aria-hidden="true">
@@ -4906,7 +4932,7 @@ function renderHomeCover(){
       <a class="adm-bourriche adm-b-cover" href="admin" onclick="goNewAdmin();return false" title="Espace restaurateur" aria-label="Espace restaurateur"><svg aria-hidden="true"><use href="#icBourriche"/></svg></a>
     </div>
     <div class="home-cover-fade-group" id="homeCoverFadeGroup">
-      <div class="home-cover-sched">${renderScheduleInline('Cover')}${aboutBtn()}</div>
+      <div class="home-cover-sched">${renderScheduleInline('Cover')}${aboutBtn()}</div>${mdjCardHtml()}
       <div class="home-cover-content">
         <div class="home-cover-headline" style="font-family:'${escAttr(hc.headlineFont||'Jost')}',sans-serif">${headlineHtml}</div>
         <div class="home-cover-ctas">
@@ -4915,7 +4941,7 @@ function renderHomeCover(){
             : `<button type="button" class="home-cover-cta home-cover-cta-menu" onclick="dismissHomeCover()">${escapeHtmlLocal(lang==='en'?'See the menu':(hc.cta1Label||'Voir le menu'))}</button>`}
           <a class="home-cover-cta home-cover-cta-reserve" href="${escAttr(cta2Url)}">${escapeHtmlLocal(lang==='en'?'Book a table':(hc.cta2Label||'Réserver'))}</a>
         </div>
-        ${CLUB_ON?`<button type="button" class="club-link" onclick="openClubSheet()"><span class="club-link-t">${(clubMe()||{}).code?CLUB_IC+'<span class="tx">MEMBRE DU CLUB</span> <em>· voir ma carte</em>':CLUB_IC+'<span class="tx">REJOINDRE LE CLUB</span> <em>· coupe offerte</em>'}<i>›</i></span></button>${(clubMe()||{}).code?'':`<button type="button" class="club-already" onclick="clubFindSheet()">Déjà membre ? <u>Retrouver ma carte</u></button>`}`:''}
+        ${CLUB_ON?((clubMe()||{}).code?`<button type="button" class="club-mine" onclick="openClubSheet()">${CLUB_IC}Ma carte de membre</button>`:`<button type="button" class="club-already" onclick="clubFindSheet()">Déjà membre ? <u>Retrouver ma carte</u></button>`):''}
       </div>
     </div>
   </div>`;
@@ -5310,7 +5336,7 @@ function openAbout(){
   im.addEventListener('touchend',ev=>{ if(x0==null) return; const dx=ev.changedTouches[0].clientX-x0; x0=null; if(Math.abs(dx)>40){ go(k+(dx<0?1:-1)); play(); } });
   play();
 }
-function clubLinkRefresh(){ const me=clubMe(), l=document.querySelector('.club-link-t'); if(me&&me.code){ const x=document.querySelector('.club-already'); if(x) x.remove(); } if(l&&me&&me.code) l.innerHTML=CLUB_IC+'<span class="tx">MEMBRE DU CLUB</span> <em>· voir ma carte</em><i>›</i>'; }
+function clubLinkRefresh(){ const me=clubMe(), l=document.querySelector('.club-link-t'); { const x=document.querySelector('.home-cover .club-already'); if(me&&me.code&&x){ const b=document.createElement('button'); b.type='button'; b.className='club-mine'; b.onclick=openClubSheet; b.innerHTML=CLUB_IC+'Ma carte de membre'; x.replaceWith(b); return; } } if(me&&me.code){ const x=document.querySelector('.club-already'); if(x) x.remove(); } if(l&&me&&me.code) l.innerHTML=CLUB_IC+'<span class="tx">MEMBRE DU CLUB</span> <em>· voir ma carte</em><i>›</i>'; }
 // Tas de polaroïds (écran « Plus tard ») : tourne de droite à gauche toutes les 3 s, clic → Instagram.
 const CLUB_PHOTOS=[['club/photos/drevici-1.webp','En mer'],['club/photos/drevici-2.webp',"L'équipe"],['club/photos/drevici-3.webp','À table !']];
 let clubPileT=null;
@@ -5369,6 +5395,52 @@ function startHomeCoverSlideshow(){
 }
 function stopHomeCoverSlideshow(){
   if(homeCoverSlideshowTimer){ clearInterval(homeCoverSlideshowTimer); homeCoverSlideshowTimer=null; }
+}
+
+// ══ Menu du jour sur l'accueil (Will, 24/11/2026, maquette C) ══
+// Le menu du jour coché « En ligne » dans l'admin apparaît sous les horaires : miniature, titre, ligne de description
+// et prix (« dès 30 € » quand le menu a plusieurs prix). Au toucher, il s'ouvre en grand avec « Réserver ».
+function mdjHomeF(){ return (DATA.formules||[]).find(f=>f&&f.online&&f.ephemere&&f.tabs&&f.tabs.length) || null; }
+function mdjPrice(f){
+  const t=String(f.freeText||'')+' '+String(f.price||'');
+  const n=[...t.matchAll(/(\d+(?:[.,]\d{1,2})?)\s*€/g)].map(m=>parseFloat(m[1].replace(',','.'))).filter(x=>x>0);
+  if(!n.length) return null;
+  const mn=Math.min(...n), fmt=x=>String(x).replace('.',',');
+  return { des: new Set(n).size>1, v: fmt(mn)+' €' };
+}
+function mdjSub(f){
+  const first=String(f.freeText||'').split(/\n|<br\s*\/?>/i)[0].split(/\s[—–-]\s|\s*\d/)[0].replace(/[,\s]+$/,'').trim();
+  if(first) return first.replace(/\s*&\s*/g,', ').replace(/^./,c=>c.toUpperCase());
+  const names=(f.tabs||[]).map(t=>String((t.label&&(t.label.fr||t.label))||'')).filter(Boolean);
+  const pick=[]; if(names.some(x=>/entr/i.test(x))) pick.push('entrée'); if(names.some(x=>/plat/i.test(x))) pick.push('plat'); if(names.some(x=>/dessert/i.test(x))) pick.push('dessert');
+  return pick.length?pick.join(', ').replace(/^./,c=>c.toUpperCase()):'';
+}
+function mdjDoc(f){
+  try{ const cfg=formule_buildCfg(f,'a4'); const b=buildFormulePage(cfg,INSTA_A4_RATIO); const p=b.pages[0]; if(!p) return '';
+    return buildPreviewSlideDoc(b.css,p.html,p.spaceScale,INSTA_RENDER_W,Math.round(INSTA_RENDER_W*INSTA_A4_RATIO)); }catch(e){ console.error(e); return ''; }
+}
+function mdjCardHtml(){
+  const f=mdjHomeF(); if(!f) return '';
+  const pr=mdjPrice(f), sub=mdjSub(f), en=lang==='en';
+  return `<button type="button" class="mdj-card" onclick="openMdjSheet()"><span class="mdj-th" aria-hidden="true"><iframe tabindex="-1" loading="lazy" srcdoc="${escAttr(mdjDoc(f))}"></iframe></span>`+
+    `<span class="mdj-tx"><b>${en?"Today's menu":'Menu du jour'}</b>${sub?`<em>${escapeHtmlLocal(sub)}</em>`:''}</span>`+
+    (pr?`<span class="mdj-px">${pr.des?`<small>${en?'from':'dès'}</small>`:''}<strong>${escapeHtmlLocal(pr.v)}</strong></span>`:'')+
+    `<svg class="mdj-ch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>`;
+}
+function openMdjSheet(){
+  const f=mdjHomeF(); if(!f) return; const en=lang==='en';
+  const hc=DATA.homeCover||{}; const book=(!hc.cta2Url||/github\.io|\/resa(\.html)?$/.test(hc.cta2Url))?'book':hc.cta2Url;
+  const d=new Date().toLocaleDateString(en?'en-GB':'fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  const el=document.createElement('div'); el.className='mdj-sheet'; el.setAttribute('role','dialog'); el.setAttribute('aria-label',en?"Today's menu":'Menu du jour');
+  el.innerHTML=`<div class="mdj-sh"><span><b>${en?"TODAY'S MENU":'MENU DU JOUR'}</b><small>${escapeHtmlLocal(d.replace(/^./,c=>c.toUpperCase()))}</small></span><button type="button" class="mdj-x" aria-label="${en?'Close':'Fermer'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>`+
+    `<div class="mdj-body"><div class="mdj-page"><iframe title="${en?"Today's menu":'Menu du jour'}" srcdoc="${escAttr(mdjDoc(f))}"></iframe></div></div>`+
+    `<div class="mdj-bar"><a class="mdj-res" href="${escAttr(book)}">${en?'BOOK A TABLE':'RÉSERVER'}</a><button type="button" class="mdj-all">${en?'See the full menu':'Voir toute la carte'}</button></div>`;
+  const close=()=>{ el.remove(); document.documentElement.style.overflow=''; };
+  el.querySelector('.mdj-x').onclick=close;
+  el.querySelector('.mdj-all').onclick=()=>{ close(); dismissHomeCover(); };
+  document.body.appendChild(el); document.documentElement.style.overflow='hidden';
+  const fit=()=>{ const pg=el.querySelector('.mdj-page'), fr=pg&&pg.querySelector('iframe'); if(!fr) return; const k=pg.clientWidth/INSTA_RENDER_W; fr.style.transform=`scale(${k})`; pg.style.height=Math.round(INSTA_RENDER_W*INSTA_A4_RATIO*k)+'px'; };
+  fit(); addEventListener('resize',fit,{once:true});
 }
 function dismissHomeCover(){
   homeCoverDismissedThisSession=true;
@@ -8388,6 +8460,20 @@ function formule_importDish(fid, catId, selectEl){
 // Titre + texte libre optionnels, injectés en préambule de la
 // première page — voir buildInstaPages (cfg.formulePreamble). Comptent
 // dans le calcul "tout tenir sur une page", comme le reste.
+// Déco sur mesure (offre payante) : les pictos du restaurant (media/cta/*.svg), recolorés, autour du menu.
+// cfg.deco = { orn:'oyster', corners:['anchor','seashell'], color:'#b8912f' }
+const DECO_SVG = {};
+(function(){ ['oyster','seashell','anchor','waves','phare','lancette'].forEach(n=>{ try{ fetch('media/cta/'+n+'.svg').then(r=>r.ok?r.text():'').then(t=>{ if(t) DECO_SVG[n]=t; }).catch(()=>{}); }catch(e){} }); })();
+function decoUri(n, color){ const t=DECO_SVG[n]; if(!t) return ''; return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(t.replace(/fill="#000(000)?"/g,'fill="'+(color||'#b8912f')+'"')); }
+function formule_decoHtml(cfg){
+  const d = cfg && cfg.deco; if(!d) return { orn:'', corners:'' };
+  const c = d.color || '#b8912f', story = cfg.formuleVariant === 'story';
+  const o = d.orn && decoUri(d.orn, c);
+  const orn = o ? `<div class="formule-orn" style="display:flex;justify-content:center;gap:14px;margin:4px 0 calc(22px * var(--space-scale))">${[0,1,2].map(i=>`<img src="${o}" style="height:${i===1?30:20}px;opacity:${i===1?1:.55};margin-top:${i===1?0:6}px">`).join('')}</div>` : '';
+  const cs = (d.corners||[]).map((n,i)=>{ const u=decoUri(n,c); if(!u) return ''; return `<img src="${u}" style="position:absolute;${i?'right':'left'}:36px;bottom:34px;height:${story?48:54}px;opacity:.5;transform:${i?'scaleX(-1)':'none'}">`; }).join('');
+  return { orn, corners: cs };
+}
+function formule_qrUri(text){ try{ if(typeof qrcode!=='function') return ''; const q=qrcode(0,'M'); q.addData(text); q.make(); return q.createDataURL(6,2); }catch(e){ return ''; } }
 function formule_buildPreamble(f, cfg){
   const title = f.title || f.name || '';
   if(!title && !f.freeText) return '';
@@ -8410,7 +8496,9 @@ function formule_buildPreamble(f, cfg){
   // A4 et story, pas le post : la story est haute, elle a la place d'un
   // logo en tete sans rien serrer. Le post est carre et court, un logo
   // y mangerait la place des plats.
-  const wantLogo = cfg && FORMULE_LOGO_FORMATS.includes(cfg.formuleVariant) && f.showLogo;
+  // En-tête du modèle : « logo » = le logo remplace le titre sur tous les formats ; « titre » = jamais de logo ;
+  // non choisi = ancien comportement (logo sur l'A5 seulement, si « Afficher le logo »).
+  const wantLogo = cfg && (f.head === 'logo' ? true : f.head === 'titre' ? false : FORMULE_LOGO_FORMATS.includes(cfg.formuleVariant) && f.showLogo);
   const logoUrl = wantLogo ? exportLogoUrl() : '';
   const logoHtml = logoUrl ? `<img class="formule-logo" src="${escAttr(logoUrl)}" onerror="this.style.display='none'">` : '';
   // Le logo REMPLACE le grand titre, il ne s'ajoute pas au-dessus : le
@@ -8419,7 +8507,8 @@ function formule_buildPreamble(f, cfg){
   // ensemble disaient la meme chose deux fois. Le sous-titre, lui,
   // reste : c'est la seule ligne qui decrit la formule.
   const showTitle = title && !logoHtml;
-  return `${logoHtml}${showTitle?`<div class="formule-title">${noOrphan(title)}</div>`:''}${f.freeText?`<div class="formule-freetext">${subHtml}</div>`:''}`;
+  const deco = formule_decoHtml(cfg);
+  return `${logoHtml}${showTitle?`<div class="formule-title">${noOrphan(title)}</div>`:''}${f.freeText?`<div class="formule-freetext"${deco.orn?' style="margin-bottom:14px"':''}>${subHtml}</div>`:''}${deco.orn}${deco.corners}`;
 }
 // Config Instagram/Formule partagée entre l'export et l'aperçu — un
 // seul endroit où les couleurs, la police, l'alignement, la casse ET
@@ -8431,6 +8520,9 @@ function formule_buildPreamble(f, cfg){
 // la config etait identique pour les trois et il aurait fallu le
 // masquer en CSS — donc l'embarquer dans une story pour rien.
 function formule_buildCfg(f, variant){
+  // Réglages propres à un format (« espace entre les sections, seulement dans la story ») : f.byFmt.story / .post / .a4.
+  const fk = variant === 'post34' ? 'post' : (variant || 'story');
+  if(f && f.byFmt && f.byFmt[fk]) f = { ...f, ...f.byFmt[fk] };
   const base = pdfCfg();
   const cfg = {
     ...base, format:'insta', tabsSource: f.tabs,
@@ -8462,8 +8554,9 @@ function formule_buildCfg(f, variant){
     instaTitleSize: Math.round(base.instaTitleSize||45),
     instaMenuSize: Math.round(base.instaMenuSize||21),
     instaDescSize: Math.round((base.instaDescSize||19) * 1.10),
+    instaPriceColor: f.instaPriceColor, pricePct: f.priceSizePct ?? 100, deco: f.deco, formuleFrame: f.frame || f.frameStyle || 'simple',
     fmtPct: { title: f.titleSizePct ?? 100, menu: f.menuSizePct ?? 100, desc: f.descSizePct ?? 100 },
-    dishGapPct: f.dishGapPct ?? 100,
+    dishGapPct: f.dishGapPct ?? 100, secGapPct: f.secGapPct ?? 100,
     // BUG FIX : le titre et le sous-titre se calculaient à partir des
     // tailles ci-dessus, donc "Sections" déplaçait aussi le titre et
     // "Description" déplaçait aussi le sous-titre. On repart des
@@ -8475,6 +8568,13 @@ function formule_buildCfg(f, variant){
   cfg.formuleVariant = variant || 'story';
   cfg.formuleLogoSize = FORMULE_LOGO_PCT[f.logoSize] ? f.logoSize : 'moyen';
   cfg.formulePreamble = formule_buildPreamble(f, cfg);
+  // Ligne libre en bas de l'A4 seulement (« Prix TTC, service compris », « Produits frais de Normandie »), au style du sous-titre.
+  cfg.formuleFoot = (variant==='a4' && String(f.footNote||'').trim()) ? `<div class="formule-freetext formule-foot" style="margin-top:1.6em;font-size:.86em;opacity:.9">${String(f.footNote).trim().split('\n').map(x=>escHtml(x)).join('<br>')}</div>` : '';
+  // la déco des coins occupe le bas de la page : on lui garde sa place, le texte ne passe jamais dessus
+  // QR « Voir les plats en image » (A5 seulement) : renvoie vers la carte en photos du site
+  if(variant==='a4' && f.qrPhotos){ const q=formule_qrUri(f.qrUrl || (location.origin + location.pathname.replace(/[^/]*$/,'') + '?src=MENUA5'));
+    if(q) cfg.formuleFoot += `<div class="formule-qr" style="display:flex;align-items:center;justify-content:${f.alignContentLeft?'flex-start':'center'};gap:16px;margin-top:calc(30px * var(--space-scale));flex:none;width:100%"><img src="${q}" style="width:84px;height:84px;display:block"><span style="font-weight:700;font-size:19px;line-height:1.25;text-align:left;color:${f.instaTitleColor||'inherit'}">Voir les plats<br>en image</span></div>`; }
+  if(f.deco && (f.deco.corners||[]).length && variant!=='story') cfg.formuleFoot += '<div class="formule-deco-pad" style="height:44px;flex:none"></div>';
   return cfg;
 }
 function formule_exportInsta(fid, variant){
@@ -9417,7 +9517,8 @@ const LOGO_W_RATIO = 3.2;
 // Formules : en fraction de la largeur de page, pour que l'aperçu et
 // l'export final donnent exactement le meme rendu.
 const FORMULE_LOGO_PCT = { petit: 0.075, moyen: 0.11, grand: 0.155 };
-const FORMULE_LOGO_FORMATS = ['a4','story'];
+// Story : plus de logo dans la page — la bande en haut porte l'avatar Instagram du restaurant, le titre du menu reste visible.
+const FORMULE_LOGO_FORMATS = ['a4'];
 // Sans logo IMAGE enregistre, cocher « Afficher le logo » fait retomber
 // l'en-tete sur le NOM du restaurant, en petit. Le reglage pilote donc
 // les deux : sinon la case parait ne rien faire chez un client qui n'a
@@ -9585,7 +9686,9 @@ function buildPdfMenuHTML(cfg){
 function applyTextCase(text, mode){
   if(!text) return text;
   if(mode === 'upper') return text.toUpperCase();
-  if(mode === 'lower') return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+  // « Minuscules » = majuscule au début, le reste tel qu'il a été écrit : les noms propres gardent leurs majuscules
+  // (Bretagne, Louis XVI, Richelieu). Seul un texte tapé tout en capitales est remis en minuscules.
+  if(mode === 'lower'){ const t = /\p{Ll}/u.test(text) ? text : text.toLowerCase(); return t.charAt(0).toUpperCase() + t.slice(1); }
   return text;
 }
 function buildPdfBlocks(cfg){
@@ -9672,7 +9775,11 @@ function buildPdfBlocks(cfg){
     tb.cards.forEach(card=>{
       let pendingSubcat = (t(card.label) && tb.cards.length>1) ? `<h3 class="pdf-subcat">${t(card.label)}</h3>` : '';
       const items = card.dishes ? card.dishes.filter(d=>!d.hidden).map(d=>{
-          const dName = cfg.tabsSource ? applyTextCase(t(d.name)||'', cfg.nameCase==='lower'?'lower':'upper') : (t(d.name)||'');
+          // Coupure choisie par le restaurateur (d.brk[format] = le début du nom, jusqu'à la coupure) : marquée par \u2028.
+          const rawName = t(d.name)||'', fkB = cfg.formuleVariant==='post34' ? 'post' : (cfg.formuleVariant||'story');
+          const brk = cfg.tabsSource && d.brk ? (d.brk[fkB] ?? d.brk.all) : '';
+          const nameB = brk && rawName.startsWith(brk) && rawName.length > brk.length ? brk.trimEnd() + '\u2028' + rawName.slice(brk.length).trimStart() : rawName;
+          const dName = cfg.tabsSource ? applyTextCase(nameB, cfg.nameCase==='lower'?'lower':'upper') : rawName;
           const dDesc = cfg.tabsSource ? applyTextCase(t(d.desc), cfg.descCase==='upper'?'upper':'lower') : t(d.desc);
           return `<div class="pdf-dish${soloCls}"><div class="pdf-dish-line"><span class="pdf-dish-name">${dName}</span>${dots}<span class="pdf-dish-price">${priceText(d)}</span></div>${dDesc?`<div class="pdf-dish-desc">${dDesc}</div>`:''}</div>`;
         })
@@ -9852,7 +9959,27 @@ function instaSizesFor(cfg){
 // calqué sur la référence fournie par Will (mood Drevici, mise en
 // forme différente). Une image = une seule catégorie, jamais de
 // chevauchement entre catégories.
-function buildInstaCSS(cfg, ratio){
+// Images Instagram, A4 et formules : chaque graisse demandée par le style doit exister dans la police chargée (@import ci-dessous :
+// droit 400/600/700, italique 400/600). Sinon l'aperçu (navigateur) prend la graisse voisine, mais html2canvas, surtout sur
+// iPhone, dessine une graisse « fabriquée » plus grasse et plus large : lettres épaissies, mots collés (story du Truffaut, 23/11).
+// On remplace donc chaque graisse par celle que le navigateur choisit déjà dans l'aperçu : rendu identique, à l'écran comme dans l'image.
+function instaPickWeight(w, avail){
+  if(avail.includes(w)) return w;
+  const up=avail.filter(x=>x>w).sort((a,b)=>a-b), down=avail.filter(x=>x<w).sort((a,b)=>b-a);
+  if(w>=400 && w<=500){ const u=up.filter(x=>x<=500); return u[0] ?? down[0] ?? up[0] ?? w; }
+  if(w<400) return down[0] ?? up[0] ?? w;
+  return up[0] ?? down[0] ?? w;
+}
+function instaFixWeights(css){
+  return String(css).replace(/\{([^{}]*)\}/g, (all, body)=>{
+    if(!/font-weight\s*:/.test(body)) return all;
+    const ital = /font-style\s*:\s*italic/.test(body);
+    const avail = ital ? [400,600] : [400,600,700];
+    return '{'+body.replace(/font-weight\s*:\s*(\d{3})/g, (m, w)=>'font-weight:'+instaPickWeight(+w, avail))+'}';
+  });
+}
+function buildInstaCSS(cfg, ratio){ return instaFixWeights(_buildInstaCSS(cfg, ratio)); }
+function _buildInstaCSS(cfg, ratio){
   ratio = ratio || INSTA_RATIO;
   const navy = cfg.titleColor || '#10285E';
   const gold = cfg.accentColor || '#C6A24A';
@@ -9871,7 +9998,7 @@ function buildInstaCSS(cfg, ratio){
   // formule (A4/Story/Post confondus) — demande explicite de Will :
   // pour une formule, le titre doit toujours être remonté au même
   // niveau sur les 3 formats, pour garder la place gagnée en bas.
-  const padTop = (ratio === INSTA_POST_RATIO || cfg.tabsSource) ? 50 : 100, padSide = 36;
+  const padTop = cfg.tabsSource ? (cfg.formuleVariant === 'story' ? 60 : (cfg.formuleVariant === 'a4' ? 62 : 46)) : ratio === INSTA_POST_RATIO ? 50 : 100, padSide = 36;
   // Police propre à Instagram (cfg.instaFont) — voir INSTA_FONT_OPTIONS
   // pour la liste proposée dans l'admin. Une seule police pour tout
   // (titre, nom de plat, prix, description), à différents poids/styles
@@ -9884,11 +10011,18 @@ function buildInstaCSS(cfg, ratio){
   html,body{margin:0;padding:0;background:${bg}}
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
   .pdf-page{--space-scale:1;font-family:'${font}',serif;color:${titleColor};background:${bg};width:${INSTA_RENDER_W}px;height:${Math.round(INSTA_RENDER_W*ratio)}px;padding:${padTop}px ${padSide}px;margin:0 auto;position:relative;overflow:hidden;text-align:center;display:flex;flex-direction:column;align-items:center}
-  .pdf-page::before{content:'';position:absolute;inset:20px;border:1.5px solid ${gold};pointer-events:none}
+  ${(()=>{ // Cadre : simple, double, pointillé, coins, ou aucun — toujours de la couleur des titres de sections
+    const fr = cfg.formuleFrame || 'simple', fc = cfg.tabsSource ? (cfg.instaTitleColor || gold) : gold;
+    if(!cfg.tabsSource || fr==='simple') return `.pdf-page::before{content:'';position:absolute;inset:20px;border:1.5px solid ${fc};pointer-events:none}`;
+    if(fr==='aucun') return '';
+    if(fr==='double') return `.pdf-page::before{content:'';position:absolute;inset:16px;border:1.5px solid ${fc};pointer-events:none}.pdf-page::after{content:'';position:absolute;inset:22px;border:1px solid ${fc};pointer-events:none}`;
+    if(fr==='pointille') return `.pdf-page::before{content:'';position:absolute;inset:20px;border:2px dashed ${fc};pointer-events:none}`;
+    if(fr==='coins') return `.pdf-page::before{content:'';position:absolute;inset:18px;pointer-events:none;background:linear-gradient(${fc},${fc}) left top/56px 2px no-repeat,linear-gradient(${fc},${fc}) left top/2px 56px no-repeat,linear-gradient(${fc},${fc}) right top/56px 2px no-repeat,linear-gradient(${fc},${fc}) right top/2px 56px no-repeat,linear-gradient(${fc},${fc}) left bottom/56px 2px no-repeat,linear-gradient(${fc},${fc}) left bottom/2px 56px no-repeat,linear-gradient(${fc},${fc}) right bottom/56px 2px no-repeat,linear-gradient(${fc},${fc}) right bottom/2px 56px no-repeat}`;
+    return `.pdf-page::before{content:'';position:absolute;inset:20px;border:1.5px solid ${fc};pointer-events:none}`; })()}
   .pdf-cat{font-family:'${font}',serif;font-weight:800;font-size:${catTitleSize}px;line-height:1.1;text-transform:${cfg.tabsSource?'none':'uppercase'};letter-spacing:.01em;color:${titleColor};margin-bottom:${cfg.tabsSource?'calc(13.2px * var(--space-scale))':'44px'};border:none}
   .pdf-cat:has(+ .pdf-subcat){margin-bottom:22px}
   .pdf-cat + .pdf-subcat{margin-top:15px}
-  ${cfg.tabsSource ? '.pdf-dish + .pdf-cat{margin-top:calc(34px * var(--space-scale))}' : ''}
+  ${cfg.tabsSource ? `.pdf-dish + .pdf-cat{margin-top:calc(${(34*((cfg.secGapPct ?? 100)/100)).toFixed(1)}px * var(--space-scale))}` : ''}
   .pdf-subcat{font-family:'${font}',serif;font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.06em;color:${cfg.menuFrameColor||gold};margin:30px 0 18px}
   .pdf-dish{margin-bottom:calc(${cfg.tabsSource?(7.05*((cfg.dishGapPct ?? 100)/100)).toFixed(2):30}px * var(--space-scale));width:100%}
   ${cfg.tabsSource ? '' : `.pdf-dish + .pdf-dish::before{content:'';display:block;width:64px;height:1px;background:${cfg.menuInstaSepColor||gold};margin:0 auto calc(26px * var(--space-scale));opacity:.8}`}
@@ -9902,7 +10036,7 @@ function buildInstaCSS(cfg, ratio){
   .pdf-dish-line-cont{margin-top:2px}
   .pdf-dish-name{font-family:'${font}',serif;font-weight:800;font-size:${menuSize}px;text-transform:${cfg.tabsSource?'none':'uppercase'};letter-spacing:.01em;color:${menuColor}}
   .pdf-dots,.pdf-dots-off{display:none}
-  .pdf-dish-price{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${cfg.tabsSource?Math.max(10,menuSize-1):Math.max(14,menuSize-1)}px;line-height:inherit;color:${menuColor}}
+  .pdf-dish-price{font-family:'${font}',serif;font-style:italic;font-weight:${cfg.tabsSource?700:500};font-size:${cfg.tabsSource?Math.max(11,Math.round(menuSize*1.18*(cfg.pricePct||100)/100)):Math.max(14,menuSize-1)}px;line-height:inherit;color:${cfg.tabsSource?(cfg.instaPriceColor||(/^#?[0-9a-f]{6}$/i.test(gold)?darkenHex(gold,0.1):gold)):menuColor}}
   .pdf-dish-desc{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${descSize}px;line-height:1.35;color:${descColor};margin-top:6px;max-width:76%;margin-left:auto;margin-right:auto;text-wrap:balance}
   .pdf-footer{display:none}
   /* Menus et Formules uniquement — titre + texte libre optionnels,
@@ -9912,9 +10046,9 @@ function buildInstaCSS(cfg, ratio){
      valeur fixe aurait donne deux rendus differents. La largeur vaut
      3,2 fois la hauteur, comme a l'impression, pour qu'un logo en
      bandeau et un logo carre pesent pareil. */
-  .formule-logo{display:block;margin:0 auto ${Math.round(INSTA_RENDER_W*0.028)}px;max-height:${Math.round(INSTA_RENDER_W*(FORMULE_LOGO_PCT[cfg.formuleLogoSize]||FORMULE_LOGO_PCT.moyen))}px;max-width:${Math.round(INSTA_RENDER_W*(FORMULE_LOGO_PCT[cfg.formuleLogoSize]||FORMULE_LOGO_PCT.moyen)*3.2)}px;object-fit:contain}
+  .formule-logo{display:block;margin:0 auto ${Math.round(INSTA_RENDER_W*0.028)}px;height:${Math.round(INSTA_RENDER_W*(FORMULE_LOGO_PCT[cfg.formuleLogoSize]||FORMULE_LOGO_PCT.moyen))}px;width:auto;max-height:${Math.round(INSTA_RENDER_W*(FORMULE_LOGO_PCT[cfg.formuleLogoSize]||FORMULE_LOGO_PCT.moyen))}px;max-width:${Math.round(INSTA_RENDER_W*(FORMULE_LOGO_PCT[cfg.formuleLogoSize]||FORMULE_LOGO_PCT.moyen)*3.2)}px;object-fit:contain}
   .formule-title{font-family:'${font}',serif;font-weight:800;font-size:${Math.round((cfg.formuleTitleBase ?? formuleTitleSize)*((cfg.formuleTitlePct ?? 100)/100))}px;line-height:1.15;text-transform:uppercase;letter-spacing:.01em;color:${cfg.formuleTitleColor||titleColor};margin-bottom:9px;text-align:center}
-  .formule-freetext{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${Math.round((cfg.formuleSubBase ?? Math.round(descSize*0.85))*((cfg.formuleSubPct ?? 100)/100))}px;line-height:1.4;color:${cfg.formuleSubColor||descColor};white-space:pre-wrap;text-align:center;margin-bottom:34px;max-width:82%;margin-left:auto;margin-right:auto}
+  .formule-freetext{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${Math.round((cfg.formuleSubBase ?? Math.round(descSize*0.85))*((cfg.formuleSubPct ?? 100)/100))}px;line-height:1.4;color:${cfg.formuleSubColor||descColor};white-space:pre-wrap;text-align:center;margin-bottom:${cfg.tabsSource?54:34}px;max-width:82%;margin-left:auto;margin-right:auto}
   /* Deux options d'alignement indépendantes, demandées séparément par
      Will : le contenu (catégories/plats) d'un côté, le titre + texte
      libre de l'autre — chacun peut être aligné à gauche ou rester
@@ -9977,9 +10111,17 @@ function fitInstaOneLiners(html, holder, cfg){
   const availableW = cfg.tabsSource
     ? (cfg.alignContentLeft ? INSTA_RENDER_W - padSide*2 : INSTA_RENDER_W * 0.70)
     : INSTA_RENDER_W - padSide*2 - 16;
+  // Les tailles « + / − » de l'utilisateur (fmtPct) sont appliquées APRÈS ce calcul : on mesure donc
+  // contre une largeur réduite d'autant, sinon un texte agrandi dépasse et touche le cadre à droite.
+  // Petite marge de sécurité (6 px) : la marge droite reste égale à la gauche.
+  const kT = cfg.tabsSource ? ((cfg.fmtPct && cfg.fmtPct.title) || 100)/100 : 1;
+  const kM = cfg.tabsSource ? ((cfg.fmtPct && cfg.fmtPct.menu) || 100)/100 : 1;
+  const availC = cfg.tabsSource ? (availableW - 6)/kT : availableW;
+  const availM = cfg.tabsSource ? (availableW - 6)/kM : availableW;
   const { catTitleSize, menuSize } = instaSizesFor(cfg);
 
-  function fitOne(text, tag, className, baseSize, minSize){
+  function fitOne(text, tag, className, baseSize, minSize, limit){
+    limit = limit || availableW;
     const test = document.createElement(tag);
     test.className = className;
     test.style.whiteSpace = 'nowrap';
@@ -9997,11 +10139,11 @@ function fitInstaOneLiners(html, holder, cfg){
     test.innerHTML = text;
     measureEl.appendChild(test);
     let size = baseSize;
-    while(test.scrollWidth > availableW && size > minSize){
+    while(test.scrollWidth > limit && size > minSize){
       size -= 1;
       test.style.fontSize = size+'px';
     }
-    const fits = test.scrollWidth <= availableW;
+    const fits = test.scrollWidth <= limit;
     measureEl.removeChild(test);
     return { size, fits };
   }
@@ -10023,7 +10165,7 @@ function fitInstaOneLiners(html, holder, cfg){
     return parts.slice(0, -2).join(' ') + (parts.length>2?' ':'') + parts.slice(-2).join('\u00A0');
   };
   let out = html.replace(/<h2 class="pdf-cat"([^>]*)>([\s\S]*?)<\/h2>/, (m, attrs, inner)=>{
-    const fit = fitOne(inner, 'h2', 'pdf-cat', catTitleSize, Math.min(13, catTitleSize));
+    const fit = fitOne(inner, 'h2', 'pdf-cat', catTitleSize, Math.min(13, catTitleSize), availC);
     const text = fit.fits ? inner : bindOrphan(inner);
     return `<h2 class="pdf-cat"${attrs} style="font-size:${fit.size}px;${wrapStyle(fit)}">${text}</h2>`;
   });
@@ -10083,16 +10225,27 @@ function fitInstaOneLiners(html, holder, cfg){
   }
   out = out.replace(/<div class="pdf-dish-line"><span class="pdf-dish-name">([\s\S]*?)<\/span>((?:<span class="pdf-dots(?:-off)?"><\/span>)?)<span class="pdf-dish-price">([\s\S]*?)<\/span><\/div>/g,
     (m, nameInner, dotsInner, priceInner)=>{
+      if(nameInner.includes('\u2028')){ // coupure imposée : chaque morceau sur sa ligne, réduit seulement s'il dépasse
+        const [l1, l2] = nameInner.split('\u2028');
+        const pW = priceInner.trim() ? widthOfName(priceInner, menuSize*1.25) + 14 : 0;
+        let s1 = menuSize, s2 = menuSize;
+        while(widthOfName(l1,s1) > availM && s1>10) s1 -= 1;
+        while(widthOfName(l2,s2) + pW > availM && s2>10) s2 -= 1;
+        const sz = Math.min(s1, s2);
+        return `<div class="pdf-dish-line-group"><div class="pdf-dish-line"><span class="pdf-dish-name" style="font-size:${sz}px;white-space:nowrap">${l1}</span></div><div class="pdf-dish-line pdf-dish-line-cont"><span class="pdf-dish-name" style="font-size:${sz}px;white-space:nowrap">${l2}</span>${dotsInner}<span class="pdf-dish-price">${priceInner}</span></div></div>`;
+      }
       const fullW = widthOfName(nameInner, menuSize);
-      if(fullW <= availableW){
+      // le prix compte aussi : nom + écart + prix doivent tenir dans la ligne
+      const priceW0 = priceInner.trim() ? widthOfName(priceInner, menuSize*1.25) + 14 : 0;
+      if(fullW + priceW0 <= availM){
         return `<div class="pdf-dish-line"><span class="pdf-dish-name" style="font-size:${menuSize}px;white-space:nowrap">${nameInner}</span>${dotsInner}<span class="pdf-dish-price">${priceInner}</span></div>`;
       }
-      const priceW = widthOfName(priceInner, menuSize);
+      const priceW = widthOfName(priceInner, menuSize*1.25);
       const gap = 14;
-      const words = nameInner.split(' ');
+      const words = nameInner.trim().split(/\s+/);
       let splitIdx = 0;
       for(let i=words.length-1;i>=1;i--){
-        if(widthOfName(words.slice(0,i).join(' '), menuSize) <= availableW - priceW - gap){ splitIdx = i; break; }
+        if(widthOfName(words.slice(0,i).join(' '), menuSize) <= availM && widthOfName(words.slice(i).join(' '), menuSize) + (priceInner.trim()?priceW+gap:0) <= availM){ splitIdx = i; break; }
       }
       // RÈGLE DE BASE (Will) : jamais un seul mot orphelin sur la
       // deuxième ligne. La boucle ci-dessus remplit la première ligne
@@ -10111,7 +10264,7 @@ function fitInstaOneLiners(html, holder, cfg){
         // plutôt que de la couper au milieu d'un mot. On vise la place
         // réellement libre, prix compris, pour que le prix reste aligné
         // à droite au lieu d'être repoussé hors du cadre.
-        const room = Math.max(60, availableW - priceW - gap);
+        const room = Math.max(60, availM - priceW - gap);
         let size = menuSize;
         while(widthOfName(nameInner,size) > room && size>10) size -= 1;
         return `<div class="pdf-dish-line"><span class="pdf-dish-name" style="font-size:${size}px;white-space:nowrap">${nameInner}</span>${dotsInner}<span class="pdf-dish-price">${priceInner}</span></div>`;
@@ -10119,8 +10272,9 @@ function fitInstaOneLiners(html, holder, cfg){
       const line1 = words.slice(0,splitIdx).join(' ');
       const line2 = words.slice(splitIdx).join(' ');
       let size2 = menuSize;
-      while(widthOfName(line2,size2) > availableW && size2>10) size2 -= 1;
-      return `<div class="pdf-dish-line-group"><div class="pdf-dish-line"><span class="pdf-dish-name" style="font-size:${menuSize}px;white-space:nowrap">${line1}</span>${dotsInner}<span class="pdf-dish-price">${priceInner}</span></div><div class="pdf-dish-line pdf-dish-line-cont"><span class="pdf-dish-name" style="font-size:${size2}px;white-space:nowrap">${line2}</span></div></div>`;
+      while(widthOfName(line2,size2) + (priceInner.trim()?priceW+gap:0) > availM && size2>10) size2 -= 1;
+      // Le prix suit la fin du nom (2e ligne), jamais le milieu de la phrase.
+      return `<div class="pdf-dish-line-group"><div class="pdf-dish-line"><span class="pdf-dish-name" style="font-size:${menuSize}px;white-space:nowrap">${line1}</span></div><div class="pdf-dish-line pdf-dish-line-cont"><span class="pdf-dish-name" style="font-size:${size2}px;white-space:nowrap">${line2}</span>${dotsInner}<span class="pdf-dish-price">${priceInner}</span></div></div>`;
     });
   return out;
 }
@@ -10139,21 +10293,29 @@ function fitInstaOneLiners(html, holder, cfg){
 // à la ligne) restent inchangées à chaque palier.
 function buildFormulePage(cfg, ratio){
   ratio = ratio || INSTA_A4_RATIO;
-  const pageH = Math.round(INSTA_RENDER_W*ratio);
-  const baseTitleSize = cfg.instaTitleSize || 45;
-  const baseMenuSize = cfg.instaMenuSize || 21;
-  const baseDescSize = cfg.instaDescSize || 19;
+  // Story : le bas (~20 %) reste libre pour l'autocollant « Réserver » d'Instagram — le menu tient au-dessus.
+  // (la marge basse de la page, 84 px, est comptée dans la hauteur mesurée : elle tombe dans la zone réservée)
+  const pageH = cfg.formuleVariant === 'story' ? Math.round(INSTA_RENDER_W*ratio*0.88 + 60) : Math.round(INSTA_RENDER_W*ratio);
+  // Réseaux sociaux : on écrit plus gros (lisible sur un téléphone) ; l'ajustement réduit si le menu est chargé.
+  const kIG = (cfg.tabsSource && /^(story|post|post34)$/.test(cfg.formuleVariant||'')) ? 1.3 : 1;
+  const baseTitleSize = Math.round((cfg.instaTitleSize || 45)*kIG);
+  const baseMenuSize = Math.round((cfg.instaMenuSize || 21)*kIG);
+  const baseDescSize = Math.round((cfg.instaDescSize || 19)*kIG);
   // Bien plus bas que le plancher habituel (-30%) — ici on préfère un
   // espacement très resserré à un découpage en plusieurs images.
   const COMPRESS_STEPS = [1, 0.94, 0.88, 0.82, 0.76, 0.7, 0.62, 0.54, 0.46, 0.4, 0.34];
-  const FONT_SCALE_STEPS = [1, 0.92, 0.85, 0.78, 0.72, 0.66, 0.6, 0.54];
+  // Un menu court peut grossir (jusqu'à +60 %) pour remplir environ 70 % de la page, sans jamais la remplir toute.
+  const FONT_SCALE_STEPS = [1.3, 1.15, 1, 0.92, 0.85, 0.78, 0.72, 0.66, 0.6, 0.54];
 
   const holder = document.createElement('div');
   holder.style.cssText = 'position:fixed;left:-99999px;top:0;visibility:hidden;';
   document.body.appendChild(holder);
 
   let finalHtml = null, finalScale = 1, finalCss = null, finalFontScale = 1;
+  // 1er passage : on garde de l'air (espacement ≥ 70 %), quitte à réduire un peu le texte — les sections ne se collent plus.
+  // 2e passage seulement si rien ne tient : toute la compression est permise.
   outer:
+  for(const minSpace of [0.7, 0])
   for(const fontScale of FONT_SCALE_STEPS){
     const scaledCfg = {
       ...cfg,
@@ -10166,13 +10328,15 @@ function buildFormulePage(cfg, ratio){
     const measureEl = holder.querySelector('#__instaMeasure');
 
     const { contentBlocks } = buildPdfBlocks(scaledCfg);
-    if(!contentBlocks.length){ finalHtml = cfg.formulePreamble || ''; finalCss = css; break; }
+    if(!contentBlocks.length){ finalHtml = (cfg.formulePreamble || '') + (cfg.formuleFoot || ''); finalCss = css; break; }
     const fixedBlocks = contentBlocks.map(b=>({ ...b, html: fitInstaOneLiners(b.html, holder, scaledCfg) }));
-    const wholeHtml = (cfg.formulePreamble || '') + fixedBlocks.map(b=>b.html).join('');
+    const wholeHtml = (cfg.formulePreamble || '') + fixedBlocks.map(b=>b.html).join('') + (cfg.formuleFoot || '');
 
     for(const scale of COMPRESS_STEPS){
+      if(scale < minSpace) break;
       measureEl.style.setProperty('--space-scale', scale);
       measureEl.innerHTML = wholeHtml;
+      if(fontScale > 1 && (scale !== 1 || measureEl.offsetHeight > pageH*0.7)) break;
       if(measureEl.offsetHeight <= pageH){
         finalFontScale = fontScale; finalHtml = wholeHtml; finalScale = scale; finalCss = css;
         break outer;
@@ -10188,7 +10352,7 @@ function buildFormulePage(cfg, ratio){
     finalCss = buildInstaCSS(scaledCfg, ratio);
     const { contentBlocks } = buildPdfBlocks(scaledCfg);
     const fixedBlocks = contentBlocks.map(b=>({ ...b, html: fitInstaOneLiners(b.html, holder, scaledCfg) }));
-    finalHtml = (cfg.formulePreamble || '') + fixedBlocks.map(b=>b.html).join('');
+    finalHtml = (cfg.formulePreamble || '') + fixedBlocks.map(b=>b.html).join('') + (cfg.formuleFoot || '');
     finalScale = 0.34;
     finalFontScale = 0.54;
   }
@@ -10244,6 +10408,15 @@ function buildFormulePage(cfg, ratio){
       measure.style.setProperty('--space-scale', sc);
       if(measure.offsetHeight <= pageH){ finalScale = sc; break; }
       finalScale = sc; // même au plancher, on garde le plus serré
+    }
+    // Toujours calé en haut (choix de Will). Équilibre : un menu court s'aère — on écarte les sections
+    // et les plats (jusqu'à ×1,8) tant que l'ensemble reste sous ~90 % de la page. Jamais collé, jamais vide.
+    if(finalScale >= 1){
+      const roomH = cfg.formuleVariant === 'story' ? pageH : pageH*0.9;
+      for(const sc of [1.15, 1.3, 1.45, 1.6, 1.8]){
+        measure.style.setProperty('--space-scale', sc);
+        if(measure.offsetHeight <= roomH) finalScale = sc; else break;
+      }
     }
   }catch(e){}
 
@@ -10652,7 +10825,8 @@ const INSTA_RATIO = 16/9; // height / width
 // seule ligne, même découpage équilibré multi-pages, juste plus
 // susceptible de se déclencher puisqu'il y a moins de hauteur
 // disponible.
-const INSTA_POST_RATIO = 4/3; // height / width — 1080×1440
+const INSTA_POST34_RATIO = 4/3; // 1080×1440 (3:4) : remplit la grille du profil, à enregistrer puis publier depuis Instagram
+const INSTA_POST_RATIO = 5/4; // height / width — 1080×1350 (4:5) : le plus haut qu'Instagram accepte sans recadrer quand on partage depuis une autre appli
 // "Menus et Formules" — format A4, mais avec l'habillage visuel
 // d'Instagram (centré, épuré) plutôt que celui de l'impression
 // classique du menu complet, jugé plus agréable pour un menu/formule
@@ -10983,6 +11157,8 @@ async function renderInstaPageToBlob(css, pages, i, restName, bg, ratio, variant
 // est simplement mise en page un peu plus large, puis ramenée à 1080 px, donc ~9 % plus petite.
 // Réglages : pdfStyle.instaBand=false pour l'enlever, pdfStyle.instaBandColor pour forcer une couleur.
 const INSTA_BAND_FRAC = 170/1920;
+// Les menus (formules, menu du jour) sortent comme leur aperçu : pas de bandeau ajouté en haut de la story.
+// Menus (formules, menu du jour) : la story a aussi sa bande, mais la page est mise en page dans la hauteur restante (même largeur) — voir _exportInstaImages.
 function instaBandOn(cfg, variant){ return variant === 'story' && cfg.instaBand !== false; }
 function instaBandColor(cfg){ return cfg.instaBandColor || (DATA.brandColors && DATA.brandColors.primary) || cfg.titleColor || '#10285E'; }
 async function addInstaBand(blob, color, ratio){
@@ -11022,14 +11198,19 @@ function instaBandPreviewDoc(doc, W, Hp, color){
 async function exportInstaImages(cfg, variant){
   return withExportLogo(()=>_exportInstaImages(cfg, variant));
 }
-async function _exportInstaImages(cfg, variant){
+async function formule_renderBlobs(cfg, variant){ return withExportLogo(()=>_exportInstaImages(cfg, variant, true)); }
+async function _exportInstaImages(cfg, variant, silent){
   variant = variant || 'story';
-  const fullRatio = variant === 'post' ? INSTA_POST_RATIO : variant === 'a4' ? INSTA_A4_RATIO : INSTA_RATIO;
+  // Le logo du menu a été posé avec son adresse d'origine : html2canvas ne peut pas le dessiner. On met la copie intégrée.
+  if(cfg.formulePreamble && _exportLogoOverride){ const raw = rawLogoUrl(); if(raw && raw !== _exportLogoOverride) cfg = { ...cfg, formulePreamble: cfg.formulePreamble.split(escAttr(raw)).join(escAttr(_exportLogoOverride)) }; }
+  const fullRatio = variant === 'post' ? INSTA_POST_RATIO : variant === 'post34' ? INSTA_POST34_RATIO : variant === 'a4' ? INSTA_A4_RATIO : INSTA_RATIO;
   const band = instaBandOn(cfg, variant);
-  const ratio = fullRatio; // découpage et mise en page : ceux de la story normale
+  // Menu en story : page pleine largeur, dans la hauteur sous la bande.
+  const menuBand = band && !!cfg.tabsSource;
+  const ratio = menuBand ? fullRatio * (1 - INSTA_BAND_FRAC) : fullRatio; // découpage et mise en page : ceux de la story normale
   const targetW = variant === 'a4' ? 1600 : 1080; // A4 : un peu plus de résolution pour l'impression
   if(typeof html2canvas === 'undefined'){ showToast('⚠ html2canvas non chargé'); return; }
-  showToast('Génération des images en cours…');
+  if(!silent) showToast('Génération des images en cours…');
   // Menus et Formules (cfg.tabsSource) : toujours une seule page,
   // jamais le découpage multi-pages du vrai menu — voir
   // buildFormulePage.
@@ -11047,7 +11228,9 @@ async function _exportInstaImages(cfg, variant){
   const blobs = [];
   for(let i=0;i<pages.length;i++){
     try{
-      const result = band
+      const result = menuBand
+        ? await renderInstaPageToBlob(css, pages, i, restName, bg, ratio, variant, targetW)
+        : band
         ? await renderInstaPageToBlob(css, pages, i, restName, bg, fullRatio * (1 - INSTA_BAND_FRAC), variant, targetW, instaBandW())
         : await renderInstaPageToBlob(css, pages, i, restName, bg, ratio, variant, targetW);
       if(band) result.blob = await addInstaBand(result.blob, instaBandColor(cfg), fullRatio);
@@ -11065,6 +11248,7 @@ async function _exportInstaImages(cfg, variant){
     catch(err){ console.error(err); showToast('⚠ Page de garde introuvable : export sans elle'); }
   }
   if(!blobs.length) return;
+  if(silent) return blobs;
 
   const urls = blobs.map(b=>({ url: URL.createObjectURL(b.blob), name: b.name, pageIndex: b.pageIndex, totalPages: blobs.length }));
 

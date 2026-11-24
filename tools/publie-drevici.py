@@ -51,7 +51,7 @@ P = {
  ],
  'index.html': [
    ("const CLIENT_SLUG_RACINE = 'drevici-preview';", "const CLIENT_SLUG_RACINE = 'drevici';"),
-   ("// Préview seulement : ?resto=surzur montre la carte de Surzur en cours de préparation (copie « drevici-surzur-test »).\nconst CLIENT_SLUG = (IS_PREVIEW && new URLSearchParams(location.search).get('resto') === 'surzur') ? 'drevici-surzur-test' : _lastSegment.replace(/-preview$/, '');", "const CLIENT_SLUG = _lastSegment.replace(/-preview$/, '');"),
+   ("// Préview seulement : ?resto=surzur montre la carte de Surzur en cours de préparation (copie « drevici-surzur-test »).\n// Préview : affiche les données de l'admin préview (« drevici-test »), pour voir sur le site ce qu'on règle dans l'admin (Will, 24/11/2026). ?donnees=prod pour revenir aux données en ligne.\nconst CLIENT_SLUG = (IS_PREVIEW && new URLSearchParams(location.search).get('resto') === 'surzur') ? 'drevici-surzur-test' : (IS_PREVIEW && new URLSearchParams(location.search).get('donnees') !== 'prod') ? _lastSegment.replace(/-preview$/, '') + '-test' : _lastSegment.replace(/-preview$/, '');", "const CLIENT_SLUG = _lastSegment.replace(/-preview$/, '');"),
    ("const CLUB_ON = /preview|localhost|127\\.0\\.0\\.1|file:/.test(location.href);", "const CLUB_ON = true;"),
    ("const CLUB_SLUG = 'drevici-test';", "const CLUB_SLUG = 'drevici-paris';"),
  ],

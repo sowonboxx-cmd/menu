@@ -20,6 +20,8 @@ const FIGE=`*,*:before,*:after{animation:none!important;transition:none!importan
       // Hasard figé (messages tirés au sort, etc.) : même tirage en ligne et en preview.
       await c.addInitScript(()=>{ let x=42; Math.random=()=>((x=(x*16807)%2147483647)/2147483647); });
       const p=await c.newPage(); const errs=[];
+      // La préview affiche par défaut les données de l'admin préview : pour comparer, on lui donne les mêmes données que le site en ligne.
+      const DQ=site==='preview'?'&donnees=prod':'';
       // Chargement tolérant aux coupures réseau : 3 essais.
       const go=async(u)=>{ for(let k=0;k<3;k++){ try{ await p.goto(u,{waitUntil:'domcontentloaded',timeout:60000}); await p.waitForTimeout(1500); return; }catch(e){ if(k===2) throw e; await p.waitForTimeout(2000); } } };
       p.on('pageerror',e=>errs.push(e.message)); p.on('console',m=>{ if(m.type()==='error') errs.push(m.text().slice(0,200)); });
@@ -29,13 +31,13 @@ const FIGE=`*,*:before,*:after{animation:none!important;transition:none!importan
           await Promise.all([...document.images].filter(i=>!i.complete).map(i=>new Promise(r=>{i.onload=i.onerror=r; setTimeout(r,4000);}))); });
         await p.waitForTimeout(500);
         const f=`${vue}__${nom}__${site}.png`; await p.screenshot({path:path.join(OUT,f),fullPage:true}); res.ecrans.push({vue,nom,site,f}); };
-      await go(url+'?ctrl='+Date.now()); await p.waitForTimeout(3500);
+      await go(url+'?ctrl='+Date.now()+DQ); await p.waitForTimeout(3500);
       await shot('01-accueil');
-      await go(url+'?ctrl='+Date.now()+'#menu'); await p.waitForTimeout(3500);
+      await go(url+'?ctrl='+Date.now()+DQ+'#menu'); await p.waitForTimeout(3500);
       const tabs=await p.evaluate(()=>(DATA.tabs||[]).filter(t=>t.visible!==false).map(t=>t.id));
       for(let i=0;i<tabs.length;i++){
         // Page rechargée pour chaque catégorie : aucun état (fiche ouverte…) ne déborde sur la suivante.
-        await go(url+'?ctrl='+Date.now()+'#menu'); await p.waitForTimeout(2500);
+        await go(url+'?ctrl='+Date.now()+DQ+'#menu'); await p.waitForTimeout(2500);
         await p.evaluate(id=>{ if(typeof goToTab==='function') goToTab(id); },tabs[i]); await p.waitForTimeout(900);
         await p.evaluate(()=>scrollTo(0,0));
         await shot(`02-menu-${String(i+1).padStart(2,'0')}-${tabs[i]}`);
@@ -45,7 +47,7 @@ const FIGE=`*,*:before,*:after{animation:none!important;transition:none!importan
           }
         }
       }
-      if(vue==='telephone'){ await go(url+'?ctrl='+Date.now()+'#menu'); await p.waitForTimeout(2500); await p.evaluate(()=>{ if(typeof qmOpen==='function') qmOpen(); }); await p.waitForTimeout(800); await shot('04-menu-rapide'); }
+      if(vue==='telephone'){ await go(url+'?ctrl='+Date.now()+DQ+'#menu'); await p.waitForTimeout(2500); await p.evaluate(()=>{ if(typeof qmOpen==='function') qmOpen(); }); await p.waitForTimeout(800); await shot('04-menu-rapide'); }
       res.erreurs[`${site}/${vue}`]=[...new Set(errs)];
       await c.close();
     }
