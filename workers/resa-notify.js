@@ -530,12 +530,16 @@ async function adminOf(env, req, slug) {
   const u = await fetch(env.SUPABASE_URL + '/auth/v1/user', { headers: { apikey: env.SUPABASE_ANON_KEY || env.SUPABASE_SERVICE_KEY, authorization: auth } });
   if (!u.ok) return null;
   const user = await u.json();
-  const rows = await sb(env, `restaurant_admins?select=client_slug&user_id=eq.${enc(user.id)}&client_slug=eq.${enc(slug)}`).catch(() => []);
+  // Même établissement (site en ligne, réservations, préview) : un accès admin sur l'un vaut pour les autres (Will, 24/11/2026,
+  // « Pas d'accès » après un ajout depuis la page Équipe : l'accès n'avait été donné que sur une partie des slugs).
+  const fam = (SLUG_FAMILY[slug] || [slug]).map(enc).join(',');
+  const rows = await sb(env, `restaurant_admins?select=client_slug&user_id=eq.${enc(user.id)}&client_slug=in.(${fam})`).catch(() => []);
   return rows && rows.length ? { id: user.id, email: user.email } : null;
 }
 // ════════════════ Équipe (comptes admin / staff) ════════════════
 // Slugs d'un même établissement : un accès donné depuis l'admin couvre la carte, les réservations et la copie de test.
-const SLUG_FAMILY = { drevici: ['drevici', 'drevici-paris', 'drevici-test'], 'drevici-test': ['drevici', 'drevici-paris', 'drevici-test'] };
+const DREVICI_FAM = ['drevici', 'drevici-paris', 'drevici-test'], SURZUR_FAM = ['drevici-surzur', 'drevici-surzur-test'];
+const SLUG_FAMILY = { drevici: DREVICI_FAM, 'drevici-paris': DREVICI_FAM, 'drevici-test': DREVICI_FAM, 'drevici-surzur': SURZUR_FAM, 'drevici-surzur-test': SURZUR_FAM };
 const familyOf = slug => SLUG_FAMILY[slug] || [slug];
 const STAFF_AREAS = ['resa', 'calendrier', 'campagnes', 'tshirts'];
 async function userOf(env, req) {
@@ -547,9 +551,9 @@ async function userOf(env, req) {
 async function staffOf(env, req, slug, area) {
   if (!/^[a-z0-9-]{2,60}$/.test(slug)) return null;
   const user = await userOf(env, req); if (!user) return null;
-  const base = slug.split('--')[0];
+  const base = slug.split('--')[0], famB = SLUG_FAMILY[base] || [base];
   const rows = await sb(env, `restaurant_staff?user_id=eq.${enc(user.id)}&select=perms,slugs`).catch(() => []);
-  const ok = (rows || []).some(r => (r.slugs || []).includes(base) && (!area || (r.perms || []).includes(area)));
+  const ok = (rows || []).some(r => (r.slugs || []).some(s => famB.includes(s)) && (!area || (r.perms || []).includes(area)));
   return ok ? { id: user.id, email: user.email, staff: true } : null;
 }
 async function authAdmin(env, path, { method = 'GET', body } = {}) {
@@ -578,16 +582,18 @@ async function team(env, req, action, b, cors) {
     const user = await userOf(env, req);
     if (!user) return json({ ok: false, error: 'Non connecté' }, 401, cors);
     if (await adminOf(env, req, slug)) return json({ ok: true, role: 'admin', email: user.email }, 200, cors);
-    const base = slug.split('--')[0];
+    const base = slug.split('--')[0], famB = SLUG_FAMILY[base] || [base];
     const rows = await sb(env, `restaurant_staff?user_id=eq.${enc(user.id)}&select=perms,slugs`) || [];
-    const r = rows.find(x => (x.slugs || []).includes(base));
+    const r = rows.find(x => (x.slugs || []).some(s => famB.includes(s)));
     return json({ ok: true, role: r ? 'staff' : null, perms: r ? r.perms || [] : [], email: user.email }, 200, cors);
   }
   const me = await adminOf(env, req, slug);
   if (!me) return json({ ok: false, error: 'Réservé aux administrateurs' }, 403, cors);
   const fam = familyOf(slug);
   // Slugs de la famille que l'admin gère lui-même (on ne donne jamais plus que ce qu'on a).
-  const mine = (await sb(env, `restaurant_admins?user_id=eq.${enc(me.id)}&client_slug=in.(${fam.map(enc).join(',')})&select=client_slug`) || []).map(r => r.client_slug);
+  const mine0 = (await sb(env, `restaurant_admins?user_id=eq.${enc(me.id)}&client_slug=in.(${fam.map(enc).join(',')})&select=client_slug`) || []).map(r => r.client_slug);
+  // Un admin de l'établissement donne l'accès à tout l'établissement (site, réservations, préview), pas seulement aux slugs où il est inscrit.
+  const mine = mine0.length ? fam.slice() : mine0;
   if (action === 'list') {
     // « locked » : administrateur protégé (sql/equipe.sql), impossible à retirer. Colonne absente : personne n'est protégé.
     const admins = await sb(env, `restaurant_admins?client_slug=eq.${enc(slug)}&select=user_id,locked`).catch(() => sb(env, `restaurant_admins?client_slug=eq.${enc(slug)}&select=user_id`)) || [];
