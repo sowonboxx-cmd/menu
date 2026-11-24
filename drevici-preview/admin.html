@@ -1426,6 +1426,27 @@ body.vz-off #vzBtn{display:none!important}
 .cv-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 18px;margin-top:12px;align-items:end}
 .cv-f{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--mut)}.cv-f input{font:inherit;font-size:15px;color:var(--ink,#111);border:1px solid var(--line,#ddd);border-radius:10px;padding:9px 10px;background:transparent}
 .cv-t{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px;padding:6px 2px}
+.fvg{background:var(--card,#fff);border-radius:18px;overflow:hidden;margin-top:12px}
+.fvr{display:flex;align-items:center;gap:12px;width:100%;padding:10px 14px;min-height:56px;border:0;background:none;font:inherit;color:inherit;text-align:left;cursor:pointer;text-decoration:none;-webkit-tap-highlight-color:transparent}
+.fvr+.fvr{border-top:1px solid var(--line,#eeece7)}.fvr.on{background:var(--soft,#f3f6fa)}
+.fvr .ri{width:32px;height:32px;border-radius:10px;background:var(--soft,#eef2f7);display:grid;place-items:center;flex:none;color:var(--pri,#1e4a73)}.fvr .ri svg{width:18px;height:18px}
+.fvr .lb{font-weight:600;font-size:14.5px;display:flex;flex-direction:column}.fvr .lb small{font-weight:500;font-size:12px;color:var(--mut)}
+.fvr .vl{margin-left:auto;font-size:13.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55%}.fvr .chev{color:var(--mut);font-size:20px;line-height:1}
+.fvs{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--card,#fff);border-radius:22px 22px 0 0;box-shadow:0 -8px 30px rgba(16,24,40,.14);max-height:46vh;overflow:auto;padding:8px 16px calc(22px + env(safe-area-inset-bottom));animation:fvsIn .22s ease}
+.fvs.tall{max-height:72vh}@keyframes fvsIn{from{transform:translateY(30px);opacity:0}to{transform:none;opacity:1}}
+.fvs-gr{width:40px;height:5px;border-radius:9px;background:var(--line,#d6d3cc);margin:0 auto 6px}
+.fvs-h{display:flex;align-items:center;position:sticky;top:-8px;background:var(--card,#fff);padding:6px 0 10px;z-index:1}.fvs-h b{font-size:17px}.fvs-ok{margin-left:auto;border:0;background:none;font:inherit;font-weight:700;font-size:16px;color:var(--pri,#1e4a73);cursor:pointer;padding:4px 2px}
+.fvs-g{display:grid;grid-template-columns:1fr 1fr;gap:8px}.fvs-g4{grid-template-columns:repeat(5,1fr)}
+.fvs-c{border:0;border-radius:14px;background:var(--soft,#f5f3ef);padding:10px 12px;text-align:left;font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.fvs-c b{display:block;font-size:19px;font-weight:700;line-height:1.1;color:#9c4520;font-variant-numeric:lining-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fvs-c small{display:block;font-size:11.5px;color:var(--mut);margin-top:4px}
+.fvs-c.on{background:var(--pri,#1e4a73)}.fvs-c.on b{color:#fff}.fvs-c.on small{color:rgba(255,255,255,.8)}
+.fvs-sec{text-align:center;padding:16px 10px}.fvs-sec b{font-size:17px;font-weight:800;letter-spacing:.06em}
+.fvs-fr{display:flex;flex-direction:column;align-items:center;padding:10px 4px;color:var(--ink,#222)}.fvs-fr svg{width:34px;height:42px}.fvs-fr.on{color:#fff}
+.vgw{position:relative;height:250px;border-radius:14px;overflow:hidden;background:#111}.vgw iframe{position:absolute;left:50%;top:0;width:390px;height:560px;border:0;transform:translateX(-50%) scale(.82);transform-origin:50% 0;pointer-events:none}
+.fvs-on{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;font-size:14px;font-weight:600}
+.cvb{margin-top:4px}
+@media(max-width:899px){.fv.sheeton{--fvh:max(200px,calc(54vh - 170px))}}
+@media(min-width:900px){.fvs{left:auto;right:24px;top:84px;bottom:24px;width:380px;max-height:none;border-radius:20px}.fvs-gr{display:none}.fv.sheeton{padding-right:400px}}
 </style>
 </head>
 <body>
@@ -1911,6 +1932,7 @@ const FCHK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-wi
 function cardAutoTitle(f){ return f.ephemere?'Menu du jour':(f.title||f.name||'Menu'); }
 function cardAutoSub(f){ const first=String(f.freeText||'').split(/\n|<br\s*\/?>/i)[0].split(/\s[—–-]\s|\s*\d/)[0].replace(/[,\s:]+$/,'').trim(); return first?first.replace(/\s*&\s*/g,', ').replace(/^./,c=>c.toUpperCase()):''; }
 function cardAutoPrice(f){ const n=[...String(f.freeText||'').matchAll(/(\d+(?:[.,]\d{1,2})?)\s*€/g)].map(m=>parseFloat(m[1].replace(',','.'))).filter(x=>x>0); if(!n.length) return ''; const mn=String(Math.min(...n)).replace('.',','); return (new Set(n).size>1?'dès ':'')+mn+'€'; }
+function cardOptsBody(f){ return cardOpts(f).replace(/^<div class="fv-opt cv"><span>[\s\S]*?<\/span>/,'<div class="cvb">'); }
 function cardOpts(f){
   const i=DATA.formules.indexOf(f), c=f.card||{};
   const inp=(k,ph,lab)=>`<label class="cv-f"><span>${lab}</span><input data-bind="f.${i}.card.${k}" value="${esc(c[k]||'')}" placeholder="${esc(ph||'—')}"></label>`;
@@ -1918,6 +1940,55 @@ function cardOpts(f){
   return `<div class="fv-opt cv"><span>Vignette sur l’accueil<small>Laissez un champ vide pour le texte automatique (en gris).</small></span>
     <div class="cv-g">${inp('title',cardAutoTitle(f),'Titre')}${inp('sub',cardAutoSub(f),'Texte')}${inp('price',cardAutoPrice(f),'Prix')}</div>
     <div class="cv-g">${sw('noImg','Miniature du menu')}${sw('noSub','Texte')}${sw('noPrice','Prix')}${sw('noSep','Trait de séparation')}</div></div>`;
+}
+
+// ══ Réglages d'un menu (Will, 24/11/2026) : une seule liste ; chaque réglage s'ouvre dans un panneau en bas
+// (à droite sur ordinateur) qui laisse l'aperçu visible et le met à jour en direct. « Agrandir » reste dispo. ══
+const FV_ICS={police:'<path d="M5 19 10.5 5h1L17 19M7.5 14h7"/>',cadre:'<rect x="4" y="4" width="16" height="16" rx="1.5"/><rect x="7.5" y="7.5" width="9" height="9"/>',sec:'<path d="M4 12h6M14 12h6"/><path d="M12 8v8"/>',qr:'<rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18h2"/>',vign:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 15h7M7 11h10"/>',mod:'<rect x="4" y="4" width="7" height="16" rx="1.5"/><rect x="13" y="4" width="7" height="9" rx="1.5"/>'};
+const fvIc=k=>`<span class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${FV_ICS[k]}</svg></span>`;
+const SEC_STYLES=[['dash','Tiret','ENTRÉE – 12€'],['paren','Parenthèses','ENTRÉE (12€)'],['none','Sans','ENTRÉE 12€'],['dot','Point','ENTRÉE · 12€']];
+const ADM_FONTS=['Open Sans Etroite','Barlow Semi Condensed','Archivo Etroite','Bricolage Grotesque Etroite','Noto Serif Etroite','Alegreya','Faustina','Playfair Display'];
+function admFontCss(n){ return /Etroite$/.test(n)?'/media/fonts/etroites.css':'https://fonts.googleapis.com/css2?family='+n.replace(/ /g,'+')+':ital,wght@0,400;0,500;0,600;0,700;0,800;1,600&display=swap'; }
+function admLoadFonts(list){ (list||[]).forEach(n=>{ const u=admFontCss(n); if(document.querySelector(`link[data-admf="${u}"]`)) return; const l=document.createElement('link'); l.rel='stylesheet'; l.href=u; l.dataset.admf=u; document.head.appendChild(l); }); }
+const fontCss=n=>`font-family:'${String(n).replace(/'/g,'')}',serif`;
+function fvSettings(f,modHref){
+  const font=f.instaFont||'Playfair Display'; admLoadFonts([font]);
+  const fr=(FRAMES.find(x=>x[0]===(f.frame||f.frameStyle||'simple'))||FRAMES[1])[1];
+  const sec=(SEC_STYLES.find(x=>x[0]===(f.secStyle||'dash'))||SEC_STYLES[0])[2];
+  const row=(k,lab,val,extra='')=>`<button type="button" class="fvr${UI.fvSheet===k?' on':''}" data-act="fvOpt" data-v="${k}">${fvIc(k)}<span class="lb">${lab}</span><span class="vl"${extra}>${val}</span><span class="chev">›</span></button>`;
+  return `<div class="fvg">
+    ${row('police','Police',esc(fontLbl(font)),` style="${fontCss(font)};font-weight:600"`)}
+    ${row('cadre','Cadre',esc(fr))}
+    ${row('sec','Prix des sections',esc(sec))}
+    <div class="fvr">${fvIc('qr')}<span class="lb">QR code « Voir les plats »<small>En bas de l’A5, vers votre carte en photos</small></span><span class="vl"></span>${tgl(!!f.qrPhotos,'fQr')}</div>
+    ${row('vign','Vignette sur l’accueil',f.online?'Sur l’accueil':'Pas sur l’accueil')}
+    <a class="fvr" href="${modHref}">${fvIc('mod')}<span class="lb">Modèle</span><span class="vl">${esc((modelOf(f)||{}).name||'')}</span><span class="chev">›</span></a>
+  </div>${UI.fvSheet?fvSheet(f):''}`;
+}
+function fvSheet(f){
+  const k=UI.fvSheet, nm=esc(f.title||f.name||'Menu'), cur=f.instaFont||'Playfair Display';
+  let t='', body='';
+  if(k==='police'){ t='Police'; const L=(ENGFONTS&&ENGFONTS.length?ENGFONTS:ADM_FONTS).slice(); if(!L.includes(cur)) L.unshift(cur); admLoadFonts(L);
+    body=`<div class="fvs-g">${L.map(n=>`<button type="button" class="fvs-c${n===cur?' on':''}" data-act="fFont" data-v="${esc(n)}"><b style="${fontCss(n)}">${nm}</b><small>${esc(fontLbl(n))}</small></button>`).join('')}</div>`; }
+  else if(k==='cadre'){ t='Cadre'; const cf=f.frame||f.frameStyle||'simple';
+    const pic={aucun:'',simple:'<rect x="5" y="5" width="30" height="40" fill="none" stroke="currentColor" stroke-width="1.6"/>',double:'<rect x="4" y="4" width="32" height="42" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="7" y="7" width="26" height="36" fill="none" stroke="currentColor" stroke-width="1"/>',pointille:'<rect x="5" y="5" width="30" height="40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="3 2.5"/>',coins:'<path d="M5 13V5h8M27 5h8v8M35 37v8h-8M13 45H5v-8" fill="none" stroke="currentColor" stroke-width="1.8"/>'};
+    body=`<div class="fvs-g fvs-g4">${FRAMES.map(([v,l])=>`<button type="button" class="fvs-c fvs-fr${v===cf?' on':''}" data-act="fFrame" data-v="${v}"><svg viewBox="0 0 40 50">${pic[v]||''}</svg><small>${esc(l)}</small></button>`).join('')}</div>`; }
+  else if(k==='sec'){ t='Prix des sections'; const cs=f.secStyle||'dash'; admLoadFonts([cur]);
+    body=`<div class="fvs-g">${SEC_STYLES.map(([v,l,ex])=>`<button type="button" class="fvs-c fvs-sec${v===cs?' on':''}" data-act="fSec" data-v="${v}"><b style="${fontCss(cur)}">${esc(ex)}</b><small>${esc(l)}</small></button>`).join('')}</div>`; }
+  else if(k==='vign'){ t='Vignette sur l’accueil';
+    body=`<div class="vgw"><iframe id="vgFrame" src="index.html?apercu=accueil" title="Aperçu de l’accueil" scrolling="no" tabindex="-1"></iframe></div>
+      ${f.online?'':`<div class="fvs-on"><span>Ce menu n’est pas encore sur l’accueil</span>${tgl(false,'fOnline')}</div>`}${cardOptsBody(f)}`; }
+  return `<div class="fvs${k==='vign'?' tall':''}" role="dialog" aria-label="${esc(t)}"><div class="fvs-gr"></div><div class="fvs-h"><b>${esc(t)}</b><button type="button" class="fvs-ok" data-act="fvOpt" data-v="">OK</button></div>${body}</div>`;
+}
+// Aperçu de l'accueil dans le panneau « Vignette » : la vraie page du site, avec les données de l'admin (non enregistrées comprises).
+let vgT=null; function vignSoon(){ clearTimeout(vgT); vgT=setTimeout(vignSync,250); }
+async function vignSync(){
+  const fr=document.getElementById('vgFrame'); if(!fr) return; const w=fr.contentWindow; if(!w) return;
+  for(let i=0;i<80;i++){ try{ if(w.eval('typeof DATA_SOURCE!=="undefined" && DATA_SOURCE!=="chargement" && typeof renderHomeCover==="function"')) break; }catch(e){} await sleep(100); }
+  try{ w.eval('window.publishToSupabase=async function(){}; window.scheduleAutoSave=function(){}; window.publishNow=function(){};');
+    w.__G=JSON.parse(JSON.stringify(DATA));
+    w.eval('for(const k of Object.keys(DATA)) delete DATA[k]; Object.assign(DATA, window.__G); homeCoverDismissedThisSession=false; renderHomeCover(); document.documentElement.style.overflow="hidden";');
+  }catch(e){ console.error('vign',e); }
 }
 function pageMenus(){
   mdjMigrate();
@@ -1975,14 +2046,14 @@ function pageFormule(){
   const f=findF(ARG); if(!f) return mtop('Mes menus','menus')+'<div class="empty">Ce menu n\'existe plus. <a class="lk" href="#/menus">Retour</a></div>';
   const id=encodeURIComponent(f.id); modelSync(f);
   const del=UI.delc===f.id?`<div class="fv-delc"><b>Supprimer « ${esc(f.name||f.title||'ce menu')} » ?</b><span>Il disparaît du site et de vos menus. Ça ne peut pas être annulé.</span><div><button class="btn g" data-act="fDelNo">Non, le garder</button><button class="btn red" data-act="fDelYes">Oui, supprimer</button></div></div>`:`<button type="button" class="fv-delb" data-act="fDelAsk">${I('trash')}Supprimer ce menu</button>`;
-  return mtop('Mes menus','menus')+crumb([['Mes menus','menus'],[esc(f.name||f.title||'(sans nom)')]])+fvView({f,del,opts:`<div class="fv-opt"><span>Cadre</span>${segb(FRAMES,f.frame||f.frameStyle||'simple','fFrame')}</div><div class="fv-opt"><span>QR code « Voir les plats en image »<small>En bas de l’A5, vers votre carte en photos</small></span>${tgl(!!f.qrPhotos,'fQr')}</div><div class="fv-opt"><span>Prix des sections<small>« ENTRÉE – 12€ », « ENTRÉE (12€) »…</small></span>${segb([['dash','Tiret'],['paren','Parenthèses'],['none','Sans'],['dot','Point']],f.secStyle||'dash','fSec')}</div>${cardOpts(f)}`,eph:!!f.ephemere,right:`<span class="fv-onl">${tgl(f.online,'fOnline')}<span class="onl" style="color:${f.online?'var(--ok)':'var(--mut)'}">${f.online?'Mis en avant sur l’accueil':'Pas sur l’accueil'}</span></span>`,nm:esc(f.name||f.title||'(sans nom)'),model:modelOf(f),mod:'#/fmod/'+id,edit:'#/fedit/'+id,
+  return mtop('Mes menus','menus')+crumb([['Mes menus','menus'],[esc(f.name||f.title||'(sans nom)')]])+fvView({f,del,opts:fvSettings(f,'#/fmod/'+id),noMod:1,eph:!!f.ephemere,nm:esc(f.name||f.title||'(sans nom)'),model:modelOf(f),mod:'#/fmod/'+id,edit:'#/fedit/'+id,
     ex:['Passe l’entrée à 11 €','Change les dates : du 23 au 29 novembre','Remplace le dessert par une tarte aux pommes']});
 }
 function fvView(o){
   const f=o.f, nm=o.nm, voix=can('voice'), SL=o.eph?FSLIDES.filter(x=>x[0]!=='post'):FSLIDES, cur=Math.min(UI.fSlide||0,SL.length-1);
   const slides=SL.map(([v,l,c,r],i)=>`<div class="fv-sl" data-i="${i}"><div class="fv-doc" style="aspect-ratio:${r}">${pvFrame('formule',0,c,{f,variant:v}).replace('class="pv-frame','style="width:100%;height:100%" class="pv-frame')}</div></div>`).join('');
   const ex=o.ex;
-  return `<div class="fv">${o.right?`<div class="fv-top">${o.right}</div>`:''}
+  return `<div class="fv${UI.fvSheet&&o.noMod?' sheeton':''}">${o.right?`<div class="fv-top">${o.right}</div>`:''}
    <div class="fv-tabs" role="tablist">${SL.map(([v,l],i)=>`<button type="button" data-act="fvGo" data-i="${i}" class="${i===cur?'on':''}">${l}</button>`).join('')}</div>
    <div class="fv-car"><button type="button" class="fv-ar l" data-act="fvGo" data-d="-1" aria-label="Précédent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
      <div class="fv-track" id="fvTrack">${slides}</div>
@@ -1996,7 +2067,7 @@ function fvView(o){
    </div>
    ${voix?'':`<p class="fv-up">À la main, chaque changement passe par le formulaire, plat par plat. Avec Master, vous le dites et le menu est à jour.</p>`}
    ${o.opts||''}
-   <a class="fv-mod" href="${o.mod}"><span class="sw">${modSwatch(o.model)}</span><span class="tx"><small>Modèle</small><b>${esc(o.model.name)}</b></span><span class="go">Changer<span class="chev">›</span></span></a>
+   ${o.noMod?'':`<a class="fv-mod" href="${o.mod}"><span class="sw">${modSwatch(o.model)}</span><span class="tx"><small>Modèle</small><b>${esc(o.model.name)}</b></span><span class="go">Changer<span class="chev">›</span></span></a>`}
    ${UI.igPick?(o.eph?`<div class="fv-x"><button type="button" class="pr" data-act="igCancel">Annuler</button><button type="button" class="ig" data-act="igSend" data-v="story" ${FVF.story?'':'disabled'}>${FVF.story?FV_IG+'Partager la story':'<i class="spin"></i>Préparation…'}</button></div>`
      :`<div class="fv-x fv-pick"><button type="button" class="ig fv-wide" data-act="igSend" data-v="story" ${FVF.story?'':'disabled'}>${FVF.story?FV_IG+'Story':'<i class="spin"></i>Story…'}</button><button type="button" class="pr" data-act="igSend" data-v="post" ${FVF.post?'':'disabled'}>${FVF.post?'Post 4:5':'<i class="spin"></i>Post 4:5…'}</button><button type="button" class="pr" data-act="igSend" data-v="post34" ${FVF.post34?'':'disabled'}>${FVF.post34?'Post 3:4':'<i class="spin"></i>Post 3:4…'}</button></div><p class="fv-pk"><span>${FVF.story&&FVF.post&&FVF.post34?'Story et post 4:5 : touchez Instagram. Post 3:4 : « Enregistrer l’image », puis publiez-le depuis Instagram.':'Préparation des images…'}</span><button type="button" class="lk" data-act="igCancel">Annuler</button></p>`)
      :`<div class="fv-x"><button type="button" class="pr" data-act="fvPrint">${FV_PRINT}Imprimer</button><button type="button" class="ig" data-act="fvIg">${FV_IG}${tbMobShare()?'Partager sur Instagram':'Pour Instagram'}</button></div>`}
@@ -3705,7 +3776,7 @@ function render(){
     if(focus){ const el=app.querySelector(`[data-bind="${focus}"]`); if(el){ el.focus(); try{ const l=el.value.length; el.setSelectionRange(l,l);}catch(e){} } }
     scrollTo(0,y);
   }
-  refreshPreviews(); hideLocked(); fvCenter(); document.body.classList.toggle('fv-on',(PG==='formule'&&!!ARG)||PG==='mdj'); document.body.classList.toggle('vz-off',!vzHere());
+  refreshPreviews(); hideLocked(); fvCenter(); if(document.getElementById('vgFrame')) vignSoon(); document.body.classList.toggle('fv-on',(PG==='formule'&&!!ARG)||PG==='mdj'); document.body.classList.toggle('vz-off',!vzHere());
   if(window.FP&&PG==='resa'&&ARG==='esp'&&can('floorplan')) FP.sync();
   if(UI.tbw&&UI.tbw.step===4&&PG==='resa'&&ARG==='boost'){ const cv=document.getElementById('tbCanvas'), W=UI.tbw, k=[W.photo,W.title,W.detail,W.date,W.deadline,W.sv].join('|'); if(cv&&cv.dataset.k!==k){ cv.dataset.k=k; tbDraw(); } }
 }
@@ -3766,6 +3837,7 @@ document.addEventListener('input',e=>{
   if(el.dataset.em&&UI.em){ UI.em.f[el.dataset.em]=el.value; emPreview(); return; }
   if(el.dataset.cl==='q'){ UI.clq=el.value; render(); return; }
   if(el.dataset.cl==='code'){ UI.clcode=el.value; return; }
+  if(el.dataset.bind&&/^f\.\d+\.card/.test(el.dataset.bind)) vignSoon();
   if(el.dataset.bind){ setByBind(el.dataset.bind,el.value); if(UI.needRender){ UI.needRender=false; touch(true); return; } touch(false); if(/^(f|jour|pdf)\./.test(el.dataset.bind)) refreshPreviews(); return; }
   const a=el.dataset.act;
   if(a==='colSet'){ pS()[el.dataset.k]=el.value; const i=el.parentElement.querySelector('i'); if(i) i.style.background=el.value; touch(false); refreshPreviews(); }
@@ -3992,6 +4064,8 @@ document.addEventListener('click',async e=>{
     case 'jourDel': sp.items.splice(+d.i,1); jourSync(sp); touch(true); break;
     case 'jourMove': { const i=+d.i, j=i+(+d.d); if(j>=0&&j<sp.items.length){ [sp.items[i],sp.items[j]]=[sp.items[j],sp.items[i]]; jourSync(sp); touch(true);} break; }
     case 'fFrame': { const f=curF(); if(!f) break; f.frame=d.v; touch(true); break; }
+    case 'fvOpt': { UI.fvSheet=d.v||''; render(); { const tk=document.getElementById('fvTrack'); if(tk){ tk._done=0; setTimeout(fvCenter,60); setTimeout(()=>{ tk._done=0; fvCenter(); },400); } } if(UI.fvSheet&&innerWidth<900){ const t=document.querySelector('.fv-tabs'); if(t) scrollTo({top:Math.max(0,t.getBoundingClientRect().top+scrollY-64),behavior:'smooth'}); } break; }
+    case 'fFont': { const f=curF(); if(!f) break; /* le style d'un menu lié à un modèle vit dans le modèle (comme pour la voix) */ const st=vzStyleObj({kind:'menu',f}); st.instaFont=d.v; if(st!==f) modelSync(f); touch(true); break; }
     case 'fSec': { const f=curF(); if(!f) break; if(d.v==='dash') delete f.secStyle; else f.secStyle=d.v; touch(true); break; }
     case 'fQr': { const f=curF(); if(!f) break; if(f.qrPhotos) delete f.qrPhotos; else f.qrPhotos=true; UI.fSlide=0; touch(true); break; }
     case 'tunerFrame': { const T=tunerTarget(); if(T.model) T.obj.frameStyle=d.v; else T.obj.frame=d.v; touch(true); break; }
