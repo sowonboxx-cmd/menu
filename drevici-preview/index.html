@@ -10948,10 +10948,20 @@ function menuFontCssUrl(font){
 }
 // Attend que la police d'un menu soit vraiment chargée : la mise en page (tailles, retours à la ligne) se mesure
 // dans la page ; mesurée avec une police de secours, le menu ne tient plus quand la vraie police arrive.
-function ensureMenuFont(font){ font=font||'Playfair Display'; loadMenuFont(font);
-  const fam="'"+font.replace(/'/g,'')+"'"; if(document.fonts.check('700 20px '+fam) && document.fonts.check('500 20px '+fam)) return Promise.resolve(true);
-  return Promise.race([Promise.all(['400','500','600','700','800','italic 600'].map(w=>document.fonts.load(w+' 20px '+fam,'Aàé0123€'))).then(()=>true), new Promise(r=>setTimeout(()=>r(false),4000))]); }
-function loadMenuFont(font, doc){ doc = doc || document; const u = menuFontCssUrl(font); if([...doc.querySelectorAll('link[rel=stylesheet]')].some(l=>l.href===u)) return; const l = doc.createElement('link'); l.rel='stylesheet'; l.href=u; doc.head.appendChild(l); }
+async function ensureMenuFont(font){ font=font||'Playfair Display';
+  await loadMenuFont(font);
+  const fam="'"+font.replace(/'/g,'')+"'";
+  const all = Promise.all(['400','500','600','700','800','italic 600'].map(w=>document.fonts.load(w+' 20px '+fam,'Aàé0123€').catch(()=>[])));
+  const ok = await Promise.race([all.then(r=>r.some(x=>x&&x.length)), new Promise(r=>setTimeout(()=>r(false),5000))]);
+  try{ await document.fonts.ready; }catch(e){}
+  return ok; }
+const _menuFontCss = {};
+function loadMenuFont(font, doc){ doc = doc || document; const u = menuFontCssUrl(font);
+  if(doc === document && _menuFontCss[u]) return _menuFontCss[u];
+  const old = [...doc.querySelectorAll('link[rel=stylesheet]')].find(l=>l.href===u);
+  const p = new Promise(res=>{ if(old){ if(old.sheet) return res(); old.addEventListener('load',()=>res(),{once:true}); old.addEventListener('error',()=>res(),{once:true}); setTimeout(res,3000); return; }
+    const l = doc.createElement('link'); l.rel='stylesheet'; l.href=u; l.onload=()=>res(); l.onerror=()=>res(); doc.head.appendChild(l); setTimeout(res,4000); });
+  if(doc === document) _menuFontCss[u] = p; return p; }
 const INSTA_RENDER_W = 608;
 // BUG FIX: le site applique un zoom CSS de 1.1x sur desktop (à partir
 // de 641px de large), mais PAS en dessous de cette largeur — annuler
