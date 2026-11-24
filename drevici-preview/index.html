@@ -10206,8 +10206,8 @@ function fitInstaOneLiners(html, holder, cfg){
   const kT = cfg.tabsSource ? ((cfg.fmtPct && cfg.fmtPct.title) || 100)/100 : 1;
   const kM = cfg.tabsSource ? ((cfg.fmtPct && cfg.fmtPct.menu) || 100)/100 : 1;
   const availC = cfg.tabsSource ? (availableW - 6)/kT : availableW;
-  const availM = cfg.tabsSource ? (availableW - 6)/kM : availableW;
-  const { catTitleSize, menuSize } = instaSizesFor(cfg);
+  let availM = cfg.tabsSource ? (availableW - 6)/kM : availableW;
+  let { catTitleSize, menuSize } = instaSizesFor(cfg);
 
   function fitOne(text, tag, className, baseSize, minSize, limit){
     limit = limit || availableW;
@@ -10312,8 +10312,22 @@ function fitInstaOneLiners(html, holder, cfg){
     measureEl.removeChild(t2);
     return w;
   }
+  // Polices étroites (Will, 24/11/2026) : tout doit tenir. Le texte centré peut s'étaler plus large (84 % au lieu
+  // de 70 %), et la taille commune des plats baisse un peu (jusqu'à 82 %) pour que le plus de plats possible tiennent
+  // sur une seule ligne. Seuls les plats vraiment trop longs passent encore sur deux lignes.
+  if(!cfg.alignContentLeft){
+    availM = (INSTA_RENDER_W * 0.84 - 6)/kM;
+    const re = /<div class="pdf-dish-line"><span class="pdf-dish-name">([\s\S]*?)<\/span>(?:<span class="pdf-dots(?:-off)?"><\/span>)?<span class="pdf-dish-price">([\s\S]*?)<\/span><\/div>/g;
+    const floor = Math.round(menuSize*0.82); let best = menuSize;
+    for(const mm of out.matchAll(re)){ if(/[\u2028\n]/.test(mm[1])) continue;
+      const need = widthOfName(mm[1], menuSize) + (mm[2].trim() ? widthOfName(mm[2], menuSize*1.25) + 14 : 0);
+      if(need <= availM) continue; const sz = Math.floor(menuSize * availM / need); if(sz >= floor) best = Math.min(best, sz); }
+    if(cfg.__measureOnly) return best;
+    menuSize = cfg.__dishSize || best;
+  }
   out = out.replace(/<div class="pdf-dish-line"><span class="pdf-dish-name">([\s\S]*?)<\/span>((?:<span class="pdf-dots(?:-off)?"><\/span>)?)<span class="pdf-dish-price">([\s\S]*?)<\/span><\/div>/g,
     (m, nameInner, dotsInner, priceInner)=>{
+      nameInner = nameInner.replace(/\s*\n\s*/,'\u2028'); // retour à la ligne tapé dans le nom = coupure voulue
       if(nameInner.includes('\u2028')){ // coupure imposée : chaque morceau sur sa ligne, réduit seulement s'il dépasse
         const [l1, l2] = nameInner.split('\u2028');
         const pW = priceInner.trim() ? widthOfName(priceInner, menuSize*1.25) + 14 : 0;
@@ -10329,41 +10343,25 @@ function fitInstaOneLiners(html, holder, cfg){
       if(fullW + priceW0 <= availM){
         return `<div class="pdf-dish-line"><span class="pdf-dish-name" style="font-size:${menuSize}px;white-space:nowrap">${nameInner}</span>${dotsInner}<span class="pdf-dish-price">${priceInner}</span></div>`;
       }
+      // Deux lignes équilibrées (Will, 24/11/2026, comme le menu ouvert du site) : on coupe là où les deux lignes ont
+      // la longueur la plus proche (prix compris sur la 2e), jamais un mot seul en bas ; si même ainsi ça dépasse,
+      // les deux lignes rétrécissent ensemble (même taille), au lieu d'un nom écrasé sur une seule ligne.
       const priceW = widthOfName(priceInner, menuSize*1.25);
-      const gap = 14;
-      const words = nameInner.trim().split(/\s+/);
-      let splitIdx = 0;
-      for(let i=words.length-1;i>=1;i--){
-        if(widthOfName(words.slice(0,i).join(' '), menuSize) <= availM && widthOfName(words.slice(i).join(' '), menuSize) + (priceInner.trim()?priceW+gap:0) <= availM){ splitIdx = i; break; }
-      }
-      // RÈGLE DE BASE (Will) : jamais un seul mot orphelin sur la
-      // deuxième ligne. La boucle ci-dessus remplit la première ligne
-      // au maximum, ce qui laissait souvent un mot seul en dessous
-      // ("… confit au / soja"). On descend un mot de plus pour que la
-      // deuxième ligne en compte toujours au moins deux. Si ça n'est
-      // pas possible (il ne resterait rien sur la première ligne), on
-      // ne coupe pas du tout : on rétrécit le nom pour le garder sur
-      // une seule ligne, ce qui vaut mieux qu'un orphelin.
-      if(splitIdx > 0 && words.length - splitIdx === 1){
-        splitIdx = splitIdx - 1 >= 1 ? splitIdx - 1 : 0;
-      }
-      if(splitIdx===0){
-        // Pas de découpe possible sans laisser un orphelin (ou un seul
-        // mot déjà trop long) — dernier recours : rétrécir cette ligne,
-        // plutôt que de la couper au milieu d'un mot. On vise la place
-        // réellement libre, prix compris, pour que le prix reste aligné
-        // à droite au lieu d'être repoussé hors du cadre.
-        const room = Math.max(60, availM - priceW - gap);
-        let size = menuSize;
+      const gap = 14, pr = priceInner.trim() ? priceW + gap : 0;
+      const words = nameInner.replace(/\u2028/g,' ').trim().split(/\s+/);
+      let bk = 0, bm = Infinity;
+      for(let i=1;i<words.length;i++){
+        if(words.length - i < 2 && words.length > 2) continue;
+        const w1 = widthOfName(words.slice(0,i).join(' '), menuSize), w2 = widthOfName(words.slice(i).join(' '), menuSize) + pr, mx = Math.max(w1, w2);
+        if(mx < bm){ bm = mx; bk = i; } }
+      if(!bk){
+        const room = Math.max(60, availM - pr); let size = menuSize;
         while(widthOfName(nameInner,size) > room && size>10) size -= 1;
         return `<div class="pdf-dish-line"><span class="pdf-dish-name" style="font-size:${size}px;white-space:nowrap">${nameInner}</span>${dotsInner}<span class="pdf-dish-price">${priceInner}</span></div>`;
       }
-      const line1 = words.slice(0,splitIdx).join(' ');
-      const line2 = words.slice(splitIdx).join(' ');
-      let size2 = menuSize;
-      while(widthOfName(line2,size2) + (priceInner.trim()?priceW+gap:0) > availM && size2>10) size2 -= 1;
-      // Le prix suit la fin du nom (2e ligne), jamais le milieu de la phrase.
-      return `<div class="pdf-dish-line-group"><div class="pdf-dish-line"><span class="pdf-dish-name" style="font-size:${menuSize}px;white-space:nowrap">${line1}</span></div><div class="pdf-dish-line pdf-dish-line-cont"><span class="pdf-dish-name" style="font-size:${size2}px;white-space:nowrap">${line2}</span>${dotsInner}<span class="pdf-dish-price">${priceInner}</span></div></div>`;
+      const sz = bm > availM ? Math.max(10, Math.floor(menuSize * availM / bm)) : menuSize;
+      const line1 = words.slice(0,bk).join(' '), line2 = words.slice(bk).join(' ');
+      return `<div class="pdf-dish-line-group"><div class="pdf-dish-line"><span class="pdf-dish-name" style="font-size:${sz}px;white-space:nowrap">${line1}</span></div><div class="pdf-dish-line pdf-dish-line-cont"><span class="pdf-dish-name" style="font-size:${sz}px;white-space:nowrap">${line2}</span>${dotsInner}<span class="pdf-dish-price">${priceInner}</span></div></div>`;
     });
   return out;
 }
@@ -10418,7 +10416,7 @@ function buildFormulePage(cfg, ratio){
 
     const { contentBlocks } = buildPdfBlocks(scaledCfg);
     if(!contentBlocks.length){ finalHtml = (cfg.formulePreamble || '') + (cfg.formuleFoot || ''); finalCss = css; break; }
-    const fixedBlocks = contentBlocks.map(b=>({ ...b, html: fitInstaOneLiners(b.html, holder, scaledCfg) }));
+    const __ds = fitInstaOneLiners(contentBlocks.map(b=>b.html).join(''), holder, {...scaledCfg, __measureOnly:true}); const fixedBlocks = contentBlocks.map(b=>({ ...b, html: fitInstaOneLiners(b.html, holder, {...scaledCfg, __dishSize: (typeof __ds==='number'?__ds:undefined)}) }));
     const wholeHtml = (cfg.formulePreamble || '') + fixedBlocks.map(b=>b.html).join('') + (cfg.formuleFoot || '');
 
     for(const scale of COMPRESS_STEPS){
@@ -10440,7 +10438,7 @@ function buildFormulePage(cfg, ratio){
     const scaledCfg = { ...cfg, instaTitleSize: Math.max(16,Math.round(baseTitleSize*0.54)), instaMenuSize: Math.max(11,Math.round(baseMenuSize*0.54)), instaDescSize: Math.max(10,Math.round(baseDescSize*0.54)) };
     finalCss = buildInstaCSS(scaledCfg, ratio);
     const { contentBlocks } = buildPdfBlocks(scaledCfg);
-    const fixedBlocks = contentBlocks.map(b=>({ ...b, html: fitInstaOneLiners(b.html, holder, scaledCfg) }));
+    const __ds = fitInstaOneLiners(contentBlocks.map(b=>b.html).join(''), holder, {...scaledCfg, __measureOnly:true}); const fixedBlocks = contentBlocks.map(b=>({ ...b, html: fitInstaOneLiners(b.html, holder, {...scaledCfg, __dishSize: (typeof __ds==='number'?__ds:undefined)}) }));
     finalHtml = (cfg.formulePreamble || '') + fixedBlocks.map(b=>b.html).join('') + (cfg.formuleFoot || '');
     finalScale = 0.34;
     finalFontScale = 0.54;
@@ -10574,7 +10572,7 @@ function buildInstaPages(cfg, ratio){
     // fitInstaOneLiners. Si le tout premier bloc restant après le
     // filtrage boissons n'a plus le titre de catégorie (parce que le
     // vrai premier bloc d'origine a été filtré), on le réinjecte.
-    const fixedBlocks = filtered.map(b=>({ ...b, html: fitInstaOneLiners(b.html, holder, cfg) }));
+    const __ds = fitInstaOneLiners(filtered.map(b=>b.html).join(''), holder, {...cfg, __measureOnly:true}); const fixedBlocks = filtered.map(b=>({ ...b, html: fitInstaOneLiners(b.html, holder, {...cfg, __dishSize: (typeof __ds==='number'?__ds:undefined)}) }));
     if(!fixedBlocks[0].html.includes('class="pdf-cat"')){
       fixedBlocks[0] = { ...fixedBlocks[0], html: headerHtml + fixedBlocks[0].html };
     }
@@ -10948,6 +10946,11 @@ function menuFontCssUrl(font){
   const q = INSTA_FONT_OPTIONS.includes(font) ? 'ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600' : 'ital,wght@0,400;0,600;0,700;1,400;1,600';
   return 'https://fonts.googleapis.com/css2?family=' + font.replace(/ /g,'+') + ':' + q + '&display=swap';
 }
+// Attend que la police d'un menu soit vraiment chargée : la mise en page (tailles, retours à la ligne) se mesure
+// dans la page ; mesurée avec une police de secours, le menu ne tient plus quand la vraie police arrive.
+function ensureMenuFont(font){ font=font||'Playfair Display'; loadMenuFont(font);
+  const fam="'"+font.replace(/'/g,'')+"'"; if(document.fonts.check('700 20px '+fam) && document.fonts.check('500 20px '+fam)) return Promise.resolve(true);
+  return Promise.race([Promise.all(['400','500','600','700','800','italic 600'].map(w=>document.fonts.load(w+' 20px '+fam,'Aàé0123€'))).then(()=>true), new Promise(r=>setTimeout(()=>r(false),4000))]); }
 function loadMenuFont(font, doc){ doc = doc || document; const u = menuFontCssUrl(font); if([...doc.querySelectorAll('link[rel=stylesheet]')].some(l=>l.href===u)) return; const l = doc.createElement('link'); l.rel='stylesheet'; l.href=u; doc.head.appendChild(l); }
 const INSTA_RENDER_W = 608;
 // BUG FIX: le site applique un zoom CSS de 1.1x sur desktop (à partir
@@ -11279,7 +11282,7 @@ function instaBandPreviewDoc(doc, W, Hp, color){
 async function exportInstaImages(cfg, variant){
   return withExportLogo(()=>_exportInstaImages(cfg, variant));
 }
-async function formule_renderBlobs(cfg, variant){ return withExportLogo(()=>_exportInstaImages(cfg, variant, true)); }
+async function formule_renderBlobs(cfg, variant){ await ensureMenuFont(cfg&&cfg.instaFont); return withExportLogo(()=>_exportInstaImages(cfg, variant, true)); }
 async function _exportInstaImages(cfg, variant, silent){
   variant = variant || 'story';
   // Le logo du menu a été posé avec son adresse d'origine : html2canvas ne peut pas le dessiner. On met la copie intégrée.

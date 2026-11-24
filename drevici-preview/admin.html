@@ -1658,6 +1658,9 @@ async function fillPreviews(){
   const seq=++prevSeq;
   let w; try{ w=await eng(); }catch(e){ return; }
   if(seq!==prevSeq) return;
+  // Police du menu chargée AVANT la mise en page (sinon le moteur mesure avec une police de secours et rien ne tient).
+  try{ const fonts=[...new Set(frames.map(fr=>{ try{ const o=fr.dataset.opt?JSON.parse(fr.dataset.opt):{}; return o.f&&o.f.instaFont; }catch(e){ return null; } }).filter(Boolean))]; if(fonts.length&&w.ensureMenuFont) await Promise.all(fonts.map(x=>w.ensureMenuFont(x))); }catch(e){}
+  if(seq!==prevSeq) return;
   const cache={};
   for(const fr of frames){
     const key=fr.dataset.prev+'|'+(fr.dataset.opt||'');
