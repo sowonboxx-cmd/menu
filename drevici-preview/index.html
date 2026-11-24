@@ -10333,7 +10333,7 @@ function fitInstaOneLiners(html, holder, cfg){
     const re = /<div class="pdf-dish-line"><span class="pdf-dish-name">([\s\S]*?)<\/span>(?:<span class="pdf-dots(?:-off)?"><\/span>)?<span class="pdf-dish-price">([\s\S]*?)<\/span><\/div>/g;
     const floor = Math.round(menuSize*0.82); let best = menuSize;
     for(const mm of out.matchAll(re)){ if(/[\u2028\n]/.test(mm[1])) continue;
-      const need = widthOfName(mm[1], menuSize) + (mm[2].trim() ? widthOfName(mm[2], menuSize*1.25) + 14 : 0);
+      const need = widthOfName(mm[1], menuSize) + (mm[2].trim() ? widthOfName(mm[2], menuSize) + 14 : 0);
       if(need <= availM) continue; const sz = Math.floor(menuSize * availM / need); if(sz >= floor) best = Math.min(best, sz); }
     if(cfg.__measureOnly) return best;
     menuSize = cfg.__dishSize || best;
@@ -10352,14 +10352,14 @@ function fitInstaOneLiners(html, holder, cfg){
       }
       const fullW = widthOfName(nameInner, menuSize);
       // le prix compte aussi : nom + écart + prix doivent tenir dans la ligne
-      const priceW0 = priceInner.trim() ? widthOfName(priceInner, menuSize*1.25) + 14 : 0;
+      const priceW0 = priceInner.trim() ? widthOfName(priceInner, menuSize) + 14 : 0;
       if(fullW + priceW0 <= availM){
         return `<div class="pdf-dish-line"><span class="pdf-dish-name" style="font-size:${menuSize}px;white-space:nowrap">${nameInner}</span>${dotsInner}<span class="pdf-dish-price">${priceInner}</span></div>`;
       }
       // Deux lignes équilibrées (Will, 24/11/2026, comme le menu ouvert du site) : on coupe là où les deux lignes ont
       // la longueur la plus proche (prix compris sur la 2e), jamais un mot seul en bas ; si même ainsi ça dépasse,
       // les deux lignes rétrécissent ensemble (même taille), au lieu d'un nom écrasé sur une seule ligne.
-      const priceW = widthOfName(priceInner, menuSize*1.25);
+      const priceW = widthOfName(priceInner, menuSize);
       const gap = 14, pr = priceInner.trim() ? priceW + gap : 0;
       const words = nameInner.replace(/\u2028/g,' ').trim().split(/\s+/);
       let bk = 0, bm = Infinity;
@@ -10376,6 +10376,10 @@ function fitInstaOneLiners(html, holder, cfg){
       const line1 = words.slice(0,bk).join(' '), line2 = words.slice(bk).join(' ');
       return `<div class="pdf-dish-line-group"><div class="pdf-dish-line"><span class="pdf-dish-name" style="font-size:${sz}px;white-space:nowrap">${line1}</span></div><div class="pdf-dish-line pdf-dish-line-cont"><span class="pdf-dish-name" style="font-size:${sz}px;white-space:nowrap">${line2}</span>${dotsInner}<span class="pdf-dish-price">${priceInner}</span></div></div>`;
     });
+  // Prix et suppléments (« 16 », « +3 ») à la taille du nom du plat (Will, 24/11/2026) : ils ne doivent pas dépasser
+  // le texte ni les prix des sections, même quand la taille des plats a été réduite pour tout faire tenir.
+  out = out.replace(/(<span class="pdf-dish-name" style="font-size:(\d+)px[^"]*">(?:(?!pdf-dish-name)[\s\S])*?<\/span>(?:<span class="pdf-dots(?:-off)?"><\/span>)?)<span class="pdf-dish-price">/g,
+    (m, a, sz) => a + `<span class="pdf-dish-price" style="font-size:${Math.round(+sz * (cfg.pricePct||100)/100)}px">`);
   return out;
 }
 
