@@ -1447,6 +1447,7 @@ body.vz-off #vzBtn{display:none!important}
 .cvb{margin-top:4px}
 @media(max-width:899px){.fv.sheeton{--fvh:max(200px,calc(54vh - 170px))}}
 @media(min-width:900px){.fvs{left:auto;right:24px;top:84px;bottom:24px;width:380px;max-height:none;border-radius:20px}.fvs-gr{display:none}.fv.sheeton{padding-right:400px}}
+.fpr-cf{display:flex;align-items:center;gap:8px;flex-wrap:wrap;width:100%;justify-content:flex-end;font-size:14px;font-weight:600;color:var(--red,#c0392b)}.fpr-cf .btn{padding:8px 14px;min-height:0}
 </style>
 </head>
 <body>
@@ -2148,7 +2149,7 @@ function pageFormuleSec(){
   const ds=t.cards[0].dishes;
   return mtop('Les sections','fedit/'+id)+crumb([['Mes menus','menus'],[nm,'formule/'+id],['Sections','fedit/'+id],[esc(tr(t.label))||'Section']])+fvMini(f,!!f.ephemere)+
   `<div class="fe">${card('La section','plats',`<div class="frm">${fin('Nom de la section',tr(t.label),`f.${fi}.tabs.${si}.label`,'w').replace('<input','<input placeholder="Entrée"')}</div>
-   <div class="fpl">${ds.map((d,di)=>`<div class="fpr"><input class="in" value="${esc(tr(d.name))}" data-bind="f.${fi}.tabs.${si}.d.${di}.name" placeholder="Nom du plat"><input class="in pr" value="${esc(d.price||'')}" data-bind="f.${fi}.tabs.${si}.d.${di}.price" placeholder="Prix"><button class="mv" data-act="dMove" data-si="${si}" data-di="${di}" data-d="-1" title="Monter">↑</button><button class="mv" data-act="dMove" data-si="${si}" data-di="${di}" data-d="1" title="Descendre">↓</button><button class="trash" data-act="dDel" data-si="${si}" data-di="${di}" title="Retirer">✕</button></div>`).join('')||'<div class="empty">Aucun plat pour l’instant.</div>'}</div>
+   <div class="fpl">${ds.map((d,di)=>`<div class="fpr"><input class="in" value="${esc(tr(d.name))}" data-bind="f.${fi}.tabs.${si}.d.${di}.name" placeholder="Nom du plat"><input class="in pr" value="${esc(d.price||'')}" data-bind="f.${fi}.tabs.${si}.d.${di}.price" placeholder="Prix"><button class="mv" data-act="dMove" data-si="${si}" data-di="${di}" data-d="-1" title="Monter">↑</button><button class="mv" data-act="dMove" data-si="${si}" data-di="${di}" data-d="1" title="Descendre">↓</button>${UI.delc==='dish'+si+'_'+di?`<span class="fpr-cf">Retirer ce plat ?<button class="btn g" data-act="fDelNo">Non</button><button class="btn red" data-act="dDel" data-si="${si}" data-di="${di}">Oui</button></span>`:`<button class="trash" data-act="dDelAsk" data-si="${si}" data-di="${di}" title="Retirer">✕</button>`}</div>`).join('')||'<div class="empty">Aucun plat pour l’instant.</div>'}</div>
    <div class="fadd"><button class="btn" data-act="dAdd" data-si="${si}">${I('plus')}Ajouter un plat</button><select class="in sel" data-act="dImport" data-si="${si}"><option value="">ou reprendre un plat de la carte…</option>${dishOptions()}</select></div>
    <p class="note">Le prix est facultatif : laissez-le vide si le menu a un prix unique.</p>`)}
    <div class="fe-ft"><a class="btn" href="#/fedit/${id}">Terminé</a>${UI.delc==='sec'+si?`<span class="delc">Supprimer la section ?<button class="btn g" data-act="fDelNo">Annuler</button><button class="btn red" data-act="secDel" data-si="${si}">Oui, supprimer</button></span>`:`<button class="btn g" data-act="secDelAsk" data-si="${si}">Supprimer la section</button>`}</div></div>`;
@@ -4089,7 +4090,8 @@ document.addEventListener('click',async e=>{
     case 'dMove': { const ds=curF().tabs[+d.si].cards[0].dishes, i=+d.di, j=i+(+d.d); if(j>=0&&j<ds.length){ [ds[i],ds[j]]=[ds[j],ds[i]]; touch(true);} break; }
     case 'secMove': { const f=curF(); const i=+d.si, j=i+(+d.d); if(j>=0&&j<f.tabs.length){ [f.tabs[i],f.tabs[j]]=[f.tabs[j],f.tabs[i]]; touch(true);} break; }
     case 'dAdd': { const f=curF(); const s=f.tabs[+d.si]; if(!s.cards||!s.cards[0]) s.cards=[{label:{fr:''},dishes:[]}]; s.cards[0].dishes.push({name:{fr:''},desc:{fr:''},price:''}); touch(true); break; }
-    case 'dDel': { const f=curF(); f.tabs[+d.si].cards[0].dishes.splice(+d.di,1); touch(true); break; }
+    case 'dDelAsk': UI.delc='dish'+d.si+'_'+d.di; render(); break;
+    case 'dDel': { const f=curF(); f.tabs[+d.si].cards[0].dishes.splice(+d.di,1); UI.delc=null; touch(true); break; }
     case 'tunerV': UI.tunerV=d.v; render(); break;
     case 'tunerEl': UI.tunerEl=d.v; render(); break;
     case 'tunOpt': { UI.tunOpt=d.v||''; const op=TUN_OPTS.find(x=>x[0]===d.v); if(op&&op[2]!=null) UI.tunerEl=TUNER_FIELDS[op[2]][1]; render(); break; }
