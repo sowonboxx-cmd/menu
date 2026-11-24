@@ -2496,8 +2496,10 @@ body.hdr-light .adm-b-hdr{color:var(--navy)}
 .mdj-tx{display:block;min-width:0}.mdj-tx b{display:block;font:700 16.5px/1.15 'Playfair Display',serif;color:#8f3f1f}
 .mdj-tx em{display:block;font:italic 500 13px/1.3 'Playfair Display',serif;color:#8a7a5c;margin-top:1px}
 .mdj-px{display:flex;flex-direction:column;align-items:center;justify-content:center;align-self:center;margin-left:8px;padding-left:12px;border-left:1px solid #e4d6bf;text-align:center}
-.mdj-px small{font:italic 500 11.5px/1 'Playfair Display',serif;color:#8a7a5c;margin-bottom:3px}
-.mdj-px strong{font:700 19px/1 'Playfair Display',serif;color:#8f3f1f;white-space:nowrap}
+.mdj-px small{font:italic 500 11px/1 'Playfair Display',serif;color:#8a7a5c;margin-bottom:3px}
+.mdj-px strong{font:700 16px/1 'Playfair Display',serif;color:#8f3f1f;white-space:nowrap}
+.mdj-list{display:flex;flex-direction:column;gap:8px;width:min(400px,calc(100% - 32px));margin:14px auto 0}.mdj-list .mdj-card{margin:0;width:100%;max-width:none}
+.mdj-card.nosep .mdj-px{border-left:0;padding-left:4px}.mdj-tx{flex:1}
 .mdj-ch{flex:none;width:17px;height:17px;color:#8f3f1f}
 .mdj-sheet{position:fixed;inset:0;z-index:9999;background:#0e0d0c;display:flex;flex-direction:column;animation:mdjIn .25s ease}
 @keyframes mdjIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
@@ -5398,42 +5400,54 @@ function stopHomeCoverSlideshow(){
 }
 
 // ══ Menu du jour sur l'accueil (Will, 24/11/2026, maquette C) ══
-// Le menu du jour coché « En ligne » dans l'admin apparaît sous les horaires : miniature, titre, ligne de description
-// et prix (« dès 30 € » quand le menu a plusieurs prix). Au toucher, il s'ouvre en grand avec « Réserver ».
-function mdjHomeF(){ return (DATA.formules||[]).find(f=>f&&f.online&&f.ephemere&&f.tabs&&f.tabs.length) || null; }
+// Chaque menu coché « Mis en avant sur l'accueil » dans l'admin a sa vignette sous les horaires (autant qu'on veut) :
+// miniature, titre, texte et prix (« dès 30 € » quand le menu a plusieurs prix). Au toucher, il s'ouvre en grand avec « Réserver ».
+// f.card (admin, « Vignette sur l'accueil ») : title / sub / price = texte perso (vide = automatique) ; noImg / noSub / noPrice / noSep = masquer.
+function mdjHomeFs(){ return (DATA.formules||[]).filter(f=>f&&f.online&&f.tabs&&f.tabs.length); }
 function mdjPrice(f){
   const t=String(f.freeText||'')+' '+String(f.price||'');
   const n=[...t.matchAll(/(\d+(?:[.,]\d{1,2})?)\s*€/g)].map(m=>parseFloat(m[1].replace(',','.'))).filter(x=>x>0);
   if(!n.length) return null;
   const mn=Math.min(...n), fmt=x=>String(x).replace('.',',');
-  return { des: new Set(n).size>1, v: fmt(mn)+' €' };
+  return { des: new Set(n).size>1, v: fmt(mn)+' €' };
 }
 function mdjSub(f){
-  const first=String(f.freeText||'').split(/\n|<br\s*\/?>/i)[0].split(/\s[—–-]\s|\s*\d/)[0].replace(/[,\s]+$/,'').trim();
+  const first=String(f.freeText||'').split(/\n|<br\s*\/?>/i)[0].split(/\s[—–-]\s|\s*\d/)[0].replace(/[,\s:]+$/,'').trim();
   if(first) return first.replace(/\s*&\s*/g,', ').replace(/^./,c=>c.toUpperCase());
   const names=(f.tabs||[]).map(t=>String((t.label&&(t.label.fr||t.label))||'')).filter(Boolean);
   const pick=[]; if(names.some(x=>/entr/i.test(x))) pick.push('entrée'); if(names.some(x=>/plat/i.test(x))) pick.push('plat'); if(names.some(x=>/dessert/i.test(x))) pick.push('dessert');
   return pick.length?pick.join(', ').replace(/^./,c=>c.toUpperCase()):'';
+}
+function mdjTitle(f){ const c=f.card||{}, en=lang==='en'; if(c.title) return c.title; return f.ephemere?(en?"Today's menu":'Menu du jour'):(f.title||f.name||'Menu'); }
+function mdjPriceOf(f){
+  const c=f.card||{};
+  if(c.price){ const m=String(c.price).trim().match(/^(dès|des|from|à partir de)\s+(.+)$/i); return m?{des:true,v:m[2].replace(/\s*€$/,' €'),lab:m[1]}:{des:false,v:String(c.price).trim().replace(/(\d)\s*€$/,'$1 €')}; }
+  return mdjPrice(f);
 }
 function mdjDoc(f){
   try{ const cfg=formule_buildCfg(f,'a4'); const b=buildFormulePage(cfg,INSTA_A4_RATIO); const p=b.pages[0]; if(!p) return '';
     return buildPreviewSlideDoc(b.css,p.html,p.spaceScale,INSTA_RENDER_W,Math.round(INSTA_RENDER_W*INSTA_A4_RATIO)); }catch(e){ console.error(e); return ''; }
 }
 function mdjCardHtml(){
-  const f=mdjHomeF(); if(!f) return '';
-  const pr=mdjPrice(f), sub=mdjSub(f), en=lang==='en';
-  return `<button type="button" class="mdj-card" onclick="openMdjSheet()"><span class="mdj-th" aria-hidden="true"><iframe tabindex="-1" loading="lazy" srcdoc="${escAttr(mdjDoc(f))}"></iframe></span>`+
-    `<span class="mdj-tx"><b>${en?"Today's menu":'Menu du jour'}</b>${sub?`<em>${escapeHtmlLocal(sub)}</em>`:''}</span>`+
-    (pr?`<span class="mdj-px">${pr.des?`<small>${en?'from':'dès'}</small>`:''}<strong>${escapeHtmlLocal(pr.v)}</strong></span>`:'')+
-    `<svg class="mdj-ch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>`;
+  const fs=mdjHomeFs(); if(!fs.length) return '';
+  const en=lang==='en';
+  return `<div class="mdj-list">`+fs.map(f=>{
+    const c=f.card||{}, pr=c.noPrice?null:mdjPriceOf(f), sub=c.noSub?'':(c.sub||mdjSub(f));
+    return `<button type="button" class="mdj-card${c.noSep?' nosep':''}" onclick="openMdjSheet('${escAttr(String(f.id))}')">`+
+      (c.noImg?'':`<span class="mdj-th" aria-hidden="true"><iframe tabindex="-1" loading="lazy" srcdoc="${escAttr(mdjDoc(f))}"></iframe></span>`)+
+      `<span class="mdj-tx"><b>${escapeHtmlLocal(mdjTitle(f))}</b>${sub?`<em>${escapeHtmlLocal(sub)}</em>`:''}</span>`+
+      (pr?`<span class="mdj-px">${pr.des?`<small>${escapeHtmlLocal(pr.lab||(en?'from':'dès'))}</small>`:''}<strong>${escapeHtmlLocal(pr.v)}</strong></span>`:'')+
+      `<svg class="mdj-ch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>`;
+  }).join('')+`</div>`;
 }
-function openMdjSheet(){
-  const f=mdjHomeF(); if(!f) return; const en=lang==='en';
+function openMdjSheet(id){
+  const fs=mdjHomeFs(); const f=fs.find(x=>String(x.id)===String(id))||fs[0]; if(!f) return; const en=lang==='en';
   const hc=DATA.homeCover||{}; const book=(!hc.cta2Url||/github\.io|\/resa(\.html)?$/.test(hc.cta2Url))?'book':hc.cta2Url;
-  const d=new Date().toLocaleDateString(en?'en-GB':'fr-FR',{weekday:'long',day:'numeric',month:'long'});
-  const el=document.createElement('div'); el.className='mdj-sheet'; el.setAttribute('role','dialog'); el.setAttribute('aria-label',en?"Today's menu":'Menu du jour');
-  el.innerHTML=`<div class="mdj-sh"><span><b>${en?"TODAY'S MENU":'MENU DU JOUR'}</b><small>${escapeHtmlLocal(d.replace(/^./,c=>c.toUpperCase()))}</small></span><button type="button" class="mdj-x" aria-label="${en?'Close':'Fermer'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>`+
-    `<div class="mdj-body"><div class="mdj-page"><iframe title="${en?"Today's menu":'Menu du jour'}" srcdoc="${escAttr(mdjDoc(f))}"></iframe></div></div>`+
+  const t=mdjTitle(f);
+  const d=f.ephemere?new Date().toLocaleDateString(en?'en-GB':'fr-FR',{weekday:'long',day:'numeric',month:'long'}).replace(/^./,c=>c.toUpperCase()):'';
+  const el=document.createElement('div'); el.className='mdj-sheet'; el.setAttribute('role','dialog'); el.setAttribute('aria-label',t);
+  el.innerHTML=`<div class="mdj-sh"><span><b>${escapeHtmlLocal(t.toUpperCase())}</b>${d?`<small>${escapeHtmlLocal(d)}</small>`:''}</span><button type="button" class="mdj-x" aria-label="${en?'Close':'Fermer'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>`+
+    `<div class="mdj-body"><div class="mdj-page"><iframe title="${escAttr(t)}" srcdoc="${escAttr(mdjDoc(f))}"></iframe></div></div>`+
     `<div class="mdj-bar"><a class="mdj-res" href="${escAttr(book)}">${en?'BOOK A TABLE':'RÉSERVER'}</a><button type="button" class="mdj-all">${en?'See the full menu':'Voir toute la carte'}</button></div>`;
   const close=()=>{ el.remove(); document.documentElement.style.overflow=''; };
   el.querySelector('.mdj-x').onclick=close;

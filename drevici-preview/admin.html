@@ -1421,6 +1421,11 @@ body.vz-off #vzBtn{display:none!important}
 .fv-pk{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 2px 0;font-size:13px;color:var(--mut)}
 .spin{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;animation:fvsp .8s linear infinite;display:inline-block}
 @keyframes fvsp{to{transform:rotate(360deg)}}
+.fv-opt.cv{display:block}.fv-opt.cv>span small{display:block}
+.cv-g+.cv-g{align-items:center}
+.cv-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 18px;margin-top:12px;align-items:end}
+.cv-f{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--mut)}.cv-f input{font:inherit;font-size:15px;color:var(--ink,#111);border:1px solid var(--line,#ddd);border-radius:10px;padding:9px 10px;background:transparent}
+.cv-t{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px;padding:6px 2px}
 </style>
 </head>
 <body>
@@ -1900,16 +1905,30 @@ function mdjMigrate(){ const sp=jour(); if(DATA.mdjMig||!sp) return; DATA.mdjMig
   const F=jourAsFormule(sp), id='formule-'+Date.now(); DATA.formules.push(Object.assign({},F,{id,name:tr(sp.title)||'Menu du jour',ephemere:true,online:!!sp.active,onlineAt:sp.active?Date.now():undefined},sp.style||{})); touch(false); }
 const fDate=t=>{ if(!t) return ''; const d=new Date(t); return d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}); };
 const FCHK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+
+// ══ Vignette de l'accueil (Will, 24/11/2026) : ce qu'affiche le site quand le menu est mis en avant ══
+// Vide = automatique (titre « Menu du jour » ou titre du menu, 1re ligne du texte sous le titre, prix le plus bas).
+function cardAutoTitle(f){ return f.ephemere?'Menu du jour':(f.title||f.name||'Menu'); }
+function cardAutoSub(f){ const first=String(f.freeText||'').split(/\n|<br\s*\/?>/i)[0].split(/\s[—–-]\s|\s*\d/)[0].replace(/[,\s:]+$/,'').trim(); return first?first.replace(/\s*&\s*/g,', ').replace(/^./,c=>c.toUpperCase()):''; }
+function cardAutoPrice(f){ const n=[...String(f.freeText||'').matchAll(/(\d+(?:[.,]\d{1,2})?)\s*€/g)].map(m=>parseFloat(m[1].replace(',','.'))).filter(x=>x>0); if(!n.length) return ''; const mn=String(Math.min(...n)).replace('.',','); return (new Set(n).size>1?'dès ':'')+mn+' €'; }
+function cardOpts(f){
+  const i=DATA.formules.indexOf(f), c=f.card||{};
+  const inp=(k,ph,lab)=>`<label class="cv-f"><span>${lab}</span><input data-bind="f.${i}.card.${k}" value="${esc(c[k]||'')}" placeholder="${esc(ph||'—')}"></label>`;
+  const sw=(k,lab)=>`<div class="cv-t"><span>${lab}</span>${tgl(!c[k],'fCard',`data-k="${k}"`)}</div>`;
+  return `<div class="fv-opt cv"><span>Vignette sur l’accueil<small>Laissez un champ vide pour le texte automatique (en gris).</small></span>
+    <div class="cv-g">${inp('title',cardAutoTitle(f),'Titre')}${inp('sub',cardAutoSub(f),'Texte')}${inp('price',cardAutoPrice(f),'Prix')}</div>
+    <div class="cv-g">${sw('noImg','Miniature du menu')}${sw('noSub','Texte')}${sw('noPrice','Prix')}${sw('noSep','Trait de séparation')}</div></div>`;
+}
 function pageMenus(){
   mdjMigrate();
   const fs=DATA.formules.slice().sort((a,b)=>(b.online?1:0)-(a.online?1:0)||(b.usedAt||b.onlineAt||0)-(a.usedAt||a.onlineAt||0));
   const row=f=>{ const id=encodeURIComponent(f.id), nm=esc(f.name||f.title||'(sans nom)');
-    const sub=[f.ephemere?'Menu du jour':'Menu', f.online?'<span class="ok">En ligne sur le site</span>':'', f.usedAt?'Partagé le '+fDate(f.usedAt):''].filter(Boolean).join(' · ');
-    return `<div class="mnr${f.online?' on':''}"><a class="mnr-a" href="#/formule/${id}"><b>${nm}</b><small>${sub}</small></a>${f.ephemere?`<button type="button" class="mnr-c${f.online?' on':''}" data-act="fOnline" data-id="${esc(f.id)}" aria-label="${f.online?'Retirer du site':'Mettre en ligne'}" title="${f.online?'En ligne : touchez pour le retirer du site':'Mettre en ligne comme menu du jour'}">${FCHK}</button>`:''}<span class="chev">›</span></div>`; };
+    const sub=[f.ephemere?'Menu du jour':'Menu', f.online?'<span class="ok">Mis en avant sur l’accueil</span>':'', f.usedAt?'Partagé le '+fDate(f.usedAt):''].filter(Boolean).join(' · ');
+    return `<div class="mnr${f.online?' on':''}"><a class="mnr-a" href="#/formule/${id}"><b>${nm}</b><small>${sub}</small></a><button type="button" class="mnr-c${f.online?' on':''}" data-act="fOnline" data-id="${esc(f.id)}" aria-label="${f.online?'Retirer de l’accueil':'Mettre en avant sur l’accueil'}" title="${f.online?'Mis en avant sur l’accueil : touchez pour le retirer':'Mettre en avant sur l’accueil du site'}">${FCHK}</button><span class="chev">›</span></div>`; };
   return mtop('Tableau de bord','dash')+crumb([['Mes menus']])+`<div class="mn">
    <a class="btn mn-new" href="#/fnew">${I('plus')}Créer un menu</a>
    <div class="mnl">${fs.length?fs.map(row).join(''):'<div class="empty">Aucun menu pour l’instant.</div>'}</div>
-   <p class="note">Un menu du jour coché <b>En ligne</b> s’affiche sur le site comme menu du jour (un seul à la fois). Préparez-les à l’avance : le jour venu, cochez-le ou partagez-le.</p>
+   <p class="note">Un menu coché est <b>mis en avant sur l’accueil</b> du site : une vignette sous les horaires, qui ouvre le menu en grand avec « Réserver ». Vous pouvez en cocher plusieurs. Le titre, le texte et le prix de la vignette se règlent sur la page du menu.</p>
    <a class="mnr mnr-mod" href="#/modeles"><span class="mnr-a"><b>Mes modèles</b><small>Les styles de vos menus : couleurs, police, tailles</small></span><span class="chev">›</span></a></div>`;
 }
 // Créer un menu : en partant d'un menu existant (le plus courant), ou vide
@@ -1956,7 +1975,7 @@ function pageFormule(){
   const f=findF(ARG); if(!f) return mtop('Mes menus','menus')+'<div class="empty">Ce menu n\'existe plus. <a class="lk" href="#/menus">Retour</a></div>';
   const id=encodeURIComponent(f.id); modelSync(f);
   const del=UI.delc===f.id?`<div class="fv-delc"><b>Supprimer « ${esc(f.name||f.title||'ce menu')} » ?</b><span>Il disparaît du site et de vos menus. Ça ne peut pas être annulé.</span><div><button class="btn g" data-act="fDelNo">Non, le garder</button><button class="btn red" data-act="fDelYes">Oui, supprimer</button></div></div>`:`<button type="button" class="fv-delb" data-act="fDelAsk">${I('trash')}Supprimer ce menu</button>`;
-  return mtop('Mes menus','menus')+crumb([['Mes menus','menus'],[esc(f.name||f.title||'(sans nom)')]])+fvView({f,del,opts:`<div class="fv-opt"><span>Cadre</span>${segb(FRAMES,f.frame||f.frameStyle||'simple','fFrame')}</div><div class="fv-opt"><span>QR code « Voir les plats en image »<small>En bas de l’A5, vers votre carte en photos</small></span>${tgl(!!f.qrPhotos,'fQr')}</div>`,eph:!!f.ephemere,right:f.ephemere?`<span class="fv-onl">${tgl(f.online,'fOnline')}<span class="onl" style="color:${f.online?'var(--ok)':'var(--mut)'}">${f.online?'En ligne sur le site':'Pas en ligne'}</span></span>`:'',nm:esc(f.name||f.title||'(sans nom)'),model:modelOf(f),mod:'#/fmod/'+id,edit:'#/fedit/'+id,
+  return mtop('Mes menus','menus')+crumb([['Mes menus','menus'],[esc(f.name||f.title||'(sans nom)')]])+fvView({f,del,opts:`<div class="fv-opt"><span>Cadre</span>${segb(FRAMES,f.frame||f.frameStyle||'simple','fFrame')}</div><div class="fv-opt"><span>QR code « Voir les plats en image »<small>En bas de l’A5, vers votre carte en photos</small></span>${tgl(!!f.qrPhotos,'fQr')}</div>${cardOpts(f)}`,eph:!!f.ephemere,right:`<span class="fv-onl">${tgl(f.online,'fOnline')}<span class="onl" style="color:${f.online?'var(--ok)':'var(--mut)'}">${f.online?'Mis en avant sur l’accueil':'Pas sur l’accueil'}</span></span>`,nm:esc(f.name||f.title||'(sans nom)'),model:modelOf(f),mod:'#/fmod/'+id,edit:'#/fedit/'+id,
     ex:['Passe l’entrée à 11 €','Change les dates : du 23 au 29 novembre','Remplace le dessert par une tarte aux pommes']});
 }
 function fvView(o){
@@ -3704,6 +3723,7 @@ const badgeRow=(d,ti,ci,di)=>`<div class="bdg">${BADGES.map(([k,l,e])=>`<button 
 function setByBind(path,val){
   const p=path.split('.');
   if(p[0]==='jour'){ const sp=jour(); if(p[1]==='items'){ sp.items[+p[2]][p[3]]=val; jourSync(sp); } else if(p[1]==='title'){ sp.title=setTr(sp.title,val); } else sp[p[1]]=val; return; }
+  if(p[0]==='f'&&p[2]==='card'){ const f=DATA.formules[+p[1]]; f.card=f.card||{}; if(val.trim()) f.card[p[3]]=val; else delete f.card[p[3]]; return; }
   if(p[0]==='f'){ const f=DATA.formules[+p[1]]; if(p[2]==='title'){ f.title=val; f.name=val; return; } if(p[2]==='freeText'){ f.freeText=val; return; } if(p[2]==='footNote'){ f.footNote=val; return; }
     if(p[2]==='tabs'){ const s=f.tabs[+p[3]]; if(p[4]==='label'){ s.label=setTr(s.label,val); return; } if(p[4]==='d'){ const d=s.cards[0].dishes[+p[5]]; if(p[6]==='price') d.price=val; else d[p[6]]=setTr(d[p[6]],val); } } return; }
   if(p[0]==='tab'){ const t=DATA.tabs[+p[1]]; if(p[2]==='label'){ t.label=setTr(t.label,val); return; } const c=t.cards[+p[3]]; if(p[4]==='label'){ c.label=setTr(c.label,val); return; } const d=c.dishes[+p[5]]; if(p[6]==='price') d.price=val;
@@ -3971,7 +3991,8 @@ document.addEventListener('click',async e=>{
     case 'fFrame': { const f=curF(); if(!f) break; f.frame=d.v; touch(true); break; }
     case 'fQr': { const f=curF(); if(!f) break; if(f.qrPhotos) delete f.qrPhotos; else f.qrPhotos=true; UI.fSlide=0; touch(true); break; }
     case 'tunerFrame': { const T=tunerTarget(); if(T.model) T.obj.frameStyle=d.v; else T.obj.frame=d.v; touch(true); break; }
-    case 'fOnline': { const f=findF(d.id)||curF(); if(!f||!f.ephemere) break; if(f.online){ delete f.online; const sp=jour(); if(sp) sp.active=false; toast('Retiré du site'); } else { DATA.formules.forEach(x=>delete x.online); f.online=true; f.onlineAt=Date.now(); jourPush(); toast('En ligne : c’est le menu du jour du site'); } touch(true); break; }
+    case 'fOnline': { const f=findF(d.id)||curF(); if(!f) break; if(f.online){ delete f.online; if(f.ephemere&&!fOnlineF()){ const sp=jour(); if(sp) sp.active=false; } else if(f.ephemere) jourPush(); toast('Retiré de l’accueil'); } else { f.online=true; f.onlineAt=Date.now(); if(f.ephemere) jourPush(); toast('Mis en avant sur l’accueil du site'); } touch(true); break; }
+    case 'fCard': { const f=curF(); if(!f) break; f.card=f.card||{}; const k=d.k; if(f.card[k]) delete f.card[k]; else f.card[k]=true; touch(true); break; }
     case 'fDup': { const src=findF(d.id); if(!src) break; if(DATA.formules.length>=30) DATA.formules.shift(); const c=JSON.parse(JSON.stringify(src)), id='formule-'+Date.now(); c.id=id; delete c.online; delete c.onlineAt; delete c.usedAt; c.name=(src.name||src.title||'Menu')+' (copie)'; (c.tabs||[]).forEach((t,k)=>t.id=id+'-cat'+(k+1)); DATA.formules.push(c); touch(false); go('formule/'+encodeURIComponent(id)); toast('Menu copié'); break; }
     case 'fAdd': { if(DATA.formules.length>=30) DATA.formules.shift(); const id='formule-'+Date.now(); DATA.formules.push({id,name:'Nouveau menu',title:'Nouveau menu',freeText:'',catCase:'upper',nameCase:'upper',descCase:'lower',tabs:['Entrée','Plat','Dessert'].map((n,k)=>({id:id+'-cat'+(k+1),label:{fr:n},cards:[{label:{fr:''},dishes:[]}]}))}); touch(false); go('fedit/'+encodeURIComponent(id)); break; }
     case 'fDelAsk': UI.delc=ARG; render(); setTimeout(()=>{ const x=document.querySelector('.fv-delc'); if(x) x.scrollIntoView({block:'center',behavior:'smooth'}); },60); break;
