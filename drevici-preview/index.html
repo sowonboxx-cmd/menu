@@ -8533,8 +8533,13 @@ function formule_buildPreamble(f, cfg){
     if(parts.length < 3) return txt;
     return parts.slice(0,-2).join(' ') + ' ' + parts.slice(-2).join(' ');
   };
-  const subHtml = f.freeText
-    ? f.freeText.split('\n').map(noOrphan).join('<br>')
+  // Lignes de prix (Will, 24/11/2026) : jamais plus de 2 lignes — la 1re seule
+  // (« Entrée, plat & dessert — 40 € »), les suivantes ensemble sur la 2e
+  // (« Entrée & plat — 35 € · Plat & dessert — 30 € »). Chaque formule reste d'un bloc.
+  const ftLines = String(f.freeText||'').split('\n').map(x=>x.trim()).filter(Boolean);
+  const ftSeg = x => `<span style="white-space:nowrap">${noOrphan(x)}</span>`;
+  const subHtml = ftLines.length
+    ? ftSeg(ftLines[0]) + (ftLines.length>1 ? '<br>' + ftLines.slice(1).map(ftSeg).join(' · ') : '')
     : '';
   // Uniquement sur l'A4 : c'est la seule sortie qui quitte le
   // restaurant. Centre en tete de page, au-dessus du titre — c'est le
