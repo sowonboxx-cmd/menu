@@ -1621,7 +1621,7 @@ const ENGINE_HELPERS=`window.__prev=function(kind,o){o=o||{};
 window.__printDoc=function(){const cfg=pdfCfg();const css=buildPdfCSS(cfg);const pages=paginatePdfPages(cfg);const rn=getRestaurantName()||'Menu';
   const ph=pages.map((p,i)=>'<div class="pdf-page" style="'+(i<pages.length-1?'page-break-after:always;break-after:page;':'')+(p.spaceScale&&p.spaceScale!==1?'--space-scale:'+p.spaceScale+';':'')+(i>0?'--top-pad-trim:5px;':'')+'">'+p.html+'</div>').join('');
   return '<!DOCTYPE html><html><head><link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Lovelo:wght@400;700&family=Open+Sans:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><meta charset="UTF-8"><title>'+rn+'</title><style>'+css+'</style></head><body>'+ph+'</body></html>';};
-window.__fonts=function(){return INSTA_FONT_OPTIONS.slice();};
+window.__fonts=function(){return INSTA_FONT_OPTIONS.slice();};window.__fontLabel=function(f){return instaFontLabel(f);};
 window.__tabsMeta=function(){return DATA.tabs.map(t=>({id:t.id,label:(t.label&&t.label.fr)||t.id,bevs:(t.cards||[]).some(c=>c.type==='bevs')}));};`;
 async function eng(){
   const w=await engine();
@@ -1910,7 +1910,7 @@ const FCHK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-wi
 // Vide = automatique (titre « Menu du jour » ou titre du menu, 1re ligne du texte sous le titre, prix le plus bas).
 function cardAutoTitle(f){ return f.ephemere?'Menu du jour':(f.title||f.name||'Menu'); }
 function cardAutoSub(f){ const first=String(f.freeText||'').split(/\n|<br\s*\/?>/i)[0].split(/\s[—–-]\s|\s*\d/)[0].replace(/[,\s:]+$/,'').trim(); return first?first.replace(/\s*&\s*/g,', ').replace(/^./,c=>c.toUpperCase()):''; }
-function cardAutoPrice(f){ const n=[...String(f.freeText||'').matchAll(/(\d+(?:[.,]\d{1,2})?)\s*€/g)].map(m=>parseFloat(m[1].replace(',','.'))).filter(x=>x>0); if(!n.length) return ''; const mn=String(Math.min(...n)).replace('.',','); return (new Set(n).size>1?'dès ':'')+mn+' €'; }
+function cardAutoPrice(f){ const n=[...String(f.freeText||'').matchAll(/(\d+(?:[.,]\d{1,2})?)\s*€/g)].map(m=>parseFloat(m[1].replace(',','.'))).filter(x=>x>0); if(!n.length) return ''; const mn=String(Math.min(...n)).replace('.',','); return (new Set(n).size>1?'dès ':'')+mn+'€'; }
 function cardOpts(f){
   const i=DATA.formules.indexOf(f), c=f.card||{};
   const inp=(k,ph,lab)=>`<label class="cv-f"><span>${lab}</span><input data-bind="f.${i}.card.${k}" value="${esc(c[k]||'')}" placeholder="${esc(ph||'—')}"></label>`;
@@ -1975,7 +1975,7 @@ function pageFormule(){
   const f=findF(ARG); if(!f) return mtop('Mes menus','menus')+'<div class="empty">Ce menu n\'existe plus. <a class="lk" href="#/menus">Retour</a></div>';
   const id=encodeURIComponent(f.id); modelSync(f);
   const del=UI.delc===f.id?`<div class="fv-delc"><b>Supprimer « ${esc(f.name||f.title||'ce menu')} » ?</b><span>Il disparaît du site et de vos menus. Ça ne peut pas être annulé.</span><div><button class="btn g" data-act="fDelNo">Non, le garder</button><button class="btn red" data-act="fDelYes">Oui, supprimer</button></div></div>`:`<button type="button" class="fv-delb" data-act="fDelAsk">${I('trash')}Supprimer ce menu</button>`;
-  return mtop('Mes menus','menus')+crumb([['Mes menus','menus'],[esc(f.name||f.title||'(sans nom)')]])+fvView({f,del,opts:`<div class="fv-opt"><span>Cadre</span>${segb(FRAMES,f.frame||f.frameStyle||'simple','fFrame')}</div><div class="fv-opt"><span>QR code « Voir les plats en image »<small>En bas de l’A5, vers votre carte en photos</small></span>${tgl(!!f.qrPhotos,'fQr')}</div>${cardOpts(f)}`,eph:!!f.ephemere,right:`<span class="fv-onl">${tgl(f.online,'fOnline')}<span class="onl" style="color:${f.online?'var(--ok)':'var(--mut)'}">${f.online?'Mis en avant sur l’accueil':'Pas sur l’accueil'}</span></span>`,nm:esc(f.name||f.title||'(sans nom)'),model:modelOf(f),mod:'#/fmod/'+id,edit:'#/fedit/'+id,
+  return mtop('Mes menus','menus')+crumb([['Mes menus','menus'],[esc(f.name||f.title||'(sans nom)')]])+fvView({f,del,opts:`<div class="fv-opt"><span>Cadre</span>${segb(FRAMES,f.frame||f.frameStyle||'simple','fFrame')}</div><div class="fv-opt"><span>QR code « Voir les plats en image »<small>En bas de l’A5, vers votre carte en photos</small></span>${tgl(!!f.qrPhotos,'fQr')}</div><div class="fv-opt"><span>Prix des sections<small>« ENTRÉE – 12€ », « ENTRÉE (12€) »…</small></span>${segb([['dash','Tiret'],['paren','Parenthèses'],['none','Sans'],['dot','Point']],f.secStyle||'dash','fSec')}</div>${cardOpts(f)}`,eph:!!f.ephemere,right:`<span class="fv-onl">${tgl(f.online,'fOnline')}<span class="onl" style="color:${f.online?'var(--ok)':'var(--mut)'}">${f.online?'Mis en avant sur l’accueil':'Pas sur l’accueil'}</span></span>`,nm:esc(f.name||f.title||'(sans nom)'),model:modelOf(f),mod:'#/fmod/'+id,edit:'#/fedit/'+id,
     ex:['Passe l’entrée à 11 €','Change les dates : du 23 au 29 novembre','Remplace le dessert par une tarte aux pommes']});
 }
 function fvView(o){
@@ -2094,14 +2094,17 @@ function pageTuner(){
   const v=UI.tunerV, others=['a4','post','story'].filter(x=>x!==v);
   const cls=x=>x==='a4'?'pv-a4':x==='post'?'pv-po':'pv-st';
   const pct=o[fld[1]]??100, stepI=Math.max(0,STEPS.indexOf(STEPS.reduce((b,s)=>Math.abs(s-pct)<Math.abs(b-pct)?s:b,100)));
-  const fonts=(ENGFONTS||[]).map(x=>`<option ${x===(o.instaFont||'')?'selected':''}>${esc(x)}</option>`).join('');
+  const fonts=fontOpts(o.instaFont||'');
   return `<div class="tun"><div class="tun-top"><a class="x" href="#/${T.back}" aria-label="Fermer">✕</a>${T.model?`<input class="in tun-nm" value="${esc(T.model.name)}" data-act="modName" aria-label="Nom du modèle">`:`<b>${esc(T.label)} · réglages précis</b>`}<span class="sp"></span>
     ${T.model?`<a class="btn" href="#/modele/${encodeURIComponent(T.model.id)}">Terminé</a>`:`${btn('Télécharger A4','share','w','data-act="tunerDl" data-v="a4"')}${btn(tbMobShare()?'Partager le post':'Télécharger Post','share','w','data-act="tunerDl" data-v="post"')}${btn(tbMobShare()?'Partager la story':'Télécharger Story','share','','data-act="tunerDl" data-v="story"')}`}</div>
    <div class="tun-body"><div class="tun-stage"><div class="tun-track" id="tunTrack">${[['a4','A5','pv-a4','794/1123'],['post','Post Instagram','pv-po','4/5'],['story','Story Instagram','pv-st','9/16']].map(([k,l,c,r])=>`<div class="tun-sl"><div class="tun-doc" style="aspect-ratio:${r}">${pvFrame('formule',0,c,{f:T.f,variant:k}).replace('class="pv-frame','style="width:100%;height:100%;background:#fff" class="pv-frame')}</div><small>${l}</small></div>`).join('')}</div>
      <div class="tun-dots">${['a4','post','story'].map((k,i)=>`<i data-act="tunGo" data-i="${i}" class="${(UI.tunI||0)===i?'on':''}"></i>`).join('')}<button type="button" class="tun-full" data-act="bigOpen">${FV_FULL}Agrandir</button></div></div>${UI.big?bigView(T.f,UI.tunI||0):''}
    <aside class="tun-tools">${tunTools(T,o,fonts)}   </aside></div></div>`;
 }
-let ENGFONTS=null;
+let ENGFONTS=null, ENGFONTLBL=null;
+// Libellé lisible d'une police (« Archivo étroite ») ; la liste garde la police actuelle du menu même si elle n'est plus proposée.
+const fontLbl=x=>{ try{ return ENGFONTLBL?ENGFONTLBL(x):x; }catch(e){ return x; } };
+const fontOpts=(cur,withEmpty)=>{ const L=(ENGFONTS||[]).slice(); if(cur&&!L.includes(cur)) L.unshift(cur); return L.map(x=>`<option value="${esc(x)}" ${x===cur?'selected':''}>${esc(fontLbl(x))}</option>`).join(''); };
 function tunTools(T,o,fonts){
   const fmt=`<div class="tt-fmt">${segb([['0','A5'],['1','Post'],['2','Story']],UI.tunI||0,'tunGo')}</div>`;
   const opts=TUN_OPTS.filter(x=>!(x[0]==='casse'&&T.model)&&!(x[0]==='fond'&&!T.model));
@@ -2156,7 +2159,7 @@ function pageXinsta(){
   const bevTabs=DATA.tabs.filter(t=>(t.cards||[]).some(c=>c.type==='bevs'));
   return mtop('Exporter','export')+crumb([['Ma carte','carte'],['Exporter','export'],['Instagram']])+ph('Instagram','Une image par catégorie · '+(v==='story'?'Story 9:16 (1080 × 1920)':'Post 4:5 (1080 × 1350)'),`<div class="seg big">${[['story','Story'],['post','Post']].map(([x,l])=>`<button type="button" data-act="igf" data-v="${x}" class="${v===x?'on':''}">${l}</button>`).join('')}</div>${btn(v==='story'?'Télécharger les stories':'Télécharger les posts','share','',`data-act="insta" data-v="${v}"`)}`)+
   `<div class="xsplit"><div class="stage s"><div class="pvs grid-st">${pages}</div></div><aside class="panel">
-   ${card('Police','edit',`<select class="in" data-act="igFont">${(ENGFONTS||[p.instaFont||'Playfair Display']).map(x=>`<option ${x===(p.instaFont||'Playfair Display')?'selected':''}>${esc(x)}</option>`).join('')}</select><small class="muted2">La même pour la story et le post.</small>`)}
+   ${card('Police','edit',`<select class="in" data-act="igFont">${ENGFONTS?fontOpts(p.instaFont||'Playfair Display'):`<option>${esc(p.instaFont||'Playfair Display')}</option>`}</select><small class="muted2">La même pour la story et le post.</small>`)}
    ${card('Tailles · '+(v==='story'?'Story':'Post'),'pres',sizes+`<small class="muted2">Réglées à part pour ${v==='story'?'la story (plus haute, plus de place)':'le post'}.</small>`)}
    ${card('Page de garde','acc',`<div class="lgbox"><div class="lgsw" style="width:54px;height:96px;border-radius:8px;overflow:hidden;background:#F2F2F5">${p.instaCover?`<img src="${esc(p.instaCover)}" style="width:100%;height:100%;object-fit:cover">`:''}</div><div><label class="lk" style="cursor:pointer">${p.instaCover?'Changer l\'image':'Ajouter une page de garde'}<input type="file" accept="image/*" data-act="igCover" hidden></label>${p.instaCover?'<br><button class="lk muted" data-act="igCoverDel">Retirer</button>':''}<small class="muted2">Une image « Menu » faite pour ce restaurant, en 1080 × 1920. Elle passe en premier dans la story et le post (recadrée au centre). Sans image, pas de page de garde.</small></div></div>`)}
    ${bevTabs.length?card('Boissons','spe',bevTabs.map(t=>opt('Inclure « '+esc(tr(t.label))+' »',!!t.instaIncludeBevs,'igBev',`data-id="${esc(t.id)}"`,'Exclues par défaut')).join('')):''}</aside></div>`;
@@ -3989,6 +3992,7 @@ document.addEventListener('click',async e=>{
     case 'jourDel': sp.items.splice(+d.i,1); jourSync(sp); touch(true); break;
     case 'jourMove': { const i=+d.i, j=i+(+d.d); if(j>=0&&j<sp.items.length){ [sp.items[i],sp.items[j]]=[sp.items[j],sp.items[i]]; jourSync(sp); touch(true);} break; }
     case 'fFrame': { const f=curF(); if(!f) break; f.frame=d.v; touch(true); break; }
+    case 'fSec': { const f=curF(); if(!f) break; if(d.v==='dash') delete f.secStyle; else f.secStyle=d.v; touch(true); break; }
     case 'fQr': { const f=curF(); if(!f) break; if(f.qrPhotos) delete f.qrPhotos; else f.qrPhotos=true; UI.fSlide=0; touch(true); break; }
     case 'tunerFrame': { const T=tunerTarget(); if(T.model) T.obj.frameStyle=d.v; else T.obj.frame=d.v; touch(true); break; }
     case 'fOnline': { const f=findF(d.id)||curF(); if(!f) break; if(f.online){ delete f.online; if(f.ephemere&&!fOnlineF()){ const sp=jour(); if(sp) sp.active=false; } else if(f.ephemere) jourPush(); toast('Retiré de l’accueil'); } else { f.online=true; f.onlineAt=Date.now(); if(f.ephemere) jourPush(); toast('Mis en avant sur l’accueil du site'); } touch(true); break; }
@@ -4102,7 +4106,7 @@ async function boot(){
   const r=await loadAll();
   if(r.err&&r.err!=='missing') toast(r.err);
   render();
-  engine().then(w=>{ try{ ENGFONTS=w.__fonts(); }catch(e){} if(['tuner','xinsta'].includes(PG)) render(); else refreshPreviews(); });
+  engine().then(w=>{ try{ ENGFONTS=w.__fonts(); ENGFONTLBL=w.__fontLabel||null; }catch(e){} if(['tuner','xinsta'].includes(PG)) render(); else refreshPreviews(); });
 }
 (async()=>{
   { const b=QS.get('btn')||'bleu'; if(b!=='or') document.documentElement.dataset.btn=b; const ic=QS.get('ico'); if(ic) document.documentElement.dataset.ico=ic; }

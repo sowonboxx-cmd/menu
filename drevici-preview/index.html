@@ -2509,12 +2509,11 @@ body.hdr-light .adm-b-hdr{color:var(--navy)}
 .mdj-x{width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.14);color:#fff;display:grid;place-items:center;cursor:pointer}.mdj-x svg{width:17px;height:17px}
 .mdj-body{flex:1;overflow:auto;padding:0 8px 10px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .mdj-m{max-width:560px;margin:0 auto;border-radius:10px;padding:8px;background:var(--mbg)}
-.mdj-fr{border:1.5px solid var(--mfr);border-radius:4px;padding:22px 10px 28px;text-align:center;font-family:var(--mf),'Playfair Display',serif;color:var(--mnm);font-variant-numeric:lining-nums;font-feature-settings:'lnum' 1}.mdj-fr.nofr{border-color:transparent}
+.mdj-fr{border:1.5px solid var(--mfr);border-radius:4px;padding:22px 12px 26px;text-align:center;font-family:var(--mf),'Playfair Display',serif;color:var(--mnm);font-variant-numeric:lining-nums;font-feature-settings:'lnum' 1}.mdj-fr.nofr{border-color:transparent}
 .mdj-fr h3{font-size:24px;font-weight:800;color:var(--mti);text-transform:uppercase;line-height:1.05;margin:0}
 .mdj-ft{margin-top:8px;font-style:italic;font-weight:600;font-size:14px;line-height:1.5;color:var(--msb)}.mdj-ft span{display:block}.mdj-ft i{font-style:normal;color:var(--mfr);margin:0 3px}
-.mdj-sec{margin-top:30px}.mdj-sec h4{margin:0 0 10px;font-size:14px;font-weight:900;color:var(--mti);text-transform:uppercase;letter-spacing:.08em}
-.mdj-sec h4:after{content:'';display:block;width:28px;height:1.5px;background:var(--mfr);margin:7px auto 0}
-.mdj-d{font-size:15px;font-weight:700;line-height:1.3;margin:0 0 10px}.mdj-d i{font-weight:600;color:var(--mpx);margin-left:7px;white-space:nowrap}.mdj-d em{display:block;font-size:13px;font-weight:500;color:var(--msb);margin-top:2px}
+.mdj-sec{margin-top:26.5px}.mdj-sec h4{margin:0 0 7px;font-size:17.25px;font-weight:800;color:var(--mti);text-transform:uppercase;letter-spacing:.07em;line-height:1.15}
+.mdj-d{display:flex;justify-content:center;align-items:center;gap:7px;font-size:15px;font-weight:500;line-height:1.28;margin:0 0 6px}.mdj-d>span{display:block}.mdj-n{font-weight:inherit;display:block}.mdj-d i{flex:none;font-weight:600;color:var(--mpx);white-space:nowrap}.mdj-d em{display:block;font-size:13px;font-weight:400;font-style:italic;color:var(--msb);margin-top:2px}
 .mdj-fn{margin-top:24px;font-style:italic;font-size:13px;color:var(--msb)}
 .mdj-page{position:relative;width:100%;max-width:560px;margin:0 auto;border-radius:8px;overflow:hidden;background:#fff}
 .mdj-page iframe{position:absolute;left:0;top:0;width:608px;height:860px;border:0;transform-origin:0 0}
@@ -5458,21 +5457,40 @@ function mdjFit(){ const l=document.querySelector('.mdj-list'), r=document.query
 // Lignes de prix : la 1re seule, les suivantes ensemble sur une ligne (« Entrée & plat — 35 € · Plat & dessert — 30 € »).
 function mdjMenuHtml(f){
   const en=lang==='en', T=x=>x&&typeof x==='object'?(en&&x.en)||x.fr||'':String(x||''), H=escapeHtmlLocal;
-  const ftl=l=>H(l.trim()).replace(/\s*[—–]\s*/g,' — ').replace(/(\d)\s*€/g,'$1 €');
+  const ftl=l=>H(menuEuro(l.trim())).replace(/\s*[—–]\s*/g,' — ');
   const lines=String(f.freeText||'').split(/\n|<br\s*\/?>/i).map(x=>x.trim()).filter(Boolean);
   let ft=''; if(lines.length) ft=`<div class="mdj-ft"><span>${ftl(lines[0])}</span>${lines.length>1?`<span>${lines.slice(1).map(ftl).join(' <i>·</i> ')}</span>`:''}</div>`;
   const secs=(f.tabs||[]).map(t=>{ const ds=(t.cards||[]).flatMap(c=>c.dishes||[]).filter(d=>d&&!d.hidden&&T(d.name).trim()); if(!ds.length) return '';
-    return `<div class="mdj-sec">${T(t.label).trim()?`<h4>${H(T(t.label))}</h4>`:''}${ds.map(d=>{ const pr=String(d.price||'').replace(/€/g,'').trim(), ds2=T(d.desc).trim();
-      return `<p class="mdj-d"><span>${H(T(d.name).replace(/\n/g,' '))}</span>${pr?`<i>${H(pr)}</i>`:''}${ds2?`<em>${H(ds2)}</em>`:''}</p>`; }).join('')}</div>`; }).join('');
+    return `<div class="mdj-sec">${T(t.label).trim()?`<h4>${H(menuSecLabel(T(t.label),f.secStyle))}</h4>`:''}${ds.map(d=>{ const pr=String(d.price||'').replace(/€/g,'').trim(), ds2=T(d.desc).trim();
+      return `<p class="mdj-d"><span><b class="mdj-n">${H(T(d.name).replace(/\n/g,' '))}</b>${ds2?`<em>${H(ds2)}</em>`:''}</span>${pr?`<i>${H(pr)}</i>`:''}</p>`; }).join('')}</div>`; }).join('');
   const fn=String(f.footNote||'').trim();
   return `<h3>${H(f.title||f.name||'')}</h3>${ft}${secs}${fn?`<div class="mdj-fn">${H(fn)}</div>`:''}`;
 }
 function mdjMenuVars(f){
   let c={}; try{ c=formule_buildCfg(f,'a4')||{}; }catch(e){}
   const font=c.instaFont||'Playfair Display';
-  if(!document.getElementById('mdjFont_'+font)){ const l=document.createElement('link'); l.id='mdjFont_'+font; l.rel='stylesheet'; l.href='https://fonts.googleapis.com/css2?family='+encodeURIComponent(font).replace(/%20/g,'+')+':ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,500;1,600&display=swap'; document.head.appendChild(l); }
+  loadMenuFont(font);
   const ti=c.formuleTitleColor||c.menuTitleColor||'#9c4520';
   return { st:`--mf:'${font.replace(/'/g,'')}';--mbg:${c.menuBgColor||c.instaBgColor||'#fbf4ea'};--mti:${ti};--msb:${c.formuleSubColor||'#8a5a3c'};--mnm:${c.menuNameColor||'#1D1D1F'};--mpx:${c.instaPriceColor||c.accentColor||'#b8902f'};--mfr:color-mix(in srgb, ${ti} 55%, transparent)`, frame:(c.formuleFrame||'simple')!=='aucun' };
+}
+// Plats en bloc équilibré (Will, 24/11/2026) : texte centré qui reste « droit » à gauche et à droite.
+// Un plat tient sur une ligne s'il rentre ; sinon il passe sur 2 lignes de longueur proche. La largeur de colonne
+// (88 à 100 % de la place) est choisie pour que toutes les lignes du menu soient le plus égales possible. Jamais 3 lignes.
+function mdjBalance(root){
+  const fr=root.querySelector('.mdj-fr'); if(!fr) return;
+  const probe=document.createElement('span'); probe.style.cssText='position:absolute;visibility:hidden;white-space:nowrap;left:-9999px';
+  const W=(t,ref)=>{ probe.textContent=t; ref.appendChild(probe); const w=probe.getBoundingClientRect().width; probe.remove(); return w; };
+  const items=[...fr.querySelectorAll('.mdj-n')].map(n=>{ const p=n.closest('.mdj-d'), pi=p.querySelector(':scope>i'), pw=pi?pi.getBoundingClientRect().width+7:0;
+    const t=n.dataset.t||(n.dataset.t=n.textContent), w=t.split(' '), full=W(t,n)+pw; let best=null;
+    for(let k=1;k<w.length;k++){ const a=W(w.slice(0,k).join(' '),n), b=W(w.slice(k).join(' '),n)+pw, m=Math.max(a,b); if(!best||m<best.m) best={k,a,b,m}; }
+    return {n,t,w,full,best}; });
+  const avail=fr.clientWidth-24; let bestT=null;
+  for(let T=avail*0.88;T<=avail+0.5;T+=3){ const L=[]; let ok=true;
+    for(const it of items){ if(it.full<=T) L.push(it.full); else if(it.best&&it.best.m<=T) L.push(it.best.a,it.best.b); else { ok=false; break; } }
+    if(!ok||!L.length) continue; const mx=Math.max(...L), sc=L.reduce((s,x)=>s+(mx-x)*(mx-x),0)/L.length+0.15*L.length*L.length;
+    if(!bestT||sc<bestT.sc) bestT={T,sc}; }
+  const T=bestT?bestT.T:avail;
+  items.forEach(it=>{ it.n.textContent=it.t; if(it.full>T&&it.best){ it.n.textContent=''; it.n.append(it.w.slice(0,it.best.k).join(' '),document.createElement('br'),it.w.slice(it.best.k).join(' ')); } });
 }
 function openMdjSheet(id){
   const fs=mdjHomeFs(); const f=fs.find(x=>String(x.id)===String(id))||fs[0]; if(!f) return; const en=lang==='en';
@@ -5487,6 +5505,8 @@ function openMdjSheet(id){
   el.querySelector('.mdj-x').onclick=close;
   el.querySelector('.mdj-all').onclick=()=>{ close(); dismissHomeCover(); };
   document.body.appendChild(el); document.documentElement.style.overflow='hidden';
+  const bal=()=>{ if(el.isConnected) mdjBalance(el); }; bal(); document.fonts.ready.then(bal); setTimeout(bal,600); setTimeout(bal,1800);
+  addEventListener('resize',bal);
 }
 function dismissHomeCover(){
   homeCoverDismissedThisSession=true;
@@ -8537,7 +8557,7 @@ function formule_buildPreamble(f, cfg){
   // (« Entrée, plat & dessert — 40 € »), les suivantes ensemble sur la 2e
   // (« Entrée & plat — 35 € · Plat & dessert — 30 € »). Chaque formule reste d'un bloc.
   const ftLines = String(f.freeText||'').split('\n').map(x=>x.trim()).filter(Boolean);
-  const ftSeg = x => `<span style="white-space:nowrap">${noOrphan(x)}</span>`;
+  const ftSeg = x => `<span style="white-space:nowrap">${noOrphan(menuEuro(x))}</span>`;
   const subHtml = ftLines.length
     ? ftSeg(ftLines[0]) + (ftLines.length>1 ? '<br>' + ftLines.slice(1).map(ftSeg).join(' · ') : '')
     : '';
@@ -8570,6 +8590,15 @@ function formule_buildPreamble(f, cfg){
 // que sur l'A4, la seule sortie destinee au papier. Sans ce parametre,
 // la config etait identique pour les trois et il aurait fallu le
 // masquer en CSS — donc l'embarquer dans une story pour rien.
+// Prix collés au chiffre (« 40€ », Will 24/11/2026) et prix des sections selon le style choisi sur le menu :
+// 'dash' (défaut) « ENTRÉE – 12€ », 'paren' « ENTRÉE (12€) », 'none' « ENTRÉE 12€ », 'dot' « ENTRÉE · 12€ ».
+function menuEuro(x){ return String(x==null?'':x).replace(/(\d)\s*€/g,'$1€'); }
+function menuSecLabel(label, style){
+  const m = String(label||'').match(/^(.*?)\s*\(\s*(\+?\d+(?:[.,]\d+)?)\s*€\s*\)\s*$/);
+  if(!m) return menuEuro(label);
+  const nm = m[1], pr = m[2]+'€';
+  switch(style||'dash'){ case 'paren': return `${nm} (${pr})`; case 'none': return `${nm} ${pr}`; case 'dot': return `${nm} · ${pr}`; default: return `${nm} – ${pr}`; }
+}
 function formule_buildCfg(f, variant){
   // Réglages propres à un format (« espace entre les sections, seulement dans la story ») : f.byFmt.story / .post / .a4.
   const fk = variant === 'post34' ? 'post' : (variant || 'story');
@@ -8595,7 +8624,7 @@ function formule_buildCfg(f, variant){
     formuleSubColor: f.formuleSubColor, formuleSubPct: f.formuleSubPct,
     instaFont: f.instaFont || base.instaFont,
     alignContentLeft: !!f.alignContentLeft, alignTitleLeft: !!f.alignTitleLeft,
-    catCase: f.catCase, descCase: f.descCase, nameCase: f.nameCase,
+    catCase: f.catCase, descCase: f.descCase, nameCase: f.nameCase, secStyle: f.secStyle,
     // BUG FIX (le + / − des sections et des plats restait sans effet) :
     // le pourcentage était fondu dans la taille AVANT l'ajustement
     // automatique, qui cherche la plus grande police tenant sur une
@@ -9481,7 +9510,7 @@ function downloadSocImg(fmt){
           // ensure fonts are loaded in clone
           const s=cloneDoc.createElement('link');
           s.href='https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Playfair+Display:ital,wght@0,400;0,700&family=Jost:wght@400;700&display=swap';
-          s.rel='stylesheet'; cloneDoc.head.appendChild(s);
+          s.rel='stylesheet'; cloneDoc.head.appendChild(s); loadMenuFont('Archivo Etroite', cloneDoc);
         }
       });
     }).then(canvas=>{
@@ -9807,7 +9836,7 @@ function buildPdfBlocks(cfg){
   // place — c'est le seul point de contact du moteur avec la source
   // des données, aucune autre logique n'a besoin de changer.
   (cfg.tabsSource || DATA.tabs).filter(tb=>tb.id!=='__home' && tb.visible!==false).forEach(tb=>{
-    const catLabel = cfg.tabsSource ? applyTextCase(t(tb.label), cfg.catCase==='lower'?'lower':'upper') : t(tb.label);
+    const catLabel = cfg.tabsSource ? menuSecLabel(applyTextCase(t(tb.label), cfg.catCase==='lower'?'lower':'upper'), cfg.secStyle) : t(tb.label);
     let pendingHeader = `<h2 class="pdf-cat" data-tab-id="${tb.id}">${showSecIc?`<img src="${icData.secondary}" style="width:16px;height:16px;object-fit:contain;vertical-align:middle;margin-right:6px" onerror="this.remove()">`:''}${catLabel}</h2>`;
     let firstBlockOfTab = true;
     // "Catégorie solo" — une catégorie qui ne contient qu'UN SEUL plat au
@@ -10057,13 +10086,12 @@ function _buildInstaCSS(cfg, ratio){
   // (titre, nom de plat, prix, description), à différents poids/styles
   // — demande explicite de Will, spécifique à ce format uniquement.
   const font = cfg.instaFont || 'Playfair Display';
-  const fontUrlName = font.replace(/ /g,'+');
   return `
-  @import url('https://fonts.googleapis.com/css2?family=${fontUrlName}:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap');
+  @import url('${menuFontCssUrl(font)}');
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{margin:0;padding:0;background:${bg}}
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
-  .pdf-page{--space-scale:1;font-family:'${font}',serif;color:${titleColor};background:${bg};width:${INSTA_RENDER_W}px;height:${Math.round(INSTA_RENDER_W*ratio)}px;padding:${padTop}px ${padSide}px;margin:0 auto;position:relative;overflow:hidden;text-align:center;display:flex;flex-direction:column;align-items:center}
+  .pdf-page{--space-scale:1;font-variant-numeric:lining-nums;font-family:'${font}',serif;color:${titleColor};background:${bg};width:${INSTA_RENDER_W}px;height:${Math.round(INSTA_RENDER_W*ratio)}px;padding:${padTop}px ${padSide}px;margin:0 auto;position:relative;overflow:hidden;text-align:center;display:flex;flex-direction:column;align-items:center}
   ${(()=>{ // Cadre : simple, double, pointillé, coins, ou aucun — toujours de la couleur des titres de sections
     const fr = cfg.formuleFrame || 'simple', fc = cfg.tabsSource ? (cfg.instaTitleColor || gold) : gold;
     if(!cfg.tabsSource || fr==='simple') return `.pdf-page::before{content:'';position:absolute;inset:20px;border:1.5px solid ${fc};pointer-events:none}`;
@@ -10891,36 +10919,28 @@ const INSTA_A4_RATIO = 1123/794; // height / width
 // classique) et de sans-serif nettes (lisibilité). Demande explicite
 // de Will : propre à Instagram uniquement, une seule police pour tout
 // le visuel (titre, plat, prix, description).
+// Polices des menus (Will, 24/11/2026) : 7 polices très lisibles, toutes « étroites » pour faire tenir plus de plats
+// sur une ligne — en majuscules comme en minuscules, prix alignés (chiffres lnum). Les 4 « Etroite » sont servies par le
+// site (media/fonts/etroites.css : versions condensées figées des polices Google, pour qu'elles marchent aussi dans les
+// exports images). Playfair Display reste la police propre à Drevici. Les anciennes polices déjà choisies sur un menu
+// continuent de s'afficher (chargées comme avant), elles ne sont simplement plus proposées.
 const INSTA_FONT_OPTIONS = [
-  'Playfair Display','Cormorant Garamond','Merriweather','Lora','EB Garamond',
-  'Libre Baskerville','Crimson Text','Cardo','Cinzel','Marcellus',
-  'Prata','DM Serif Display','Abril Fatface','Bodoni Moda','Josefin Sans',
-  'Montserrat','Raleway','Poppins','Quicksand','Nunito',
-  'Oswald','Archivo Narrow','Barlow Condensed','Roboto Condensed','PT Sans Narrow',
-  'Fjalla One','Yanone Kaffeesatz','Saira Condensed','Cabin Condensed','Khand',
-  'Asap Condensed','Ubuntu Condensed','Big Shoulders Condensed','IBM Plex Sans Condensed','Encode Sans Condensed',
-  'Rozha One','Kreon','Bevan','Trirong','Rosarivo',
-  'Cormorant SC','Cormorant Upright','Cormorant Infant','Antic Slab','Radley',
-  'Vidaloka','Kadwa','Alegreya','Alegreya SC','Judson'
+  'Open Sans Etroite','Barlow Semi Condensed','Archivo Etroite','Bricolage Grotesque Etroite',
+  'Noto Serif Etroite','Alegreya','Faustina','Playfair Display'
 ];
-// Polices condensées (lettres plus serrées) — demande explicite de
-// Will pour aider les noms de plats longs à tenir dans le cadre sans
-// trop rétrécir ni passer à la ligne. Affichées avec "(Condensed)"
-// entre parenthèses dans les listes ci-dessous pour qu'on les
-// reconnaisse — le vrai nom de police (sans le suffixe) reste ce qui
-// est envoyé à Google Fonts et stocké comme cfg.instaFont. Deuxième
-// vague : 15 condensées avec empattements (serif), pour ceux qui
-// veulent rester dans un registre plus classique tout en gagnant de
-// la place.
-const INSTA_CONDENSED_FONTS = [
-  'Oswald','Archivo Narrow','Barlow Condensed','Roboto Condensed','PT Sans Narrow',
-  'Fjalla One','Yanone Kaffeesatz','Saira Condensed','Cabin Condensed','Khand',
-  'Asap Condensed','Ubuntu Condensed','Big Shoulders Condensed','IBM Plex Sans Condensed','Encode Sans Condensed',
-  'Rozha One','Kreon','Bevan','Trirong','Rosarivo',
-  'Cormorant SC','Cormorant Upright','Cormorant Infant','Antic Slab','Radley',
-  'Vidaloka','Kadwa','Alegreya','Alegreya SC','Judson'
-];
-function instaFontLabel(font){ return INSTA_CONDENSED_FONTS.includes(font) ? font+' (Condensed)' : font; }
+const MENU_FONTS_LOCAL = ['Open Sans Etroite','Archivo Etroite','Bricolage Grotesque Etroite','Noto Serif Etroite'];
+const MENU_FONT_LABELS = {'Open Sans Etroite':'Open Sans étroite','Archivo Etroite':'Archivo étroite','Bricolage Grotesque Etroite':'Bricolage Grotesque étroite','Noto Serif Etroite':'Noto Serif étroite','Playfair Display':'Playfair Display (Drevici)'};
+const INSTA_CONDENSED_FONTS = [];
+function instaFontLabel(font){ return MENU_FONT_LABELS[font] || font; }
+// Adresse CSS d'une police de menu : fichier du site pour les « étroites », Google Fonts sinon
+// (graisses 400 à 800 pour les polices de la liste, anciennes graisses pour les anciennes polices).
+function menuFontCssUrl(font){
+  font = font || 'Playfair Display';
+  if(MENU_FONTS_LOCAL.includes(font)) return location.origin + '/media/fonts/etroites.css';
+  const q = INSTA_FONT_OPTIONS.includes(font) ? 'ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600' : 'ital,wght@0,400;0,600;0,700;1,400;1,600';
+  return 'https://fonts.googleapis.com/css2?family=' + font.replace(/ /g,'+') + ':' + q + '&display=swap';
+}
+function loadMenuFont(font, doc){ doc = doc || document; const u = menuFontCssUrl(font); if([...doc.querySelectorAll('link[rel=stylesheet]')].some(l=>l.href===u)) return; const l = doc.createElement('link'); l.rel='stylesheet'; l.href=u; doc.head.appendChild(l); }
 const INSTA_RENDER_W = 608;
 // BUG FIX: le site applique un zoom CSS de 1.1x sur desktop (à partir
 // de 641px de large), mais PAS en dessous de cette largeur — annuler
@@ -11647,7 +11667,7 @@ function renderPrintBody(forcedTab){
     const curFont = cfg.instaFont || 'Playfair Display';
     let fl = document.querySelector('link[data-insta-font]');
     if(!fl){ fl=document.createElement('link'); fl.rel='stylesheet'; fl.dataset.instaFont='1'; document.head.appendChild(fl); }
-    fl.href = 'https://fonts.googleapis.com/css2?family='+encodeURIComponent(curFont)+':wght@400;700&display=swap';
+    fl.href = menuFontCssUrl(curFont);
   }
 
 
@@ -12478,8 +12498,8 @@ function ensureGalleryFontsLoaded(){
   const l=document.createElement('link');
   l.rel='stylesheet';
   l.dataset.fontGallery='1';
-  l.href='https://fonts.googleapis.com/css2?'+all.map(f=>'family='+f.replace(/ /g,'+')+':wght@400;700').join('&')+'&display=swap';
-  document.head.appendChild(l);
+  l.href='https://fonts.googleapis.com/css2?'+all.filter(f=>!MENU_FONTS_LOCAL.includes(f)).map(f=>'family='+f.replace(/ /g,'+')+':wght@400;700').join('&')+'&display=swap';
+  document.head.appendChild(l); loadMenuFont('Archivo Etroite');
 }
 function showFontGallery(target, fid){
   target=target||'resto';
