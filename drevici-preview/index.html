@@ -10378,7 +10378,7 @@ function fitInstaOneLiners(html, holder, cfg){
 // découpage en plusieurs pages. Les règles de largeur existantes
 // (une seule ligne pour le titre et le nom de plat, jamais de retour
 // à la ligne) restent inchangées à chaque palier.
-function buildFormulePage(cfg, ratio){
+function buildFormulePage(cfg, ratio){ try{ loadMenuFont(cfg&&cfg.instaFont); }catch(e){}
   ratio = ratio || INSTA_A4_RATIO;
   // Story : le bas (~20 %) reste libre pour l'autocollant « Réserver » d'Instagram — le menu tient au-dessus.
   // (la marge basse de la page, 84 px, est comptée dans la hauteur mesurée : elle tombe dans la zone réservée)
@@ -10411,7 +10411,7 @@ function buildFormulePage(cfg, ratio){
       instaDescSize: Math.max(10, Math.round(baseDescSize*fontScale))
     };
     const css = buildInstaCSS(scaledCfg, ratio);
-    holder.innerHTML = `<style>${css}</style><div class="pdf-page" id="__instaMeasure" style="height:auto;overflow:visible"></div>`;
+    holder.innerHTML = `<style>${noImportCss(css)}</style><div class="pdf-page" id="__instaMeasure" style="height:auto;overflow:visible"></div>`;
     const measureEl = holder.querySelector('#__instaMeasure');
 
     const { contentBlocks } = buildPdfBlocks(scaledCfg);
@@ -10511,7 +10511,7 @@ function buildFormulePage(cfg, ratio){
   return { pages: [{ html: finalHtml, spaceScale: finalScale, tabLabel: 'formule' }], css: finalCss };
 }
 
-function buildInstaPages(cfg, ratio){
+function buildInstaPages(cfg, ratio){ try{ loadMenuFont(cfg&&cfg.instaFont); }catch(e){}
   ratio = ratio || INSTA_RATIO;
   const { contentBlocks } = buildPdfBlocks(cfg);
   const groups = [];
@@ -10525,7 +10525,7 @@ function buildInstaPages(cfg, ratio){
   const pageH = Math.round(INSTA_RENDER_W*ratio);
   const holder = document.createElement('div');
   holder.style.cssText = 'position:fixed;left:-99999px;top:0;visibility:hidden;';
-  holder.innerHTML = `<style>${css}</style><div class="pdf-page" id="__instaMeasure" style="height:auto;overflow:visible"></div>`;
+  holder.innerHTML = `<style>${noImportCss(css)}</style><div class="pdf-page" id="__instaMeasure" style="height:auto;overflow:visible"></div>`;
   document.body.appendChild(holder);
   const measureEl = holder.querySelector('#__instaMeasure');
   const heightOf = (html, scale) => {
@@ -10955,6 +10955,10 @@ async function ensureMenuFont(font){ font=font||'Playfair Display';
   const ok = await Promise.race([all.then(r=>r.some(x=>x&&x.length)), new Promise(r=>setTimeout(()=>r(false),5000))]);
   try{ await document.fonts.ready; }catch(e){}
   return ok; }
+// Mesure et export dans la page : la police est déjà chargée par loadMenuFont/ensureMenuFont. On retire l'@import
+// de la feuille recréée à chaque essai : sur Safari, la ré-importer faisait mesurer le menu avec une police de secours
+// (lignes plus basses, plats plus larges), d'où un menu qui débordait une fois affiché avec la vraie police.
+function noImportCss(css){ return String(css).replace(/@import\s+url\([^)]*\)\s*;?/g,''); }
 const _menuFontCss = {};
 function loadMenuFont(font, doc){ doc = doc || document; const u = menuFontCssUrl(font);
   if(doc === document && _menuFontCss[u]) return _menuFontCss[u];
@@ -11207,7 +11211,7 @@ async function renderInstaPageToBlob(css, pages, i, restName, bg, ratio, variant
   const zoomCancel = 1 / getActiveZoomRatio();
   holder.style.cssText = `position:fixed;left:0;top:0;width:${RW}px;height:${pageHeightPx}px;opacity:0.001;pointer-events:none;z-index:-1;zoom:${zoomCancel}`;
   const scaleStyle = pages[i].spaceScale && pages[i].spaceScale!==1 ? `--space-scale:${pages[i].spaceScale};` : '';
-  holder.innerHTML = `<style>${css}</style><div class="pdf-page" id="instaPage${i}" style="width:${RW}px;height:${pageHeightPx}px;overflow:hidden;${scaleStyle}">${pages[i].html}</div>`;
+  holder.innerHTML = `<style>${noImportCss(css)}</style><div class="pdf-page" id="instaPage${i}" style="width:${RW}px;height:${pageHeightPx}px;overflow:hidden;${scaleStyle}">${pages[i].html}</div>`;
   document.body.appendChild(holder);
   const pageEl = holder.querySelector(`#instaPage${i}`);
   try{
