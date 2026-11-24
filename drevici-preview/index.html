@@ -9864,6 +9864,13 @@ function buildPdfBlocks(cfg){
     const soloCls = tabItemCount===1 ? ' pdf-dish-solo' : '';
     tb.cards.forEach(card=>{
       let pendingSubcat = (t(card.label) && tb.cards.length>1) ? `<h3 class="pdf-subcat">${t(card.label)}</h3>` : '';
+      // Instagram (Will, 24/11/2026) : la description partagée par plusieurs plats d'une même carte (« Elles sont
+      // accompagnées de pain, beurre… ») est écrite une seule fois sous le titre ; chaque plat garde la sienne si elle diffère.
+      const normD = x => String(x||'').replace(/\s+/g,' ').trim();
+      let commonDesc = '';
+      if(isInstaFmt && !cfg.tabsSource && card.dishes){ const cnt = {}; card.dishes.filter(d=>!d.hidden).forEach(d=>{ const k = normD(t(d.desc)); if(k) cnt[k] = (cnt[k]||0)+1; });
+        const top = Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0]; if(top && top[1] >= 2) commonDesc = top[0]; }
+      if(commonDesc) pendingSubcat += `<div class="pdf-cat-desc">${commonDesc}</div>`;
       const items = card.dishes ? card.dishes.filter(d=>!d.hidden).map(d=>{
           // Coupure choisie par le restaurateur (d.brk[format] = le début du nom, jusqu'à la coupure) : marquée par \u2028.
           const rawName = t(d.name)||'', fkB = cfg.formuleVariant==='post34' ? 'post' : (cfg.formuleVariant||'story');
@@ -9871,7 +9878,11 @@ function buildPdfBlocks(cfg){
           const nameB = brk && rawName.startsWith(brk) && rawName.length > brk.length ? brk.trimEnd() + '\u2028' + rawName.slice(brk.length).trimStart() : rawName;
           const dName = cfg.tabsSource ? applyTextCase(nameB, cfg.nameCase==='lower'?'lower':'upper') : rawName;
           const dDesc = cfg.tabsSource ? applyTextCase(t(d.desc), cfg.descCase==='upper'?'upper':'lower') : t(d.desc);
-          return `<div class="pdf-dish${soloCls}"><div class="pdf-dish-line"><span class="pdf-dish-name">${dName}</span>${dots}<span class="pdf-dish-price">${priceText(d)}</span></div>${dDesc?`<div class="pdf-dish-desc">${dDesc}</div>`:''}</div>`;
+          const desc2 = commonDesc && normD(dDesc) === commonDesc ? '' : dDesc;
+          // Instagram : les deux quantités sous le nom (« Les 6 — 12 · Les 12 — 22 »), comme sur le site.
+          const qtyLine = isInstaFmt && !cfg.tabsSource && d.priceType==='dual' && d.p1 && d.p2
+            ? `<div class="pdf-dish-qty">${d.qty1?`Les ${d.qty1} — `:''}${frDecimals(d.p1)} · ${d.qty2?`Les ${d.qty2} — `:''}${frDecimals(d.p2)}</div>` : '';
+          return `<div class="pdf-dish${soloCls}"><div class="pdf-dish-line"><span class="pdf-dish-name">${dName}</span>${dots}<span class="pdf-dish-price">${qtyLine?'':priceText(d)}</span></div>${qtyLine}${desc2?`<div class="pdf-dish-desc">${desc2}</div>`:''}</div>`;
         })
         : card.type==='variants' ? (card.variants||[]).filter(v=>!v.hidden).map(v=>
           `<div class="pdf-dish${soloCls}"><div class="pdf-dish-line"><span class="pdf-dish-name">${t(v.name)||''}</span>${dots}<span class="pdf-dish-price">${priceText(v)}</span></div></div>`)
@@ -10127,6 +10138,8 @@ function _buildInstaCSS(cfg, ratio){
   .pdf-dots,.pdf-dots-off{display:none}
   .pdf-dish-price{font-family:'${font}',serif;font-style:italic;font-weight:${cfg.tabsSource?700:500};font-size:${cfg.tabsSource?Math.max(11,Math.round(menuSize*1.18*(cfg.pricePct||100)/100)):Math.max(14,menuSize-1)}px;line-height:inherit;color:${cfg.tabsSource?(cfg.instaPriceColor||(/^#?[0-9a-f]{6}$/i.test(gold)?darkenHex(gold,0.1):gold)):menuColor}}
   .pdf-dish-desc{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${descSize}px;line-height:1.35;color:${descColor};margin-top:6px;max-width:76%;margin-left:auto;margin-right:auto;text-wrap:balance}
+  .pdf-dish-qty{font-family:'${font}',serif;font-style:italic;font-weight:600;font-size:${Math.max(13,Math.round(menuSize*0.92))}px;line-height:1.3;color:${cfg.instaPriceColor||gold};margin-top:3px;white-space:nowrap}
+  .pdf-cat-desc{font-family:'${font}',serif;font-style:italic;font-weight:500;font-size:${descSize}px;line-height:1.35;color:${descColor};margin:-4px auto calc(26px * var(--space-scale));max-width:80%;text-wrap:balance}
   .pdf-footer{display:none}
   /* Menus et Formules uniquement — titre + texte libre optionnels,
      affichés avant les catégories (voir formule_buildPreamble). */
