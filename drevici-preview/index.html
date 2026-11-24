@@ -5417,7 +5417,7 @@ function mdjPrice(f){
   const n=[...t.matchAll(/(\d+(?:[.,]\d{1,2})?)\s*€/g)].map(m=>parseFloat(m[1].replace(',','.'))).filter(x=>x>0);
   if(!n.length) return null;
   const mn=Math.min(...n), fmt=x=>String(x).replace('.',',');
-  return { des: new Set(n).size>1, v: fmt(mn)+' €' };
+  return { des: new Set(n).size>1, v: fmt(mn)+'€' };
 }
 function mdjSub(f){
   const first=String(f.freeText||'').split(/\n|<br\s*\/?>/i)[0].split(/\s[—–-]\s|\s*\d/)[0].replace(/[,\s:]+$/,'').trim();
@@ -5429,7 +5429,7 @@ function mdjSub(f){
 function mdjTitle(f){ const c=f.card||{}, en=lang==='en'; if(c.title) return c.title; return f.ephemere?(en?"Today's menu":'Menu du jour'):(f.title||f.name||'Menu'); }
 function mdjPriceOf(f){
   const c=f.card||{};
-  if(c.price){ const m=String(c.price).trim().match(/^(dès|des|from|à partir de)\s+(.+)$/i); return m?{des:true,v:m[2].replace(/\s*€$/,' €'),lab:m[1]}:{des:false,v:String(c.price).trim().replace(/(\d)\s*€$/,'$1 €')}; }
+  if(c.price){ const m=String(c.price).trim().match(/^(dès|des|from|à partir de)\s+(.+)$/i); return m?{des:true,v:menuEuro(m[2]),lab:m[1]}:{des:false,v:menuEuro(String(c.price).trim())}; }
   return mdjPrice(f);
 }
 function mdjDoc(f){
