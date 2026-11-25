@@ -325,7 +325,9 @@ async function resaRecipients(env, slug, notifyEmail) {
     }));
     out.push(...mails.filter(Boolean));
   } catch (e) { console.error('resaRecipients', e && e.message); }
-  return [...new Set(out.map(x => x.trim().toLowerCase()).filter(x => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x)))];
+  // Comptes Beltab (Will, 25/11/2026) : admins pour gérer les sites, mais ils ne reçoivent pas les réservations des restaurants.
+  const no = new Set(['beltab.app@gmail.com', 'sowonboxx@gmail.com', ...String(env.RESA_NO_COPY || '').split(/[,;\s]+/)].map(x => x.trim().toLowerCase()).filter(Boolean));
+  return [...new Set(out.map(x => x.trim().toLowerCase()).filter(x => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x) && !no.has(x)))];
 }
 
 // ── Messages des clients : enregistrés (contact_messages) puis envoyés au resto + à Will ──
