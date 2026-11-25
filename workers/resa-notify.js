@@ -300,10 +300,32 @@ async function notifyNew(env, slug, ref) {
   const jobs = [];
   if (r.from_email) jobs.push(sendEmail(env, st, r.from_email, r.from_name,
     `Votre réservation chez ${st.restaurant_name} est confirmée`, mailClient(st, r)));
-  if (st.notify_email) jobs.push(sendEmail(env, st, st.notify_email, st.restaurant_name,
+  // Le resto (notify_email) + tous les administrateurs de l'établissement, automatiquement (Will, 25/11/2026) :
+  // quelqu'un ajouté comme admin dans Équipe reçoit les réservations sans rien régler ; retiré, il ne les reçoit plus.
+  const to = await resaRecipients(env, slug, st.notify_email);
+  // Un email par personne : les admins ne voient pas les adresses des autres.
+  for (const e of to) jobs.push(sendEmail(env, st, e, st.restaurant_name,
     `Nouvelle réservation · ${r.date_label} · ${r.slot} · ${r.covers} pers.`, mailResto(st, r), r.from_email));
   const res = await Promise.allSettled(jobs);
   return { ok: true, sent: res.filter(x => x.status === 'fulfilled').length };
+}
+
+// Destinataires d'une nouvelle réservation : l'email du resto + les emails des comptes admin de tout l'établissement.
+const ADMIN_MAIL_CACHE = new Map();
+async function resaRecipients(env, slug, notifyEmail) {
+  const out = String(notifyEmail || '').split(/[,;\s]+/).filter(Boolean);
+  try {
+    const fam = familyOf(slug.split('--')[0]).map(enc).join(',');
+    const rows = await sb(env, `restaurant_admins?select=user_id&client_slug=in.(${fam})`) || [];
+    const ids = [...new Set(rows.map(x => x.user_id).filter(Boolean))];
+    const mails = await Promise.all(ids.map(async id => {
+      const c = ADMIN_MAIL_CACHE.get(id); if (c && c.t > Date.now() - 6 * 3600e3) return c.e;
+      const u = await authAdmin(env, `users/${enc(id)}`).catch(() => null);
+      const e = u && (u.email || (u.user && u.user.email)) || ''; ADMIN_MAIL_CACHE.set(id, { e, t: Date.now() }); return e;
+    }));
+    out.push(...mails.filter(Boolean));
+  } catch (e) { console.error('resaRecipients', e && e.message); }
+  return [...new Set(out.map(x => x.trim().toLowerCase()).filter(x => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x)))];
 }
 
 // ── Messages des clients : enregistrés (contact_messages) puis envoyés au resto + à Will ──
