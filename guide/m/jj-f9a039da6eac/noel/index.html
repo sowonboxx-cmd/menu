@@ -116,18 +116,22 @@ footer .sig{font-size:34px;display:block;margin-bottom:4px}
 .sec{background:#fff;border-radius:18px;padding:18px 16px 6px;margin-top:18px}
 .sec h3{font-style:normal;font-weight:700;font-size:21px;color:#a8843f;margin:0 0 6px;display:flex;align-items:center;gap:12px;justify-content:center}
 .sec h3:before,.sec h3:after{content:"";height:1px;width:28px;background:var(--gold);opacity:.7}
-.it{grid-template-columns:minmax(0,1fr) auto;padding:13px 0;align-items:center}
-.it .n{font-weight:600;font-size:17px;line-height:1.3}
-.it .n .p{font-family:Jost;font-weight:600;font-size:15.5px;color:#a8843f;white-space:nowrap;margin-left:4px}
-.it .u{font-size:13.5px}
-.it.on .u{color:var(--g);font-weight:600}
-.qty{grid-column:auto;margin:0}
-.qty .add{width:40px;height:40px;border-radius:50%;border:0;background:var(--g);color:#fff;font-size:24px;line-height:1;cursor:pointer;font-family:Jost}
-.qty .st{display:none}
+.it{display:block;padding:13px 0 12px}
+.it .r1{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:start}
+.it .n{font-weight:600;font-size:17px;line-height:1.3;text-wrap:pretty}
+.it .p{font-family:Jost;font-weight:600;font-size:16px;color:#a8843f;white-space:nowrap;padding-top:2px}
+.it .r2{display:flex;justify-content:space-between;align-items:center;height:34px;margin-top:6px}
+.it .u{font-size:13.5px;margin:0;font-weight:400}
+.it.on .u{color:var(--g);font-weight:400}
+.qty{margin:0}
+.qty .add{height:32px;padding:0 14px 0 10px;border-radius:999px;border:0;background:#e7eee8;color:var(--g);font:600 13.5px Jost,sans-serif;display:flex;align-items:center;gap:6px;cursor:pointer}
+.qty .st{display:none;width:96px;grid-template-columns:30px 1fr 30px;align-items:center;text-align:center;background:none}
 .it.on .qty .add{display:none}
-.it.on .qty .st{display:flex;background:var(--g);color:#fff;border-radius:999px}
-.it.on .st button{width:36px;height:40px;color:#fff}
-.st output{min-width:40px;font-size:15px}
+.it.on .qty .st{display:grid;background:none;color:var(--g)}
+.it.on .qty .st button{color:var(--g)}
+.qty .st button{width:30px;height:30px;border-radius:50%;border:0;background:#e7eee8;color:var(--g);display:grid;place-items:center;padding:0;cursor:pointer}
+.qty .st output{min-width:0;font-weight:600;font-size:15px;color:var(--g)}
+.qty svg{display:block;width:14px;height:14px}
 </style>
 </head>
 <body>
@@ -191,6 +195,9 @@ footer .sig{font-size:34px;display:block;margin-bottom:4px}
 </div></div>
 
 <script>
+// Pas de zoom : Safari ignore « user-scalable=no », on bloque le pincement (le double appui est bloqué par touch-action).
+['gesturestart','gesturechange'].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault(),{passive:false}));
+document.addEventListener('touchmove',e=>{ if(e.touches.length>1||(e.scale&&e.scale!==1)) e.preventDefault(); },{passive:false});
 // step = quantité ajoutée à chaque appui ; unit = prix pour 1 unité de step
 const CARTE=[
  ['Les entrées festives',[
@@ -209,7 +216,8 @@ const CARTE=[
 const items=CARTE.flatMap(s=>s[1]); items.forEach(i=>i.q=0);
 const eur=n=>(Math.round(n*100)/100).toLocaleString('fr-FR',{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2})+'€';
 const shortQ=i=>i.step<1?i.lab(i.q):String(i.q);
-document.getElementById('sections').innerHTML=CARTE.map(([h,its])=>`<div class="sec"><h3>${h}</h3>`+its.map(i=>{const k=items.indexOf(i);return `<div class="it" id="it${k}"><div class="tx"><div class="n">${i.n} <span class="p">${i.p}</span></div><div class="u" id="s${k}">${i.u}</div></div><div class="qty"><button type="button" class="add" data-k="${k}" data-d="1" aria-label="Ajouter">+</button><div class="st"><button type="button" data-k="${k}" data-d="-1" aria-label="Moins">−</button><output id="q${k}">0</output><button type="button" data-k="${k}" data-d="1" aria-label="Plus">+</button></div></div></div>`}).join('')+'</div>').join('');
+const SVG_P='<svg viewBox="0 0 14 14"><path d="M7 1.5v11M1.5 7h11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>', SVG_M='<svg viewBox="0 0 14 14"><path d="M1.5 7h11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+document.getElementById('sections').innerHTML=CARTE.map(([h,its])=>`<div class="sec"><h3>${h}</h3>`+its.map(i=>{const k=items.indexOf(i);return `<div class="it" id="it${k}"><div class="r1"><div class="n">${i.n}</div><div class="p">${i.p}</div></div><div class="r2"><div class="u" id="s${k}">${i.u}</div><div class="qty"><button type="button" class="add" data-k="${k}" data-d="1">${SVG_P}Ajouter</button><div class="st"><button type="button" data-k="${k}" data-d="-1" aria-label="Moins">${SVG_M}</button><output id="q${k}">0</output><button type="button" data-k="${k}" data-d="1" aria-label="Plus">${SVG_P}</button></div></div></div></div>`}).join('')+'</div>').join('');
 document.getElementById('sections').onclick=e=>{const b=e.target.closest('button[data-k]');if(!b)return;const i=items[b.dataset.k];i.q=Math.max(0,Math.round((i.q+b.dataset.d*i.step)*100)/100);upd();};
 function upd(){let t=0,n=0;items.forEach((i,k)=>{const line=i.q*i.price;t+=line;if(i.q)n++;
   document.getElementById('q'+k).textContent=i.q?shortQ(i):'0';document.getElementById('s'+k).textContent=i.q?i.lab(i.q)+' · '+eur(line):i.u;document.getElementById('it'+k).classList.toggle('on',!!i.q);});

@@ -520,6 +520,9 @@ html{touch-action:manipulation}
 </div>
 
 <script>
+// Pas de zoom : Safari ignore « user-scalable=no », on bloque le pincement (le double appui est bloqué par touch-action).
+['gesturestart','gesturechange'].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault(),{passive:false}));
+document.addEventListener('touchmove',e=>{ if(e.touches.length>1||(e.scale&&e.scale!==1)) e.preventDefault(); },{passive:false});
 // Toujours arriver sur l'accueil (Safari restaure sinon l'ancienne position ou l'ancre #menus)
 if('scrollRestoration' in history) history.scrollRestoration='manual';
 if(location.hash){ history.replaceState(null,'',location.pathname+location.search); }
