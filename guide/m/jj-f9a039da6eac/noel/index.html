@@ -80,15 +80,34 @@ footer .sig{font-size:34px;display:block;margin-bottom:4px}
 .sh{position:fixed;inset:0;z-index:30;background:rgba(11,30,20,.5);display:none;align-items:flex-end;justify-content:center}
 .sh.on{display:flex}
 .sh .in{background:var(--cr);width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:22px 20px calc(20px + env(safe-area-inset-bottom));max-height:92vh;overflow:auto}
-.sh h3{font-family:'Playfair Display',serif;font-size:26px;font-weight:600}
-.sh .rec{background:var(--paper);border-radius:12px;padding:12px 14px;margin:14px 0;font-size:14.5px}
-.sh .rec div{display:flex;justify-content:space-between;gap:10px;padding:3px 0}
-.sh .rec .tot{border-top:1px solid var(--line);margin-top:6px;padding-top:8px;font-weight:600}
-.sh label{display:block;font-size:13px;font-weight:600;color:var(--mut);margin:12px 0 6px}
+.in h3{font-family:'Playfair Display',serif;font-size:26px;font-weight:600}
+.in .rec{background:var(--paper);border-radius:12px;padding:12px 14px;margin:14px 0;font-size:14.5px}
+.in .rec div{display:flex;justify-content:space-between;gap:10px;padding:3px 0}
+.in .rec .tot{border-top:1px solid var(--line);margin-top:6px;padding-top:8px;font-weight:600}
+.in label{display:block;font-size:13px;font-weight:600;color:var(--mut);margin:12px 0 6px}
 .inp{width:100%;font:inherit;font-size:16px;color:var(--g);background:var(--paper);border:0;border-radius:12px;padding:13px 14px}
-.sh .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.sh .acts{display:grid;gap:10px;margin-top:18px}
+.in .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.in .acts{display:grid;gap:10px;margin-top:18px}
 .x{float:right;width:38px;height:38px;border-radius:50%;border:0;background:var(--paper);cursor:pointer;display:grid;place-items:center;color:var(--g)}
+/* Ordinateur : la carte à gauche, la commande à droite (comme Airbnb) */
+.side{display:none}
+@media(min-width:1000px){
+  body{padding-bottom:0}
+  .top{max-width:860px}
+  .arches{max-width:620px;margin-left:auto;margin-right:auto}
+  main.wrap{max-width:1120px;padding:0 32px;display:grid;grid-template-columns:minmax(0,1fr) 380px;column-gap:40px;align-items:start}
+  main.wrap>*{grid-column:1}
+  main.wrap>.side{display:block;grid-column:2;grid-row:1 / span 4;position:sticky;top:24px;margin-top:30px}
+  .side .in{background:var(--paper);border-radius:18px;padding:24px 22px;max-height:calc(100vh - 48px);overflow:auto}
+  .side .x{display:none}
+  .side .in .rec{background:var(--cr)}
+  .side .inp{background:var(--cr)}
+  .carte{padding:40px 44px 30px}
+  .it{grid-template-columns:minmax(0,1fr) auto auto;column-gap:22px}
+  .it .qty{grid-column:auto;margin:0}
+  .it .qty .sum{display:none}
+  .bar{display:none}
+}
 </style>
 </head>
 <body>
@@ -112,7 +131,7 @@ footer .sig{font-size:34px;display:block;margin-bottom:4px}
 <main class="wrap">
   <section class="carte" id="carte">
     <h2>La carte des fêtes</h2>
-    <div class="sub">Choisissez vos quantités, le total s’affiche en bas.</div>
+    <div class="sub">Choisissez vos quantités : le total s’affiche en direct.</div>
     <div id="sections"></div>
     <div class="note">Prix TTC · Dans la limite des disponibilités</div>
   </section>
@@ -129,6 +148,7 @@ footer .sig{font-size:34px;display:block;margin-bottom:4px}
     <a class="btn btn-c" href="carte-noel-jean-jerome.pdf" download><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>La carte en PDF</a>
     <button class="btn btn-c" id="share"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M8 8l4-4 4 4M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6"/></svg>Partager</button>
   </div>
+  <aside class="side" id="side"></aside>
 </main>
 
 <footer><span class="sig">Chef Jean Jérôme</span>Chef à domicile · Jouars-Pontchartrain (78)</footer>
@@ -178,12 +198,16 @@ const sh=document.getElementById('sh');
 document.getElementById('go').onclick=()=>{ if(!items.some(i=>i.q)){document.getElementById('carte').scrollIntoView({behavior:'smooth'});return;} sh.classList.add('on'); };
 document.getElementById('shx').onclick=()=>sh.classList.remove('on');
 sh.onclick=e=>{if(e.target===sh)sh.classList.remove('on')};
-document.getElementById('f').onsubmit=e=>{e.preventDefault();const v=id=>document.getElementById(id).value;
+document.getElementById('f').onsubmit=e=>{e.preventDefault(); if(!items.some(i=>i.q)){document.getElementById('carte').scrollIntoView({behavior:'smooth'});return;} const v=id=>document.getElementById(id).value;
   const body=`Bonjour Chef,\n\nJe souhaite commander :\n`+items.filter(i=>i.q).map(i=>`- ${i.n} : ${i.lab(i.q)} (${eur(i.q*i.price)})`).join('\n')+`\n\nTotal estimé : ${document.getElementById('bt').textContent}\nLivraison : ${v('jr')}\nAdresse : ${v('adr')}\n\n${v('nm')} · ${v('tel')}`;
   location.href='mailto:contact@jeanjerome-chefadomicile.com?subject='+encodeURIComponent('Commande de Noël · '+v('nm'))+'&body='+encodeURIComponent(body);};
 document.getElementById('share').onclick=async()=>{const d={title:'Collection de Noël · Chef Jean Jérôme',text:'La carte des fêtes du chef Jean Jérôme, livrée sous vide.',url:location.href};
   try{if(navigator.share)await navigator.share(d);else{await navigator.clipboard.writeText(location.href);document.getElementById('share').lastChild.textContent='Lien copié';}}catch(e){}};
 upd();
+// Ordinateur : la commande passe dans le panneau de droite
+const DESK=matchMedia('(min-width:1000px)'), shIn=sh.querySelector('.in'), side=document.getElementById('side');
+function place(){ if(DESK.matches){ side.appendChild(shIn); sh.classList.remove('on'); } else sh.appendChild(shIn); }
+DESK.addEventListener('change',place); place();
 </script>
 </body>
 </html>
