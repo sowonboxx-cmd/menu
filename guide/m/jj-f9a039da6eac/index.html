@@ -273,8 +273,6 @@ html{touch-action:manipulation}
 #devis .sec-t p{color:#b7c2b4}
 #devis .rule{background:var(--green-l)}
 #devis form{background:var(--cream);color:var(--ink);border-radius:22px;padding:24px 18px 20px;display:flex;flex-direction:column}
-#devis form>.q:nth-child(2){order:-2}
-#devis form>.q:nth-child(1){order:-1}
 #devis .q>.lab,#devis .q>label{text-align:center;font-family:'Playfair Display',serif;font-size:19px;font-weight:600;color:var(--ink);margin-bottom:12px}
 #devis .f2 label{font-size:13px}
 #devis .stepper{margin:0 auto;background:#fff}
@@ -302,6 +300,29 @@ html{touch-action:manipulation}
   #evenements{padding-top:56px!important}
 }
 
+/* Formulaire en liste (comme les réglages d'un iPhone) */
+.gt{font-size:13px;font-weight:600;color:var(--mut);margin:16px 0 6px 4px}
+.grp{background:#fff;border-radius:16px;overflow:hidden}
+.grp .r{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:52px;padding:0 14px;border-bottom:1px solid var(--line);font-size:15.5px;color:var(--ink);width:100%;background:#fff;border-left:0;border-right:0;border-top:0;font-family:inherit;text-align:left;cursor:pointer}
+.grp .r:last-child{border-bottom:0}
+.grp .r>span{flex:none}
+.grp .r input{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:16px;color:var(--ink);text-align:right;padding:14px 0;-webkit-appearance:none;appearance:none;outline:none}
+.grp .r input::placeholder{color:#a19a90}
+.grp .r input[type=date]{min-height:24px;display:block}
+.grp .r input[type=date]::-webkit-date-and-time-value{text-align:right}
+.stepper.mini{background:none!important;width:auto!important;margin:0!important;display:flex;align-items:center;gap:12px}
+.stepper.mini button{width:30px;height:30px;border-radius:50%;background:#eef2ea;color:var(--green);font-size:18px;display:grid;place-items:center;padding:0}
+.stepper.mini output{min-width:22px;font-family:Jost;font-size:16px;font-weight:600}
+.sw{width:44px;height:26px;border-radius:13px;background:#ddd6cb;position:relative;flex:none;transition:background .2s}
+.sw:after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .2s}
+.sw-r.on .sw{background:var(--green)}.sw-r.on .sw:after{left:21px}
+#devis .recap{margin-top:16px}
+.paneled .grp .r.step2{display:none}
+.paneled.s2 .grp .r.step2{display:flex}
+.paneled.s2 .xg{display:none}
+.paneled .gt,.paneled .grp{order:0}
+.paneled .grp .r input{background:transparent}
+
 /* Panneau de devis (ordinateur) */
 .m-grid{display:block}
 .side{display:none}
@@ -320,8 +341,6 @@ html{touch-action:manipulation}
   .side-h span{display:block;font-size:13.5px;margin-top:2px}
   .paneled{display:flex;flex-direction:column}
   .paneled>.q,.paneled>.f2{margin-bottom:14px}
-  .paneled>.q:nth-child(2){order:-2}
-  .paneled>.q:nth-child(1){order:-1}
   .paneled .q>.lab,.paneled .f2 label,.paneled .q>label{font-size:12px;margin-bottom:6px}
   .paneled .opts{gap:6px}
   .paneled .opts img{display:none}
@@ -474,12 +493,18 @@ html{touch-action:manipulation}
   <div class="wrap devis">
     <div class="sec-t"><h2>Votre devis,<br><i>tout de suite.</i></h2><p>Choisissez votre menu et le nombre d’invités : le prix s’affiche en direct. Le chef vous confirme sous 24 h.</p><div class="rule"></div></div>
     <form id="f" onsubmit="event.preventDefault();envoyer()">
-      <div class="q"><span class="lab">Nombre de convives</span><div class="stepper" data-st><button type="button" data-d="-1" aria-label="Moins">−</button><output class="nbv">8</output><button type="button" data-d="1" aria-label="Plus">+</button></div></div>
       <div class="q"><span class="lab">Votre menu</span><div class="opts" id="opts"></div></div>
-      <div class="q"><span class="lab">En plus, par convive</span><div class="chk" data-chk></div></div>
-      <div class="f2"><div><label for="dt">Date</label><input class="inp" id="dt" type="date"></div><div><label for="lieu">Ville</label><input class="inp" id="lieu" placeholder="Où a lieu le dîner"></div></div>
-      <div class="q step2"><label for="msg">L’occasion</label><textarea class="inp" id="msg" placeholder="Anniversaire, allergies, ambiance…"></textarea></div>
-      <div class="f2 step2"><div><label for="nm">Nom</label><input class="inp" id="nm" autocomplete="name" required></div><div><label for="tel">Téléphone</label><input class="inp" id="tel" type="tel" autocomplete="tel" required></div></div>
+      <div class="gt">Votre dîner</div>
+      <div class="grp">
+        <label class="r step2"><span>Nom</span><input id="nm" placeholder="Votre nom" autocomplete="name" required></label>
+        <div class="r"><span>Convives</span><div class="stepper mini" data-st><button type="button" data-d="-1" aria-label="Moins">−</button><output class="nbv">8</output><button type="button" data-d="1" aria-label="Plus">+</button></div></div>
+        <label class="r"><span>Date</span><input id="dt" type="date"></label>
+        <label class="r"><span>Ville</span><input id="lieu" placeholder="Où a lieu le dîner"></label>
+        <label class="r step2"><span>Occasion</span><input id="msg" placeholder="Anniversaire, allergies…"></label>
+        <label class="r step2"><span>Téléphone</span><input id="tel" type="tel" placeholder="06 …" autocomplete="tel" required></label>
+      </div>
+      <div class="gt xg">En plus, par convive</div>
+      <div class="grp xg" data-chk></div>
       <div class="recap"><span class="det"></span><b class="tot"></b></div>
       <button class="btn btn-k send" type="button" id="send">Envoyer la demande</button>
       <button class="back" type="button" id="back">Modifier mon dîner</button>
@@ -598,7 +623,7 @@ setInterval(()=>{ document.querySelectorAll('.slides').forEach(s=>{ const im=[..
 // Devis : choix communs à la section, à la barre et à la fenêtre
 document.getElementById('opts').innerHTML=MENUS.map((m,i)=>`<button type="button" data-pick="${i}"><img src="${m.ph[0]}" alt=""><span><b>${m.n}</b><small>${m.p}€ / convive</small></span></button>`).join('');
 document.getElementById('shMenus').innerHTML=MENUS.map((m,i)=>`<button type="button" data-pick="${i}"><img src="${m.ph[0]}" alt=""><span><b>${m.n}</b><small>${m.p}€</small></span><em>${m.s} · ${m.c.map(c=>c[0]).join(', ')}</em></button>`).join('');
-document.querySelectorAll('[data-chk]').forEach(el=>el.innerHTML=SUPP.map(([n,p],i)=>`<button type="button" data-s="${i}">${n} +${p}€</button>`).join(''));
+document.querySelectorAll('[data-chk]').forEach(el=>el.innerHTML=SUPP.map(([n,p],i)=>el.classList.contains('grp')?`<button type="button" class="r sw-r" data-s="${i}"><span>${n} · ${p}€</span><i class="sw"></i></button>`:`<button type="button" data-s="${i}">${n} +${p}€</button>`).join(''));
 document.addEventListener('click',e=>{
   const pk=e.target.closest('[data-pick]'); if(pk){ cur=+pk.dataset.pick; touched=true; calc(); if(!pk.closest('#track')){ track.scrollTo({left:cur*(track.querySelector('.carte').offsetWidth+14),behavior:'smooth'}); markTab(cur);} return; }
   const sb=e.target.closest('[data-s]'); if(sb){ touched=true; const i=+sb.dataset.s; sup.has(i)?sup.delete(i):sup.add(i); calc(); return; }
