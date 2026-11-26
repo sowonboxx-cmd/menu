@@ -287,6 +287,21 @@ html{touch-action:manipulation}
 #devis .contact{color:#fff}
 #devis .zones{color:#b7c2b4}
 
+/* Barre du bas : « Menus / Réserver » tant que rien n'est choisi, puis le prix */
+.bar-cta{display:none;flex:1;gap:10px}
+.bar-cta .btn{flex:1;height:48px;letter-spacing:.06em;font-size:14px}
+.btn-line2{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink)}
+.bar:not(.pick) .t,.bar:not(.pick) #barGo{display:none}
+.bar:not(.pick) .bar-cta{display:flex}
+@media(max-width:859px){
+  #devis{padding:44px 0 56px}
+  #devis .sec-t{margin-bottom:18px}
+  #devis .sec-t h2{font-size:28px}
+  #devis .sec-t p{font-size:14.5px;margin-top:8px}
+  #devis .rule{margin-top:12px}
+  #evenements{padding-top:56px!important}
+}
+
 /* Panneau de devis (ordinateur) */
 .m-grid{display:block}
 .side{display:none}
@@ -484,6 +499,7 @@ html{touch-action:manipulation}
 <div class="bar" id="bar">
   <button class="t" id="barT" type="button"><img id="barImg" alt=""><div class="bt"><b class="tot"></b><span class="det"></span></div><svg class="up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg></button>
   <button class="btn btn-k" id="barGo" type="button">Réserver</button>
+  <div class="bar-cta"><button class="btn btn-line2" type="button" data-go="menus">Menus</button><button class="btn btn-k" type="button" data-go="devis">Réserver</button></div>
 </div>
 
 <!-- Fenêtre : changer de menu, de nombre, de suppléments -->
@@ -531,7 +547,7 @@ const goTo=id=>{ if(id==='devis'&&matchMedia('(min-width:1024px)').matches) id='
 document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>goTo(b.dataset.go));
 
 // Bandeau Noël : compte à rebours, masqué après le 15 décembre
-(function(){ const fin=new Date(new Date().getFullYear(),11,15,23,59); const j=Math.ceil((fin-new Date())/864e5);
+(function(){ const now=new Date(), today=new Date(now.getFullYear(),now.getMonth(),now.getDate()); const j=Math.round((new Date(now.getFullYear(),11,15)-today)/864e5); // jours de calendrier jusqu'au 15 décembre (J-0 le jour même)
   const el=document.getElementById('noel'); if(j<0||new Date().getMonth()<10){el.style.display='none';return;}
   document.getElementById('noelJ').textContent= j===0?'Dernier jour pour commander':j===1?'Plus que 1 jour pour commander':`Commandez avant le 15 décembre · J-${j}`; })();
 
@@ -610,7 +626,7 @@ DESK.addEventListener('change',()=>{placeForm();setBar();}); placeForm();
 // Barre du bas : apparaît après l'accueil, ouvre la fenêtre ; disparaît sur le formulaire
 const bar=document.getElementById('bar'), sheet=document.getElementById('sheet'); let pastHero=false, inDevis=false, inMenus=false;
 let reachedMenus=false;
-function setBar(){ const d=matchMedia('(min-width:1024px)').matches; bar.classList.toggle('on', d ? (touched&&!inMenus) : (reachedMenus&&!inDevis)); }
+function setBar(){ const d=matchMedia('(min-width:1024px)').matches; bar.classList.toggle('pick',touched); bar.classList.toggle('on', d ? (touched&&!inMenus) : (reachedMenus&&!inDevis)); }
 addEventListener('scroll',()=>{ const r=document.getElementById('assiettes').getBoundingClientRect().top<innerHeight*0.45; if(r!==reachedMenus){ reachedMenus=r; setBar(); } },{passive:true});
 new IntersectionObserver(e=>{inMenus=e[0].isIntersecting;setBar();},{rootMargin:'-20% 0px -20% 0px'}).observe(document.getElementById('menus'));
 new IntersectionObserver(e=>{pastHero=!e[0].isIntersecting;setBar();},{threshold:.15}).observe(document.getElementById('top'));
