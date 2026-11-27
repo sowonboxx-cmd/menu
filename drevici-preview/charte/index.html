@@ -224,6 +224,9 @@ p.wide{max-width:none}
   <div class="venues" role="group" aria-label="Établissement affiché">${venues.map((v, i) => `<button type="button" aria-pressed="${i === 0}" data-v="${v.id}">${esc(v.label)}</button>`).join('')}</div>
   <h3>${esc(L.rond.title)}</h3><p class="muted wide">${esc(L.rond.usage)}</p><div class="grid g2">${logoTiles(L.rond, 230)}</div>
   <h3 style="margin-top:30px">${esc(L.texte.title)}</h3><p class="muted wide">${esc(L.texte.usage)}</p><div class="grid g3">${logoTiles(L.texte, 170)}</div>
+  ${L.alternatif ? `<h3 style="margin-top:30px">${esc(L.alternatif.title)}</h3><p class="muted wide">${esc(L.alternatif.usage)}</p><div class="grid g3" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr))">${L.alternatif.versions.map(ver => { const n = fill(L.alternatif.file, { key: ver.key }), base = `files/logos/${n}`;
+    return `<div class="tile"><div class="plate ${ver.bg}"><img src="${base}.svg${V}" alt="${esc(L.alternatif.title)} ${esc(ver.label)}" loading="lazy" style="max-height:150px"></div>
+      <div class="cap"><b>${esc(ver.label)}</b><span class="muted">${esc(ver.use)}</span><span class="file">${n}</span>${dl(base, ['svg', 'png'])}</div></div>`; }).join('')}</div>` : ''}
 </section>
 <section id="anime">${head('02', 'Logo animé', AN.title, AN.lead)}
   <div class="specs">${AN.specs.map(([a, b]) => `<div class="spec"><b>${esc(a)}</b><span>${esc(b)}</span></div>`).join('')}</div>
@@ -285,7 +288,7 @@ ${MN ? `<section id="menus">${head('03', 'Menu', MN.title, MN.lead)}
   <div class="tablewrap"><table><tbody>
     <tr><td>Règle de nommage</td><td><code>${esc(X.naming)}</code></td></tr>
     <tr><td>Exemple</td><td><code>${esc(X.example)}</code></td></tr>
-    <tr><td>Logos</td><td>${venues.length} établissements × ${L.rond.versions.length + L.texte.versions.length} versions, en SVG et PNG</td></tr>
+    <tr><td>Logos</td><td>${venues.length} établissements × ${L.rond.versions.length + L.texte.versions.length} versions${L.alternatif ? ` + le logo alternatif en ${L.alternatif.versions.length} versions` : ''}, en SVG et PNG</td></tr>
     <tr><td>Logo animé</td><td>${venues.length} établissements × 9 formats (vidéos avec et sans son, transparent, GIF) + le son en WAV et MP3</td></tr>
     <tr><td>Icônes</td><td>${I.items.length} icônes × ${I.colors.length} couleurs, en SVG et PNG</td></tr>
     ${MN ? `<tr><td>Menu</td><td>La carte en français et en anglais (A4 et A3) et ${MN.items.length - 2} couvertures, en PDF haute définition avec fond perdu</td></tr>` : ''}
@@ -318,6 +321,8 @@ ${MN ? `<section id="menus">${head('03', 'Menu', MN.title, MN.lead)}
     [['rond', '01_Logo_Rond'], ['texte', '02_Logo_Texte']].forEach(([g, dir]) => venues.forEach(v => C.logos[g].versions.forEach(ver => {
       const n = fill(C.logos[g].file, { venue: v.id, key: ver.key });
       ['svg', 'png'].forEach(x => add(`files/logos/${n}.${x}`, `${dir}/${x.toUpperCase()}/${n}.${x}`)); })));
+    if (C.logos.alternatif) C.logos.alternatif.versions.forEach(ver => { const n = fill(C.logos.alternatif.file, { key: ver.key });
+      ['svg', 'png'].forEach(x => add(`files/logos/${n}.${x}`, `02b_Logo_Alternatif/${x.toUpperCase()}/${n}.${x}`)); });
     C.icones.items.forEach(it => C.icones.colors.forEach(c => { const n = fill(C.icones.file, { key: it.key, color: c });
       ['svg', 'png'].forEach(x => add(`files/icones/${n}.${x}`, `04_Icones/${x.toUpperCase()}/${n}.${x}`)); }));
     [{ file: C.mascotte.hero }, ...C.mascotte.items].forEach(m => add(`files/mascotte/${m.file}.png`, `05_Mascotte/${m.file}.png`));
