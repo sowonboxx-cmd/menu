@@ -1,0 +1,18 @@
+// Mot magique Instagram (commentaire → message privé avec le lien). Voir workers/insta-mots.js et sql/insta-mots.sql.
+// Servi sur insta.beltab.app ; adresse à donner à Meta : https://insta.beltab.app/webhook
+// Secrets à créer dans Cloudflare (jamais dans ce fichier) :
+//   SUPABASE_SERVICE_KEY, META_APP_SECRET (clé secrète de l'app Instagram, dans Meta), VERIFY_TOKEN (mot de passe au choix, le même dans Meta)
+// Tâche planifiée : chaque jour à 4 h 17 (UTC), renouvellement des jetons Instagram de plus de 30 jours.
+// Commande de déploiement dans Cloudflare :
+//   npx wrangler deploy --config wrangler.insta-mots.jsonc
+{
+  "name": "insta-mots",
+  "compatibility_date": "2026-10-01",
+  "main": "./workers/insta-mots.js",
+  "routes": [{ "pattern": "insta.beltab.app", "custom_domain": true }],
+  "triggers": { "crons": ["17 4 * * *"] },
+  "vars": {
+    "SUPABASE_URL": "https://fdbzzkzfipzabryfanun.supabase.co",
+    "GRAPH_VERSION": "v23.0"
+  }
+}
