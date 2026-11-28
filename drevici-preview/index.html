@@ -11223,6 +11223,29 @@ async function renderGbizPageToBlob(css, pages, i, restName, bg){
 // Instagram : même moteur robuste que Google Business (délai de
 // sécurité + repli sans foreignObjectRendering), mais dimensions et
 // police propres au format story (voir buildInstaCSS/buildInstaPages).
+// Texte des images Instagram sur iPhone : html2canvas place chaque MOT à la position mesurée par le navigateur,
+// puis le dessine d'un bloc. Sur iPhone, le mot dessiné ne fait pas exactement la largeur mesurée : les espaces
+// disparaissent et les lettres se chevauchent (story Huîtres, 28/11 : « Ellessontaccompagnées », « Les6 — 16 »).
+// 1) On charge explicitement chaque police utilisée (graisse, italique) avant la capture, au lieu d'espérer
+//    que document.fonts.ready les ait déjà : elles ne se chargent qu'une fois la page d'export ajoutée.
+// 2) Un espacement de 0,01 px (invisible) fait passer html2canvas en mode « lettre par lettre » : chaque lettre
+//    est posée à sa propre position mesurée, donc plus aucun chevauchement possible. L'espacement déjà réglé
+//    dans le style (titres) n'est pas touché.
+async function prepTextForCanvas(root){
+  const specs = new Map();
+  root.querySelectorAll('*').forEach(el=>{
+    const cs = getComputedStyle(el);
+    if(!el.childNodes.length) return;
+    const ls = cs.letterSpacing;
+    if(ls === 'normal' || parseFloat(ls) === 0) el.style.letterSpacing = '0.01px';
+    const txt = el.textContent.trim();
+    if(txt) specs.set(`${cs.fontStyle} ${cs.fontWeight} 16px ${cs.fontFamily}`, txt.slice(0, 40));
+  });
+  try{ await Promise.race([ Promise.all([...specs].map(([f,t])=>document.fonts.load(f, t).catch(()=>{}))), new Promise(r=>setTimeout(r, 4000)) ]); }catch(e){}
+  await document.fonts.ready;
+  await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+  await new Promise(r=>setTimeout(r,150));
+}
 async function renderInstaPageToBlob(css, pages, i, restName, bg, ratio, variantLabel, targetW, renderW){
   ratio = ratio || INSTA_RATIO;
   const RW = renderW || INSTA_RENDER_W; // plus large que d'habitude quand une bande de couleur est ajoutée
@@ -11237,8 +11260,7 @@ async function renderInstaPageToBlob(css, pages, i, restName, bg, ratio, variant
   document.body.appendChild(holder);
   const pageEl = holder.querySelector(`#instaPage${i}`);
   try{
-    await document.fonts.ready;
-    await new Promise(r=>setTimeout(r,150));
+    await prepTextForCanvas(pageEl);
     const withTimeout = (p, ms) => Promise.race([
       p,
       new Promise((_,rej)=>setTimeout(()=>rej(new Error('html2canvas timeout')), ms))
